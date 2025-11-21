@@ -86,6 +86,8 @@ exclude = [
     "venv",
     "*.egg-info",
     ".pytest_cache",
+    "_archive",
+    "tools",
 ]
 
 [tool.ruff.lint]
