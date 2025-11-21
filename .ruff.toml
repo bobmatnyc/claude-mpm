@@ -32,7 +32,7 @@ select = [
 # Specific rules to catch duplicate imports and scope issues
 extend-select = [
     "F401",  # Unused imports
-    "F402",  # Import shadowed by loop variable  
+    "F402",  # Import shadowed by loop variable
     "F403",  # Star imports
     "F404",  # Late future import
     "F405",  # Star import undefined names
@@ -121,7 +121,7 @@ exclude = [
     "__pycache__",
     ".venv",
     "venv",
-    "env", 
+    "env",
     ".env",
     "build",
     "dist",
@@ -141,7 +141,7 @@ exclude = [
 "src/claude_mpm/utils/*" = ["E722", "E741"]  # Allow bare except in utilities
 "src/claude_mpm/validation/*" = ["E722"]  # Allow bare except in validation code
 "src/claude_mpm/agents/*" = ["PLR0911", "PTH123", "SIM102", "RUF012"]  # Allow agent complexity patterns
-"src/claude_mpm/cli/*" = ["SIM102", "PTH123", "E722"]  # Allow CLI patterns  
+"src/claude_mpm/cli/*" = ["SIM102", "PTH123", "E722"]  # Allow CLI patterns
 "src/claude_mpm/core/*" = ["RUF012"]  # Allow mutable class attributes in core
 
 # Import settings

@@ -96,7 +96,7 @@ def main():
             if update_agent_tags_format(agent_file):
                 updated_files += 1
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print("Tag format update complete!")
     print(f"Files processed: {total_files}")
     print(f"Files updated: {updated_files}")

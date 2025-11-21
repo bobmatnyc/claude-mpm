@@ -218,14 +218,14 @@ def export_activity_report(project_path: Path, report: Dict, export_path: str) -
     content = f"""# Activity Report
 
 **Generated**: {timestamp}
-**Analysis Period**: {report.get('period', 'Last 30 days')}
+**Analysis Period**: {report.get("period", "Last 30 days")}
 
 ## Summary
 
-- **Total Commits**: {summary.get('total_commits', 0)}
-- **Active Contributors**: {summary.get('total_authors', 0)}
-- **Files Modified**: {summary.get('files_changed', 0)}
-- **Current Branch**: {summary.get('current_branch', 'unknown')}
+- **Total Commits**: {summary.get("total_commits", 0)}
+- **Active Contributors**: {summary.get("total_authors", 0)}
+- **Files Modified**: {summary.get("files_changed", 0)}
+- **Current Branch**: {summary.get("current_branch", "unknown")}
 """
 
     if summary.get("has_uncommitted"):
@@ -301,13 +301,13 @@ def append_activity_notes(claude_md_path: Path, report: Dict) -> None:
 ## 📈 Recent Activity Summary
 
 **Last Updated**: {timestamp}
-**Analysis Period**: {report.get('period', 'Last 30 days')}
+**Analysis Period**: {report.get("period", "Last 30 days")}
 
 ### Activity Metrics
-- **Commits**: {summary.get('total_commits', 0)}
-- **Contributors**: {summary.get('total_authors', 0)}
-- **Files Changed**: {summary.get('files_changed', 0)}
-- **Current Branch**: {summary.get('current_branch', 'unknown')}
+- **Commits**: {summary.get("total_commits", 0)}
+- **Contributors**: {summary.get("total_authors", 0)}
+- **Files Changed**: {summary.get("files_changed", 0)}
+- **Current Branch**: {summary.get("current_branch", "unknown")}
 """
 
     if summary.get("has_uncommitted"):

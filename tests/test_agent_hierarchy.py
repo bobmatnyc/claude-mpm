@@ -56,7 +56,7 @@ def create_test_events():
                 "data": {
                     "agent_type": "research",
                     "event_index": i,
-                    "message": f"Research event {i+1}",
+                    "message": f"Research event {i + 1}",
                 },
             }
         )
@@ -101,7 +101,7 @@ def create_test_events():
                 "data": {
                     "agent_type": "engineer",
                     "event_index": i,
-                    "message": f"Engineer event {i+1}",
+                    "message": f"Engineer event {i + 1}",
                 },
             }
         )
@@ -120,7 +120,7 @@ def create_test_events():
                     "agent_type": "security",
                     "subagent_type": "security",
                     "event_index": i,
-                    "message": f"Security audit event {i+1}",
+                    "message": f"Security audit event {i + 1}",
                 },
             }
         )

@@ -188,7 +188,6 @@ class AgentCheck(BaseDiagnosticCheck):
     def _check_agent_versions(self) -> DiagnosticResult:
         """Check if deployed agents are up-to-date."""
         try:
-
             from ....services.agents.deployment.agent_version_manager import (
                 AgentVersionManager,
             )
@@ -258,7 +257,6 @@ class AgentCheck(BaseDiagnosticCheck):
     def _validate_agents(self) -> DiagnosticResult:
         """Validate agent configurations."""
         try:
-
             from ....services.agents.deployment.agent_validator import AgentValidator
 
             AgentValidator()

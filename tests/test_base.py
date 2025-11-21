@@ -3,6 +3,7 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test for object db"""
+
 from gitdb import (
     IStream,
     ODeltaPackInfo,
@@ -22,7 +23,6 @@ from gitdb.util import NULL_BIN_SHA
 
 
 class TestBaseTypes(TestBase):
-
     def test_streams(self):
         # test info
         sha = NULL_BIN_SHA

@@ -354,9 +354,9 @@ class TestAgentCategory:
             "custom",
         ]
         for category in expected_categories:
-            assert any(
-                c.value == category for c in AgentCategory
-            ), f"Category '{category}' not found in AgentCategory enum"
+            assert any(c.value == category for c in AgentCategory), (
+                f"Category '{category}' not found in AgentCategory enum"
+            )
 
     def test_core_categories(self):
         """Test core agent categories exist."""

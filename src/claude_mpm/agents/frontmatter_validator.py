@@ -631,7 +631,7 @@ class FrontmatterValidator:
                         )
 
                         if corrected_content != frontmatter_content:
-                            new_content = f"---\n{corrected_content}\n---\n{content[end_marker + 5:]}"
+                            new_content = f"---\n{corrected_content}\n---\n{content[end_marker + 5 :]}"
 
                             with file_path.open("w") as f:
                                 f.write(new_content)

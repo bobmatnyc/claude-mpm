@@ -1,6 +1,6 @@
 /**
  * Test JavaScript file for Code Viewer functionality.
- * 
+ *
  * This file contains various JavaScript constructs to test AST parsing:
  * - Classes
  * - Functions
@@ -127,18 +127,18 @@ async function asyncFunction(url) {
  */
 function complexFunction(data) {
     const result = {};
-    
+
     data.forEach(item => {
         const category = item.category || 'unknown';
         if (!result[category]) {
             result[category] = [];
         }
-        
+
         if (item.name) {
             result[category].push(item.name);
         }
     });
-    
+
     return result;
 }
 
@@ -164,7 +164,7 @@ const functionExpression = function(x) {
 // IIFE (Immediately Invoked Function Expression)
 const moduleResult = (function() {
     const privateVar = 'private';
-    
+
     return {
         getPrivate: () => privateVar,
         publicMethod: function() {
@@ -194,16 +194,16 @@ const message = `API URL: ${apiUrl}, Timeout: ${timeout}ms`;
 if (typeof window === 'undefined') {
     // Node.js environment
     console.log('Running in Node.js');
-    
+
     const testInstance = new TestClass('TestInstance');
     console.log(testInstance.publicMethod('World'));
-    
+
     const testData = [
         { name: 'item1', category: 'A' },
         { name: 'item2', category: 'B' },
         { name: 'item3', category: 'A' }
     ];
-    
+
     const grouped = complexFunction(testData);
     console.log(grouped);
 } else {

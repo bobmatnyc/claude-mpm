@@ -693,9 +693,9 @@ def debug_hooks(args, logger):
                     max_time = max(times)
 
                     print(f"\n   {hook.name}:")
-                    print(f"     Average: {avg_time*1000:.2f}ms")
-                    print(f"     Min: {min_time*1000:.2f}ms")
-                    print(f"     Max: {max_time*1000:.2f}ms")
+                    print(f"     Average: {avg_time * 1000:.2f}ms")
+                    print(f"     Min: {min_time * 1000:.2f}ms")
+                    print(f"     Max: {max_time * 1000:.2f}ms")
 
         else:
             # Default: show summary
@@ -767,7 +767,7 @@ def debug_cache(args, logger):
             print(f"   Location: {cache_dir}")
             print(f"   Total Files: {file_count}")
             print(
-                f"   Total Size: {total_size:,} bytes ({total_size/1024/1024:.2f} MB)"
+                f"   Total Size: {total_size:,} bytes ({total_size / 1024 / 1024:.2f} MB)"
             )
 
             print("\n📁 Categories:")
@@ -871,7 +871,7 @@ def debug_cache(args, logger):
 
                 print(f"Location: {cache_dir}")
                 print(f"Files: {file_count}")
-                print(f"Size: {total_size:,} bytes ({total_size/1024/1024:.2f} MB)")
+                print(f"Size: {total_size:,} bytes ({total_size / 1024 / 1024:.2f} MB)")
             else:
                 print("No cache found")
 
@@ -998,22 +998,22 @@ def debug_performance(args, logger):
             # Memory info
             mem = psutil.virtual_memory()
             print("\n💾 Memory:")
-            print(f"   Total: {mem.total/1024/1024/1024:.2f} GB")
-            print(f"   Used: {mem.used/1024/1024/1024:.2f} GB ({mem.percent}%)")
-            print(f"   Available: {mem.available/1024/1024/1024:.2f} GB")
+            print(f"   Total: {mem.total / 1024 / 1024 / 1024:.2f} GB")
+            print(f"   Used: {mem.used / 1024 / 1024 / 1024:.2f} GB ({mem.percent}%)")
+            print(f"   Available: {mem.available / 1024 / 1024 / 1024:.2f} GB")
 
             # Disk info
             disk = psutil.disk_usage("/")
             print("\n💿 Disk:")
-            print(f"   Total: {disk.total/1024/1024/1024:.2f} GB")
-            print(f"   Used: {disk.used/1024/1024/1024:.2f} GB ({disk.percent}%)")
-            print(f"   Free: {disk.free/1024/1024/1024:.2f} GB")
+            print(f"   Total: {disk.total / 1024 / 1024 / 1024:.2f} GB")
+            print(f"   Used: {disk.used / 1024 / 1024 / 1024:.2f} GB ({disk.percent}%)")
+            print(f"   Free: {disk.free / 1024 / 1024 / 1024:.2f} GB")
 
             # Process info
             process = psutil.Process()
             print("\n📦 Current Process:")
             print(f"   PID: {process.pid}")
-            print(f"   Memory: {process.memory_info().rss/1024/1024:.2f} MB")
+            print(f"   Memory: {process.memory_info().rss / 1024 / 1024:.2f} MB")
             print(f"   CPU: {process.cpu_percent()}%")
             print(f"   Threads: {process.num_threads()}")
 

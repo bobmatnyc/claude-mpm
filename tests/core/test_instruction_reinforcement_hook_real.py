@@ -106,9 +106,9 @@ class TestInstructionReinforcementHookReal:
             params = {
                 "todos": [
                     {
-                        "content": f"Task {i+1}",
+                        "content": f"Task {i + 1}",
                         "status": "pending",
-                        "activeForm": f"Working on task {i+1}",
+                        "activeForm": f"Working on task {i + 1}",
                     }
                 ]
             }
@@ -154,9 +154,9 @@ class TestInstructionReinforcementHookReal:
             params = {
                 "todos": [
                     {
-                        "content": f"Task {i+1}",
+                        "content": f"Task {i + 1}",
                         "status": "pending",
-                        "activeForm": f"Working on task {i+1}",
+                        "activeForm": f"Working on task {i + 1}",
                     }
                 ]
             }
@@ -181,9 +181,9 @@ class TestInstructionReinforcementHookReal:
             params = {
                 "todos": [
                     {
-                        "content": f"Task {i+1}",
+                        "content": f"Task {i + 1}",
                         "status": "pending",
-                        "activeForm": f"Working on task {i+1}",
+                        "activeForm": f"Working on task {i + 1}",
                     }
                 ]
             }

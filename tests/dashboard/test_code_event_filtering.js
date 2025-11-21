@@ -39,18 +39,18 @@ function testCodeEventFiltering() {
     ];
 
     console.log('Testing code event filtering logic...\n');
-    
+
     let passed = 0;
     let failed = 0;
-    
+
     testCases.forEach(testCase => {
         // Simulate the filtering logic from socket-client.js
         const isCodeEvent = testCase.input.type && testCase.input.type.startsWith('code:');
         const shouldFilter = isCodeEvent; // Code events should be filtered out
         const wouldAddToEvents = !shouldFilter;
-        
+
         const testPassed = wouldAddToEvents === testCase.shouldAddToEvents;
-        
+
         if (testPassed) {
             console.log(`✅ PASS: ${testCase.description}`);
             passed++;
@@ -61,11 +61,11 @@ function testCodeEventFiltering() {
             failed++;
         }
     });
-    
+
     console.log(`\n========================================`);
     console.log(`Test Results: ${passed} passed, ${failed} failed`);
     console.log(`========================================\n`);
-    
+
     if (failed === 0) {
         console.log('✅ All tests passed! Code events will be properly filtered.');
         console.log('\nThe fix ensures that:');

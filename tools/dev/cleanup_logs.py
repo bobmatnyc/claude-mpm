@@ -326,8 +326,7 @@ Examples:
                 operations["archives"] = {"removed": removed, "space_mb": space}
                 if not args.quiet and not args.json:
                     print(
-                        f"Archives: Removed {removed} files, "
-                        f"freed {format_size(space)}"
+                        f"Archives: Removed {removed} files, freed {format_size(space)}"
                     )
 
             if args.old_logs:

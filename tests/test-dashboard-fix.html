@@ -51,21 +51,21 @@
 </head>
 <body>
     <h1>Dashboard JavaScript Fix Verification</h1>
-    
+
     <div class="test-section">
         <h2>Test 1: toggleFullEventSection</h2>
         <p>This button simulates the inline onclick handler that was causing the error.</p>
         <button class="test-button" onclick="testToggleFullEvent()">Test toggleFullEventSection</button>
         <div id="toggle-status" class="status"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Test 2: showFileViewerModal</h2>
         <p>This button tests the file viewer modal function.</p>
         <button class="test-button" onclick="testShowFileViewer()">Test showFileViewerModal</button>
         <div id="viewer-status" class="status"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Test 3: Check Global Objects</h2>
         <button class="test-button" onclick="checkGlobals()">Check Global Objects</button>
@@ -80,7 +80,7 @@
                 if (typeof window.toggleFullEventSection === 'function') {
                     statusEl.className = 'status success';
                     statusEl.innerHTML = '✅ SUCCESS: window.toggleFullEventSection is defined as a function';
-                    
+
                     // Try calling it (it should handle missing elements gracefully)
                     window.toggleFullEventSection('test-section', document.createElement('button'));
                     statusEl.innerHTML += '<br>✅ Function can be called without errors';
@@ -96,7 +96,7 @@
                 statusEl.innerHTML = `❌ ERROR: ${error.message}`;
             }
         }
-        
+
         function testShowFileViewer() {
             const statusEl = document.getElementById('viewer-status');
             try {
@@ -104,7 +104,7 @@
                 if (typeof window.showFileViewerModal === 'function') {
                     statusEl.className = 'status success';
                     statusEl.innerHTML = '✅ SUCCESS: window.showFileViewerModal is defined as a function';
-                    
+
                     // Note: We can't actually call it without proper setup, but we verified it exists
                     statusEl.innerHTML += '<br>ℹ️ Note: Full functionality requires Socket.IO connection';
                 } else {
@@ -116,22 +116,22 @@
                 statusEl.innerHTML = `❌ ERROR: ${error.message}`;
             }
         }
-        
+
         function checkGlobals() {
             const statusEl = document.getElementById('globals-status');
             const checks = [];
-            
+
             // Check UnifiedDataViewer class
             if (typeof window.UnifiedDataViewer === 'function') {
                 checks.push('✅ UnifiedDataViewer class is available');
             } else {
                 checks.push('❌ UnifiedDataViewer class is NOT available');
             }
-            
+
             // Check unifiedDataViewer instance
             if (window.unifiedDataViewer && typeof window.unifiedDataViewer === 'object') {
                 checks.push('✅ unifiedDataViewer instance exists');
-                
+
                 // Check methods on the instance
                 if (typeof window.unifiedDataViewer.toggleFullEventSection === 'function') {
                     checks.push('✅ unifiedDataViewer.toggleFullEventSection method exists');
@@ -142,38 +142,38 @@
             } else {
                 checks.push('❌ unifiedDataViewer instance does NOT exist');
             }
-            
+
             // Check global fallback functions
             if (typeof window.toggleFullEventSection === 'function') {
                 checks.push('✅ Global toggleFullEventSection function exists');
             } else {
                 checks.push('❌ Global toggleFullEventSection function does NOT exist');
             }
-            
+
             if (typeof window.toggleJsonSection === 'function') {
                 checks.push('✅ Global toggleJsonSection function exists');
             } else {
                 checks.push('❌ Global toggleJsonSection function does NOT exist');
             }
-            
+
             // Check file viewer functions
             if (typeof window.showFileViewerModal === 'function') {
                 checks.push('✅ showFileViewerModal function exists');
             } else {
                 checks.push('❌ showFileViewerModal function does NOT exist');
             }
-            
+
             if (typeof window.hideFileViewerModal === 'function') {
                 checks.push('✅ hideFileViewerModal function exists');
             } else {
                 checks.push('❌ hideFileViewerModal function does NOT exist');
             }
-            
+
             const hasErrors = checks.some(check => check.includes('❌'));
             statusEl.className = hasErrors ? 'status error' : 'status success';
             statusEl.innerHTML = checks.join('<br>');
         }
-        
+
         // Load the dashboard scripts
         function loadDashboardScripts() {
             // First load the unified-data-viewer
@@ -181,20 +181,20 @@
             script1.src = '/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static/dist/components/unified-data-viewer.js';
             script1.type = 'module';
             document.head.appendChild(script1);
-            
+
             // Then load the main dashboard script
             const script2 = document.createElement('script');
             script2.src = '/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static/dist/dashboard.js';
             script2.type = 'module';
             document.head.appendChild(script2);
-            
+
             // Wait a bit for scripts to load
             setTimeout(() => {
                 console.log('Scripts loaded, checking global objects...');
                 checkGlobals();
             }, 1000);
         }
-        
+
         // Auto-load scripts on page load
         window.addEventListener('DOMContentLoaded', loadDashboardScripts);
     </script>

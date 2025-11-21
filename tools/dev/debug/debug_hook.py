@@ -16,7 +16,7 @@ def main():
 
         # Log the raw input
         with open(log_file, "a") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"Timestamp: {datetime.now().isoformat()}\n")
             f.write(f"Raw input length: {len(input_data)} bytes\n")
             f.write(f"Raw input:\n{input_data}\n")

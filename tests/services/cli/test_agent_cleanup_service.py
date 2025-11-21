@@ -196,9 +196,7 @@ class TestAgentCleanupService:
             mock_agents_dir
         )
         mock_path.home.return_value = MagicMock()
-        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = (
-            mock_agents_dir
-        )
+        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = mock_agents_dir
 
         result = cleanup_service.clean_orphaned_agents()
 
@@ -394,9 +392,7 @@ class TestAgentCleanupService:
             mock_agents_dir
         )
         mock_path.home.return_value = MagicMock()
-        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = (
-            mock_agents_dir
-        )
+        mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = mock_agents_dir
 
         result = cleanup_service.validate_cleanup()
 
@@ -411,9 +407,7 @@ class TestAgentCleanupService:
             mock_project_dir.exists.return_value = True
 
             mock_path.cwd.return_value = MagicMock()
-            mock_path.cwd.return_value.__truediv__.return_value.__truediv__.return_value = (
-                mock_project_dir
-            )
+            mock_path.cwd.return_value.__truediv__.return_value.__truediv__.return_value = mock_project_dir
 
             agents_dir = cleanup_service._determine_agents_dir()
 
@@ -428,13 +422,9 @@ class TestAgentCleanupService:
             mock_home_dir = MagicMock()
 
             mock_path.cwd.return_value = MagicMock()
-            mock_path.cwd.return_value.__truediv__.return_value.__truediv__.return_value = (
-                mock_project_dir
-            )
+            mock_path.cwd.return_value.__truediv__.return_value.__truediv__.return_value = mock_project_dir
             mock_path.home.return_value = MagicMock()
-            mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = (
-                mock_home_dir
-            )
+            mock_path.home.return_value.__truediv__.return_value.__truediv__.return_value = mock_home_dir
 
             agents_dir = cleanup_service._determine_agents_dir()
 

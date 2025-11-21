@@ -2,7 +2,6 @@ from .lib import TestBase
 
 
 class TestTutorial(TestBase):
-
     def test_example(self):
         # Memory Managers
         ##################

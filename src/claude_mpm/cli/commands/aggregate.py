@@ -365,7 +365,7 @@ def view_command_legacy(args):
             print(f"   Tools: {len(delegation.tool_operations)}")
             print(f"   Files: {len(delegation.file_changes)}")
             if delegation.duration_ms:
-                print(f"   Duration: {delegation.duration_ms/1000:.1f}s")
+                print(f"   Duration: {delegation.duration_ms / 1000:.1f}s")
             print(f"   Status: {'✅ Success' if delegation.success else '❌ Failed'}")
             if delegation.error:
                 print(f"   Error: {delegation.error}")

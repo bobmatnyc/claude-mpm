@@ -20,16 +20,16 @@ def convert_json_to_markdown(agent_data: Dict[str, Any]) -> str:
     # Build frontmatter
     frontmatter = []
     frontmatter.append("---")
-    frontmatter.append(f'name: {agent_data.get("agent_id", "unknown")}')
-    frontmatter.append(f'description: {metadata.get("description", "No description")}')
-    frontmatter.append(f'version: {agent_data.get("agent_version", "1.0.0")}')
-    frontmatter.append(f'base_version: {agent_data.get("base_version", "0.3.0")}')
-    frontmatter.append(f'author: {metadata.get("author", "claude-mpm-project")}')
+    frontmatter.append(f"name: {agent_data.get('agent_id', 'unknown')}")
+    frontmatter.append(f"description: {metadata.get('description', 'No description')}")
+    frontmatter.append(f"version: {agent_data.get('agent_version', '1.0.0')}")
+    frontmatter.append(f"base_version: {agent_data.get('base_version', '0.3.0')}")
+    frontmatter.append(f"author: {metadata.get('author', 'claude-mpm-project')}")
 
     # Handle tools - no spaces after commas!
     tools = capabilities.get("tools", [])
     if tools:
-        frontmatter.append(f'tools: {",".join(tools)}')
+        frontmatter.append(f"tools: {','.join(tools)}")
 
     # Handle model
     model = capabilities.get("model", "sonnet")

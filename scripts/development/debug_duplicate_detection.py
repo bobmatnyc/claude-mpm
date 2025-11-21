@@ -34,7 +34,7 @@ def debug_duplicate_detection():
 
         # Add same memory 3 times and debug each step
         for i in range(3):
-            print(f"--- Attempt {i+1} ---")
+            print(f"--- Attempt {i + 1} ---")
 
             # Load current memory before addition
             current_memory = memory_manager.load_agent_memory(agent_id)
@@ -86,7 +86,7 @@ def debug_duplicate_detection():
             result = memory_manager._add_learnings_to_memory(agent_id, [test_memory])
             current = memory_manager.load_agent_memory(agent_id)
             count = current.count(test_memory)
-            print(f"Direct call {i+1}: Success={result}, Occurrences={count}")
+            print(f"Direct call {i + 1}: Success={result}, Occurrences={count}")
 
     finally:
         # Cleanup

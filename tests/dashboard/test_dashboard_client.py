@@ -167,7 +167,7 @@ async def run_multiple_clients(num_clients: int = 3):
     # Create clients
     clients = []
     for i in range(num_clients):
-        client = DashboardStabilityTester(f"Client-{i+1}")
+        client = DashboardStabilityTester(f"Client-{i + 1}")
         clients.append(client)
 
     # Run all clients concurrently
@@ -181,9 +181,9 @@ async def run_multiple_clients(num_clients: int = 3):
 
     for i, result in enumerate(results):
         if isinstance(result, Exception):
-            print(f"Client-{i+1}: ❌ Failed with error: {result}")
+            print(f"Client-{i + 1}: ❌ Failed with error: {result}")
         else:
-            print(f"Client-{i+1}: ✅ Completed successfully")
+            print(f"Client-{i + 1}: ✅ Completed successfully")
             for test_name, test_result in result.items():
                 print(f"  {test_name}: {test_result}")
 

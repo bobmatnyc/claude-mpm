@@ -9,7 +9,6 @@ Demonstrates the complete enhanced memory integration system:
 4. Agent capabilities loader indicating memory-enhanced agents
 """
 
-
 import yaml
 
 

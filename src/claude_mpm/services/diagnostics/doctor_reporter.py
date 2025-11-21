@@ -271,15 +271,17 @@ class DoctorReporter:
             + summary.skipped_count
         )
         if total > 0:
-            print(f"| ✅ OK | {summary.ok_count} | {summary.ok_count*100//total}% |")
             print(
-                f"| ⚠️  Warning | {summary.warning_count} | {summary.warning_count*100//total}% |"
+                f"| ✅ OK | {summary.ok_count} | {summary.ok_count * 100 // total}% |"
             )
             print(
-                f"| ❌ Error | {summary.error_count} | {summary.error_count*100//total}% |"
+                f"| ⚠️  Warning | {summary.warning_count} | {summary.warning_count * 100 // total}% |"
             )
             print(
-                f"| ⏭️  Skipped | {summary.skipped_count} | {summary.skipped_count*100//total}% |"
+                f"| ❌ Error | {summary.error_count} | {summary.error_count * 100 // total}% |"
+            )
+            print(
+                f"| ⏭️  Skipped | {summary.skipped_count} | {summary.skipped_count * 100 // total}% |"
             )
         print()
 

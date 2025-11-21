@@ -192,8 +192,8 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         for i, (session, agent) in enumerate(zip(sessions, agents)):
             tracker.track_response(
                 agent_name=agent,
-                request=f"Request {i+1}",
-                response=f"Response {i+1}",
+                request=f"Request {i + 1}",
+                response=f"Response {i + 1}",
                 session_id=session,
             )
             time.sleep(0.01)  # Small delay to ensure different timestamps
@@ -450,7 +450,7 @@ def run_performance_test():
         creation_time = time.time() - start_time
 
         print(f"   Created {num_responses} responses in {creation_time:.2f}s")
-        print(f"   Average: {creation_time/num_responses*1000:.2f}ms per response")
+        print(f"   Average: {creation_time / num_responses * 1000:.2f}ms per response")
 
         # Test reading performance
         start_time = time.time()

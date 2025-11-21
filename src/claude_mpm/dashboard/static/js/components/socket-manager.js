@@ -84,7 +84,7 @@ class SocketManager {
             // Expose socket globally for components like CodeTree
             window.socket = this.socketClient.socket;
             console.log('SocketManager: Exposed socket globally as window.socket');
-            
+
             this.setupGitBranchListener();
         }
     }

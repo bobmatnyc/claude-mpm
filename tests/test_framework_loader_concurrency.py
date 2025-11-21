@@ -185,7 +185,7 @@ def test_cache_expiry():
 
     if time2 < time1 and time3 > time2:
         print("\n✅ Cache expiry working correctly")
-        print(f"   Cache hit was {time1/time2:.1f}x faster")
+        print(f"   Cache hit was {time1 / time2:.1f}x faster")
         print("   Cache expired correctly after TTL")
     else:
         print("\n⚠️  Cache expiry may not be working correctly")

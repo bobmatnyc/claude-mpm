@@ -217,11 +217,11 @@ def test_invalid_data_handling():
                 else:
                     results["failed"] += 1
 
-                print(f"  ✓ Test case {i+1}: {'Success' if success else 'Failed'}")
+                print(f"  ✓ Test case {i + 1}: {'Success' if success else 'Failed'}")
 
             except Exception as e:
-                results["errors"].append(f"Test case {i+1}: {str(e)[:100]}")
-                print(f"  ✗ Test case {i+1}: Exception - {str(e)[:100]}")
+                results["errors"].append(f"Test case {i + 1}: {str(e)[:100]}")
+                print(f"  ✗ Test case {i + 1}: Exception - {str(e)[:100]}")
 
         # Flush and get final stats
         logger.flush(timeout=10.0)

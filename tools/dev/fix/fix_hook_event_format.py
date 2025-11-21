@@ -70,9 +70,7 @@ def patch_hook_handler():
     lines = content.split("\n")
     for i, line in enumerate(lines):
         if 'hook_type = event.get("hook_event_name", "unknown")' in line:
-            lines[
-                i
-            ] = """        # Try multiple field names for compatibility
+            lines[i] = """        # Try multiple field names for compatibility
         hook_type = (
             event.get("hook_event_name") or
             event.get("event") or

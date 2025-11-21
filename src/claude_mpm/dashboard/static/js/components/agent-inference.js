@@ -407,10 +407,10 @@ class AgentInference {
 
                 // Track SubagentStart events for orphan detection
                 const hookEventName = event.hook_event_name || event.data?.hook_event_name || '';
-                const isSubagentStart = hookEventName === 'SubagentStart' || 
+                const isSubagentStart = hookEventName === 'SubagentStart' ||
                                        event.type === 'hook.subagent_start' ||
                                        event.subtype === 'subagent_start';
-                
+
                 if (isSubagentStart && inference.type === 'subagent') {
                     // Track this SubagentStart event
                     if (!this.state.subagentStartEvents.has(inference.agentName)) {
@@ -619,7 +619,7 @@ class AgentInference {
         // Get all PM delegations
         const pmDelegations = this.getPMDelegations();
         const events = this.eventViewer.events;
-        
+
         // Build hierarchy tree
         const hierarchy = {
             mainPM: {
@@ -637,7 +637,7 @@ class AgentInference {
                 totalEvents: 0
             }
         };
-        
+
         // Process explicit PM delegations
         for (const [delegationId, delegation] of pmDelegations) {
             hierarchy.mainPM.delegations.push({
@@ -651,7 +651,7 @@ class AgentInference {
             });
             hierarchy.mainPM.totalEvents += delegation.agentEvents.length;
         }
-        
+
         // Find PM's own events
         events.forEach((event, index) => {
             const inference = this.getInferredAgent(index);
@@ -663,7 +663,7 @@ class AgentInference {
                 hierarchy.mainPM.totalEvents++;
             }
         });
-        
+
         // Find orphan subagent events
         const orphanEvents = new Map();
         events.forEach((event, index) => {
@@ -677,7 +677,7 @@ class AgentInference {
                         break;
                     }
                 }
-                
+
                 if (isOrphan) {
                     const agentName = inference.agentName;
                     if (!orphanEvents.has(agentName)) {
@@ -691,7 +691,7 @@ class AgentInference {
                 }
             }
         });
-        
+
         // Add orphan agents as implied PM delegations
         for (const [agentName, agentEvents] of orphanEvents) {
             hierarchy.impliedPM.delegations.push({
@@ -705,10 +705,10 @@ class AgentInference {
             });
             hierarchy.impliedPM.totalEvents += agentEvents.length;
         }
-        
+
         return hierarchy;
     }
-    
+
     /**
      * Extract task context from PM call
      * @param {Object} pmCall - PM's Task tool call
@@ -716,35 +716,35 @@ class AgentInference {
      */
     extractTaskContext(pmCall) {
         if (!pmCall) return 'Unknown task';
-        
+
         const params = pmCall.tool_parameters || pmCall.data?.tool_parameters || {};
         return params.task || params.request || params.description || 'Task delegation';
     }
-    
+
     /**
      * Identify orphan subagents (SubagentStart without PM Task delegation)
      * @param {Array} events - All events to analyze
      */
     identifyOrphanSubagents(events) {
         const ORPHAN_TIME_WINDOW = 5000; // 5 seconds to group orphans together
-        
+
         // Check each SubagentStart event
         for (const [agentName, startEvents] of this.state.subagentStartEvents) {
             for (const startEvent of startEvents) {
                 const eventIndex = startEvent.eventIndex;
                 const timestamp = new Date(startEvent.timestamp).getTime();
-                
+
                 // Check if this SubagentStart has a corresponding PM Task delegation
                 let hasTaskDelegation = false;
-                
+
                 // Look for a Task tool call within a reasonable time window before this SubagentStart
                 for (let i = Math.max(0, eventIndex - 20); i < eventIndex; i++) {
                     const prevEvent = events[i];
                     if (!prevEvent) continue;
-                    
+
                     const prevTimestamp = new Date(prevEvent.timestamp).getTime();
                     const timeDiff = timestamp - prevTimestamp;
-                    
+
                     // Check if this is a Task tool call within 10 seconds
                     if (prevEvent.tool_name === 'Task' && timeDiff >= 0 && timeDiff < 10000) {
                         const inference = this.state.eventAgentMap.get(i);
@@ -754,7 +754,7 @@ class AgentInference {
                         }
                     }
                 }
-                
+
                 // If no Task delegation found, mark as orphan
                 if (!hasTaskDelegation) {
                     this.state.orphanSubagents.set(eventIndex, {
@@ -767,11 +767,11 @@ class AgentInference {
                 }
             }
         }
-        
+
         // Group orphan subagents by time proximity or session
         this.groupOrphanSubagents(ORPHAN_TIME_WINDOW);
     }
-    
+
     /**
      * Group orphan subagents that occur close together in time or same session
      * @param {number} timeWindow - Time window in milliseconds for grouping
@@ -779,25 +779,25 @@ class AgentInference {
     groupOrphanSubagents(timeWindow) {
         const orphansList = Array.from(this.state.orphanSubagents.values())
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
+
         let currentGroup = null;
         let lastTimestamp = null;
-        
+
         for (const orphan of orphansList) {
             const timestamp = new Date(orphan.timestamp).getTime();
-            
+
             // Check if this orphan should be in the same group
-            if (!currentGroup || 
+            if (!currentGroup ||
                 (lastTimestamp && timestamp - lastTimestamp > timeWindow)) {
                 // Start a new group
                 currentGroup = `implied_pm_${orphan.sessionId}_${timestamp}`;
             }
-            
+
             orphan.groupingKey = currentGroup;
             lastTimestamp = timestamp;
         }
     }
-    
+
     /**
      * Check if a subagent event is an orphan (no PM Task delegation)
      * @param {number} eventIndex - Index of the event
@@ -806,23 +806,23 @@ class AgentInference {
     isOrphanSubagent(eventIndex) {
         return this.state.orphanSubagents.has(eventIndex);
     }
-    
+
     /**
      * Get orphan subagent context for an event
-     * @param {number} eventIndex - Index of the event  
+     * @param {number} eventIndex - Index of the event
      * @returns {Object|null} Orphan context or null
      */
     getOrphanContext(eventIndex) {
         return this.state.orphanSubagents.get(eventIndex) || null;
     }
-    
+
     /**
      * Get all orphan subagent groups
      * @returns {Map} Map of groupingKey -> array of orphan contexts
      */
     getOrphanGroups() {
         const groups = new Map();
-        
+
         for (const orphan of this.state.orphanSubagents.values()) {
             const key = orphan.groupingKey;
             if (!groups.has(key)) {
@@ -830,7 +830,7 @@ class AgentInference {
             }
             groups.get(key).push(orphan);
         }
-        
+
         return groups;
     }
 

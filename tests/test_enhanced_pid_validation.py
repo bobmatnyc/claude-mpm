@@ -49,9 +49,9 @@ def test_pidfile_creation_and_validation():
                 pidfile_data = json.loads(content)
                 assert "pid" in pidfile_data, "PID not found in file"
                 assert "server_id" in pidfile_data, "Server ID not found in file"
-                assert (
-                    "server_version" in pidfile_data
-                ), "Server version not found in file"
+                assert "server_version" in pidfile_data, (
+                    "Server version not found in file"
+                )
                 assert pidfile_data["pid"] == server.pid, "PID mismatch"
                 print("✓ PID file created with correct metadata")
             except json.JSONDecodeError:
@@ -207,7 +207,7 @@ def run_all_tests():
     total = len(tests)
 
     for test in tests:
-        print(f"\n{'-'*40}")
+        print(f"\n{'-' * 40}")
         try:
             if test():
                 passed += 1
@@ -217,7 +217,7 @@ def run_all_tests():
         except Exception as e:
             print(f"✗ {test.__name__} ERROR: {e}")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Test Results: {passed}/{total} tests passed")
 
     if passed == total:

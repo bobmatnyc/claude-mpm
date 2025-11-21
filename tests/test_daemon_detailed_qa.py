@@ -253,7 +253,7 @@ def investigate_recovery_issue():
             new_server_pid, new_supervisor_pid, new_port = manager.get_daemon_info()
 
             print(
-                f"Check {i+1}: Server PID {new_server_pid}, Supervisor PID {new_supervisor_pid}, Port {new_port}"
+                f"Check {i + 1}: Server PID {new_server_pid}, Supervisor PID {new_supervisor_pid}, Port {new_port}"
             )
 
             if new_server_pid > 0 and new_server_pid != initial_server_pid:
@@ -264,7 +264,7 @@ def investigate_recovery_issue():
                     log_test(
                         "Detailed recovery test",
                         True,
-                        f"Recovery successful in {i+1} seconds",
+                        f"Recovery successful in {i + 1} seconds",
                         "Investigation",
                     )
                 else:
@@ -327,7 +327,7 @@ def investigate_config_issue():
         ]
 
         for i, config in enumerate(test_configs):
-            print(f"\nTesting config scenario {i+1}")
+            print(f"\nTesting config scenario {i + 1}")
 
             # Apply configuration
             for key, value in config.items():
@@ -346,14 +346,14 @@ def investigate_config_issue():
 
                 if expected_start <= port <= expected_end:
                     log_test(
-                        f"Config test {i+1}",
+                        f"Config test {i + 1}",
                         True,
                         f"Port {port} in range {expected_start}-{expected_end}",
                         "Config",
                     )
                 else:
                     log_test(
-                        f"Config test {i+1}",
+                        f"Config test {i + 1}",
                         False,
                         f"Port {port} outside range {expected_start}-{expected_end}",
                         "Config",
@@ -376,7 +376,7 @@ def investigate_config_issue():
                         print(f"Status reports: {port_line}")
             else:
                 log_test(
-                    f"Config test {i+1} setup",
+                    f"Config test {i + 1} setup",
                     False,
                     "Could not start daemon",
                     "Config",
@@ -739,7 +739,7 @@ def main():
         total_tests = len(TEST_RESULTS)
 
         print(
-            f"\nOverall: {total_passed}/{total_tests} passed ({total_passed/total_tests*100:.1f}%)"
+            f"\nOverall: {total_passed}/{total_tests} passed ({total_passed / total_tests * 100:.1f}%)"
         )
 
         return 0 if total_passed == total_tests else 1

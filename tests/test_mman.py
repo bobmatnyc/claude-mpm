@@ -11,7 +11,6 @@ from .lib import FileCreator, TestBase
 
 
 class TestMMan(TestBase):
-
     def test_cursor(self):
         with FileCreator(self.k_window_test_size, "cursor_test") as fc:
             man = SlidingWindowMapManager()

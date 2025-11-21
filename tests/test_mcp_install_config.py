@@ -87,7 +87,6 @@ class TestMCPInstallConfig(unittest.TestCase):
                 "_find_claude_mpm_executable",
                 return_value="/usr/local/bin/claude-mpm",
             ):
-
                 success = self.installer._configure_claude_desktop(force=True)
 
                 self.assertTrue(success)
@@ -114,7 +113,6 @@ class TestMCPInstallConfig(unittest.TestCase):
                 "_find_claude_mpm_executable",
                 return_value=sys.executable,
             ):
-
                 success = self.installer._configure_claude_desktop(force=True)
 
                 self.assertTrue(success)
@@ -151,7 +149,6 @@ class TestMCPInstallConfig(unittest.TestCase):
                     "_find_claude_mpm_executable",
                     return_value=test_path,
                 ):
-
                     success = self.installer._configure_claude_desktop(force=True)
                     self.assertTrue(success)
 

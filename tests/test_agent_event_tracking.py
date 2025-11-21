@@ -47,7 +47,6 @@ def test_agent_event_emission():
     print("\n=== Testing Agent Event Emission ===")
 
     try:
-
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
@@ -101,7 +100,6 @@ def test_multiple_agent_delegations():
     print("\n=== Testing Multiple Agent Delegations ===")
 
     try:
-
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
@@ -114,9 +112,9 @@ def test_multiple_agent_delegations():
         ]
 
         for i, (agent_type, task) in enumerate(agents):
-            session_id = f"test_session_{i+1:03d}"
+            session_id = f"test_session_{i + 1:03d}"
 
-            print(f"\n{i+1}. Delegating to {agent_type} agent...")
+            print(f"\n{i + 1}. Delegating to {agent_type} agent...")
 
             # Start event
             start_event = {
@@ -125,7 +123,7 @@ def test_multiple_agent_delegations():
                 "tool_input": {
                     "subagent_type": agent_type,
                     "prompt": task,
-                    "description": f"Test delegation {i+1}",
+                    "description": f"Test delegation {i + 1}",
                 },
                 "session_id": session_id,
                 "cwd": os.getcwd(),

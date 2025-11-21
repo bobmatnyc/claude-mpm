@@ -63,7 +63,7 @@ cat > "$TEST_DIR/test.html" << 'EOF'
 <body>
     <h1>File Change Tracker Test</h1>
     <div id="test-output"></div>
-    
+
     <script>
         // Mock window.eventViewer
         window.eventViewer = {
@@ -107,33 +107,33 @@ cat > "$TEST_DIR/test.html" << 'EOF'
             ]
         };
     </script>
-    
+
     <!-- Load components -->
     <script src="/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static/js/components/file-change-tracker.js"></script>
     <script src="/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static/js/components/diff-viewer.js"></script>
     <script src="/Users/masa/Projects/claude-mpm/src/claude_mpm/dashboard/static/js/components/file-change-viewer.js"></script>
-    
+
     <script>
         // Test the components
         const output = document.getElementById('test-output');
-        
+
         try {
             // Test FileChangeTracker
             const tracker = new FileChangeTracker();
             tracker.updateEvents(window.eventViewer.events);
-            
+
             const stats = tracker.getStatistics();
             output.innerHTML += '<p>FileChangeTracker: ' + stats.totalFiles + ' files tracked ✓</p>';
-            
+
             // Test DiffViewer
             const diffViewer = new DiffViewer();
             diffViewer.initialize();
             output.innerHTML += '<p>DiffViewer: Initialized ✓</p>';
-            
+
             // Test FileChangeViewer
             const fileChangeViewer = new FileChangeViewer();
             output.innerHTML += '<p>FileChangeViewer: Created ✓</p>';
-            
+
             output.innerHTML += '<h2 style="color: green;">All tests passed!</h2>';
         } catch (e) {
             output.innerHTML += '<h2 style="color: red;">Test failed: ' + e.message + '</h2>';

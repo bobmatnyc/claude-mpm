@@ -52,7 +52,7 @@ def main():
         for i in range(15):
             time.sleep(1)
             if i % 5 == 4:
-                print(f"⏱️  {i+1} seconds elapsed...")
+                print(f"⏱️  {i + 1} seconds elapsed...")
 
         print("\n✅ Test completed successfully!")
 

@@ -356,8 +356,7 @@ class ModelRouter(BaseService, IModelRouter):
         if require_success and not await self.ollama_provider.is_available():
             if self.strategy == RoutingStrategy.PRIVACY_FIRST:
                 error_msg = (
-                    "Ollama not available. Privacy mode enabled - "
-                    "not sending to cloud."
+                    "Ollama not available. Privacy mode enabled - not sending to cloud."
                 )
             else:
                 error_msg = "Ollama not available and required by configuration"

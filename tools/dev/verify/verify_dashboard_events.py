@@ -72,7 +72,7 @@ async def send_test_events(sio):
         test_data = create_test_event(i)
 
         await sio.emit("claude_event", test_data)
-        print(f"  ✅ Sent test event #{i+1}")
+        print(f"  ✅ Sent test event #{i + 1}")
         await asyncio.sleep(1)
 
     print("\n✅ Test events sent")

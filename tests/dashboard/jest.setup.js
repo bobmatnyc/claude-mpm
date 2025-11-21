@@ -1,6 +1,6 @@
 /**
  * Jest setup file for Claude MPM dashboard tests
- * 
+ *
  * This file runs before each test suite to set up the testing environment
  */
 

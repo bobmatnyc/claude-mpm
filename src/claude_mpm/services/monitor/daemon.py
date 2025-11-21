@@ -479,7 +479,7 @@ class UnifiedMonitorDaemon:
             except OSError:
                 if i < 9:
                     self.logger.debug(
-                        f"Port {self.port} still in use, waiting... ({i+1}/10)"
+                        f"Port {self.port} still in use, waiting... ({i + 1}/10)"
                     )
                     time.sleep(1)
                 else:

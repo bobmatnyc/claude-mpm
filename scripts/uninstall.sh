@@ -27,7 +27,7 @@ remove_symlinks() {
 # Remove Claude Code hooks
 remove_hooks() {
     echo "Removing Claude Code hooks..."
-    
+
     # Try using the Python hook installer service if available
     if command -v python3 &> /dev/null; then
         python3 -c "
@@ -54,7 +54,7 @@ settings_file = Path.home() / '.claude' / 'settings.json'
 if settings_file.exists():
     with open(settings_file, 'r') as f:
         settings = json.load(f)
-    
+
     # Remove our hooks
     if 'hooks' in settings:
         hook_types = ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SubagentStop']
@@ -71,20 +71,20 @@ if settings_file.exists():
                                 break
                     if not is_ours:
                         filtered.append(cfg)
-                
+
                 if filtered:
                     settings['hooks'][hook_type] = filtered
                 else:
                     del settings['hooks'][hook_type]
-        
+
         # Remove empty hooks section
         if 'hooks' in settings and not settings['hooks']:
             del settings['hooks']
-    
+
     # Write back
     with open(settings_file, 'w') as f:
         json.dump(settings, f, indent=2)
-    
+
     print('✓ Removed Claude Code hooks manually')
 " 2>/dev/null || echo -e "${YELLOW}⚠️  Could not remove Claude Code hooks${NC}"
             fi

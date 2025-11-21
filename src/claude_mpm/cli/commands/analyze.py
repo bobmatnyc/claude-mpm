@@ -350,7 +350,7 @@ class AnalyzeCommand(BaseCommand):
 
         for i, match in enumerate(matches):
             # Try to extract title from preceding line
-            title = f"diagram_{i+1}"
+            title = f"diagram_{i + 1}"
 
             # Look for a title pattern before the diagram
             title_pattern = r"(?:#+\s*)?([^\n]+)\n+```mermaid"
@@ -456,7 +456,7 @@ class AnalyzeCommand(BaseCommand):
             return output
 
         # text format
-        output = f"Code Analysis Report\n{'='*50}\n\n"
+        output = f"Code Analysis Report\n{'=' * 50}\n\n"
         output += f"Target: {result_data['target']}\n"
 
         if diagrams:
@@ -469,7 +469,7 @@ class AnalyzeCommand(BaseCommand):
             for filepath in result_data["saved_diagrams"]:
                 output += f"  • {filepath}\n"
 
-        output += f"\n{'-'*50}\nAnalysis Results:\n{'-'*50}\n"
+        output += f"\n{'-' * 50}\nAnalysis Results:\n{'-' * 50}\n"
         output += result_data.get("analysis", "No analysis results")
 
         return output

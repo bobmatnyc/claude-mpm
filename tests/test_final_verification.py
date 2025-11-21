@@ -64,7 +64,7 @@ def test_final_verification():
         )
         print("\n  Examples:")
         for i, match in enumerate(memory_routing_matches[:3]):
-            print(f"    {i+1}. {match[:80]}...")
+            print(f"    {i + 1}. {match[:80]}...")
     else:
         print("  ✗ No memory routing found in capabilities")
 

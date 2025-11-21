@@ -303,9 +303,9 @@ async def benchmark_hello_world_tool():
             min_time = min(times)
             max_time = max(times)
 
-            print(f"   Average: {avg_time*1000:.2f}ms")
-            print(f"   Min: {min_time*1000:.2f}ms")
-            print(f"   Max: {max_time*1000:.2f}ms")
+            print(f"   Average: {avg_time * 1000:.2f}ms")
+            print(f"   Min: {min_time * 1000:.2f}ms")
+            print(f"   Max: {max_time * 1000:.2f}ms")
 
     # Cleanup
     registry.unregister_tool("hello_world")

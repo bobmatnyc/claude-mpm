@@ -159,7 +159,7 @@ def generate_report():
 
     print(f"Total Services Analyzed: {total_services}")
     print(f"Services Using Shared Utilities: {migrated_services}")
-    print(f"Migration Rate: {migrated_services/total_services*100:.1f}%")
+    print(f"Migration Rate: {migrated_services / total_services * 100:.1f}%")
     print()
 
     for service_name, data in services.items():
@@ -186,7 +186,7 @@ def generate_report():
 
     print(f"Total Commands Analyzed: {total_commands}")
     print(f"Commands Using Shared Utilities: {migrated_commands}")
-    print(f"Migration Rate: {migrated_commands/total_commands*100:.1f}%")
+    print(f"Migration Rate: {migrated_commands / total_commands * 100:.1f}%")
     print()
 
     for command_name, data in commands.items():

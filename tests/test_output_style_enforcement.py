@@ -114,7 +114,7 @@ def test_multiple_enforcements():
 
     # Simulate multiple user changes
     for i in range(3):
-        print(f"\n--- Cycle {i+1} ---")
+        print(f"\n--- Cycle {i + 1} ---")
 
         # Change style
         alternative_styles = ["default", "minimal", "verbose"]

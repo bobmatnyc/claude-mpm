@@ -1,6 +1,6 @@
 /**
  * File Viewer Component
- * 
+ *
  * A simple file content viewer that displays file contents in a modal window.
  * This component handles file loading via HTTP requests and displays the content
  * with basic syntax highlighting support.
@@ -24,7 +24,7 @@ class FileViewer {
 
         this.createModal();
         this.setupEventHandlers();
-        
+
         this.initialized = true;
         console.log('File viewer initialized');
     }
@@ -250,7 +250,7 @@ class FileViewer {
     async show(filePath) {
         console.log('[FileViewer] show() called with path:', filePath);
         console.log('[FileViewer] initialized:', this.initialized);
-        
+
         if (!this.initialized) {
             console.log('[FileViewer] Not initialized, initializing now...');
             this.initialize();
@@ -258,10 +258,10 @@ class FileViewer {
 
         this.currentFile = filePath;
         this.modal.classList.add('show');
-        
+
         // Update path
         document.getElementById('file-viewer-path').textContent = filePath;
-        
+
         console.log('[FileViewer] Modal shown, loading file content...');
         // Load file content
         await this.loadFileContent(filePath);
@@ -280,63 +280,63 @@ class FileViewer {
      */
     async loadFileContent(filePath) {
         const codeContent = document.getElementById('file-viewer-code-content');
-        
+
         console.log('[FileViewer] loadFileContent called with path:', filePath);
-        
+
         // Check cache first
         if (this.contentCache.has(filePath)) {
             console.log('[FileViewer] Using cached content for:', filePath);
             this.displayContent(this.contentCache.get(filePath));
             return;
         }
-        
+
         // Show loading state
         codeContent.textContent = 'Loading file content...';
-        
+
         try {
             // Check if we have a socket connection available
             if (window.socket && window.socket.connected) {
                 console.log('[FileViewer] Using Socket.IO to load file:', filePath);
-                
+
                 // Create a promise to wait for the response
                 const responsePromise = new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {
                         console.error('[FileViewer] Socket.IO request timed out for:', filePath);
                         reject(new Error('Socket.IO request timed out'));
                     }, 10000); // 10 second timeout
-                    
+
                     // Set up one-time listener for the response
                     window.socket.once('file_content_response', (data) => {
                         clearTimeout(timeoutId);
                         console.log('[FileViewer] Received file_content_response:', data);
                         resolve(data);
                     });
-                    
+
                     // Emit the read_file event
                     console.log('[FileViewer] Emitting read_file event with data:', {
                         file_path: filePath,
                         working_dir: window.workingDirectory || '/',
                         max_size: 5 * 1024 * 1024  // 5MB limit
                     });
-                    
+
                     window.socket.emit('read_file', {
                         file_path: filePath,
                         working_dir: window.workingDirectory || '/',
                         max_size: 5 * 1024 * 1024  // 5MB limit
                     });
                 });
-                
+
                 // Wait for the response
                 const data = await responsePromise;
-                
+
                 if (data.success && data.content !== undefined) {
                     console.log('[FileViewer] Successfully loaded file content, caching...');
                     // Cache the content
                     this.contentCache.set(filePath, data.content);
-                    
+
                     // Display the content
                     this.displayContent(data.content);
-                    
+
                     // Update file info
                     this.updateFileInfo(data);
                 } else {
@@ -350,7 +350,7 @@ class FileViewer {
         } catch (error) {
             console.error('[FileViewer] Error loading file:', error);
             console.error('[FileViewer] Error stack:', error.stack);
-            
+
             // If API fails, show error message with helpful information
             this.displayError(filePath, error.message);
         }
@@ -361,22 +361,22 @@ class FileViewer {
      */
     displayContent(content) {
         const codeContent = document.getElementById('file-viewer-code-content');
-        
+
         // Set the content
         codeContent.textContent = content || '(Empty file)';
-        
+
         // Update line count
         const lines = content ? content.split('\n').length : 0;
         document.getElementById('file-viewer-lines').textContent = `Lines: ${lines}`;
-        
+
         // Update file size
         const size = content ? new Blob([content]).size : 0;
         document.getElementById('file-viewer-size').textContent = `Size: ${this.formatFileSize(size)}`;
-        
+
         // Detect and set file type
         const fileType = this.detectFileType(this.currentFile);
         document.getElementById('file-viewer-type').textContent = `Type: ${fileType}`;
-        
+
         // Apply syntax highlighting if Prism is available
         if (window.Prism) {
             const language = this.detectLanguage(this.currentFile);
@@ -390,27 +390,27 @@ class FileViewer {
      */
     displayError(filePath, errorMessage) {
         const codeContent = document.getElementById('file-viewer-code-content');
-        
+
         // For now, show a helpful message since the API endpoint doesn't exist yet
         const errorHtml = `
             <div class="file-viewer-error">
                 ⚠️ File content loading is not yet implemented
-                
+
                 File path: ${filePath}
-                
+
                 The file viewing functionality requires:
                 1. A server-side /api/file endpoint
                 2. Proper file reading permissions
                 3. Security validation for file access
-                
+
                 Error: ${errorMessage}
-                
+
                 This feature will be available once the backend API is implemented.
             </div>
         `;
-        
+
         codeContent.innerHTML = errorHtml;
-        
+
         // Update info
         document.getElementById('file-viewer-lines').textContent = 'Lines: --';
         document.getElementById('file-viewer-size').textContent = 'Size: --';
@@ -424,11 +424,11 @@ class FileViewer {
         if (data.lines !== undefined) {
             document.getElementById('file-viewer-lines').textContent = `Lines: ${data.lines}`;
         }
-        
+
         if (data.size !== undefined) {
             document.getElementById('file-viewer-size').textContent = `Size: ${this.formatFileSize(data.size)}`;
         }
-        
+
         if (data.type) {
             document.getElementById('file-viewer-type').textContent = `Type: ${data.type}`;
         }
@@ -439,11 +439,11 @@ class FileViewer {
      */
     formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
-        
+
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
+
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
     }
 
@@ -452,7 +452,7 @@ class FileViewer {
      */
     detectFileType(path) {
         if (!path) return 'Unknown';
-        
+
         const ext = path.split('.').pop()?.toLowerCase();
         const typeMap = {
             'py': 'Python',
@@ -480,7 +480,7 @@ class FileViewer {
             'rb': 'Ruby',
             'php': 'PHP'
         };
-        
+
         return typeMap[ext] || 'Text';
     }
 
@@ -489,7 +489,7 @@ class FileViewer {
      */
     detectLanguage(path) {
         if (!path) return 'plaintext';
-        
+
         const ext = path.split('.').pop()?.toLowerCase();
         const languageMap = {
             'py': 'python',
@@ -516,7 +516,7 @@ class FileViewer {
             'rb': 'ruby',
             'php': 'php'
         };
-        
+
         return languageMap[ext] || 'plaintext';
     }
 
@@ -527,15 +527,15 @@ class FileViewer {
         const codeContent = document.getElementById('file-viewer-code-content');
         const button = document.getElementById('file-viewer-copy');
         const content = codeContent.textContent;
-        
+
         try {
             await navigator.clipboard.writeText(content);
-            
+
             // Show feedback
             const originalText = button.textContent;
             button.textContent = '✅ Copied!';
             button.classList.add('copied');
-            
+
             setTimeout(() => {
                 button.textContent = originalText;
                 button.classList.remove('copied');
@@ -565,7 +565,7 @@ window.fileViewerInstance = fileViewer;
 // Export for use in other modules
 if (typeof window !== 'undefined') {
     window.FileViewer = fileViewer;
-    
+
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {

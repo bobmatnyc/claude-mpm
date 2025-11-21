@@ -31,7 +31,7 @@ def main():
 
     # Inspect first few agents in detail
     for i, agent in enumerate(agent_list[:3]):  # Just inspect first 3
-        print(f"\n--- Agent {i+1} ---")
+        print(f"\n--- Agent {i + 1} ---")
         print(f"Type: {type(agent)}")
         print(f"Attributes: {dir(agent)}")
 

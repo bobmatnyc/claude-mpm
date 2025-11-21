@@ -159,11 +159,11 @@ class StartupBenchmark:
 
                 if measurement.success:
                     self.logger.debug(
-                        f"    Sample {i+1}: {measurement.time_seconds:.3f}s"
+                        f"    Sample {i + 1}: {measurement.time_seconds:.3f}s"
                     )
                 else:
                     self.logger.warning(
-                        f"    Sample {i+1}: FAILED - {measurement.error_message}"
+                        f"    Sample {i + 1}: FAILED - {measurement.error_message}"
                     )
 
         return measurements
@@ -177,7 +177,7 @@ class StartupBenchmark:
         measurements = []
 
         for i in range(samples):
-            self.logger.info(f"  Testing interactive preparation {i+1}/{samples}")
+            self.logger.info(f"  Testing interactive preparation {i + 1}/{samples}")
 
             # Use non-interactive mode with quick exit to test startup preparation
             command = [
@@ -193,11 +193,11 @@ class StartupBenchmark:
 
             if measurement.success:
                 self.logger.debug(
-                    f"    Interactive prep {i+1}: {measurement.time_seconds:.3f}s"
+                    f"    Interactive prep {i + 1}: {measurement.time_seconds:.3f}s"
                 )
             else:
                 self.logger.warning(
-                    f"    Interactive prep {i+1}: FAILED - {measurement.error_message}"
+                    f"    Interactive prep {i + 1}: FAILED - {measurement.error_message}"
                 )
 
         return measurements
@@ -211,7 +211,7 @@ class StartupBenchmark:
         measurements = []
 
         for i in range(samples):
-            self.logger.info(f"  Testing agent deployment startup {i+1}/{samples}")
+            self.logger.info(f"  Testing agent deployment startup {i + 1}/{samples}")
 
             # Test agent deployment command startup time
             command = [str(self.claude_mpm_script), "agents", "deploy", "--quiet"]
@@ -221,11 +221,11 @@ class StartupBenchmark:
 
             if measurement.success:
                 self.logger.debug(
-                    f"    Agent deployment {i+1}: {measurement.time_seconds:.3f}s"
+                    f"    Agent deployment {i + 1}: {measurement.time_seconds:.3f}s"
                 )
             else:
                 self.logger.warning(
-                    f"    Agent deployment {i+1}: FAILED - {measurement.error_message}"
+                    f"    Agent deployment {i + 1}: FAILED - {measurement.error_message}"
                 )
 
         return measurements
@@ -239,7 +239,7 @@ class StartupBenchmark:
         measurements = []
 
         for i in range(samples):
-            self.logger.info(f"  Testing memory init startup {i+1}/{samples}")
+            self.logger.info(f"  Testing memory init startup {i + 1}/{samples}")
 
             # Test memory command startup time
             command = [str(self.claude_mpm_script), "memory", "list", "--limit", "10"]
@@ -249,11 +249,11 @@ class StartupBenchmark:
 
             if measurement.success:
                 self.logger.debug(
-                    f"    Memory init {i+1}: {measurement.time_seconds:.3f}s"
+                    f"    Memory init {i + 1}: {measurement.time_seconds:.3f}s"
                 )
             else:
                 self.logger.warning(
-                    f"    Memory init {i+1}: FAILED - {measurement.error_message}"
+                    f"    Memory init {i + 1}: FAILED - {measurement.error_message}"
                 )
 
         return measurements
@@ -364,16 +364,16 @@ class StartupBenchmark:
         stats = results.get("overall_stats", {})
         metadata = results.get("benchmark_metadata", {})
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("🚀 STARTUP PERFORMANCE BENCHMARK RESULTS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Timestamp: {metadata.get('timestamp', 'Unknown')}")
         print(f"Total Samples: {results.get('total_samples', 0)}")
         print(f"Success Rate: {results.get('success_rate', 0):.1f}%")
         print(f"Execution Time: {metadata.get('total_execution_time', 0):.2f}s")
 
         print("\n📊 PERFORMANCE METRICS:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Mean Startup Time:   {stats.get('mean_time', 0):.3f}s")
         print(f"Median Startup Time: {stats.get('median_time', 0):.3f}s")
         print(f"Min Startup Time:    {stats.get('min_time', 0):.3f}s")
@@ -384,7 +384,7 @@ class StartupBenchmark:
         target_met = stats.get("meets_target", False)
         target_time = metadata.get("target_startup_time", 2.0)
         print("\n🎯 TARGET VALIDATION:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Target Time:         {target_time:.1f}s")
         print(f"Actual Time:         {stats.get('mean_time', 0):.3f}s")
         print(f"Target Met:          {'✅ YES' if target_met else '❌ NO'}")
@@ -396,7 +396,7 @@ class StartupBenchmark:
         # Per-mode breakdown
         if "by_mode" in results:
             print("\n📋 BY MODE BREAKDOWN:")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             for mode, mode_stats in results["by_mode"].items():
                 print(
                     f"{mode:20} {mode_stats['mean']:.3f}s (±{mode_stats['std_dev']:.3f}s) [{mode_stats['samples']} samples]"

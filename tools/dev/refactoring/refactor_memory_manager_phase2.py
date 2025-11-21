@@ -91,7 +91,7 @@ def remove_old_methods():
                 # Remove the method
                 del lines[start:j]
                 removed_count += 1
-                print(f"✓ Removed method: {method} ({j-start} lines)")
+                print(f"✓ Removed method: {method} ({j - start} lines)")
                 i = start - 1  # Adjust index
                 break
         i += 1

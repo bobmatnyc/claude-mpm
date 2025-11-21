@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Standalone test of the simple directory API"""
+
 import asyncio
 import os
 import sys

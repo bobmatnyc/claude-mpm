@@ -269,9 +269,9 @@ class TestOriginalFailureScenarioSimulation:
 
         # In a real implementation, this would instantiate the Research agent
         # and verify it exhibits all the expected behaviors
-        assert all(
-            expected_behavior.values()
-        ), "New agent should exhibit all required behaviors"
+        assert all(expected_behavior.values()), (
+            "New agent should exhibit all required behaviors"
+        )
 
     def test_large_codebase_handling_scenario(self):
         """
@@ -287,9 +287,9 @@ class TestOriginalFailureScenarioSimulation:
             "maintains_thoroughness": True,
         }
 
-        assert all(
-            expected_behavior.values()
-        ), "Agent should handle large codebases thoroughly"
+        assert all(expected_behavior.values()), (
+            "Agent should handle large codebases thoroughly"
+        )
 
     def test_complex_multi_file_feature_scenario(self):
         """
@@ -305,9 +305,9 @@ class TestOriginalFailureScenarioSimulation:
             "builds_complete_picture": True,
         }
 
-        assert all(
-            expected_behavior.values()
-        ), "Agent should discover complex multi-file features"
+        assert all(expected_behavior.values()), (
+            "Agent should discover complex multi-file features"
+        )
 
 
 if __name__ == "__main__":

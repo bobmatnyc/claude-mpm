@@ -458,17 +458,19 @@ class ConflictResolutionManager:
 
         for i, marker in enumerate(markers):
             if not marker.ours_content and marker.theirs_content:
-                suggestions.append(f"Conflict {i+1}: Accept incoming changes (theirs)")
+                suggestions.append(
+                    f"Conflict {i + 1}: Accept incoming changes (theirs)"
+                )
             elif marker.ours_content and not marker.theirs_content:
-                suggestions.append(f"Conflict {i+1}: Keep current changes (ours)")
+                suggestions.append(f"Conflict {i + 1}: Keep current changes (ours)")
             elif self._only_whitespace_differences(
                 marker.ours_content, marker.theirs_content
             ):
                 suggestions.append(
-                    f"Conflict {i+1}: Whitespace differences only - can auto-resolve"
+                    f"Conflict {i + 1}: Whitespace differences only - can auto-resolve"
                 )
             else:
-                suggestions.append(f"Conflict {i+1}: Manual merge required")
+                suggestions.append(f"Conflict {i + 1}: Manual merge required")
 
         return "; ".join(suggestions)
 

@@ -767,16 +767,16 @@ class ConnectionBenchmark:
         metadata = results.get("benchmark_metadata", {})
         metrics = results.get("aggregate_metrics", {})
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("🔌 CONNECTION PERFORMANCE BENCHMARK RESULTS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Timestamp: {metadata.get('timestamp', 'Unknown')}")
         print(f"Total Tests: {metadata.get('total_tests', 0)}")
         print(f"Execution Time: {metadata.get('execution_time', 0):.2f}s")
         print(f"Baseline Failure Rate: {metadata.get('baseline_failure_rate', 0):.1f}%")
 
         print("\n📊 AGGREGATE METRICS:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(
             f"Average Success Rate:    {metrics.get('average_success_rate_percent', 0):.1f}%"
         )
@@ -799,7 +799,7 @@ class ConnectionBenchmark:
         target_reduction = metadata.get("target_error_reduction", 40.0)
         meets_target = metadata.get("meets_target", False)
         print("\n🎯 TARGET VALIDATION:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Target Error Reduction:  {target_reduction:.1f}%")
         print(
             f"Actual Error Reduction:  {metrics.get('average_error_reduction_percent', 0):.1f}%"
@@ -808,7 +808,7 @@ class ConnectionBenchmark:
 
         # Individual test results
         print("\n📋 INDIVIDUAL TEST RESULTS:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         for result in results.get("test_results", []):
             success_rate = result["success_rate_percent"]
             error_reduction = result.get("error_reduction_percent", 0) or 0

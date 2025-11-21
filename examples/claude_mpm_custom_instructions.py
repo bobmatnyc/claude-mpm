@@ -131,9 +131,9 @@ def demonstrate_custom_instructions():
         original_cwd = Path.cwd()
         try:
             os.chdir(project_dir)
-            print(f"\n{'='*40}")
+            print(f"\n{'=' * 40}")
             print("Loading framework...")
-            print(f"{'='*40}\n")
+            print(f"{'=' * 40}\n")
 
             # Initialize framework loader
             loader = FrameworkLoader()
@@ -193,9 +193,9 @@ def demonstrate_custom_instructions():
                 print("✓ .claude/ directory correctly ignored")
 
             # Show how custom instructions appear in final output
-            print(f"\n{'='*40}")
+            print(f"\n{'=' * 40}")
             print("Custom Instructions in Final Output:")
-            print(f"{'='*40}\n")
+            print(f"{'=' * 40}\n")
 
             if "Custom Project PM Instructions" in full_instructions:
                 print("✓ Custom PM instructions integrated")
@@ -207,9 +207,9 @@ def demonstrate_custom_instructions():
                 print("✓ PM memories integrated")
 
             # Display file structure for clarity
-            print(f"\n{'='*40}")
+            print(f"\n{'=' * 40}")
             print("Project Structure:")
-            print(f"{'='*40}")
+            print(f"{'=' * 40}")
             print(
                 f"""
 {project_dir}/
@@ -227,9 +227,9 @@ def demonstrate_custom_instructions():
         finally:
             os.chdir(original_cwd)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Demo Complete!")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print("\nKey Takeaways:")
     print("1. Place custom instructions in .claude-mpm/ directory")
     print("2. Files in .claude/ are completely ignored")

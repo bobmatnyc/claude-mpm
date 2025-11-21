@@ -1,14 +1,14 @@
 /**
  * Session Manager Component
  * Handles session selection and management
- * 
+ *
  * WHY: Provides session filtering and management for the dashboard, allowing users
  * to view events from specific sessions or all sessions.
- * 
+ *
  * BROWSER COMPATIBILITY: This component runs in the browser. All Node.js-specific
  * globals (process, require, etc.) have been removed. Uses browser-compatible
  * alternatives for path handling and defaults.
- * 
+ *
  * FIX APPLIED: Removed process.cwd() reference that caused "process is not defined"
  * error in browser. Now uses window.location.pathname or hardcoded fallbacks.
  */
@@ -94,7 +94,7 @@ class SessionManager {
 
         // Get the default working directory from various sources
         let defaultWorkingDir = '/';
-        
+
         // Try to get from working directory manager
         if (window.dashboard && window.dashboard.workingDirectoryManager) {
             defaultWorkingDir = window.dashboard.workingDirectoryManager.getDefaultWorkingDir();
@@ -108,7 +108,7 @@ class SessionManager {
                 }
             }
         }
-        
+
         console.log('[SESSION-MANAGER] Using default working directory:', defaultWorkingDir);
 
         // Update "All Sessions" option to show working directory
@@ -129,19 +129,19 @@ class SessionManager {
                 const startTime = new Date(session.startTime || session.last_activity).toLocaleString();
                 const eventCount = session.eventCount || session.event_count || 0;
                 const isActive = session.id === this.currentSessionId;
-                
+
                 // Extract working directory from session or events
                 let workingDir = session.working_directory || session.workingDirectory || '';
-                
+
                 // Log for debugging
                 console.log(`[SESSION-DROPDOWN] Session ${session.id.substring(0, 8)} working_directory:`, workingDir);
-                
+
                 if (!workingDir) {
                     const sessionData = this.extractSessionInfoFromEvents(session.id);
                     workingDir = sessionData.workingDir || defaultWorkingDir;
                     console.log(`[SESSION-DROPDOWN] Extracted working directory from events:`, workingDir);
                 }
-                
+
                 // Format display: working_directory | session_id...
                 const shortId = session.id.substring(0, 8);
                 const dirDisplay = workingDir || defaultWorkingDir;
@@ -220,8 +220,8 @@ class SessionManager {
         // Use browser-compatible fallback for working directory
         // WHY: Removed process.cwd() Node.js reference - not available in browser
         // BROWSER FIX: Use dashboard manager or server-provided config
-        let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
-                        window.dashboardConfig?.workingDirectory || 
+        let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() ||
+                        window.dashboardConfig?.workingDirectory ||
                         '.';
         let gitBranch = 'Unknown';
 
@@ -236,9 +236,9 @@ class SessionManager {
             if (this.currentSessionId) {
                 const sessionData = this.extractSessionInfoFromEvents(this.currentSessionId);
                 // Browser-compatible working directory fallback
-                workingDir = sessionData.workingDir || 
-                           window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
-                           window.dashboardConfig?.workingDirectory || 
+                workingDir = sessionData.workingDir ||
+                           window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() ||
+                           window.dashboardConfig?.workingDirectory ||
                            '.';
                 gitBranch = sessionData.gitBranch || 'Unknown';
             }

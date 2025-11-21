@@ -167,10 +167,10 @@ def create_session_context(session_id, session_manager):
 # Session Resumption
 
 You are resuming session {session_id[:8]}... which was:
-- Created: {session_data.get('created_at', 'unknown')}
-- Last used: {session_data.get('last_used', 'unknown')}
-- Context: {session_data.get('context', 'default')}
-- Use count: {session_data.get('use_count', 0)}
+- Created: {session_data.get("created_at", "unknown")}
+- Last used: {session_data.get("last_used", "unknown")}
+- Context: {session_data.get("context", "default")}
+- Use count: {session_data.get("use_count", 0)}
 """
 
     # Add information about agents previously run in this session

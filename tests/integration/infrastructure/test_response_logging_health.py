@@ -185,7 +185,7 @@ class ResponseLoggingHealthChecker:
 
                 self.results[check_name] = {
                     "status": "healthy" if enabled else "disabled",
-                    "message": f'Response logging {"enabled" if enabled else "disabled"}',
+                    "message": f"Response logging {'enabled' if enabled else 'disabled'}",
                     "config": {
                         "enabled": enabled,
                         "format": format_type,

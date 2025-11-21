@@ -93,7 +93,7 @@ def test_namespace_connections():
                     sio.disconnect()
 
         # Summary
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print("Namespace Connection Results:")
         for namespace, success in results.items():
             status = "✅ CONNECTED" if success else "❌ FAILED"

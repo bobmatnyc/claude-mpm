@@ -45,7 +45,7 @@ async def test_ticket_tool():
 
     # Track memory for multiple invocations
     for i in range(3):
-        print(f"\n--- Invocation {i+1} ---")
+        print(f"\n--- Invocation {i + 1} ---")
 
         # Force garbage collection before measurement
         gc.collect()
@@ -103,7 +103,7 @@ async def test_framework_loader():
 
     loaders = []
     for i in range(3):
-        print(f"\n--- Creating FrameworkLoader {i+1} ---")
+        print(f"\n--- Creating FrameworkLoader {i + 1} ---")
         gc.collect()
         mem_before = get_memory_usage()
 
@@ -147,7 +147,7 @@ async def test_system_instructions_service():
 
     services = []
     for i in range(3):
-        print(f"\n--- Creating SystemInstructionsService {i+1} ---")
+        print(f"\n--- Creating SystemInstructionsService {i + 1} ---")
         gc.collect()
         mem_before = get_memory_usage()
 

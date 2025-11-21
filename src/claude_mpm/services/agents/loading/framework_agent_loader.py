@@ -404,8 +404,8 @@ class FrameworkAgentLoader:
 **{agent_type} Agent Profile Loaded**
 
 **Agent Identity**: {agent_type} Agent
-**Profile Source**: {profile.get('source_path', 'Unknown')}
-**Primary Role**: {profile.get('role', 'Not specified')}
+**Profile Source**: {profile.get("source_path", "Unknown")}
+**Primary Role**: {profile.get("role", "Not specified")}
 
 **Core Capabilities**:
 """
@@ -415,9 +415,9 @@ class FrameworkAgentLoader:
 
         instruction += f"""
 **Context Preferences**:
-- **Include**: {profile.get('context_preferences', {}).get('include', 'Not specified')}
-- **Exclude**: {profile.get('context_preferences', {}).get('exclude', 'Not specified')}
-- **Focus**: {profile.get('context_preferences', {}).get('focus', 'Not specified')}
+- **Include**: {profile.get("context_preferences", {}).get("include", "Not specified")}
+- **Exclude**: {profile.get("context_preferences", {}).get("exclude", "Not specified")}
+- **Focus**: {profile.get("context_preferences", {}).get("focus", "Not specified")}
 
 **Authority Scope**:
 """
@@ -426,9 +426,9 @@ class FrameworkAgentLoader:
             instruction += f"- **{authority}**: Authorized operation area\n"
 
         instruction += f"""
-**Quality Standards**: {len(profile.get('quality_standards', []))} standards defined
-**Escalation Triggers**: {len(profile.get('escalation_criteria', []))} criteria defined
-**Integration Partners**: {len(profile.get('integration_patterns', {}))} agent coordination patterns
+**Quality Standards**: {len(profile.get("quality_standards", []))} standards defined
+**Escalation Triggers**: {len(profile.get("escalation_criteria", []))} criteria defined
+**Integration Partners**: {len(profile.get("integration_patterns", {}))} agent coordination patterns
 
 Please operate according to your profile specifications and maintain quality standards.
 """

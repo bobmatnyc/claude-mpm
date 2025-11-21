@@ -1,38 +1,38 @@
 /**
  * Socket.IO Client for Claude MPM Dashboard
- * 
+ *
  * This module provides real-time WebSocket communication between the Claude MPM dashboard
  * and the backend Socket.IO server. It handles connection management, event processing,
  * retry logic, and health monitoring.
- * 
+ *
  * Architecture:
  * - Maintains persistent WebSocket connection to Claude MPM backend
  * - Implements robust retry logic with exponential backoff
  * - Provides event queuing during disconnections
  * - Validates event schemas for data integrity
  * - Monitors connection health with ping/pong mechanisms
- * 
+ *
  * Event Flow:
  * 1. Events from Claude Code hooks → Socket.IO server → Dashboard client
  * 2. Dashboard requests → Socket.IO server → Backend services
  * 3. Status updates → Socket.IO server → All connected clients
- * 
+ *
  * Thread Safety:
  * - Single-threaded JavaScript execution model ensures safety
  * - Event callbacks are queued and executed sequentially
  * - Connection state changes are atomic
- * 
+ *
  * Performance Considerations:
  * - Event queue limited to 100 items to prevent memory leaks
  * - Health checks run every 45s to match server ping interval
  * - Exponential backoff prevents connection spam
  * - Lazy event validation reduces overhead
- * 
+ *
  * Security:
  * - Connects only to localhost to prevent external access
  * - Event schema validation prevents malformed data processing
  * - Connection timeout prevents hanging connections
- * 
+ *
  * @author Claude MPM Team
  * @version 1.0
  * @since v4.0.25
@@ -44,42 +44,42 @@ const io = window.io;
 
 /**
  * Primary Socket.IO client for dashboard communication.
- * 
+ *
  * Manages WebSocket connection lifecycle, event processing, and error handling.
  * Implements connection resilience with automatic retry and health monitoring.
- * 
+ *
  * Key Features:
  * - Automatic connection retry with exponential backoff
- * - Event queue management during disconnections  
+ * - Event queue management during disconnections
  * - Schema validation for incoming events
  * - Health monitoring with ping/pong
  * - Session management and event history
- * 
+ *
  * Connection States:
  * - isConnected: Currently connected to server
  * - isConnecting: Connection attempt in progress
  * - disconnectTime: Timestamp of last disconnection
- * 
+ *
  * Event Processing:
  * - Validates against schema before processing
  * - Queues events during disconnection (max 100)
  * - Maintains event history and session tracking
- * 
+ *
  * @class SocketClient
  */
 class SocketClient {
     /**
      * Initialize Socket.IO client with default configuration.
-     * 
+     *
      * Sets up connection management, event processing, and health monitoring.
      * Configures retry logic and event queue management.
-     * 
+     *
      * WHY this initialization approach:
      * - Lazy socket creation allows for port specification
      * - Event queue prevents data loss during reconnections
      * - Health monitoring detects server issues early
      * - Schema validation ensures data integrity
-     * 
+     *
      * @constructor
      */
     constructor() {
@@ -89,14 +89,14 @@ class SocketClient {
          * @private
          */
         this.socket = null;
-        
+
         /**
          * Current connection port.
          * @type {string|null}
          * @private
          */
         this.port = null; // Store the current port
-        
+
         /**
          * Event callback registry for connection lifecycle events.
          * WHY: Allows multiple components to register for connection events.
@@ -105,11 +105,11 @@ class SocketClient {
          */
         this.connectionCallbacks = {
             connect: [],    // Called on successful connection
-            disconnect: [], // Called on disconnection  
+            disconnect: [], // Called on disconnection
             error: [],      // Called on connection errors
             event: []       // Called on incoming events
         };
-        
+
         /**
          * Event schema definition for validation.
          * WHY: Ensures data integrity and prevents processing malformed events.
@@ -127,7 +127,7 @@ class SocketClient {
          * @private
          */
         this.isConnected = false;
-        
+
         /**
          * Connection attempt in progress flag.
          * WHY: Prevents multiple simultaneous connection attempts.
@@ -135,14 +135,14 @@ class SocketClient {
          * @private
          */
         this.isConnecting = false;
-        
+
         /**
          * Timestamp of last successful connection.
          * @type {number|null}
          * @private
          */
         this.lastConnectTime = null;
-        
+
         /**
          * Timestamp of last disconnection.
          * WHY: Used to calculate downtime and trigger reconnection logic.
@@ -158,7 +158,7 @@ class SocketClient {
          * @private
          */
         this.events = [];
-        
+
         /**
          * Session tracking map.
          * WHY: Groups events by session for better organization.
@@ -166,7 +166,7 @@ class SocketClient {
          * @private
          */
         this.sessions = new Map();
-        
+
         /**
          * Current active session identifier.
          * @type {string|null}
@@ -181,7 +181,7 @@ class SocketClient {
          * @private
          */
         this.eventQueue = [];
-        
+
         /**
          * Maximum queue size to prevent memory leaks.
          * WHY: Limits memory usage during extended disconnections.
@@ -190,7 +190,7 @@ class SocketClient {
          * @const
          */
         this.maxQueueSize = 100;
-        
+
         /**
          * Current retry attempt counter.
          * WHY: Tracks retry attempts for exponential backoff logic.
@@ -198,7 +198,7 @@ class SocketClient {
          * @private
          */
         this.retryAttempts = 0;
-        
+
         /**
          * Maximum retry attempts before giving up.
          * WHY: Prevents infinite retry loops that could impact performance.
@@ -207,7 +207,7 @@ class SocketClient {
          * @const
          */
         this.maxRetryAttempts = 5;  // Increased from 3 to 5 for better stability
-        
+
         /**
          * Retry delay intervals in milliseconds (exponential backoff).
          * WHY: Prevents server overload during connection issues.
@@ -216,7 +216,7 @@ class SocketClient {
          * @const
          */
         this.retryDelays = [1000, 2000, 3000, 4000, 5000]; // Exponential backoff with 5 attempts
-        
+
         /**
          * Map of pending emissions for retry logic.
          * WHY: Tracks failed emissions that need to be retried.
@@ -224,7 +224,7 @@ class SocketClient {
          * @private
          */
         this.pendingEmissions = new Map(); // Track pending emissions for retry
-        
+
         /**
          * Timestamp of last ping sent to server.
          * WHY: Used for health monitoring and connection validation.
@@ -232,7 +232,7 @@ class SocketClient {
          * @private
          */
         this.lastPingTime = null;
-        
+
         /**
          * Timestamp of last pong received from server.
          * WHY: Confirms server is responsive and connection is healthy.
@@ -240,7 +240,7 @@ class SocketClient {
          * @private
          */
         this.lastPongTime = null;
-        
+
         /**
          * Health check timeout in milliseconds.
          * WHY: More lenient than Socket.IO timeout to prevent false positives.
@@ -249,14 +249,14 @@ class SocketClient {
          * @const
          */
         this.pingTimeout = 120000; // 120 seconds for health check (more lenient for stability)
-        
+
         /**
          * Health check interval timer.
          * @type {number|null}
          * @private
          */
         this.healthCheckInterval = null;
-        
+
         // Initialize background monitoring
         this.startStatusCheckFallback();
         this.startHealthMonitoring();
@@ -264,27 +264,27 @@ class SocketClient {
 
     /**
      * Connect to Socket.IO server on specified port.
-     * 
+     *
      * Initiates WebSocket connection to the Claude MPM Socket.IO server.
      * Handles connection conflicts and ensures clean state transitions.
-     * 
+     *
      * Connection Process:
      * 1. Validates port and constructs localhost URL
      * 2. Checks for existing connections and cleans up if needed
      * 3. Delegates to doConnect() for actual connection logic
-     * 
+     *
      * Thread Safety:
      * - Uses setTimeout for async cleanup to prevent race conditions
      * - Connection state flags prevent multiple simultaneous attempts
-     * 
+     *
      * @param {string} [port='8765'] - Port number to connect to (defaults to 8765)
-     * 
+     *
      * @throws {Error} If Socket.IO library is not loaded
-     * 
+     *
      * @example
      * // Connect to default port
      * socketClient.connect();
-     * 
+     *
      * // Connect to specific port
      * socketClient.connect('8766');
      */
@@ -307,38 +307,38 @@ class SocketClient {
 
     /**
      * Execute the actual Socket.IO connection with full configuration.
-     * 
+     *
      * Creates and configures Socket.IO client with appropriate timeouts,
      * retry logic, and transport settings. Sets up event handlers for
      * connection lifecycle management.
-     * 
+     *
      * Configuration Details:
      * - autoConnect: true - Immediate connection attempt
      * - reconnection: true - Built-in reconnection enabled
      * - pingInterval: 25000ms - Matches server configuration
      * - pingTimeout: 20000ms - Health check timeout
      * - transports: ['websocket', 'polling'] - Fallback options
-     * 
+     *
      * WHY these settings:
      * - Ping intervals must match server to prevent timeouts
      * - Limited reconnection attempts prevent infinite loops
      * - forceNew prevents socket reuse issues
-     * 
+     *
      * @param {string} url - Complete Socket.IO server URL (http://localhost:port)
      * @private
-     * 
+     *
      * @throws {Error} If Socket.IO library is not available
      */
     doConnect(url) {
         console.log(`Connecting to Socket.IO server at ${url}`);
-        
+
         // Check if io is available
         if (typeof io === 'undefined') {
             console.error('Socket.IO library not loaded! Make sure socket.io.min.js is loaded before this script.');
             this.notifyConnectionStatus('Socket.IO library not loaded', 'error');
             return;
         }
-        
+
         this.isConnecting = true;
         this.notifyConnectionStatus('Connecting...', 'connecting');
 
@@ -347,7 +347,7 @@ class SocketClient {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 10000,  // Increased max delay for stability
-            reconnectionAttempts: 10,  // Increased attempts for better resilience  
+            reconnectionAttempts: 10,  // Increased attempts for better resilience
             timeout: 30000,  // Increased connection timeout to 30 seconds
             forceNew: true,
             transports: ['websocket', 'polling'],
@@ -369,16 +369,16 @@ class SocketClient {
             this.isConnecting = false;
             this.lastConnectTime = Date.now();
             this.retryAttempts = 0; // Reset retry counter on successful connect
-            
+
             // Calculate downtime if this is a reconnection
             if (this.disconnectTime && previouslyConnected === false) {
                 const downtime = (Date.now() - this.disconnectTime) / 1000;
                 console.log(`Reconnected after ${downtime.toFixed(1)}s downtime`);
-                
+
                 // Flush queued events after reconnection
                 this.flushEventQueue();
             }
-            
+
             this.notifyConnectionStatus('Connected', 'connected');
 
             // Expose socket globally for components that need direct access
@@ -405,20 +405,20 @@ class SocketClient {
                 lastPing: this.lastPingTime ? ((Date.now() - this.lastPingTime) / 1000).toFixed(1) + 's ago' : 'never',
                 lastPong: this.lastPongTime ? ((Date.now() - this.lastPongTime) / 1000).toFixed(1) + 's ago' : 'never'
             };
-            
+
             console.log('Disconnected from server:', disconnectInfo);
-            
+
             this.isConnected = false;
             this.isConnecting = false;
             this.disconnectTime = Date.now();
-            
+
             this.notifyConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
 
             // Emit disconnect callback
             this.connectionCallbacks.disconnect.forEach(callback =>
                 callback(reason)
             );
-            
+
             // Detailed reason analysis for auto-reconnect decision
             const reconnectReasons = [
                 'transport close',      // Network issue
@@ -426,7 +426,7 @@ class SocketClient {
                 'transport error',      // Connection error
                 'io server disconnect', // Server initiated disconnect (might be restart)
             ];
-            
+
             if (reconnectReasons.includes(reason)) {
                 console.log(`Auto-reconnect triggered for reason: ${reason}`);
                 this.scheduleReconnect();
@@ -448,8 +448,8 @@ class SocketClient {
             this.addEvent({
                 type: 'connection.error',
                 timestamp: new Date().toISOString(),
-                data: { 
-                    error: errorMsg, 
+                data: {
+                    error: errorMsg,
                     url: this.socket.io.uri,
                     retry_attempt: this.retryAttempts
                 }
@@ -459,7 +459,7 @@ class SocketClient {
             this.connectionCallbacks.error.forEach(callback =>
                 callback(errorMsg)
             );
-            
+
             // Schedule reconnect with backoff
             this.scheduleReconnect();
         });
@@ -467,20 +467,20 @@ class SocketClient {
         // Primary event handler - this is what the server actually emits
         this.socket.on('claude_event', (data) => {
             console.log('Received claude_event:', data);
-            
+
             // Validate event schema
             const validatedEvent = this.validateEventSchema(data);
             if (!validatedEvent) {
                 console.warn('Invalid event schema received:', data);
                 return;
             }
-            
+
             // Code analysis events are now allowed to flow through to the events list for troubleshooting
             // They will appear in both the Events tab and the Code tab
             if (validatedEvent.type && validatedEvent.type.startsWith('code:')) {
                 console.log('Code analysis event received via claude_event, adding to events list for troubleshooting:', validatedEvent.type);
             }
-            
+
             // Transform event to match expected format (for backward compatibility)
             const transformedEvent = this.transformEvent(validatedEvent);
             console.log('Transformed event:', transformedEvent);
@@ -491,20 +491,20 @@ class SocketClient {
         this.socket.on('ping', (data) => {
             // console.log('Received ping from server');
             this.lastPingTime = Date.now();
-            
+
             // Send pong response immediately
-            this.socket.emit('pong', { 
+            this.socket.emit('pong', {
                 timestamp: data.timestamp,
                 client_time: Date.now()
             });
         });
-        
+
         // Track pong responses from server
         this.socket.on('pong', (data) => {
             this.lastPongTime = Date.now();
             // console.log('Received pong from server');
         });
-        
+
         // Listen for heartbeat events from server (every 3 minutes)
         this.socket.on('heartbeat', (data) => {
             console.log('🫀 Received server heartbeat:', data);
@@ -515,14 +515,14 @@ class SocketClient {
                 timestamp: data.timestamp || new Date().toISOString(),
                 data: data
             });
-            
+
             // Update last ping time to indicate server is alive
             this.lastPingTime = Date.now();
-            
+
             // Log to console for debugging
             console.log(`Server heartbeat #${data.heartbeat_number}: ${data.server_uptime_formatted} uptime, ${data.connected_clients} clients connected`);
         });
-        
+
         // Session and event handlers (legacy/fallback)
         this.socket.on('session.started', (data) => {
             this.addEvent({ type: 'session', subtype: 'started', timestamp: new Date().toISOString(), data });
@@ -578,43 +578,43 @@ class SocketClient {
             console.log('Code analysis queued event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'analysis:queued', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:analysis:accepted', (data) => {
             // Add to events list for troubleshooting
             console.log('Code analysis accepted event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'analysis:accepted', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:analysis:start', (data) => {
             // Add to events list for troubleshooting
             console.log('Code analysis start event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'analysis:start', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:analysis:complete', (data) => {
             // Add to events list for troubleshooting
             console.log('Code analysis complete event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'analysis:complete', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:analysis:error', (data) => {
             // Add to events list for troubleshooting
             console.log('Code analysis error event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'analysis:error', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:file:start', (data) => {
             // Add to events list for troubleshooting
             console.log('Code file start event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'file:start', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:node:found', (data) => {
             // Add to events list for troubleshooting
             console.log('Code node found event received, adding to events list for troubleshooting');
             this.addEvent({ type: 'code', subtype: 'node:found', timestamp: new Date().toISOString(), data });
         });
-        
+
         this.socket.on('code:analysis:progress', (data) => {
             // Add to events list for troubleshooting
             console.log('Code analysis progress event received, adding to events list for troubleshooting');
@@ -692,15 +692,15 @@ class SocketClient {
      * @param {Object} options - Options for retry behavior
      */
     emitWithRetry(event, data = null, options = {}) {
-        const { 
+        const {
             maxRetries = 3,
             retryDelays = [1000, 2000, 4000],
             onSuccess = null,
             onFailure = null
         } = options;
-        
+
         const emissionId = `${event}_${Date.now()}_${Math.random()}`;
-        
+
         const attemptEmission = (attemptNum = 0) => {
             if (!this.socket || !this.socket.connected) {
                 // Queue for later if disconnected
@@ -711,24 +711,24 @@ class SocketClient {
                 }
                 return;
             }
-            
+
             try {
                 // Attempt emission
                 this.socket.emit(event, data);
                 console.log(`Emitted ${event} successfully`);
-                
+
                 // Remove from pending
                 this.pendingEmissions.delete(emissionId);
-                
+
                 if (onSuccess) onSuccess();
-                
+
             } catch (error) {
                 console.error(`Failed to emit ${event} (attempt ${attemptNum + 1}):`, error);
-                
+
                 if (attemptNum < maxRetries - 1) {
                     const delay = retryDelays[attemptNum] || retryDelays[retryDelays.length - 1];
                     console.log(`Retrying ${event} in ${delay}ms...`);
-                    
+
                     // Store pending emission
                     this.pendingEmissions.set(emissionId, {
                         event,
@@ -736,7 +736,7 @@ class SocketClient {
                         attemptNum: attemptNum + 1,
                         scheduledTime: Date.now() + delay
                     });
-                    
+
                     setTimeout(() => attemptEmission(attemptNum + 1), delay);
                 } else {
                     console.error(`Failed to emit ${event} after ${maxRetries} attempts`);
@@ -745,10 +745,10 @@ class SocketClient {
                 }
             }
         };
-        
+
         attemptEmission();
     }
-    
+
     /**
      * Queue an event for later emission
      * @param {string} event - Event name
@@ -760,24 +760,24 @@ class SocketClient {
             const removed = this.eventQueue.shift();
             console.warn(`Event queue full, dropped oldest event: ${removed.event}`);
         }
-        
+
         this.eventQueue.push({
             event,
             data,
             timestamp: Date.now()
         });
     }
-    
+
     /**
      * Flush queued events after reconnection
      */
     flushEventQueue() {
         if (this.eventQueue.length === 0) return;
-        
+
         console.log(`Flushing ${this.eventQueue.length} queued events...`);
         const events = [...this.eventQueue];
         this.eventQueue = [];
-        
+
         // Emit each queued event with a small delay between them
         events.forEach((item, index) => {
             setTimeout(() => {
@@ -788,7 +788,7 @@ class SocketClient {
             }, index * 100); // 100ms between each event
         });
     }
-    
+
     /**
      * Schedule a reconnection attempt with exponential backoff
      */
@@ -798,13 +798,13 @@ class SocketClient {
             this.notifyConnectionStatus('Reconnection failed', 'disconnected');
             return;
         }
-        
+
         const delay = this.retryDelays[this.retryAttempts] || this.retryDelays[this.retryDelays.length - 1];
         this.retryAttempts++;
-        
+
         console.log(`Scheduling reconnect attempt ${this.retryAttempts}/${this.maxRetryAttempts} in ${delay}ms...`);
         this.notifyConnectionStatus(`Reconnecting in ${delay/1000}s...`, 'connecting');
-        
+
         setTimeout(() => {
             if (!this.isConnected && this.port) {
                 console.log(`Attempting reconnection ${this.retryAttempts}/${this.maxRetryAttempts}...`);
@@ -812,7 +812,7 @@ class SocketClient {
             }
         }, delay);
     }
-    
+
     /**
      * Request server status
      */
@@ -883,7 +883,7 @@ class SocketClient {
             const session = this.sessions.get(sessionId);
             session.lastActivity = eventData.timestamp;
             session.eventCount++;
-            
+
             // Extract working directory from event data if available (prioritize newer data)
             // Check multiple possible locations for working directory
             const possiblePaths = [
@@ -898,7 +898,7 @@ class SocketClient {
                 eventData.working_directory,
                 eventData.working_dir
             ];
-            
+
             for (const path of possiblePaths) {
                 if (path && typeof path === 'string' && path.trim()) {
                     session.working_directory = path;
@@ -906,7 +906,7 @@ class SocketClient {
                     break;
                 }
             }
-            
+
             // Extract git branch if available
             if (eventData.data.git_branch) {
                 session.git_branch = eventData.data.git_branch;
@@ -1082,10 +1082,10 @@ class SocketClient {
             console.warn('Event data is not an object:', eventData);
             return null;
         }
-        
+
         // Make a copy to avoid modifying the original
         const validated = { ...eventData };
-        
+
         // Check and provide defaults for required fields
         if (!validated.source) {
             validated.source = 'system';  // Default source for backward compatibility
@@ -1107,16 +1107,16 @@ class SocketClient {
         if (!validated.data) {
             validated.data = {};
         }
-        
+
         // Ensure data field is an object
         if (validated.data && typeof validated.data !== 'object') {
             validated.data = { value: validated.data };
         }
-        
+
         console.log('Validated event:', validated);
         return validated;
     }
-    
+
     /**
      * Transform received event to match expected dashboard format
      * @param {Object} eventData - Raw event data from server
@@ -1137,8 +1137,8 @@ class SocketClient {
 
         // Check if event is already normalized (has both type and subtype as separate fields)
         // This prevents double-transformation of events that were normalized on the backend
-        const isAlreadyNormalized = eventData.type && eventData.subtype && 
-                                   !eventData.type.includes('.') && 
+        const isAlreadyNormalized = eventData.type && eventData.subtype &&
+                                   !eventData.type.includes('.') &&
                                    !eventData.type.includes(':');
 
         if (isAlreadyNormalized) {
@@ -1157,7 +1157,7 @@ class SocketClient {
         else if (!eventData.type && eventData.event) {
             // Map common event names to proper type/subtype
             const eventName = eventData.event;
-            
+
             // Check for known event patterns
             if (eventName === 'TestStart' || eventName === 'TestEnd') {
                 transformedEvent.type = 'test';
@@ -1176,13 +1176,13 @@ class SocketClient {
                 // Use 'unknown' for type and the actual eventName for subtype
                 transformedEvent.type = 'unknown';
                 transformedEvent.subtype = eventName.toLowerCase();
-                
+
                 // Prevent duplicate type/subtype values
                 if (transformedEvent.type === transformedEvent.subtype) {
                     transformedEvent.subtype = 'event';
                 }
             }
-            
+
             // Remove the 'event' field to avoid confusion
             delete transformedEvent.event;
             // Store original event name for display purposes
@@ -1191,7 +1191,7 @@ class SocketClient {
         // Handle standard format with 'type' field that needs transformation
         else if (eventData.type) {
             const type = eventData.type;
-            
+
             // Transform 'hook.subtype' format to separate type and subtype
             if (type.startsWith('hook.')) {
                 const subtype = type.substring(5); // Remove 'hook.' prefix
@@ -1241,7 +1241,7 @@ class SocketClient {
         if (eventData.data && typeof eventData.data === 'object') {
             // Protected fields that should never be overwritten by data fields
             const protectedFields = ['type', 'subtype', 'timestamp', 'id', 'event', 'event_type', 'originalEventName'];
-            
+
             // Copy all data fields to the top level, except protected ones
             Object.keys(eventData.data).forEach(key => {
                 // Only copy if not a protected field
@@ -1262,7 +1262,7 @@ class SocketClient {
                     }
                 }
             });
-            
+
             // Keep the original data object for backward compatibility
             transformedEvent.data = eventData.data;
         }
@@ -1307,7 +1307,7 @@ class SocketClient {
                 has_data: !!transformedEvent.data,
                 keys: Object.keys(transformedEvent).filter(k => k !== 'data')
             });
-            
+
             // Extra debug logging for file-related tools
             const fileTools = ['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
             if (fileTools.includes(transformedEvent.tool_name)) {
@@ -1344,10 +1344,10 @@ class SocketClient {
         this.healthCheckInterval = setInterval(() => {
             if (this.isConnected && this.lastPingTime) {
                 const timeSinceLastPing = Date.now() - this.lastPingTime;
-                
+
                 if (timeSinceLastPing > this.pingTimeout) {
                     console.warn(`No ping from server for ${timeSinceLastPing/1000}s, connection may be stale`);
-                    
+
                     // Force reconnection
                     if (this.socket) {
                         console.log('Forcing reconnection due to stale connection...');
@@ -1362,7 +1362,7 @@ class SocketClient {
             }
         }, 10000); // Check every 10 seconds
     }
-    
+
     /**
      * Stop health monitoring
      */
@@ -1372,7 +1372,7 @@ class SocketClient {
             this.healthCheckInterval = null;
         }
     }
-    
+
     /**
      * Start periodic status check as fallback mechanism
      * This ensures the UI stays in sync with actual socket state
@@ -1449,7 +1449,7 @@ class SocketClient {
         this.eventQueue = [];
         this.pendingEmissions.clear();
     }
-    
+
     /**
      * Get connection metrics
      * @returns {Object} Connection metrics

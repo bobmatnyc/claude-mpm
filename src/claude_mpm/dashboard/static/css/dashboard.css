@@ -3240,16 +3240,16 @@ button:disabled:hover {
     .file-actions {
         flex-direction: column;
     }
-    
+
     .file-action-btn {
         justify-content: center;
         width: 100%;
     }
-    
+
     .single-file-actions {
         padding: 8px;
     }
-    
+
     .inline-preview-content {
         font-size: 11px;
         padding: 8px;
@@ -3878,11 +3878,11 @@ button:disabled:hover {
         margin-left: 10px;
         font-size: 11px;
     }
-    
+
     .version-label {
         display: none;
     }
-    
+
     .version-separator {
         margin: 0 3px;
     }
@@ -4171,19 +4171,19 @@ button:disabled:hover {
     .agent-node-level-1 {
         margin-left: 16px;
     }
-    
+
     .agent-node-level-2 {
         margin-left: 32px;
     }
-    
+
     .agent-node-level-3 {
         margin-left: 48px;
     }
-    
+
     .agent-node-children {
         margin-left: 12px;
     }
-    
+
     .agent-node-details {
         margin-left: 28px;
     }
@@ -4293,20 +4293,20 @@ button:disabled:hover {
         grid-template-columns: 1fr;
         gap: 6px;
     }
-    
+
     .agent-event-time {
         justify-self: start;
         min-width: auto;
     }
-    
+
     .agent-event-agent {
         font-size: 14px;
     }
-    
+
     .agent-event-action {
         font-size: 12px;
     }
-    
+
     .agent-event-status {
         justify-self: end;
     }
@@ -4689,12 +4689,12 @@ button:disabled:hover {
         align-items: flex-start;
         gap: 8px;
     }
-    
+
     .detail-row {
         flex-direction: column;
         gap: 4px;
     }
-    
+
     .detail-label {
         min-width: auto;
     }

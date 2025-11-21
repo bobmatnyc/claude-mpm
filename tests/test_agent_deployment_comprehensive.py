@@ -371,9 +371,9 @@ class TestPartialDeploymentFailures:
                 len(result.get("errors", [])) > 0
                 or len(result.get("deployed", [])) == 0
             )
-            assert (
-                has_permission_errors
-            ), "Expected permission errors to be handled gracefully"
+            assert has_permission_errors, (
+                "Expected permission errors to be handled gracefully"
+            )
 
     def test_deployment_failure_corrupted_template(self, tmp_path):
         """Test deployment behavior with corrupted agent templates."""
@@ -574,9 +574,9 @@ class TestRollbackScenarios:
             if current_file.exists():
                 current_content = current_file.read_text()
                 # Check if content was rolled back (either unchanged or explicitly restored)
-                assert (
-                    len(current_content) > 0
-                ), f"File {filename} is empty after rollback"
+                assert len(current_content) > 0, (
+                    f"File {filename} is empty after rollback"
+                )
 
     def test_manual_rollback_capability(self):
         """Test manual rollback capability and verification."""
@@ -713,9 +713,9 @@ This is the backup version of agent {i}.
                 or agent.replace("_", "-") in content
                 or "rollback" in content.lower()
             )
-            assert (
-                agent_present
-            ), f"Agent {agent} not found in content: {content[:200]}..."
+            assert agent_present, (
+                f"Agent {agent} not found in content: {content[:200]}..."
+            )
 
 
 class TestEdgeCasesAndIntegration:

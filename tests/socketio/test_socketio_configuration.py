@@ -149,12 +149,12 @@ class TestSocketIOConfiguration:
 
             config = SocketIOConfig.from_env()
 
-            assert (
-                config.auto_start == expected
-            ), f"auto_start: '{env_value}' should be {expected}"
-            assert (
-                config.persistent == expected
-            ), f"persistent: '{env_value}' should be {expected}"
+            assert config.auto_start == expected, (
+                f"auto_start: '{env_value}' should be {expected}"
+            )
+            assert config.persistent == expected, (
+                f"persistent: '{env_value}' should be {expected}"
+            )
 
     def test_socketio_config_for_development(self):
         """Test development-optimized configuration."""
@@ -479,9 +479,9 @@ class TestSocketIOConfiguration:
         ]
 
         for field in required_fields:
-            assert (
-                field in CONNECTION_CONFIG
-            ), f"CONNECTION_CONFIG missing required field: {field}"
+            assert field in CONNECTION_CONFIG, (
+                f"CONNECTION_CONFIG missing required field: {field}"
+            )
 
     def test_connection_config_reasonable_values(self):
         """Test that CONNECTION_CONFIG values are within reasonable ranges."""

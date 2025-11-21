@@ -52,7 +52,7 @@ def test_api_response():
         # Check first few items structure
         for i, item in enumerate(data["contents"][:3]):
             print(
-                f"  Item {i+1}: {item.get('name', 'NO_NAME')} ({'dir' if item.get('is_directory') else 'file'})"
+                f"  Item {i + 1}: {item.get('name', 'NO_NAME')} ({'dir' if item.get('is_directory') else 'file'})"
             )
 
             required_item_fields = ["name", "path", "is_directory", "is_file"]

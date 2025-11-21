@@ -121,7 +121,7 @@ def validate_response_files(responses_dir):
     print(f"  Total files: {total_count}")
     print(f"  Valid files: {valid_count}")
     print(f"  Invalid files: {total_count - valid_count}")
-    print(f"  Success rate: {(valid_count/total_count)*100:.1f}%")
+    print(f"  Success rate: {(valid_count / total_count) * 100:.1f}%")
 
     return valid_count == total_count
 

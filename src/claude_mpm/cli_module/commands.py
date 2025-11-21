@@ -107,7 +107,7 @@ class CommandRegistry:
 
             # Apply extra arguments
             for arg_name, arg_config in command.extra_args.items():
-                flags = arg_config.pop("flags", [f'--{arg_name.replace("_", "-")}'])
+                flags = arg_config.pop("flags", [f"--{arg_name.replace('_', '-')}"])
                 subparser.add_argument(*flags, **arg_config)
 
             # Store handler reference

@@ -107,9 +107,9 @@ def update_agent_json(file_path: Path, reduction_stats: Dict) -> None:
 
     # Add optimization note to metadata
     if "optimization_note" not in agent_data["metadata"]:
-        agent_data["metadata"][
-            "optimization_note"
-        ] = f"Optimized template - reduced from {orig_lines} to {new_lines} lines"
+        agent_data["metadata"]["optimization_note"] = (
+            f"Optimized template - reduced from {orig_lines} to {new_lines} lines"
+        )
 
     # Save the updated agent
     with file_path.open("w") as f:

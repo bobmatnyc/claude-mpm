@@ -431,7 +431,7 @@ class PortManager:
                             return port
 
         self.logger.error(
-            f"No available ports in range {self.PORT_RANGE.start}-{self.PORT_RANGE.stop-1}"
+            f"No available ports in range {self.PORT_RANGE.start}-{self.PORT_RANGE.stop - 1}"
         )
         return None
 

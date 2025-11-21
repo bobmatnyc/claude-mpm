@@ -1,9 +1,9 @@
 /**
  * Unified Tooltip Service
- * 
+ *
  * Provides a consistent tooltip implementation for all dashboard components.
  * Supports different tooltip types and behaviors.
- * 
+ *
  * @module tooltip-service
  */
 
@@ -26,7 +26,7 @@ class TooltipService {
      */
     create(id, options = {}) {
         const config = { ...this.defaultOptions, ...options };
-        
+
         // Check if tooltip already exists
         if (this.tooltips.has(id)) {
             return this.tooltips.get(id);
@@ -72,7 +72,7 @@ class TooltipService {
 
         // Format content
         const html = this.formatContent(content);
-        
+
         tooltip.html(html)
             .style('left', (event.pageX + config.offset.x) + 'px')
             .style('top', (event.pageY + config.offset.y) + 'px');
@@ -122,7 +122,7 @@ class TooltipService {
 
         if (typeof content === 'object' && content !== null) {
             const lines = [];
-            
+
             // Handle title
             if (content.title) {
                 lines.push(`<strong>${this.escapeHtml(content.title)}</strong>`);
@@ -166,7 +166,7 @@ class TooltipService {
         const rect = node.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        
+
         let left = event.pageX + config.offset.x;
         let top = event.pageY + config.offset.y;
 

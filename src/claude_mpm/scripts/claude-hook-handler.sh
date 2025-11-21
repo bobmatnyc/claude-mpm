@@ -89,7 +89,7 @@ fi
 # STRATEGY:
 # This function implements a fallback chain to find Python with claude-mpm dependencies:
 # 1. Project-specific virtual environments (venv, .venv)
-# 2. Currently active virtual environment ($VIRTUAL_ENV)  
+# 2. Currently active virtual environment ($VIRTUAL_ENV)
 # 3. System python3 (may lack dependencies)
 # 4. System python (last resort)
 #
@@ -121,7 +121,7 @@ find_python_command() {
             return
         fi
     fi
-    
+
     # 2. Check for project-local virtual environment (common in development)
     if [ -f "$CLAUDE_MPM_ROOT/venv/bin/activate" ]; then
         source "$CLAUDE_MPM_ROOT/venv/bin/activate"
@@ -152,7 +152,7 @@ if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
 elif [ -d "$CLAUDE_MPM_ROOT/src" ]; then
     # Development install - add src to PYTHONPATH
     export PYTHONPATH="$CLAUDE_MPM_ROOT/src:$PYTHONPATH"
-    
+
     if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
         echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Development environment detected" >> /tmp/claude-mpm-hook.log
     fi

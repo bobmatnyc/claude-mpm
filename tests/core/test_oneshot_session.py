@@ -778,9 +778,7 @@ class TestOneshotSessionIntegration:
             "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
         ) as mock_uuid, patch(
             "os.environ.copy", return_value={"PATH": "/usr/bin"}
-        ), patch(
-            "subprocess.run", return_value=mock_result
-        ), patch(
+        ), patch("subprocess.run", return_value=mock_result), patch(
             "os.getcwd", return_value="/test/dir"
         ):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
@@ -827,9 +825,7 @@ class TestOneshotSessionIntegration:
             "uuid.uuid4", return_value=Mock(spec=uuid.UUID)
         ) as mock_uuid, patch(
             "os.environ.copy", return_value={"PATH": "/usr/bin"}
-        ), patch(
-            "subprocess.run", return_value=mock_result
-        ):
+        ), patch("subprocess.run", return_value=mock_result):
             mock_uuid.return_value.__str__ = Mock(return_value="test-session-id")
 
             # Initialize session
@@ -870,13 +866,9 @@ class TestOneshotSessionIntegration:
         ) as mock_uuid, patch(
             "claude_mpm.services.socketio_server.SocketIOClientProxy",
             return_value=mock_proxy,
-        ), patch(
-            "os.environ.copy", return_value={}
-        ), patch(
+        ), patch("os.environ.copy", return_value={}), patch(
             "subprocess.run", return_value=mock_result
-        ), patch(
-            "os.getcwd", return_value="/test/dir"
-        ):
+        ), patch("os.getcwd", return_value="/test/dir"):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
             # Full workflow

@@ -51,11 +51,11 @@ class DeploymentPipelineExecutor:
             try:
                 # Check if step should be executed
                 if not step.should_execute(context):
-                    self.logger.info(f"Skipping step {i+1}/{len(steps)}: {step.name}")
+                    self.logger.info(f"Skipping step {i + 1}/{len(steps)}: {step.name}")
                     skipped_steps.append(step.name)
                     continue
 
-                self.logger.info(f"Executing step {i+1}/{len(steps)}: {step.name}")
+                self.logger.info(f"Executing step {i + 1}/{len(steps)}: {step.name}")
 
                 # Execute the step
                 result = step.execute(context)

@@ -1,6 +1,6 @@
 /**
  * File Change Viewer Component
- * 
+ *
  * Displays files edited by Claude in a tree structure grouped by working directory.
  * Integrates with FileChangeTracker for tracking changes and DiffViewer for showing diffs.
  * Supports session-based filtering and displays change indicators.
@@ -22,16 +22,16 @@ class FileChangeViewer {
      */
     initialize() {
         if (this.initialized) return;
-        
+
         // Create dependent components
         this.fileTracker = new FileChangeTracker();
         this.diffViewer = new DiffViewer();
-        
+
         this.createModal();
         this.setupEventHandlers();
         this.subscribeToEvents();
         this.injectStyles();
-        
+
         this.initialized = true;
         console.log('File change viewer initialized');
     }
@@ -96,7 +96,7 @@ class FileChangeViewer {
     injectStyles() {
         const styleId = 'file-change-viewer-styles';
         if (document.getElementById(styleId)) return;
-        
+
         const styles = `
             <style id="${styleId}">
                 .file-change-modal {
@@ -111,13 +111,13 @@ class FileChangeViewer {
                     padding: 20px;
                     overflow: auto;
                 }
-                
+
                 .file-change-modal.show {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
-                
+
                 .file-change-content {
                     background: white;
                     border-radius: 8px;
@@ -128,7 +128,7 @@ class FileChangeViewer {
                     flex-direction: column;
                     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
                 }
-                
+
                 .file-change-header {
                     display: flex;
                     justify-content: space-between;
@@ -138,7 +138,7 @@ class FileChangeViewer {
                     background: #f8fafc;
                     border-radius: 8px 8px 0 0;
                 }
-                
+
                 .file-change-title {
                     display: flex;
                     align-items: center;
@@ -147,28 +147,28 @@ class FileChangeViewer {
                     font-weight: 600;
                     color: #2d3748;
                 }
-                
+
                 .title-icon {
                     font-size: 20px;
                 }
-                
+
                 .file-change-controls {
                     display: flex;
                     align-items: center;
                     gap: 20px;
                 }
-                
+
                 .session-filter {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                 }
-                
+
                 .session-filter label {
                     font-size: 13px;
                     color: #4a5568;
                 }
-                
+
                 .session-select {
                     padding: 4px 8px;
                     border: 1px solid #cbd5e0;
@@ -176,12 +176,12 @@ class FileChangeViewer {
                     font-size: 13px;
                     background: white;
                 }
-                
+
                 .file-stats {
                     display: flex;
                     gap: 16px;
                 }
-                
+
                 .stat-item {
                     display: flex;
                     align-items: center;
@@ -189,16 +189,16 @@ class FileChangeViewer {
                     font-size: 13px;
                     color: #4a5568;
                 }
-                
+
                 .stat-icon {
                     font-size: 14px;
                 }
-                
+
                 .stat-value {
                     font-weight: 600;
                     color: #2d3748;
                 }
-                
+
                 .file-change-close {
                     width: 32px;
                     height: 32px;
@@ -213,25 +213,25 @@ class FileChangeViewer {
                     border-radius: 4px;
                     transition: all 0.2s;
                 }
-                
+
                 .file-change-close:hover {
                     background: #e2e8f0;
                     color: #2d3748;
                 }
-                
+
                 .file-change-body {
                     flex: 1;
                     overflow: auto;
                     padding: 20px;
                     background: #fafbfc;
                 }
-                
+
                 .file-tree-container {
                     display: flex;
                     flex-direction: column;
                     gap: 16px;
                 }
-                
+
                 /* Directory groups */
                 .directory-group {
                     background: white;
@@ -239,7 +239,7 @@ class FileChangeViewer {
                     border-radius: 6px;
                     overflow: hidden;
                 }
-                
+
                 .directory-header {
                     display: flex;
                     align-items: center;
@@ -250,53 +250,53 @@ class FileChangeViewer {
                     cursor: pointer;
                     transition: background 0.2s;
                 }
-                
+
                 .directory-header:hover {
                     background: #f1f5f9;
                 }
-                
+
                 .directory-info {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                 }
-                
+
                 .directory-icon {
                     font-size: 16px;
                     color: #4299e1;
                 }
-                
+
                 .directory-path {
                     font-family: 'SF Mono', Monaco, monospace;
                     font-size: 13px;
                     font-weight: 600;
                     color: #2d3748;
                 }
-                
+
                 .directory-stats {
                     display: flex;
                     gap: 12px;
                     font-size: 12px;
                     color: #718096;
                 }
-                
+
                 .directory-files {
                     padding: 12px;
                     display: none;
                 }
-                
+
                 .directory-group.expanded .directory-files {
                     display: block;
                 }
-                
+
                 .directory-group.expanded .directory-icon::before {
                     content: '📂';
                 }
-                
+
                 .directory-group:not(.expanded) .directory-icon::before {
                     content: '📁';
                 }
-                
+
                 /* File items */
                 .file-item {
                     display: flex;
@@ -310,85 +310,85 @@ class FileChangeViewer {
                     cursor: pointer;
                     transition: all 0.2s;
                 }
-                
+
                 .file-item:hover {
                     background: white;
                     border-color: #4299e1;
                     transform: translateX(4px);
                 }
-                
+
                 .file-item:last-child {
                     margin-bottom: 0;
                 }
-                
+
                 .file-info {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                     flex: 1;
                 }
-                
+
                 .file-icon {
                     font-size: 14px;
                 }
-                
+
                 .file-name {
                     font-family: 'SF Mono', Monaco, monospace;
                     font-size: 13px;
                     color: #2d3748;
                     font-weight: 500;
                 }
-                
+
                 .file-badges {
                     display: flex;
                     gap: 6px;
                 }
-                
+
                 .file-badge {
                     padding: 2px 6px;
                     font-size: 11px;
                     border-radius: 3px;
                     font-weight: 600;
                 }
-                
+
                 .badge-edit {
                     background: #fef3c7;
                     color: #92400e;
                 }
-                
+
                 .badge-write {
                     background: #dbeafe;
                     color: #1e40af;
                 }
-                
+
                 .badge-read {
                     background: #e0e7ff;
                     color: #3730a3;
                 }
-                
+
                 .file-timestamp {
                     font-size: 11px;
                     color: #a0aec0;
                 }
-                
+
                 /* Empty state */
                 .empty-state {
                     text-align: center;
                     padding: 40px;
                     color: #718096;
                 }
-                
+
                 .empty-state-icon {
                     font-size: 48px;
                     margin-bottom: 16px;
                 }
-                
+
                 .empty-state-text {
                     font-size: 14px;
                 }
             </style>
         `;
-        
+
         document.head.insertAdjacentHTML('beforeend', styles);
     }
 
@@ -400,21 +400,21 @@ class FileChangeViewer {
         document.getElementById('file-change-close').addEventListener('click', () => {
             this.hide();
         });
-        
+
         // Close on backdrop click
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) {
                 this.hide();
             }
         });
-        
+
         // Close on ESC key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal.classList.contains('show')) {
                 this.hide();
             }
         });
-        
+
         // Session filter
         document.getElementById('file-session-filter').addEventListener('change', (e) => {
             this.currentSessionId = e.target.value;
@@ -430,7 +430,7 @@ class FileChangeViewer {
         if (window.socket) {
             // We might want to listen for file operation events
         }
-        
+
         // Listen for event viewer updates
         if (window.eventViewer) {
             // Hook into event updates to refresh our view
@@ -452,22 +452,22 @@ class FileChangeViewer {
         if (!this.initialized) {
             this.initialize();
         }
-        
+
         this.modal.classList.add('show');
-        
+
         // Update with events
         if (events) {
             this.fileTracker.updateEvents(events);
         } else if (window.eventViewer) {
             this.fileTracker.updateEvents(window.eventViewer.events);
         }
-        
+
         // Update session filter
         this.updateSessionFilter();
-        
+
         // Display file tree
         this.updateFileTree();
-        
+
         // Update statistics
         this.updateStatistics();
     }
@@ -497,10 +497,10 @@ class FileChangeViewer {
     updateSessionFilter() {
         const select = document.getElementById('file-session-filter');
         const sessions = Array.from(this.fileTracker.sessionData.keys());
-        
+
         // Clear existing options except "All Sessions"
         select.innerHTML = '<option value="">All Sessions</option>';
-        
+
         // Add session options
         sessions.forEach(sessionId => {
             const option = document.createElement('option');
@@ -508,7 +508,7 @@ class FileChangeViewer {
             option.textContent = `Session: ${sessionId.substring(0, 8)}...`;
             select.appendChild(option);
         });
-        
+
         // Restore selection
         if (this.currentSessionId) {
             select.value = this.currentSessionId;
@@ -520,7 +520,7 @@ class FileChangeViewer {
      */
     updateFileTree() {
         const tree = this.fileTracker.getFileTree(this.currentSessionId);
-        
+
         if (Object.keys(tree).length === 0) {
             this.treeContainer.innerHTML = `
                 <div class="empty-state">
@@ -530,15 +530,15 @@ class FileChangeViewer {
             `;
             return;
         }
-        
+
         // Build tree HTML
         const treeHtml = Object.entries(tree)
             .sort((a, b) => b[1].totalOperations - a[1].totalOperations)
             .map(([dirPath, dirData]) => this.renderDirectoryGroup(dirPath, dirData))
             .join('');
-        
+
         this.treeContainer.innerHTML = treeHtml;
-        
+
         // Add event handlers
         this.attachTreeHandlers();
     }
@@ -551,7 +551,7 @@ class FileChangeViewer {
      */
     renderDirectoryGroup(dirPath, dirData) {
         const displayPath = dirPath === 'unknown' ? 'Unknown Directory' : dirPath;
-        
+
         return `
             <div class="directory-group" data-path="${dirPath}">
                 <div class="directory-header">
@@ -588,9 +588,9 @@ class FileChangeViewer {
         if (fileData.totalReads > 0 && fileData.totalEdits === 0 && fileData.totalWrites === 0) {
             badges.push(`<span class="file-badge badge-read">👁️ ${fileData.totalReads}</span>`);
         }
-        
+
         const timestamp = new Date(fileData.lastModified).toLocaleTimeString();
-        
+
         return `
             <div class="file-item" data-path="${fileData.path}">
                 <div class="file-info">
@@ -614,7 +614,7 @@ class FileChangeViewer {
                 group.classList.toggle('expanded');
             });
         });
-        
+
         // File items - show diff or content
         document.querySelectorAll('.file-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -623,7 +623,7 @@ class FileChangeViewer {
                 this.showFileDetails(filePath);
             });
         });
-        
+
         // Auto-expand first directory
         const firstDir = document.querySelector('.directory-group');
         if (firstDir) {
@@ -638,7 +638,7 @@ class FileChangeViewer {
     showFileDetails(filePath) {
         const fileData = this.fileTracker.getFileDetails(filePath);
         if (!fileData) return;
-        
+
         // If file has edits or writes, show diff
         if (fileData.totalEdits > 0 || fileData.totalWrites > 0) {
             const diffData = this.fileTracker.getFileDiff(filePath);
@@ -657,12 +657,12 @@ class FileChangeViewer {
      */
     updateStatistics() {
         const stats = this.fileTracker.getStatistics();
-        
+
         document.getElementById('total-files').textContent = stats.totalFiles;
-        document.getElementById('total-edits').textContent = 
+        document.getElementById('total-edits').textContent =
             Array.from(this.fileTracker.fileChanges.values())
                 .reduce((sum, f) => sum + f.totalEdits, 0);
-        document.getElementById('total-writes').textContent = 
+        document.getElementById('total-writes').textContent =
             Array.from(this.fileTracker.fileChanges.values())
                 .reduce((sum, f) => sum + f.totalWrites, 0);
     }

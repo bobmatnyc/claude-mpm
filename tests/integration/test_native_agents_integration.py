@@ -106,9 +106,9 @@ class TestNativeAgentsIntegration:
 
             # Verify structure of each agent
             for agent_id, agent_config in agents.items():
-                assert (
-                    "description" in agent_config
-                ), f"Agent {agent_id} missing description"
+                assert "description" in agent_config, (
+                    f"Agent {agent_id} missing description"
+                )
                 assert "prompt" in agent_config, f"Agent {agent_id} missing prompt"
                 assert "tools" in agent_config, f"Agent {agent_id} missing tools"
                 assert "model" in agent_config, f"Agent {agent_id} missing model"
@@ -153,9 +153,9 @@ class TestNativeAgentsIntegration:
         summary = converter.get_conversion_summary(agents)
 
         # Should have close to 37 agents (might vary slightly)
-        assert (
-            summary["total_agents"] >= 35
-        ), f"Expected ~37 agents, got {summary['total_agents']}"
+        assert summary["total_agents"] >= 35, (
+            f"Expected ~37 agents, got {summary['total_agents']}"
+        )
         assert summary["json_size"] > 0
         assert summary["json_size_kb"] < 100  # Should be under 100KB
 
@@ -220,9 +220,9 @@ class TestNativeAgentsIntegration:
         conversion_time = end - start
 
         # Should complete in under 1 second
-        assert (
-            conversion_time < 1.0
-        ), f"Conversion took {conversion_time:.2f}s (too slow)"
+        assert conversion_time < 1.0, (
+            f"Conversion took {conversion_time:.2f}s (too slow)"
+        )
 
     def test_command_with_resume_flag_and_native_agents(self):
         """Test that --resume flag works with native agents."""

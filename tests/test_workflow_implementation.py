@@ -26,25 +26,25 @@ def test_state_transitions():
     valid, msg = workflow_state_machine.validate_transition(
         UnifiedStatus.OPEN, UnifiedStatus.IN_PROGRESS
     )
-    print(f'OPEN -> IN_PROGRESS: {valid} ({"OK" if valid else msg})')
+    print(f"OPEN -> IN_PROGRESS: {valid} ({'OK' if valid else msg})")
 
     # Invalid transition
     valid, msg = workflow_state_machine.validate_transition(
         UnifiedStatus.OPEN, UnifiedStatus.MERGED
     )
-    print(f'OPEN -> MERGED: {valid} ({msg if msg else "OK"})')
+    print(f"OPEN -> MERGED: {valid} ({msg if msg else 'OK'})")
 
     # Transition requiring resolution
     valid, msg = workflow_state_machine.validate_transition(
         UnifiedStatus.IN_PROGRESS, UnifiedStatus.RESOLVED
     )
-    print(f'IN_PROGRESS -> RESOLVED (no resolution): {valid} ({msg if msg else "OK"})')
+    print(f"IN_PROGRESS -> RESOLVED (no resolution): {valid} ({msg if msg else 'OK'})")
 
     valid, msg = workflow_state_machine.validate_transition(
         UnifiedStatus.IN_PROGRESS, UnifiedStatus.RESOLVED, ResolutionType.FIXED
     )
     print(
-        f'IN_PROGRESS -> RESOLVED (with resolution): {valid} ({"OK" if valid else msg})'
+        f"IN_PROGRESS -> RESOLVED (with resolution): {valid} ({'OK' if valid else msg})"
     )
 
 

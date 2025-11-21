@@ -194,7 +194,7 @@ class PerformanceBenchmarks:
 
         # Test oneshot mode startup
         for i in range(samples):
-            self.logger.info(f"  Testing oneshot startup {i+1}/{samples}")
+            self.logger.info(f"  Testing oneshot startup {i + 1}/{samples}")
             start_time = time.time()
 
             try:
@@ -212,21 +212,23 @@ class PerformanceBenchmarks:
                     end_time = time.time()
                     startup_time = end_time - start_time
                     oneshot_times.append(startup_time)
-                    self.logger.debug(f"    Oneshot startup {i+1}: {startup_time:.3f}s")
+                    self.logger.debug(
+                        f"    Oneshot startup {i + 1}: {startup_time:.3f}s"
+                    )
                 else:
                     self.logger.warning(
-                        f"    Oneshot startup {i+1} failed: {result.stderr}"
+                        f"    Oneshot startup {i + 1} failed: {result.stderr}"
                     )
 
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"    Oneshot startup {i+1} timed out")
+                self.logger.warning(f"    Oneshot startup {i + 1} timed out")
             except Exception as e:
-                self.logger.error(f"    Oneshot startup {i+1} error: {e}")
+                self.logger.error(f"    Oneshot startup {i + 1} error: {e}")
 
         # Test interactive mode preparation (simulate startup without full interaction)
         for i in range(samples):
             self.logger.info(
-                f"  Testing interactive startup preparation {i+1}/{samples}"
+                f"  Testing interactive startup preparation {i + 1}/{samples}"
             )
             start_time = time.time()
 
@@ -250,12 +252,14 @@ class PerformanceBenchmarks:
                 end_time = time.time()
                 startup_time = end_time - start_time
                 interactive_times.append(startup_time)
-                self.logger.debug(f"    Interactive startup {i+1}: {startup_time:.3f}s")
+                self.logger.debug(
+                    f"    Interactive startup {i + 1}: {startup_time:.3f}s"
+                )
 
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"    Interactive startup {i+1} timed out")
+                self.logger.warning(f"    Interactive startup {i + 1} timed out")
             except Exception as e:
-                self.logger.error(f"    Interactive startup {i+1} error: {e}")
+                self.logger.error(f"    Interactive startup {i + 1} error: {e}")
 
         # Calculate results
         all_times = oneshot_times + interactive_times
@@ -300,7 +304,7 @@ class PerformanceBenchmarks:
 
         # Test agent deployment
         for i in range(samples):
-            self.logger.info(f"  Testing agent deployment {i+1}/{samples}")
+            self.logger.info(f"  Testing agent deployment {i + 1}/{samples}")
 
             try:
                 start_time = time.time()
@@ -328,17 +332,17 @@ class PerformanceBenchmarks:
                 if result.returncode == 0:
                     deployment_times.append(deployment_time)
                     self.logger.debug(
-                        f"    Agent deployment {i+1}: {deployment_time:.1f}ms"
+                        f"    Agent deployment {i + 1}: {deployment_time:.1f}ms"
                     )
                 else:
                     self.logger.warning(
-                        f"    Agent deployment {i+1} failed: {result.stderr}"
+                        f"    Agent deployment {i + 1} failed: {result.stderr}"
                     )
 
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"    Agent deployment {i+1} timed out")
+                self.logger.warning(f"    Agent deployment {i + 1} timed out")
             except Exception as e:
-                self.logger.error(f"    Agent deployment {i+1} error: {e}")
+                self.logger.error(f"    Agent deployment {i + 1} error: {e}")
 
         if not deployment_times:
             raise RuntimeError("No successful agent deployment measurements")
@@ -379,7 +383,7 @@ class PerformanceBenchmarks:
 
         # Create temporary memory with 10k entries
         for i in range(samples):
-            self.logger.info(f"  Testing memory queries {i+1}/{samples}")
+            self.logger.info(f"  Testing memory queries {i + 1}/{samples}")
 
             try:
                 # Test memory search performance using CLI
@@ -406,18 +410,18 @@ class PerformanceBenchmarks:
 
                 if result.returncode == 0:
                     query_times.append(query_time)
-                    self.logger.debug(f"    Memory query {i+1}: {query_time:.1f}ms")
+                    self.logger.debug(f"    Memory query {i + 1}: {query_time:.1f}ms")
                 else:
                     self.logger.debug(
-                        f"    Memory query {i+1} completed with: {result.returncode}"
+                        f"    Memory query {i + 1} completed with: {result.returncode}"
                     )
                     # Still count the time since it completed
                     query_times.append(query_time)
 
             except subprocess.TimeoutExpired:
-                self.logger.warning(f"    Memory query {i+1} timed out")
+                self.logger.warning(f"    Memory query {i + 1} timed out")
             except Exception as e:
-                self.logger.error(f"    Memory query {i+1} error: {e}")
+                self.logger.error(f"    Memory query {i + 1} error: {e}")
 
         if not query_times:
             raise RuntimeError("No memory query measurements")
@@ -578,7 +582,7 @@ class PerformanceBenchmarks:
         )
 
         self.logger.info(
-            f"✅ Connection Reliability: {100-failure_reduction:.1f}% success rate - {'PASS' if passed else 'FAIL'}"
+            f"✅ Connection Reliability: {100 - failure_reduction:.1f}% success rate - {'PASS' if passed else 'FAIL'}"
         )
         return result
 
@@ -599,9 +603,9 @@ class PerformanceBenchmarks:
 
         for name, benchmark_func in benchmarks:
             try:
-                self.logger.info(f"\n{'='*60}")
+                self.logger.info(f"\n{'=' * 60}")
                 self.logger.info(f"Running {name} benchmark...")
-                self.logger.info(f"{'='*60}")
+                self.logger.info(f"{'=' * 60}")
 
                 result = await benchmark_func()
                 results.append(result)
@@ -629,9 +633,9 @@ class PerformanceBenchmarks:
             execution_time=execution_time,
         )
 
-        self.logger.info(f"\n{'='*60}")
+        self.logger.info(f"\n{'=' * 60}")
         self.logger.info("🎯 PERFORMANCE VALIDATION SUMMARY")
-        self.logger.info(f"{'='*60}")
+        self.logger.info(f"{'=' * 60}")
         self.logger.info(f"Total Benchmarks: {len(results)}")
         self.logger.info(f"Passed: {suite.total_passed}")
         self.logger.info(f"Failed: {suite.total_failed}")
@@ -738,9 +742,9 @@ Examples:
     output_file = benchmarks.save_results(suite, args.output)
 
     # Print summary
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("🎯 CLAUDE MPM PERFORMANCE VALIDATION RESULTS")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Timestamp: {suite.timestamp}")
     print(f"Total Tests: {len(suite.results)}")
     print(f"Passed: {suite.total_passed} ✅")

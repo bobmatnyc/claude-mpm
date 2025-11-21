@@ -456,7 +456,6 @@ class TestEventHandlerRegistry:
         with patch.object(registry.logger, "info") as mock_info, patch.object(
             registry.logger, "debug"
         ) as mock_debug:
-
             registry.initialize([MockEventHandler])
             registry.register_all_events()
 

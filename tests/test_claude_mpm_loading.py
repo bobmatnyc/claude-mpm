@@ -144,9 +144,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                 else:
                     print("   ❌ Wrong memory content")
             else:
-                print(
-                    "ℹ️  No PM memories loaded (expected if no deployed agents)"
-                )  # noqa: RUF001
+                print("ℹ️  No PM memories loaded (expected if no deployed agents)")  # noqa: RUF001
 
             # Verify .claude/ directory was NOT read
             instructions_text = loader.get_framework_instructions()
@@ -181,9 +179,7 @@ Custom memory instructions from .claude-mpm/MEMORY.md
                     if pm_memories.exists():
                         print("      ✅ PM_memories.md exists")
             else:
-                print(
-                    f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}"
-                )  # noqa: RUF001
+                print(f"ℹ️  No user .claude-mpm directory at: {user_claude_mpm}")  # noqa: RUF001
 
         finally:
             os.chdir(original_cwd)

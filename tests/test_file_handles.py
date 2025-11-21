@@ -24,11 +24,11 @@ from claude_mpm.core.framework_loader import FrameworkLoader
 # Create multiple loaders
 loaders = []
 for i in range(3):
-    print(f"\nCreating FrameworkLoader {i+1}...")
+    print(f"\nCreating FrameworkLoader {i + 1}...")
     loader = FrameworkLoader()
     _ = loader.get_framework_instructions()
     loaders.append(loader)
-    print(f"Open files after loader {i+1}: {count_open_files()}")
+    print(f"Open files after loader {i + 1}: {count_open_files()}")
 
 # Clear loaders
 print("\nClearing loaders...")
@@ -41,11 +41,11 @@ from claude_mpm.services.system_instructions_service import SystemInstructionsSe
 
 services = []
 for i in range(3):
-    print(f"\nCreating SystemInstructionsService {i+1}...")
+    print(f"\nCreating SystemInstructionsService {i + 1}...")
     service = SystemInstructionsService()
     _ = service.load_system_instructions()
     services.append(service)
-    print(f"Open files after service {i+1}: {count_open_files()}")
+    print(f"Open files after service {i + 1}: {count_open_files()}")
 
 print("\nClearing services...")
 services.clear()

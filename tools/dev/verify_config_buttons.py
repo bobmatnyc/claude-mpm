@@ -21,12 +21,12 @@ def verify_buttons():
     assert hasattr(editor, "cancel_button"), "Cancel button not found"
 
     # Check button labels
-    assert (
-        editor.save_button.get_label() == "Save"
-    ), f"Save button has wrong label: {editor.save_button.get_label()}"
-    assert (
-        editor.cancel_button.get_label() == "Cancel"
-    ), f"Cancel button has wrong label: {editor.cancel_button.get_label()}"
+    assert editor.save_button.get_label() == "Save", (
+        f"Save button has wrong label: {editor.save_button.get_label()}"
+    )
+    assert editor.cancel_button.get_label() == "Cancel", (
+        f"Cancel button has wrong label: {editor.cancel_button.get_label()}"
+    )
 
     # Verify handlers exist
     assert hasattr(editor, "_on_save_button"), "Save button handler not found"

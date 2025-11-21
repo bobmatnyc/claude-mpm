@@ -14,9 +14,9 @@ sys.path.insert(0, str(project_root / "src"))
 
 def test_hook_with_stdin(description, event_data):
     """Test hook by simulating Claude Code calling it."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Testing: {description}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Run the hook handler with the event as stdin
     hook_script = (
@@ -154,10 +154,10 @@ def main():
         },
     )
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Integration tests complete!")
     print("All security policies working as expected.")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

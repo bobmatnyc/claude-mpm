@@ -17,21 +17,21 @@ class ModuleViewer {
         // Global JSON visibility state - persisted across all events
         // When true, all events show JSON expanded; when false, all collapsed
         this.globalJsonExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
-        
+
         // Separate state for Full Event Data sections
         this.fullEventDataExpanded = localStorage.getItem('dashboard-full-event-expanded') === 'true';
-        
+
         // Track if keyboard listener has been added to avoid duplicates
         this.keyboardListenerAdded = false;
-        
+
         // Initialize unified data viewer
         this.unifiedViewer = new UnifiedDataViewer('module-data-content');
-        
+
         // Sync unified viewer's JSON state with module viewer's state
         // This ensures both viewers maintain consistent JSON visibility
         this.unifiedViewer.globalJsonExpanded = this.globalJsonExpanded;
         this.unifiedViewer.fullEventDataExpanded = this.fullEventDataExpanded;
-        
+
         // Listen for JSON state changes from unified viewer
         document.addEventListener('jsonToggleChanged', (e) => {
             this.globalJsonExpanded = e.detail.expanded;
@@ -40,7 +40,7 @@ class ModuleViewer {
                 this.unifiedViewer.globalJsonExpanded = e.detail.expanded;
             }
         });
-        
+
         // Listen for Full Event Data state changes
         document.addEventListener('fullEventToggleChanged', (e) => {
             this.fullEventDataExpanded = e.detail.expanded;
@@ -118,7 +118,7 @@ class ModuleViewer {
      */
     showEventDetails(event) {
         this.currentEvent = event;
-        
+
         if (!this.unifiedViewer) {
             console.warn('ModuleViewer: UnifiedDataViewer not available');
             // Fallback to legacy rendering
@@ -126,7 +126,7 @@ class ModuleViewer {
             this.renderJsonData(event);
             return;
         }
-        
+
         // Use unified viewer to display event data
         this.unifiedViewer.display(event, 'event');
     }
@@ -868,13 +868,13 @@ class ModuleViewer {
     createCollapsibleJsonSection(event) {
         const uniqueId = 'json-section-' + Math.random().toString(36).substr(2, 9);
         const jsonString = this.formatJSON(event);
-        
+
         // Use global state to determine initial visibility
         const isExpanded = this.globalJsonExpanded;
         const display = isExpanded ? 'block' : 'none';
         const arrow = isExpanded ? '▲' : '▼';
         const ariaExpanded = isExpanded ? 'true' : 'false';
-        
+
         return `
             <div class="collapsible-json-section" id="${uniqueId}">
                 <div class="json-toggle-header"
@@ -960,13 +960,13 @@ class ModuleViewer {
     toggleJsonSection() {
         // Toggle the global state
         this.globalJsonExpanded = !this.globalJsonExpanded;
-        
+
         // Persist the preference to localStorage
         localStorage.setItem('dashboard-json-expanded', this.globalJsonExpanded.toString());
-        
+
         // Update ALL JSON sections on the page
         this.updateAllJsonSections();
-        
+
         // Dispatch event to notify other components of the change
         document.dispatchEvent(new CustomEvent('jsonToggleChanged', {
             detail: { expanded: this.globalJsonExpanded }
@@ -982,7 +982,7 @@ class ModuleViewer {
         const allJsonContents = document.querySelectorAll('.json-content-collapsible');
         const allArrows = document.querySelectorAll('.json-toggle-arrow');
         const allHeaders = document.querySelectorAll('.json-toggle-header');
-        
+
         // Update each JSON section
         allJsonContents.forEach((jsonContent, index) => {
             if (this.globalJsonExpanded) {
@@ -1007,7 +1007,7 @@ class ModuleViewer {
                 }
             }
         });
-        
+
         // If expanded and there's content, scroll the first visible one into view
         if (this.globalJsonExpanded && allJsonContents.length > 0) {
             setTimeout(() => {
@@ -1221,7 +1221,7 @@ class ModuleViewer {
         if (!text || text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
-    
+
     /**
      * Format operation details object for display
      * @param {Object} details - Details object containing operation information
@@ -1231,40 +1231,40 @@ class ModuleViewer {
         if (!details || typeof details !== 'object') {
             return '';
         }
-        
+
         let formattedDetails = '';
-        
+
         // Display the bash command if available
         if (details.parameters && details.parameters.command) {
             formattedDetails += `<br><strong>Command:</strong> <code>${this.escapeHtml(details.parameters.command)}</code>`;
         }
-        
+
         // Display success/error status
         if (details.success !== undefined) {
             formattedDetails += `<br><strong>Status:</strong> ${details.success ? '✅ Success' : '❌ Failed'}`;
         }
-        
+
         // Display exit code if available
         if (details.exit_code !== undefined && details.exit_code !== null) {
             formattedDetails += `<br><strong>Exit Code:</strong> ${details.exit_code}`;
         }
-        
+
         // Display duration if available
         if (details.duration_ms !== undefined && details.duration_ms !== null) {
-            const duration = details.duration_ms > 1000 
-                ? `${(details.duration_ms / 1000).toFixed(2)}s` 
+            const duration = details.duration_ms > 1000
+                ? `${(details.duration_ms / 1000).toFixed(2)}s`
                 : `${details.duration_ms}ms`;
             formattedDetails += `<br><strong>Duration:</strong> ${duration}`;
         }
-        
+
         // Display error message if available
         if (details.error) {
             formattedDetails += `<br><strong>Error:</strong> ${this.escapeHtml(this.truncateText(details.error, 200))}`;
         }
-        
+
         return formattedDetails;
     }
-    
+
     /**
      * Escape HTML to prevent XSS
      */
@@ -1552,7 +1552,7 @@ class ModuleViewer {
             const searchPattern = parameters.pattern || 'No pattern specified';
             const searchPath = parameters.path || parameters.directory || '.';
             const searchType = parameters.type || parameters.glob || 'all files';
-            
+
             // Extract search results from result_summary
             let searchResultsContent = '';
             if (toolCall.result_summary) {

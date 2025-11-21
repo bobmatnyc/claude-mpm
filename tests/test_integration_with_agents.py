@@ -64,7 +64,7 @@ def test_backward_compatibility():
         original_files = len(list(session_dir.glob("*.json")))
 
         print(
-            f"  ✓ Original logger created {original_files} files in {original_time*1000:.3f}ms"
+            f"  ✓ Original logger created {original_files} files in {original_time * 1000:.3f}ms"
         )
 
         # Test new async logger with backward compatibility
@@ -93,11 +93,11 @@ def test_backward_compatibility():
 
         print(f"  ✓ Async logger created {async_files} files")
         print(
-            f"  ✓ Queue time: {queue_time*1000:.3f}ms (vs original: {original_time*1000:.3f}ms)"
+            f"  ✓ Queue time: {queue_time * 1000:.3f}ms (vs original: {original_time * 1000:.3f}ms)"
         )
-        print(f"  ✓ Total time: {total_time*1000:.3f}ms")
+        print(f"  ✓ Total time: {total_time * 1000:.3f}ms")
         print(
-            f"  ✓ Performance improvement: {(original_time - queue_time)/original_time*100:.1f}%"
+            f"  ✓ Performance improvement: {(original_time - queue_time) / original_time * 100:.1f}%"
         )
 
         # Verify file contents are equivalent
@@ -177,12 +177,12 @@ def test_async_convenience_function():
         queue_time = time.perf_counter() - start_time
 
         print(
-            f"  ✓ Global function queued {len(test_responses)} responses in {queue_time*1000:.3f}ms"
+            f"  ✓ Global function queued {len(test_responses)} responses in {queue_time * 1000:.3f}ms"
         )
         print(
-            f"  ✓ Average queue time per response: {queue_time/len(test_responses)*1000:.3f}ms"
+            f"  ✓ Average queue time per response: {queue_time / len(test_responses) * 1000:.3f}ms"
         )
-        print(f"  ✓ Throughput: {len(test_responses)/queue_time:.1f} responses/sec")
+        print(f"  ✓ Throughput: {len(test_responses) / queue_time:.1f} responses/sec")
 
         # Clean up environment
         if "CLAUDE_LOG_FORMAT" in os.environ:

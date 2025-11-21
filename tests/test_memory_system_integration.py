@@ -144,9 +144,9 @@ class TestMemorySystemIntegration:
         print(f"✓ Timestamp correctly updated from {initial_dt} to {updated_dt}")
 
         # Verify the new item was added with bullet point
-        assert (
-            f"- {new_item}" in updated_content
-        ), "New item should be added with bullet point"
+        assert f"- {new_item}" in updated_content, (
+            "New item should be added with bullet point"
+        )
         print(f"✓ New item added correctly: - {new_item}")
 
         return True
@@ -188,18 +188,18 @@ class TestMemorySystemIntegration:
         print(updated_content)
 
         # Verify old memories are gone
-        assert (
-            "Initial memory 1" not in updated_content
-        ), "Old memories should be removed"
-        assert (
-            "Initial memory 2" not in updated_content
-        ), "Old memories should be removed"
+        assert "Initial memory 1" not in updated_content, (
+            "Old memories should be removed"
+        )
+        assert "Initial memory 2" not in updated_content, (
+            "Old memories should be removed"
+        )
 
         # Verify new memories are present
         for memory in new_memories:
-            assert (
-                f"- {memory}" in updated_content
-            ), f"New memory should be present: {memory}"
+            assert f"- {memory}" in updated_content, (
+                f"New memory should be present: {memory}"
+            )
 
         print("✓ All old memories removed and new memories added")
         print("✓ MEMORIES field replacement successful")
@@ -238,15 +238,15 @@ class TestMemorySystemIntegration:
         print(updated_content)
 
         # Verify existing memory is preserved
-        assert (
-            "- Existing memory item" in updated_content
-        ), "Existing memory should be preserved"
+        assert "- Existing memory item" in updated_content, (
+            "Existing memory should be preserved"
+        )
 
         # Verify new memories are added
         for learning in new_learnings:
-            assert (
-                f"- {learning}" in updated_content
-            ), f"New learning should be added: {learning}"
+            assert f"- {learning}" in updated_content, (
+                f"New learning should be added: {learning}"
+            )
 
         print("✓ Existing memories preserved")
         print("✓ New learnings added incrementally")
@@ -311,9 +311,9 @@ class TestMemorySystemIntegration:
                 print(content)
 
                 for memory in memories_data:
-                    assert (
-                        f"- {memory}" in content
-                    ), f"Memory should be processed by hook: {memory}"
+                    assert f"- {memory}" in content, (
+                        f"Memory should be processed by hook: {memory}"
+                    )
 
                 print("✓ Hook processing successfully extracted MEMORIES field")
             else:
@@ -367,14 +367,14 @@ class TestMemorySystemIntegration:
         )
         print(f"Items after deduplication: {len(dedupe_items)}")
 
-        assert len(dedupe_items) < len(
-            items
-        ), "Should have fewer items after deduplication"
+        assert len(dedupe_items) < len(items), (
+            "Should have fewer items after deduplication"
+        )
 
         # Verify important content is preserved
-        assert any(
-            "databases" in item.lower() for item in dedupe_items
-        ), "Unique content should be preserved"
+        assert any("databases" in item.lower() for item in dedupe_items), (
+            "Unique content should be preserved"
+        )
 
         print(f"✓ Deduplication removed {removed_count} items")
         print("✓ Unique content preserved")
@@ -388,9 +388,9 @@ class TestMemorySystemIntegration:
         # Verify memories directory structure
         assert self.memories_dir.exists(), "Memories directory should exist"
         assert self.memories_dir.name == "memories", "Should be named 'memories'"
-        assert (
-            self.memories_dir.parent.name == ".claude-mpm"
-        ), "Should be in .claude-mpm directory"
+        assert self.memories_dir.parent.name == ".claude-mpm", (
+            "Should be in .claude-mpm directory"
+        )
 
         print(f"✓ Memories directory correct: {self.memories_dir}")
 
@@ -409,9 +409,9 @@ class TestMemorySystemIntegration:
 
             # Verify content
             content = memory_file.read_text()
-            assert (
-                f"- {test_memory}" in content
-            ), f"Memory should be saved for {agent_id}"
+            assert f"- {test_memory}" in content, (
+                f"Memory should be saved for {agent_id}"
+            )
 
             print(f"✓ {agent_id} agent memory created in project directory")
 
@@ -420,20 +420,20 @@ class TestMemorySystemIntegration:
         assert readme_file.exists(), "README.md should be created in memories directory"
 
         readme_content = readme_file.read_text()
-        assert (
-            "Agent Memory System" in readme_content
-        ), "README should have proper title"
-        assert (
-            "Manual Editing" in readme_content
-        ), "README should have manual editing section"
+        assert "Agent Memory System" in readme_content, (
+            "README should have proper title"
+        )
+        assert "Manual Editing" in readme_content, (
+            "README should have manual editing section"
+        )
 
         print("✓ README.md created with proper content")
 
         # Verify all files are in the correct location
         memory_files = list(self.memories_dir.glob("*_memories.md"))
-        assert len(memory_files) == len(
-            agent_ids
-        ), f"Should have {len(agent_ids)} memory files"
+        assert len(memory_files) == len(agent_ids), (
+            f"Should have {len(agent_ids)} memory files"
+        )
 
         print(f"✓ All {len(memory_files)} agent memory files in project directory")
 
@@ -499,19 +499,19 @@ class TestMemorySystemIntegration:
 
         # Should only have MEMORIES field content (complete replacement)
         for memory in complete_memories:
-            assert (
-                f"- {memory}" in final_content
-            ), f"Final memory should be present: {memory}"
+            assert f"- {memory}" in final_content, (
+                f"Final memory should be present: {memory}"
+            )
 
         # Old memories should be gone (replaced by MEMORIES field)
         for memory in incremental_memories:
-            assert (
-                f"- {memory}" not in final_content
-            ), f"Old memory should be replaced: {memory}"
+            assert f"- {memory}" not in final_content, (
+                f"Old memory should be replaced: {memory}"
+            )
 
-        assert (
-            "New incremental memory from response" not in final_content
-        ), "Remember field memory should be replaced"
+        assert "New incremental memory from response" not in final_content, (
+            "Remember field memory should be replaced"
+        )
 
         print("✓ Final state correct - MEMORIES field replaced all previous memories")
 
@@ -523,9 +523,9 @@ class TestMemorySystemIntegration:
 
         # Count memory items
         memory_items = [line for line in lines if line.strip().startswith("- ")]
-        assert len(memory_items) == len(
-            complete_memories
-        ), f"Should have {len(complete_memories)} memory items"
+        assert len(memory_items) == len(complete_memories), (
+            f"Should have {len(complete_memories)} memory items"
+        )
 
         print(f"✓ File structure correct with {len(memory_items)} memory items")
 
@@ -575,7 +575,7 @@ class TestMemorySystemIntegration:
 
         for test_name, test_func in tests:
             try:
-                print(f"\n{'='*20} Running: {test_name} {'='*20}")
+                print(f"\n{'=' * 20} Running: {test_name} {'=' * 20}")
                 result = test_func()
                 test_results[test_name] = "PASSED" if result else "FAILED"
                 print(f"✅ {test_name}: PASSED")

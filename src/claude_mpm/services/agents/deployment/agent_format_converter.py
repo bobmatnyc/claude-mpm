@@ -166,7 +166,7 @@ class AgentFormatConverter:
 
 <example>
 Context: When you need specialized assistance from the {name} agent.
-user: "I need help with {agent_name.replace('_', ' ').replace('-', ' ')} tasks"
+user: "I need help with {agent_name.replace("_", " ").replace("-", " ")} tasks"
 assistant: "I'll use the {name} agent to provide specialized assistance."
 </example>"""
 

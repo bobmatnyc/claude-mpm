@@ -1,9 +1,9 @@
 /**
  * Tree Breadcrumb Navigation
- * 
+ *
  * Breadcrumb navigation and status display for the code tree.
  * Provides path navigation and activity status updates.
- * 
+ *
  * @module tree-breadcrumb
  */
 
@@ -48,7 +48,7 @@ class TreeBreadcrumb {
         // Create path navigation
         const pathContainer = document.createElement('div');
         pathContainer.className = 'tree-breadcrumb-path-container';
-        
+
         this.pathElement = document.createElement('div');
         this.pathElement.id = 'tree-breadcrumb-path';
         this.pathElement.className = 'tree-breadcrumb-path';
@@ -57,7 +57,7 @@ class TreeBreadcrumb {
         // Create status/activity display
         const statusContainer = document.createElement('div');
         statusContainer.className = 'tree-breadcrumb-status-container';
-        
+
         this.statusElement = document.createElement('div');
         this.statusElement.id = 'breadcrumb-content';
         this.statusElement.className = 'breadcrumb-content';
@@ -83,14 +83,14 @@ class TreeBreadcrumb {
      */
     updatePath(path) {
         this.currentPath = path || '/';
-        
+
         if (!this.pathElement) return;
 
         // Clear existing path
         this.pathElement.innerHTML = '';
 
-        if (!this.workingDirectory || 
-            this.workingDirectory === 'Loading...' || 
+        if (!this.workingDirectory ||
+            this.workingDirectory === 'Loading...' ||
             this.workingDirectory === 'Not selected') {
             this.pathElement.textContent = 'No project selected';
             return;
@@ -98,7 +98,7 @@ class TreeBreadcrumb {
 
         // Build path segments
         const segments = this.buildSegments(this.currentPath);
-        
+
         // Create clickable segments
         segments.forEach((segment, index) => {
             if (index > 0) {
@@ -109,17 +109,17 @@ class TreeBreadcrumb {
             }
 
             const segmentElement = document.createElement('span');
-            segmentElement.className = index === segments.length - 1 ? 
+            segmentElement.className = index === segments.length - 1 ?
                 'breadcrumb-segment current' : 'breadcrumb-segment';
             segmentElement.textContent = segment.name;
-            
+
             // Add click handler for non-current segments
             if (index < segments.length - 1) {
                 segmentElement.style.cursor = 'pointer';
                 segmentElement.addEventListener('click', () => {
                     this.navigateToSegment(segment.path);
                 });
-                
+
                 // Add hover effect
                 segmentElement.addEventListener('mouseenter', () => {
                     segmentElement.classList.add('hover');
@@ -128,7 +128,7 @@ class TreeBreadcrumb {
                     segmentElement.classList.remove('hover');
                 });
             }
-            
+
             this.pathElement.appendChild(segmentElement);
         });
 
@@ -143,7 +143,7 @@ class TreeBreadcrumb {
      */
     buildSegments(path) {
         const segments = [];
-        
+
         // Add root/project segment
         const projectName = this.workingDirectory.split('/').pop() || 'Root';
         segments.push({
@@ -155,7 +155,7 @@ class TreeBreadcrumb {
         if (path && path !== '/') {
             const pathParts = path.split('/').filter(p => p.length > 0);
             let currentPath = '';
-            
+
             pathParts.forEach(part => {
                 currentPath += '/' + part;
                 segments.push({
@@ -184,15 +184,15 @@ class TreeBreadcrumb {
      */
     navigateToSegment(path) {
         if (path === null) return; // Skip ellipsis
-        
+
         this.currentPath = path;
         this.updatePath(path);
-        
+
         // Call navigation callback if provided
         if (this.navigationCallback) {
             this.navigationCallback(path);
         }
-        
+
         // Dispatch custom event
         const event = new CustomEvent('breadcrumbNavigation', {
             detail: { path }
@@ -207,10 +207,10 @@ class TreeBreadcrumb {
      */
     updateStatus(message, type = 'info') {
         if (!this.statusElement) return;
-        
+
         this.statusElement.textContent = message;
         this.statusElement.className = `breadcrumb-content breadcrumb-${type}`;
-        
+
         // Add fade animation for status changes
         this.statusElement.style.animation = 'none';
         setTimeout(() => {
@@ -225,18 +225,18 @@ class TreeBreadcrumb {
      */
     updateActivityTicker(message, type = 'info') {
         this.updateStatus(message, type);
-        
+
         // Optional: Add to activity history
         if (!this.activityHistory) {
             this.activityHistory = [];
         }
-        
+
         this.activityHistory.push({
             message,
             type,
             timestamp: Date.now()
         });
-        
+
         // Keep only last 100 activities
         if (this.activityHistory.length > 100) {
             this.activityHistory.shift();
@@ -248,7 +248,7 @@ class TreeBreadcrumb {
      */
     handlePathOverflow() {
         if (!this.pathElement) return;
-        
+
         // Check if path overflows
         if (this.pathElement.scrollWidth > this.pathElement.clientWidth) {
             // Add scroll buttons or implement horizontal scroll
@@ -266,7 +266,7 @@ class TreeBreadcrumb {
      */
     showLoading(message = 'Loading...') {
         this.updateStatus(message, 'info');
-        
+
         // Add loading spinner if needed
         if (this.statusElement) {
             const spinner = document.createElement('span');
@@ -310,16 +310,16 @@ class TreeBreadcrumb {
     clear() {
         this.currentPath = '/';
         this.workingDirectory = null;
-        
+
         if (this.pathElement) {
             this.pathElement.innerHTML = '';
         }
-        
+
         if (this.statusElement) {
             this.statusElement.textContent = '';
             this.statusElement.className = 'breadcrumb-content';
         }
-        
+
         this.activityHistory = [];
     }
 
@@ -328,11 +328,11 @@ class TreeBreadcrumb {
      */
     destroy() {
         this.clear();
-        
+
         if (this.container) {
             this.container.innerHTML = '';
         }
-        
+
         this.container = null;
         this.pathElement = null;
         this.statusElement = null;

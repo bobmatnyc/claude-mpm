@@ -48,7 +48,7 @@ async def verify_hook_details():
                 for i, event in enumerate(hook_events[:5]):  # Check first 5
                     try:
                         text = await event.inner_text()
-                        print(f"  {i+1}. {text}")
+                        print(f"  {i + 1}. {text}")
 
                         # Try to click on the event to see details
                         if i < 2:  # Click on first 2 events
@@ -60,7 +60,7 @@ async def verify_hook_details():
                                 print(f"    ⚠️ Click failed: {e}")
 
                     except Exception as e:
-                        print(f"    ❌ Error reading event {i+1}: {e}")
+                        print(f"    ❌ Error reading event {i + 1}: {e}")
 
             # Check for structured data panel
             structured_data = await page.query_selector(

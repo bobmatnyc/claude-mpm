@@ -67,9 +67,9 @@ class TestSingletonManagerThreadSafety:
         # Verify: All instances should be the same object
         assert len(instances) == 20
         unique_ids = {id(instance) for instance in instances}
-        assert (
-            len(unique_ids) == 1
-        ), f"Expected 1 unique instance, got {len(unique_ids)}"
+        assert len(unique_ids) == 1, (
+            f"Expected 1 unique instance, got {len(unique_ids)}"
+        )
 
         # Cleanup
         SingletonManager.clear_instance(TestClass)
@@ -286,9 +286,9 @@ class TestConfigThreadSafety:
             # Note: __init__ might be called multiple times, but the guard prevents
             # actual reinitialization (check the guard logic works)
             # This verifies the _initialized flag works correctly
-            assert (
-                init_count["count"] >= 1
-            ), "Config should be initialized at least once"
+            assert init_count["count"] >= 1, (
+                "Config should be initialized at least once"
+            )
 
         finally:
             # Restore original __init__
@@ -393,9 +393,9 @@ class TestFailureTrackerThreadSafety:
         # All instances should be identical
         assert len(instances) == 20
         unique_ids = {id(instance) for instance in instances}
-        assert (
-            len(unique_ids) == 1
-        ), f"Expected 1 unique FailureTracker, got {len(unique_ids)}"
+        assert len(unique_ids) == 1, (
+            f"Expected 1 unique FailureTracker, got {len(unique_ids)}"
+        )
 
     def test_reset_during_concurrent_access(self):
         """Test that reset is thread-safe during concurrent access."""
@@ -614,9 +614,9 @@ class TestConcurrentInitializationPatterns:
             thread.join()
 
         # Should only initialize once despite 50 calls
-        assert (
-            InitCounterClass._real_init_count == 1
-        ), f"Expected 1 initialization, got {InitCounterClass._real_init_count}"
+        assert InitCounterClass._real_init_count == 1, (
+            f"Expected 1 initialization, got {InitCounterClass._real_init_count}"
+        )
 
         # Cleanup
         InitCounterClass.clear_instance()
@@ -650,9 +650,9 @@ class TestLockContentionAndPerformance:
 
         # 10,000 accesses should complete very quickly (< 1 second)
         # with proper fast-path optimization
-        assert (
-            elapsed < 2.0
-        ), f"Fast path took too long: {elapsed:.2f}s for 10,000 accesses"
+        assert elapsed < 2.0, (
+            f"Fast path took too long: {elapsed:.2f}s for 10,000 accesses"
+        )
 
         # Cleanup
         FastPathClass.clear_instance()

@@ -215,7 +215,7 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
                     current[part] = {}
                 elif not isinstance(current[part], dict):
                     self.log_warning(
-                        f"Cannot override non-dict config at {'.'.join(config_path[:i+1])}"
+                        f"Cannot override non-dict config at {'.'.join(config_path[: i + 1])}"
                     )
                     break
                 current = current[part]

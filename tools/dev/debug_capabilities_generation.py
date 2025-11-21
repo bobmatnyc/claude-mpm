@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Debug the capabilities generation process."""
 
-
 # Use centralized path management
 from claude_mpm.config.paths import paths
 
@@ -103,7 +102,7 @@ def debug_capabilities_generation():
                 # Find where the capabilities were inserted
                 for i, line in enumerate(processed.split("\n")):
                     if "## Available Specialized Agents" in line:
-                        print(f"   ✓ Found capabilities section at line {i+1}")
+                        print(f"   ✓ Found capabilities section at line {i + 1}")
                         break
                 else:
                     print(

@@ -48,6 +48,7 @@ build/
 *.egg-info/
 .claude/
 .env
+.env.make
 
 # Test logs
 test_logs/

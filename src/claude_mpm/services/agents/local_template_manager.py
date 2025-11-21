@@ -270,7 +270,9 @@ class LocalAgentTemplateManager:
                 "tools": (
                     tools
                     if isinstance(tools, str)
-                    else ",".join(tools) if tools else "*"
+                    else ",".join(tools)
+                    if tools
+                    else "*"
                 ),
             },
             instructions=instructions,

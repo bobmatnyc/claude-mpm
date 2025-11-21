@@ -295,7 +295,7 @@ class MCPInstallCommands:
 
                     # Create backup
                     backup_path = config_path.with_suffix(
-                        f'.backup.{datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")}.json'
+                        f".backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
                     )
                     try:
                         config_path.rename(backup_path)

@@ -235,12 +235,12 @@ def test_comprehensive_report(project_path: Path):
         Panel.fit(
             f"""[bold]Archive Statistics[/bold]
 
-📁 Archive Directory: {report['archive_directory']}
-📊 Total Archives: {report['total_archives']}
-💾 Total Size: {report['total_size']:,} bytes
-🗜️ Compressed: {report['compressed_count']}
-📅 Oldest: {report['oldest_archive'] or 'None'}
-🆕 Newest: {report['newest_archive'] or 'None'}
+📁 Archive Directory: {report["archive_directory"]}
+📊 Total Archives: {report["total_archives"]}
+💾 Total Size: {report["total_size"]:,} bytes
+🗜️ Compressed: {report["compressed_count"]}
+📅 Oldest: {report["oldest_archive"] or "None"}
+🆕 Newest: {report["newest_archive"] or "None"}
 """,
             title="Archive Summary",
             border_style="cyan",

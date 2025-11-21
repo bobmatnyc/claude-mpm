@@ -173,14 +173,14 @@ def main():
 Code Analysis Summary
 =====================
 Path: {path}
-Files processed: {stats.get('files_processed', 0)}
-Total nodes: {stats.get('total_nodes', 0)}
-Classes: {stats.get('classes', 0)}
-Functions: {stats.get('functions', 0)}
-Imports: {stats.get('imports', 0)}
-Languages: {', '.join(stats.get('languages', []))}
-Average complexity: {stats.get('avg_complexity', 0):.2f}
-Duration: {stats.get('duration', 0):.2f}s
+Files processed: {stats.get("files_processed", 0)}
+Total nodes: {stats.get("total_nodes", 0)}
+Classes: {stats.get("classes", 0)}
+Functions: {stats.get("functions", 0)}
+Imports: {stats.get("imports", 0)}
+Languages: {", ".join(stats.get("languages", []))}
+Average complexity: {stats.get("avg_complexity", 0):.2f}
+Duration: {stats.get("duration", 0):.2f}s
 """
             if output_file:
                 output_file.write(summary)

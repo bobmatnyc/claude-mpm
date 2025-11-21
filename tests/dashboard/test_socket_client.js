@@ -1,13 +1,13 @@
 /**
  * Comprehensive unit tests for Socket.IO client JavaScript.
- * 
+ *
  * Tests cover:
  * - Connection establishment and retry logic
  * - Event queuing when disconnected
  * - Event handler registration
  * - Error handling and fallback behavior
  * - Reconnection with exponential backoff
- * 
+ *
  * Using Jest testing framework for JavaScript testing.
  */
 
@@ -29,7 +29,7 @@ class SocketClient {
             error: [],
             event: []
         };
-        
+
         this.eventSchema = {
             required: ['source', 'type', 'subtype', 'timestamp', 'data'],
             optional: ['event', 'session_id']
@@ -46,12 +46,12 @@ class SocketClient {
 
         this.eventQueue = [];
         this.maxQueueSize = 100;
-        
+
         this.retryAttempts = 0;
         this.maxRetryAttempts = 5;
         this.retryDelays = [1000, 2000, 3000, 4000, 5000];
         this.pendingEmissions = new Map();
-        
+
         this.lastPingTime = null;
         this.lastPongTime = null;
         this.pingTimeout = 90000;
@@ -74,13 +74,13 @@ class SocketClient {
 
     doConnect(url) {
         console.log(`Connecting to Socket.IO server at ${url}`);
-        
+
         if (typeof io === 'undefined') {
             console.error('Socket.IO library not loaded!');
             this.notifyConnectionStatus('Socket.IO library not loaded', 'error');
             return;
         }
-        
+
         this.isConnecting = true;
         this.notifyConnectionStatus('Connecting...', 'connecting');
 
@@ -193,7 +193,7 @@ class SocketClient {
 
         const delay = this.retryDelays[this.retryAttempts] || 5000;
         this.retryAttempts++;
-        
+
         setTimeout(() => {
             this.connect(this.port);
         }, delay);
@@ -216,7 +216,7 @@ describe('SocketClient Connection Management', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Create mock socket
         mockSocket = {
             connected: false,
@@ -225,10 +225,10 @@ describe('SocketClient Connection Management', () => {
             emit: jest.fn(),
             disconnect: jest.fn()
         };
-        
+
         // Configure io mock to return our mock socket
         mockIo.mockReturnValue(mockSocket);
-        
+
         client = new SocketClient();
     });
 
@@ -244,7 +244,7 @@ describe('SocketClient Connection Management', () => {
          * Socket.IO server is running. This is the basic connection test.
          */
         client.connect('8766');
-        
+
         expect(mockIo).toHaveBeenCalledWith(
             'http://localhost:8766',
             expect.objectContaining({
@@ -262,13 +262,13 @@ describe('SocketClient Connection Management', () => {
          */
         mockSocket.connected = true;
         client.socket = mockSocket;
-        
+
         const spy = jest.spyOn(mockSocket, 'disconnect');
-        
+
         client.connect('8765');
-        
+
         expect(spy).toHaveBeenCalled();
-        
+
         // Wait for reconnection timeout
         setTimeout(() => {
             expect(mockIo).toHaveBeenCalled();
@@ -283,15 +283,15 @@ describe('SocketClient Connection Management', () => {
          */
         const originalIo = global.io;
         global.io = undefined;
-        
+
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-        
+
         client.connect();
-        
+
         expect(consoleSpy).toHaveBeenCalledWith(
             expect.stringContaining('Socket.IO library not loaded')
         );
-        
+
         global.io = originalIo;
         consoleSpy.mockRestore();
     });
@@ -304,7 +304,7 @@ describe('SocketClient Event Handling', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         mockSocket = {
             connected: true,
             connecting: false,
@@ -312,7 +312,7 @@ describe('SocketClient Event Handling', () => {
             emit: jest.fn(),
             disconnect: jest.fn()
         };
-        
+
         mockIo.mockReturnValue(mockSocket);
         client = new SocketClient();
         client.connect();
@@ -489,21 +489,21 @@ describe('SocketClient Retry Logic', () => {
         // First retry - 1000ms delay
         client.retryConnection();
         expect(client.retryAttempts).toBe(1);
-        
+
         jest.advanceTimersByTime(1000);
         expect(connectSpy).toHaveBeenCalledTimes(1);
 
         // Second retry - 2000ms delay
         client.retryConnection();
         expect(client.retryAttempts).toBe(2);
-        
+
         jest.advanceTimersByTime(2000);
         expect(connectSpy).toHaveBeenCalledTimes(2);
 
         // Third retry - 3000ms delay
         client.retryConnection();
         expect(client.retryAttempts).toBe(3);
-        
+
         jest.advanceTimersByTime(3000);
         expect(connectSpy).toHaveBeenCalledTimes(3);
     });
@@ -514,12 +514,12 @@ describe('SocketClient Retry Logic', () => {
          * a reasonable number of attempts, retries should stop.
          */
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-        
+
         client.retryAttempts = client.maxRetryAttempts;
         client.retryConnection();
 
         expect(consoleSpy).toHaveBeenCalledWith('Max retry attempts reached');
-        
+
         // Should not schedule another retry
         jest.advanceTimersByTime(10000);
         expect(client.connect).not.toHaveBeenCalled();
@@ -544,7 +544,7 @@ describe('SocketClient Retry Logic', () => {
         };
 
         mockIo.mockReturnValue(mockSocket);
-        
+
         client.retryAttempts = 3;
         client.connect();
 
@@ -560,13 +560,13 @@ describe('SocketClient Connection Status', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         mockSocket = {
             on: jest.fn(),
             emit: jest.fn(),
             disconnect: jest.fn()
         };
-        
+
         mockIo.mockReturnValue(mockSocket);
         client = new SocketClient();
     });
@@ -644,13 +644,13 @@ describe('SocketClient Error Handling', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         mockSocket = {
             on: jest.fn(),
             emit: jest.fn(),
             disconnect: jest.fn()
         };
-        
+
         mockIo.mockReturnValue(mockSocket);
         client = new SocketClient();
     });
@@ -662,7 +662,7 @@ describe('SocketClient Error Handling', () => {
          */
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
         const errorCallback = jest.fn();
-        
+
         client.on('error', errorCallback);
         client.connect();
 
@@ -687,7 +687,7 @@ describe('SocketClient Error Handling', () => {
          * They should be logged and ignored.
          */
         const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-        
+
         const invalidEvent = {
             type: 'test',
             // Missing required fields
@@ -709,14 +709,14 @@ describe('SocketClient Cleanup', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         mockSocket = {
             connected: true,
             on: jest.fn(),
             emit: jest.fn(),
             disconnect: jest.fn()
         };
-        
+
         mockIo.mockReturnValue(mockSocket);
         client = new SocketClient();
     });
@@ -728,7 +728,7 @@ describe('SocketClient Cleanup', () => {
          */
         client.connect();
         client.isConnected = true;
-        
+
         client.disconnect();
 
         expect(mockSocket.disconnect).toHaveBeenCalled();

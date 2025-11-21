@@ -224,7 +224,6 @@ class TestInitializeMethod:
         ) as mock_ollama, patch.object(
             router_auto.claude_provider, "initialize", return_value=True
         ) as mock_claude:
-
             # Act
             result = await router_auto.initialize()
 
@@ -243,7 +242,6 @@ class TestInitializeMethod:
         ) as mock_ollama, patch.object(
             router_ollama.claude_provider, "initialize", return_value=True
         ) as mock_claude:
-
             # Act
             result = await router_ollama.initialize()
 
@@ -261,7 +259,6 @@ class TestInitializeMethod:
         ) as mock_ollama, patch.object(
             router_claude.claude_provider, "initialize", return_value=True
         ) as mock_claude:
-
             # Act
             result = await router_claude.initialize()
 
@@ -277,7 +274,6 @@ class TestInitializeMethod:
         with patch.object(
             router_auto.ollama_provider, "initialize", return_value=False
         ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
-
             # Act
             result = await router_auto.initialize()
 
@@ -292,7 +288,6 @@ class TestInitializeMethod:
         with patch.object(
             router_auto.ollama_provider, "initialize", return_value=True
         ), patch.object(router_auto.claude_provider, "initialize", return_value=False):
-
             # Act
             result = await router_auto.initialize()
 
@@ -318,7 +313,6 @@ class TestShutdownMethod:
         ) as mock_ollama, patch.object(
             router_auto.claude_provider, "shutdown"
         ) as mock_claude:
-
             # Act
             await router_auto.shutdown()
 
@@ -359,7 +353,6 @@ class TestAutoRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
-
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.SEO_ANALYSIS
@@ -389,7 +382,6 @@ class TestAutoRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_claude:
-
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.GRAMMAR
@@ -415,7 +407,6 @@ class TestAutoRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_claude:
-
             # Act
             response = await router_auto.analyze_content(
                 content=sample_content, task=ModelCapability.READABILITY
@@ -433,7 +424,6 @@ class TestAutoRouting:
         router = ModelRouter(config={"strategy": "auto", "fallback_enabled": False})
         await router.initialize()
         with patch.object(router.ollama_provider, "is_available", return_value=False):
-
             # Act
             response = await router.analyze_content(
                 content=sample_content, task=ModelCapability.GENERAL
@@ -466,7 +456,6 @@ class TestOllamaOnlyRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
-
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.SENTIMENT
@@ -484,7 +473,6 @@ class TestOllamaOnlyRouting:
         with patch.object(
             router_ollama.ollama_provider, "is_available", return_value=False
         ):
-
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.GENERAL
@@ -510,7 +498,6 @@ class TestOllamaOnlyRouting:
         ), patch.object(
             router_ollama.claude_provider, "analyze_content"
         ) as mock_claude:
-
             # Act
             response = await router_ollama.analyze_content(
                 content=sample_content, task=ModelCapability.SEO_ANALYSIS
@@ -542,7 +529,6 @@ class TestClaudeOnlyRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_claude:
-
             # Act
             response = await router_claude.analyze_content(
                 content=sample_content, task=ModelCapability.GRAMMAR
@@ -567,7 +553,6 @@ class TestClaudeOnlyRouting:
             "analyze_content",
             return_value=mock_success_response,
         ):
-
             # Act
             await router_claude.analyze_content(
                 content=sample_content, task=ModelCapability.READABILITY
@@ -599,7 +584,6 @@ class TestPrivacyFirstRouting:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
-
             # Act
             response = await router_privacy.analyze_content(
                 content=sample_content, task=ModelCapability.ACCESSIBILITY
@@ -617,7 +601,6 @@ class TestPrivacyFirstRouting:
         with patch.object(
             router_privacy.ollama_provider, "is_available", return_value=False
         ):
-
             # Act
             response = await router_privacy.analyze_content(
                 content=sample_content, task=ModelCapability.GENERAL
@@ -654,10 +637,7 @@ class TestProviderStatus:
             router_auto.ollama_provider, "get_metrics", return_value={}
         ), patch.object(
             router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.claude_provider, "get_metrics", return_value={}
-        ):
-
+        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
             # Act
             status = await router_auto.get_provider_status()
 
@@ -684,10 +664,7 @@ class TestProviderStatus:
             router_auto.ollama_provider, "get_metrics", return_value={}
         ), patch.object(
             router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.claude_provider, "get_metrics", return_value={}
-        ):
-
+        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
             # Act
             status = await router_auto.get_provider_status()
 
@@ -772,7 +749,6 @@ class TestGetActiveProvider:
             "analyze_content",
             return_value=mock_success_response,
         ):
-
             # Act
             await router_auto.analyze_content(sample_content, ModelCapability.GENERAL)
             active = router_auto.get_active_provider()
@@ -844,7 +820,6 @@ class TestEdgeCases:
             "analyze_content",
             return_value=mock_success_response,
         ):
-
             # Act
             tasks = [
                 router_auto.analyze_content(
@@ -876,7 +851,6 @@ class TestEdgeCases:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
-
             # Act
             await router_auto.analyze_content(
                 content=sample_content,
@@ -911,7 +885,6 @@ class TestEdgeCases:
             "analyze_content",
             return_value=mock_success_response,
         ) as mock_analyze:
-
             # Act
             await router_auto.analyze_content(
                 content=sample_content,

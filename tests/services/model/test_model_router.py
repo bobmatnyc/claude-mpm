@@ -134,7 +134,6 @@ async def test_router_initialize_success(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         result = await router.initialize()
 
         assert result is True
@@ -167,7 +166,6 @@ async def test_auto_route_ollama_success(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -211,7 +209,6 @@ async def test_auto_route_fallback_to_claude(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -246,7 +243,6 @@ async def test_auto_route_ollama_unavailable(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -279,7 +275,6 @@ async def test_ollama_only_success(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -303,7 +298,6 @@ async def test_ollama_only_unavailable(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -336,7 +330,6 @@ async def test_claude_only(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -361,7 +354,6 @@ async def test_privacy_first_unavailable(mock_ollama_provider, mock_claude_provi
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         response = await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -386,7 +378,6 @@ async def test_get_provider_status(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         status = await router.get_provider_status()
 
         assert "ollama" in status
@@ -415,7 +406,6 @@ async def test_get_active_provider(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         await router.analyze_content(
             content="Test content",
             task=ModelCapability.SEO_ANALYSIS,
@@ -457,7 +447,6 @@ async def test_router_shutdown(
     with patch.object(router, "ollama_provider", mock_ollama_provider), patch.object(
         router, "claude_provider", mock_claude_provider
     ):
-
         await router.shutdown()
 
         assert router.is_shutdown

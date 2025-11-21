@@ -9,7 +9,7 @@ echo "Committing changes..."
 git commit -m "feat: comprehensive memory command implementation and system improvements
 
 - Complete memory command implementation with MemoryManagementCommand class
-- Enhanced CLI command structure with shared utilities and base classes  
+- Enhanced CLI command structure with shared utilities and base classes
 - Improved agent deployment and configuration management
 - Updated MCP gateway and service registry implementations
 - Enhanced memory integration hooks and response tracking

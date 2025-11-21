@@ -411,9 +411,7 @@ class TestCLI(TestCase):
             stderr="""\
                 Failed to parse 'first_instance': {}
                 12: 12 is less than the minimum of 30
-            """.format(
-                _message_for("not valid JSON!")
-            ),
+            """.format(_message_for("not valid JSON!")),
         )
 
     def test_custom_error_format_applies_to_schema_errors(self):
@@ -815,7 +813,6 @@ class TestCLI(TestCase):
 
 
 class TestParser(TestCase):
-
     FakeValidator = fake_validator()
 
     def test_find_validator_by_fully_qualified_object_name(self):

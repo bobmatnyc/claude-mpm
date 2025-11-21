@@ -292,7 +292,7 @@ def generate_report(test_results: List[Dict[str, any]]):
     print(f"   Total Tests: {total_tests}")
     print(f"   Passed: {passed_tests}")
     print(f"   Failed: {failed_tests}")
-    print(f"   Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+    print(f"   Success Rate: {(passed_tests / total_tests) * 100:.1f}%")
 
     for result in test_results:
         status = "✅ PASS" if result["passed"] else "❌ FAIL"

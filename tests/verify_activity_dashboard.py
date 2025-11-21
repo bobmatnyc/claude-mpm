@@ -44,7 +44,7 @@ def send_test_events():
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
-                "event_id": f"evt-{int(time.time()*1000)}",
+                "event_id": f"evt-{int(time.time() * 1000)}",
                 "context": {
                     "user_instruction": "Analyze the codebase and create a summary",
                     "working_directory": "/Users/demo/project",
@@ -56,7 +56,7 @@ def send_test_events():
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
-                "event_id": f"evt-{int(time.time()*1000)+1}",
+                "event_id": f"evt-{int(time.time() * 1000) + 1}",
                 "context": {},
             },
             {
@@ -66,7 +66,7 @@ def send_test_events():
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
                 "tool_name": "Grep",
-                "event_id": f"evt-{int(time.time()*1000)+2}",
+                "event_id": f"evt-{int(time.time() * 1000) + 2}",
                 "context": {"pattern": "class.*:", "path": "/Users/demo/project"},
             },
             {
@@ -76,7 +76,7 @@ def send_test_events():
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
                 "tool_name": "Grep",
-                "event_id": f"evt-{int(time.time()*1000)+3}",
+                "event_id": f"evt-{int(time.time() * 1000) + 3}",
                 "context": {"status": "success", "matches": 42},
             },
             {
@@ -85,7 +85,7 @@ def send_test_events():
                 "request_id": "demo-001",
                 "session_id": "session-demo-001",
                 "agent_name": "Engineer",
-                "event_id": f"evt-{int(time.time()*1000)+4}",
+                "event_id": f"evt-{int(time.time() * 1000) + 4}",
                 "context": {
                     "todos": [
                         {"content": "Analyze code structure", "status": "completed"},

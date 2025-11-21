@@ -378,7 +378,8 @@ class TestServiceHealthChecker:
         }
 
         checker = ServiceHealthChecker(
-            service_stats=high_error_stats, max_error_rate=0.1  # 10% threshold
+            service_stats=high_error_stats,
+            max_error_rate=0.1,  # 10% threshold
         )
 
         metrics = await checker.check_health()
@@ -906,7 +907,8 @@ async def test_full_integration_scenario():
     }
 
     failing_checker = ServiceHealthChecker(
-        service_stats=failing_stats, max_error_rate=0.1  # 10% threshold
+        service_stats=failing_stats,
+        max_error_rate=0.1,  # 10% threshold
     )
 
     health_monitor.add_checker(failing_checker)

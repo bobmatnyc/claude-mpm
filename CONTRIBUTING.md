@@ -22,12 +22,13 @@ make safe-release-build
 ### Daily Development Flow
 
 1. **During Development**: Use `make lint-fix` frequently to maintain code quality
+   - Uses **Ruff** (10-200x faster than traditional tools)
    - Auto-fixes formatting, import sorting, and simple linting issues
    - Safe to run anytime - only fixes issues, never breaks code
    - Keeps your code clean as you work
 
 2. **Before Commits**: Always run `make quality` before committing
-   - Runs comprehensive quality checks (linting, typing, structure validation)
+   - Runs comprehensive quality checks (ruff linting + formatting, mypy type checking, structure validation)
    - Catches issues early in the development cycle
    - **Required step** - don't skip this!
 
@@ -35,6 +36,15 @@ make safe-release-build
    - Complete pre-publish quality gate plus build process
    - Ensures all releases meet our quality standards
    - Mandatory for all production releases
+
+### Modern Tooling (10-200x faster)
+
+We use **Ruff** for unified linting and formatting, replacing multiple legacy tools:
+
+- **What Ruff replaces**: black (formatting), isort (import sorting), flake8 (linting), pyupgrade (syntax modernization)
+- **Performance**: 10-200x faster than traditional Python linting tools
+- **Still use mypy**: Type checking remains with mypy (Ruff doesn't replace type checkers)
+- **Configuration**: All settings in `pyproject.toml` under `[tool.ruff]`
 
 ## Quick Reference
 

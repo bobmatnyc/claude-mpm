@@ -220,8 +220,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
                 files_str = ", ".join(str(path) for path, _ in occurrences)
                 snippet = occurrences[0][1]
                 duplicates.append(
-                    f"Duplicate content found in: {files_str}\n"
-                    f"  Snippet: {snippet}..."
+                    f"Duplicate content found in: {files_str}\n  Snippet: {snippet}..."
                 )
 
         if duplicates:

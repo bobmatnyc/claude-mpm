@@ -64,12 +64,12 @@
 </head>
 <body>
     <h1>Dashboard Sticky State Test</h1>
-    
+
     <div class="test-section">
         <h2>Current State</h2>
         <div id="current-state" class="state-display"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Test Controls</h2>
         <button onclick="testStructuredData()">Toggle Structured Data</button>
@@ -77,12 +77,12 @@
         <button onclick="clearAllState()">Clear All State</button>
         <button onclick="refreshState()">Refresh Display</button>
     </div>
-    
+
     <div class="test-section">
         <h2>Test Results</h2>
         <div id="test-results"></div>
     </div>
-    
+
     <div class="test-section">
         <h2>Instructions</h2>
         <ol>
@@ -98,45 +98,45 @@
         function refreshState() {
             const structuredExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
             const fullEventExpanded = localStorage.getItem('dashboard-full-event-expanded') === 'true';
-            
+
             document.getElementById('current-state').innerHTML = `
                 <strong>Structured Data (dashboard-json-expanded):</strong> ${structuredExpanded ? '✅ Expanded' : '❌ Collapsed'}<br>
                 <strong>Full Event Data (dashboard-full-event-expanded):</strong> ${fullEventExpanded ? '✅ Expanded' : '❌ Collapsed'}
             `;
-            
+
             addResult(`State refreshed at ${new Date().toLocaleTimeString()}`, 'info');
         }
-        
+
         // Function to toggle Structured Data state
         function testStructuredData() {
             const currentState = localStorage.getItem('dashboard-json-expanded') === 'true';
             const newState = !currentState;
             localStorage.setItem('dashboard-json-expanded', newState.toString());
-            
+
             // Dispatch event to simulate dashboard behavior
             document.dispatchEvent(new CustomEvent('jsonToggleChanged', {
                 detail: { expanded: newState }
             }));
-            
+
             addResult(`Structured Data toggled to: ${newState ? 'Expanded' : 'Collapsed'}`, 'success');
             refreshState();
         }
-        
+
         // Function to toggle Full Event Data state
         function testFullEventData() {
             const currentState = localStorage.getItem('dashboard-full-event-expanded') === 'true';
             const newState = !currentState;
             localStorage.setItem('dashboard-full-event-expanded', newState.toString());
-            
+
             // Dispatch event to simulate dashboard behavior
             document.dispatchEvent(new CustomEvent('fullEventToggleChanged', {
                 detail: { expanded: newState }
             }));
-            
+
             addResult(`Full Event Data toggled to: ${newState ? 'Expanded' : 'Collapsed'}`, 'success');
             refreshState();
         }
-        
+
         // Function to clear all state
         function clearAllState() {
             localStorage.removeItem('dashboard-json-expanded');
@@ -144,7 +144,7 @@
             addResult('All state cleared from localStorage', 'info');
             refreshState();
         }
-        
+
         // Function to add a test result
         function addResult(message, type = 'info') {
             const resultsDiv = document.getElementById('test-results');
@@ -152,31 +152,31 @@
             resultDiv.className = `test-result ${type}`;
             resultDiv.textContent = message;
             resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
-            
+
             // Keep only last 10 results
             while (resultsDiv.children.length > 10) {
                 resultsDiv.removeChild(resultsDiv.lastChild);
             }
         }
-        
+
         // Listen for events from dashboard
         document.addEventListener('jsonToggleChanged', (e) => {
             addResult(`Received jsonToggleChanged event: expanded = ${e.detail.expanded}`, 'info');
         });
-        
+
         document.addEventListener('fullEventToggleChanged', (e) => {
             addResult(`Received fullEventToggleChanged event: expanded = ${e.detail.expanded}`, 'info');
         });
-        
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             refreshState();
             addResult('Test page loaded and initialized', 'success');
-            
+
             // Verify independent state
             const structuredState = localStorage.getItem('dashboard-json-expanded');
             const fullEventState = localStorage.getItem('dashboard-full-event-expanded');
-            
+
             if (structuredState !== null && fullEventState !== null) {
                 if (structuredState !== fullEventState) {
                     addResult('✅ States are independent (different values stored)', 'success');

@@ -181,12 +181,12 @@ def test_e2e_dashboard():
     clients = []
 
     for i in range(3):
-        client = create_dashboard_client(f"Client-{i+1}", events_collected)
+        client = create_dashboard_client(f"Client-{i + 1}", events_collected)
         try:
             client.connect("http://localhost:8765", wait_timeout=3)
             clients.append(client)
         except Exception as e:
-            print(f"   ❌ Failed to connect Client-{i+1}: {e}")
+            print(f"   ❌ Failed to connect Client-{i + 1}: {e}")
 
     if not clients:
         print("   No clients could connect!")

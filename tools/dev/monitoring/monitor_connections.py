@@ -2,6 +2,7 @@
 """
 Connection Monitor - tracks dashboard connection health from server side
 """
+
 import subprocess
 import sys
 import time
@@ -33,7 +34,7 @@ def monitor_server():
             response = requests.get("http://localhost:8765/", timeout=5)
             if response.status_code == 200:
                 print(
-                    f"[{current_time}] ✅ Server healthy (check {checks}, elapsed: {elapsed//60}m{elapsed%60}s)"
+                    f"[{current_time}] ✅ Server healthy (check {checks}, elapsed: {elapsed // 60}m{elapsed % 60}s)"
                 )
             else:
                 print(f"[{current_time}] ⚠️ Server returned {response.status_code}")
@@ -72,8 +73,8 @@ def monitor_server():
     print("=" * 50)
     print(f"Total checks: {checks}")
     print(f"Failures: {failures}")
-    print(f"Success rate: {((checks-failures)/checks*100):.1f}%")
-    print(f"Server uptime verified: {test_duration//60} minutes")
+    print(f"Success rate: {((checks - failures) / checks * 100):.1f}%")
+    print(f"Server uptime verified: {test_duration // 60} minutes")
 
     if failures == 0:
         print("✅ Perfect stability - no failures detected!")

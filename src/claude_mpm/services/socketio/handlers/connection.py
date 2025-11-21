@@ -539,7 +539,7 @@ class ConnectionEventHandler(BaseEventHandler):
             if data and "timestamp" in data:
                 rtt = current_time - data["timestamp"]
                 if rtt < 10:  # Reasonable RTT
-                    self.logger.debug(f"🏓 Pong from {sid}, RTT: {rtt*1000:.1f}ms")
+                    self.logger.debug(f"🏓 Pong from {sid}, RTT: {rtt * 1000:.1f}ms")
 
     def _normalize_event(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize event format to ensure consistency.

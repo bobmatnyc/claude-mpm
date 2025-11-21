@@ -147,7 +147,7 @@ class SocketIOTestClient:
                 if self.heartbeat_received:
                     break
                 await asyncio.sleep(1)
-                print(f"   Waiting... {i+1}/5")
+                print(f"   Waiting... {i + 1}/5")
 
             # Print results
             print("\n" + "=" * 50)

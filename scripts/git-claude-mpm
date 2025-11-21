@@ -5,12 +5,12 @@
 # Function to modify commit message
 modify_commit_message() {
     local msg="$1"
-    
+
     # Replace Claude Code with Claude MPM
     msg=$(echo "$msg" | sed 's/🤖 Generated with \[Claude Code\](https:\/\/claude\.ai\/code)/🤖👥 Generated with [Claude MPM](https:\/\/github.com\/bobmatnyc\/claude-mpm)/')
     msg=$(echo "$msg" | sed 's/Generated with \[Claude Code\]/Generated with [Claude MPM]/')
     msg=$(echo "$msg" | sed 's/Claude Code/Claude MPM/g')
-    
+
     echo "$msg"
 }
 
@@ -19,7 +19,7 @@ if [[ "$1" == "commit" ]] && [[ "$@" == *"-m"* ]]; then
     # Extract and modify the commit message
     args=("$@")
     modified_args=()
-    
+
     for ((i=0; i<${#args[@]}; i++)); do
         if [[ "${args[$i]}" == "-m" ]]; then
             # Next argument is the message
@@ -33,7 +33,7 @@ if [[ "$1" == "commit" ]] && [[ "$@" == *"-m"* ]]; then
             modified_args+=("${args[$i]}")
         fi
     done
-    
+
     # Execute git with modified arguments
     git "${modified_args[@]}"
 else

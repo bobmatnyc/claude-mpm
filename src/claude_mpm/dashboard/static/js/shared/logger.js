@@ -1,9 +1,9 @@
 /**
  * Logger Service
- * 
+ *
  * Centralized logging service with levels, formatting, and performance timing.
  * Provides consistent logging across dashboard components.
- * 
+ *
  * @module logger
  */
 
@@ -16,7 +16,7 @@ class Logger {
             ERROR: 3,
             NONE: 4
         };
-        
+
         this.currentLevel = this.logLevels.INFO;
         this.enableTimestamps = true;
         this.enableColors = true;
@@ -116,7 +116,7 @@ class Logger {
     log(level, args, color) {
         const timestamp = this.enableTimestamps ? new Date().toISOString() : '';
         const prefix = this.formatPrefix(level, timestamp, color);
-        
+
         // Console output
         const method = level === 'ERROR' ? 'error' : level === 'WARN' ? 'warn' : 'log';
         if (this.enableColors && color) {
@@ -124,7 +124,7 @@ class Logger {
         } else {
             console[method](prefix, ...args);
         }
-        
+
         // Add to history
         this.addToHistory(level, timestamp, args);
     }
@@ -157,11 +157,11 @@ class Logger {
         this.logHistory.push({
             level,
             timestamp,
-            message: args.map(arg => 
+            message: args.map(arg =>
                 typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
             ).join(' ')
         });
-        
+
         // Limit history size
         if (this.logHistory.length > this.maxHistorySize) {
             this.logHistory.shift();
@@ -191,19 +191,19 @@ class Logger {
             this.warn(`Timer not found: ${label}`);
             return null;
         }
-        
+
         const elapsed = performance.now() - mark.start;
-        const memoryDelta = performance.memory 
-            ? performance.memory.usedJSHeapSize - mark.memory 
+        const memoryDelta = performance.memory
+            ? performance.memory.usedJSHeapSize - mark.memory
             : null;
-        
+
         this.performanceMarks.delete(label);
-        
+
         const message = [`Timer ended: ${label} - ${elapsed.toFixed(2)}ms`];
         if (memoryDelta !== null) {
             message.push(`(Memory: ${this.formatBytes(memoryDelta)})`);
         }
-        
+
         this.info(...message);
         return elapsed;
     }
@@ -327,13 +327,13 @@ class Logger {
     formatBytes(bytes) {
         const sign = bytes < 0 ? '-' : '+';
         bytes = Math.abs(bytes);
-        
+
         if (bytes === 0) return '0 B';
-        
+
         const units = ['B', 'KB', 'MB', 'GB'];
         const index = Math.floor(Math.log(bytes) / Math.log(1024));
         const value = bytes / Math.pow(1024, index);
-        
+
         return `${sign}${value.toFixed(2)} ${units[index]}`;
     }
 

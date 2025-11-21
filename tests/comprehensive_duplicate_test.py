@@ -202,8 +202,8 @@ async def run_comprehensive_test():
                 "subtype": "test_http_duplicate",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "data": {
-                    "test_id": f"http_duplicate_test_{i+1}",
-                    "message": f"HTTP duplicate test event {i+1}",
+                    "test_id": f"http_duplicate_test_{i + 1}",
+                    "message": f"HTTP duplicate test event {i + 1}",
                 },
                 "source": "duplicate_tester",
             }
@@ -212,9 +212,9 @@ async def run_comprehensive_test():
                 response = requests.post(
                     "http://localhost:8765/api/events", json=test_event, timeout=2
                 )
-                print(f"   HTTP event {i+1}: Status {response.status_code}")
+                print(f"   HTTP event {i + 1}: Status {response.status_code}")
             except Exception as e:
-                print(f"   HTTP event {i+1}: Error {e}")
+                print(f"   HTTP event {i + 1}: Error {e}")
 
             await asyncio.sleep(0.5)
 

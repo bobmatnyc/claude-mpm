@@ -95,13 +95,13 @@ def main():
         for i in range(3):
             session = create_test_session(i, base_time)
             sessions.append(session)
-            print(f"📝 Created session {i+1}: {session['name']}")
+            print(f"📝 Created session {i + 1}: {session['name']}")
 
         print("\n🚀 Sending test events...")
 
         # Send events for each session
         for i, session in enumerate(sessions):
-            print(f"\n📊 Processing Session {i+1}: {session['name']}")
+            print(f"\n📊 Processing Session {i + 1}: {session['name']}")
 
             # Send PM session start event
             pm_start_event = {

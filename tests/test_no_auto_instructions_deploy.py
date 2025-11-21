@@ -42,17 +42,15 @@ class TestNoAutoInstructionsDeploy:
             service.deploy_agents(force_rebuild=False)
 
             # Verify .claude directory doesn't have system instructions
-            assert not (
-                claude_dir / "INSTRUCTIONS.md"
-            ).exists(), (
+            assert not (claude_dir / "INSTRUCTIONS.md").exists(), (
                 "INSTRUCTIONS.md should NOT be automatically created in .claude/"
             )
-            assert not (
-                claude_dir / "MEMORY.md"
-            ).exists(), "MEMORY.md should NOT be automatically created in .claude/"
-            assert not (
-                claude_dir / "WORKFLOW.md"
-            ).exists(), "WORKFLOW.md should NOT be automatically created in .claude/"
+            assert not (claude_dir / "MEMORY.md").exists(), (
+                "MEMORY.md should NOT be automatically created in .claude/"
+            )
+            assert not (claude_dir / "WORKFLOW.md").exists(), (
+                "WORKFLOW.md should NOT be automatically created in .claude/"
+            )
 
     def test_deploy_system_instructions_is_not_called(self):
         """Test that _deploy_system_instructions is NOT called during deploy_agents."""
@@ -86,29 +84,27 @@ class TestNoAutoInstructionsDeploy:
             )
 
             # Verify files were created in .claude-mpm/
-            assert (
-                claude_mpm_dir / "INSTRUCTIONS.md"
-            ).exists(), "INSTRUCTIONS.md should be created in .claude-mpm/ when explicitly requested"
-            assert (
-                claude_mpm_dir / "MEMORY.md"
-            ).exists(), (
+            assert (claude_mpm_dir / "INSTRUCTIONS.md").exists(), (
+                "INSTRUCTIONS.md should be created in .claude-mpm/ when explicitly requested"
+            )
+            assert (claude_mpm_dir / "MEMORY.md").exists(), (
                 "MEMORY.md should be created in .claude-mpm/ when explicitly requested"
             )
-            assert (
-                claude_mpm_dir / "WORKFLOW.md"
-            ).exists(), "WORKFLOW.md should be created in .claude-mpm/ when explicitly requested"
+            assert (claude_mpm_dir / "WORKFLOW.md").exists(), (
+                "WORKFLOW.md should be created in .claude-mpm/ when explicitly requested"
+            )
 
             # Verify no files in .claude/
             claude_dir = tmpdir_path / ".claude"
-            assert not (
-                claude_dir / "INSTRUCTIONS.md"
-            ).exists(), "INSTRUCTIONS.md should NOT be in .claude/"
-            assert not (
-                claude_dir / "MEMORY.md"
-            ).exists(), "MEMORY.md should NOT be in .claude/"
-            assert not (
-                claude_dir / "WORKFLOW.md"
-            ).exists(), "WORKFLOW.md should NOT be in .claude/"
+            assert not (claude_dir / "INSTRUCTIONS.md").exists(), (
+                "INSTRUCTIONS.md should NOT be in .claude/"
+            )
+            assert not (claude_dir / "MEMORY.md").exists(), (
+                "MEMORY.md should NOT be in .claude/"
+            )
+            assert not (claude_dir / "WORKFLOW.md").exists(), (
+                "WORKFLOW.md should NOT be in .claude/"
+            )
 
     def test_framework_loader_reads_from_claude_mpm(self):
         """Test that framework loader reads from .claude-mpm/ not .claude/."""
@@ -144,14 +140,14 @@ class TestNoAutoInstructionsDeploy:
                 )
 
                 # Should load from .claude-mpm/
-                assert (
-                    "Correct Instructions" in custom_instructions
-                ), "Should load instructions from .claude-mpm/"
+                assert "Correct Instructions" in custom_instructions, (
+                    "Should load instructions from .claude-mpm/"
+                )
 
                 # Should NOT load from .claude/
-                assert (
-                    "Wrong Instructions" not in custom_instructions
-                ), "Should NOT load instructions from .claude/"
+                assert "Wrong Instructions" not in custom_instructions, (
+                    "Should NOT load instructions from .claude/"
+                )
 
             finally:
                 os.chdir(original_cwd)

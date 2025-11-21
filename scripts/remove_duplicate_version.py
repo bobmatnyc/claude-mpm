@@ -3,6 +3,7 @@
 Script to remove duplicate 'version' field from agent templates.
 Preserves agent_version, template_version, and schema_version fields.
 """
+
 import json
 from pathlib import Path
 from typing import Dict, List

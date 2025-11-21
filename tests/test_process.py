@@ -919,10 +919,7 @@ class TestProcess(PsutilTestCase):
         cmd = [
             PYTHON_EXE,
             "-c",
-            (
-                "import os, time; os.chdir('..'); [time.sleep(0.1) for x in"
-                " range(100)]"
-            ),
+            ("import os, time; os.chdir('..'); [time.sleep(0.1) for x in range(100)]"),
         ]
         p = self.spawn_psproc(cmd)
         call_until(lambda: p.cwd() == os.path.dirname(os.getcwd()))
@@ -1460,9 +1457,9 @@ class TestProcess(PsutilTestCase):
             for name in exclude:
                 d.pop(name, None)
             return {
-                k.replace("\r", "")
-                .replace("\n", ""): v.replace("\r", "")
-                .replace("\n", "")
+                k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace(
+                    "\n", ""
+                )
                 for k, v in d.items()
             }
 

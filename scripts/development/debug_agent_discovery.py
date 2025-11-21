@@ -29,7 +29,7 @@ def debug_discovery():
 
     # Show first few agents
     for i, (name, sources) in enumerate(list(all_agents.items())[:3]):
-        print(f"\n{i+1}. Agent: {name}")
+        print(f"\n{i + 1}. Agent: {name}")
         if isinstance(sources, list):
             print(f"   Sources: {len(sources)} source(s)")
             for j, source in enumerate(sources):

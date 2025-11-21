@@ -104,46 +104,46 @@ import json
 
 def test_event_normalizer():
     normalizer = EventNormalizer()
-    
+
     test_events = [
         # Raw code event
         "code:directory_discovered",
-        
+
         # Legacy format
         {"type": "hook", "event": "pre_tool", "data": {"tool_name": "Read"}},
-        
+
         # Colon format
         {"event_name": "code:analysis:queued", "data": {"path": "/project"}},
-        
+
         # Internal function (should be filtered by frontend)
         {"type": "code:node_found", "data": {"name": "handle_request", "type": "function"}},
-        
+
         # Main function (should be kept)
         {"type": "code:node_found", "data": {"name": "calculate_total", "type": "function"}},
     ]
-    
+
     print("🧪 Event Normalization Test Results:")
     for i, event in enumerate(test_events, 1):
         try:
             normalized = normalizer.normalize(event)
             result = normalized.to_dict()
-            
+
             # Check for clean event types
             event_type = f"{result['type']}.{result['subtype']}"
             has_colons = ':' in event_type
-            
+
             print(f"  Test {i}: {json.dumps(event)[:50]}...")
             print(f"    ✅ Normalized to: {event_type}")
-            
+
             if has_colons:
                 print(f"    ⚠️  Warning: Event type contains colons: {event_type}")
             else:
                 print(f"    ✅ Clean format: no colons detected")
-                
+
         except Exception as e:
             print(f"  Test {i}: ❌ Error: {e}")
             return False
-    
+
     return True
 
 if __name__ == "__main__":
@@ -181,30 +181,30 @@ from datetime import datetime
 
 async def test_lazy_loading():
     print("🚀 Testing Lazy Loading Directory Discovery")
-    
+
     # Connect to Socket.IO server
     sio = socketio.AsyncClient()
-    
+
     events_received = []
     discovery_events = []
-    
+
     @sio.event
     async def connect():
         print("  ✅ Connected to Socket.IO server")
-    
+
     @sio.on('code_tree_event')
     async def on_code_event(data):
         events_received.append(data)
         print(f"  📡 Received: {data.get('type', 'unknown')} event")
-        
+
         # Track discovery events specifically
         if data.get('type', '').startswith('code:'):
             discovery_events.append(data)
-    
+
     try:
         await sio.connect('http://localhost:8765')
         await asyncio.sleep(1)
-        
+
         # Test 1: Request top-level discovery
         print("  🧪 Test 1: Requesting top-level discovery")
         await sio.emit('code:discover:top_level', {
@@ -212,23 +212,23 @@ async def test_lazy_loading():
             'path': '$PROJECT_PATH',
             'max_depth': 2
         })
-        
+
         await asyncio.sleep(3)  # Wait for discovery
-        
+
         if len(discovery_events) > 0:
             print(f"  ✅ Received {len(discovery_events)} discovery events")
         else:
             print("  ⚠️  No discovery events received")
-        
+
         # Test 2: Request directory discovery
         print("  🧪 Test 2: Requesting specific directory discovery")
         await sio.emit('code:discover:directory', {
             'path': '$PROJECT_PATH/src',
             'request_id': 'test-123'
         })
-        
+
         await asyncio.sleep(2)  # Wait for response
-        
+
         # Test 3: Check event types
         print("  🧪 Test 3: Checking event type formats")
         clean_events = 0
@@ -239,12 +239,12 @@ async def test_lazy_loading():
                 print(f"    ✅ Clean event type: {event_type}")
             elif ':' in event_type:
                 print(f"    ⚠️  Legacy event type: {event_type}")
-        
+
         print(f"  📊 Summary: {clean_events}/{len(discovery_events)} events have clean format")
-        
+
         await sio.disconnect()
         return len(discovery_events) > 0 and clean_events > 0
-        
+
     except Exception as e:
         print(f"  ❌ Error: {e}")
         return False
@@ -352,7 +352,7 @@ echo ""
 log_info "Next steps for thorough testing:"
 echo "  • Open http://localhost:8765 in browser"
 echo "  • Test code tree analysis with real project"
-echo "  • Verify event viewer autoscroll during analysis"  
+echo "  • Verify event viewer autoscroll during analysis"
 echo "  • Check browser console for any JavaScript errors"
 
 exit 0

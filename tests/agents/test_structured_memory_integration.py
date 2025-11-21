@@ -8,7 +8,6 @@ Tests the enhanced memory integration with:
 - Frontmatter tracking with memories: <number> field
 """
 
-
 import yaml
 
 

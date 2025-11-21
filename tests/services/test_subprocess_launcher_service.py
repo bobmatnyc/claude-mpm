@@ -114,7 +114,11 @@ class TestSubprocessLauncherService:
 
         # Verify subprocess was created correctly
         mock_popen.assert_called_once_with(
-            cmd, stdin=11, stdout=11, stderr=11, env=env  # slave_fd
+            cmd,
+            stdin=11,
+            stdout=11,
+            stderr=11,
+            env=env,  # slave_fd
         )
 
         # Verify PTY was set up
@@ -291,9 +295,7 @@ class TestSubprocessLauncherService:
             "subprocess.Popen"
         ) as mock_popen, patch("os.close"), patch(
             "sys.stdin.isatty", return_value=False
-        ), patch.object(
-            service_with_logger_and_websocket, "_handle_subprocess_io"
-        ):
+        ), patch.object(service_with_logger_and_websocket, "_handle_subprocess_io"):
             # Mock process
             mock_process = Mock()
             mock_process.pid = 12345

@@ -18,7 +18,6 @@ def check_server_config():
     print("🔍 Checking Socket.IO Server Configuration...")
 
     try:
-
         # Read the source to verify actual values
         core_file = (
             Path(__file__).parent.parent
@@ -51,7 +50,6 @@ def check_handler_config():
     print("\n🔍 Checking Connection Handler Configuration...")
 
     try:
-
         # Read the source to verify actual values
         handler_file = (
             Path(__file__).parent.parent
@@ -118,7 +116,6 @@ def check_relay_config():
     print("\n🔍 Checking EventBus Relay Configuration...")
 
     try:
-
         # Read the source to verify actual values
         relay_file = (
             Path(__file__).parent.parent / "src/claude_mpm/services/event_bus/relay.py"

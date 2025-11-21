@@ -421,13 +421,13 @@ class EndToEndDiagnosticTest:
                     # Record timing data
                     self.timing_data.append(
                         {
-                            "event_id": f"{namespace}/{event}_{i+1}",
+                            "event_id": f"{namespace}/{event}_{i + 1}",
                             "send_time": send_time,
                             "data": data,
                         }
                     )
 
-                    print(f"📤 Sent {namespace}/{event} #{i+1}")
+                    print(f"📤 Sent {namespace}/{event} #{i + 1}")
                     time.sleep(0.1)  # Small delay between events
 
                 except Exception as e:

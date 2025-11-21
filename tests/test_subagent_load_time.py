@@ -25,7 +25,7 @@ def test_subagent_load():
     load_times = []
 
     for i in range(5):
-        print(f"\n--- Load #{i+1} ---")
+        print(f"\n--- Load #{i + 1} ---")
 
         # Import fresh each time to simulate new subagent
         if "claude_mpm.core.framework_loader" in sys.modules:
@@ -102,7 +102,7 @@ def test_subagent_load():
         loader._load_actual_memories(content)
 
         elapsed = time.time() - start
-        print(f"  Load #{i+1} with warm cache: {elapsed:.3f}s")
+        print(f"  Load #{i + 1} with warm cache: {elapsed:.3f}s")
 
     print("\n" + "=" * 80)
 

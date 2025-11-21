@@ -188,12 +188,12 @@ async def demonstrate_async_performance():
     batch_time = time.time() - start
 
     print(f"   Processed {len(responses)} requests in {batch_time:.3f}s")
-    print(f"   Average: {batch_time/len(responses)*1000:.1f}ms per request")
+    print(f"   Average: {batch_time / len(responses) * 1000:.1f}ms per request")
 
     # High-throughput simulation
     print("\n3. High-throughput simulation...")
     high_volume_requests = [
-        {"agent": f"agent_{i%3}", "request": f"High-volume query {i}"}
+        {"agent": f"agent_{i % 3}", "request": f"High-volume query {i}"}
         for i in range(100)
     ]
 
@@ -202,7 +202,7 @@ async def demonstrate_async_performance():
     throughput_time = time.time() - start
 
     print(f"   Processed {len(responses)} requests in {throughput_time:.3f}s")
-    print(f"   Throughput: {len(responses)/throughput_time:.1f} requests/sec")
+    print(f"   Throughput: {len(responses) / throughput_time:.1f} requests/sec")
 
     # Check if any logs were dropped
     stats = app.logger.get_stats()

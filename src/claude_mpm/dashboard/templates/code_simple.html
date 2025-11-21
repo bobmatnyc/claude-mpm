@@ -24,50 +24,50 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
-        
+
         /* Tree visualization styles */
         .tree-node {
             cursor: pointer;
         }
-        
+
         .tree-node circle {
             fill: #fff;
             stroke: steelblue;
             stroke-width: 2px;
             transition: all 0.3s ease;
         }
-        
+
         .tree-node:hover circle {
             fill: #e6f3ff;
             stroke-width: 3px;
         }
-        
+
         .tree-node text {
             font: 12px sans-serif;
             pointer-events: none;
         }
-        
+
         .tree-link {
             fill: none;
             stroke: #ccc;
             stroke-width: 2px;
         }
-        
+
         .view-toggle button {
             transition: all 0.3s ease;
         }
-        
+
         .view-toggle button:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        
+
         .file-selector input:focus {
             outline: none;
             border-color: #007cba;
             box-shadow: 0 0 0 2px rgba(0, 124, 186, 0.2);
         }
-        
+
         .tree-legend {
             position: absolute;
             top: 10px;
@@ -79,13 +79,13 @@
             font-size: 12px;
             z-index: 1000;
         }
-        
+
         .tree-legend-item {
             margin: 2px 0;
             display: flex;
             align-items: center;
         }
-        
+
         .tree-legend-color {
             width: 12px;
             height: 12px;
@@ -103,15 +103,15 @@
                 <div>⏳ Page loaded...</div>
             </div>
         </div>
-        
+
         <div id="code-container">
             <!-- SimpleCodeView will render here -->
         </div>
     </div>
-    
+
     <script>
         console.log('[HTML] Page script starting');
-        
+
         function addStatus(message) {
             const statusDiv = document.getElementById('status-messages');
             if (statusDiv) {
@@ -119,27 +119,27 @@
             }
             console.log('[HTML Status]', message);
         }
-        
+
         addStatus('⏳ Loading code-simple.js...');
     </script>
-    
+
     <!-- D3.js for tree visualization -->
-    <script src="https://d3js.org/d3.v7.min.js" 
+    <script src="https://d3js.org/d3.v7.min.js"
             onload="addStatus('✅ D3.js loaded successfully')"
             onerror="addStatus('❌ Failed to load D3.js')"></script>
-    
+
     <!-- Socket.IO for real-time communication -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"
             onload="addStatus('✅ Socket.IO loaded successfully')"
             onerror="addStatus('❌ Failed to load Socket.IO')"></script>
-    
-    <script src="/static/js/components/code-simple.js" 
+
+    <script src="/static/js/components/code-simple.js"
             onload="addStatus('✅ code-simple.js loaded successfully')"
             onerror="addStatus('❌ Failed to load code-simple.js')"></script>
-    
+
     <script>
         addStatus('⏳ Waiting for initialization...');
-        
+
         // Check initialization after a delay
         setTimeout(() => {
             if (window.simpleCodeView) {

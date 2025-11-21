@@ -436,7 +436,6 @@ class SecurityAnalyzerStrategy(AnalyzerStrategy):
                             and node.func.value.id == "subprocess"
                             and node.func.attr in ["run", "call", "Popen"]
                         ):
-
                             for keyword in node.keywords:
                                 if (
                                     keyword.arg == "shell"

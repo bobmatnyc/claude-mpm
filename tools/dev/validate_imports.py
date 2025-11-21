@@ -156,7 +156,7 @@ def validate_imports():
     print(f"Total imports tested: {total_imports}")
     print(f"Successful imports: {success_count}")
     print(f"Failed imports: {total_imports - success_count}")
-    print(f"Success rate: {(success_count/total_imports)*100:.1f}%")
+    print(f"Success rate: {(success_count / total_imports) * 100:.1f}%")
 
     if failed_imports:
         print("\n❌ Failed Import Details:")

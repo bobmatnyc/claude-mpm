@@ -31,11 +31,11 @@ declare -a TEST_RESULTS
 run_test() {
     local test_name="$1"
     local test_function="$2"
-    
+
     TESTS_RUN=$((TESTS_RUN + 1))
-    
+
     echo -n "Running: $test_name... "
-    
+
     if $test_function; then
         echo -e "${GREEN}PASSED${NC}"
         TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -52,12 +52,12 @@ setup_test_env() {
     # Create temporary directory for testing
     export TEST_DIR=$(mktemp -d)
     export ORIG_DIR=$(pwd)
-    
+
     # Create mock claude-mpm structure
     mkdir -p "$TEST_DIR/src/claude_mpm/scripts"
     mkdir -p "$TEST_DIR/src/claude_mpm/hooks/claude_hooks"
     mkdir -p "$TEST_DIR/venv/bin"
-    
+
     # Copy the actual script to test location
     if [ -f "../src/claude_mpm/scripts/claude-hook-handler.sh" ]; then
         cp "../src/claude_mpm/scripts/claude-hook-handler.sh" "$TEST_DIR/src/claude_mpm/scripts/"
@@ -65,10 +65,10 @@ setup_test_env() {
         echo "Error: claude-hook-handler.sh not found"
         exit 1
     fi
-    
+
     # Make it executable
     chmod +x "$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh"
-    
+
     # Create mock Python scripts
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -77,7 +77,7 @@ echo "Args: $@"
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     # Create mock hook handler module
     cat > "$TEST_DIR/src/claude_mpm/hooks/claude_hooks/hook_handler.py" << 'EOF'
 #!/usr/bin/env python3
@@ -98,14 +98,14 @@ cleanup_test_env() {
 # Test: Script finds Python in venv
 test_find_python_venv() {
     cd "$TEST_DIR"
-    
+
     # Create venv structure
     mkdir -p venv/bin
     echo '#!/bin/bash' > venv/bin/activate
-    
+
     # Run script and check if it uses venv Python
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     if echo "$output" | grep -q "Mock Python executed"; then
         return 0
     else
@@ -116,16 +116,16 @@ test_find_python_venv() {
 # Test: Script finds Python in .venv
 test_find_python_dot_venv() {
     cd "$TEST_DIR"
-    
+
     # Remove venv, create .venv
     rm -rf venv
     mkdir -p .venv/bin
     echo '#!/bin/bash' > .venv/bin/activate
     cp "$TEST_DIR/venv/bin/python" ".venv/bin/python"
-    
+
     # Run script and check if it uses .venv Python
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     if echo "$output" | grep -q "Mock Python executed"; then
         return 0
     else
@@ -136,10 +136,10 @@ test_find_python_dot_venv() {
 # Test: Script handles missing Python gracefully
 test_missing_python() {
     cd "$TEST_DIR"
-    
+
     # Remove all Python executables
     rm -rf venv .venv
-    
+
     # Create a script that simulates python3 not found
     cat > "$TEST_DIR/python3" << 'EOF'
 #!/bin/bash
@@ -147,10 +147,10 @@ exit 127
 EOF
     chmod +x "$TEST_DIR/python3"
     export PATH="$TEST_DIR:$PATH"
-    
+
     # Run script and check if it returns continue
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     # Should still output continue action
     if echo "$output" | grep -q '{"action": "continue"}'; then
         return 0
@@ -162,7 +162,7 @@ EOF
 # Test: PYTHONPATH is set correctly for development
 test_pythonpath_development() {
     cd "$TEST_DIR"
-    
+
     # Modify the mock Python to print PYTHONPATH
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -170,10 +170,10 @@ echo "PYTHONPATH=$PYTHONPATH"
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     # Run script
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     # Check if src is in PYTHONPATH
     if echo "$output" | grep -q "$TEST_DIR/src"; then
         return 0
@@ -185,13 +185,13 @@ EOF
 # Test: Debug mode logging
 test_debug_logging() {
     cd "$TEST_DIR"
-    
+
     # Enable debug mode
     export CLAUDE_MPM_HOOK_DEBUG="true"
-    
+
     # Run script
     "$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1
-    
+
     # Check if debug log was created
     if [ -f "/tmp/claude-mpm-hook.log" ]; then
         # Check log content
@@ -200,17 +200,17 @@ test_debug_logging() {
             return 0
         fi
     fi
-    
+
     return 1
 }
 
 # Test: Socket.IO port configuration
 test_socketio_port_config() {
     cd "$TEST_DIR"
-    
+
     # Set custom port
     export CLAUDE_MPM_SOCKETIO_PORT="9999"
-    
+
     # Modify mock Python to print environment
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -218,10 +218,10 @@ echo "SOCKETIO_PORT=$CLAUDE_MPM_SOCKETIO_PORT"
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     # Run script
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     # Check if custom port is set
     if echo "$output" | grep -q "SOCKETIO_PORT=9999"; then
         return 0
@@ -233,7 +233,7 @@ EOF
 # Test: Error handling - Python module fails
 test_python_module_failure() {
     cd "$TEST_DIR"
-    
+
     # Create failing Python script
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -241,10 +241,10 @@ echo "Error: Module not found" >&2
 exit 1
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     # Run script
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     # Should still output continue action
     if echo "$output" | grep -q '{"action": "continue"}'; then
         # Check error log was created
@@ -253,14 +253,14 @@ EOF
             return 0
         fi
     fi
-    
+
     return 1
 }
 
 # Test: Script arguments are passed through
 test_argument_passing() {
     cd "$TEST_DIR"
-    
+
     # Modify mock Python to print arguments
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -269,10 +269,10 @@ echo '{"action": "continue"}'
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     # Run script with arguments
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" arg1 arg2 arg3 2>&1)
-    
+
     # Check if arguments were passed
     if echo "$output" | grep -q "arg1 arg2 arg3"; then
         return 0
@@ -284,7 +284,7 @@ EOF
 # Test: Script exit code propagation
 test_exit_code() {
     cd "$TEST_DIR"
-    
+
     # Test successful execution (exit 0)
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
@@ -292,7 +292,7 @@ echo '{"action": "continue"}'
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
-    
+
     "$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh"
     if [ $? -eq 0 ]; then
         return 0
@@ -308,12 +308,12 @@ test_spaces_in_paths() {
     mkdir -p "$SPACE_DIR/src/claude_mpm/scripts"
     cp "$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" "$SPACE_DIR/src/claude_mpm/scripts/"
     chmod +x "$SPACE_DIR/src/claude_mpm/scripts/claude-hook-handler.sh"
-    
+
     cd "$SPACE_DIR"
-    
+
     # Run script from directory with spaces
     output=$("$SPACE_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
-    
+
     # Should handle spaces correctly
     if [ $? -eq 0 ]; then
         return 0
@@ -328,10 +328,10 @@ main() {
     echo "Claude Hook Handler Shell Script Tests"
     echo "========================================="
     echo
-    
+
     # Setup
     setup_test_env
-    
+
     # Run tests
     run_test "Python detection in venv" test_find_python_venv
     run_test "Python detection in .venv" test_find_python_dot_venv
@@ -343,10 +343,10 @@ main() {
     run_test "Argument passing" test_argument_passing
     run_test "Exit code propagation" test_exit_code
     run_test "Spaces in paths" test_spaces_in_paths
-    
+
     # Cleanup
     cleanup_test_env
-    
+
     # Summary
     echo
     echo "========================================="
@@ -361,7 +361,7 @@ main() {
         echo "  $result"
     done
     echo
-    
+
     if [ $TESTS_FAILED -eq 0 ]; then
         echo -e "${GREEN}All tests passed!${NC}"
         exit 0

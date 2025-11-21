@@ -229,7 +229,7 @@ class TestCatchupCommand:
                 check=True,
             )
 
-            msg = messages[i] if messages and i < len(messages) else f"Commit {i+1}"
+            msg = messages[i] if messages and i < len(messages) else f"Commit {i + 1}"
             subprocess.run(
                 ["git", "commit", "-m", msg],
                 cwd=str(path),

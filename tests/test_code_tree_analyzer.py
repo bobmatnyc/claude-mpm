@@ -13,7 +13,6 @@ DESIGN DECISIONS:
 - Validate tree structure building
 """
 
-
 # Add src to path for testing
 import sys
 import tempfile

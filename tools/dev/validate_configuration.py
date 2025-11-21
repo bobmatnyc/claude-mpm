@@ -347,9 +347,9 @@ class ConfigurationValidator:
         Returns:
             True if valid, False if there are errors
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Validating configuration: {file_path}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Clear previous validation state
         self.errors.clear()

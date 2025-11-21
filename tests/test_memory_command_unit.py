@@ -68,7 +68,6 @@ class TestMemoryManagementCommand:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             mock_loader.return_value.load_main_config.return_value = Mock()
             mock_manager_class.return_value = mock_memory_manager
 
@@ -368,7 +367,6 @@ class TestMemoryCommandIntegration:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             # Setup mocks
             mock_loader.return_value.load_main_config.return_value = Mock()
 
@@ -401,7 +399,6 @@ class TestMemoryCommandIntegration:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             mock_loader.return_value.load_main_config.return_value = Mock()
 
             mock_manager = Mock()
@@ -424,7 +421,6 @@ class TestMemoryCommandIntegration:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             mock_loader.return_value.load_main_config.return_value = Mock()
 
             mock_manager = Mock()
@@ -446,7 +442,6 @@ class TestMemoryCommandIntegration:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             mock_loader.return_value.load_main_config.return_value = Mock()
             mock_manager_class.return_value = Mock()
 
@@ -465,7 +460,6 @@ class TestMemoryCommandIntegration:
         with patch("claude_mpm.cli.commands.memory.ConfigLoader") as mock_loader, patch(
             "claude_mpm.cli.commands.memory.AgentMemoryManager"
         ) as mock_manager_class:
-
             mock_loader.return_value.load_main_config.return_value = Mock()
 
             mock_manager = Mock()

@@ -189,7 +189,6 @@ class TestFrameworkLoaderIntegration:
             with patch("pathlib.Path.exists", return_value=True), patch(
                 "pathlib.Path.read_text", return_value="Test content"
             ), patch("pathlib.Path.write_text"), patch("pathlib.Path.mkdir"):
-
                 loader = FrameworkLoader()
                 # Force initialization
                 loader._initialize_output_style()
@@ -218,7 +217,6 @@ class TestFrameworkLoaderIntegration:
                     "# MEMORY",  # MEMORY.md
                 ],
             ), patch("pathlib.Path.glob", return_value=[]):
-
                 loader = FrameworkLoader()
                 loader.framework_content["framework_instructions"] = test_instructions
                 loader.framework_content["base_pm_instructions"] = test_base_pm
@@ -249,10 +247,7 @@ class TestFrameworkLoaderIntegration:
                 "pathlib.Path.read_text", return_value=test_instructions
             ), patch("pathlib.Path.glob", return_value=[]), patch(
                 "pathlib.Path.write_text"
-            ), patch(
-                "pathlib.Path.mkdir"
-            ):
-
+            ), patch("pathlib.Path.mkdir"):
                 loader = FrameworkLoader()
                 loader.framework_content["framework_instructions"] = test_instructions
                 loader.framework_content["loaded"] = True

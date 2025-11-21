@@ -543,10 +543,10 @@ class TestPerformance:
 
             # Report metrics (for manual verification)
             print("\nPerformance Metrics:")
-            print(f"  Generation time: {generation_time*1000:.2f}ms")
-            print(f"  Save time: {save_time*1000:.2f}ms")
-            print(f"  Markdown file size: {md_size/1024:.2f}KB")
-            print(f"  JSON file size: {json_size/1024:.2f}KB")
+            print(f"  Generation time: {generation_time * 1000:.2f}ms")
+            print(f"  Save time: {save_time * 1000:.2f}ms")
+            print(f"  Markdown file size: {md_size / 1024:.2f}KB")
+            print(f"  JSON file size: {json_size / 1024:.2f}KB")
 
 
 if __name__ == "__main__":

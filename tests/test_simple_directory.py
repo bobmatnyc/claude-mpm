@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Test the simple directory API directly"""
+
 import json
 import sys
 

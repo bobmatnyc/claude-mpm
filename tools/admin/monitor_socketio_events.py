@@ -51,7 +51,7 @@ def monitor_events():
             print(f"📚 Received {len(data['events'])} historical events")
             for i, event in enumerate(data["events"][-5:]):  # Show last 5
                 print(
-                    f"   {i+1}. {event.get('type', 'unknown')} - {event.get('timestamp', 'no timestamp')}"
+                    f"   {i + 1}. {event.get('type', 'unknown')} - {event.get('timestamp', 'no timestamp')}"
                 )
         else:
             print("📚 No historical events found")

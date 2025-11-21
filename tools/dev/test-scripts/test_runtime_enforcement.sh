@@ -45,7 +45,7 @@ styles=("minimal" "verbose" "default")
 for style in "${styles[@]}"; do
     echo "   Changing to '$style'..."
     jq ".activeOutputStyle = \"$style\"" ~/.claude/settings.json > ~/.claude/settings.json.tmp && mv ~/.claude/settings.json.tmp ~/.claude/settings.json
-    
+
     python -c "
 import sys
 sys.path.insert(0, 'src')
@@ -53,7 +53,7 @@ from claude_mpm.core.output_style_manager import OutputStyleManager
 m = OutputStyleManager()
 m.enforce_style_periodically(force_check=True)
 " 2>/dev/null
-    
+
     result=$(cat ~/.claude/settings.json | jq -r '.activeOutputStyle')
     if [ "$result" = "claude-mpm" ]; then
         echo "   ✅ Enforced: $style → claude-mpm"

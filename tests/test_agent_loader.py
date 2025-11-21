@@ -24,7 +24,7 @@ def main():
     loader = AgentLoader()
     load_time = time.time() - start_time
 
-    print(f"   ✓ AgentLoader initialized in {load_time*1000:.2f}ms")
+    print(f"   ✓ AgentLoader initialized in {load_time * 1000:.2f}ms")
 
     # Test 2: List available agents
     print("\n2. Testing list_agents()...")
@@ -60,7 +60,7 @@ def main():
         load_time = time.time() - start_time
 
         if prompt:
-            print(f"   ✓ {agent_id} prompt loaded in {load_time*1000:.2f}ms")
+            print(f"   ✓ {agent_id} prompt loaded in {load_time * 1000:.2f}ms")
             print(f"     - Length: {len(prompt)} chars")
             print(f"     - First 50 chars: {prompt[:50]}...")
         else:
@@ -78,9 +78,9 @@ def main():
     prompt2 = loader.get_agent_prompt("engineer")
     cached_time = time.time() - start_time
 
-    print(f"   Cold load: {cold_time*1000:.2f}ms")
-    print(f"   Cached load: {cached_time*1000:.2f}ms")
-    print(f"   Speed improvement: {cold_time/cached_time:.1f}x")
+    print(f"   Cold load: {cold_time * 1000:.2f}ms")
+    print(f"   Cached load: {cached_time * 1000:.2f}ms")
+    print(f"   Speed improvement: {cold_time / cached_time:.1f}x")
     print(f"   Content identical: {'✓' if prompt1 == prompt2 else '✗'}")
 
     # Test 6: Test backward compatibility functions

@@ -19,7 +19,7 @@ def handle_event():
         data = request.get_json()
 
         with open(log_file, "a") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"Timestamp: {datetime.now().isoformat()}\n")
             f.write(f"Source IP: {request.remote_addr}\n")
             f.write(f"Headers: {dict(request.headers)}\n")

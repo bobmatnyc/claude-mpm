@@ -492,8 +492,8 @@ class ServerManager:
         if seconds < 60:
             return f"{seconds:.1f}s"
         if seconds < 3600:
-            return f"{seconds/60:.1f}m"
-        return f"{seconds/3600:.1f}h"
+            return f"{seconds / 60:.1f}m"
+        return f"{seconds / 3600:.1f}h"
 
     def _get_server_stats(self, port: int) -> Optional[Dict]:
         """Get detailed server statistics."""

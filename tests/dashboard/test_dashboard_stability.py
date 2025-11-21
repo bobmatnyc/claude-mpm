@@ -285,7 +285,7 @@ async def test_multi_tab_stability(
         # Create multiple tabs
         for i in range(tab_count):
             page = await browser_context.new_page()
-            monitor = ConnectionMonitor(page, f"tab_{i+1}")
+            monitor = ConnectionMonitor(page, f"tab_{i + 1}")
             monitor.start_monitoring()
 
             await page.goto(DASHBOARD_URL)
@@ -297,7 +297,7 @@ async def test_multi_tab_stability(
             pages.append(page)
             monitors.append(monitor)
 
-            logger.info(f"[tab_{i+1}] Created and connected")
+            logger.info(f"[tab_{i + 1}] Created and connected")
 
         # Monitor all tabs for specified duration
         end_time = datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)
@@ -314,7 +314,7 @@ async def test_multi_tab_stability(
                 try:
                     await page.evaluate("() => window.location.href")
                 except Exception as e:
-                    logger.error(f"[tab_{i+1}] Page unresponsive: {e}")
+                    logger.error(f"[tab_{i + 1}] Page unresponsive: {e}")
                     await monitors[i].take_screenshot("unresponsive")
 
             await asyncio.sleep(min(check_interval, remaining.total_seconds()))
@@ -401,7 +401,7 @@ async def generate_report(
         f.write("SINGLE TAB TEST RESULTS:\n")
         f.write("-" * 30 + "\n")
         f.write(
-            f"Duration: {single_stats['duration_seconds']:.1f} seconds ({single_stats['duration_seconds']/60:.1f} minutes)\n"
+            f"Duration: {single_stats['duration_seconds']:.1f} seconds ({single_stats['duration_seconds'] / 60:.1f} minutes)\n"
         )
         f.write(f"Disconnections: {single_stats['disconnections']}\n")
         f.write(f"Reconnections: {single_stats['reconnections']}\n")
@@ -424,7 +424,7 @@ async def generate_report(
 
         for i, monitor in enumerate(multi_monitors):
             stats = monitor.get_stats()
-            f.write(f"Tab {i+1} Stats:\n")
+            f.write(f"Tab {i + 1} Stats:\n")
             f.write(f"  Duration: {stats['duration_seconds']:.1f} seconds\n")
             f.write(f"  Disconnections: {stats['disconnections']}\n")
             f.write(f"  Reconnections: {stats['reconnections']}\n")
@@ -451,7 +451,7 @@ async def generate_report(
             f.write("❌ Connection stability: POOR\n")
 
         f.write(
-            f"\nTotal test duration: {total_test_duration:.1f} seconds ({total_test_duration/60:.1f} minutes)\n"
+            f"\nTotal test duration: {total_test_duration:.1f} seconds ({total_test_duration / 60:.1f} minutes)\n"
         )
         f.write(f"Screenshots saved to: {SCREENSHOT_DIR}\n")
         f.write(f"Detailed report: {report_path}\n")
@@ -470,7 +470,7 @@ async def generate_report(
 
     print("SINGLE TAB TEST:")
     print(
-        f"  Duration: {single_stats['duration_seconds']:.1f} seconds ({single_stats['duration_seconds']/60:.1f} minutes)"
+        f"  Duration: {single_stats['duration_seconds']:.1f} seconds ({single_stats['duration_seconds'] / 60:.1f} minutes)"
     )
     print(f"  Disconnections: {single_stats['disconnections']}")
     print(f"  Reconnections: {single_stats['reconnections']}")

@@ -40,7 +40,7 @@ def test_hook_handler():
     # to simulate Claude Code calling it multiple times
     outputs = []
     for i in range(3):
-        print(f"\nInvocation {i+1}:")
+        print(f"\nInvocation {i + 1}:")
         result = subprocess.run(
             [sys.executable, "-m", "claude_mpm.hooks.claude_hooks.hook_handler"],
             input=event_json,

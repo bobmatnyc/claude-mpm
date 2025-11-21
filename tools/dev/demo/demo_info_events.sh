@@ -8,7 +8,7 @@ echo "This demo shows the new granular INFO events emitted during code discovery
 echo ""
 echo "Event types include:"
 echo "  - discovery.start: Starting discovery of a directory"
-echo "  - discovery.directory: Found a directory"  
+echo "  - discovery.directory: Found a directory"
 echo "  - discovery.file: Found a file"
 echo "  - discovery.complete: Finished discovering a directory"
 echo "  - analysis.start: Starting file analysis"

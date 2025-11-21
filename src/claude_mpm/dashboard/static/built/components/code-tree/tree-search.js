@@ -1,9 +1,9 @@
 /**
  * Tree Search Functionality
- * 
+ *
  * Search and filter functionality for the code tree visualization.
  * Provides searching, filtering, and highlighting capabilities.
- * 
+ *
  * @module tree-search
  */
 
@@ -27,7 +27,7 @@ class TreeSearch {
      */
     setSearchTerm(term, callback, immediate = false) {
         this.searchTerm = term.toLowerCase();
-        
+
         if (callback) {
             if (immediate) {
                 callback(this.searchTerm);
@@ -35,7 +35,7 @@ class TreeSearch {
                 this.debounce(() => callback(this.searchTerm), this.debounceDelay);
             }
         }
-        
+
         // Add to history if not empty and not duplicate
         if (term && this.searchHistory[0] !== term) {
             this.searchHistory.unshift(term);
@@ -85,7 +85,7 @@ class TreeSearch {
         root.descendants().forEach(node => {
             const shouldHide = !this.nodeMatchesFilters(node);
             node.data._hidden = shouldHide;
-            
+
             // Mark node for search highlighting
             if (this.searchTerm && !shouldHide) {
                 node.data._highlighted = this.nodeMatchesSearch(node);
@@ -138,18 +138,18 @@ class TreeSearch {
         if (this.languageFilter === 'all') {
             return true;
         }
-        
+
         // Check node language
         if (node.data.language === this.languageFilter) {
             return true;
         }
-        
+
         // Check if any children match (for directories)
         if (node.children || node._children) {
             const children = node.children || node._children;
             return children.some(child => this.matchesLanguageFilter(child));
         }
-        
+
         return false;
     }
 
@@ -191,8 +191,8 @@ class TreeSearch {
         if (node.data.complexity === undefined) {
             return true; // No complexity data, show by default
         }
-        
-        return node.data.complexity >= this.complexityFilter.min && 
+
+        return node.data.complexity >= this.complexityFilter.min &&
                node.data.complexity <= this.complexityFilter.max;
     }
 
@@ -205,7 +205,7 @@ class TreeSearch {
         if (this.typeFilter === 'all') {
             return true;
         }
-        
+
         return node.data.type === this.typeFilter;
     }
 
@@ -218,7 +218,7 @@ class TreeSearch {
         if (!this.searchTerm) {
             return false;
         }
-        
+
         const name = (node.data.name || '').toLowerCase();
         return name.includes(this.searchTerm);
     }
@@ -229,7 +229,7 @@ class TreeSearch {
      */
     resetNodeVisibility(root) {
         if (!root) return;
-        
+
         root.descendants().forEach(node => {
             node.data._hidden = false;
             node.data._highlighted = false;
@@ -245,21 +245,21 @@ class TreeSearch {
         const checkVisibility = (node) => {
             if (node.children) {
                 let hasVisibleChild = false;
-                
+
                 node.children.forEach(child => {
                     checkVisibility(child);
                     if (!child.data._hidden) {
                         hasVisibleChild = true;
                     }
                 });
-                
+
                 // If node has visible children, it must be visible too
                 if (hasVisibleChild && node.data._hidden) {
                     node.data._hidden = false;
                 }
             }
         };
-        
+
         checkVisibility(root);
     }
 
@@ -271,16 +271,16 @@ class TreeSearch {
      */
     searchByPath(root, pattern) {
         if (!root || !pattern) return [];
-        
+
         const results = [];
         const regexPattern = this.pathPatternToRegex(pattern);
-        
+
         root.descendants().forEach(node => {
             if (node.data.path && regexPattern.test(node.data.path)) {
                 results.push(node);
             }
         });
-        
+
         return results;
     }
 
@@ -296,7 +296,7 @@ class TreeSearch {
         const regexStr = escaped
             .replace(/\*/g, '.*')  // * matches any characters
             .replace(/\?/g, '.');  // ? matches single character
-        
+
         return new RegExp('^' + regexStr + '$', 'i');
     }
 
@@ -308,10 +308,10 @@ class TreeSearch {
      */
     getSearchSuggestions(root, prefix = '') {
         if (!root) return [];
-        
+
         const suggestions = new Set();
         const lowerPrefix = prefix.toLowerCase();
-        
+
         root.descendants().forEach(node => {
             if (node.data.name) {
                 const name = node.data.name.toLowerCase();
@@ -320,7 +320,7 @@ class TreeSearch {
                 }
             }
         });
-        
+
         return Array.from(suggestions).sort().slice(0, 10);
     }
 
@@ -332,11 +332,11 @@ class TreeSearch {
      */
     highlightSearchTerm(text, term = null) {
         const searchTerm = term || this.searchTerm;
-        
+
         if (!searchTerm || !text) {
             return text;
         }
-        
+
         const regex = new RegExp(`(${this.escapeRegex(searchTerm)})`, 'gi');
         return text.replace(regex, '<mark>$1</mark>');
     }
@@ -357,7 +357,7 @@ class TreeSearch {
      */
     getFilterSummary() {
         const parts = [];
-        
+
         if (this.searchTerm) {
             parts.push(`Search: "${this.searchTerm}"`);
         }
@@ -370,7 +370,7 @@ class TreeSearch {
         if (this.complexityFilter.min > 0 || this.complexityFilter.max < 999) {
             parts.push(`Complexity: ${this.complexityFilter.min}-${this.complexityFilter.max}`);
         }
-        
+
         return parts.length > 0 ? parts.join(', ') : 'No filters applied';
     }
 

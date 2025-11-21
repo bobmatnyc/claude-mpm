@@ -47,9 +47,9 @@ def test_customize_pm_location():
             claude_file = Path(tmpdir) / "CLAUDE.md"
 
             assert expected_file.exists(), f"Expected file not created: {expected_file}"
-            assert (
-                not claude_file.exists()
-            ), f"CLAUDE.md should not be created: {claude_file}"
+            assert not claude_file.exists(), (
+                f"CLAUDE.md should not be created: {claude_file}"
+            )
 
             # Check the content
             content = expected_file.read_text()
@@ -92,9 +92,9 @@ This should be loaded by the framework loader.
             loader = FrameworkLoader()
 
             # Check that custom instructions were loaded
-            assert loader.framework_content.get(
-                "custom_instructions"
-            ), "Custom instructions not loaded"
+            assert loader.framework_content.get("custom_instructions"), (
+                "Custom instructions not loaded"
+            )
             assert (
                 "Custom Test Instructions"
                 in loader.framework_content["custom_instructions"]

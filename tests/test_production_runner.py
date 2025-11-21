@@ -219,7 +219,7 @@ def test_multiple_tests(count: int = 3):
 
     print(f"\nTests Run: {len(valid_results)}/{count}")
     print(f"Tests Passed: {passed}/{len(valid_results)}")
-    print(f"Pass Rate: {passed/len(valid_results)*100:.1f}%")
+    print(f"Pass Rate: {passed / len(valid_results) * 100:.1f}%")
 
     if valid_results:
         avg_score = sum(r["weighted_score"] for r in valid_results) / len(valid_results)

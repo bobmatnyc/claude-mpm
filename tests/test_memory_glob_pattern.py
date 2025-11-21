@@ -110,12 +110,12 @@ def test_glob_patterns():
         print(f"✓ Filtered out {len(excluded_files)} non-memory files")
 
         # Assert correctness
-        assert (
-            len(new_pattern_names) == 4
-        ), f"Expected 4 memory files, got {len(new_pattern_names)}"
-        assert all(
-            name.endswith("_memories.md") for name in new_pattern_names
-        ), "All matched files should end with _memories.md"
+        assert len(new_pattern_names) == 4, (
+            f"Expected 4 memory files, got {len(new_pattern_names)}"
+        )
+        assert all(name.endswith("_memories.md") for name in new_pattern_names), (
+            "All matched files should end with _memories.md"
+        )
         assert "README.md" not in new_pattern_names, "README.md should not be matched"
         assert all_excluded, "All non-memory files should be excluded"
 

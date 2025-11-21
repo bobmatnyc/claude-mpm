@@ -125,7 +125,7 @@ def main():
         for i in range(12):
             time.sleep(1)
             if i % 3 == 2:
-                print(f"   ⏱️  {i+1} seconds elapsed...")
+                print(f"   ⏱️  {i + 1} seconds elapsed...")
 
         # Summary
         print("\n" + "=" * 60)

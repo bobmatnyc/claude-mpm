@@ -15,9 +15,9 @@ E    +  where 'suppress non-error output' = &lt;built-in method lower of str obj
 E    +    where &lt;built-in method lower of str object at 0x108546ce0&gt; = 'Suppress non-error output'.lower</failure></testcase><testcase classname="tests.cli.test_shared_utilities.TestCommonArguments" name="test_debug_argument" time="0.000" /><testcase classname="tests.cli.test_shared_utilities.TestCommonArguments" name="test_config_file_argument" time="0.001" /><testcase classname="tests.cli.test_shared_utilities.TestCommonArguments" name="test_output_format_argument" time="0.001"><failure message="AssertionError: assert ['json', 'yaml', 'table', 'text'] == ['text', 'json', 'yaml', 'table']&#10;  &#10;  At index 0 diff: 'json' != 'text'&#10;  &#10;  Full diff:&#10;    [&#10;  -     'text',&#10;        'json',&#10;        'yaml',&#10;        'table',&#10;  +     'text',&#10;    ]">test_shared_utilities.py:62: in test_output_format_argument
     assert output_format["choices"] == ["text", "json", "yaml", "table"]
 E   AssertionError: assert ['json', 'yaml', 'table', 'text'] == ['text', 'json', 'yaml', 'table']
-E     
+E
 E     At index 0 diff: 'json' != 'text'
-E     
+E
 E     Full diff:
 E       [
 E     -     'text',
@@ -69,7 +69,7 @@ E   TypeError: string indices must be integers, not 'str'</failure></testcase><t
     raise ConstructorError(None, None,
 E   yaml.constructor.ConstructorError: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object:claude_mpm.cli.shared.command_base.CommandResult'
 E     in "&lt;unicode string&gt;", line 1, column 1:
-E       !!python/object:claude_mpm.cli.s ... 
+E       !!python/object:claude_mpm.cli.s ...
 E       ^</failure></testcase><testcase classname="tests.cli.test_shared_utilities.TestOutputFormatter" name="test_format_yaml_error" time="0.002"><failure message="yaml.constructor.ConstructorError: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object:claude_mpm.cli.shared.command_base.CommandResult'&#10;  in &quot;&lt;unicode string&gt;&quot;, line 1, column 1:&#10;    !!python/object:claude_mpm.cli.s ... &#10;    ^">test_shared_utilities.py:176: in test_format_yaml_error
     data = yaml.safe_load(output)
            ^^^^^^^^^^^^^^^^^^^^^^
@@ -92,7 +92,7 @@ E       ^</failure></testcase><testcase classname="tests.cli.test_shared_utiliti
     raise ConstructorError(None, None,
 E   yaml.constructor.ConstructorError: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object:claude_mpm.cli.shared.command_base.CommandResult'
 E     in "&lt;unicode string&gt;", line 1, column 1:
-E       !!python/object:claude_mpm.cli.s ... 
+E       !!python/object:claude_mpm.cli.s ...
 E       ^</failure></testcase><testcase classname="tests.cli.test_shared_utilities.TestOutputFormatter" name="test_format_table_success" time="0.001"><failure message="TypeError: 'CommandResult' object is not subscriptable">test_shared_utilities.py:184: in test_format_table_success
     output = self.formatter.format_table(self.success_result)
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -133,7 +133,7 @@ E   TypeError: string indices must be integers, not 'str'</failure></testcase><t
     raise ConstructorError(None, None,
 E   yaml.constructor.ConstructorError: could not determine a constructor for the tag 'tag:yaml.org,2002:python/object:claude_mpm.cli.shared.command_base.CommandResult'
 E     in "&lt;unicode string&gt;", line 1, column 1:
-E       !!python/object:claude_mpm.cli.s ... 
+E       !!python/object:claude_mpm.cli.s ...
 E       ^</failure></testcase><testcase classname="tests.cli.test_shared_utilities.TestFormatOutputFunction" name="test_format_output_table" time="0.001"><failure message="TypeError: 'CommandResult' object is not subscriptable">test_shared_utilities.py:231: in test_format_output_table
     output = format_output(result, "table")
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

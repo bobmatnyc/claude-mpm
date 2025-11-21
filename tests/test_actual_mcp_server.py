@@ -36,7 +36,7 @@ async def simulate_mcp_request():
 
     # Simulate multiple ticket list requests
     for i in range(5):
-        print(f"--- Request {i+1}: ticket list ---")
+        print(f"--- Request {i + 1}: ticket list ---")
         mem_before = get_memory_usage()
 
         # This is what happens when Claude invokes the tool

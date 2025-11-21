@@ -84,7 +84,7 @@ def main():
     try:
         # Start all servers
         for i, server in enumerate(servers):
-            print(f"Starting server {i+1}/{len(servers)}: {server['cmd']}")
+            print(f"Starting server {i + 1}/{len(servers)}: {server['cmd']}")
 
             # Use shell=True to support commands with cd and &&
             process = subprocess.Popen(
@@ -121,7 +121,7 @@ def main():
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
-            print(f"Server {i+1} stopped")
+            print(f"Server {i + 1} stopped")
         print("All servers stopped")
 
 

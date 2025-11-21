@@ -219,7 +219,7 @@ class MemoryV3_9_0_Tester:
                 large_content_sections.append(section_content)
                 section_size += len(section_content.encode("utf-8"))
 
-            print(f"Generated test content: ~{section_size/1024:.1f}KB")
+            print(f"Generated test content: ~{section_size / 1024:.1f}KB")
 
             # Add content until we exceed limits
             exceed_count = 0

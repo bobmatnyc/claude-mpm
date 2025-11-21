@@ -607,13 +607,13 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
 }
 
 @keyframes pulse-todo {
-    0% { 
+    0% {
         background: #ebf8ff;
     }
-    50% { 
+    50% {
         background: #bee3f8;
     }
-    100% { 
+    100% {
         background: #ebf8ff;
     }
 }
@@ -648,14 +648,14 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
 
 /* Status Animation */
 @keyframes pulse-status {
-    0% { 
-        opacity: 1; 
+    0% {
+        opacity: 1;
     }
-    50% { 
-        opacity: 0.7; 
+    50% {
+        opacity: 0.7;
     }
-    100% { 
-        opacity: 1; 
+    100% {
+        opacity: 1;
     }
 }
 
@@ -1059,23 +1059,23 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
         flex-direction: column;
         gap: 15px;
     }
-    
+
     .activity-controls {
         width: 100%;
         flex-wrap: wrap;
         justify-content: center;
     }
-    
+
     .tree-legend {
         position: static;
         margin-top: 15px;
         max-width: 300px;
     }
-    
+
     .tree-params {
         max-width: 150px;
     }
-    
+
     .activity-controls input {
         width: 150px;
     }
@@ -1085,35 +1085,35 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     .activity-container {
         padding: 10px;
     }
-    
+
     .activity-tree-container {
         padding: 0;
     }
-    
+
     .linear-tree {
         padding: 10px;
     }
-    
+
     .tree-node[data-level="1"] {
         margin-left: 15px;
     }
-    
+
     .tree-node[data-level="2"] {
         margin-left: 30px;
     }
-    
+
     .tree-node[data-level="3"] {
         margin-left: 45px;
     }
-    
+
     .tree-node[data-level="4"] {
         margin-left: 60px;
     }
-    
+
     .tree-params {
         max-width: 100px;
     }
-    
+
     .stat-item {
         flex-direction: column;
         gap: 2px;
@@ -1127,188 +1127,188 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
         background: #1a202c;
         color: #e2e8f0;
     }
-    
+
     /* D3 Dark Mode Styles */
     #activity-tree-svg {
         background: #1a202c;
     }
-    
+
     .node-label {
         fill: #e2e8f0;
     }
-    
+
     .node:hover .node-label {
         fill: #63b3ed;
     }
-    
+
     .link {
         stroke: #4a5568;
     }
-    
+
     .node:hover .link {
         stroke: #63b3ed;
     }
-    
+
     .d3-tooltip {
         background: rgba(45, 55, 72, 0.95) !important;
         color: #e2e8f0 !important;
         border: 1px solid #4a5568;
     }
-    
+
     .activity-header {
         background: #2d3748;
     }
-    
+
     .activity-controls select,
     .activity-controls input {
         background: #2d3748;
         color: #e2e8f0;
         border-color: #4a5568;
     }
-    
+
     .stat-label {
         color: #a0aec0;
     }
-    
+
     .stat-value {
         color: #e2e8f0;
     }
-    
+
     .tree-legend {
         background: rgba(45, 55, 72, 0.95);
         border-color: #4a5568;
     }
-    
+
     .legend-item {
         color: #e2e8f0;
     }
-    
+
     .tree-node:hover {
         background-color: #2d3748;
     }
-    
+
     .tree-node-content:hover {
         background-color: #4a5568;
     }
-    
+
     .tree-label {
         color: #e2e8f0;
     }
-    
+
     .tree-meta {
         color: #a0aec0;
     }
-    
+
     .tree-node.project-root {
         background: linear-gradient(135deg, #4299e1 0%, #553c9a 100%);
     }
-    
+
     .tree-node.session {
         background: #2d3748;
         border-color: #4a5568;
     }
-    
+
     .tree-node.session .tree-label {
         color: #e2e8f0;
     }
-    
+
     .tree-children {
         border-left-color: #4a5568;
     }
-    
+
     .tree-label.clickable:hover {
         background-color: rgba(74, 85, 104, 0.5);
         color: #e2e8f0;
     }
-    
+
     .module-item-details {
         color: #e2e8f0;
     }
-    
+
     .module-item-header {
         border-bottom-color: #4a5568;
     }
-    
+
     .module-item-header h6 {
         color: #e2e8f0;
     }
-    
+
     .detail-label {
         color: #a0aec0;
     }
-    
+
     .detail-value {
         color: #e2e8f0;
     }
-    
+
     .detail-section {
         border-top-color: #4a5568;
     }
-    
+
     .detail-section-title {
         color: #a0aec0;
     }
-    
+
     .tools-list, .params-list {
         background: #2d3748;
         border-color: #4a5568;
     }
-    
+
     .tool-summary {
         background: #4a5568;
         border-color: #718096;
         color: #e2e8f0;
     }
-    
+
     .tool-params-expanded {
         background: #2d3748;
         border-color: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .param-line .param-key,
     .param-key {
         color: #9f7aea;
     }
-    
+
     .param-line .param-value,
     .param-value {
         color: #e2e8f0;
     }
-    
+
     .param-item {
         border-bottom-color: #4a5568;
     }
-    
+
     .param-text-short {
         background: #2d3748;
         border-color: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .param-text,
     .param-text-long {
         background: #2d3748;
         border-color: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .param-json {
         background: #1a202c;
         border-color: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .param-primitive {
         background: #4a5568;
         color: #e2e8f0;
     }
-    
+
     .param-error {
         background: #742a2a;
         color: #feb2b2;
     }
-    
+
     .tool-result {
         background: #1a202c;
         border-color: #4a5568;
@@ -1548,20 +1548,20 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .summary-item {
         min-width: auto;
     }
-    
+
     .todo-checklist-item {
         padding: 6px;
     }
-    
+
     .todo-checkbox {
         width: 20px;
         height: 20px;
     }
-    
+
     .checkbox-icon {
         font-size: 12px;
     }
@@ -1572,21 +1572,21 @@ body .activity-tree-container .linear-tree .tree-node.tool.privileged-tool .tree
     .activity-header {
         display: none;
     }
-    
+
     .tree-legend {
         position: static;
         margin-bottom: 20px;
     }
-    
+
     .activity-tree-container {
         box-shadow: none;
         border: 1px solid #000;
     }
-    
+
     .tree-node {
         break-inside: avoid;
     }
-    
+
     .tree-status {
         border: 1px solid #000;
         background: transparent !important;

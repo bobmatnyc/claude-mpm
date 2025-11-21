@@ -23,7 +23,7 @@ from claude_mpm.core.agent_name_normalizer import (
 
 def print_section(title):
     """Print a formatted section header."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f" {title}")
     print("=" * 60)
 

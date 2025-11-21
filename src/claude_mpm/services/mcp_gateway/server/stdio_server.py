@@ -65,7 +65,6 @@ def apply_backward_compatibility_patches():
                         and hasattr(request, "params")
                         and request.params is not None
                     ):
-
                         # Convert params to dict to check for clientInfo
                         params_dict = request.params
                         if hasattr(params_dict, "model_dump"):
@@ -542,7 +541,6 @@ class SimpleMCPServer:
 
                         result = f"Python: {sys.version}"
                     elif info_type == "cwd":
-
                         result = f"Working Directory: {Path.cwd()}"
                     elif info_type == "all":
                         import datetime

@@ -153,7 +153,10 @@ class TestMonitorCommand:
     def test_monitor_with_custom_port():
         """Test monitoring on custom port."""
         args = Namespace(
-            port=9090, filter=None, output="console", format="text"  # Custom port
+            port=9090,
+            filter=None,
+            output="console",
+            format="text",  # Custom port
         )
 
         with patch.object(self.command, "_start_monitoring") as mock_start:

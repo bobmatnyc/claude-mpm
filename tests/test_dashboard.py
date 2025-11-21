@@ -3,6 +3,7 @@
 Dashboard Verification Test Script
 Tests all tabs and captures console logs
 """
+
 import asyncio
 import json
 

@@ -527,13 +527,11 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                         and node.iter.func.id == "range"
                         and len(node.iter.args) == 1
                     ):
-
                         if isinstance(node.iter.args[0], ast.Call):
                             if (
                                 isinstance(node.iter.args[0].func, ast.Name)
                                 and node.iter.args[0].func.id == "len"
                             ):
-
                                 results["optimizations"].append(
                                     {
                                         "type": "range_len_pattern",
@@ -562,7 +560,6 @@ class PerformanceAnalyzerStrategy(AnalyzerStrategy):
                         "min",
                         "max",
                     ]:
-
                         results["optimizations"].append(
                             {
                                 "type": "generator_opportunity",

@@ -139,7 +139,7 @@ def test_missing_session_id():
             session_id = test_case["session_id"]
             desc = test_case["description"]
 
-            print(f"\nTesting case {i+1}: {desc}")
+            print(f"\nTesting case {i + 1}: {desc}")
 
             # Simulate a delegation and response
             pre_tool_event = {
@@ -189,7 +189,7 @@ def test_missing_session_id():
                 results.append(False)
 
         success_rate = sum(results) / len(results)
-        print(f"\nSession ID handling success rate: {success_rate*100:.1f}%")
+        print(f"\nSession ID handling success rate: {success_rate * 100:.1f}%")
         return success_rate >= 0.75  # Allow some failures for invalid inputs
 
     finally:
@@ -380,7 +380,7 @@ if __name__ == "__main__":
         status = "PASSED" if result else "FAILED"
         print(f"  {test_name}: {status}")
 
-    print(f"\nOverall: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
+    print(f"\nOverall: {passed}/{total} tests passed ({passed / total * 100:.1f}%)")
 
     if passed == total:
         print("🎉 All edge case tests PASSED!")

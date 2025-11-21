@@ -501,7 +501,7 @@ class CircuitBreakerPerformanceTest:
             elif result.get("status") == "error":
                 summary["failed_tests"] += 1
                 summary["issues_found"].append(
-                    f'{test_name}: {result.get("error", "Unknown error")}'
+                    f"{test_name}: {result.get('error', 'Unknown error')}"
                 )
 
             elif result.get("status") == "skipped":

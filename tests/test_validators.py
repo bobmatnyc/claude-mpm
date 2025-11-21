@@ -2337,7 +2337,6 @@ class TestReferencing(TestCase):
 
 
 class TestRefResolver(TestCase):
-
     base_uri = ""
     stored_uri = "foo://stored"
     stored_schema = {"stored": "schema"}
@@ -2599,7 +2598,6 @@ def sorted_errors(errors):
 
 @define
 class ReallyFakeRequests:
-
     _responses: dict[str, Any]
 
     def get(self, url):
@@ -2611,7 +2609,6 @@ class ReallyFakeRequests:
 
 @define
 class _ReallyFakeJSONResponse:
-
     _response: str
 
     def json(self):

@@ -74,7 +74,6 @@ class TestProcess(PsutilTestCase):
 
 @pytest.mark.skipif(not MACOS, reason="MACOS only")
 class TestSystemAPIs(PsutilTestCase):
-
     # --- disk
 
     @retry_on_failure()

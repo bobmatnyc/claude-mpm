@@ -228,8 +228,8 @@ class AgentDisplay:
 [bold]Model:[/bold] {model}
 [bold]Agent Version:[/bold] {agent_version}
 [bold]Schema Version:[/bold] {schema_version}
-[bold]Tags:[/bold] {', '.join(tags) if tags else 'None'}
-[bold]Tools:[/bold] {', '.join(tools[:5]) if tools else 'None'}{'...' if len(tools) > 5 else ''}
+[bold]Tags:[/bold] {", ".join(tags) if tags else "None"}
+[bold]Tools:[/bold] {", ".join(tools[:5]) if tools else "None"}{"..." if len(tools) > 5 else ""}
 """
                     except Exception:
                         pass
@@ -237,9 +237,9 @@ class AgentDisplay:
                 # Create detail panel
                 detail_text = f"""
 [bold]Name:[/bold] {agent.name}
-[bold]Status:[/bold] {'[green]Enabled[/green]' if self.agent_manager.is_agent_enabled(agent.name) else '[red]Disabled[/red]'}
+[bold]Status:[/bold] {"[green]Enabled[/green]" if self.agent_manager.is_agent_enabled(agent.name) else "[red]Disabled[/red]"}
 [bold]Template Path:[/bold] {template_path}
-[bold]Is System Template:[/bold] {'Yes' if str(template_path).startswith(str(self.agent_manager.templates_dir)) else 'No (Custom)'}
+[bold]Is System Template:[/bold] {"Yes" if str(template_path).startswith(str(self.agent_manager.templates_dir)) else "No (Custom)"}
 {extra_info}
                 """
 

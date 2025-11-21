@@ -213,7 +213,7 @@ def print_summary(results: Dict[str, Dict]):
     print(f"Total tests: {total_tests}")
     print(f"Passed: {passed_tests}")
     print(f"Failed: {failed_tests}")
-    print(f"Success rate: {(passed_tests/total_tests)*100:.1f}%")
+    print(f"Success rate: {(passed_tests / total_tests) * 100:.1f}%")
 
     if failed_tests > 0:
         print("\n❌ FAILED TESTS:")

@@ -3,6 +3,7 @@
 Comprehensive Skills Integration Verification
 Tests all 7 verification points for the skills system
 """
+
 import json
 import sys
 from pathlib import Path
@@ -25,9 +26,9 @@ class Colors:
 
 
 def print_test(name: str):
-    print(f"\n{Colors.BLUE}{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"\n{Colors.BLUE}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
     print(f"{Colors.BLUE}{Colors.BOLD}TEST: {name}{Colors.RESET}")
-    print(f"{Colors.BLUE}{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"{Colors.BLUE}{Colors.BOLD}{'=' * 80}{Colors.RESET}")
 
 
 def print_pass(message: str):
@@ -160,7 +161,7 @@ def test_3_prompt_enhancement() -> bool:
             )
             return False
         print_pass(
-            f"Prompt enhanced from {len(base_prompt)} to {len(enhanced)} chars ({len(enhanced)/len(base_prompt):.1f}x)"
+            f"Prompt enhanced from {len(base_prompt)} to {len(enhanced)} chars ({len(enhanced) / len(base_prompt):.1f}x)"
         )
 
         # Check that skill content is included
@@ -307,12 +308,12 @@ def test_5_skills_field_in_templates() -> bool:
 
         if agents_with_skills < required_count:
             print_fail(
-                f"Expected at least {required_count} agents with skills ({target_percentage*100}%), found {agents_with_skills}"
+                f"Expected at least {required_count} agents with skills ({target_percentage * 100}%), found {agents_with_skills}"
             )
             return False
 
         print_pass(
-            f"{agents_with_skills}/{len(agent_files)} agents have skills field ({agents_with_skills/len(agent_files)*100:.1f}%)"
+            f"{agents_with_skills}/{len(agent_files)} agents have skills field ({agents_with_skills / len(agent_files) * 100:.1f}%)"
         )
 
         return True
@@ -429,9 +430,9 @@ def test_7_skills_selector_presence() -> bool:
 
 def main():
     """Run all tests and generate report"""
-    print(f"{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"{Colors.BOLD}{'=' * 80}{Colors.RESET}")
     print(f"{Colors.BOLD}SKILLS INTEGRATION COMPREHENSIVE VERIFICATION{Colors.RESET}")
-    print(f"{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"{Colors.BOLD}{'=' * 80}{Colors.RESET}")
 
     tests = [
         ("Test 1: Bundled Skills Loading", test_1_bundled_skills_loading),
@@ -457,9 +458,9 @@ def main():
             results[test_name] = False
 
     # Print summary
-    print(f"\n{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"\n{Colors.BOLD}{'=' * 80}{Colors.RESET}")
     print(f"{Colors.BOLD}TEST SUMMARY{Colors.RESET}")
-    print(f"{Colors.BOLD}{'='*80}{Colors.RESET}")
+    print(f"{Colors.BOLD}{'=' * 80}{Colors.RESET}")
 
     passed = sum(results.values())
     total = len(results)

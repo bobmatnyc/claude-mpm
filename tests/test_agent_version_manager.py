@@ -106,14 +106,14 @@ class TestAgentVersionManager:
         new_formats = ["1.0.0", "v2.1.3", "10.5.0"]
 
         for version_str in old_formats:
-            assert self.is_old_version_format(
-                version_str
-            ), f"Should be old: {version_str}"
+            assert self.is_old_version_format(version_str), (
+                f"Should be old: {version_str}"
+            )
 
         for version_str in new_formats:
-            assert not self.is_old_version_format(
-                version_str
-            ), f"Should be new: {version_str}"
+            assert not self.is_old_version_format(version_str), (
+                f"Should be new: {version_str}"
+            )
 
     def test_compare_versions(self):
         """Test version comparison."""

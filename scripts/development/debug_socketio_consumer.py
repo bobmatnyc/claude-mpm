@@ -136,7 +136,7 @@ class SocketIODebugConsumer:
         """
         self.stats["events_received"] += 1
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"📥 RECEIVED EVENT: {event_name}")
         logger.debug(f"Raw data: {json.dumps(event_data, default=str, indent=2)}")
 
@@ -230,7 +230,7 @@ class SocketIODebugConsumer:
 
     def print_stats(self):
         """Print current statistics."""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("📊 CONSUMER STATISTICS")
         print(f"  Events Received: {self.stats['events_received']}")
         print(f"  Events Emitted: {self.stats['events_emitted']}")

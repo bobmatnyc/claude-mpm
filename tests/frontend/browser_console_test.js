@@ -52,20 +52,20 @@ if (contentsDiv) {
 console.log('\n🔄 Test 4: Testing manual directory loading...');
 if (window.simpleCodeView) {
     console.log('Testing loadDirectory function...');
-    
+
     // Test with the current path
     const testPath = '/Users/masa/Projects/claude-mpm/src';
     console.log('Loading test path:', testPath);
-    
+
     try {
         window.simpleCodeView.loadDirectory(testPath);
         console.log('✅ loadDirectory called successfully');
-        
+
         // Check result after a delay
         setTimeout(() => {
             const pathInput = document.getElementById('path-input');
             const contentsDiv = document.getElementById('directory-contents');
-            
+
             console.log('\n📈 Results after 2 seconds:');
             if (pathInput) {
                 console.log('Path input value:', pathInput.value);
@@ -81,7 +81,7 @@ if (window.simpleCodeView) {
                 }
             }
         }, 2000);
-        
+
     } catch (error) {
         console.log('❌ loadDirectory failed:', error);
     }

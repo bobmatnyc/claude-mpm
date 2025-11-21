@@ -99,14 +99,14 @@ def test_memory_loading_integration():
         print(f"New pattern (*_memories.md): {new_count} files")
         print(f"Files filtered out: {reduction}")
         print(
-            f"Filtering efficiency: {reduction}/{old_count} = {reduction/old_count*100:.1f}% reduction"
+            f"Filtering efficiency: {reduction}/{old_count} = {reduction / old_count * 100:.1f}% reduction"
         )
 
         # Assert correctness
         assert new_count == 4, f"Expected 4 memory files, got {new_count}"
-        assert all(
-            name.endswith("_memories.md") for name in actual_memories
-        ), "All matched files should end with _memories.md"
+        assert all(name.endswith("_memories.md") for name in actual_memories), (
+            "All matched files should end with _memories.md"
+        )
         assert "README.md" not in actual_memories, "README.md should not be matched"
         assert "NOTES.md" not in actual_memories, "NOTES.md should not be matched"
         assert reduction == 3, f"Expected to filter out 3 files, filtered {reduction}"

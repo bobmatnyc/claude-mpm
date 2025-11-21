@@ -83,7 +83,7 @@ class TestStartupLogging:
 
             # Create recent files
             for i in range(5):
-                recent_file = log_dir / f"startup-2024-01-{i+1:02d}-00-00-00.log"
+                recent_file = log_dir / f"startup-2024-01-{i + 1:02d}-00-00-00.log"
                 recent_file.touch()
 
             # Run cleanup (keep last 7 days, min 3 files)

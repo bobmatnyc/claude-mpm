@@ -6,7 +6,6 @@
 
 """Linux specific tests."""
 
-
 import collections
 import contextlib
 import errno
@@ -253,9 +252,9 @@ class TestSystemVirtualMemoryAgainstFree(PsutilTestCase):
         if free_value == 0:
             raise pytest.skip("free does not support 'shared' column")
         psutil_value = psutil.virtual_memory().shared
-        assert (
-            abs(free_value - psutil_value) < TOLERANCE_SYS_MEM
-        ), f"{free_value} {psutil_value} \n{free.output}"
+        assert abs(free_value - psutil_value) < TOLERANCE_SYS_MEM, (
+            f"{free_value} {psutil_value} \n{free.output}"
+        )
 
     @retry_on_failure()
     def test_available(self):
@@ -880,7 +879,6 @@ class TestSystemCPUFrequency(PsutilTestCase):
 
 @pytest.mark.skipif(not LINUX, reason="LINUX only")
 class TestSystemCPUStats(PsutilTestCase):
-
     # XXX: fails too often.
     # def test_ctx_switches(self):
     #     vmstat_value = vmstat("context switches")
@@ -1621,9 +1619,7 @@ class TestSensorsBattery(PsutilTestCase):
         ), mock_open_exception(
             "/sys/class/power_supply/BAT0/charge_full",
             FileNotFoundError,
-        ), mock_open_content(
-            {"/sys/class/power_supply/BAT0/capacity": b"88"}
-        ):
+        ), mock_open_content({"/sys/class/power_supply/BAT0/capacity": b"88"}):
             assert psutil.sensors_battery().percent == 88
 
     def test_emulate_no_power(self):

@@ -177,7 +177,7 @@ class WorkingDirectoryManager {
         console.log('[WORKING-DIR-DEBUG] setWorkingDirectory called with:', this.repr(dir));
 
         this.currentWorkingDir = dir;
-        
+
         // Store in session storage for persistence during the session
         if (dir && this.validateDirectoryPath(dir)) {
             sessionStorage.setItem('currentWorkingDirectory', dir);
@@ -316,13 +316,13 @@ class WorkingDirectoryManager {
      */
     getDefaultWorkingDir() {
         console.log('[WORKING-DIR-DEBUG] getDefaultWorkingDir called');
-        
+
         // Try to get from the current working directory if set
         if (this.currentWorkingDir && this.validateDirectoryPath(this.currentWorkingDir)) {
             console.log('[WORKING-DIR-DEBUG] Using current working directory:', this.currentWorkingDir);
             return this.currentWorkingDir;
         }
-        
+
         // Try to get from header display
         const headerWorkingDir = document.querySelector('.working-dir-text');
         if (headerWorkingDir?.textContent?.trim()) {
@@ -367,11 +367,11 @@ class WorkingDirectoryManager {
             const eventsWithDir = window.socketClient.events
                 .filter(e => e.data && (e.data.working_directory || e.data.cwd || e.data.working_dir))
                 .reverse();
-            
+
             if (eventsWithDir.length > 0) {
                 const recentEvent = eventsWithDir[0];
-                const dir = recentEvent.data.working_directory || 
-                           recentEvent.data.cwd || 
+                const dir = recentEvent.data.working_directory ||
+                           recentEvent.data.cwd ||
                            recentEvent.data.working_dir;
                 console.log('[WORKING-DIR-DEBUG] Using working directory from recent event:', dir);
                 return dir;
@@ -393,7 +393,7 @@ class WorkingDirectoryManager {
             console.log('[WORKING-DIR-DEBUG] Using session storage working directory:', this.repr(sessionWorkingDir));
             return sessionWorkingDir;
         }
-        
+
         // Try to get the current working directory from environment/process
         // This should be the directory where claude-mpm was started from
         const processWorkingDir = window.processWorkingDirectory || process?.cwd?.() || null;
@@ -401,7 +401,7 @@ class WorkingDirectoryManager {
             console.log('[WORKING-DIR-DEBUG] Using process working directory:', this.repr(processWorkingDir));
             return processWorkingDir;
         }
-        
+
         // Final fallback - use current working directory if available, otherwise home directory
         // Never default to root "/" as it's not a useful default for code viewing
         const homeDir = window.homeDirectory || process?.env?.HOME || process?.env?.USERPROFILE || null;

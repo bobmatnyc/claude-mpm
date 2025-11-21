@@ -25,7 +25,9 @@ def test_daemon_cleanup():
 
     # Create daemon instance
     daemon = UnifiedMonitorDaemon(
-        host="localhost", port=8765, daemon_mode=False  # Run in foreground for testing
+        host="localhost",
+        port=8765,
+        daemon_mode=False,  # Run in foreground for testing
     )
 
     try:
@@ -73,7 +75,7 @@ def test_multiple_restarts():
     print("-" * 50)
 
     for i in range(3):
-        print(f"\nCycle {i+1}/3:")
+        print(f"\nCycle {i + 1}/3:")
 
         daemon = UnifiedMonitorDaemon(host="localhost", port=8765, daemon_mode=False)
 
@@ -81,7 +83,7 @@ def test_multiple_restarts():
             # Start
             print("  Starting daemon...")
             if not daemon.start():
-                print(f"  ERROR: Failed to start on cycle {i+1}")
+                print(f"  ERROR: Failed to start on cycle {i + 1}")
                 return False
 
             # Brief run
@@ -94,10 +96,10 @@ def test_multiple_restarts():
             # Wait before next cycle
             time.sleep(1)
 
-            print(f"  Cycle {i+1} completed successfully")
+            print(f"  Cycle {i + 1} completed successfully")
 
         except Exception as e:
-            print(f"  ERROR in cycle {i+1}: {e}")
+            print(f"  ERROR in cycle {i + 1}: {e}")
             daemon.stop()
             return False
 

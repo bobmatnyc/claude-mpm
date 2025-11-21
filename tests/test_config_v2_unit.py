@@ -180,18 +180,18 @@ def test_field_type_handling():
         print(f"  {field}: {ftype}")
 
     # Basic checks
-    assert any(
-        "int" in ftype for ftype in field_types.values()
-    ), "Should have integer fields"
-    assert any(
-        "float" in ftype for ftype in field_types.values()
-    ), "Should have float fields"
-    assert any(
-        "bool" in ftype for ftype in field_types.values()
-    ), "Should have boolean fields"
-    assert any(
-        "text" in ftype for ftype in field_types.values()
-    ), "Should have text fields"
+    assert any("int" in ftype for ftype in field_types.values()), (
+        "Should have integer fields"
+    )
+    assert any("float" in ftype for ftype in field_types.values()), (
+        "Should have float fields"
+    )
+    assert any("bool" in ftype for ftype in field_types.values()), (
+        "Should have boolean fields"
+    )
+    assert any("text" in ftype for ftype in field_types.values()), (
+        "Should have text fields"
+    )
 
     print("✓ All field types handled correctly")
     print("Field type handling tests passed!\n")

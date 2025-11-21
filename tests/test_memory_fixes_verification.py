@@ -74,12 +74,12 @@ class TestMemoryFixesVerification:
             user_pm_file = self.user_memories_dir / "PM_memories.md"
             project_pm_file = self.project_memories_dir / "PM_memories.md"
 
-            assert (
-                user_pm_file.exists()
-            ), "PM memory should be created in user directory"
-            assert (
-                not project_pm_file.exists()
-            ), "PM memory should NOT be created in project directory"
+            assert user_pm_file.exists(), (
+                "PM memory should be created in user directory"
+            )
+            assert not project_pm_file.exists(), (
+                "PM memory should NOT be created in project directory"
+            )
 
             # Test PM memory updates also go to user directory
             success = memory_manager.add_learning(
@@ -89,9 +89,9 @@ class TestMemoryFixesVerification:
 
             # Verify update went to user directory
             updated_content = user_pm_file.read_text()
-            assert (
-                "Always delegate to specialized agents" in updated_content
-            ), "PM memory should be updated in user directory"
+            assert "Always delegate to specialized agents" in updated_content, (
+                "PM memory should be updated in user directory"
+            )
 
             print("✅ PM memory persistence to user directory verified")
 
@@ -118,12 +118,12 @@ class TestMemoryFixesVerification:
                     self.project_memories_dir / f"{agent_id}_memories.md"
                 )
 
-                assert (
-                    project_agent_file.exists()
-                ), f"{agent_id} should use project directory"
-                assert (
-                    not user_agent_file.exists()
-                ), f"{agent_id} should NOT use user directory"
+                assert project_agent_file.exists(), (
+                    f"{agent_id} should use project directory"
+                )
+                assert not user_agent_file.exists(), (
+                    f"{agent_id} should NOT use user directory"
+                )
 
             print("✅ Directory handling verification passed")
 
@@ -215,12 +215,12 @@ The implementation follows best practices.
 
             assert new_pm_file.exists(), "New PM memory file should exist"
             assert pm_backup_file.exists(), "PM backup file should be created"
-            assert (
-                not old_pm_file.exists()
-            ), "Old PM file should be removed after backup"
-            assert (
-                "Always delegate to specialized agents" in pm_memory
-            ), "PM content should be preserved"
+            assert not old_pm_file.exists(), (
+                "Old PM file should be removed after backup"
+            )
+            assert "Always delegate to specialized agents" in pm_memory, (
+                "PM content should be preserved"
+            )
 
             # Verify engineer migration without backup (normal deletion)
             new_engineer_file = self.project_memories_dir / "engineer_memories.md"
@@ -229,13 +229,13 @@ The implementation follows best practices.
             )
 
             assert new_engineer_file.exists(), "New engineer memory file should exist"
-            assert (
-                not engineer_backup_file.exists()
-            ), "Engineer backup should NOT be created"
+            assert not engineer_backup_file.exists(), (
+                "Engineer backup should NOT be created"
+            )
             assert not old_engineer_file.exists(), "Old engineer file should be deleted"
-            assert (
-                "Use type hints in Python code" in engineer_memory
-            ), "Engineer content should be preserved"
+            assert "Use type hints in Python code" in engineer_memory, (
+                "Engineer content should be preserved"
+            )
 
             print("✅ Migration with PM backup creation verified")
 
@@ -262,9 +262,9 @@ The implementation follows best practices.
             pm_memory_project2 = memory_manager2.load_agent_memory("PM")
 
             # Verify PM memory is accessible across projects
-            assert (
-                "Always use TodoWrite for task tracking" in pm_memory_project2
-            ), "PM memory should persist across projects"
+            assert "Always use TodoWrite for task tracking" in pm_memory_project2, (
+                "PM memory should persist across projects"
+            )
 
             # Verify PM memory file is in user directory, not project directories
             user_pm_file = self.user_memories_dir / "PM_memories.md"
@@ -272,12 +272,12 @@ The implementation follows best practices.
             project2_pm_file = self.project_memories_dir2 / "PM_memories.md"
 
             assert user_pm_file.exists(), "PM memory should exist in user directory"
-            assert (
-                not project1_pm_file.exists()
-            ), "PM memory should NOT exist in project 1"
-            assert (
-                not project2_pm_file.exists()
-            ), "PM memory should NOT exist in project 2"
+            assert not project1_pm_file.exists(), (
+                "PM memory should NOT exist in project 1"
+            )
+            assert not project2_pm_file.exists(), (
+                "PM memory should NOT exist in project 2"
+            )
 
             print("✅ Cross-project PM memory accessibility verified")
 
@@ -304,12 +304,12 @@ The implementation follows best practices.
                 )
                 user_agent_file = self.user_memories_dir / f"{agent_id}_memories.md"
 
-                assert (
-                    project_agent_file.exists()
-                ), f"{agent_id} memory should exist in project directory"
-                assert (
-                    not user_agent_file.exists()
-                ), f"{agent_id} memory should NOT exist in user directory"
+                assert project_agent_file.exists(), (
+                    f"{agent_id} memory should exist in project directory"
+                )
+                assert not user_agent_file.exists(), (
+                    f"{agent_id} memory should NOT exist in user directory"
+                )
 
             # Test same agents in project 2 (should create separate memories)
             memory_manager2 = AgentMemoryManager(
@@ -327,9 +327,9 @@ The implementation follows best practices.
                 project2_agent_file = (
                     self.project_memories_dir2 / f"{agent_id}_memories.md"
                 )
-                assert (
-                    project2_agent_file.exists()
-                ), f"{agent_id} memory should exist in project 2 directory"
+                assert project2_agent_file.exists(), (
+                    f"{agent_id} memory should exist in project 2 directory"
+                )
 
                 # Verify project 2 memory is different from project 1
                 project2_memory = memory_manager2.load_agent_memory(agent_id)
@@ -337,9 +337,9 @@ The implementation follows best practices.
 
                 assert f"Project 2 guideline for {agent_id}" in project2_memory
                 assert f"Project 1 guideline for {agent_id}" in project1_memory
-                assert (
-                    project1_memory != project2_memory
-                ), f"{agent_id} memories should be different between projects"
+                assert project1_memory != project2_memory, (
+                    f"{agent_id} memories should be different between projects"
+                )
 
             print("✅ Other agents using project directory correctly verified")
 
@@ -409,9 +409,9 @@ Delegation was successful.
             project_pm_file = self.project_memories_dir / "PM_memories.md"
 
             assert user_pm_file.exists(), "PM memory should be saved to user directory"
-            assert (
-                not project_pm_file.exists()
-            ), "PM memory should NOT be saved to project directory"
+            assert not project_pm_file.exists(), (
+                "PM memory should NOT be saved to project directory"
+            )
 
             # Verify content
             pm_memory = memory_manager.load_agent_memory("PM")
@@ -435,12 +435,12 @@ Delegation was successful.
             )
 
             # Verify directories were created
-            assert (
-                self.user_memories_dir.exists()
-            ), "User memories directory should be created"
-            assert (
-                self.project_memories_dir.exists()
-            ), "Project memories directory should be created"
+            assert self.user_memories_dir.exists(), (
+                "User memories directory should be created"
+            )
+            assert self.project_memories_dir.exists(), (
+                "Project memories directory should be created"
+            )
 
             # Verify README files were created
             user_readme = self.user_memories_dir / "README.md"

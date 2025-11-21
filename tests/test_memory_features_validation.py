@@ -59,7 +59,7 @@ class MemorySystemValidator:
                 agent_id, "guideline", test_memory
             )
             results.append(success)
-            print(f"Attempt {i+1}: {'Success' if success else 'Failed'}")
+            print(f"Attempt {i + 1}: {'Success' if success else 'Failed'}")
 
         # Load memory and check for duplicates
         memory_content = self.memory_manager.load_agent_memory(agent_id)
@@ -199,16 +199,16 @@ class MemorySystemValidator:
                 )
                 if found_in_section:
                     categorization_accuracy += 1
-                    categorization_results[input_category][
-                        "correctly_categorized"
-                    ] = True
-                    categorization_results[input_category][
-                        "found_in_section"
-                    ] = expected_section
+                    categorization_results[input_category]["correctly_categorized"] = (
+                        True
+                    )
+                    categorization_results[input_category]["found_in_section"] = (
+                        expected_section
+                    )
                 else:
-                    categorization_results[input_category][
-                        "correctly_categorized"
-                    ] = False
+                    categorization_results[input_category]["correctly_categorized"] = (
+                        False
+                    )
             else:
                 categorization_results[input_category]["correctly_categorized"] = False
 

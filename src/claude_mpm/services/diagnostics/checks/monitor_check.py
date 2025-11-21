@@ -26,7 +26,6 @@ class MonitorCheck(BaseDiagnosticCheck):
     def run(self) -> DiagnosticResult:
         """Run monitor diagnostics."""
         try:
-
             sub_results = []
             details = {}
 

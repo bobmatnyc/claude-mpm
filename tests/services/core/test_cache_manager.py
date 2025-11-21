@@ -346,7 +346,8 @@ class TestCacheManagerIntegration(unittest.TestCase):
 
         # Verify FileSystemCache was created with correct parameters
         mock_fs_cache_class.assert_called_once_with(
-            max_size_mb=50, default_ttl=100  # Should use max of all TTLs
+            max_size_mb=50,
+            default_ttl=100,  # Should use max of all TTLs
         )
 
     @patch("claude_mpm.services.core.cache_manager.FileSystemCache")

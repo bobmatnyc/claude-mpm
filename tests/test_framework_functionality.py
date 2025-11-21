@@ -65,9 +65,9 @@ def test_agent_capabilities_loading():
         sample_agent = parsed_agents[0]
         required_fields = ["id", "display_name", "description"]
         for field in required_fields:
-            assert (
-                field in sample_agent
-            ), f"Agent metadata missing required field: {field}"
+            assert field in sample_agent, (
+                f"Agent metadata missing required field: {field}"
+            )
         print(f"✓ Agent metadata contains required fields: {required_fields}")
 
     return True

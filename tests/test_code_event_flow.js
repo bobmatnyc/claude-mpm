@@ -9,14 +9,14 @@ if (!window.socket && !window.socketClient?.socket) {
 } else {
     const socket = window.socket || window.socketClient.socket;
     console.log("✅ Socket connected");
-    
+
     // Track events
     const events = [];
-    
+
     // Listen for all code-related events
     const codeEvents = [
         'code:discover:top_level',
-        'code:discover:directory', 
+        'code:discover:directory',
         'code:analyze:file',
         'code:directory:discovered',
         'code:file:discovered',
@@ -27,9 +27,9 @@ if (!window.socket && !window.socketClient?.socket) {
         'code:analysis:progress',
         'code:analysis:error'
     ];
-    
+
     console.log("Setting up event listeners for:", codeEvents);
-    
+
     codeEvents.forEach(eventName => {
         socket.on(eventName, (data) => {
             const timestamp = new Date().toISOString();
@@ -37,9 +37,9 @@ if (!window.socket && !window.socketClient?.socket) {
             events.push({ eventName, data, timestamp });
         });
     });
-    
+
     console.log("✅ Event listeners registered");
-    
+
     // Test function to emit a discovery request
     window.testCodeAnalysis = function(path = '.') {
         console.log(`\n🚀 Emitting code:discover:top_level for path: ${path}`);
@@ -48,7 +48,7 @@ if (!window.socket && !window.socketClient?.socket) {
             depth: 'top_level'
         });
     };
-    
+
     // Function to show collected events
     window.showCodeEvents = function() {
         console.log("\n=== Collected Events ===");
@@ -62,13 +62,13 @@ if (!window.socket && !window.socketClient?.socket) {
         }
         return events;
     };
-    
+
     // Clear events function
     window.clearCodeEvents = function() {
         events.length = 0;
         console.log("Events cleared");
     };
-    
+
     console.log("\n📋 Available test functions:");
     console.log("- testCodeAnalysis(path) : Emit a discovery request");
     console.log("- showCodeEvents()       : Show collected events");

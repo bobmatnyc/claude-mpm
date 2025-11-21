@@ -20,7 +20,9 @@ def test_daemon():
     print("-" * 50)
 
     daemon = UnifiedMonitorDaemon(
-        host="localhost", port=8765, daemon_mode=False  # Foreground for testing
+        host="localhost",
+        port=8765,
+        daemon_mode=False,  # Foreground for testing
     )
 
     try:

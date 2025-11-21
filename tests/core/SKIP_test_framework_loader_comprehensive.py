@@ -69,7 +69,6 @@ class TestPathResolution:
         with patch("subprocess.check_output") as mock_subprocess:
             mock_subprocess.return_value = expected_path.encode()
             with patch.object(Path, "exists", return_value=True):
-
                 loader = FrameworkLoader()
                 # The method is private, so we test it directly
                 npm_path = loader._get_npm_global_path()

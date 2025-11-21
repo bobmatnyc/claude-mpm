@@ -81,7 +81,6 @@ def test_stale_lock_recovery():
     print("\n4. Testing automatic recovery via Python API...")
 
     try:
-
         from claude_mpm.services.mcp_gateway.manager import MCPGatewayManager
 
         manager = MCPGatewayManager()

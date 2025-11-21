@@ -18,12 +18,12 @@ class TestE2E:
     @pytest.fixture(autouse=True)
     def setup(self):
         """Ensure claude-mpm script exists and is executable."""
-        assert (
-            CLAUDE_MPM_SCRIPT.exists()
-        ), f"claude-mpm script not found at {CLAUDE_MPM_SCRIPT}"
-        assert os.access(
-            CLAUDE_MPM_SCRIPT, os.X_OK
-        ), "claude-mpm script is not executable"
+        assert CLAUDE_MPM_SCRIPT.exists(), (
+            f"claude-mpm script not found at {CLAUDE_MPM_SCRIPT}"
+        )
+        assert os.access(CLAUDE_MPM_SCRIPT, os.X_OK), (
+            "claude-mpm script is not executable"
+        )
 
     def test_version_command():
         """Test that --version returns expected format."""
@@ -36,13 +36,13 @@ class TestE2E:
         )
 
         assert result.returncode == 0, f"Version command failed: {result.stderr}"
-        assert (
-            "claude-mpm" in result.stdout.lower()
-        ), f"Version output missing 'claude-mpm': {result.stdout}"
+        assert "claude-mpm" in result.stdout.lower(), (
+            f"Version output missing 'claude-mpm': {result.stdout}"
+        )
         # Should match pattern like "claude-mpm 0.3.0"
-        assert any(
-            char.isdigit() for char in result.stdout
-        ), f"Version output missing version number: {result.stdout}"
+        assert any(char.isdigit() for char in result.stdout), (
+            f"Version output missing version number: {result.stdout}"
+        )
 
     def test_help_command():
         """Test that --help shows expected commands."""
@@ -82,9 +82,9 @@ class TestE2E:
             check=False,
         )
 
-        assert (
-            result.returncode == 0
-        ), f"Non-interactive command failed: {result.stderr}"
+        assert result.returncode == 0, (
+            f"Non-interactive command failed: {result.stderr}"
+        )
         assert "10" in result.stdout, f"Expected '10' in output, got: {result.stdout}"
 
     def test_non_interactive_stdin():
@@ -133,9 +133,9 @@ class TestE2E:
         )
 
         # Info command might have some errors but should still provide output
-        assert (
-            "Claude MPM" in result.stdout or "Claude MPM" in result.stderr
-        ), f"Info command missing expected output.\nStdout: {result.stdout}\nStderr: {result.stderr}"
+        assert "Claude MPM" in result.stdout or "Claude MPM" in result.stderr, (
+            f"Info command missing expected output.\nStdout: {result.stdout}\nStderr: {result.stderr}"
+        )
 
     # Removed test_subprocess_orchestrator as --subprocess flag is deprecated
 
@@ -157,12 +157,12 @@ class TestE2E:
             check=False,
         )
 
-        assert (
-            result.returncode == 0
-        ), f"Command failed for prompt '{prompt}': {result.stderr}"
-        assert (
-            expected in result.stdout
-        ), f"Expected '{expected}' in output for prompt '{prompt}', got: {result.stdout}"
+        assert result.returncode == 0, (
+            f"Command failed for prompt '{prompt}': {result.stderr}"
+        )
+        assert expected in result.stdout, (
+            f"Expected '{expected}' in output for prompt '{prompt}', got: {result.stdout}"
+        )
 
     def test_hook_service_startup():
         """Test that hook service starts when using claude-mpm."""

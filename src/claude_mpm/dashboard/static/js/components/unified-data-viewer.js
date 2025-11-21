@@ -1,12 +1,12 @@
 /**
  * Unified Data Viewer Component
- * 
+ *
  * Consolidates all data formatting and display logic from event-driven tabs
  * (Activity, Events, Agents) into a single, reusable component.
- * 
+ *
  * WHY: Eliminates code duplication across multiple components and provides
  * consistent data display formatting throughout the dashboard.
- * 
+ *
  * DESIGN DECISION: Auto-detects data type and applies appropriate formatting,
  * while allowing manual type specification for edge cases.
  */
@@ -16,21 +16,21 @@ class UnifiedDataViewer {
         this.container = document.getElementById(containerId);
         this.currentData = null;
         this.currentType = null;
-        
+
         // Global JSON visibility state - synchronized with localStorage
         // This ensures all JSON sections maintain consistent state
         this.globalJsonExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
-        
+
         // Separate state for "Full Event Data" sections - uses its own localStorage key
         // This allows independent control of Full Event Data visibility
         this.fullEventDataExpanded = localStorage.getItem('dashboard-full-event-expanded') === 'true';
-        
+
         // Listen for global JSON toggle changes from other components
         document.addEventListener('jsonToggleChanged', (e) => {
             this.globalJsonExpanded = e.detail.expanded;
             this.updateAllJsonSections();
         });
-        
+
         // Listen for full event data toggle changes
         document.addEventListener('fullEventToggleChanged', (e) => {
             this.fullEventDataExpanded = e.detail.expanded;
@@ -111,16 +111,16 @@ class UnifiedDataViewer {
             return 'event';
         }
 
-        // Agent detection  
-        if (data.agent_name || data.agentName || 
+        // Agent detection
+        if (data.agent_name || data.agentName ||
             (data.name && (data.status === 'active' || data.status === 'completed'))) {
             return 'agent';
         }
 
         // Tool detection - PRIORITY: Check if it's a tool first
         // This includes TodoWrite tools which should always be displayed as tools, not todos
-        if (data.tool_name || data.name === 'TodoWrite' || data.name === 'Read' || 
-            data.tool_parameters || (data.params && data.icon) || 
+        if (data.tool_name || data.name === 'TodoWrite' || data.name === 'Read' ||
+            data.tool_parameters || (data.params && data.icon) ||
             (data.name && data.type === 'tool')) {
             return 'tool';
         }
@@ -151,7 +151,7 @@ class UnifiedDataViewer {
         }
 
         // File tool detection - handle file tools as file operations when they have file_path
-        if ((data.name === 'Read' || data.name === 'Write' || data.name === 'Edit' || 
+        if ((data.name === 'Read' || data.name === 'Write' || data.name === 'Edit' ||
              data.name === 'MultiEdit' || data.name === 'Grep' || data.name === 'Glob') &&
             (data.params?.file_path || data.tool_parameters?.file_path)) {
             // Convert file tool to file operation format for better display
@@ -174,7 +174,7 @@ class UnifiedDataViewer {
     displayEvent(data) {
         const eventType = this.formatEventType(data);
         const timestamp = this.formatTimestamp(data.timestamp);
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>${eventType}</h6>
@@ -186,7 +186,7 @@ class UnifiedDataViewer {
         // PRIMARY DATA: Event-specific key details
         html += `<div class="primary-data">`;
         html += this.formatEventDetails(data);
-        
+
         // Show important tool parameters inline if present
         if (data.tool_name || data.data?.tool_name) {
             const toolName = data.tool_name || data.data.tool_name;
@@ -196,7 +196,7 @@ class UnifiedDataViewer {
                     <span class="detail-value">${this.getToolIcon(toolName)} ${toolName}</span>
                 </div>
             `;
-            
+
             // Show key parameters for specific tools
             const params = data.tool_parameters || data.data?.tool_parameters;
             if (params) {
@@ -236,7 +236,7 @@ class UnifiedDataViewer {
         const agentIcon = this.getAgentIcon(data.name || data.agentName);
         const agentName = data.name || data.agentName || 'Unknown Agent';
         const status = this.formatStatus(data.status);
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>${agentIcon} ${agentName}</h6>
@@ -247,7 +247,7 @@ class UnifiedDataViewer {
 
         // PRIMARY DATA: Key agent information
         html += `<div class="primary-data">`;
-        
+
         // Status with visual indicator
         html += `
             <div class="detail-row highlight">
@@ -261,7 +261,7 @@ class UnifiedDataViewer {
             // Show active tools prominently
             const activeTools = data.tools.filter(t => t.status === 'in_progress');
             const completedTools = data.tools.filter(t => t.status === 'completed');
-            
+
             if (activeTools.length > 0) {
                 html += `
                     <div class="active-tools-section">
@@ -277,7 +277,7 @@ class UnifiedDataViewer {
                 });
                 html += `</div></div>`;
             }
-            
+
             html += `
                 <div class="detail-row">
                     <span class="detail-label">Tools Summary:</span>
@@ -297,7 +297,7 @@ class UnifiedDataViewer {
                 </div>
             `;
         }
-        
+
         html += `</div>`;
 
         // SECONDARY DATA: Collapsible JSON viewer
@@ -315,13 +315,13 @@ class UnifiedDataViewer {
         const toolName = data.name || data.tool_name || 'Unknown Tool';
         const toolIcon = this.getToolIcon(toolName);
         const status = this.formatStatus(data.status);
-        
+
         // Special handling for TodoWrite tool
         if (toolName === 'TodoWrite') {
             this.displayTodoWriteTool(data);
             return;
         }
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>${toolIcon} ${toolName}</h6>
@@ -332,7 +332,7 @@ class UnifiedDataViewer {
 
         // PRIMARY DATA: Show important tool-specific information first
         const params = data.params || data.tool_parameters || {};
-        
+
         // Tool-specific primary data display
         if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
             // File tools - show file path prominently
@@ -435,7 +435,7 @@ class UnifiedDataViewer {
 
         // Collapsible JSON viewer for full details
         html += this.createCollapsibleJSON(data, 'Full Tool Details');
-        
+
         html += '</div>';
         this.container.innerHTML = html;
     }
@@ -447,7 +447,7 @@ class UnifiedDataViewer {
         const status = this.formatStatus(data.status);
         const params = data.params || data.tool_parameters || {};
         const todos = params.todos || [];
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>📝 TodoWrite</h6>
@@ -459,7 +459,7 @@ class UnifiedDataViewer {
         // PRIMARY DATA: Todo list and status summary immediately after title
         if (todos.length > 0) {
             const statusCounts = this.getTodoStatusCounts(todos);
-            
+
             // Status summary - horizontal single line format
             html += `
                 <div class="todo-status-line">
@@ -473,13 +473,13 @@ class UnifiedDataViewer {
             html += `
                 <div class="todo-list-primary">
             `;
-            
+
             todos.forEach((todo, index) => {
                 const statusIcon = this.getCheckboxIcon(todo.status);
-                const displayText = todo.status === 'in_progress' ? 
+                const displayText = todo.status === 'in_progress' ?
                     (todo.activeForm || todo.content) : todo.content;
                 const statusClass = this.formatStatusClass(todo.status);
-                
+
                 html += `
                     <div class="todo-item ${todo.status}">
                         <span class="todo-icon ${statusClass}">${statusIcon}</span>
@@ -488,7 +488,7 @@ class UnifiedDataViewer {
                     </div>
                 `;
             });
-            
+
             html += `
                 </div>
             `;
@@ -512,7 +512,7 @@ class UnifiedDataViewer {
 
         // Collapsible JSON viewer for full details
         html += this.createCollapsibleJSON(data, 'Full Details');
-        
+
         html += '</div>';
         this.container.innerHTML = html;
     }
@@ -524,7 +524,7 @@ class UnifiedDataViewer {
         // Handle different data structures for standalone todos
         let todos;
         let toolName = 'Todo List';
-        
+
         if (data.todos && Array.isArray(data.todos)) {
             todos = data.todos;
         } else if (Array.isArray(data)) {
@@ -534,7 +534,7 @@ class UnifiedDataViewer {
         } else {
             todos = [];
         }
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>📋 ${toolName}</h6>
@@ -547,13 +547,13 @@ class UnifiedDataViewer {
             html += `
                 <div class="todo-list-primary">
             `;
-            
+
             todos.forEach((todo) => {
                 const statusIcon = this.getCheckboxIcon(todo.status);
-                const displayText = todo.status === 'in_progress' ? 
+                const displayText = todo.status === 'in_progress' ?
                     (todo.activeForm || todo.content) : todo.content;
                 const statusClass = this.formatStatusClass(todo.status);
-                
+
                 html += `
                     <div class="todo-item ${todo.status}">
                         <span class="todo-icon ${statusClass}">${statusIcon}</span>
@@ -562,7 +562,7 @@ class UnifiedDataViewer {
                     </div>
                 `;
             });
-            
+
             html += `
                 </div>
             `;
@@ -591,7 +591,7 @@ class UnifiedDataViewer {
             </div>
             <div class="unified-viewer-content">
         `;
-        
+
         // PRIMARY DATA: The instruction text itself
         html += `
             <div class="primary-data">
@@ -609,7 +609,7 @@ class UnifiedDataViewer {
         if (Object.keys(data).length > 3) {
             html += this.createCollapsibleJSON(data, 'Full Instruction Data');
         }
-        
+
         html += '</div>';
         this.container.innerHTML = html;
     }
@@ -673,7 +673,7 @@ class UnifiedDataViewer {
         const isSingleFile = this.isSingleFileOperation(data);
         const fileIcon = this.getFileIcon(data.file_path);
         const fileType = this.getFileType(data.file_path);
-        
+
         let html = `
             <div class="unified-viewer-header ${isSingleFile ? 'single-file-header' : ''}">
                 <h6>${fileIcon} File: ${fileName}</h6>
@@ -684,7 +684,7 @@ class UnifiedDataViewer {
                 <div class="primary-data">
                     <div class="detail-row highlight">
                         <span class="detail-label">📁 File Path:</span>
-                        <span class="detail-value code clickable-file-path" 
+                        <span class="detail-value code clickable-file-path"
                               onclick="window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')"
                               title="Click to view file contents\\nKeyboard: Hover + V key or Ctrl/Cmd + Click\\nFile: ${data.file_path}"
                               tabindex="0"
@@ -697,16 +697,16 @@ class UnifiedDataViewer {
         // Enhanced file viewing for single file operations
         if (data.file_path) {
             const shouldShowPreview = this.shouldShowInlinePreview(data);
-            
+
             html += `
                 <div class="file-actions ${isSingleFile ? 'single-file-actions' : ''}">
-                    <button class="file-action-btn view-file-btn ${isSingleFile ? 'primary-action' : ''}" 
+                    <button class="file-action-btn view-file-btn ${isSingleFile ? 'primary-action' : ''}"
                             onclick="window.showFileViewerModal && window.showFileViewerModal('${data.file_path}')"
                             title="View file contents with syntax highlighting">
                         ${fileIcon} View File Contents
                     </button>
                     ${isSingleFile && this.isTextFile(data.file_path) ? `
-                        <button class="file-action-btn inline-preview-btn" 
+                        <button class="file-action-btn inline-preview-btn"
                                 onclick="window.unifiedDataViewer && window.unifiedDataViewer.toggleInlinePreview('${data.file_path}', this)"
                                 title="Toggle inline preview">
                             📖 Quick Preview
@@ -714,7 +714,7 @@ class UnifiedDataViewer {
                     ` : ''}
                 </div>
             `;
-            
+
             // Add inline preview container for single file operations
             if (isSingleFile && shouldShowPreview) {
                 const previewId = this.generatePreviewId(data.file_path);
@@ -762,7 +762,7 @@ class UnifiedDataViewer {
      */
     displayHook(data) {
         const hookType = data.event_type || data.subtype || 'unknown';
-        
+
         let html = `
             <div class="unified-viewer-header">
                 <h6>🔗 Hook: ${hookType}</h6>
@@ -791,14 +791,14 @@ class UnifiedDataViewer {
         if (typeof data === 'object' && data !== null) {
             // Display meaningful properties
             const meaningfulProps = ['id', 'name', 'type', 'status', 'timestamp', 'text', 'content', 'message'];
-            
+
             for (let prop of meaningfulProps) {
                 if (data[prop] !== undefined) {
                     let value = data[prop];
                     if (typeof value === 'string' && value.length > 200) {
                         value = value.substring(0, 200) + '...';
                     }
-                    
+
                     html += `
                         <div class="detail-row">
                             <span class="detail-label">${prop}:</span>
@@ -837,7 +837,7 @@ class UnifiedDataViewer {
      */
     formatEventDetails(event) {
         const data = event.data || {};
-        
+
         switch (event.type) {
             case 'hook':
                 return this.formatHookDetails(event);
@@ -858,7 +858,7 @@ class UnifiedDataViewer {
     formatHookDetails(event) {
         const data = event.data || {};
         const hookType = event.subtype || event.event_type || 'unknown';
-        
+
         let html = `
             <div class="detail-row">
                 <span class="detail-label">Hook Type:</span>
@@ -1048,7 +1048,7 @@ class UnifiedDataViewer {
     formatEventData(event) {
         const data = event.data;
         if (!data || Object.keys(data).length === 0) return '';
-        
+
         return `
             <div class="detail-section">
                 <span class="detail-section-title">Event Data:</span>
@@ -1104,11 +1104,11 @@ class UnifiedDataViewer {
             }
         } else if (typeof value === 'object' && value !== null) {
             // Special handling for todos array - display as formatted list instead of raw JSON
-            if (Array.isArray(value) && value.length > 0 && 
+            if (Array.isArray(value) && value.length > 0 &&
                 value[0].hasOwnProperty('content') && value[0].hasOwnProperty('status')) {
                 return this.formatTodosAsParameter(value);
             }
-            
+
             try {
                 return `<pre class="param-json">${this.escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
             } catch (e) {
@@ -1124,7 +1124,7 @@ class UnifiedDataViewer {
      */
     formatTodosAsParameter(todos) {
         const statusCounts = this.getTodoStatusCounts(todos);
-        
+
         let html = `
             <div class="param-todos">
                 <div class="param-todos-header">
@@ -1135,13 +1135,13 @@ class UnifiedDataViewer {
                 </div>
                 <div class="param-todos-list">
         `;
-        
+
         todos.forEach((todo, index) => {
             const statusIcon = this.getCheckboxIcon(todo.status);
-            const displayText = todo.status === 'in_progress' ? 
+            const displayText = todo.status === 'in_progress' ?
                 (todo.activeForm || todo.content) : todo.content;
             const statusClass = this.formatStatusClass(todo.status);
-            
+
             html += `
                 <div class="param-todo-item ${todo.status}">
                     <div class="param-todo-checkbox">
@@ -1154,12 +1154,12 @@ class UnifiedDataViewer {
                 </div>
             `;
         });
-        
+
         html += `
                 </div>
             </div>
         `;
-        
+
         return html;
     }
 
@@ -1179,7 +1179,7 @@ class UnifiedDataViewer {
      */
     getFileIcon(filePath) {
         if (!filePath) return '📄';
-        
+
         const ext = filePath.split('.').pop()?.toLowerCase();
         const iconMap = {
             // Code files
@@ -1199,7 +1199,7 @@ class UnifiedDataViewer {
             'swift': '🦉',
             'kt': '🅺',
             'scala': '🎯',
-            
+
             // Web files
             'html': '🌐',
             'htm': '🌐',
@@ -1208,7 +1208,7 @@ class UnifiedDataViewer {
             'sass': '🎨',
             'less': '🎨',
             'vue': '💚',
-            
+
             // Config files
             'json': '📋',
             'xml': '📄',
@@ -1218,7 +1218,7 @@ class UnifiedDataViewer {
             'ini': '⚙️',
             'conf': '⚙️',
             'config': '⚙️',
-            
+
             // Documentation
             'md': '📝',
             'txt': '📃',
@@ -1226,7 +1226,7 @@ class UnifiedDataViewer {
             'pdf': '📕',
             'doc': '📘',
             'docx': '📘',
-            
+
             // Images
             'jpg': '🖼️',
             'jpeg': '🖼️',
@@ -1235,14 +1235,14 @@ class UnifiedDataViewer {
             'svg': '🎨',
             'webp': '🖼️',
             'ico': '🖼️',
-            
+
             // Archives
             'zip': '🗜️',
             'tar': '🗜️',
             'gz': '🗜️',
             'rar': '🗜️',
             '7z': '🗜️',
-            
+
             // Other
             'sql': '🗃️',
             'db': '🗃️',
@@ -1250,7 +1250,7 @@ class UnifiedDataViewer {
             'env': '🔐',
             'lock': '🔒'
         };
-        
+
         return iconMap[ext] || '📄';
     }
 
@@ -1259,7 +1259,7 @@ class UnifiedDataViewer {
      */
     getFileType(filePath) {
         if (!filePath) return null;
-        
+
         const ext = filePath.split('.').pop()?.toLowerCase();
         const typeMap = {
             'js': 'JavaScript',
@@ -1287,7 +1287,7 @@ class UnifiedDataViewer {
             'sql': 'SQL',
             'log': 'Log File'
         };
-        
+
         return typeMap[ext] || null;
     }
 
@@ -1304,7 +1304,7 @@ class UnifiedDataViewer {
      */
     isTextFile(filePath) {
         if (!filePath) return false;
-        
+
         const ext = filePath.split('.').pop()?.toLowerCase();
         const textExtensions = [
             'txt', 'md', 'json', 'xml', 'yaml', 'yml', 'ini', 'conf', 'config',
@@ -1312,7 +1312,7 @@ class UnifiedDataViewer {
             'go', 'rs', 'swift', 'kt', 'scala', 'html', 'htm', 'css', 'scss', 'sass',
             'less', 'vue', 'sql', 'log', 'env', 'gitignore', 'dockerignore'
         ];
-        
+
         return textExtensions.includes(ext);
     }
 
@@ -1322,12 +1322,12 @@ class UnifiedDataViewer {
     async toggleInlinePreview(filePath, buttonElement) {
         const containerId = `preview-${this.generatePreviewId(filePath)}`;
         const container = document.getElementById(containerId);
-        
+
         if (!container) {
             console.warn('Preview container not found');
             return;
         }
-        
+
         if (container.style.display === 'none') {
             // Show preview
             container.style.display = 'block';
@@ -1389,7 +1389,7 @@ class UnifiedDataViewer {
      */
     formatTimestamp(timestamp) {
         if (!timestamp) return 'Unknown time';
-        
+
         try {
             const date = new Date(timestamp);
             if (isNaN(date.getTime())) return 'Invalid date';
@@ -1404,16 +1404,16 @@ class UnifiedDataViewer {
      */
     formatStatus(status) {
         if (!status) return 'unknown';
-        
+
         const statusMap = {
             'active': '🟢 Active',
-            'completed': '✅ Completed', 
+            'completed': '✅ Completed',
             'in_progress': '🔄 In Progress',
             'pending': '⏳ Pending',
             'error': '❌ Error',
             'failed': '❌ Failed'
         };
-        
+
         return statusMap[status] || status;
     }
 
@@ -1450,7 +1450,7 @@ class UnifiedDataViewer {
     getToolIcon(toolName) {
         const icons = {
             'Read': '👁️',
-            'Write': '✍️', 
+            'Write': '✍️',
             'Edit': '✏️',
             'MultiEdit': '📝',
             'Bash': '💻',
@@ -1501,7 +1501,7 @@ class UnifiedDataViewer {
     convertToolToFileOperation(toolData) {
         const params = toolData.params || toolData.tool_parameters || {};
         const filePath = params.file_path || params.path || params.notebook_path;
-        
+
         if (!filePath) {
             return toolData; // Return original if no file path
         }
@@ -1533,13 +1533,13 @@ class UnifiedDataViewer {
      */
     getTodoStatusCounts(todos) {
         const counts = { completed: 0, in_progress: 0, pending: 0 };
-        
+
         todos.forEach(todo => {
             if (counts.hasOwnProperty(todo.status)) {
                 counts[todo.status]++;
             }
         });
-        
+
         return counts;
     }
 
@@ -1548,12 +1548,12 @@ class UnifiedDataViewer {
      */
     escapeHtml(text) {
         if (typeof text !== 'string') return '';
-        
+
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     /**
      * Toggle JSON section visibility and update global state
      * WHY: Maintains sticky state across all JSON sections for consistent behavior
@@ -1563,19 +1563,19 @@ class UnifiedDataViewer {
     toggleJsonSection(sectionId, button) {
         // Toggle the global state
         this.globalJsonExpanded = !this.globalJsonExpanded;
-        
+
         // Persist the preference to localStorage
         localStorage.setItem('dashboard-json-expanded', this.globalJsonExpanded.toString());
-        
+
         // Update ALL JSON sections on the page
         this.updateAllJsonSections();
-        
+
         // Dispatch event to notify other components (like module-viewer) of the change
         document.dispatchEvent(new CustomEvent('jsonToggleChanged', {
             detail: { expanded: this.globalJsonExpanded }
         }));
     }
-    
+
     /**
      * Toggle Full Event Data section visibility and update state
      * WHY: Maintains separate sticky state for Full Event Data sections
@@ -1585,19 +1585,19 @@ class UnifiedDataViewer {
     toggleFullEventSection(sectionId, button) {
         // Toggle the full event data state
         this.fullEventDataExpanded = !this.fullEventDataExpanded;
-        
+
         // Persist the preference to localStorage
         localStorage.setItem('dashboard-full-event-expanded', this.fullEventDataExpanded.toString());
-        
+
         // Update ALL Full Event sections on the page
         this.updateAllFullEventSections();
-        
+
         // Dispatch event to notify other components of the change
         document.dispatchEvent(new CustomEvent('fullEventToggleChanged', {
             detail: { expanded: this.fullEventDataExpanded }
         }));
     }
-    
+
     /**
      * Update all JSON sections on the page to match global state
      * WHY: Ensures all "Structured Data" sections maintain consistent visibility
@@ -1606,7 +1606,7 @@ class UnifiedDataViewer {
         // Find all unified JSON sections (NOT full event sections)
         const allJsonContents = document.querySelectorAll('.unified-json-content');
         const allJsonButtons = document.querySelectorAll('.unified-json-toggle');
-        
+
         // Update each JSON section
         allJsonContents.forEach(content => {
             if (this.globalJsonExpanded) {
@@ -1615,7 +1615,7 @@ class UnifiedDataViewer {
                 content.style.display = 'none';
             }
         });
-        
+
         // Update all button states
         allJsonButtons.forEach(button => {
             const title = button.textContent.substring(2); // Remove arrow
@@ -1628,7 +1628,7 @@ class UnifiedDataViewer {
             }
         });
     }
-    
+
     /**
      * Update all Full Event Data sections on the page to match state
      * WHY: Ensures all "Full Event Data" sections maintain consistent visibility
@@ -1637,7 +1637,7 @@ class UnifiedDataViewer {
         // Find all full event sections
         const allFullEventContents = document.querySelectorAll('.full-event-content');
         const allFullEventButtons = document.querySelectorAll('.full-event-toggle');
-        
+
         // Update each full event section
         allFullEventContents.forEach(content => {
             if (this.fullEventDataExpanded) {
@@ -1646,7 +1646,7 @@ class UnifiedDataViewer {
                 content.style.display = 'none';
             }
         });
-        
+
         // Update all button states
         allFullEventButtons.forEach(button => {
             const title = button.textContent.substring(2); // Remove arrow
@@ -1667,26 +1667,26 @@ class UnifiedDataViewer {
     createCollapsibleJSON(data, title = 'Full Details') {
         // Generate unique ID for this collapsible section
         const sectionId = `json-details-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Filter out sensitive or overly verbose properties
         const cleanData = this.cleanDataForDisplay(data);
-        
+
         // Determine which state to use based on title
         // "Full Event Data" and similar titles use the fullEventDataExpanded state
         // Other titles use the global JSON state (for backward compatibility)
-        const isFullEventData = title.includes('Full Event') || title.includes('Full Details') || 
+        const isFullEventData = title.includes('Full Event') || title.includes('Full Details') ||
                                title.includes('Full Agent') || title.includes('Full Tool');
         const isExpanded = isFullEventData ? this.fullEventDataExpanded : this.globalJsonExpanded;
         const display = isExpanded ? 'block' : 'none';
         const arrow = isExpanded ? '▼' : '▶';
         const expandedClass = isExpanded ? 'expanded' : '';
-        
+
         // Use different toggle function based on section type
         const toggleFunction = isFullEventData ? 'toggleFullEventSection' : 'toggleJsonSection';
-        
+
         return `
             <div class="collapsible-json-section">
-                <button class="collapsible-json-toggle ${isFullEventData ? 'full-event-toggle' : 'unified-json-toggle'} ${expandedClass}" 
+                <button class="collapsible-json-toggle ${isFullEventData ? 'full-event-toggle' : 'unified-json-toggle'} ${expandedClass}"
                         data-section-id="${sectionId}"
                         data-is-full-event="${isFullEventData}"
                         onclick="window.unifiedDataViewer.${toggleFunction}('${sectionId}', this)">
@@ -1705,7 +1705,7 @@ class UnifiedDataViewer {
      */
     cleanDataForDisplay(data) {
         const seen = new WeakSet();
-        
+
         return JSON.parse(JSON.stringify(data, (key, value) => {
             // Handle circular references
             if (typeof value === 'object' && value !== null) {
@@ -1714,17 +1714,17 @@ class UnifiedDataViewer {
                 }
                 seen.add(value);
             }
-            
+
             // Truncate very long strings
             if (typeof value === 'string' && value.length > 1000) {
                 return value.substring(0, 1000) + '... [truncated]';
             }
-            
+
             // Handle functions
             if (typeof value === 'function') {
                 return '[Function]';
             }
-            
+
             return value;
         }));
     }
@@ -1776,14 +1776,14 @@ window.UnifiedDataViewer = UnifiedDataViewer;
 if (typeof window !== 'undefined') {
     // Always create/update the global instance
     window.unifiedDataViewer = new UnifiedDataViewer();
-    
+
     // Also expose the methods directly on window as a fallback
     window.toggleFullEventSection = function(sectionId, button) {
         if (window.unifiedDataViewer) {
             window.unifiedDataViewer.toggleFullEventSection(sectionId, button);
         }
     };
-    
+
     window.toggleJsonSection = function(sectionId, button) {
         if (window.unifiedDataViewer) {
             window.unifiedDataViewer.toggleJsonSection(sectionId, button);
@@ -1798,7 +1798,7 @@ if (typeof window !== 'undefined') {
         if (!window.unifiedDataViewer) {
             window.unifiedDataViewer = new UnifiedDataViewer();
         }
-        
+
         // Add keyboard shortcuts for file operations
         document.addEventListener('keydown', function(e) {
             // Ctrl/Cmd + Click on file paths to open file viewer
@@ -1809,7 +1809,7 @@ if (typeof window !== 'undefined') {
                     window.showFileViewerModal(filePath);
                 }
             }
-            
+
             // 'V' key to open file viewer when hovering over clickable file paths
             if (e.key.toLowerCase() === 'v' && document.querySelector('.clickable-file-path:hover')) {
                 const hoveredPath = document.querySelector('.clickable-file-path:hover');

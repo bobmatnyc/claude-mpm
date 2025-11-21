@@ -342,7 +342,6 @@ class SkillsRegistry(LoggerMixin):
                 query_lower in skill_name.lower()
                 or query_lower in metadata.get("description", "").lower()
             ):
-
                 results.append({"name": skill_name, **metadata})
 
         return results

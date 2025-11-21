@@ -3,6 +3,7 @@
 Script to add skills field to agent templates without aggressive pruning.
 Only prunes instructions if they explicitly reference inherited base templates.
 """
+
 import json
 from pathlib import Path
 from typing import Dict, List

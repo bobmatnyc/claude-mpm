@@ -15,7 +15,7 @@ from pathlib import Path
 
 def run_command(cmd, description):
     """Run a command and report results."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🧪 {description}")
     print("=" * 60)
 
@@ -84,7 +84,7 @@ def main():
             failed += 1
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("📊 TEST SUMMARY")
     print("=" * 60)
     print(f"✅ Passed: {passed}")

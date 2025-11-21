@@ -199,7 +199,9 @@ class KuzuMemoryService(BaseToolAdapter):
         try:
             if action == "store":
                 result = await self.store_memory(
-                    params.get("content"), params.get("tags"), {}  # metadata
+                    params.get("content"),
+                    params.get("tags"),
+                    {},  # metadata
                 )
             elif action == "recall":
                 result = await self.recall_memories(
@@ -213,7 +215,9 @@ class KuzuMemoryService(BaseToolAdapter):
                 )
             elif action == "context":
                 result = await self.get_context(
-                    params.get("query", ""), 2, True  # depth  # include_related
+                    params.get("query", ""),
+                    2,
+                    True,  # depth  # include_related
                 )
             else:
                 return MCPToolResult(success=False, error=f"Unknown action: {action}")

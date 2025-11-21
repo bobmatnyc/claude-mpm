@@ -70,9 +70,9 @@ class OutputStyleTester:
 
     def run_test(self, test_name: str, test_func):
         """Run a single test and record results."""
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"Running Test: {test_name}")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         try:
             result = test_func()
@@ -114,9 +114,9 @@ class OutputStyleTester:
 
         # Check settings content
         settings = json.loads(settings_file.read_text())
-        assert (
-            settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should be set to claude-mpm"
+        assert settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should be set to claude-mpm"
+        )
 
         logger.info("  ✓ Style file created successfully")
         logger.info("  ✓ Settings file created with correct activeOutputStyle")
@@ -153,15 +153,15 @@ class OutputStyleTester:
         assert style_file.exists(), "claude-mpm.md should still exist"
 
         actual_content = style_file.read_text()
-        assert (
-            actual_content == new_content
-        ), f"Content should be replaced. Expected: {new_content}, Got: {actual_content}"
+        assert actual_content == new_content, (
+            f"Content should be replaced. Expected: {new_content}, Got: {actual_content}"
+        )
 
         # Check settings were updated
         settings = json.loads(settings_file.read_text())
-        assert (
-            settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should be updated to claude-mpm"
+        assert settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should be updated to claude-mpm"
+        )
 
         logger.info("  ✓ Existing style file replaced successfully")
         logger.info("  ✓ Settings updated to activate claude-mpm style")
@@ -193,12 +193,12 @@ class OutputStyleTester:
         assert result, "Deployment should succeed"
 
         settings = json.loads(settings_file.read_text())
-        assert (
-            settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should be changed to claude-mpm"
-        assert (
-            settings.get("otherSetting") == "preserve-me"
-        ), "Other settings should be preserved"
+        assert settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should be changed to claude-mpm"
+        )
+        assert settings.get("otherSetting") == "preserve-me", (
+            "Other settings should be preserved"
+        )
         assert settings.get("theme") == "dark", "Existing settings should be preserved"
 
         logger.info(
@@ -228,9 +228,9 @@ class OutputStyleTester:
         assert settings_file.exists(), "settings.json should be created"
 
         settings = json.loads(settings_file.read_text())
-        assert (
-            settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should be set"
+        assert settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should be set"
+        )
 
         logger.info("  ✓ settings.json created successfully")
         logger.info("  ✓ activeOutputStyle set correctly in new file")
@@ -265,9 +265,9 @@ class OutputStyleTester:
 
         assert second_content == initial_content, "Content should remain the same"
         assert second_settings == initial_settings, "Settings should remain the same"
-        assert (
-            second_settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should still be claude-mpm"
+        assert second_settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should still be claude-mpm"
+        )
 
         # Third deployment with different content
         new_content = "---\nname: Claude MPM Updated\n---\nUpdated content"
@@ -279,9 +279,9 @@ class OutputStyleTester:
         third_settings = json.loads(settings_file.read_text())
 
         assert third_content == new_content, "Content should be updated"
-        assert (
-            third_settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should still be claude-mpm"
+        assert third_settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should still be claude-mpm"
+        )
 
         logger.info("  ✓ Multiple deployments work correctly")
         logger.info("  ✓ Content updates properly on subsequent runs")
@@ -313,9 +313,9 @@ class OutputStyleTester:
         assert settings_file.exists(), "settings.json should exist"
 
         settings = json.loads(settings_file.read_text())
-        assert (
-            settings.get("activeOutputStyle") == "claude-mpm"
-        ), "activeOutputStyle should be set correctly"
+        assert settings.get("activeOutputStyle") == "claude-mpm", (
+            "activeOutputStyle should be set correctly"
+        )
 
         logger.info("  ✓ Corrupted settings.json handled gracefully")
         logger.info("  ✓ New valid settings.json created")
@@ -327,27 +327,27 @@ class OutputStyleTester:
 
         # Test supported version
         manager = self.create_manager_with_mock_version("1.0.85")
-        assert (
-            manager.supports_output_styles()
-        ), "Version 1.0.85 should support output styles"
+        assert manager.supports_output_styles(), (
+            "Version 1.0.85 should support output styles"
+        )
 
         # Test minimum supported version
         manager = self.create_manager_with_mock_version("1.0.83")
-        assert (
-            manager.supports_output_styles()
-        ), "Version 1.0.83 should support output styles"
+        assert manager.supports_output_styles(), (
+            "Version 1.0.83 should support output styles"
+        )
 
         # Test unsupported version
         manager = self.create_manager_with_mock_version("1.0.82")
-        assert (
-            not manager.supports_output_styles()
-        ), "Version 1.0.82 should not support output styles"
+        assert not manager.supports_output_styles(), (
+            "Version 1.0.82 should not support output styles"
+        )
 
         # Test no version detected
         manager = self.create_manager_with_mock_version(None)
-        assert (
-            not manager.supports_output_styles()
-        ), "No version should not support output styles"
+        assert not manager.supports_output_styles(), (
+            "No version should not support output styles"
+        )
 
         # Test deployment rejection for unsupported version
         manager = self.create_manager_with_mock_version("1.0.82")
@@ -450,7 +450,7 @@ class OutputStyleTester:
         logger.info(f"Total Tests: {total_tests}")
         logger.info(f"Passed: {passed_tests}")
         logger.info(f"Failed: {failed_tests}")
-        logger.info(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        logger.info(f"Success Rate: {(passed_tests / total_tests) * 100:.1f}%")
 
         if self.failed_tests:
             logger.info("\nFAILED TESTS:")

@@ -15,11 +15,11 @@ function checkPythonVersion(pythonCmd) {
     try {
         const versionOutput = execSync(`${pythonCmd} --version`, { encoding: 'utf8', stdio: 'pipe' });
         const versionMatch = versionOutput.match(/Python (\d+)\.(\d+)\.(\d+)/);
-        
+
         if (!versionMatch) return false;
-        
+
         const [, major, minor] = versionMatch.map(Number);
-        return major > REQUIRED_PYTHON_VERSION[0] || 
+        return major > REQUIRED_PYTHON_VERSION[0] ||
                (major === REQUIRED_PYTHON_VERSION[0] && minor >= REQUIRED_PYTHON_VERSION[1]);
     } catch (error) {
         return false;
@@ -28,7 +28,7 @@ function checkPythonVersion(pythonCmd) {
 
 function findPython() {
     const pythonCommands = ['python3', 'python', 'python3.11', 'python3.10', 'python3.9', 'python3.8'];
-    
+
     for (const cmd of pythonCommands) {
         if (checkPythonVersion(cmd)) {
             return cmd;
@@ -39,7 +39,7 @@ function findPython() {
 
 function main() {
     const pythonCmd = findPython();
-    
+
     if (!pythonCmd) {
         console.error(`
 ❌ Error: Python ${REQUIRED_PYTHON_VERSION.join('.')}+ is required but not found.
@@ -77,9 +77,9 @@ Or using pip directly:
 
     // Launch claude-mpm with all arguments
     const args = process.argv.slice(2);
-    const child = spawn(pythonCmd, ['-m', 'claude_mpm'].concat(args), { 
+    const child = spawn(pythonCmd, ['-m', 'claude_mpm'].concat(args), {
         stdio: 'inherit',
-        env: process.env 
+        env: process.env
     });
 
     child.on('exit', (code) => {

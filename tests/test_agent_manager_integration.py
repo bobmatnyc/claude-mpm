@@ -273,9 +273,9 @@ async def main():
 
     for test_name, test_func in tests:
         try:
-            logger.info(f"\n{'='*50}")
+            logger.info(f"\n{'=' * 50}")
             logger.info(f"Running: {test_name}")
-            logger.info(f"{'='*50}")
+            logger.info(f"{'=' * 50}")
 
             passed = await test_func()
 
@@ -292,7 +292,7 @@ async def main():
             traceback.print_exc()
             all_passed = False
 
-    logger.info(f"\n{'='*50}")
+    logger.info(f"\n{'=' * 50}")
     if all_passed:
         logger.info("✓ All integration tests PASSED")
         return 0

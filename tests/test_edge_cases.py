@@ -227,7 +227,7 @@ This agent has full authority for test operations.
         parse_time = time.time() - start
 
         print(f"   Parsed {len(parsed_agents)} agents in {parse_time:.3f}s")
-        print(f"   Average per agent: {parse_time/len(parsed_agents)*1000:.1f}ms")
+        print(f"   Average per agent: {parse_time / len(parsed_agents) * 1000:.1f}ms")
 
         # Test cached parsing
         start = time.time()

@@ -420,7 +420,7 @@ class SessionPauseManager:
         try:
             latest_file = self.pause_dir / "LATEST-SESSION.txt"
             content = f"""Latest Session: {session_id}
-Paused At: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}
+Paused At: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")}
 Project: {self.project_path}
 
 Files:

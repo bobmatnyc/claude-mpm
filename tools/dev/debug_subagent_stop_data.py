@@ -20,9 +20,9 @@ def connect():
 @sio.event
 def claude_event(data):
     if data.get("type") == "hook.subagent_stop":
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"SubagentStop Event at {datetime.now().strftime('%H:%M:%S')}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("Full event data:")
         print(json.dumps(data, indent=2))
 

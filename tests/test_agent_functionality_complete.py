@@ -395,8 +395,8 @@ class AgentFunctionalityTester:
         failed_tests = total_tests - passed_tests
 
         print(f"\nTotal Tests: {total_tests}")
-        print(f"Passed: {passed_tests} ({passed_tests/total_tests*100:.1f}%)")
-        print(f"Failed: {failed_tests} ({failed_tests/total_tests*100:.1f}%)")
+        print(f"Passed: {passed_tests} ({passed_tests / total_tests * 100:.1f}%)")
+        print(f"Failed: {failed_tests} ({failed_tests / total_tests * 100:.1f}%)")
 
         # Group results by test category
         categories = {

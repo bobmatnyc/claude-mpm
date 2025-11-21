@@ -20,10 +20,10 @@ def run_test_script(script_name, description):
         print(f"❌ {description}: Script not found - {script_path}")
         return False
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🧪 Running: {description}")
     print(f"📄 Script: {script_name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     start_time = time.time()
 
@@ -81,9 +81,9 @@ def main():
     total_duration = end_time - start_time
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("📊 TEST SUITE SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     passed = 0
     failed = 0

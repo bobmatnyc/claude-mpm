@@ -274,7 +274,7 @@ Possible fixes:
 3. Verify all required dependencies are available
 4. Test hook handler manually: python {details}
 """,
-            "general_error": f"""Error during hook execution: {error_info.get('match', 'Unknown error')}
+            "general_error": f"""Error during hook execution: {error_info.get("match", "Unknown error")}
 
 Possible fixes:
 1. Check logs for detailed error information

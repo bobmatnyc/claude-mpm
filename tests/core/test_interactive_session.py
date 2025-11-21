@@ -161,9 +161,7 @@ class TestInteractiveSession:
             return_value=["claude", "--test"],
         ), patch.object(
             interactive_session, "_prepare_environment", return_value={"ENV": "test"}
-        ), patch.object(
-            interactive_session, "_change_to_user_directory"
-        ):
+        ), patch.object(interactive_session, "_change_to_user_directory"):
             success, env = interactive_session.setup_interactive_environment()
 
             assert success is True
@@ -185,9 +183,7 @@ class TestInteractiveSession:
             interactive_session, "_build_claude_command", return_value=["claude"]
         ), patch.object(
             interactive_session, "_prepare_environment", return_value={}
-        ), patch.object(
-            interactive_session, "_change_to_user_directory"
-        ):
+        ), patch.object(interactive_session, "_change_to_user_directory"):
             success, _env = interactive_session.setup_interactive_environment()
 
             assert success is True

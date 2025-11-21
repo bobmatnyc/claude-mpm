@@ -1,13 +1,13 @@
 /**
  * Agent Hierarchy Component
- * 
+ *
  * Displays agents in a hierarchical tree structure with PM at the top level.
  * Shows subagents as children of the PM that spawned them, tracking delegation
  * relationships from Task tool calls.
- * 
+ *
  * WHY: Provides clear visualization of agent delegation relationships, making it
  * easier to understand the flow of work through PM and subagent delegations.
- * 
+ *
  * DESIGN DECISION: Uses tree-based visualization with expand/collapse functionality
  * to handle complex delegation chains while maintaining performance with large
  * event streams. Separates hierarchy building from rendering for flexibility.
@@ -17,7 +17,7 @@ class AgentHierarchy {
     constructor(agentInference, eventViewer) {
         this.agentInference = agentInference;
         this.eventViewer = eventViewer;
-        
+
         // Hierarchy state
         this.state = {
             // Tree structure with PM nodes at root
@@ -29,16 +29,16 @@ class AgentHierarchy {
             // Currently selected node
             selectedNode: null
         };
-        
+
         // Default expand all nodes initially
         this.expandAll = true;
-        
+
         // Set up event listeners
         this.setupEventListeners();
-        
+
         console.log('Agent hierarchy component initialized');
     }
-    
+
     /**
      * Set up event listeners for safe interaction
      */
@@ -52,7 +52,7 @@ class AgentHierarchy {
             }
         });
     }
-    
+
     /**
      * Build hierarchical structure from events
      * @returns {Object} Tree structure with PM at root
@@ -60,12 +60,12 @@ class AgentHierarchy {
     buildHierarchy() {
         // Process agent inference first
         this.agentInference.processAgentInference();
-        
+
         // Get PM delegations and events
         const pmDelegations = this.agentInference.getPMDelegations();
         const events = this.eventViewer.events;
         const eventAgentMap = this.agentInference.getEventAgentMap();
-        
+
         // Create root PM nodes
         const mainPM = {
             id: 'pm_main',
@@ -79,17 +79,17 @@ class AgentHierarchy {
             endTime: null,
             expanded: true
         };
-        
+
         // Map to store multiple implied PM groups
         const impliedPMGroups = new Map();
-        
+
         // Clear node map
         this.state.nodeMap.clear();
         this.state.nodeMap.set(mainPM.id, mainPM);
-        
+
         // Track which agents have been added
         const processedAgents = new Set();
-        
+
         // Process explicit PM delegations
         for (const [delegationId, delegation] of pmDelegations) {
             const agentNode = {
@@ -107,11 +107,11 @@ class AgentHierarchy {
                 endIndex: delegation.endIndex,
                 expanded: this.expandAll || this.state.expandedNodes.has(delegationId)
             };
-            
+
             mainPM.children.push(agentNode);
             this.state.nodeMap.set(delegationId, agentNode);
             processedAgents.add(delegation.agentName);
-            
+
             // Update main PM stats
             mainPM.eventCount++;
             if (!mainPM.startTime || new Date(delegation.timestamp) < new Date(mainPM.startTime)) {
@@ -124,10 +124,10 @@ class AgentHierarchy {
                 }
             }
         }
-        
+
         // Get orphan subagent groups from agent inference
         const orphanGroups = this.agentInference.getOrphanGroups();
-        
+
         // Create implied PM nodes for each orphan group
         let impliedPMCounter = 1;
         for (const [groupingKey, orphans] of orphanGroups) {
@@ -146,14 +146,14 @@ class AgentHierarchy {
                 isImplied: true,
                 tooltip: 'Inferred PM - Subagents started without explicit PM delegation'
             };
-            
+
             impliedPMGroups.set(groupingKey, impliedPM);
             this.state.nodeMap.set(impliedPM.id, impliedPM);
             impliedPMCounter++;
-            
+
             // Group orphan events by agent name within this implied PM
             const agentEventGroups = new Map();
-            
+
             for (const orphan of orphans) {
                 // Find all events for this orphan agent
                 const agentEvents = [];
@@ -168,7 +168,7 @@ class AgentHierarchy {
                                 break;
                             }
                         }
-                        
+
                         if (isOrphan) {
                             agentEvents.push({
                                 eventIndex: index,
@@ -178,7 +178,7 @@ class AgentHierarchy {
                         }
                     }
                 });
-                
+
                 if (agentEvents.length > 0) {
                     if (!agentEventGroups.has(orphan.agentName)) {
                         agentEventGroups.set(orphan.agentName, []);
@@ -186,14 +186,14 @@ class AgentHierarchy {
                     agentEventGroups.get(orphan.agentName).push(...agentEvents);
                 }
             }
-            
+
             // Create subagent nodes for each agent in this implied PM group
             for (const [agentName, agentEvents] of agentEventGroups) {
                 if (agentEvents.length === 0) continue;
-                
+
                 const firstEvent = agentEvents[0].event;
                 const lastEvent = agentEvents[agentEvents.length - 1].event;
-                
+
                 const agentNode = {
                     id: `implied_agent_${groupingKey}_${agentName}`,
                     type: 'subagent',
@@ -211,10 +211,10 @@ class AgentHierarchy {
                     isImplied: true,
                     tooltip: 'This agent was spawned without an explicit PM Task delegation'
                 };
-                
+
                 impliedPM.children.push(agentNode);
                 this.state.nodeMap.set(agentNode.id, agentNode);
-                
+
                 // Update implied PM stats
                 impliedPM.eventCount += agentEvents.length;
                 if (!impliedPM.startTime || new Date(firstEvent.timestamp) < new Date(impliedPM.startTime)) {
@@ -225,7 +225,7 @@ class AgentHierarchy {
                 }
             }
         }
-        
+
         // Also find completely orphaned subagent events (not caught by SubagentStart)
         const uncategorizedOrphans = [];
         events.forEach((event, index) => {
@@ -233,7 +233,7 @@ class AgentHierarchy {
             if (inference && inference.type === 'subagent') {
                 // Check if this agent is already in a PM delegation or implied PM
                 let isOrphan = true;
-                
+
                 // Check explicit delegations
                 for (const [_, delegation] of pmDelegations) {
                     if (delegation.agentEvents.some(e => e.eventIndex === index)) {
@@ -241,7 +241,7 @@ class AgentHierarchy {
                         break;
                     }
                 }
-                
+
                 // Check implied PMs
                 if (isOrphan) {
                     for (const [_, impliedPM] of impliedPMGroups) {
@@ -254,7 +254,7 @@ class AgentHierarchy {
                         if (!isOrphan) break;
                     }
                 }
-                
+
                 if (isOrphan) {
                     uncategorizedOrphans.push({
                         eventIndex: index,
@@ -264,7 +264,7 @@ class AgentHierarchy {
                 }
             }
         });
-        
+
         // If there are uncategorized orphans, create a generic implied PM for them
         if (uncategorizedOrphans.length > 0) {
             const genericImpliedPM = {
@@ -281,7 +281,7 @@ class AgentHierarchy {
                 isImplied: true,
                 tooltip: 'Orphan agents without clear grouping'
             };
-            
+
             // Group by agent name
             const agentGroups = new Map();
             for (const orphan of uncategorizedOrphans) {
@@ -291,12 +291,12 @@ class AgentHierarchy {
                 }
                 agentGroups.get(agentName).push(orphan);
             }
-            
+
             // Create nodes for each agent
             for (const [agentName, agentEvents] of agentGroups) {
                 const firstEvent = agentEvents[0].event;
                 const lastEvent = agentEvents[agentEvents.length - 1].event;
-                
+
                 const agentNode = {
                     id: `implied_generic_${agentName}`,
                     type: 'subagent',
@@ -313,11 +313,11 @@ class AgentHierarchy {
                     expanded: this.expandAll,
                     isImplied: true
                 };
-                
+
                 genericImpliedPM.children.push(agentNode);
                 this.state.nodeMap.set(agentNode.id, agentNode);
                 genericImpliedPM.eventCount += agentEvents.length;
-                
+
                 if (!genericImpliedPM.startTime || new Date(firstEvent.timestamp) < new Date(genericImpliedPM.startTime)) {
                     genericImpliedPM.startTime = firstEvent.timestamp;
                 }
@@ -325,13 +325,13 @@ class AgentHierarchy {
                     genericImpliedPM.endTime = lastEvent.timestamp;
                 }
             }
-            
+
             if (genericImpliedPM.children.length > 0) {
                 impliedPMGroups.set('generic', genericImpliedPM);
                 this.state.nodeMap.set(genericImpliedPM.id, genericImpliedPM);
             }
         }
-        
+
         // Count PM's own events (not delegated)
         let pmOwnEvents = 0;
         events.forEach((event, index) => {
@@ -346,32 +346,32 @@ class AgentHierarchy {
             }
         });
         mainPM.eventCount += pmOwnEvents;
-        
+
         // Update PM status based on children
         if (mainPM.children.length > 0) {
             const hasActive = mainPM.children.some(child => child.status === 'active');
             mainPM.status = hasActive ? 'active' : 'completed';
         }
-        
+
         // Build final tree structure
         const tree = {
             roots: []
         };
-        
+
         // Only add PMs that have content
         if (mainPM.eventCount > 0 || mainPM.children.length > 0) {
             tree.roots.push(mainPM);
         }
-        
+
         // Add all implied PM groups that have content
         for (const [_, impliedPM] of impliedPMGroups) {
             if (impliedPM.children.length > 0) {
                 tree.roots.push(impliedPM);
             }
         }
-        
+
         this.state.hierarchyTree = tree;
-        
+
         console.log('Hierarchy built:', {
             mainPM: {
                 children: mainPM.children.length,
@@ -382,10 +382,10 @@ class AgentHierarchy {
             totalImpliedAgents: Array.from(impliedPMGroups.values())
                 .reduce((sum, pm) => sum + pm.children.length, 0)
         });
-        
+
         return tree;
     }
-    
+
     /**
      * Extract delegation context from PM Task call
      * @param {Object} pmCall - The PM's Task tool call event
@@ -393,11 +393,11 @@ class AgentHierarchy {
      */
     extractDelegationContext(pmCall) {
         if (!pmCall) return 'Unknown delegation';
-        
+
         // Try to extract task description from tool parameters
         const params = pmCall.tool_parameters || pmCall.data?.tool_parameters || {};
         const task = params.task || params.request || params.description;
-        
+
         if (task) {
             // Truncate long tasks
             const maxLength = 100;
@@ -406,7 +406,7 @@ class AgentHierarchy {
             }
             return task;
         }
-        
+
         // Fallback to tool input
         const toolInput = pmCall.tool_input || pmCall.data?.tool_input;
         if (toolInput && typeof toolInput === 'string') {
@@ -416,10 +416,10 @@ class AgentHierarchy {
             }
             return toolInput;
         }
-        
+
         return 'Task delegation';
     }
-    
+
     /**
      * Render the hierarchy tree to HTML
      * @param {Object} filters - Optional filters for display
@@ -427,20 +427,20 @@ class AgentHierarchy {
      */
     render(filters = {}) {
         const tree = this.state.hierarchyTree || this.buildHierarchy();
-        
+
         if (!tree.roots || tree.roots.length === 0) {
             return '<div class="agent-hierarchy-empty">No agent activity detected</div>';
         }
-        
+
         // Apply filters if provided
         const filteredTree = this.applyFilters(tree, filters);
-        
+
         // Generate HTML
         const html = filteredTree.roots.map(root => this.renderNode(root, 0)).join('');
-        
+
         return `<div class="agent-hierarchy">${html}</div>`;
     }
-    
+
     /**
      * Render a single node and its children
      * @param {Object} node - Node to render
@@ -451,23 +451,23 @@ class AgentHierarchy {
         const isExpanded = node.expanded || this.state.expandedNodes.has(node.id);
         const hasChildren = node.children && node.children.length > 0;
         const isSelected = this.state.selectedNode === node.id;
-        
+
         // Icon based on node type and status
         const icon = this.getNodeIcon(node);
         const expandIcon = hasChildren ? (isExpanded ? '▼' : '▶') : '&nbsp;&nbsp;';
-        
+
         // Status color
         const statusClass = this.getStatusClass(node.status);
-        
+
         // Add special styling for implied nodes
         const impliedClass = node.isImplied ? 'agent-node-implied' : '';
         const tooltipAttr = node.tooltip ? `title="${this.escapeHtml(node.tooltip)}"` : '';
-        
+
         // Build node HTML
         let html = `
-            <div class="agent-node agent-node-level-${level} ${isSelected ? 'agent-node-selected' : ''} ${impliedClass}" 
+            <div class="agent-node agent-node-level-${level} ${isSelected ? 'agent-node-selected' : ''} ${impliedClass}"
                  data-node-id="${node.id}" ${tooltipAttr}>
-                <div class="agent-node-header ${statusClass}" 
+                <div class="agent-node-header ${statusClass}"
                      data-toggle-node="${node.id}" style="cursor: pointer">
                     <span class="agent-node-expand">${expandIcon}</span>
                     <span class="agent-node-icon">${icon}</span>
@@ -478,11 +478,11 @@ class AgentHierarchy {
                     </span>
                 </div>
         `;
-        
+
         // Add details if expanded
         if (isExpanded && (node.delegationContext || node.startTime)) {
             html += '<div class="agent-node-details">';
-            
+
             if (node.delegationContext && node.delegationContext !== 'Unknown delegation') {
                 html += `
                     <div class="agent-delegation-context">
@@ -490,7 +490,7 @@ class AgentHierarchy {
                     </div>
                 `;
             }
-            
+
             if (node.startTime) {
                 const duration = this.calculateDuration(node.startTime, node.endTime);
                 html += `
@@ -500,22 +500,22 @@ class AgentHierarchy {
                     </div>
                 `;
             }
-            
+
             html += '</div>';
         }
-        
+
         // Render children if expanded
         if (isExpanded && hasChildren) {
             html += '<div class="agent-node-children">';
             html += node.children.map(child => this.renderNode(child, level + 1)).join('');
             html += '</div>';
         }
-        
+
         html += '</div>';
-        
+
         return html;
     }
-    
+
     /**
      * Get icon for node based on type and status
      * @param {Object} node - Node to get icon for
@@ -525,7 +525,7 @@ class AgentHierarchy {
         if (node.type === 'pm') {
             return node.isImplied ? '🔍' : '👔';
         }
-        
+
         // Map agent names to icons
         const agentIcons = {
             'Engineer Agent': '🔧',
@@ -538,10 +538,10 @@ class AgentHierarchy {
             'Data Engineer Agent': '💾',
             'Test Integration Agent': '🧪'
         };
-        
+
         return agentIcons[node.name] || '🤖';
     }
-    
+
     /**
      * Get status class for styling
      * @param {string} status - Node status
@@ -561,7 +561,7 @@ class AgentHierarchy {
                 return 'agent-status-unknown';
         }
     }
-    
+
     /**
      * Toggle node expansion
      * @param {string} nodeId - ID of node to toggle
@@ -569,7 +569,7 @@ class AgentHierarchy {
     toggleNode(nodeId) {
         const node = this.state.nodeMap.get(nodeId);
         if (!node) return;
-        
+
         if (this.state.expandedNodes.has(nodeId)) {
             this.state.expandedNodes.delete(nodeId);
             node.expanded = false;
@@ -577,13 +577,13 @@ class AgentHierarchy {
             this.state.expandedNodes.add(nodeId);
             node.expanded = true;
         }
-        
+
         // Trigger re-render
         if (window.dashboard) {
             window.dashboard.renderCurrentTab();
         }
     }
-    
+
     /**
      * Select a node
      * @param {string} nodeId - ID of node to select
@@ -591,7 +591,7 @@ class AgentHierarchy {
     selectNode(nodeId) {
         this.state.selectedNode = nodeId;
         const node = this.state.nodeMap.get(nodeId);
-        
+
         if (node) {
             // Dispatch event for other components to react
             const event = new CustomEvent('agentNodeSelected', {
@@ -600,7 +600,7 @@ class AgentHierarchy {
             document.dispatchEvent(event);
         }
     }
-    
+
     /**
      * Apply filters to the tree
      * @param {Object} tree - Tree to filter
@@ -611,22 +611,22 @@ class AgentHierarchy {
         if (!filters || Object.keys(filters).length === 0) {
             return tree;
         }
-        
+
         // Clone tree structure for filtering
         const filteredTree = {
             roots: []
         };
-        
+
         for (const root of tree.roots) {
             const filteredRoot = this.filterNode(root, filters);
             if (filteredRoot) {
                 filteredTree.roots.push(filteredRoot);
             }
         }
-        
+
         return filteredTree;
     }
-    
+
     /**
      * Filter a single node and its children
      * @param {Object} node - Node to filter
@@ -636,7 +636,7 @@ class AgentHierarchy {
     filterNode(node, filters) {
         // Check if node matches filters
         let matches = true;
-        
+
         if (filters.searchText) {
             const searchLower = filters.searchText.toLowerCase();
             matches = matches && (
@@ -644,15 +644,15 @@ class AgentHierarchy {
                 (node.delegationContext && node.delegationContext.toLowerCase().includes(searchLower))
             );
         }
-        
+
         if (filters.agentType) {
             matches = matches && node.name.includes(filters.agentType);
         }
-        
+
         if (filters.status) {
             matches = matches && node.status === filters.status;
         }
-        
+
         // Filter children recursively
         let filteredChildren = [];
         if (node.children) {
@@ -663,7 +663,7 @@ class AgentHierarchy {
                 }
             }
         }
-        
+
         // Include node if it matches or has matching children
         if (matches || filteredChildren.length > 0) {
             return {
@@ -671,10 +671,10 @@ class AgentHierarchy {
                 children: filteredChildren
             };
         }
-        
+
         return null;
     }
-    
+
     /**
      * Format timestamp for display
      * @param {string} timestamp - ISO timestamp
@@ -690,7 +690,7 @@ class AgentHierarchy {
             hour12: false
         });
     }
-    
+
     /**
      * Calculate duration between timestamps
      * @param {string} start - Start timestamp
@@ -699,11 +699,11 @@ class AgentHierarchy {
      */
     calculateDuration(start, end) {
         if (!start || !end) return '';
-        
+
         const startTime = new Date(start).getTime();
         const endTime = new Date(end).getTime();
         const duration = endTime - startTime;
-        
+
         if (duration < 1000) {
             return `${duration}ms`;
         } else if (duration < 60000) {
@@ -714,7 +714,7 @@ class AgentHierarchy {
             return `${minutes}m ${seconds}s`;
         }
     }
-    
+
     /**
      * Escape HTML for safe rendering
      * @param {string} text - Text to escape
@@ -726,7 +726,7 @@ class AgentHierarchy {
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     /**
      * Update hierarchy when new events arrive
      * @param {Array} events - New events
@@ -735,7 +735,7 @@ class AgentHierarchy {
         // Rebuild hierarchy with new events
         this.buildHierarchy();
     }
-    
+
     /**
      * Clear the hierarchy
      */
@@ -745,7 +745,7 @@ class AgentHierarchy {
         this.state.expandedNodes.clear();
         this.state.selectedNode = null;
     }
-    
+
     /**
      * Expand all nodes
      */
@@ -756,7 +756,7 @@ class AgentHierarchy {
         }
         this.expandAll = true;
     }
-    
+
     /**
      * Collapse all nodes
      */

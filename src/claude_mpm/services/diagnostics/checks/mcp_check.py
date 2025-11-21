@@ -29,7 +29,6 @@ class MCPCheck(BaseDiagnosticCheck):
     def run(self) -> DiagnosticResult:
         """Run MCP diagnostics."""
         try:
-
             sub_results = []
             details = {}
 

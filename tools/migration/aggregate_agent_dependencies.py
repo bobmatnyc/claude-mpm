@@ -325,7 +325,9 @@ class DependencyAggregator:
             raise
 
     def update_pyproject_toml(
-        self, required_dependencies: Dict[str, str], optional_dependencies: Dict[str, str]
+        self,
+        required_dependencies: Dict[str, str],
+        optional_dependencies: Dict[str, str],
     ) -> None:
         """
         Update pyproject.toml with agent dependencies.
@@ -385,9 +387,7 @@ class DependencyAggregator:
             with open(self.pyproject_path, "w", encoding="utf-8") as f:
                 toml.dump(content, f)
             logger.info(f"Successfully updated {self.pyproject_path}")
-            logger.info(
-                f"  - agents: {len(formatted_required)} required dependencies"
-            )
+            logger.info(f"  - agents: {len(formatted_required)} required dependencies")
             if formatted_optional:
                 logger.info(
                     f"  - agents-load-testing: {len(formatted_optional)} optional dependencies"

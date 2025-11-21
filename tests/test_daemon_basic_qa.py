@@ -352,7 +352,7 @@ def main():
     passed = sum(1 for r in TEST_RESULTS if r["passed"])
     total = len(TEST_RESULTS)
 
-    print(f"Passed: {passed}/{total} ({passed/total*100:.1f}%)")
+    print(f"Passed: {passed}/{total} ({passed / total * 100:.1f}%)")
 
     if passed < total:
         print("\nFailed tests:")

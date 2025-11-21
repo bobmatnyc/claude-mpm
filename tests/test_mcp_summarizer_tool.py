@@ -134,9 +134,9 @@ class TestMCPSummarizerTool:
 
             word_count = len(result.split())
             # Allow 10% overflow for sentence completion
-            assert (
-                word_count <= max_length * 1.1
-            ), f"Expected <= {max_length * 1.1} words, got {word_count}"
+            assert word_count <= max_length * 1.1, (
+                f"Expected <= {max_length * 1.1} words, got {word_count}"
+            )
 
     @pytest.mark.asyncio
     async def test_tool_registration(self):

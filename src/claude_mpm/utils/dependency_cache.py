@@ -333,7 +333,9 @@ class SmartDependencyChecker:
         return True, "No valid cache, checking needed"
 
     def get_or_check_dependencies(
-        self, loader, force_check: bool = False  # AgentDependencyLoader instance
+        self,
+        loader,
+        force_check: bool = False,  # AgentDependencyLoader instance
     ) -> Tuple[Dict, bool]:
         """
         Get dependency results from cache or perform check.

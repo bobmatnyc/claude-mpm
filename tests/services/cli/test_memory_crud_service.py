@@ -72,7 +72,6 @@ class TestMemoryCRUDService:
         with patch("pathlib.Path.mkdir"), patch(
             "pathlib.Path.write_text"
         ) as mock_write:
-
             result = service.create_memory("test_agent", "default")
 
             assert result["success"] is True
@@ -440,7 +439,6 @@ class TestMemoryCRUDServiceIntegration:
         with patch(
             "claude_mpm.services.cli.memory_crud_service.AgentMemoryManager"
         ) as mock_class, patch("claude_mpm.core.shared.config_loader.ConfigLoader"):
-
             mock_instance = MagicMock()
             mock_instance.memories_dir = Path("/test")
             mock_instance.load_agent_memory.return_value = None

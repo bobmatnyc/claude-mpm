@@ -196,7 +196,7 @@ def run_comprehensive_tests():
 
     print("-" * 70)
     print(
-        f"Total: {passed}/{total} tests passed ({100*passed//total if total > 0 else 0}%)"
+        f"Total: {passed}/{total} tests passed ({100 * passed // total if total > 0 else 0}%)"
     )
 
     if passed == total:

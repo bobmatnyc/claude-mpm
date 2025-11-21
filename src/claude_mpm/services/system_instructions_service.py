@@ -112,9 +112,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
                 self.agent_capabilities_service
                 and "{{AGENT_CAPABILITIES}}" in base_pm_content
             ):
-                capabilities = (
-                    self.agent_capabilities_service.generate_deployed_agent_capabilities()
-                )
+                capabilities = self.agent_capabilities_service.generate_deployed_agent_capabilities()
                 base_pm_content = base_pm_content.replace(
                     "{{AGENT_CAPABILITIES}}", capabilities
                 )

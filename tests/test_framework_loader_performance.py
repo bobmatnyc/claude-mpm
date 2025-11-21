@@ -162,7 +162,7 @@ def measure_performance():
         print("✅ SUCCESS: Framework loading is now under 5 seconds!")
         print(f"   Current load time: {total_time_cached:.3f}s")
         print("   Original estimated time: ~11.9s")
-        print(f"   Total improvement: ~{11.9/total_time_cached:.1f}x faster")
+        print(f"   Total improvement: ~{11.9 / total_time_cached:.1f}x faster")
     else:
         print("⚠️  WARNING: Framework loading still takes more than 5 seconds")
         print(f"   Current load time: {total_time_cached:.3f}s")

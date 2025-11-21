@@ -2,6 +2,7 @@
 """
 Script to prune redundant instructions from agent templates and add skills field.
 """
+
 import json
 import os
 from pathlib import Path

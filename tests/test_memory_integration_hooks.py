@@ -416,7 +416,7 @@ class TestMemoryPostDelegationHook:
 
                     # Add To Memory:
                     Type: pattern
-                    Content: {'x' * 150}
+                    Content: {"x" * 150}
                     #
                     """
                 },

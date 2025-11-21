@@ -381,7 +381,7 @@ class FileToolTracker {
         // Debug logging for file path extraction
         const fileTools = ['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
         const toolName = event.tool_name || (event.data && event.data.tool_name);
-        
+
         if (fileTools.includes(toolName)) {
             console.log('Extracting file path from event:', {
                 tool_name: toolName,
@@ -391,13 +391,13 @@ class FileToolTracker {
                 data_tool_parameters: event.data?.tool_parameters
             });
         }
-        
+
         // Try various locations where file path might be stored
         // Check top-level tool_parameters first (after transformation)
         if (event.tool_parameters?.file_path) return event.tool_parameters.file_path;
         if (event.tool_parameters?.path) return event.tool_parameters.path;
         if (event.tool_parameters?.notebook_path) return event.tool_parameters.notebook_path;
-        
+
         // Check in data object as fallback
         if (event.data?.tool_parameters?.file_path) return event.data.tool_parameters.file_path;
         if (event.data?.tool_parameters?.path) return event.data.tool_parameters.path;
@@ -413,16 +413,16 @@ class FileToolTracker {
         // For Bash commands, try to extract file paths from the command
         if (event.tool_name?.toLowerCase() === 'bash' && event.tool_parameters?.command) {
             const command = event.tool_parameters.command;
-            
+
             // Enhanced regex to handle commands with flags
             // Match command followed by optional flags (starting with -) and then the file path
             // Patterns to handle:
             // 1. tail -50 /path/to/file
-            // 2. head -n 100 /path/to/file  
+            // 2. head -n 100 /path/to/file
             // 3. cat /path/to/file
             // 4. grep -r "pattern" /path/to/file
             const fileMatch = command.match(/(?:cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find|echo.*>|sed|awk|grep)(?:\s+-[a-zA-Z0-9]+)*(?:\s+[0-9]+)*\s+([^\s;|&]+)/);
-            
+
             // If first match might be a flag, try a more specific pattern
             if (fileMatch && fileMatch[1]) {
                 const possiblePath = fileMatch[1];

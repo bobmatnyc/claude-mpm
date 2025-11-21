@@ -23,24 +23,24 @@ def main():
 
     # Test 1: Verify the constant is correct
     print("\n1. Checking CONFIG_DIR_NAME constant...")
-    assert (
-        get_path_manager().CONFIG_DIR == ".claude-mpm"
-    ), f"ERROR: CONFIG_DIR is '{get_path_manager().CONFIG_DIR}', expected '.claude-mpm'"
+    assert get_path_manager().CONFIG_DIR == ".claude-mpm", (
+        f"ERROR: CONFIG_DIR is '{get_path_manager().CONFIG_DIR}', expected '.claude-mpm'"
+    )
     print(f"   ✓ CONFIG_DIR = '{get_path_manager().CONFIG_DIR}'")
 
     # Test 2: Verify path methods
     print("\n2. Testing get_path_manager() methods...")
     user_config = get_path_manager().get_user_config_dir()
     print(f"   ✓ User config dir: {user_config}")
-    assert ".claude-mpm" in str(
-        user_config
-    ), f"ERROR: User config dir doesn't contain .claude-mpm: {user_config}"
+    assert ".claude-mpm" in str(user_config), (
+        f"ERROR: User config dir doesn't contain .claude-mpm: {user_config}"
+    )
 
     project_config = get_path_manager().get_project_config_dir()
     print(f"   ✓ Project config dir: {project_config}")
-    assert ".claude-mpm" in str(
-        project_config
-    ), f"ERROR: Project config dir doesn't contain .claude-mpm: {project_config}"
+    assert ".claude-mpm" in str(project_config), (
+        f"ERROR: Project config dir doesn't contain .claude-mpm: {project_config}"
+    )
 
     # Test 3: Verify get_path_manager() uses correct names
     print("\n3. Testing get_path_manager() integration...")
@@ -48,15 +48,15 @@ def main():
     # Test get_config_dir for different scopes
     project_config_dir = get_path_manager().get_config_dir("project")
     print(f"   ✓ Project config via get_path_manager(): {project_config_dir}")
-    assert ".claude-mpm" in str(
-        project_config_dir
-    ), f"ERROR: get_path_manager() project config doesn't contain .claude-mpm: {project_config_dir}"
+    assert ".claude-mpm" in str(project_config_dir), (
+        f"ERROR: get_path_manager() project config doesn't contain .claude-mpm: {project_config_dir}"
+    )
 
     user_config_dir = get_path_manager().get_config_dir("user")
     print(f"   ✓ User config via get_path_manager(): {user_config_dir}")
-    assert "claude-mpm" in str(
-        user_config_dir
-    ), f"ERROR: get_path_manager() user config doesn't contain claude-mpm: {user_config_dir}"
+    assert "claude-mpm" in str(user_config_dir), (
+        f"ERROR: get_path_manager() user config doesn't contain claude-mpm: {user_config_dir}"
+    )
 
     # Test 4: Verify legacy detection
     print("\n4. Testing legacy path detection...")
@@ -82,9 +82,9 @@ def main():
 
     for path in paths_to_check:
         print(f"   ✓ {path}")
-        assert ".claude-mpm" in str(
-            path
-        ), f"ERROR: Path doesn't contain .claude-mpm: {path}"
+        assert ".claude-mpm" in str(path), (
+            f"ERROR: Path doesn't contain .claude-mpm: {path}"
+        )
 
     print("\n" + "=" * 60)
     print("✅ All configuration path tests passed!")

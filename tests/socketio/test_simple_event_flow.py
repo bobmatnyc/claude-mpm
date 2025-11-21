@@ -130,7 +130,7 @@ async def main():
         await asyncio.sleep(3)
 
         # Summary
-        print(f"\n{BOLD}{'='*50}{RESET}")
+        print(f"\n{BOLD}{'=' * 50}{RESET}")
         print(f"{BOLD}Summary:{RESET}")
         print(f"  Connected: {GREEN if connected else RED}{connected}{RESET}")
         print(f"  Events received: {len(received_events)}")

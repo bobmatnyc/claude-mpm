@@ -121,7 +121,6 @@ class TestDashboardModuleLoading:
             with patch("pathlib.Path.exists", side_effect=mock_exists), patch(
                 "pathlib.Path.is_dir", side_effect=mock_is_dir
             ), patch("pathlib.Path.cwd", return_value=Path("/current_working_dir")):
-
                 with patch.object(Path, "exists", mock_index_exists):
                     result = server._find_static_path()
 
@@ -140,7 +139,6 @@ class TestDashboardModuleLoading:
         ), patch(
             "claude_mpm.services.socketio.server.core.get_path_manager"
         ) as mock_path_mgr:
-
             mock_path_mgr.side_effect = Exception("No path manager")
 
             result = server._find_static_path()

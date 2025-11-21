@@ -37,7 +37,7 @@ class Dashboard {
         this.eventViewer = null;
         this.moduleViewer = null;
         this.sessionManager = null;
-        
+
         // Retry prevention
         this.activityTreeRetryCount = 0;
         this.maxRetryAttempts = 10;
@@ -66,7 +66,7 @@ class Dashboard {
         try {
             // Fetch server configuration first
             this.fetchServerConfig();
-            
+
             // Initialize modules in dependency order
             this.initializeSocketManager();
             this.initializeCoreComponents();
@@ -97,7 +97,7 @@ class Dashboard {
             throw error;
         }
     }
-    
+
     /**
      * Fetch server configuration for dashboard initialization
      */
@@ -107,18 +107,18 @@ class Dashboard {
             .then(config => {
                 // Store config globally for other components
                 window.dashboardConfig = config;
-                
+
                 // Update initial UI elements if they exist
                 const workingDirEl = document.getElementById('working-dir-path');
                 if (workingDirEl && config.workingDirectory) {
                     workingDirEl.textContent = config.workingDirectory;
                 }
-                
+
                 const gitBranchEl = document.getElementById('footer-git-branch');
                 if (gitBranchEl && config.gitBranch) {
                     gitBranchEl.textContent = config.gitBranch;
                 }
-                
+
                 console.log('Dashboard configuration loaded:', config);
             })
             .catch(error => {
@@ -130,7 +130,7 @@ class Dashboard {
                 };
             });
     }
-    
+
     /**
      * Validate that all critical components are initialized
      * WHY: Ensures dashboard is in a valid state after initialization
@@ -141,7 +141,7 @@ class Dashboard {
             { name: 'eventViewer', component: this.eventViewer },
             { name: 'agentHierarchy', component: this.agentHierarchy }
         ];
-        
+
         const missing = criticalComponents.filter(c => !c.component);
         if (missing.length > 0) {
             console.warn('Missing critical components:', missing.map(c => c.name));
@@ -153,7 +153,7 @@ class Dashboard {
      * WHY: Some components need to reference window.dashboard but it's not available
      * during constructor execution. This method is called after the Dashboard instance
      * is assigned to window.dashboard, ensuring proper initialization order.
-     * 
+     *
      * DESIGN DECISION: Separate post-init phase prevents "cannot read property of undefined"
      * errors when components try to access window.dashboard during construction.
      */
@@ -163,7 +163,7 @@ class Dashboard {
             if (this.agentHierarchy) {
                 window.dashboard.agentHierarchy = this.agentHierarchy;
             }
-            
+
             // Initialize any other components that need window.dashboard
             this.validateInitialization();
         } catch (error) {
@@ -206,10 +206,10 @@ class Dashboard {
      */
     initializeBuildTracker() {
         this.buildTracker = new BuildTracker();
-        
+
         // Set the socket client for receiving updates
         this.buildTracker.setSocketClient(this.socketClient);
-        
+
         // Mount to header with retry logic for DOM readiness
         const mountBuildTracker = () => {
             const headerTitle = document.querySelector('.header-title');
@@ -223,10 +223,10 @@ class Dashboard {
                 setTimeout(mountBuildTracker, 100);
             }
         };
-        
+
         // Try to mount immediately, with retry logic if needed
         mountBuildTracker();
-        
+
         // Make available globally for debugging
         window.buildTracker = this.buildTracker;
     }
@@ -238,7 +238,7 @@ class Dashboard {
         this.agentInference = new AgentInference(this.eventViewer);
         this.agentInference.initialize();
     }
-    
+
     /**
      * Initialize agent hierarchy component
      * WHY: Creates the agent hierarchy visualization component but defers global
@@ -461,22 +461,22 @@ class Dashboard {
                 if (window.ActivityTree && typeof window.ActivityTree === 'function') {
                     // Reset retry count on successful load
                     this.activityTreeRetryCount = 0;
-                    
+
                     // Create or get instance
                     if (!window.activityTreeInstance) {
                         window.activityTreeInstance = new window.ActivityTree();
                     }
-                    
+
                     // Initialize if needed and render
                     if (window.activityTreeInstance) {
                         if (!window.activityTreeInstance.initialized) {
                             window.activityTreeInstance.initialize();
                         }
-                        
+
                         if (typeof window.activityTreeInstance.renderWhenVisible === 'function') {
                             window.activityTreeInstance.renderWhenVisible();
                         }
-                        
+
                         // Force show to ensure the tree is visible
                         if (typeof window.activityTreeInstance.forceShow === 'function') {
                             window.activityTreeInstance.forceShow();
@@ -539,23 +539,23 @@ class Dashboard {
     renderAgents() {
         const agentsList = document.getElementById('agents-list');
         if (!agentsList) return;
-        
+
         // Get filter values
         const searchText = document.getElementById('agents-search-input')?.value || '';
         const agentType = document.getElementById('agents-type-filter')?.value || '';
-        
+
         // Generate flat HTML
         const flatHTML = this.renderAgentsFlat(searchText, agentType);
         agentsList.innerHTML = flatHTML;
-        
+
         // Remove hierarchy controls if they exist
         this.removeHierarchyControls();
-        
+
         // Update filter dropdowns with available agent types
         const uniqueInstances = this.agentInference.getUniqueAgentInstances();
         this.updateAgentsFilterDropdowns(uniqueInstances);
     }
-    
+
     /**
      * Remove hierarchy control buttons (flat view doesn't need them)
      */
@@ -565,11 +565,11 @@ class Dashboard {
             existingControls.remove();
         }
     }
-    
+
     /**
      * Render agents as a flat chronological list
      * @param {string} searchText - Search filter
-     * @param {string} agentType - Agent type filter 
+     * @param {string} agentType - Agent type filter
      * @returns {string} HTML for flat agent list
      */
     renderAgentsFlat(searchText, agentType) {
@@ -577,11 +577,11 @@ class Dashboard {
         if (!events || events.length === 0) {
             return '<div class="no-events">No agent events found...</div>';
         }
-        
+
         // Process agent inference to get agent mappings
         this.agentInference.processAgentInference();
         const eventAgentMap = this.agentInference.getEventAgentMap();
-        
+
         // Collect all agent events with metadata
         const agentEvents = [];
         events.forEach((event, index) => {
@@ -589,7 +589,7 @@ class Dashboard {
             if (inference && (inference.type === 'subagent' || inference.type === 'main_agent')) {
                 // Apply filters
                 let includeEvent = true;
-                
+
                 if (searchText) {
                     const searchLower = searchText.toLowerCase();
                     includeEvent = includeEvent && (
@@ -598,11 +598,11 @@ class Dashboard {
                         (event.data && JSON.stringify(event.data).toLowerCase().includes(searchLower))
                     );
                 }
-                
+
                 if (agentType) {
                     includeEvent = includeEvent && inference.agentName.includes(agentType);
                 }
-                
+
                 if (includeEvent) {
                     agentEvents.push({
                         event,
@@ -613,20 +613,20 @@ class Dashboard {
                 }
             }
         });
-        
+
         if (agentEvents.length === 0) {
             return '<div class="no-events">No agent events match the current filters...</div>';
         }
-        
+
         // Generate HTML for each event
         const html = agentEvents.map((item, listIndex) => {
             const { event, inference, index, timestamp } = item;
-            
+
             // Determine action/tool
             let action = 'Activity';
             let actionIcon = '📋';
             let details = '';
-            
+
             if (event.event_type === 'SubagentStart') {
                 action = 'Started';
                 actionIcon = '🟢';
@@ -638,7 +638,7 @@ class Dashboard {
             } else if (event.tool_name) {
                 action = `Tool: ${event.tool_name}`;
                 actionIcon = this.getToolIcon(event.tool_name);
-                
+
                 // Add tool parameters as details
                 if (event.data && event.data.tool_parameters) {
                     const params = event.data.tool_parameters;
@@ -653,7 +653,7 @@ class Dashboard {
                     }
                 }
             }
-            
+
             // Status based on event type
             let status = 'completed';
             if (event.event_type === 'SubagentStart') {
@@ -661,7 +661,7 @@ class Dashboard {
             } else if (event.data && event.data.error) {
                 status = 'error';
             }
-            
+
             return `
                 <div class="agent-event-item" data-index="${listIndex}" onclick="window.dashboard.showCardDetails('agents', ${index})">
                     <div class="agent-event-header">
@@ -680,10 +680,10 @@ class Dashboard {
                 </div>
             `;
         }).join('');
-        
+
         return `<div class="agent-events-flat">${html}</div>`;
     }
-    
+
     /**
      * Get icon for agent type
      */
@@ -691,7 +691,7 @@ class Dashboard {
         const agentIcons = {
             'PM': '🎯',
             'Engineer Agent': '🔧',
-            'Research Agent': '🔍', 
+            'Research Agent': '🔍',
             'QA Agent': '✅',
             'Documentation Agent': '📝',
             'Security Agent': '🔒',
@@ -702,7 +702,7 @@ class Dashboard {
         };
         return agentIcons[agentName] || '🤖';
     }
-    
+
     /**
      * Get icon for tool
      */
@@ -719,7 +719,7 @@ class Dashboard {
         };
         return toolIcons[toolName] || '🔧';
     }
-    
+
     /**
      * Get icon for status
      */
@@ -732,19 +732,19 @@ class Dashboard {
         };
         return statusIcons[status] || '❓';
     }
-    
+
     /**
      * Format timestamp for display
      */
     formatTimestamp(timestamp) {
         return timestamp.toLocaleTimeString('en-US', {
             hour: '2-digit',
-            minute: '2-digit', 
+            minute: '2-digit',
             second: '2-digit',
             hour12: false
         });
     }
-    
+
     /**
      * Escape HTML for safe display
      */
@@ -1269,7 +1269,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     const loadingElement = modal.querySelector('.file-viewer-loading');
     const errorElement = modal.querySelector('.file-viewer-error');
     const contentArea = modal.querySelector('.file-viewer-content-area');
-    
+
     if (loadingElement) {
         loadingElement.style.display = 'flex';
     }
@@ -1283,7 +1283,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     try {
         // Get the Socket.IO client
         const socket = window.socket || window.dashboard?.socketClient?.socket || window.socketClient?.socket;
-        
+
         console.log('[FileViewer] Socket search results:', {
             'window.socket': !!window.socket,
             'window.socket.connected': window.socket?.connected,
@@ -1292,15 +1292,15 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
             'window.socketClient.socket': !!window.socketClient?.socket,
             'window.socketClient.socket.connected': window.socketClient?.socket?.connected
         });
-        
+
         if (!socket) {
             throw new Error('No socket connection available. Please ensure the dashboard is connected.');
         }
-        
+
         if (!socket.connected) {
             console.warn('[FileViewer] Socket found but not connected, attempting to use anyway...');
         }
-        
+
         console.log('[FileViewer] Socket found, setting up listener for file_content_response');
 
         // Set up one-time listener for file content response
@@ -1597,7 +1597,7 @@ function formatFileSize(bytes) {
 // File Viewer Modal Functions
 window.showFileViewerModal = async function(filePath) {
     console.log('[FileViewer] Opening file:', filePath);
-    
+
     // Use the dashboard's current working directory
     let workingDir = '';
     if (window.dashboard && window.dashboard.currentWorkingDir) {
@@ -1688,7 +1688,7 @@ function displayFileContentError(modal, result) {
     const suggestionsElement = modal.querySelector('.error-suggestions');
     const loadingElement = modal.querySelector('.file-viewer-loading');
     const contentArea = modal.querySelector('.file-viewer-content-area');
-    
+
     // Hide loading and content areas, show error
     if (loadingElement) {
         loadingElement.style.display = 'none';
@@ -1836,7 +1836,7 @@ function updateSearchViewerModal(modal, searchParams, searchResults) {
     // Display search results
     if (resultsDisplay && searchResults) {
         let resultsHTML = '';
-        
+
         if (typeof searchResults === 'string') {
             // If results are a string, display as preformatted text
             resultsHTML = `<pre class="search-results-text">${escapeHtml(searchResults)}</pre>`;
@@ -1858,7 +1858,7 @@ function updateSearchViewerModal(modal, searchParams, searchResults) {
             // Fallback: display as text
             resultsHTML = `<div class="search-results-text">${escapeHtml(String(searchResults))}</div>`;
         }
-        
+
         resultsDisplay.innerHTML = resultsHTML;
     }
 }
@@ -1883,15 +1883,15 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         // Create dashboard instance
         window.dashboard = new Dashboard();
-        
+
         // Call post-initialization setup that requires window.dashboard
         // This must happen after window.dashboard is set
         if (window.dashboard && typeof window.dashboard.postInit === 'function') {
             window.dashboard.postInit();
         }
-        
+
         console.log('Dashboard loaded and initialized successfully');
-        
+
         // Dispatch custom event to signal dashboard ready
         document.dispatchEvent(new CustomEvent('dashboardReady', {
             detail: { dashboard: window.dashboard }

@@ -362,10 +362,10 @@ def test_performance_requirements():
 
         if total_time < 0.200:  # 200ms
             result.passed = True
-            result.message = f"Total: {total_time*1000:.1f}ms (discovery: {disc_time*1000:.1f}ms, generation: {gen_time*1000:.1f}ms, assembly: {assembly_time*1000:.1f}ms)"
+            result.message = f"Total: {total_time * 1000:.1f}ms (discovery: {disc_time * 1000:.1f}ms, generation: {gen_time * 1000:.1f}ms, assembly: {assembly_time * 1000:.1f}ms)"
         else:
             result.passed = False
-            result.message = f"Too slow: {total_time*1000:.1f}ms > 200ms requirement"
+            result.message = f"Too slow: {total_time * 1000:.1f}ms > 200ms requirement"
 
     except Exception as e:
         result.message = f"Exception: {e!s}"

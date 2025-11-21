@@ -5,13 +5,13 @@
 function simulateTransformEvent(eventData) {
     // Simplified version of the transformEvent logic from socket-client.js
     if (!eventData) return eventData;
-    
+
     let transformedEvent = { ...eventData };
-    
+
     // Handle standard format with 'type' field
     if (eventData.type) {
         const type = eventData.type;
-        
+
         // Transform 'hook.subtype' format to separate type and subtype
         if (type.startsWith('hook.')) {
             const subtype = type.substring(5);
@@ -30,12 +30,12 @@ function simulateTransformEvent(eventData) {
             transformedEvent.subtype = subtypeParts.join('.');
         }
     }
-    
+
     // Store original event name
     if (eventData.type) {
         transformedEvent.originalEventName = eventData.type;
     }
-    
+
     return transformedEvent;
 }
 
@@ -43,8 +43,8 @@ function testTransformEvent() {
     const testCases = [
         {
             input: { type: 'code:analysis:queued', data: {} },
-            expected: { 
-                type: 'code', 
+            expected: {
+                type: 'code',
                 subtype: 'analysis:queued',
                 originalEventName: 'code:analysis:queued'
             },
@@ -52,8 +52,8 @@ function testTransformEvent() {
         },
         {
             input: { type: 'code:file:start', data: {} },
-            expected: { 
-                type: 'code', 
+            expected: {
+                type: 'code',
                 subtype: 'file:start',
                 originalEventName: 'code:file:start'
             },
@@ -61,8 +61,8 @@ function testTransformEvent() {
         },
         {
             input: { type: 'hook.pre_tool', data: {} },
-            expected: { 
-                type: 'hook', 
+            expected: {
+                type: 'hook',
                 subtype: 'pre_tool',
                 originalEventName: 'hook.pre_tool'
             },
@@ -70,29 +70,29 @@ function testTransformEvent() {
         },
         {
             input: { type: 'session.started', data: {} },
-            expected: { 
-                type: 'session', 
+            expected: {
+                type: 'session',
                 subtype: 'started',
                 originalEventName: 'session.started'
             },
             description: 'session.started transforms correctly'
         }
     ];
-    
+
     console.log('Testing transformEvent function...\n');
-    
+
     let passed = 0;
     let failed = 0;
-    
+
     testCases.forEach(testCase => {
         const result = simulateTransformEvent(testCase.input);
-        
+
         const typeMatches = result.type === testCase.expected.type;
         const subtypeMatches = result.subtype === testCase.expected.subtype;
         const originalNameMatches = result.originalEventName === testCase.expected.originalEventName;
-        
+
         const testPassed = typeMatches && subtypeMatches && originalNameMatches;
-        
+
         if (testPassed) {
             console.log(`✅ PASS: ${testCase.description}`);
             console.log(`   type: ${result.type}, subtype: ${result.subtype}`);
@@ -104,11 +104,11 @@ function testTransformEvent() {
             failed++;
         }
     });
-    
+
     console.log(`\n========================================`);
     console.log(`Test Results: ${passed} passed, ${failed} failed`);
     console.log(`========================================\n`);
-    
+
     if (failed === 0) {
         console.log('✅ All transformation tests passed!');
         console.log('\nThe transformEvent function correctly:');

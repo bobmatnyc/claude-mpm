@@ -26,9 +26,9 @@ def test_bundled_skills_count():
     for f in sorted(skill_files):
         print(f"  - {f.stem}")
 
-    assert (
-        len(skill_files) == 20
-    ), f"Expected 20 bundled skills, found {len(skill_files)}"
+    assert len(skill_files) == 20, (
+        f"Expected 20 bundled skills, found {len(skill_files)}"
+    )
     print("✅ PASS: Exactly 20 bundled skills found")
     return True
 
@@ -286,7 +286,7 @@ def test_performance():
     for _ in range(100):
         registry.get_skill("test-driven-development")
     retrieval_time = (time.time() - start) / 100
-    print(f"Average skill retrieval: {retrieval_time*1000:.2f}ms")
+    print(f"Average skill retrieval: {retrieval_time * 1000:.2f}ms")
 
     # Test prompt enhancement time
     manager = SkillManager()

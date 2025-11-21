@@ -46,11 +46,11 @@ class TestResults:
 
     def summary(self):
         total = self.passed + self.failed
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(
             f"TEST SUMMARY: {self.passed}/{total} passed, {self.failed}/{total} failed"
         )
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         if self.errors:
             print("\nFailed Tests:")
             for test_name, error in self.errors:
@@ -405,9 +405,9 @@ def test_display_agents_with_pending_states():
                     output = " ".join(call_args)
 
                     # Should show pending count in title
-                    assert (
-                        "pending" in output.lower() or "change" in output.lower()
-                    ), "Output should contain 'pending' or 'change'"
+                    assert "pending" in output.lower() or "change" in output.lower(), (
+                        "Output should contain 'pending' or 'change'"
+                    )
 
                 except AssertionError as ae:
                     # If assertion fails, that's fine - we still call the method successfully

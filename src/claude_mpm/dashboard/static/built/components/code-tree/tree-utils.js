@@ -1,9 +1,9 @@
 /**
  * Tree Utility Functions
- * 
+ *
  * Common utility functions extracted from code-tree.js
  * Provides formatting, file type detection, and other helper functions.
- * 
+ *
  * @module tree-utils
  */
 
@@ -111,7 +111,7 @@ const treeUtils = {
 
         const ext = this.getFileExtension(filePath);
         const fileName = filePath.toLowerCase().split('/').pop();
-        
+
         const iconMap = {
             // Programming languages
             'py': '🐍',
@@ -129,40 +129,40 @@ const treeUtils = {
             'php': '🐘',
             'swift': '🦉',
             'kt': '🎯',
-            
+
             // Web files
             'html': '🌐',
             'css': '🎨',
             'scss': '🎨',
             'sass': '🎨',
             'less': '🎨',
-            
+
             // Data files
             'json': '📋',
             'xml': '📰',
             'csv': '📊',
             'sql': '🗃️',
-            
+
             // Documentation
             'md': '📝',
             'txt': '📄',
             'pdf': '📑',
             'doc': '📃',
             'docx': '📃',
-            
+
             // Configuration
             'yml': '⚙️',
             'yaml': '⚙️',
             'toml': '⚙️',
             'ini': '⚙️',
             'env': '🔐',
-            
+
             // Scripts
             'sh': '🐚',
             'bash': '🐚',
             'bat': '🖥️',
             'ps1': '🖥️',
-            
+
             // Special files
             'dockerfile': '🐳',
             'docker-compose.yml': '🐳',
@@ -257,14 +257,14 @@ const treeUtils = {
      */
     isNodeDirectory(node) {
         if (!node) return false;
-        
+
         // Handle D3 node structure
         if (node.data) {
             node = node.data;
         }
-        
-        return node.type === 'directory' || 
-               node.type === 'folder' || 
+
+        return node.type === 'directory' ||
+               node.type === 'folder' ||
                (node.children && node.children.length > 0) ||
                node.isDirectory === true;
     },
@@ -301,14 +301,14 @@ const treeUtils = {
             // Directories first
             const aIsDir = this.isNodeDirectory(a);
             const bIsDir = this.isNodeDirectory(b);
-            
+
             if (aIsDir && !bIsDir) return -1;
             if (!aIsDir && bIsDir) return 1;
-            
+
             // Then alphabetically
             const aName = (a.name || a.data?.name || '').toLowerCase();
             const bName = (b.name || b.data?.name || '').toLowerCase();
-            
+
             return aName.localeCompare(bName);
         });
     },
@@ -325,18 +325,18 @@ const treeUtils = {
             if (criteria.language && node.language !== criteria.language) {
                 return false;
             }
-            
+
             // Search term filter
             if (criteria.searchTerm) {
                 const term = criteria.searchTerm.toLowerCase();
                 const name = (node.name || '').toLowerCase();
                 const path = (node.path || '').toLowerCase();
-                
+
                 if (!name.includes(term) && !path.includes(term)) {
                     return false;
                 }
             }
-            
+
             // Complexity filter
             if (criteria.minComplexity && node.complexity < criteria.minComplexity) {
                 return false;
@@ -344,7 +344,7 @@ const treeUtils = {
             if (criteria.maxComplexity && node.complexity > criteria.maxComplexity) {
                 return false;
             }
-            
+
             return true;
         });
     },
@@ -367,18 +367,18 @@ const treeUtils = {
 
         const traverse = (n, depth = 0) => {
             stats.maxDepth = Math.max(stats.maxDepth, depth);
-            
+
             if (this.isNodeDirectory(n)) {
                 stats.directories++;
             } else {
                 stats.files++;
             }
-            
+
             if (n.type === 'class') stats.classes++;
             if (n.type === 'function') stats.functions++;
             if (n.type === 'method') stats.methods++;
             if (n.lines) stats.lines += n.lines;
-            
+
             if (n.children) {
                 n.children.forEach(child => traverse(child, depth + 1));
             }
@@ -411,7 +411,7 @@ const treeUtils = {
     formatNodePath(node) {
         const parts = [];
         let current = node;
-        
+
         while (current) {
             if (current.data?.name) {
                 parts.unshift(current.data.name);
@@ -420,7 +420,7 @@ const treeUtils = {
             }
             current = current.parent;
         }
-        
+
         return parts.join(' / ');
     }
 };

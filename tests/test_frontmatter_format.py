@@ -106,9 +106,9 @@ Test content
             frontmatter = self._extract_frontmatter(agent_file)
             is_valid = self._is_valid_semantic_version(frontmatter.get("version", ""))
 
-            assert (
-                is_valid == should_be_valid
-            ), f"Version '{version}' ({description}) validation mismatch"
+            assert is_valid == should_be_valid, (
+                f"Version '{version}' ({description}) validation mismatch"
+            )
 
     def test_frontmatter_tools_format(self):
         """Test various tools field formats."""
@@ -155,9 +155,9 @@ Test content
                 tools_value = str(tools_value)
             is_valid = bool(tools_value.strip())
 
-            assert (
-                is_valid == should_be_valid
-            ), f"Tools '{tools}' ({description}) validation mismatch"
+            assert is_valid == should_be_valid, (
+                f"Tools '{tools}' ({description}) validation mismatch"
+            )
 
     def test_frontmatter_model_values(self):
         """Test valid model values in frontmatter."""

@@ -1,9 +1,9 @@
 /**
  * DOM Helper Utilities
- * 
+ *
  * Common DOM manipulation utilities for dashboard components.
  * Provides safe, consistent methods for element creation and manipulation.
- * 
+ *
  * @module dom-helpers
  */
 
@@ -17,7 +17,7 @@ const domHelpers = {
      */
     createElement(tag, attrs = {}, content = null) {
         const element = document.createElement(tag);
-        
+
         // Set attributes
         for (const [key, value] of Object.entries(attrs)) {
             if (key === 'className') {
@@ -35,12 +35,12 @@ const domHelpers = {
                 element.setAttribute(key, value);
             }
         }
-        
+
         // Add content
         if (content !== null) {
             this.setContent(element, content);
         }
-        
+
         return element;
     },
 
@@ -296,19 +296,19 @@ const domHelpers = {
      */
     isInViewport(element, partial = false) {
         if (!element) return false;
-        
+
         const rect = element.getBoundingClientRect();
         const windowHeight = window.innerHeight || document.documentElement.clientHeight;
         const windowWidth = window.innerWidth || document.documentElement.clientWidth;
-        
+
         const vertInView = partial
             ? rect.top < windowHeight && rect.bottom > 0
             : rect.top >= 0 && rect.bottom <= windowHeight;
-            
+
         const horInView = partial
             ? rect.left < windowWidth && rect.right > 0
             : rect.left >= 0 && rect.right <= windowWidth;
-        
+
         return vertInView && horInView;
     },
 

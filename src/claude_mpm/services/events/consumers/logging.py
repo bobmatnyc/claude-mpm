@@ -133,8 +133,7 @@ class LoggingConsumer(IEventConsumer):
         """Format an event for logging."""
         # Build base message
         message = (
-            f"[{event.topic}] {event.type} "
-            f"(id={event.id[:8]}, source={event.source})"
+            f"[{event.topic}] {event.type} (id={event.id[:8]}, source={event.source})"
         )
 
         # Add data if configured

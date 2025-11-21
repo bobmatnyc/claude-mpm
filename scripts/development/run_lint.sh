@@ -35,11 +35,11 @@ fi
 run_check() {
     local name=$1
     local command=$2
-    
+
     echo ""
     echo "Running $name..."
     echo "----------------------------------------"
-    
+
     if eval "$command"; then
         echo -e "${GREEN}✓ $name passed${NC}"
         return 0
@@ -93,7 +93,7 @@ if grep -r "^import\|^from .* import" src/ --include="*.py" | grep -v "__pycache
     while IFS= read -r file; do
         # Extract filename from grep output
         filename=$(echo "$file" | cut -d: -f1)
-        
+
         # Check if this file has imports inside functions
         if grep -E "^[[:space:]]+import |^[[:space:]]+from .* import" "$filename" 2>/dev/null | grep -v "^#"; then
             echo -e "${RED}Warning: $filename has imports inside functions (potential scope issue)${NC}"

@@ -3,6 +3,7 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Module with examples from the tutorial section of the docs"""
+
 import os
 from io import BytesIO
 
@@ -12,7 +13,6 @@ from gitdb.test.lib import TestBase
 
 
 class TestExamples(TestBase):
-
     def test_base(self):
         ldb = LooseObjectDB(os.path.join(self.gitrepopath, "objects"))
 

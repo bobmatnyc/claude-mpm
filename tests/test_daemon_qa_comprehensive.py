@@ -903,7 +903,7 @@ def generate_report():
     total_failed = total_tests - total_passed
 
     print(
-        f"Overall Results: {total_passed}/{total_tests} tests passed ({(total_passed/total_tests*100):.1f}%)"
+        f"Overall Results: {total_passed}/{total_tests} tests passed ({(total_passed / total_tests * 100):.1f}%)"
     )
     print()
 

@@ -358,7 +358,6 @@ class TestSocketIOServerCoreLifecycle:
             "max_http_buffer_size": 1048576,
         }
         with patch("claude_mpm.config.socketio_config.CONNECTION_CONFIG", mock_config):
-
             server = SocketIOServerCore(host=self.test_host, port=self.test_port)
 
             def mock_run_server():

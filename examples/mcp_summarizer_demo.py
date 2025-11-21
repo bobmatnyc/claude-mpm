@@ -99,7 +99,7 @@ async def demo_summarizer():
     print("=" * 80)
 
     for doc_title, content in documents.items():
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"DOCUMENT: {doc_title}")
         print(f"Original length: {len(content.split())} words")
         print("=" * 80)
@@ -118,7 +118,7 @@ async def demo_summarizer():
             print(result)
             print(
                 f"\n[Summary: {len(result.split())} words | "
-                f"Reduction: {round(100 - (len(result.split())/len(content.split())*100), 1)}%]"
+                f"Reduction: {round(100 - (len(result.split()) / len(content.split()) * 100), 1)}%]"
             )
 
     print("\n" + "=" * 80)

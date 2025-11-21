@@ -59,7 +59,7 @@ That's the analysis.
     print(f"✓ Found {len(diagrams)} mermaid diagrams")
 
     for i, diagram in enumerate(diagrams):
-        print(f"\nDiagram {i+1}:")
+        print(f"\nDiagram {i + 1}:")
         print(f"  Title: {diagram['title']}")
         print(f"  Content length: {len(diagram['content'])} chars")
         first_line = diagram["content"].split("\n")[0]

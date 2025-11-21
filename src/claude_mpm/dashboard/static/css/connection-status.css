@@ -317,11 +317,11 @@
         left: 10px;
         max-width: none;
     }
-    
+
     .connection-metrics {
         padding: 12px;
     }
-    
+
     .metrics-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -332,38 +332,38 @@
     .connection-quality {
         background: #2d3748;
     }
-    
+
     .quality-bar {
         background: #4a5568;
     }
-    
+
     .quality-text {
         color: #cbd5e0;
     }
-    
+
     .connection-metrics {
         background: #2d3748;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
-    
+
     .metric-item {
         background: #1a202c;
     }
-    
+
     .metric-value {
         color: #e2e8f0;
     }
-    
+
     .metric-label {
         color: #a0aec0;
     }
-    
+
     .notification {
         background: #2d3748;
         color: #e2e8f0;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
-    
+
     .connection-health {
         background: #2d3748;
     }

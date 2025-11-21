@@ -118,7 +118,7 @@ class EventViewer {
         this.filteredEvents = this.events.filter(event => {
             // NO AUTOMATIC FILTERING - All events are shown by default for complete visibility
             // Users can apply their own filters using the search and type filter controls
-            
+
             // User-controlled search filter
             if (this.searchFilter) {
                 const searchableText = [
@@ -236,7 +236,7 @@ class EventViewer {
             console.warn('[EventViewer] Container not found, skipping render');
             return;
         }
-        
+
         // SAFETY: Basic check to ensure we're rendering to the correct container
         if (eventsList.id !== 'events-list') {
             console.error('[EventViewer] CRITICAL: Attempting to render to wrong container:', eventsList.id);
@@ -520,7 +520,7 @@ class EventViewer {
      */
     formatCodeEvent(event) {
         const data = event.data || {};
-        
+
         // Handle different code event subtypes
         if (event.subtype === 'progress') {
             const message = data.message || 'Processing...';
@@ -550,7 +550,7 @@ class EventViewer {
         } else if (event.subtype === 'error') {
             return `<strong>Error:</strong> ${data.error || 'Unknown error'} in ${data.file || 'file'}`;
         }
-        
+
         // Generic fallback for code events
         const json = JSON.stringify(data);
         return `<strong>Code:</strong> ${json.length > 100 ? json.substring(0, 100) + '...' : json}`;
@@ -587,20 +587,20 @@ class EventViewer {
             'qa_agent': 'QA',
             'unknown': 'Unknown'
         };
-        
+
         // Try to find a match in the map (case-insensitive)
         const lowerType = (agentType || 'unknown').toLowerCase();
         if (agentTypeMap[lowerType]) {
             return agentTypeMap[lowerType];
         }
-        
+
         // If not in map, try to extract the agent name from patterns like "Research Agent" or "research_agent"
         const match = agentType.match(/^(\w+)(?:_agent|Agent)?$/i);
         if (match && match[1]) {
             // Capitalize first letter
             return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
         }
-        
+
         // Fallback: just capitalize first letter of whatever we have
         return agentType.charAt(0).toUpperCase() + agentType.slice(1);
     }
@@ -614,7 +614,7 @@ class EventViewer {
     formatSingleRowEventContent(event) {
         const eventType = this.formatEventType(event);
         const data = event.data || {};
-        
+
         // Include source if it's not the default 'system' source
         const sourcePrefix = event.source && event.source !== 'system' ? `[${event.source}] ` : '';
 
@@ -626,12 +626,12 @@ class EventViewer {
                 // Hook events: show tool name and operation details
                 const toolName = event.tool_name || data.tool_name || 'Unknown';
                 const hookType = event.subtype || 'Unknown';
-                
+
                 // Format specific hook types
                 if (hookType === 'pre_tool' || hookType === 'post_tool') {
                     const operation = data.operation_type || '';
-                    const status = hookType === 'post_tool' && data.success !== undefined 
-                        ? (data.success ? '✓' : '✗') 
+                    const status = hookType === 'post_tool' && data.success !== undefined
+                        ? (data.success ? '✓' : '✗')
                         : '';
                     dataDetails = `${toolName}${operation ? ` (${operation})` : ''}${status ? ` ${status}` : ''}`;
                 } else if (hookType === 'user_prompt') {
@@ -770,7 +770,7 @@ class EventViewer {
         if (hookNames[hookType]) {
             return hookNames[hookType];
         }
-        
+
         // Convert to string and handle null/undefined
         const typeStr = String(hookType || 'unknown');
         return typeStr.replace(/_/g, ' ');

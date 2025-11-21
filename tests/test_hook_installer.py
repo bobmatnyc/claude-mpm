@@ -204,7 +204,6 @@ class TestHookInstaller(unittest.TestCase):
         with patch.object(self.installer, "_install_commands"), patch.object(
             self.installer, "_cleanup_old_deployment"
         ):
-
             result = self.installer.install_hooks()
 
             self.assertTrue(result)
@@ -403,7 +402,6 @@ class TestHookInstaller(unittest.TestCase):
         with patch.object(
             self.installer, "is_version_compatible", return_value=(True, "Compatible")
         ), patch("os.access", return_value=True):
-
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertTrue(is_valid)
@@ -431,7 +429,6 @@ class TestHookInstaller(unittest.TestCase):
         ), patch.object(
             self.installer, "get_hook_script_path", return_value=Path("/hook.sh")
         ):
-
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertFalse(is_valid)
@@ -444,7 +441,6 @@ class TestHookInstaller(unittest.TestCase):
             "is_version_compatible",
             return_value=(False, "Version incompatible"),
         ):
-
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertFalse(is_valid)
@@ -473,7 +469,6 @@ class TestHookInstaller(unittest.TestCase):
         with patch.object(
             self.installer, "is_version_compatible", return_value=(True, "Compatible")
         ), patch("os.access", return_value=True):
-
             is_valid, issues = self.installer.verify_hooks()
 
             self.assertFalse(is_valid)

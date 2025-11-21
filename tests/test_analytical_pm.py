@@ -138,7 +138,7 @@ class AnalyticalPMValidator:
 
                     if not is_forbidden_context:
                         issues.append(
-                            f"Found forbidden pattern '{pattern}' in non-context usage: line {i+1}"
+                            f"Found forbidden pattern '{pattern}' in non-context usage: line {i + 1}"
                         )
 
         # Check specific problem phrases in examples (also with context)
@@ -172,7 +172,7 @@ class AnalyticalPMValidator:
 
                     if not is_forbidden_context:
                         issues.append(
-                            f"Found problematic phrase '{phrase}' in non-context usage: line {i+1}"
+                            f"Found problematic phrase '{phrase}' in non-context usage: line {i + 1}"
                         )
 
         return {

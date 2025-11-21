@@ -676,9 +676,9 @@ class CacheBenchmark:
         metadata = results.get("benchmark_metadata", {})
         metrics = results.get("aggregate_metrics", {})
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("💾 CACHE PERFORMANCE BENCHMARK RESULTS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Timestamp: {metadata.get('timestamp', 'Unknown')}")
         print(f"Total Tests: {metadata.get('total_tests', 0)}")
         print(f"Successful: {metadata.get('successful_tests', 0)}")
@@ -686,7 +686,7 @@ class CacheBenchmark:
         print(f"Execution Time: {metadata.get('execution_time', 0):.2f}s")
 
         print("\n📊 AGGREGATE METRICS:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(
             f"Average Hit Rate:        {metrics.get('average_hit_rate_percent', 0):.1f}%"
         )
@@ -701,7 +701,7 @@ class CacheBenchmark:
         target_hit_rate = metadata.get("target_hit_rate", 50.0)
         meets_target = metadata.get("meets_target", False)
         print("\n🎯 TARGET VALIDATION:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Target Hit Rate:         {target_hit_rate:.1f}%")
         print(
             f"Actual Hit Rate:         {metrics.get('average_hit_rate_percent', 0):.1f}%"
@@ -710,7 +710,7 @@ class CacheBenchmark:
 
         # Individual test results
         print("\n📋 INDIVIDUAL TEST RESULTS:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         for result in results.get("test_results", []):
             status = "✅" if result["success"] else "❌"
             hit_rate = result["hit_rate_percent"]

@@ -1,9 +1,9 @@
 /**
  * Event Bus Service
- * 
+ *
  * Central event management for decoupled component communication.
  * Implements a simple pub/sub pattern for dashboard components.
- * 
+ *
  * @module event-bus
  */
 
@@ -82,8 +82,8 @@ class EventBus {
         }
 
         const handlers = this.events.get(event);
-        const index = handlers.findIndex(wrapper => 
-            wrapper.id === handlerOrId || 
+        const index = handlers.findIndex(wrapper =>
+            wrapper.id === handlerOrId ||
             wrapper.handler === handlerOrId ||
             wrapper.handler._originalHandler === handlerOrId
         );
@@ -177,7 +177,7 @@ class EventBus {
     waitFor(event, timeout) {
         return new Promise((resolve, reject) => {
             let timeoutId;
-            
+
             const handler = (...args) => {
                 if (timeoutId) {
                     clearTimeout(timeoutId);

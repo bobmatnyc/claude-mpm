@@ -51,7 +51,9 @@ if __name__ == "__main__":
 
     # Initialize aggregator
     aggregator = EventAggregator(
-        host="localhost", port=dashboard_port, save_dir=None  # Will use config value
+        host="localhost",
+        port=dashboard_port,
+        save_dir=None,  # Will use config value
     )
 
     # Set up signal handlers

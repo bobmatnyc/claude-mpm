@@ -99,9 +99,9 @@ def test_similar_item_replacement():
             ):
                 async_items += 1
 
-        assert (
-            async_items == 1
-        ), f"Expected 1 async/await item after deduplication, found {async_items}"
+        assert async_items == 1, (
+            f"Expected 1 async/await item after deduplication, found {async_items}"
+        )
 
         print("✓ Similar item replacement works")
 
@@ -169,9 +169,9 @@ def test_substring_similarity_detection():
             ):
                 jwt_items += 1
 
-        assert (
-            jwt_items == 1
-        ), f"Expected 1 JWT item after deduplication, found {jwt_items}"
+        assert jwt_items == 1, (
+            f"Expected 1 JWT item after deduplication, found {jwt_items}"
+        )
 
         print("✓ Substring similarity detection works")
 
@@ -211,9 +211,9 @@ def test_case_insensitive_matching():
             ):
                 redis_items += 1
 
-        assert (
-            redis_items == 1
-        ), f"Expected 1 Redis item after deduplication, found {redis_items}"
+        assert redis_items == 1, (
+            f"Expected 1 Redis item after deduplication, found {redis_items}"
+        )
 
         print("✓ Case-insensitive matching works")
 
@@ -283,9 +283,9 @@ def test_deduplicate_section():
     )
 
     # Check that duplicates were removed
-    assert (
-        removed_count >= 2
-    ), f"Should have removed at least 2 duplicates, removed {removed_count}"
+    assert removed_count >= 2, (
+        f"Should have removed at least 2 duplicates, removed {removed_count}"
+    )
 
     # Check remaining items
     lines = deduped_content.split("\n")
@@ -300,12 +300,12 @@ def test_deduplicate_section():
             test_items.append(line.strip()[2:])
 
     # Should have 3 unique items (error handling + 2 async variations kept as most recent)
-    assert (
-        len(test_items) <= 3
-    ), f"Expected at most 3 unique items, found {len(test_items)}"
-    assert any(
-        "error handling" in item for item in test_items
-    ), "Error handling item should remain"
+    assert len(test_items) <= 3, (
+        f"Expected at most 3 unique items, found {len(test_items)}"
+    )
+    assert any("error handling" in item for item in test_items), (
+        "Error handling item should remain"
+    )
 
     print("✓ Section deduplication works")
 

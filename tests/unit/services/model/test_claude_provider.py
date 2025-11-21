@@ -470,7 +470,8 @@ class TestAnalyzeContent:
 
         # Act
         response = await provider.analyze_content(
-            content="", task=ModelCapability.SEO_ANALYSIS  # Empty content
+            content="",
+            task=ModelCapability.SEO_ANALYSIS,  # Empty content
         )
 
         # Assert

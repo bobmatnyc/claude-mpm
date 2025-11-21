@@ -219,7 +219,7 @@ async def demonstrate_circuit_breaker():
         cb.record_failure()
         status = cb.get_status()
         print(
-            f"  Failure {i+1}: State = {status['state']}, Can proceed = {status['can_proceed']}"
+            f"  Failure {i + 1}: State = {status['state']}, Can proceed = {status['can_proceed']}"
         )
 
         if status["state"] == "open":
@@ -242,7 +242,7 @@ async def demonstrate_circuit_breaker():
     for i in range(3):
         cb.record_success()
         status = cb.get_status()
-        print(f"  Success {i+1}: State = {status['state']}")
+        print(f"  Success {i + 1}: State = {status['state']}")
 
         if status["state"] == "closed":
             print("  Circuit breaker is now CLOSED - normal operation resumed")

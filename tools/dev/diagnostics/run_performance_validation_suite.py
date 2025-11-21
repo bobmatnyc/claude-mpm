@@ -129,9 +129,9 @@ class PerformanceValidationSuite:
 
         # Run each test suite
         for config in test_configs:
-            print(f"\n{'='*50}")
+            print(f"\n{'=' * 50}")
             print(f"Running {config['description']}")
-            print(f"{'='*50}")
+            print(f"{'=' * 50}")
 
             result = self.run_test_script(config["script"], config["category"])
             self.results[config["category"]] = result
@@ -229,13 +229,13 @@ class PerformanceValidationSuite:
             elif result.get("status") == "failed":
                 metrics["failed_tests"] += 1
                 metrics["issues_detected"].append(
-                    f'{category}: {result.get("error", "Test failed")}'
+                    f"{category}: {result.get('error', 'Test failed')}"
                 )
 
             elif result.get("status") in ["skipped", "timeout"]:
                 metrics["skipped_tests"] += 1
                 metrics["issues_detected"].append(
-                    f'{category}: {result.get("status", "unknown issue")}'
+                    f"{category}: {result.get('status', 'unknown issue')}"
                 )
 
         # Overall assessment

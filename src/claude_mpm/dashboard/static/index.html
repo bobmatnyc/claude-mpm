@@ -15,10 +15,10 @@
 
     <!-- External Dependencies -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    
+
     <!-- D3.js for Activity Tree Visualization -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    
+
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -142,7 +142,7 @@
 <body>
     <!-- Connection Notifications Area -->
     <div id="connection-notifications" class="connection-notifications"></div>
-    
+
     <div class="container">
         <!-- Header Section -->
         <div class="header">
@@ -437,19 +437,19 @@
         // Set up working directory environment variables
         // These will be used by the working-directory component
         // The server will inject these values through a separate API call
-        
+
         // Get the current working directory from the server
         fetch('/api/working-directory')
             .then(response => response.json())
             .then(data => {
                 window.processWorkingDirectory = data.working_directory || '/Users/masa/Projects/claude-mpm';
                 window.homeDirectory = data.home_directory || '/Users/masa';
-                
+
                 // Store in session storage for persistence
                 if (window.processWorkingDirectory && window.processWorkingDirectory !== '/') {
                     sessionStorage.setItem('currentWorkingDirectory', window.processWorkingDirectory);
                 }
-                
+
                 // Dispatch event to notify components that working directory is ready
                 window.dispatchEvent(new CustomEvent('workingDirectoryInitialized', {
                     detail: {
@@ -464,10 +464,10 @@
                 window.processWorkingDirectory = '/Users/masa/Projects/claude-mpm';
                 window.homeDirectory = '/Users/masa';
             });
-        
+
         // Add timestamp-based cache busting and ensure proper loading order
         const timestamp = Date.now();
-        
+
         // Load modules sequentially to ensure dashboard.js loads first
         const loadModule = (src) => {
             return new Promise((resolve, reject) => {
@@ -479,7 +479,7 @@
                 document.body.appendChild(script);
             });
         };
-        
+
         // Load shared services first, then tree modules, then components
         // Load services sequentially to ensure dependencies are available
         loadModule('/static/js/shared/tooltip-service.js')
@@ -531,19 +531,19 @@
             })
             .then(() => {
             console.log('All dashboard modules loaded successfully');
-            
+
             // Debug: Check if CodeViewer loaded
             if (window.CodeViewer) {
                 console.log('[DEBUG] CodeViewer is available on window object');
             } else {
                 console.error('[ERROR] CodeViewer NOT FOUND on window object!');
             }
-            
+
             // CodeViewer will auto-initialize and handle tab switching internally
-            
+
             // Browser Log Viewer initialization is now handled by UIStateManager
             // This prevents duplicate event handlers and tab selection conflicts
-            
+
             // Load bulletproof tab isolation fix
             loadModule('/static/js/tab-isolation-fix.js')
                 .then(() => {
@@ -569,21 +569,21 @@
                 console.error('[CRITICAL] Error loading dashboard modules:', error);
                 console.error('Stack trace:', error.stack);
             });
-            
+
             // Give modules time to execute and initialize dashboard
             setTimeout(() => {
                 console.log('Checking dashboard initialization...');
-                
+
                 if (window.dashboard) {
                     console.log('Dashboard found, checking auto-connect status...');
-                    
+
                     // Force auto-connect if not already connected
                     if (window.dashboard.socketManager) {
                         const socketManager = window.dashboard.socketManager;
-                        
+
                         if (!socketManager.isConnected() && !socketManager.isConnecting()) {
                             console.log('Dashboard loaded but not connected, forcing auto-connect...');
-                            
+
                             // Try to trigger auto-connect manually
                             const params = new URLSearchParams(window.location.search);
                             socketManager.initializeFromURL(params);
@@ -595,23 +595,23 @@
                     }
                 } else {
                     console.warn('Dashboard still not initialized after module loading');
-                    
+
                     // Try to manually trigger initialization
                     if (document.readyState === 'complete' || document.readyState === 'interactive') {
                         console.log('Document ready, attempting to trigger dashboard initialization...');
                         document.dispatchEvent(new Event('DOMContentLoaded'));
                     }
                 }
-                
+
                 // Debug: Test connection settings button
                 const connectionToggleBtn = document.getElementById('connection-toggle-btn');
                 if (connectionToggleBtn) {
                     console.log('Connection toggle button found, testing functionality...');
-                    
+
                     // Add a debug click handler to ensure the button works
                     connectionToggleBtn.addEventListener('click', () => {
                         console.log('Connection toggle button clicked (debug handler)');
-                        
+
                         if (window.dashboard && window.dashboard.socketManager) {
                             console.log('Calling socketManager.toggleConnectionControls()');
                             window.dashboard.socketManager.toggleConnectionControls();

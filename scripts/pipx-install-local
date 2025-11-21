@@ -257,13 +257,13 @@ fi
 
 if [[ -f "$CLAUDE_MPM_BIN" ]] || command -v "$CLAUDE_MPM_BIN" &> /dev/null; then
     print_success "Installation completed successfully!"
-    
+
     # Show version
     if [[ -n "$INSTALL_DIR" ]]; then
         VERSION_OUTPUT=$("$CLAUDE_MPM_BIN" --version 2>/dev/null || echo "Version check failed")
         print_info "Installed version: $VERSION_OUTPUT"
         print_info "Binary location: $CLAUDE_MPM_BIN"
-        
+
         # Show usage instructions
         echo
         print_info "To use this installation:"

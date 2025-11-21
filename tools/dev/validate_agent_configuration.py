@@ -80,9 +80,9 @@ class AgentConfigValidator:
         """Generate a detailed validation report."""
         is_valid, errors = self.validate_file(file_path)
 
-        report = f"\n{'='*60}\n"
+        report = f"\n{'=' * 60}\n"
         report += f"Validation Report for: {file_path.name}\n"
-        report += f"{'='*60}\n\n"
+        report += f"{'=' * 60}\n\n"
 
         if is_valid:
             report += "✅ VALID - Configuration passes all validation checks\n"
@@ -169,9 +169,9 @@ def validate_all_templates():
         results.append((template_file, is_valid, errors))
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Agent Template Validation Summary")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     valid_count = sum(1 for _, is_valid, _ in results if is_valid)
     print(f"Total templates: {len(results)}")

@@ -1,8 +1,8 @@
 /**
  * Tree Constants and Configuration
- * 
+ *
  * Constants and default configurations for the code tree visualization.
- * 
+ *
  * @module tree-constants
  */
 
@@ -11,12 +11,12 @@ const treeConstants = {
     DEFAULT_MARGIN: { top: 20, right: 20, bottom: 20, left: 20 },
     DEFAULT_WIDTH: 960,
     DEFAULT_HEIGHT: 600,
-    
+
     // Animation settings
     ANIMATION_DURATION: 750,
     TOOLTIP_FADE_DURATION: 200,
     TOOLTIP_HIDE_DELAY: 500,
-    
+
     // Node visualization
     NODE_RADIUS: {
         DEFAULT: 6,
@@ -24,38 +24,38 @@ const treeConstants = {
         LARGE: 8,
         EXPANDED: 10
     },
-    
+
     // Colors
     COLORS: {
         // Complexity colors
         COMPLEXITY_LOW: '#52c41a',      // Green
         COMPLEXITY_MEDIUM: '#faad14',   // Orange
         COMPLEXITY_HIGH: '#f5222d',      // Red
-        
+
         // Node state colors
         NODE_DEFAULT: '#69b7ff',
         NODE_SELECTED: '#1890ff',
         NODE_HOVER: '#40a9ff',
         NODE_LOADING: '#ffc53d',
         NODE_ERROR: '#ff4d4f',
-        
+
         // Link colors
         LINK_DEFAULT: '#d9d9d9',
         LINK_SELECTED: '#1890ff',
-        
+
         // Text colors
         TEXT_PRIMARY: '#262626',
         TEXT_SECONDARY: '#8c8c8c',
         TEXT_DISABLED: '#bfbfbf'
     },
-    
+
     // Tree layout
     TREE_LAYOUT: {
         NODE_SIZE: [100, 40],
         SEPARATION: (a, b) => (a.parent === b.parent ? 1 : 2),
         RADIAL_SEPARATION: (a, b) => (a.parent === b.parent ? 1 : 2) / a.depth
     },
-    
+
     // File type mappings
     LANGUAGE_EXTENSIONS: {
         'py': 'python',
@@ -95,7 +95,7 @@ const treeConstants = {
         'bat': 'batch',
         'md': 'markdown'
     },
-    
+
     // Default filters
     DEFAULT_FILTERS: {
         language: 'all',
@@ -104,7 +104,7 @@ const treeConstants = {
         maxComplexity: 999,
         showHidden: false
     },
-    
+
     // API endpoints
     API_ENDPOINTS: {
         FILE_READ: '/api/file/read',
@@ -112,7 +112,7 @@ const treeConstants = {
         ANALYZE_DIRECTORY: '/api/analyze/directory',
         SEARCH: '/api/search'
     },
-    
+
     // WebSocket events
     SOCKET_EVENTS: {
         CONNECT: 'connect',
@@ -126,7 +126,7 @@ const treeConstants = {
         NODE_EXPANDED: 'node_expanded',
         NODE_COLLAPSED: 'node_collapsed'
     },
-    
+
     // Messages
     MESSAGES: {
         NO_WORKING_DIR: 'Please select a working directory to view the code tree',
@@ -139,7 +139,7 @@ const treeConstants = {
         CLICK_TO_EXPLORE: 'Click to explore contents',
         CLICK_TO_ANALYZE: 'Click to analyze file'
     },
-    
+
     // Performance thresholds
     PERFORMANCE: {
         MAX_NODES_RENDER: 1000,
@@ -148,7 +148,7 @@ const treeConstants = {
         DEBOUNCE_RESIZE: 150,
         CACHE_TTL: 300000  // 5 minutes
     },
-    
+
     // Icon mappings
     ICONS: {
         // Node type icons
@@ -160,13 +160,13 @@ const treeConstants = {
         VARIABLE: '📍',
         DIRECTORY: '📁',
         FILE: '📄',
-        
+
         // State icons
         LOADING: '⏳',
         ERROR: '❌',
         WARNING: '⚠️',
         SUCCESS: '✅',
-        
+
         // Action icons
         EXPAND: '▶',
         COLLAPSE: '▼',
@@ -175,34 +175,34 @@ const treeConstants = {
         REFRESH: '🔄',
         SETTINGS: '⚙️'
     },
-    
+
     // CSS classes
     CSS_CLASSES: {
         // Container classes
         CONTAINER: 'code-tree-container',
         SVG: 'code-tree-svg',
         GROUP: 'code-tree-group',
-        
+
         // Node classes
         NODE: 'tree-node',
         NODE_SELECTED: 'tree-node-selected',
         NODE_HOVER: 'tree-node-hover',
         NODE_LOADING: 'tree-node-loading',
         NODE_ERROR: 'tree-node-error',
-        
+
         // Link classes
         LINK: 'tree-link',
         LINK_SELECTED: 'tree-link-selected',
-        
+
         // Text classes
         LABEL: 'tree-label',
         LABEL_PRIMARY: 'tree-label-primary',
         LABEL_SECONDARY: 'tree-label-secondary',
-        
+
         // Tooltip classes
         TOOLTIP: 'code-tree-tooltip',
         TOOLTIP_VISIBLE: 'code-tree-tooltip-visible',
-        
+
         // Control classes
         CONTROLS: 'tree-controls',
         CONTROL_BTN: 'tree-control-btn',

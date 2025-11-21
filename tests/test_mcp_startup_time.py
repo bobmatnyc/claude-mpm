@@ -96,7 +96,7 @@ def measure_process_pool_efficiency():
     # Simulate multiple agent invocations
     times = []
     for i in range(3):
-        print(f"  Invocation {i+1}/3...")
+        print(f"  Invocation {i + 1}/3...")
         start_time = time.time()
 
         # Simulate agent invocation

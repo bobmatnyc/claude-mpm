@@ -102,7 +102,7 @@ class ResourceMonitor(SyncBaseService, IResourceMonitor):
         self._initialized = True
         self.log_info(
             f"Resource monitor initialized "
-            f"(fd_threshold={self.fd_threshold_percent*100:.0f}%, "
+            f"(fd_threshold={self.fd_threshold_percent * 100:.0f}%, "
             f"thread_threshold={self.thread_threshold}, "
             f"connection_threshold={self.connection_threshold}, "
             f"disk_threshold={self.disk_threshold_mb}MB)"

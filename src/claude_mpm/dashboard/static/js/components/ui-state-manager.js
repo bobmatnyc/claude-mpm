@@ -62,7 +62,7 @@ class UIStateManager {
 
         this.setupEventHandlers();
         console.log('UI state manager initialized with hash navigation');
-        
+
         // Initialize with current hash
         this.handleHashChange();
     }
@@ -114,16 +114,16 @@ class UIStateManager {
         console.log('[Hash Navigation] - Is hash in mapping?', hash in this.hashToTab);
         console.log('[Hash Navigation] - Hash length:', hash.length);
         console.log('[Hash Navigation] - Hash char codes:', hash.split('').map(c => c.charCodeAt(0)));
-        
+
         const tabName = this.hashToTab[hash] || 'events';
         console.log('[Hash Navigation] Final resolved tab name:', tabName);
-        
+
         // Special logging for File Tree tab
         if (tabName === 'claude-tree' || hash === '#file_tree') {
             console.log('[UIStateManager] FILE TREE TAB SELECTED via hash:', hash);
             console.log('[UIStateManager] Tab name resolved to:', tabName);
         }
-        
+
         this.switchTab(tabName, false); // false = don't update hash (we're responding to hash change)
     }
 
@@ -143,11 +143,11 @@ class UIStateManager {
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 console.log('[UIStateManager] Tab button clicked:', e.target);
-                
+
                 // Prevent default only if we're going to handle it
                 const tabName = this.getTabNameFromButton(e.target);
                 console.log('[UIStateManager] Resolved tab name:', tabName);
-                
+
                 if (tabName) {
                     // Let the href attribute update the hash naturally, which will trigger our hashchange handler
                     // But also explicitly trigger the switch in case href doesn't work
@@ -161,7 +161,7 @@ class UIStateManager {
                 }
             });
         });
-        
+
         console.log('[UIStateManager] Tab click handlers set up for', document.querySelectorAll('.tab-button').length, 'buttons');
     }
 
@@ -197,7 +197,7 @@ class UIStateManager {
         console.log('[getTabNameFromButton] DEBUG: button object:', button);
         console.log('[getTabNameFromButton] DEBUG: button.nodeType:', button.nodeType);
         console.log('[getTabNameFromButton] DEBUG: button.tagName:', button.tagName);
-        
+
         // CRITICAL FIX: Make sure we're dealing with the actual button element
         // Sometimes the click target might be a child element (like the emoji icon)
         let targetButton = button;
@@ -205,29 +205,29 @@ class UIStateManager {
             targetButton = button.closest('.tab-button');
             console.log('[getTabNameFromButton] DEBUG: Used closest() to find actual button');
         }
-        
+
         // First check for data-tab attribute
         const dataTab = targetButton ? targetButton.getAttribute('data-tab') : null;
         console.log('[getTabNameFromButton] DEBUG: data-tab attribute:', dataTab);
         console.log('[getTabNameFromButton] DEBUG: dataTab truthy:', !!dataTab);
-        
+
         // CRITICAL: Specifically handle the File Tree case
         if (dataTab === 'claude-tree') {
             console.log('[getTabNameFromButton] DEBUG: Found claude-tree data-tab, returning it');
             return 'claude-tree';
         }
-        
+
         if (dataTab) {
             console.log('[getTabNameFromButton] DEBUG: Returning dataTab:', dataTab);
             return dataTab;
         }
-        
+
         // Fallback to text content matching
         const text = targetButton ? targetButton.textContent.toLowerCase() : '';
         console.log('[getTabNameFromButton] DEBUG: text content:', text);
         console.log('[getTabNameFromButton] DEBUG: text includes file tree:', text.includes('file tree'));
         console.log('[getTabNameFromButton] DEBUG: text includes events:', text.includes('events'));
-        
+
         // CRITICAL: Check File Tree FIRST since it's the problematic one
         if (text.includes('file tree') || text.includes('📝')) {
             console.log('[getTabNameFromButton] DEBUG: Matched file tree, returning claude-tree');
@@ -241,7 +241,7 @@ class UIStateManager {
         if (text.includes('sessions')) return 'sessions';
         if (text.includes('system')) return 'system';
         if (text.includes('events') || text.includes('📊')) return 'events';
-        
+
         console.log('[getTabNameFromButton] DEBUG: No match, falling back to events');
         return 'events';
     }

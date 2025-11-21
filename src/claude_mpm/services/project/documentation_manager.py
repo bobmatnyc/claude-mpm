@@ -369,7 +369,8 @@ class DocumentationManager:
         sorted_sections = sorted(
             sections.items(),
             key=lambda x: self.SECTION_PRIORITY.get(
-                self._get_section_key(x[0]), 50  # Default priority
+                self._get_section_key(x[0]),
+                50,  # Default priority
             ),
             reverse=True,  # Higher priority first
         )

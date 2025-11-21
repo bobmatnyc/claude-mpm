@@ -225,7 +225,9 @@ def setup_logging(
 
             # Use rotating file handler
             file_handler = logging.handlers.RotatingFileHandler(
-                log_file, maxBytes=10 * 1024 * 1024, backupCount=5  # 10 MB
+                log_file,
+                maxBytes=10 * 1024 * 1024,
+                backupCount=5,  # 10 MB
             )
         else:
             # Use default log directory

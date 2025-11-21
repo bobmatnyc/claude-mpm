@@ -250,9 +250,9 @@ Update Mode: Smart merge with existing content
 
     prompt += f"""
 Existing Documentation Analysis:
-- Current CLAUDE.md: {doc_analysis.get('size', 0):,} characters, {doc_analysis.get('lines', 0)} lines
-- Has Priority Index: {'Yes' if doc_analysis.get('has_priority_index') else 'No'}
-- Custom Sections: {len(doc_analysis.get('custom_sections', []))} found
+- Current CLAUDE.md: {doc_analysis.get("size", 0):,} characters, {doc_analysis.get("lines", 0)} lines
+- Has Priority Index: {"Yes" if doc_analysis.get("has_priority_index") else "No"}
+- Custom Sections: {len(doc_analysis.get("custom_sections", []))} found
 """
     if preserve_custom and doc_analysis.get("custom_sections"):
         prompt += f"- Preserve Custom Sections: {', '.join(doc_analysis['custom_sections'][:5])}\n"
@@ -334,12 +334,12 @@ You are Research agent analyzing git history to provide PM with intelligent proj
     if git_analysis.get("adaptive_mode"):
         actual_days = git_analysis.get("actual_time_span", "extended period")
         prompt += f""" (adaptive: {actual_days} days analyzed)
-- **Note**: {git_analysis.get('reason', 'Analysis window adjusted to ensure meaningful context')}"""
+- **Note**: {git_analysis.get("reason", "Analysis window adjusted to ensure meaningful context")}"""
 
     prompt += f"""
 - **Commits Analyzed**: {len(commits)} commits
-- **Branches**: {', '.join(branches[:5]) if branches else 'main'}
-- **Contributors**: {', '.join(contributors.keys()) if contributors else 'Unknown'}
+- **Branches**: {", ".join(branches[:5]) if branches else "main"}
+- **Contributors**: {", ".join(contributors.keys()) if contributors else "Unknown"}
 
 ## Your Mission
 

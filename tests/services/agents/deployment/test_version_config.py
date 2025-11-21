@@ -153,9 +153,9 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
             "CLAUDE_CONFIG_DIR": str(config_dir),
         }
 
-        mock_dependencies["environment_manager"].set_claude_environment.return_value = (
-            expected_env
-        )
+        mock_dependencies[
+            "environment_manager"
+        ].set_claude_environment.return_value = expected_env
 
         result = service.set_claude_environment(config_dir)
 
@@ -167,9 +167,9 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
     def test_set_claude_environment_default(self, service, mock_dependencies):
         """Test setting Claude environment with default directory."""
         expected_env = {"CLAUDE_AGENTS_DIR": "/default/agents"}
-        mock_dependencies["environment_manager"].set_claude_environment.return_value = (
-            expected_env
-        )
+        mock_dependencies[
+            "environment_manager"
+        ].set_claude_environment.return_value = expected_env
 
         result = service.set_claude_environment()
 

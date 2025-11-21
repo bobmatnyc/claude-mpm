@@ -3,6 +3,7 @@
 # This module is part of GitDB and is released under
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test everything about packs reading and writing"""
+
 import contextlib
 import os
 import tempfile
@@ -29,7 +30,6 @@ def bin_sha_from_filename(filename):
 
 
 class TestPack(TestBase):
-
     packindexfile_v1 = (
         fixture_path("packs/pack-c0438c19fb16422b6bbcce24387b3264416d485b.idx"),
         1,

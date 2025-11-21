@@ -254,12 +254,12 @@ class TestAgentSystemE2E:
         loader._load_agents()
 
         # Validate results
-        assert (
-            loader._metrics["agents_loaded"] == 2
-        ), f"Should load 2 valid agents, but loaded {loader._metrics['agents_loaded']}"
-        assert (
-            loader._metrics["validation_failures"] == 1
-        ), "Should have 1 validation failure"
+        assert loader._metrics["agents_loaded"] == 2, (
+            f"Should load 2 valid agents, but loaded {loader._metrics['agents_loaded']}"
+        )
+        assert loader._metrics["validation_failures"] == 1, (
+            "Should have 1 validation failure"
+        )
         assert "test_agent_1" in loader._agent_registry
         assert "test_agent_2" in loader._agent_registry
         assert "invalid_agent" not in loader._agent_registry
@@ -337,7 +337,7 @@ class TestAgentSystemE2E:
         logger.info(
             f"First load: {first_load_time:.6f}s, Cached load: {cached_load_time:.6f}s"
         )
-        logger.info(f"Cache speedup: {first_load_time/cached_load_time:.2f}x")
+        logger.info(f"Cache speedup: {first_load_time / cached_load_time:.2f}x")
 
     def test_multi_agent_deployment_lifecycle():
         """
@@ -470,9 +470,9 @@ class TestAgentSystemE2E:
         cache_hit_rate = loader._metrics["cache_hits"] / (
             loader._metrics["cache_hits"] + loader._metrics["cache_misses"]
         )
-        assert (
-            cache_hit_rate > 0.7
-        ), f"Cache hit rate {cache_hit_rate:.2%} should be > 70%"
+        assert cache_hit_rate > 0.7, (
+            f"Cache hit rate {cache_hit_rate:.2%} should be > 70%"
+        )
 
         # Performance analysis
         avg_duration = sum(r["duration"] for r in all_results) / len(all_results)
@@ -562,9 +562,9 @@ class TestAgentSystemE2E:
         assert len(analysis_agents) == 5  # 15 agents, every 3rd is 'analysis'
 
         # Performance check
-        assert (
-            discovery_time < 1.0
-        ), f"Discovery of {num_discovery_agents} agents took {discovery_time:.3f}s (should be < 1s)"
+        assert discovery_time < 1.0, (
+            f"Discovery of {num_discovery_agents} agents took {discovery_time:.3f}s (should be < 1s)"
+        )
         logger.info(
             f"Discovered {num_discovery_agents} agents in {discovery_time:.3f}s"
         )
@@ -787,9 +787,9 @@ class TestAgentSystemE2E:
 
         # Validate reasonable memory usage
         avg_memory_per_agent = (cached_memory - initial_memory) / num_memory_agents
-        assert (
-            avg_memory_per_agent < 1.0
-        ), f"Average memory per agent {avg_memory_per_agent:.2f} MB is too high"
+        assert avg_memory_per_agent < 1.0, (
+            f"Average memory per agent {avg_memory_per_agent:.2f} MB is too high"
+        )
 
     def test_production_readiness_checks():
         """
@@ -875,9 +875,9 @@ class TestAgentSystemE2E:
 
         # Production criteria
         assert error_rate < 0.01, f"Error rate {error_rate:.2%} exceeds 1% threshold"
-        assert (
-            avg_duration < 0.1
-        ), f"Average duration {avg_duration:.3f}s exceeds 100ms threshold"
+        assert avg_duration < 0.1, (
+            f"Average duration {avg_duration:.3f}s exceeds 100ms threshold"
+        )
         assert final_metrics["cache_hit_rate_percent"] > 80, "Cache hit rate below 80%"
 
 

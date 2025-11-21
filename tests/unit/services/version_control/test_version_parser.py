@@ -459,10 +459,7 @@ class TestChangelogVersionParsing:
         # Arrange
         changelog = temp_project_dir / "CHANGELOG.md"
         changelog.write_text(
-            "# Changelog\n\n"
-            "## [1.2.3] - 2023-06-15\n"
-            "- Added feature X\n"
-            "- Fixed bug Y\n"
+            "# Changelog\n\n## [1.2.3] - 2023-06-15\n- Added feature X\n- Fixed bug Y\n"
         )
 
         # Act

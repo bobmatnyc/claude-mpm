@@ -159,9 +159,9 @@ class SocketIOMonitor:
 
     def _display_event(self, event: Dict[str, Any]):
         """Display an event with formatting."""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📨 EVENT #{event['index']} | {event['timestamp']}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Event Name: {event['event_name']}")
 
         data = event["data"]

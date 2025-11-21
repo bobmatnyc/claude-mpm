@@ -226,7 +226,7 @@ async def main():
 =======================
 
 Connecting to dashboard at localhost:{args.port}
-Will generate {'hook-style' if args.hook_events else 'test'} events.
+Will generate {"hook-style" if args.hook_events else "test"} events.
 
 Make sure the dashboard is open in your browser to see the events!
 Open: http://localhost:{args.port}

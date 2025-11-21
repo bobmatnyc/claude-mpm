@@ -86,7 +86,7 @@ def send_test_events():
 
     for i, event in enumerate(test_events):
         print(
-            f"   Event {i+1}: type='{event.get('type', 'none')}', tool='{event.get('tool_name', event.get('data', {}).get('tool_name', 'none'))}'"
+            f"   Event {i + 1}: type='{event.get('type', 'none')}', tool='{event.get('tool_name', event.get('data', {}).get('tool_name', 'none'))}'"
         )
         sio.emit("event", event)
         time.sleep(0.1)  # Small delay between events

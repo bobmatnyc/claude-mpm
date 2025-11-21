@@ -1,6 +1,6 @@
 /**
  * Connection Debug Panel
- * 
+ *
  * Provides detailed connection metrics and debugging tools
  * for troubleshooting connection issues.
  */
@@ -10,17 +10,17 @@ class ConnectionDebugPanel {
         this.connectionManager = connectionManager;
         this.isVisible = false;
         this.updateInterval = null;
-        
+
         this.init();
     }
-    
+
     init() {
         // Create debug panel HTML
         this.createPanel();
-        
+
         // Setup event listeners
         this.setupEventListeners();
-        
+
         // Start metric updates when visible
         this.connectionManager.onStatusChange(() => {
             if (this.isVisible) {
@@ -28,19 +28,19 @@ class ConnectionDebugPanel {
             }
         });
     }
-    
+
     createPanel() {
         const panel = document.createElement('div');
         panel.id = 'connection-debug-panel';
         panel.className = 'connection-debug-panel';
         panel.style.display = 'none';
-        
+
         panel.innerHTML = `
             <div class="debug-panel-header">
                 <h3>🔧 Connection Debug</h3>
                 <button id="close-debug-panel" class="btn-close">✕</button>
             </div>
-            
+
             <div class="debug-panel-content">
                 <!-- Connection Info -->
                 <div class="debug-section">
@@ -68,7 +68,7 @@ class ConnectionDebugPanel {
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Connection Metrics -->
                 <div class="debug-section">
                     <h4>Metrics</h4>
@@ -91,7 +91,7 @@ class ConnectionDebugPanel {
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Connection Timeline -->
                 <div class="debug-section">
                     <h4>Connection Timeline</h4>
@@ -99,7 +99,7 @@ class ConnectionDebugPanel {
                         <!-- Timeline events will be added here -->
                     </div>
                 </div>
-                
+
                 <!-- Debug Actions -->
                 <div class="debug-section">
                     <h4>Debug Actions</h4>
@@ -111,7 +111,7 @@ class ConnectionDebugPanel {
                         <button id="debug-export-logs" class="btn-action">Export Logs</button>
                     </div>
                 </div>
-                
+
                 <!-- Network Tests -->
                 <div class="debug-section">
                     <h4>Network Tests</h4>
@@ -130,7 +130,7 @@ class ConnectionDebugPanel {
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Event Log -->
                 <div class="debug-section">
                     <h4>Recent Events</h4>
@@ -140,13 +140,13 @@ class ConnectionDebugPanel {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(panel);
-        
+
         // Add styles
         this.addStyles();
     }
-    
+
     addStyles() {
         const style = document.createElement('style');
         style.textContent = `
@@ -164,7 +164,7 @@ class ConnectionDebugPanel {
                 display: flex;
                 flex-direction: column;
             }
-            
+
             .debug-panel-header {
                 display: flex;
                 justify-content: space-between;
@@ -173,12 +173,12 @@ class ConnectionDebugPanel {
                 background: linear-gradient(135deg, #667eea 0%, #4299e1 100%);
                 color: white;
             }
-            
+
             .debug-panel-header h3 {
                 margin: 0;
                 font-size: 16px;
             }
-            
+
             .btn-close {
                 background: rgba(255,255,255,0.2);
                 border: none;
@@ -190,63 +190,63 @@ class ConnectionDebugPanel {
                 font-size: 16px;
                 transition: background 0.2s;
             }
-            
+
             .btn-close:hover {
                 background: rgba(255,255,255,0.3);
             }
-            
+
             .debug-panel-content {
                 overflow-y: auto;
                 padding: 16px;
                 max-height: calc(80vh - 60px);
             }
-            
+
             .debug-section {
                 margin-bottom: 20px;
                 padding-bottom: 16px;
                 border-bottom: 1px solid #e2e8f0;
             }
-            
+
             .debug-section:last-child {
                 border-bottom: none;
             }
-            
+
             .debug-section h4 {
                 margin: 0 0 12px 0;
                 font-size: 14px;
                 color: #2d3748;
                 font-weight: 600;
             }
-            
+
             .debug-info {
                 background: #f7fafc;
                 padding: 12px;
                 border-radius: 8px;
             }
-            
+
             .info-row {
                 display: flex;
                 justify-content: space-between;
                 padding: 4px 0;
                 font-size: 13px;
             }
-            
+
             .info-label {
                 color: #718096;
             }
-            
+
             .info-value {
                 font-family: 'SF Mono', Monaco, monospace;
                 color: #2d3748;
                 font-weight: 500;
             }
-            
+
             .debug-actions {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 8px;
             }
-            
+
             .btn-action {
                 padding: 8px 12px;
                 background: #4299e1;
@@ -257,23 +257,23 @@ class ConnectionDebugPanel {
                 cursor: pointer;
                 transition: background 0.2s;
             }
-            
+
             .btn-action:hover {
                 background: #3182ce;
             }
-            
+
             .network-tests {
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
             }
-            
+
             .test-row {
                 display: flex;
                 align-items: center;
                 gap: 12px;
             }
-            
+
             .btn-test {
                 flex: 0 0 120px;
                 padding: 6px 12px;
@@ -284,7 +284,7 @@ class ConnectionDebugPanel {
                 font-size: 12px;
                 cursor: pointer;
             }
-            
+
             .test-result {
                 flex: 1;
                 padding: 6px 12px;
@@ -293,7 +293,7 @@ class ConnectionDebugPanel {
                 font-size: 12px;
                 font-family: 'SF Mono', Monaco, monospace;
             }
-            
+
             .debug-timeline {
                 max-height: 150px;
                 overflow-y: auto;
@@ -302,26 +302,26 @@ class ConnectionDebugPanel {
                 border-radius: 8px;
                 font-size: 12px;
             }
-            
+
             .timeline-event {
                 padding: 4px 0;
                 border-bottom: 1px solid #e2e8f0;
             }
-            
+
             .timeline-event:last-child {
                 border-bottom: none;
             }
-            
+
             .timeline-time {
                 color: #718096;
                 font-size: 11px;
             }
-            
+
             .timeline-desc {
                 color: #2d3748;
                 margin-top: 2px;
             }
-            
+
             .event-log {
                 max-height: 200px;
                 overflow-y: auto;
@@ -332,24 +332,24 @@ class ConnectionDebugPanel {
                 font-family: 'SF Mono', Monaco, monospace;
                 font-size: 11px;
             }
-            
+
             .log-entry {
                 padding: 2px 0;
             }
-            
+
             .log-time {
                 color: #718096;
             }
-            
+
             .log-type {
                 color: #4299e1;
                 font-weight: 600;
             }
-            
+
             .log-data {
                 color: #cbd5e0;
             }
-            
+
             @media (max-width: 768px) {
                 .connection-debug-panel {
                     right: 10px;
@@ -358,72 +358,72 @@ class ConnectionDebugPanel {
                 }
             }
         `;
-        
+
         document.head.appendChild(style);
     }
-    
+
     setupEventListeners() {
         // Close button
         document.getElementById('close-debug-panel').addEventListener('click', () => {
             this.hide();
         });
-        
+
         // Debug actions
         document.getElementById('debug-force-reconnect').addEventListener('click', () => {
             this.forceReconnect();
         });
-        
+
         document.getElementById('debug-request-stats').addEventListener('click', () => {
             this.requestStats();
         });
-        
+
         document.getElementById('debug-clear-buffer').addEventListener('click', () => {
             this.clearBuffer();
         });
-        
+
         document.getElementById('debug-simulate-disconnect').addEventListener('click', () => {
             this.simulateDisconnect();
         });
-        
+
         document.getElementById('debug-export-logs').addEventListener('click', () => {
             this.exportLogs();
         });
-        
+
         // Network tests
         document.getElementById('test-latency').addEventListener('click', () => {
             this.testLatency();
         });
-        
+
         document.getElementById('test-throughput').addEventListener('click', () => {
             this.testThroughput();
         });
-        
+
         document.getElementById('test-stability').addEventListener('click', () => {
             this.testStability();
         });
     }
-    
+
     show() {
         const panel = document.getElementById('connection-debug-panel');
         panel.style.display = 'flex';
         this.isVisible = true;
-        
+
         // Start metric updates
         this.startMetricUpdates();
-        
+
         // Initial update
         this.updateMetrics();
     }
-    
+
     hide() {
         const panel = document.getElementById('connection-debug-panel');
         panel.style.display = 'none';
         this.isVisible = false;
-        
+
         // Stop metric updates
         this.stopMetricUpdates();
     }
-    
+
     toggle() {
         if (this.isVisible) {
             this.hide();
@@ -431,78 +431,78 @@ class ConnectionDebugPanel {
             this.show();
         }
     }
-    
+
     startMetricUpdates() {
         this.updateInterval = setInterval(() => {
             this.updateMetrics();
         }, 1000);
     }
-    
+
     stopMetricUpdates() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
     }
-    
+
     updateMetrics() {
         const metrics = this.connectionManager.getMetrics();
         const socket = this.connectionManager.socket;
-        
+
         // Update connection info
         document.getElementById('debug-client-id').textContent = metrics.clientId || '--';
         document.getElementById('debug-socket-id').textContent = socket?.id || '--';
         document.getElementById('debug-state').textContent = metrics.connectionState || '--';
-        document.getElementById('debug-quality').textContent = 
+        document.getElementById('debug-quality').textContent =
             `${Math.round(metrics.connectionQuality * 100)}%`;
         document.getElementById('debug-sequence').textContent = metrics.lastSequence || '0';
-        
+
         // Update metrics
         document.getElementById('debug-total-events').textContent = metrics.totalEvents || '0';
         document.getElementById('debug-events-acked').textContent = metrics.eventsAcked || '0';
         document.getElementById('debug-buffered').textContent = metrics.bufferedEvents || '0';
         document.getElementById('debug-reconnects').textContent = metrics.totalReconnections || '0';
     }
-    
+
     addTimelineEvent(description) {
         const timeline = document.getElementById('debug-timeline');
         const event = document.createElement('div');
         event.className = 'timeline-event';
-        
+
         const now = new Date();
         event.innerHTML = `
             <div class="timeline-time">${now.toLocaleTimeString()}</div>
             <div class="timeline-desc">${description}</div>
         `;
-        
+
         timeline.insertBefore(event, timeline.firstChild);
-        
+
         // Keep only last 20 events
         while (timeline.children.length > 20) {
             timeline.removeChild(timeline.lastChild);
         }
     }
-    
+
     addLogEntry(type, data) {
         const log = document.getElementById('debug-event-log');
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        
+
         const now = new Date();
         entry.innerHTML = `
             <span class="log-time">${now.toLocaleTimeString()}</span>
             <span class="log-type">${type}</span>
             <span class="log-data">${JSON.stringify(data)}</span>
         `;
-        
+
         log.insertBefore(entry, log.firstChild);
-        
+
         // Keep only last 50 entries
         while (log.children.length > 50) {
             log.removeChild(log.lastChild);
         }
     }
-    
+
     // Debug actions
     forceReconnect() {
         this.addTimelineEvent('Force reconnect initiated');
@@ -513,47 +513,47 @@ class ConnectionDebugPanel {
             }, 100);
         }
     }
-    
+
     requestStats() {
         this.addTimelineEvent('Requesting connection stats');
         if (this.connectionManager.socket) {
             this.connectionManager.socket.emit('get_connection_stats');
         }
     }
-    
+
     clearBuffer() {
         this.addTimelineEvent('Clearing event buffer');
         this.connectionManager.eventBuffer = [];
         localStorage.removeItem('claude_mpm_event_buffer');
         this.updateMetrics();
     }
-    
+
     simulateDisconnect() {
         this.addTimelineEvent('Simulating disconnect');
         if (this.connectionManager.socket) {
             this.connectionManager.socket.disconnect();
         }
     }
-    
+
     exportLogs() {
         const logs = {
             metrics: this.connectionManager.getMetrics(),
             timeline: [],
             events: []
         };
-        
+
         // Collect timeline events
         const timeline = document.getElementById('debug-timeline');
         Array.from(timeline.children).forEach(child => {
             logs.timeline.push(child.textContent.trim());
         });
-        
+
         // Collect event log
         const eventLog = document.getElementById('debug-event-log');
         Array.from(eventLog.children).forEach(child => {
             logs.events.push(child.textContent.trim());
         });
-        
+
         // Download as JSON
         const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -562,18 +562,18 @@ class ConnectionDebugPanel {
         a.download = `connection-debug-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        
+
         this.addTimelineEvent('Logs exported');
     }
-    
+
     // Network tests
     async testLatency() {
         const resultEl = document.getElementById('latency-result');
         resultEl.textContent = 'Testing...';
-        
+
         const start = Date.now();
         this.connectionManager.socket.emit('ping');
-        
+
         // Wait for pong
         const pongHandler = () => {
             const latency = Date.now() - start;
@@ -581,9 +581,9 @@ class ConnectionDebugPanel {
             this.connectionManager.socket.off('pong', pongHandler);
             this.addTimelineEvent(`Latency test: ${latency}ms`);
         };
-        
+
         this.connectionManager.socket.on('pong', pongHandler);
-        
+
         // Timeout after 5 seconds
         setTimeout(() => {
             this.connectionManager.socket.off('pong', pongHandler);
@@ -592,15 +592,15 @@ class ConnectionDebugPanel {
             }
         }, 5000);
     }
-    
+
     async testThroughput() {
         const resultEl = document.getElementById('throughput-result');
         resultEl.textContent = 'Testing...';
-        
+
         // Send 100 events rapidly
         const start = Date.now();
         let received = 0;
-        
+
         const handler = () => {
             received++;
             if (received === 100) {
@@ -610,13 +610,13 @@ class ConnectionDebugPanel {
                 this.addTimelineEvent(`Throughput test: ${throughput} events/sec`);
             }
         };
-        
+
         this.connectionManager.socket.on('test_response', handler);
-        
+
         for (let i = 0; i < 100; i++) {
             this.connectionManager.socket.emit('test_event', { index: i });
         }
-        
+
         // Cleanup after 10 seconds
         setTimeout(() => {
             this.connectionManager.socket.off('test_response', handler);
@@ -625,26 +625,26 @@ class ConnectionDebugPanel {
             }
         }, 10000);
     }
-    
+
     async testStability() {
         const resultEl = document.getElementById('stability-result');
         resultEl.textContent = 'Testing (30s)...';
-        
+
         let disconnects = 0;
         let reconnects = 0;
         const startMetrics = { ...this.connectionManager.metrics };
-        
+
         // Monitor for 30 seconds
         setTimeout(() => {
             const endMetrics = this.connectionManager.metrics;
             disconnects = endMetrics.totalConnections - startMetrics.totalConnections;
-            
+
             if (disconnects === 0) {
                 resultEl.textContent = 'Stable ✓';
             } else {
                 resultEl.textContent = `${disconnects} drops`;
             }
-            
+
             this.addTimelineEvent(`Stability test: ${disconnects} disconnections`);
         }, 30000);
     }

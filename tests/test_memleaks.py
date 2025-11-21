@@ -14,7 +14,6 @@ PyPy appears to be completely unstable for this framework, probably
 because of how its JIT handles memory, so tests are skipped.
 """
 
-
 import contextlib
 import functools
 import os
@@ -460,7 +459,6 @@ class TestModuleFunctionsLeaks(TestMemoryLeak):
         self.execute(lambda: psutil._set_debug(False))
 
     if WINDOWS:
-
         # --- win services
 
         def test_win_service_iter(self):

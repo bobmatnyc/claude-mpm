@@ -3,6 +3,7 @@
 D3.js Activity Tree Test Script
 Tests the new linear graph tree implementation for the Activity view.
 """
+
 import contextlib
 import json
 import time

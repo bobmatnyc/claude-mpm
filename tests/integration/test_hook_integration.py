@@ -73,7 +73,6 @@ class TestHookEventFlow(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
         ) as MockEvents:
-
             handler = ClaudeHookHandler()
 
             # Configure event handlers
@@ -121,7 +120,6 @@ class TestHookEventFlow(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
         ) as MockEvents:
-
             handler = ClaudeHookHandler()
             mock_events = MockEvents.return_value
             mock_events.handle_stop_fast = track_timing
@@ -256,10 +254,7 @@ class TestConcurrentEvents(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
-
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             # Configure duplicate detector to allow all events
             mock_dup_instance = MockDup.return_value
             mock_dup_instance.is_duplicate.return_value = False
@@ -336,7 +331,6 @@ class TestErrorRecovery(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
         ) as MockEvents:
-
             handler = ClaudeHookHandler()
 
             # Configure handler to raise exception
@@ -386,7 +380,6 @@ class TestErrorRecovery(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EVENTBUS_AVAILABLE", False
         ):
-
             # Should still create handler
             with patch(
                 "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
@@ -400,10 +393,7 @@ class TestErrorRecovery(unittest.TestCase):
                 "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
             ), patch(
                 "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-            ), patch(
-                "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-            ):
-
+            ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
                 handler = ClaudeHookHandler()
                 self.assertIsNotNone(handler)
 
@@ -425,10 +415,7 @@ class TestPerformanceMetrics(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
-
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             handler = ClaudeHookHandler()
 
             # Process many events and measure time
@@ -469,10 +456,7 @@ class TestPerformanceMetrics(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
-
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             handler = ClaudeHookHandler()
 
             # Process many events
@@ -518,7 +502,6 @@ class TestPerformanceMetrics(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
         ) as MockEvents:
-
             handler = ClaudeHookHandler()
 
             # Configure slow handler
@@ -532,7 +515,6 @@ class TestPerformanceMetrics(unittest.TestCase):
             ) as mock_select, patch("signal.alarm") as mock_alarm, patch(
                 "sys.stdout", new_callable=Mock
             ):
-
                 # Setup mock event
                 mock_stdin.isatty.return_value = False
                 mock_stdin.read.return_value = json.dumps({"hook_event_name": "Stop"})
@@ -579,7 +561,6 @@ class TestEndToEndIntegration(unittest.TestCase):
                     "get_hook_script_path",
                     return_value=Path("/mock/script.sh"),
                 ):
-
                     # Install hooks
                     success = installer.install_hooks()
                     self.assertTrue(success)
@@ -629,7 +610,6 @@ class TestEndToEndIntegration(unittest.TestCase):
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
         ) as MockEvents:
-
             # Configure mocks
             mock_dup = MockDup.return_value
             mock_dup.is_duplicate.return_value = False

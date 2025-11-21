@@ -1,3 +1,6 @@
+# ============================================================================
+# Meta Information
+# ============================================================================
 # Claude MPM Installation Makefile
 # =================================
 # Automates the installation and setup of claude-mpm
@@ -7,21 +10,57 @@
 #   make install  - Install claude-mpm globally
 #   make setup    - Complete setup (install + shell config)
 
+# ============================================================================
+# PHONY Target Declarations
+# ============================================================================
 .PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all deploy-commands
+.PHONY: lock-deps lock-update lock-check lock-install lock-export lock-info
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
 .PHONY: release-build-current release-publish-current
 .PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
 .PHONY: update-homebrew-tap update-homebrew-tap-dry-run
+.PHONY: quality-ci build-metadata build-info-json
+.PHONY: env-info env-set-dev env-set-staging env-set-prod
 
-# Default shell
-SHELL := /bin/bash
+# ============================================================================
+# Shell Configuration (Strict Mode)
+# ============================================================================
+SHELL := bash
+.SHELLFLAGS := -eu -o pipefail -c
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
 
+# ============================================================================
+# Configuration Variables
+# ============================================================================
 # Colors for output
 BLUE := \033[0;34m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
 RED := \033[0;31m
 NC := \033[0m # No Color
+
+# Environment configuration
+ENV ?= development
+export ENV
+
+# Environment-specific settings
+ifeq ($(ENV),production)
+    PYTEST_ARGS := -n auto -v --tb=short --strict-markers
+    BUILD_FLAGS := --no-isolation
+else ifeq ($(ENV),staging)
+    PYTEST_ARGS := -n auto -v --tb=line
+    BUILD_FLAGS :=
+else
+    # development (default)
+    PYTEST_ARGS := -n auto -v --tb=long
+    BUILD_FLAGS :=
+endif
+
+# Build directories and Python executable
+BUILD_DIR := build
+DIST_DIR := dist
+PYTHON := python3
 
 # Detect user's shell
 DETECTED_SHELL := $(shell echo $$SHELL | grep -o '[^/]*$$')
@@ -56,6 +95,10 @@ export SHELL_WRAPPER
 # Default target
 all: setup
 
+# ============================================================================
+# Help System
+# ============================================================================
+
 help: ## Show this help message
 	@echo "Claude MPM Installation Makefile"
 	@echo "==============================="
@@ -73,6 +116,10 @@ help: ## Show this help message
 	@echo ""
 	@echo "Detected shell: $(BLUE)$(DETECTED_SHELL)$(NC)"
 	@echo "Shell RC file:  $(BLUE)$(SHELL_RC)$(NC)"
+
+# ============================================================================
+# Installation Targets
+# ============================================================================
 
 check-pipx: ## Check if pipx is installed
 	@if ! command -v pipx &> /dev/null; then \
@@ -113,6 +160,103 @@ install-local: check-pipx ## Install claude-mpm from current directory (developm
 install: install-pipx install-global ## Install pipx and claude-mpm globally
 
 install-dev: install-pipx install-local ## Install pipx and claude-mpm from local source
+
+# ============================================================================
+# Dependency Management
+# ============================================================================
+#
+# Workflow for updating dependencies:
+#   1. make lock-check         - Verify current lock state
+#   2. make lock-update        - Update to latest compatible versions
+#   3. make test               - Test with updated deps
+#   4. git diff poetry.lock    - Review changes
+#   5. git add poetry.lock     - Commit if tests pass
+#
+# For reproducible installs:
+#   make lock-install          - Install exact versions from lock file
+#
+# For CI/CD integration:
+#   make lock-check            - Fail if lock file is outdated
+#   make lock-export           - Generate requirements.txt for Docker
+# ============================================================================
+
+.PHONY: lock-deps lock-update lock-check lock-install lock-export lock-info
+
+lock-deps: ## Lock dependencies without updating (poetry.lock)
+	@echo "$(YELLOW)🔒 Locking dependencies...$(NC)"
+	@if command -v poetry >/dev/null 2>&1; then \
+		poetry lock --no-update; \
+		echo "$(GREEN)✓ Dependencies locked in poetry.lock$(NC)"; \
+	else \
+		echo "$(RED)✗ Poetry not found. Install: pip install poetry$(NC)"; \
+		exit 1; \
+	fi
+
+lock-update: ## Update all dependencies to latest compatible versions
+	@echo "$(YELLOW)⬆️  Updating dependencies...$(NC)"
+	@if command -v poetry >/dev/null 2>&1; then \
+		poetry update; \
+		echo "$(GREEN)✓ Dependencies updated$(NC)"; \
+		echo "$(YELLOW)📋 Review changes with: git diff poetry.lock$(NC)"; \
+	else \
+		echo "$(RED)✗ Poetry not found. Install: pip install poetry$(NC)"; \
+		exit 1; \
+	fi
+
+lock-check: ## Check if poetry.lock is up to date with pyproject.toml
+	@echo "$(YELLOW)🔍 Checking lock file consistency...$(NC)"
+	@if command -v poetry >/dev/null 2>&1; then \
+		poetry check; \
+		poetry lock --check; \
+		echo "$(GREEN)✓ Lock file is up to date$(NC)"; \
+	else \
+		echo "$(RED)✗ Poetry not found. Install: pip install poetry$(NC)"; \
+		exit 1; \
+	fi
+
+lock-install: ## Install dependencies from lock file (reproducible)
+	@echo "$(YELLOW)📦 Installing from lock file...$(NC)"
+	@if command -v poetry >/dev/null 2>&1; then \
+		poetry install --sync; \
+		echo "$(GREEN)✓ Dependencies installed from poetry.lock$(NC)"; \
+	else \
+		echo "$(RED)✗ Poetry not found. Install: pip install poetry$(NC)"; \
+		exit 1; \
+	fi
+
+lock-export: ## Export locked dependencies to requirements.txt format
+	@echo "$(YELLOW)📤 Exporting dependencies...$(NC)"
+	@if command -v poetry >/dev/null 2>&1; then \
+		poetry export -f requirements.txt --output requirements.txt --without-hashes; \
+		poetry export -f requirements.txt --output requirements-dev.txt --with dev --without-hashes; \
+		echo "$(GREEN)✓ Exported to requirements.txt and requirements-dev.txt$(NC)"; \
+	else \
+		echo "$(RED)✗ Poetry not found. Install: pip install poetry$(NC)"; \
+		exit 1; \
+	fi
+
+lock-info: ## Display dependency lock information
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)Dependency Lock Information$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@if [ -f poetry.lock ]; then \
+		echo "$(GREEN)✓ poetry.lock exists$(NC)"; \
+		echo ""; \
+		echo "Lock file modified: $$(stat -f %Sm -t '%Y-%m-%d %H:%M:%S' poetry.lock 2>/dev/null || stat -c %y poetry.lock 2>/dev/null || echo 'unknown')"; \
+		echo "Lock file size: $$(du -h poetry.lock | cut -f1)"; \
+		echo ""; \
+		if command -v poetry >/dev/null 2>&1; then \
+			echo "$(YELLOW)Direct dependencies:$(NC)"; \
+			poetry show --tree --only main | head -20; \
+		fi; \
+	else \
+		echo "$(RED)✗ poetry.lock not found$(NC)"; \
+		echo "$(YELLOW)  Run: make lock-deps$(NC)"; \
+	fi
+
+# ============================================================================
+# Development Setup
+# ============================================================================
 
 detect-shell: ## Detect user's shell
 	@echo "Detected shell: $(BLUE)$(DETECTED_SHELL)$(NC)"
@@ -155,6 +299,42 @@ setup-dev: install-dev setup-shell ## Complete development setup (local install 
 	@echo "  1. Run: $(BLUE)source $(SHELL_RC)$(NC)"
 	@echo "  2. Test: $(BLUE)claude-mpm --version$(NC)"
 	@echo "  3. Use: $(BLUE)claude-mpm$(NC) or $(BLUE)cmpm$(NC)"
+
+# ============================================================================
+# Utility & Cleanup
+# ============================================================================
+
+env-info: ## Display current environment configuration
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)Environment Configuration$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "Environment: $(ENV)"
+	@echo "Python: $$(python --version 2>&1)"
+	@echo "Version: $$(cat VERSION 2>/dev/null || echo 'unknown')"
+	@echo "Build: $$(cat BUILD_NUMBER 2>/dev/null || echo 'unknown')"
+	@echo ""
+	@echo "$(YELLOW)Environment-Specific Settings:$(NC)"
+	@echo "Pytest Args: $(PYTEST_ARGS)"
+	@echo "Build Flags: $(BUILD_FLAGS)"
+	@echo ""
+	@echo "$(GREEN)To change environment:$(NC)"
+	@echo "  make ENV=production <target>"
+	@echo "  make env-set-prod"
+
+env-set-dev: ## Set environment to development
+	@echo "ENV=development" > .env.make
+	@echo "$(GREEN)✓ Environment set to development$(NC)"
+	@echo "$(YELLOW)Note: Source .env.make or restart your shell$(NC)"
+
+env-set-staging: ## Set environment to staging
+	@echo "ENV=staging" > .env.make
+	@echo "$(GREEN)✓ Environment set to staging$(NC)"
+	@echo "$(YELLOW)Note: Source .env.make or restart your shell$(NC)"
+
+env-set-prod: ## Set environment to production
+	@echo "ENV=production" > .env.make
+	@echo "$(GREEN)✓ Environment set to production$(NC)"
+	@echo "$(YELLOW)Note: Source .env.make or restart your shell$(NC)"
 
 uninstall: ## Uninstall claude-mpm
 	@echo "$(YELLOW)Uninstalling claude-mpm...$(NC)"
@@ -267,6 +447,10 @@ deploy-commands: ## Force deploy commands to ~/.claude/commands/ for testing
 	@echo "$(YELLOW)Deploying commands for local testing...$(NC)"
 	@python -c "from claude_mpm.services.command_deployment_service import deploy_commands_on_startup; deploy_commands_on_startup(force=True); print('$(GREEN)✅ Commands deployed to ~/.claude/commands/$(NC)')"
 
+# ============================================================================
+# Pre-commit Hooks
+# ============================================================================
+
 setup-pre-commit: ## Set up pre-commit hooks for code formatting and quality
 	@echo "$(YELLOW)Setting up pre-commit hooks...$(NC)"
 	@if [ -f "scripts/setup_pre_commit.sh" ]; then \
@@ -276,29 +460,13 @@ setup-pre-commit: ## Set up pre-commit hooks for code formatting and quality
 		exit 1; \
 	fi
 
-format: ## Format code with black and isort
-	@echo "$(YELLOW)Formatting code...$(NC)"
-	@if command -v black &> /dev/null; then \
-		black src/ tests/ scripts/ --line-length=88; \
-		echo "$(GREEN)✓ Code formatted with black$(NC)"; \
-	else \
-		echo "$(RED)✗ black not found. Install with: pip install black$(NC)"; \
-	fi
-	@if command -v isort &> /dev/null; then \
-		isort --skip-glob="*/test_env/*" --skip-glob="*/.venv/*" --skip-glob="*/venv/*" src/ tests/ scripts/ --profile=black --line-length=88; \
-		echo "$(GREEN)✓ Imports sorted with isort$(NC)"; \
-	else \
-		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
-	fi
+format: ## Format code with ruff (DEPRECATED: Use lint-fix)
+	@echo "$(YELLOW)⚠️  DEPRECATED: Use 'make lint-fix' instead$(NC)"
+	@$(MAKE) lint-fix
 
-lint: ## Run linting checks
-	@echo "$(YELLOW)Running linting checks...$(NC)"
-	@if command -v flake8 &> /dev/null; then \
-		flake8 src/ --max-line-length=88 --extend-ignore=E203,W503; \
-		echo "$(GREEN)✓ Linting passed$(NC)"; \
-	else \
-		echo "$(RED)✗ flake8 not found. Install with: pip install flake8$(NC)"; \
-	fi
+lint: ## Run linting checks with ruff (DEPRECATED: Use quality)
+	@echo "$(YELLOW)⚠️  DEPRECATED: Use 'make quality' instead$(NC)"
+	@$(MAKE) quality
 
 type-check: ## Run type checking with mypy
 	@echo "$(YELLOW)Running type checks...$(NC)"
@@ -321,8 +489,9 @@ pre-commit-run: ## Run pre-commit on all files
 dev-complete: setup-dev setup-pre-commit ## Complete development setup with pre-commit hooks
 
 # ============================================================================
-# Test Execution Targets
+# Testing
 # ============================================================================
+# Test Execution Targets
 
 .PHONY: test test-serial test-parallel test-fast test-coverage test-unit test-integration test-e2e
 
@@ -330,7 +499,7 @@ test: test-parallel ## Run tests with parallel execution (default, 3-4x faster)
 
 test-parallel: ## Run tests in parallel using all available CPUs
 	@echo "$(YELLOW)🧪 Running tests in parallel (using all CPUs)...$(NC)"
-	@python -m pytest tests/ -n auto -v
+	@python -m pytest tests/ $(PYTEST_ARGS)
 	@echo "$(GREEN)✓ Parallel tests completed$(NC)"
 
 test-serial: ## Run tests serially for debugging (disables parallelization)
@@ -392,52 +561,45 @@ quick: setup ## Alias for complete setup
 quick-dev: setup-dev ## Alias for complete development setup
 
 # ============================================================================
-# Quality Gates and Linting Targets
+# Quality & Linting
 # ============================================================================
+# Quality Gates and Linting Targets
 
 .PHONY: lint-all lint-ruff lint-black lint-isort lint-flake8 lint-mypy lint-structure
 .PHONY: lint-fix quality pre-publish safe-release-build
 .PHONY: clean-system-files clean-test-artifacts clean-debug clean-deprecated clean-pre-publish
 
 # Individual linters
-lint-ruff: ## Run ruff linter (fast, catches most issues including imports)
+lint-ruff: ## Run ruff linter and formatter check
 	@echo "$(YELLOW)🔍 Running ruff linter...$(NC)"
 	@if command -v ruff &> /dev/null; then \
-		ruff check src/ tests/ scripts/ --no-fix --extend-ignore=RUF043,RUF059,I || exit 1; \
-		echo "$(GREEN)✓ Ruff check passed$(NC)"; \
+		ruff check . || exit 1; \
+		echo "$(GREEN)✓ Ruff linting passed$(NC)"; \
+		echo "$(YELLOW)🔍 Checking code formatting...$(NC)"; \
+		ruff format --check . || exit 1; \
+		echo "$(GREEN)✓ Ruff format check passed$(NC)"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
 		exit 1; \
 	fi
 
-lint-black: ## Check code formatting with black
-	@echo "$(YELLOW)🎨 Checking black formatting...$(NC)"
-	@if command -v black &> /dev/null; then \
-		black --check src/ tests/ scripts/ --line-length=88 || exit 1; \
-		echo "$(GREEN)✓ Black formatting check passed$(NC)"; \
-	else \
-		echo "$(RED)✗ black not found. Install with: pip install black$(NC)"; \
-		exit 1; \
-	fi
+# DEPRECATED: Consolidated into ruff
+lint-black: ## (DEPRECATED: Use lint-ruff) Check code formatting with black
+	@echo "$(YELLOW)⚠️  DEPRECATED: lint-black is replaced by lint-ruff$(NC)"
+	@echo "$(YELLOW)Run 'make lint-ruff' instead$(NC)"
+	@exit 1
 
-lint-isort: ## Check import sorting with isort
-	@echo "$(YELLOW)📦 Checking import sorting...$(NC)"
-	@if command -v isort &> /dev/null; then \
-		isort --check-only --profile=black --skip-glob='*/test_env/*' --skip-glob='*/.venv/*' --skip-glob='*/venv/*' src/ tests/ scripts/ || exit 1; \
-		echo "$(GREEN)✓ Import sorting check passed$(NC)"; \
-	else \
-		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
-		exit 1; \
-	fi
+# DEPRECATED: Consolidated into ruff
+lint-isort: ## (DEPRECATED: Use lint-ruff) Check import sorting with isort
+	@echo "$(YELLOW)⚠️  DEPRECATED: lint-isort is replaced by lint-ruff$(NC)"
+	@echo "$(YELLOW)Run 'make lint-ruff' instead$(NC)"
+	@exit 1
 
-lint-flake8: ## Run flake8 linter
-	@echo "$(YELLOW)🔍 Running flake8...$(NC)"
-	@if command -v flake8 &> /dev/null; then \
-		flake8 src/ tests/ scripts/ || exit 1; \
-		echo "$(GREEN)✓ Flake8 check passed$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠ flake8 not found. Install with: pip install flake8$(NC)"; \
-	fi
+# DEPRECATED: Consolidated into ruff
+lint-flake8: ## (DEPRECATED: Use lint-ruff) Run flake8 linter
+	@echo "$(YELLOW)⚠️  DEPRECATED: lint-flake8 is replaced by lint-ruff$(NC)"
+	@echo "$(YELLOW)Run 'make lint-ruff' instead$(NC)"
+	@exit 1
 
 lint-mypy: ## Run mypy type checker
 	@echo "$(YELLOW)🔍 Running mypy type checker...$(NC)"
@@ -459,14 +621,11 @@ lint-structure: ## Check project structure compliance
 	fi
 
 # Comprehensive linting
-lint-all: ## Run all linters (ruff, black, isort, flake8, structure)
+lint-all: ## Run all linters (ruff + mypy + structure)
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
 	@echo "$(BLUE)Running all quality checks...$(NC)"
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
 	@$(MAKE) lint-ruff
-	@$(MAKE) lint-black
-	@$(MAKE) lint-isort
-	@$(MAKE) lint-flake8
 	@$(MAKE) lint-structure
 	@$(MAKE) lint-mypy
 	@echo ""
@@ -475,22 +634,18 @@ lint-all: ## Run all linters (ruff, black, isort, flake8, structure)
 	@echo "$(GREEN)════════════════════════════════════════$(NC)"
 
 # Auto-fix what can be fixed
-lint-fix: ## Auto-fix linting issues (format, sort imports, fix ruff issues)
-	@echo "$(YELLOW)🔧 Auto-fixing code issues...$(NC)"
-	@echo "$(YELLOW)Running black formatter...$(NC)"
-	@if command -v black &> /dev/null; then \
-		black src/ tests/ scripts/ --line-length=88; \
-		echo "$(GREEN)✓ Code formatted$(NC)"; \
-	fi
-	@echo "$(YELLOW)Sorting imports with isort...$(NC)"
-	@if command -v isort &> /dev/null; then \
-		isort --profile=black src/ tests/ scripts/; \
-		echo "$(GREEN)✓ Imports sorted$(NC)"; \
-	fi
-	@echo "$(YELLOW)Fixing ruff issues...$(NC)"
+lint-fix: ## Auto-fix linting issues (ruff format + ruff check --fix)
+	@echo "$(YELLOW)🔧 Auto-fixing code issues with ruff...$(NC)"
 	@if command -v ruff &> /dev/null; then \
-		ruff check src/ tests/ scripts/ --fix; \
-		echo "$(GREEN)✓ Ruff issues fixed$(NC)"; \
+		echo "$(YELLOW)Fixing linting issues...$(NC)"; \
+		ruff check . --fix || true; \
+		echo "$(GREEN)✓ Ruff linting fixes applied$(NC)"; \
+		echo "$(YELLOW)Formatting code...$(NC)"; \
+		ruff format . || true; \
+		echo "$(GREEN)✓ Code formatted$(NC)"; \
+	else \
+		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
+		exit 1; \
 	fi
 	@echo "$(YELLOW)Fixing structure issues...$(NC)"
 	@if [ -f "tools/dev/structure_linter.py" ]; then \
@@ -498,10 +653,29 @@ lint-fix: ## Auto-fix linting issues (format, sort imports, fix ruff issues)
 		echo "$(GREEN)✓ Structure fixes attempted$(NC)"; \
 	fi
 	@echo ""
-	@echo "$(GREEN)✅ Auto-fix complete. Run 'make lint-all' to verify.$(NC)"
+	@echo "$(GREEN)✅ Auto-fix complete. Run 'make quality' to verify.$(NC)"
 
 # Quality alias
 quality: lint-all ## Alias for lint-all (run all quality checks)
+
+.PHONY: quality-ci
+quality-ci: ## Quality checks for CI/CD (strict, fail fast)
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)Running CI quality checks (strict mode)...$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@set -e; \
+	echo "$(YELLOW)🔍 Checking lock file...$(NC)"; \
+	$(MAKE) lock-check || exit 1; \
+	echo "$(YELLOW)🔍 Ruff check (no fixes)...$(NC)"; \
+	ruff check . --no-fix; \
+	echo "$(YELLOW)🔍 Type checking...$(NC)"; \
+	mypy src/ --ignore-missing-imports; \
+	echo "$(YELLOW)🧪 Running tests (parallel)...$(NC)"; \
+	pytest tests/ -n auto -v --tb=short
+	@echo ""
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+	@echo "$(GREEN)✅ CI quality checks passed!$(NC)"
+	@echo "$(GREEN)════════════════════════════════════════$(NC)"
 
 # Pre-publish quality gate
 pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publishing (required for releases)
@@ -555,6 +729,66 @@ structure-fix: ## Fix project structure issues
 	@echo "$(YELLOW)🔧 Running structure linting with auto-fix...$(NC)"
 	@python tools/dev/structure_linter.py --fix --verbose
 
+# ============================================================================
+# Build Targets
+# ============================================================================
+
+.PHONY: build-metadata build-info-json build-dev build-prod
+
+build-dev: ## Development build (fast, no checks)
+	@echo "$(YELLOW)📦 Building for $(ENV) environment...$(NC)"
+	@rm -rf $(DIST_DIR) $(BUILD_DIR)
+	@$(PYTHON) -m build --wheel $(BUILD_FLAGS)
+	@echo "$(GREEN)✓ Development build complete (ENV=$(ENV))$(NC)"
+
+build-prod: quality ## Production build (with all checks)
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)🔒 Production Build (ENV=$(ENV))$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@if [ "$(ENV)" != "production" ] && [ "$(ENV)" != "staging" ]; then \
+		echo "$(RED)✗ Production build requires ENV=production or ENV=staging$(NC)"; \
+		echo "$(YELLOW)  Run: make ENV=production build-prod$(NC)"; \
+		exit 1; \
+	fi
+	@$(MAKE) build-metadata
+	@rm -rf $(DIST_DIR) $(BUILD_DIR) *.egg-info
+	@$(PYTHON) -m build $(BUILD_FLAGS)
+	@twine check $(DIST_DIR)/*
+	@$(MAKE) build-info-json
+	@echo "$(GREEN)✓ Production build complete (ENV=$(ENV))$(NC)"
+
+build-metadata: ## Track build metadata in JSON format
+	@echo "$(YELLOW)📋 Tracking build metadata...$(NC)"
+	@mkdir -p $(BUILD_DIR)
+	@VERSION=$$(cat VERSION); \
+	BUILD_NUM=$$(cat BUILD_NUMBER); \
+	COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+	SHORT_COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	BRANCH=$$(git branch --show-current 2>/dev/null || echo "unknown"); \
+	TIMESTAMP=$$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+	PYTHON_VER=$$(python --version 2>&1); \
+	echo "{" > $(BUILD_DIR)/metadata.json; \
+	echo '  "version": "'$$VERSION'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "build_number": '$$BUILD_NUM',' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "commit": "'$$COMMIT'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "commit_short": "'$$SHORT_COMMIT'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "branch": "'$$BRANCH'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "timestamp": "'$$TIMESTAMP'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "python_version": "'$$PYTHON_VER'",' >> $(BUILD_DIR)/metadata.json; \
+	echo '  "environment": "'$${ENV:-development}'"' >> $(BUILD_DIR)/metadata.json; \
+	echo "}" >> $(BUILD_DIR)/metadata.json
+	@echo "$(GREEN)✓ Build metadata saved to $(BUILD_DIR)/metadata.json$(NC)"
+
+build-info-json: build-metadata ## Display build metadata from JSON
+	@if [ -f $(BUILD_DIR)/metadata.json ]; then \
+		cat $(BUILD_DIR)/metadata.json; \
+	else \
+		echo "$(YELLOW)No build metadata found. Run 'make build-metadata' first.$(NC)"; \
+	fi
+
+# ============================================================================
+# Version Management
+# ============================================================================
 # Release Management Targets
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
 .PHONY: release-dry-run release-test-pypi increment-build
@@ -614,17 +848,18 @@ release-build: pre-publish ## Build Python package for release (runs quality che
 # Safe release build (explicit quality gate)
 safe-release-build: ## Build release with mandatory quality checks
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
-	@echo "$(BLUE)🔒 Safe Release Build$(NC)"
+	@echo "$(BLUE)🔒 Safe Release Build (ENV=$(ENV))$(NC)"
 	@echo "$(BLUE)════════════════════════════════════════$(NC)"
 	@$(MAKE) pre-publish
 	@echo ""
 	@echo "$(YELLOW)📦 Building package after quality checks...$(NC)"
 	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
-	@python3 scripts/increment_build.py --all-changes
-	@rm -rf dist/ build/ *.egg-info
-	@python3 -m build
-	@echo "$(GREEN)✓ Package built successfully with quality assurance$(NC)"
-	@ls -la dist/
+	@$(PYTHON) scripts/increment_build.py --all-changes
+	@$(MAKE) build-metadata
+	@rm -rf $(DIST_DIR) $(BUILD_DIR) *.egg-info
+	@$(PYTHON) -m build $(BUILD_FLAGS)
+	@echo "$(GREEN)✓ Package built successfully with quality assurance (ENV=$(ENV))$(NC)"
+	@ls -la $(DIST_DIR)
 
 # ============================================================================
 # Pre-Publish Cleanup Targets
@@ -701,6 +936,10 @@ release-major: release-check release-test ## Create a major release (breaking ch
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
+
+# ============================================================================
+# Publishing Workflow
+# ============================================================================
 
 # Publish to PyPI using .env.local credentials
 publish-pypi: ## Publish package to PyPI using credentials from .env.local

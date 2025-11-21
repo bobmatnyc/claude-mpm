@@ -46,7 +46,7 @@ def history(data):
     user_prompts = event_types.get("hook.user_prompt", [])
     for i, event in enumerate(user_prompts[-3:]):  # Last 3
         data = event.get("data", {})
-        print(f"\n  Prompt #{i+1}:")
+        print(f"\n  Prompt #{i + 1}:")
         print(f"    Text: {data.get('prompt_text', 'N/A')[:100]}...")
         print(f"    Session: {data.get('session_id', 'N/A')}")
         print(f"    Is command: {data.get('is_command', 'N/A')}")
@@ -71,7 +71,7 @@ def history(data):
     for i, event in enumerate(task_events[-3:]):  # Last 3
         data = event.get("data", {})
         params = data.get("tool_parameters", {})
-        print(f"\n  Delegation #{i+1}:")
+        print(f"\n  Delegation #{i + 1}:")
         print(f"    Parameters: {json.dumps(params, indent=6)[:200]}...")
 
     # SubagentStop events
@@ -79,7 +79,7 @@ def history(data):
     subagent_stops = event_types.get("hook.subagent_stop", [])
     for i, event in enumerate(subagent_stops[-3:]):  # Last 3
         data = event.get("data", {})
-        print(f"\n  SubagentStop #{i+1}:")
+        print(f"\n  SubagentStop #{i + 1}:")
         print(f"    Agent type: {data.get('agent_type', 'N/A')}")
         print(f"    Agent ID: {data.get('agent_id', 'N/A')}")
         print(f"    Reason: {data.get('reason', 'N/A')}")

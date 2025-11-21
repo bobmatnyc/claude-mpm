@@ -40,7 +40,7 @@ class ImportVerifier:
                         for j in range(max(0, i - 5), i):
                             if lines[j].strip().startswith(("from ", "import ")):
                                 issues.append(
-                                    f"Line {j+1}: Import inside try/except block"
+                                    f"Line {j + 1}: Import inside try/except block"
                                 )
                                 break
 
@@ -219,7 +219,7 @@ class ImportVerifier:
                 for issue in issues:
                     print(f"  - {issue}")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Verification Summary:")
         print(f"  Total files checked: {len(python_files)}")
         print(f"  Files with issues: {files_with_issues}")

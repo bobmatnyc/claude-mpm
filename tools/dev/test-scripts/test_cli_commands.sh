@@ -25,15 +25,15 @@ echo "========================================="
 run_command_tests() {
     local command=$1
     local test_file="tests/cli/commands/test_${command}_command.py"
-    
+
     if [ -f "$test_file" ]; then
         echo -e "\n${GREEN}Testing ${command} command...${NC}"
         python -m pytest "$test_file" -v --tb=short --no-header 2>&1 | grep -E "PASSED|FAILED|ERROR|test_" || true
-        
+
         # Count results
         local passed=$(python -m pytest "$test_file" -q --tb=no 2>&1 | grep -c "passed" || echo "0")
         local failed=$(python -m pytest "$test_file" -q --tb=no 2>&1 | grep -c "failed" || echo "0")
-        
+
         echo -e "${GREEN}✓ Passed: $passed${NC}"
         if [ "$failed" -gt 0 ]; then
             echo -e "${RED}✗ Failed: $failed${NC}"

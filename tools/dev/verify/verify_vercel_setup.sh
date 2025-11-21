@@ -57,10 +57,10 @@ print_status "info" "Checking Node.js installation..."
 if check_command node; then
     NODE_VERSION=$(node --version)
     REQUIRED_VERSION="18.0.0"
-    
+
     # Extract major version
     MAJOR_VERSION=$(echo $NODE_VERSION | cut -d'.' -f1 | sed 's/v//')
-    
+
     if [ "$MAJOR_VERSION" -ge 18 ]; then
         print_status "success" "Node.js $NODE_VERSION installed (>= v18.0.0 required)"
     else
@@ -91,7 +91,7 @@ if check_command vercel; then
 else
     print_status "warning" "Vercel CLI is not installed"
     echo "  Installing Vercel CLI globally..."
-    
+
     if npm install -g vercel@latest; then
         print_status "success" "Vercel CLI installed successfully"
     else
@@ -177,7 +177,7 @@ print_status "info" "Checking Git installation..."
 if check_command git; then
     GIT_VERSION=$(git --version)
     print_status "success" "$GIT_VERSION"
-    
+
     # Check if current directory is a git repository
     if git rev-parse --git-dir > /dev/null 2>&1; then
         CURRENT_BRANCH=$(git branch --show-current)

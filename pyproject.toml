@@ -29,7 +29,7 @@ Documentation = "https://github.com/bobmatnyc/claude-mpm/blob/main/README.md"
 
 [project.optional-dependencies]
 mcp = [ "mcp>=0.1.0", "mcp-vector-search>=0.1.0", "mcp-browser>=0.1.0", "mcp-ticketer>=0.1.0",]
-dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "black", "flake8", "flake8-import-order", "flake8-tidy-imports", "flake8-bugbear", "ruff>=0.1.0", "pylint>=3.0.0", "pre-commit", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
+dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "pylint>=3.0.0", "pre-commit", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
 docs = [ "sphinx>=7.2.0", "sphinx-rtd-theme>=1.3.0", "sphinx-autobuild>=2021.3.14",]
 monitor = [ "python-socketio>=5.14.0", "aiohttp>=3.9.0", "aiohttp-cors>=0.7.0,<0.8.0", "python-engineio>=4.8.0", "aiofiles>=23.0.0", "websockets>=12.0",]
 agents = [ "alembic>=1.13.0", "astroid>=3.0.0", "axe-selenium-python>=2.1.0", "bandit>=1.7.5", "beautifulsoup4>=4.12.0", "black>=24.0.0", "click>=8.1.0", "commitizen>=3.13.0", "coverage>=7.0.0", "csvkit>=1.3.0", "dask>=2023.12.0", "detect-secrets>=1.4.0", "diagrams>=0.23.0", "docstring-parser>=0.15.0", "faker>=20.0.0", "flake8>=7.0.0", "gitlint>=0.19.0", "gitpython>=3.1.40", "google-auth>=2.0.0", "google-cloud-core>=2.0.0", "hypothesis>=6.98.0", "isort>=5.13.0", "jinja2>=3.1.0", "jsonschema>=4.19.0", "libcst>=1.1.0", "lizard>=1.17.0", "lxml>=4.9.0", "mermaid-py>=0.2.0", "mkdocs>=1.5.0", "mutmut>=2.4.0", "mypy>=1.8.0", "numpy>=1.24.0", "openpyxl>=3.1.0", "pandas>=2.1.0", "pathlib", "pillow>=9.0.0", "playwright>=1.40.0", "polars>=0.19.0", "pre-commit>=3.5.0", "prometheus-client>=0.19.0", "psycopg2-binary>=2.9.0", "pyarrow>=14.0.0", "pydantic>=2.6.0", "pydoc-markdown>=4.8.0", "pydriller>=2.5.0", "pygments>=2.17.0", "pyjwt>=2.8.0", "pylint>=3.0.0", "pymongo>=4.5.0", "pymysql>=1.1.0", "pytest>=8.0.0", "pytest-asyncio>=0.23.0", "pytest-benchmark>=4.0.0", "pytest-cov>=4.1.0", "python-dateutil>=2.8.0", "pyyaml>=6.0", "radon>=6.0.0", "redis>=5.0.0", "requests>=2.31.0", "rich>=13.0.0", "rope>=1.11.0", "safety>=3.0.0", "semantic-version>=2.10.0", "semgrep>=1.45.0", "sphinx>=7.2.0", "sqlalchemy>=2.0.0", "sqlparse>=0.4.4", "tabulate>=0.9.0", "tree-sitter>=0.21.0", "vaex>=4.17.0", "validators>=0.20.0", "xlrd>=2.0.0", "xlsxwriter>=3.1.0", "xlwt>=1.3.0",]
@@ -48,18 +48,7 @@ claude-mpm-mcp-wrapper = "claude_mpm.scripts.mcp_wrapper:entry_point"
 claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 
 [tool.uv]
-dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "black", "flake8", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
-
-[tool.black]
-line-length = 88
-target-version = [ "py38",]
-
-[tool.isort]
-profile = "black"
-line_length = 88
-force_single_line = false
-combine_as_imports = true
-force_sort_within_sections = false
+dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
 
 [tool.mypy]
 python_version = "3.9"
@@ -68,14 +57,113 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
-line-length = 88
+# Target Python 3.8+ (project minimum)
 target-version = "py38"
-exclude = [ ".git", "__pycache__", ".venv", "venv", "build", "dist", "*.egg-info", ".pytest_cache", ".mypy_cache", "node_modules",]
+line-length = 88
+
+# Exclude common directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "*.egg-info",
+    ".pytest_cache",
+]
 
 [tool.ruff.lint]
-select = [ "F", "E", "W",]
-ignore = [ "E203", "E501", "RUF005", "RUF043", "RUF059", "PTH123", "C401", "I",]
-unfixable = [ "RUF043", "RUF059",]
+# Enable comprehensive rule sets (replaces flake8, isort, pyupgrade, etc.)
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "PTH",    # flake8-use-pathlib
+    "RUF",    # Ruff-specific rules
+]
+
+# Disable specific rules (maintain compatibility with existing codebase)
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E203",   # whitespace before ':' (Black compatibility)
+    "B008",   # do not perform function calls in argument defaults
+    "B905",   # zip without explicit strict parameter
+    "RUF005", # collection concatenation
+    "RUF043", # dict/set literal
+    "RUF059", # dict/set literal
+    "PTH123", # pathlib usage
+    "C401",   # unnecessary list comprehension
+]
+
+# Allow autofix for all rules
+fixable = ["ALL"]
+unfixable = ["RUF043", "RUF059"]
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings
+quote-style = "double"
+
+# Like Black, indent with spaces
+indent-style = "space"
+
+# Like Black, respect magic trailing commas
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect line endings
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+# Group imports by type (replaces isort)
+force-single-line = false
+force-sort-within-sections = false
+lines-after-imports = 2
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore specific rules in specific files
+"__init__.py" = [
+    "F401",    # Unused imports in __init__.py are ok (re-exports)
+    "F403",    # Star imports ok in __init__.py
+]
+"tests/**/*.py" = [
+    "F403",    # Star imports ok in tests
+    "F405",    # Undefined names from star imports
+    "C401",    # Unnecessary list comprehension
+    "ARG",     # Unused function arguments in tests are ok
+    "S101",    # Use of assert in tests is ok
+]
+"src/claude_mpm/cli/interactive/skills_wizard.py" = [
+    "RUF005",  # Collection concatenation allowed
+]
+"src/claude_mpm/skills/skill_manager.py" = [
+    "PTH123",  # Pathlib usage not required here
+]
 
 [tool.pylint]
 max-line-length = 88
@@ -93,12 +181,6 @@ version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_incremental = true
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = [ "F401", "F403",]
-"tests/*" = [ "F403", "F405", "C401",]
-"src/claude_mpm/cli/interactive/skills_wizard.py" = [ "RUF005",]
-"src/claude_mpm/skills/skill_manager.py" = [ "PTH123",]
 
 [tool.setuptools.package-data]
 claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
