@@ -1,6 +1,18 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Documentation
+
+### Fixed
+
+### Removed
+
+## [4.25.4] - 2025-11-21
+
+### Added
 - **Skills Deployment System**: Intelligent Claude Code skills deployment with automatic recommendations
   - SkillsDeployer service for downloading and deploying skills from GitHub
   - Technology stack detection and automatic skill gap analysis
@@ -22,8 +34,8 @@
 - Enhanced skills deployment guide with research agent integration examples
 
 ### Fixed
-
-### Removed
+- Resolved linting issues in skills deployment code (unused imports, variables, code style)
+- Fixed critical manifest parsing bug for nested skill structures
 
 ## [4.25.3] - 2025-11-21
 
