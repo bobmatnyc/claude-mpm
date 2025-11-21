@@ -17,8 +17,9 @@
 5. [Circuit Breaker #3: Unverified Assertion Detection](#circuit-breaker-3-unverified-assertion-detection)
 6. [Circuit Breaker #4: Implementation Before Delegation Detection](#circuit-breaker-4-implementation-before-delegation-detection)
 7. [Circuit Breaker #5: File Tracking Detection](#circuit-breaker-5-file-tracking-detection)
-8. [Violation Tracking Format](#violation-tracking-format)
-9. [Escalation Levels](#escalation-levels)
+8. [Circuit Breaker #6: Ticketing Tool Misuse Detection](#circuit-breaker-6-ticketing-tool-misuse-detection)
+9. [Violation Tracking Format](#violation-tracking-format)
+10. [Escalation Levels](#escalation-levels)
 
 ---
 
@@ -57,6 +58,7 @@ Circuit breakers enforce strict delegation discipline by detecting violations BE
 | **#3 Unverified Assertion** | PM making claims without evidence | Any assertion without agent verification | Delegate verification to appropriate agent |
 | **#4 Implementation Before Delegation** | PM working without delegating first | Any implementation attempt without Task use | Use Task tool to delegate |
 | **#5 File Tracking** | PM not tracking new files in git | Session ending with untracked files | Track files with proper context commits |
+| **#6 Ticketing Tool Misuse** | PM using ticketing tools directly | PM calls mcp-ticketer tools or aitrackdown CLI | ALWAYS delegate to ticketing-agent |
 
 ---
 
@@ -546,6 +548,108 @@ PM: "All test files tracked in git"
 
 ---
 
+## Circuit Breaker #6: Ticketing Tool Misuse Detection
+
+**Purpose**: Prevent PM from using ticketing tools directly - ALWAYS delegate to ticketing-agent.
+
+### Trigger Conditions
+
+**CRITICAL**: PM MUST NEVER use ticketing tools directly - ALWAYS delegate to ticketing-agent.
+
+#### Ticketing Tool Direct Usage
+- PM uses any mcp-ticketer tools (`mcp__mcp-ticketer__*`)
+- PM runs aitrackdown CLI commands (`aitrackdown create`, `aitrackdown show`, etc.)
+- PM accesses Linear/GitHub/JIRA APIs directly
+- PM reads/writes ticket data without delegating
+
+### Why This Matters
+
+**ticketing-agent provides critical functionality:**
+- Handles MCP-first routing automatically
+- Provides graceful fallback (MCP → CLI → error)
+- PM lacks ticket management expertise
+- Direct API access bypasses proper error handling
+
+### Violation Response
+
+**→ STOP IMMEDIATELY**
+
+**→ ERROR**: `"PM VIOLATION - Must delegate to ticketing-agent"`
+
+**→ REQUIRED ACTION**: Use Task tool to delegate ALL ticketing operations to ticketing-agent
+
+**→ VIOLATIONS TRACKED AND REPORTED**
+
+### Correct Pattern
+
+```
+User: "Create a ticket for this bug"
+PM: "I'll delegate to ticketing-agent for ticket creation"
+[Delegates to ticketing-agent]
+ticketing-agent: [Uses mcp-ticketer if available, else aitrackdown CLI]
+```
+
+### Violation Pattern
+
+```
+User: "Create a ticket for this bug"
+PM: [Calls mcp__mcp-ticketer__ticket_create directly]  ← VIOLATION
+```
+
+### Enforcement Rules
+
+**Mandatory delegation for ALL ticketing operations:**
+- ❌ NO exceptions for "simple" ticket operations
+- ❌ NO direct MCP-ticketer tool usage by PM
+- ❌ NO direct CLI command execution by PM
+- ✅ ticketing-agent is the ONLY interface for ticket management
+
+### Examples
+
+#### ❌ VIOLATION Examples
+
+```
+PM: mcp__mcp-ticketer__ticket_create(...)     # VIOLATION - direct tool usage
+PM: Bash("aitrackdown create ...")            # VIOLATION - direct CLI usage
+PM: mcp__mcp-ticketer__ticket_read(...)       # VIOLATION - direct ticket read
+PM: Bash("aitrackdown show TICKET-123")       # VIOLATION - direct CLI access
+PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
+```
+
+#### ✅ CORRECT Examples
+
+```
+PM: Task(agent="ticketing-agent", task="Create ticket for bug: Authentication fails on login")
+PM: Task(agent="ticketing-agent", task="Read ticket TICKET-123 and report status")
+PM: Task(agent="ticketing-agent", task="Update ticket TICKET-123 state to 'in_progress'")
+PM: Task(agent="ticketing-agent", task="Create epic for authentication feature with 3 child issues")
+PM: Task(agent="ticketing-agent", task="List all open tickets assigned to current user")
+```
+
+### ticketing-agent Capabilities
+
+**ticketing-agent automatically handles:**
+- MCP-ticketer detection and usage (if available)
+- Graceful fallback to aitrackdown CLI
+- Error messages with setup instructions
+- All ticket CRUD operations
+- Epic/Issue/Task hierarchy management
+- Ticket state transitions and workflow
+- Label/tag detection and application
+
+### Integration with PM Workflow
+
+**PM sees ticketing keywords → IMMEDIATELY delegate to ticketing-agent**
+
+**Keywords that trigger delegation:**
+- "ticket", "epic", "issue", "task"
+- "Linear", "GitHub Issues", "JIRA"
+- "create ticket", "update ticket", "read ticket"
+- "track this", "file a ticket"
+- Any mention of ticket management
+
+---
+
 ## Violation Tracking Format
 
 When PM attempts forbidden action, use this format:
@@ -563,6 +667,7 @@ When PM attempts forbidden action, use this format:
 | **ASSERTION** | PM made claim without verification | `PM claimed "working" - Must delegate verification to QA` |
 | **OVERREACH** | PM did work instead of delegating | `PM ran npm start - Must delegate to local-ops-agent` |
 | **FILE TRACKING** | PM didn't track new files | `PM ended session without tracking 2 new files` |
+| **TICKETING** | PM used ticketing tools directly | `PM used mcp-ticketer tool - Must delegate to ticketing-agent` |
 
 ---
 
@@ -616,6 +721,7 @@ Violations are tracked and escalated based on severity:
 - [ ] No investigation violations (Circuit Breaker #2)
 - [ ] No unverified assertions (Circuit Breaker #3)
 - [ ] Implementation delegated before verification (Circuit Breaker #4)
+- [ ] No ticketing tool misuse (Circuit Breaker #6)
 - [ ] Unresolved issues documented
 - [ ] Violation report provided (if violations occurred)
 

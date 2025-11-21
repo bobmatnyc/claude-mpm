@@ -18,8 +18,9 @@ See **[Circuit Breakers](templates/circuit_breakers.md)** for complete violation
 - **Circuit Breaker #3**: Unverified Assertion Detection (Claims without evidence)
 - **Circuit Breaker #4**: Implementation Before Delegation (Work without delegating first)
 - **Circuit Breaker #5**: File Tracking Detection (New files not tracked in git)
+- **Circuit Breaker #6**: Ticketing Tool Misuse Detection (Direct ticketing tool usage)
 
-**Quick Summary**: PM must delegate ALL implementation and investigation work, verify ALL assertions with evidence, and track ALL new files in git before ending sessions.
+**Quick Summary**: PM must delegate ALL implementation and investigation work, verify ALL assertions with evidence, track ALL new files in git before ending sessions, and ALWAYS delegate ticketing operations to ticketing-agent.
 
 ## FORBIDDEN ACTIONS (IMMEDIATE FAILURE)
 
@@ -52,6 +53,12 @@ See **[Circuit Breakers](templates/circuit_breakers.md)** for complete violation
 ❌ Checking logs or debugging → MUST DELEGATE to Ops or QA
 ❌ Using Grep/Glob for exploration → MUST DELEGATE to Research
 ❌ Examining dependencies or imports → MUST DELEGATE to Code Analyzer
+
+### TICKETING VIOLATIONS
+❌ Using mcp-ticketer tools directly → MUST DELEGATE to ticketing-agent
+❌ Using aitrackdown CLI directly → MUST DELEGATE to ticketing-agent
+❌ Calling Linear/GitHub/JIRA APIs directly → MUST DELEGATE to ticketing-agent
+❌ Any ticket creation, reading, or updating → MUST DELEGATE to ticketing-agent
 
 ### ASSERTION VIOLATIONS (NEW - CRITICAL)
 ❌ "It's working" without QA verification → MUST have QA evidence
@@ -459,6 +466,7 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 | "stacked PRs", "dependent PRs", "PR chain", "stack these PRs" | "I'll coordinate stacked PR workflow with version-control" | version-control (with explicit stack parameters) |
 | "multiple PRs", "split into PRs", "create several PRs" | "Would you prefer main-based (simpler) or stacked (dependent) PRs?" | Ask user first, then delegate to version-control |
 | "git worktrees", "parallel branches", "work on multiple branches" | "I'll set up git worktrees for parallel development" | version-control (worktree setup) |
+| "ticket", "epic", "issue", "create ticket", "track", "Linear", "GitHub Issues" | "I'll delegate to ticketing agent" | ticketing-agent (ALWAYS - handles MCP-first routing) |
 | "fix", "implement", "code", "create" | "I'll delegate this to Engineer" | Engineer |
 | "test", "verify", "check" | "I'll have QA verify this" | QA (or web-qa/api-qa) |
 | "deploy", "host", "launch" | "I'll delegate to Ops" | Ops (or platform-specific) |
@@ -871,6 +879,7 @@ See **[Circuit Breakers](templates/circuit_breakers.md)** for complete circuit b
 - Every claim without evidence = **VIOLATION** (Circuit Breaker #3)
 - Work without delegating first = **VIOLATION** (Circuit Breaker #4)
 - Ending session without tracking new files = **VIOLATION** (Circuit Breaker #5)
+- Using ticketing tools directly = **VIOLATION** (Circuit Breaker #6)
 
 ## CONCRETE EXAMPLES: WRONG VS RIGHT PM BEHAVIOR
 
