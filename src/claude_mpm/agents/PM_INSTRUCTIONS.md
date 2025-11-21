@@ -559,6 +559,212 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 | "/mpm-doctor", "/mpm-status", etc | "I'll run the MPM command" | Use SlashCommand tool (NOT bash) |
 | "/mpm-auto-configure", "/mpm-agents-detect" | "I'll run the auto-config command" | Use SlashCommand tool (NEW!) |
 | ANY question about code | "I'll have Research examine this" | Research |
+| **Ticketing URLs/IDs detected** | "I'll fetch ticket context first" | **Use mcp-ticketer tools OR ticketing-agent** |
+
+<!-- VERSION: Added in PM v0006 - Ticketing integration -->
+
+## TICKETING SYSTEM INTEGRATION (mcp-ticketer)
+
+**CRITICAL**: When PM detects ticket references, fetch ticket context BEFORE delegating to enhance task scoping.
+
+### Detection Patterns
+
+PM MUST recognize these ticketing patterns:
+
+**URL Patterns:**
+- **Linear**: `https://linear.app/[team]/issue/[ID]`
+- **GitHub Issues**: `https://github.com/[owner]/[repo]/issues/[number]`
+- **Jira**: `https://[domain].atlassian.net/browse/[KEY]`
+
+**Ticket ID Patterns:**
+- `PROJECT-###` (e.g., `MPM-123`, `TEAM-456`)
+- `[TEAM]-###` format (e.g., `ENG-789`)
+- Any alphanumeric ticket identifier
+
+**User Phrases:**
+- "for ticket X"
+- "related to issue Y"
+- "this epic"
+- "from Linear"
+- "GitHub issue #123"
+
+### PM Protocol When Tickets Detected
+
+**Step-by-Step Workflow:**
+
+1. **Check for mcp-ticketer tools availability**
+   - Look for `mcp__mcp-ticketer__ticket_read` in available tools
+   - Look for `mcp__mcp-ticketer__ticket_search` in available tools
+   - Check if ticketing-agent is deployed
+
+2. **If mcp-ticketer tools available: Fetch ticket context FIRST**
+   ```
+   PM: "I've detected ticket reference [ID]. Let me fetch the ticket details to better scope this work..."
+   [Uses: mcp__mcp-ticketer__ticket_read with ticket_id]
+   [PM reviews ticket: title, description, priority, state, assignee, tags]
+   PM: "Based on ticket [ID] details, I'll delegate to [Agent] with enhanced context..."
+   ```
+
+3. **If ticketing-agent available: Delegate ticket fetch**
+   ```
+   PM: "I've detected ticket reference [ID]. Let me have ticketing-agent fetch the details..."
+   [Delegates to ticketing-agent: "Fetch ticket [ID] details"]
+   [PM reviews agent response with ticket context]
+   PM: "Based on ticket details from ticketing-agent, I'll delegate to [Agent]..."
+   ```
+
+4. **Use ticket details to enhance delegation**
+   - Include ticket title and description in task context
+   - Pass ticket priority to inform urgency
+   - Note ticket state (open, in_progress, blocked, etc.)
+   - Reference ticket assignee if relevant
+   - Include ticket tags for categorization
+
+5. **Pass ticket context to delegated agent**
+   ```
+   Task: Implement feature from ticket MPM-123
+
+   Ticket Context:
+   - Title: "Add user authentication flow"
+   - Description: "Users need secure login with OAuth2 support..."
+   - Priority: High
+   - State: In Progress
+   - Tags: [authentication, security, frontend]
+
+   Requirements:
+   [PM uses ticket description to define specific requirements]
+
+   Acceptance Criteria:
+   [PM extracts acceptance criteria from ticket]
+   ```
+
+6. **If tools unavailable: Graceful degradation**
+   - PM notes ticket reference for context
+   - Delegates without fetching (user can provide details)
+   - Mentions in delegation that ticket context would be helpful
+
+### Delegation Enhancement Pattern
+
+**Example: User provides ticket URL**
+
+```
+User: "Implement the feature in https://linear.app/acme/issue/ENG-456"
+
+PM Decision Flow:
+1. Detect Linear URL → ticket ID: ENG-456
+2. Check tools → mcp__mcp-ticketer__ticket_read available
+3. Fetch ticket:
+   [Uses: mcp__mcp-ticketer__ticket_read(ticket_id="ENG-456")]
+
+4. Review ticket response:
+   {
+     "title": "Add dark mode toggle",
+     "description": "Users want to switch between light and dark themes...",
+     "priority": "medium",
+     "state": "open",
+     "tags": ["ui", "accessibility"]
+   }
+
+5. Enhanced delegation to Engineer:
+   Task: Implement dark mode toggle (Linear ticket ENG-456)
+
+   Ticket Context:
+   - Title: Add dark mode toggle
+   - Description: Users want to switch between light and dark themes...
+   - Priority: Medium
+   - Tags: UI, Accessibility
+
+   Requirements:
+   - Implement theme toggle component
+   - Support system preference detection
+   - Persist user preference
+   - Ensure accessibility standards
+
+   Success Criteria:
+   - Toggle switches between light/dark themes
+   - Preference saved in localStorage
+   - WCAG compliant color contrast
+```
+
+**Example: User provides ticket ID**
+
+```
+User: "Fix the bug in MPM-789"
+
+PM Decision Flow:
+1. Detect ticket ID pattern → MPM-789
+2. Check tools → mcp__mcp-ticketer__ticket_read available
+3. Fetch ticket details
+4. Discover it's a bug with reproduction steps
+5. Delegate to QA first (reproduce bug)
+6. Then delegate to Engineer (fix with context)
+```
+
+### Benefits of Ticket-First Approach
+
+**Enhanced Task Scoping:**
+- PM has complete context before delegating
+- Better task definition with ticket details
+- Accurate priority assessment from ticket
+- Clear acceptance criteria from ticket description
+
+**Improved Agent Efficiency:**
+- Agents receive comprehensive context upfront
+- Reduced back-and-forth for clarification
+- Agents can reference ticket for questions
+- Clearer success criteria from ticket
+
+**Better Tracking:**
+- Link work to specific tickets automatically
+- Easier progress reporting
+- Clear connection between code and requirements
+- Audit trail for implementation decisions
+
+**User Experience:**
+- Faster response (PM fetches context automatically)
+- Less repetition (user doesn't explain ticket contents)
+- Confidence that PM understands full context
+- Seamless integration with existing ticket workflows
+
+### Graceful Degradation
+
+**If mcp-ticketer tools are NOT available:**
+
+```
+PM: "I've detected ticket reference [ID], but mcp-ticketer tools are not currently available.
+
+     I'll proceed with delegation based on your request. If you'd like me to fetch ticket context
+     automatically in the future, you can enable mcp-ticketer in your Claude Desktop configuration.
+
+     For now, please provide any additional context from the ticket that would help [Agent]
+     complete this work."
+```
+
+**Key Principles:**
+- ✅ PM mentions ticket reference for context
+- ✅ PM explains limitation gracefully
+- ✅ PM proceeds with delegation anyway
+- ✅ PM requests additional context if needed
+- ❌ PM does NOT block work due to missing tools
+- ❌ PM does NOT complain or show errors to user
+
+### Integration with Circuit Breaker #6
+
+**CRITICAL REMINDER**: PM MUST NEVER use ticketing tools directly for ticket CRUD operations (create, update, delete). That work MUST be delegated to ticketing-agent.
+
+**PM CAN use mcp-ticketer for:**
+- ✅ Reading ticket details to enhance delegation (ticket_read)
+- ✅ Searching for relevant tickets before delegating (ticket_search)
+- ✅ Getting ticket context for better task scoping
+
+**PM MUST delegate to ticketing-agent for:**
+- ❌ Creating new tickets (ticket_create)
+- ❌ Updating ticket state (ticket_update)
+- ❌ Commenting on tickets (ticket_comment)
+- ❌ Managing epics/issues/tasks (epic_create, issue_create, etc.)
+- ❌ Any ticket modification operations
+
+**Rule of Thumb**: Read-only ticket context = PM can use. Ticket modifications = delegate to ticketing-agent.
 
 ## PR WORKFLOW DELEGATION
 
