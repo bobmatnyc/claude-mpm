@@ -26,7 +26,6 @@ References:
 """
 
 import json
-import os
 import platform
 import shutil
 import subprocess
@@ -166,9 +165,7 @@ class SkillsDeployerService(LoggerMixin):
                     errors.append(f"Invalid skill format: {skill}")
                     continue
 
-                result = self._deploy_skill(
-                    skill, skills_data["temp_dir"], force=force
-                )
+                result = self._deploy_skill(skill, skills_data["temp_dir"], force=force)
                 if result["deployed"]:
                     deployed.append(skill["name"])
                 elif result["skipped"]:
@@ -176,7 +173,11 @@ class SkillsDeployerService(LoggerMixin):
                 if result["error"]:
                     errors.append(result["error"])
             except Exception as e:
-                skill_name = skill.get("name", "unknown") if isinstance(skill, dict) else "unknown"
+                skill_name = (
+                    skill.get("name", "unknown")
+                    if isinstance(skill, dict)
+                    else "unknown"
+                )
                 self.logger.error(f"Failed to deploy {skill_name}: {e}")
                 errors.append(f"{skill_name}: {e}")
 
@@ -449,7 +450,9 @@ class SkillsDeployerService(LoggerMixin):
 
             # Find extracted directory (usually repo-name-main/)
             extracted_dirs = [
-                d for d in temp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
+                d
+                for d in temp_dir.iterdir()
+                if d.is_dir() and not d.name.startswith(".")
             ]
 
             if not extracted_dirs:
@@ -462,7 +465,7 @@ class SkillsDeployerService(LoggerMixin):
             if not manifest_path.exists():
                 raise Exception("manifest.json not found in repository")
 
-            with open(manifest_path, "r", encoding="utf-8") as f:
+            with open(manifest_path, encoding="utf-8") as f:
                 manifest = json.load(f)
 
             return {"temp_dir": temp_dir, "manifest": manifest, "repo_dir": repo_dir}
@@ -508,7 +511,9 @@ class SkillsDeployerService(LoggerMixin):
 
         # Handle legacy flat list structure
         if isinstance(skills_data, list):
-            self.logger.debug(f"Using legacy flat manifest structure ({len(skills_data)} skills)")
+            self.logger.debug(
+                f"Using legacy flat manifest structure ({len(skills_data)} skills)"
+            )
             return skills_data
 
         # Handle new nested dict structure
@@ -527,9 +532,13 @@ class SkillsDeployerService(LoggerMixin):
                 for toolchain_name, toolchain_skills in toolchains.items():
                     if isinstance(toolchain_skills, list):
                         flat_skills.extend(toolchain_skills)
-                        self.logger.debug(f"Added {len(toolchain_skills)} {toolchain_name} skills")
+                        self.logger.debug(
+                            f"Added {len(toolchain_skills)} {toolchain_name} skills"
+                        )
 
-            self.logger.info(f"Flattened {len(flat_skills)} total skills from nested structure")
+            self.logger.info(
+                f"Flattened {len(flat_skills)} total skills from nested structure"
+            )
             return flat_skills
 
         # Invalid structure
@@ -566,7 +575,8 @@ class SkillsDeployerService(LoggerMixin):
             filtered = [
                 s
                 for s in filtered
-                if isinstance(s, dict) and any(
+                if isinstance(s, dict)
+                and any(
                     t.lower() in toolchain_lower
                     for t in (
                         s.get("toolchain", [])
@@ -582,14 +592,13 @@ class SkillsDeployerService(LoggerMixin):
             filtered = [
                 s
                 for s in filtered
-                if isinstance(s, dict) and s.get("category", "").lower() in categories_lower
+                if isinstance(s, dict)
+                and s.get("category", "").lower() in categories_lower
             ]
 
         return filtered
 
-    def _deploy_skill(
-        self, skill: Dict, temp_dir: Path, force: bool = False
-    ) -> Dict:
+    def _deploy_skill(self, skill: Dict, temp_dir: Path, force: bool = False) -> Dict:
         """Deploy a single skill to ~/.claude/skills/.
 
         Args:
@@ -610,9 +619,9 @@ class SkillsDeployerService(LoggerMixin):
 
         # Find skill source in temp directory
         # Structure: temp_dir / repo-main / skills / category / skill-name
-        repo_dir = [
+        repo_dir = next(
             d for d in temp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
-        ][0]
+        )
 
         skills_base = repo_dir / "skills"
         category = skill.get("category", "")
@@ -695,16 +704,18 @@ class SkillsDeployerService(LoggerMixin):
         try:
             if platform.system() == "Windows":
                 result = subprocess.run(
-                    ["tasklist"], capture_output=True, text=True, timeout=5
+                    ["tasklist"], check=False, capture_output=True, text=True, timeout=5
                 )
                 return "claude" in result.stdout.lower()
-            else:
-                # macOS and Linux
-                result = subprocess.run(
-                    ["ps", "aux"], capture_output=True, text=True, timeout=5
-                )
-                # Look for "Claude Code" or "claude-code" process
-                return "claude code" in result.stdout.lower() or "claude-code" in result.stdout.lower()
+            # macOS and Linux
+            result = subprocess.run(
+                ["ps", "aux"], check=False, capture_output=True, text=True, timeout=5
+            )
+            # Look for "Claude Code" or "claude-code" process
+            return (
+                "claude code" in result.stdout.lower()
+                or "claude-code" in result.stdout.lower()
+            )
 
         except Exception as e:
             self.logger.debug(f"Failed to check Claude Code process: {e}")

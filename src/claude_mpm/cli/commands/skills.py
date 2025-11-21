@@ -19,7 +19,6 @@ ARCHITECTURE:
 
 import os
 import subprocess
-from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
@@ -510,16 +509,20 @@ class SkillsManagementCommand(BaseCommand):
                 console.print("[dim]Use --force to redeploy[/dim]\n")
 
             if result["errors"]:
-                console.print(
-                    f"[red]✗ {len(result['errors'])} error(s):[/red]"
-                )
+                console.print(f"[red]✗ {len(result['errors'])} error(s):[/red]")
                 for error in result["errors"]:
                     console.print(f"  • {error}")
                 console.print()
 
             # Show restart instructions
             if result["restart_instructions"]:
-                console.print(Panel(result["restart_instructions"], title="⚠️  Important", border_style="yellow"))
+                console.print(
+                    Panel(
+                        result["restart_instructions"],
+                        title="⚠️  Important",
+                        border_style="yellow",
+                    )
+                )
                 console.print()
 
             exit_code = 1 if result["errors"] else 0
@@ -532,13 +535,17 @@ class SkillsManagementCommand(BaseCommand):
     def _list_available_github_skills(self, args) -> CommandResult:
         """List available skills from GitHub repository."""
         try:
-            console.print("\n[bold cyan]Fetching available skills from GitHub...[/bold cyan]\n")
+            console.print(
+                "\n[bold cyan]Fetching available skills from GitHub...[/bold cyan]\n"
+            )
 
             result = self.skills_deployer.list_available_skills()
 
             if result.get("error"):
                 console.print(f"[red]Error: {result['error']}[/red]")
-                return CommandResult(success=False, message=result["error"], exit_code=1)
+                return CommandResult(
+                    success=False, message=result["error"], exit_code=1
+                )
 
             console.print(
                 f"[green]Found {result['total_skills']} available skills[/green]\n"
@@ -612,9 +619,13 @@ class SkillsManagementCommand(BaseCommand):
 
             if remove_all:
                 skill_names = None
-                console.print("\n[bold yellow]Removing ALL deployed skills...[/bold yellow]\n")
+                console.print(
+                    "\n[bold yellow]Removing ALL deployed skills...[/bold yellow]\n"
+                )
             elif skill_names:
-                console.print(f"\n[bold cyan]Removing {len(skill_names)} skill(s)...[/bold cyan]\n")
+                console.print(
+                    f"\n[bold cyan]Removing {len(skill_names)} skill(s)...[/bold cyan]\n"
+                )
             else:
                 console.print("[red]Error: Specify skill names or use --all[/red]")
                 return CommandResult(success=False, exit_code=1)

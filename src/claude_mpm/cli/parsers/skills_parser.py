@@ -174,7 +174,7 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Check deployed skills
-    check_deployed_parser = skills_subparsers.add_parser(
+    skills_subparsers.add_parser(
         SkillsCommands.CHECK_DEPLOYED.value,
         help="Check which skills are currently deployed in ~/.claude/skills/",
     )

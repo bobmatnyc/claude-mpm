@@ -35,7 +35,7 @@ def mock_manifest():
                     "name": "test-driven-development",
                     "description": "RED-GREEN-REFACTOR cycle",
                     "category": "testing",
-                    "path": "universal/testing/test-driven-development"
+                    "path": "universal/testing/test-driven-development",
                 },
             ],
             "toolchains": {
@@ -45,7 +45,7 @@ def mock_manifest():
                         "description": "Python testing skill",
                         "toolchain": ["python"],
                         "category": "testing",
-                        "path": "toolchains/python/test-skill-python"
+                        "path": "toolchains/python/test-skill-python",
                     }
                 ],
                 "javascript": [
@@ -54,7 +54,7 @@ def mock_manifest():
                         "description": "JavaScript debugging skill",
                         "toolchain": ["javascript", "typescript"],
                         "category": "debugging",
-                        "path": "toolchains/javascript/debug-skill-javascript"
+                        "path": "toolchains/javascript/debug-skill-javascript",
                     }
                 ],
                 "rust": [
@@ -63,11 +63,11 @@ def mock_manifest():
                         "description": "Rust web skill",
                         "toolchain": ["rust"],
                         "category": "web",
-                        "path": "toolchains/rust/web-skill-rust"
+                        "path": "toolchains/rust/web-skill-rust",
                     }
-                ]
-            }
-        }
+                ],
+            },
+        },
     }
 
 
@@ -146,7 +146,7 @@ class TestSkillsDeployerInit:
         deployer = SkillsDeployerService()
 
         assert deployer.repo_url == SkillsDeployerService.DEFAULT_REPO_URL
-        assert deployer.CLAUDE_SKILLS_DIR == Path.home() / ".claude" / "skills"
+        assert Path.home() / ".claude" / "skills" == deployer.CLAUDE_SKILLS_DIR
         assert deployer.toolchain_analyzer is None
 
     def test_init_custom_repo(self):
@@ -569,7 +569,7 @@ class TestManifestFlattening:
         legacy_manifest = {
             "skills": [
                 {"name": "skill1", "category": "test"},
-                {"name": "skill2", "category": "test"}
+                {"name": "skill2", "category": "test"},
             ]
         }
 
@@ -583,17 +583,11 @@ class TestManifestFlattening:
         """Test flattening new nested dict manifest."""
         nested_manifest = {
             "skills": {
-                "universal": [
-                    {"name": "universal1", "category": "test"}
-                ],
+                "universal": [{"name": "universal1", "category": "test"}],
                 "toolchains": {
-                    "python": [
-                        {"name": "python1", "toolchain": ["python"]}
-                    ],
-                    "javascript": [
-                        {"name": "js1", "toolchain": ["javascript"]}
-                    ]
-                }
+                    "python": [{"name": "python1", "toolchain": ["python"]}],
+                    "javascript": [{"name": "js1", "toolchain": ["javascript"]}],
+                },
             }
         }
 
@@ -606,18 +600,14 @@ class TestManifestFlattening:
 
     def test_flatten_manifest_invalid_structure(self, deployer):
         """Test that invalid manifest raises ValueError."""
-        invalid_manifest = {
-            "skills": "invalid string"
-        }
+        invalid_manifest = {"skills": "invalid string"}
 
         with pytest.raises(ValueError, match="must be a list or dict"):
             deployer._flatten_manifest_skills(invalid_manifest)
 
     def test_flatten_manifest_empty_dict(self, deployer):
         """Test flattening empty nested dict."""
-        empty_manifest = {
-            "skills": {}
-        }
+        empty_manifest = {"skills": {}}
 
         skills = deployer._flatten_manifest_skills(empty_manifest)
 
@@ -629,7 +619,7 @@ class TestManifestFlattening:
             "skills": {
                 "universal": [
                     {"name": "universal1", "category": "test"},
-                    {"name": "universal2", "category": "test"}
+                    {"name": "universal2", "category": "test"},
                 ]
             }
         }
@@ -644,12 +634,8 @@ class TestManifestFlattening:
         toolchains_only = {
             "skills": {
                 "toolchains": {
-                    "python": [
-                        {"name": "python1", "toolchain": ["python"]}
-                    ],
-                    "rust": [
-                        {"name": "rust1", "toolchain": ["rust"]}
-                    ]
+                    "python": [{"name": "python1", "toolchain": ["python"]}],
+                    "rust": [{"name": "rust1", "toolchain": ["rust"]}],
                 }
             }
         }
