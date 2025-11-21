@@ -7,8 +7,11 @@ Shows welcome message, version info, ASCII art, and what's new section.
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import List
+
+from claude_mpm.utils.git_analyzer import is_git_repository
 
 # ANSI color codes
 CYAN = "\033[36m"  # Cyan for header highlight (Claude Code style)
@@ -42,6 +45,46 @@ def _get_terminal_width() -> int:
 def _get_username() -> str:
     """Get username from environment or default to 'User'."""
     return os.environ.get("USER") or os.environ.get("USERNAME") or "User"
+
+
+def _get_recent_commits(max_commits: int = 3) -> List[str]:
+    """
+    Get recent git commits for display in startup banner.
+
+    Args:
+        max_commits: Maximum number of commits to retrieve (default: 3)
+
+    Returns:
+        List of formatted commit strings (hash • relative_time • message)
+        Empty list if not a git repo or if any error occurs
+
+    Format: "a3f5b7c • 2 hours ago • fix: resolve critical error"
+    """
+    try:
+        # Check if we're in a git repository
+        if not is_git_repository("."):
+            return []
+
+        # Run git log with custom format
+        result = subprocess.run(
+            ["git", "log", f"--format=%h • %ar • %s", f"-{max_commits}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=2,
+        )
+
+        if not result.stdout.strip():
+            return []
+
+        # Split into lines and return
+        commits = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+        return commits[:max_commits]
+
+    except Exception:
+        # Fail silently - return empty list on any error
+        # (not a git repo, git not installed, timeout, etc.)
+        return []
 
 
 def _strip_ansi_codes(text: str) -> str:
@@ -231,6 +274,9 @@ def display_startup_banner(version: str, logging_level: str) -> None:
 
     username = _get_username()
 
+    # Get recent git commits for "Recent activity" section
+    recent_commits = _get_recent_commits(max_commits=3)
+
     # Build header line with cyan highlight (Claude Code style)
     header = f"─── Claude MPM v{version} "
     header_padding = "─" * (terminal_width - len(header) - 2)  # -2 for ╭╮
@@ -246,21 +292,63 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         )
     )
 
-    # Line 2: Welcome message | "No recent activity"
+    # Lines 2-4: Welcome message + commit activity (3 lines total)
     welcome_msg = f"Welcome back {username}!"
-    lines.append(
-        _format_two_column_line(
-            welcome_msg, "No recent activity", left_panel_width, right_panel_width
-        )
-    )
 
-    # Line 3: Empty left | separator right
+    # Truncate commits to fit right panel width (leave 2 chars margin)
+    max_commit_width = right_panel_width - 2
+    truncated_commits = []
+    for commit in recent_commits:
+        if len(commit) > max_commit_width:
+            truncated_commits.append(commit[: max_commit_width - 3] + "...")
+        else:
+            truncated_commits.append(commit)
+
+    # Line 2: Welcome message | First commit or "No recent activity"
+    if truncated_commits:
+        lines.append(
+            _format_two_column_line(
+                welcome_msg, truncated_commits[0], left_panel_width, right_panel_width
+            )
+        )
+    else:
+        lines.append(
+            _format_two_column_line(
+                welcome_msg, "No recent activity", left_panel_width, right_panel_width
+            )
+        )
+
+    # Line 3: Empty left | Second commit or empty
+    if len(truncated_commits) >= 2:
+        lines.append(
+            _format_two_column_line(
+                "", truncated_commits[1], left_panel_width, right_panel_width
+            )
+        )
+    else:
+        lines.append(
+            _format_two_column_line("", "", left_panel_width, right_panel_width)
+        )
+
+    # Line 4: Empty left | Third commit or empty
+    if len(truncated_commits) >= 3:
+        lines.append(
+            _format_two_column_line(
+                "", truncated_commits[2], left_panel_width, right_panel_width
+            )
+        )
+    else:
+        lines.append(
+            _format_two_column_line("", "", left_panel_width, right_panel_width)
+        )
+
+    # Line 5: Empty left | separator right
     separator = "─" * right_panel_width
     lines.append(
         _format_two_column_line("", separator, left_panel_width, right_panel_width)
     )
 
-    # Line 4: Alien art line 1 | "What's new"
+    # Line 6: Alien art line 1 | "What's new"
     alien_art = _get_alien_art()
     lines.append(
         _format_two_column_line(
@@ -268,7 +356,7 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         )
     )
 
-    # Line 5-6: More alien art | changelog highlights
+    # Lines 7-8: More alien art | changelog highlights
     max_highlight_width = right_panel_width - 5  # Leave some margin
     highlights = _parse_changelog_highlights(max_items=3, max_width=max_highlight_width)
 
@@ -298,7 +386,7 @@ def display_startup_banner(version: str, logging_level: str) -> None:
             )
         )
 
-    # Line 7: Empty | third highlight or link
+    # Line 9: Empty | third highlight or link
     if len(highlights) >= 3:
         lines.append(
             _format_two_column_line(
@@ -312,7 +400,7 @@ def display_startup_banner(version: str, logging_level: str) -> None:
             )
         )
 
-    # Line 8: Model info | separator
+    # Line 10: Model info | separator
     separator = "─" * right_panel_width
     lines.append(
         _format_two_column_line(
@@ -320,7 +408,7 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         )
     )
 
-    # Line 9: CWD | MPM Commands header
+    # Line 11: CWD | MPM Commands header
     cwd = _get_cwd_display(left_panel_width - 2)
     lines.append(
         _format_two_column_line(
@@ -328,31 +416,31 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         )
     )
 
-    # Line 10: Empty | /mpm command
+    # Line 12: Empty | /mpm command
     lines.append(
         _format_two_column_line(
             "", "  /mpm        - MPM overview", left_panel_width, right_panel_width
         )
     )
 
-    # Line 11: Empty | /mpm-agents command
+    # Line 13: Empty | /mpm-agents command
     lines.append(
         _format_two_column_line(
             "", "  /mpm-agents - Show agents", left_panel_width, right_panel_width
         )
     )
 
-    # Line 12: Empty | /mpm-doctor command
+    # Line 14: Empty | /mpm-doctor command
     lines.append(
         _format_two_column_line(
             "", "  /mpm-doctor - Run diagnostics", left_panel_width, right_panel_width
         )
     )
 
-    # Line 13: Empty | autocomplete tip
+    # Line 15: Empty | empty
     lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
 
-    # Line 14: Empty | autocomplete tip
+    # Line 16: Empty | autocomplete tip
     lines.append(
         _format_two_column_line(
             "", "Type / for autocomplete", left_panel_width, right_panel_width
