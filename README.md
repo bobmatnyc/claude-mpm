@@ -204,6 +204,85 @@ claude-mpm doctor --checks updates
 
 See [docs/user/getting-started.md](docs/user/getting-started.md) for complete usage examples.
 
+## Skills Deployment
+
+Claude MPM now includes intelligent Claude Code skills deployment with automatic technology stack detection:
+
+- **Automatic Detection**: Research agent analyzes your project's technology stack from configuration files
+- **Smart Recommendations**: Suggests relevant Claude Code skills based on detected frameworks and tools
+- **Easy Deployment**: One-command installation from the [claude-mpm-skills repository](https://github.com/bobmatnyc/claude-mpm-skills)
+- **Batch Operations**: Minimize Claude Code restarts with batched skill deployments
+- **Proactive Workflow**: Research agent recommends skills during project analysis and specific work types
+
+### Quick Start
+
+```bash
+# Deploy skills for your project's toolchain
+claude-mpm skills deploy-github --toolchain python
+
+# List available skills for detected technologies
+claude-mpm skills list-available
+
+# Check what's currently deployed
+claude-mpm skills check-deployed
+
+# Remove deployed skills
+claude-mpm skills remove --all
+```
+
+### How It Works
+
+1. **Research Agent Analyzes Project**
+   - Scans configuration files (package.json, pyproject.toml, etc.)
+   - Detects frameworks (FastAPI, React, Next.js, etc.)
+   - Identifies testing tools (pytest, Playwright, Jest, etc.)
+   - Discovers infrastructure patterns (Docker, GitHub Actions, etc.)
+
+2. **Skill Gap Detection**
+   - Compares detected technologies to deployed skills
+   - Identifies missing skills that would improve workflow
+   - Prioritizes recommendations (high/medium/low)
+
+3. **Proactive Recommendations**
+   - During project initialization
+   - When new technologies are added
+   - When specific work types begin (testing, debugging, deployment)
+   - When quality issues are detected
+
+### Example: Python FastAPI Project
+
+```markdown
+Research Agent Analysis:
+Technology Stack Detected: Python 3.11, FastAPI, pytest, Docker, GitHub Actions
+
+Recommended Skills:
+- test-driven-development (high priority) - TDD workflow enforcement
+- backend-engineer (high priority) - API design patterns
+- docker-workflow (medium priority) - Container best practices
+- ci-cd-pipeline-builder (medium priority) - GitHub Actions optimization
+
+Deploy with:
+claude-mpm skills deploy-github --toolchain python
+```
+
+### Technology → Skills Mapping
+
+| Your Technology | Recommended Skills |
+|-----------------|-------------------|
+| Python + pytest | test-driven-development, python-style |
+| FastAPI/Flask | backend-engineer |
+| React/Next.js | frontend-development, web-frameworks |
+| Docker | docker-workflow |
+| GitHub Actions | ci-cd-pipeline-builder |
+| Playwright | webapp-testing |
+
+### Important Notes
+
+- Skills load at Claude Code STARTUP ONLY - restart required after deployment
+- Batch deploy related skills to minimize restarts
+- Research agent automatically recommends skills during analysis
+- See [Skills Deployment Guide](docs/guides/skills-deployment-guide.md) for comprehensive details
+- See [Skills Quick Reference](docs/reference/skills-quick-reference.md) for command reference
 
 ## Architecture (v4.4.1)
 

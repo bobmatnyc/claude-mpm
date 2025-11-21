@@ -9,6 +9,7 @@ Complete reference documentation for Claude MPM systems and architecture.
 - **[Services Reference](SERVICES.md)** - Service-oriented architecture details
 - **[Memory System](MEMORY.md)** - Memory and context management
 - **[Testing & QA](QA.md)** - Testing standards and quality assurance
+- **[Skills Quick Reference](skills-quick-reference.md)** - Quick reference for Claude Code skills deployment (NEW)
 - **[Homebrew Troubleshooting](HOMEBREW_UPDATE_TROUBLESHOOTING.md)** - Homebrew tap integration issues
 - **[Structured Questions API](structured-questions-api.md)** - Complete API reference for structured questions framework
 - **[Structured Questions Templates](structured-questions-templates.md)** - Catalog of available question templates
@@ -24,6 +25,12 @@ Complete reference documentation for Claude MPM systems and architecture.
 - [Deployment Guide](DEPLOY.md) - Release procedures
 - [Memory System](MEMORY.md) - Context management
 - [Testing Guide](QA.md) - Quality standards
+- [Skills Quick Reference](skills-quick-reference.md) - Skills deployment commands (NEW)
+
+**Skills & Agents:**
+- [Skills Quick Reference](skills-quick-reference.md) - Command reference for skill deployment
+- [Research Agent](../agents/research-agent.md) - Skill detection and recommendations
+- [Skills Deployment Guide](../guides/skills-deployment-guide.md) - Comprehensive deployment guide
 
 **Development:**
 - [Testing & QA](QA.md) - Testing requirements

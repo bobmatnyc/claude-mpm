@@ -6,6 +6,8 @@ How-to guides and frequently asked questions for Claude MPM.
 
 - **[FAQ](FAQ.md)** - Frequently asked questions and common issues
 - **[Structured Questions](structured-questions.md)** - Understanding and using the structured questions framework
+- **[Makefile Template Integration](makefile-template-integration.md)** - Using python-project-template for new and existing projects
+- **[Skills Deployment Guide](skills-deployment-guide.md)** - Comprehensive guide to Claude Code skills deployment and recommendations
 
 ## Quick Links
 

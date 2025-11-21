@@ -134,4 +134,65 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         help="Show configuration file path",
     )
 
+    # GitHub deployment commands
+    # Deploy from GitHub command
+    deploy_github_parser = skills_subparsers.add_parser(
+        SkillsCommands.DEPLOY_FROM_GITHUB.value,
+        help="Deploy skills from GitHub to ~/.claude/skills/ for Claude Code",
+    )
+    deploy_github_parser.add_argument(
+        "--toolchain",
+        nargs="+",
+        help="Filter by toolchain/language (e.g., python javascript rust)",
+    )
+    deploy_github_parser.add_argument(
+        "--categories",
+        nargs="+",
+        help="Filter by categories (e.g., testing debugging web)",
+    )
+    deploy_github_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force redeployment of already deployed skills",
+    )
+    deploy_github_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Deploy all available skills (no filtering)",
+    )
+
+    # List available GitHub skills
+    list_available_parser = skills_subparsers.add_parser(
+        SkillsCommands.LIST_AVAILABLE.value,
+        help="List all available skills from GitHub repository",
+    )
+    list_available_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed skill information including names",
+    )
+
+    # Check deployed skills
+    check_deployed_parser = skills_subparsers.add_parser(
+        SkillsCommands.CHECK_DEPLOYED.value,
+        help="Check which skills are currently deployed in ~/.claude/skills/",
+    )
+
+    # Remove skills
+    remove_parser = skills_subparsers.add_parser(
+        SkillsCommands.REMOVE.value,
+        help="Remove deployed skills from ~/.claude/skills/",
+    )
+    remove_parser.add_argument(
+        "skill_names",
+        nargs="*",
+        help="Specific skills to remove",
+    )
+    remove_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Remove all deployed skills",
+    )
+
     return skills_parser

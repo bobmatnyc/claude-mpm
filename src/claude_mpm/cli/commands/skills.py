@@ -3,24 +3,32 @@ Skills command implementation for claude-mpm.
 
 WHY: This module provides CLI commands for managing Claude Code skills,
 exposing SkillsService functionality for skill discovery, deployment, validation,
-updates, and configuration.
+updates, and configuration. Also provides GitHub skills deployment via SkillsDeployer.
 
 DESIGN DECISIONS:
 - Use BaseCommand pattern for consistency with other CLI commands
 - Rich output formatting for user-friendly display
 - Graceful error handling with informative messages
 - Support for verbose output and structured formats
+- Dual service approach: SkillsService for bundled, SkillsDeployer for GitHub
+
+ARCHITECTURE:
+- SkillsService: Manages bundled skills (in project .claude/skills/)
+- SkillsDeployer: Downloads from GitHub to ~/.claude/skills/ for Claude Code
 """
 
 import os
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.table import Table
 
 from ...constants import SkillsCommands
+from ...services.skills_deployer import SkillsDeployerService
 from ...skills.skills_service import SkillsService
 from ..shared import BaseCommand, CommandResult
 
@@ -33,6 +41,7 @@ class SkillsManagementCommand(BaseCommand):
     def __init__(self):
         super().__init__("skills")
         self._skills_service = None
+        self._skills_deployer = None
 
     @property
     def skills_service(self) -> SkillsService:
@@ -40,6 +49,13 @@ class SkillsManagementCommand(BaseCommand):
         if self._skills_service is None:
             self._skills_service = SkillsService()
         return self._skills_service
+
+    @property
+    def skills_deployer(self) -> SkillsDeployerService:
+        """Get skills deployer instance (lazy loaded)."""
+        if self._skills_deployer is None:
+            self._skills_deployer = SkillsDeployerService()
+        return self._skills_deployer
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -68,6 +84,11 @@ class SkillsManagementCommand(BaseCommand):
                 SkillsCommands.UPDATE.value: self._update_skills,
                 SkillsCommands.INFO.value: self._show_skill_info,
                 SkillsCommands.CONFIG.value: self._manage_config,
+                # GitHub deployment commands
+                SkillsCommands.DEPLOY_FROM_GITHUB.value: self._deploy_from_github,
+                SkillsCommands.LIST_AVAILABLE.value: self._list_available_github_skills,
+                SkillsCommands.CHECK_DEPLOYED.value: self._check_deployed_skills,
+                SkillsCommands.REMOVE.value: self._remove_skills,
             }
 
             handler = command_map.get(args.skills_command)
@@ -446,6 +467,179 @@ class SkillsManagementCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]Error managing configuration: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _deploy_from_github(self, args) -> CommandResult:
+        """Deploy skills from GitHub repository."""
+        try:
+            toolchain = getattr(args, "toolchain", None)
+            categories = getattr(args, "categories", None)
+            force = getattr(args, "force", False)
+            all_skills = getattr(args, "all", False)
+
+            console.print("\n[bold cyan]Deploying skills from GitHub...[/bold cyan]\n")
+
+            # Auto-detect toolchain if not specified and not deploying all
+            if not toolchain and not all_skills:
+                console.print(
+                    "[yellow]No toolchain specified. Use --toolchain to filter by language,[/yellow]"
+                )
+                console.print(
+                    "[yellow]or --all to deploy all available skills.[/yellow]\n"
+                )
+
+            result = self.skills_deployer.deploy_skills(
+                toolchain=toolchain, categories=categories, force=force
+            )
+
+            # Display results
+            if result["deployed_count"] > 0:
+                console.print(
+                    f"[green]✓ Deployed {result['deployed_count']} skill(s):[/green]"
+                )
+                for skill in result["deployed_skills"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            if result["skipped_count"] > 0:
+                console.print(
+                    f"[yellow]⊘ Skipped {result['skipped_count']} skill(s) (already deployed):[/yellow]"
+                )
+                for skill in result["skipped_skills"]:
+                    console.print(f"  • {skill}")
+                console.print("[dim]Use --force to redeploy[/dim]\n")
+
+            if result["errors"]:
+                console.print(
+                    f"[red]✗ {len(result['errors'])} error(s):[/red]"
+                )
+                for error in result["errors"]:
+                    console.print(f"  • {error}")
+                console.print()
+
+            # Show restart instructions
+            if result["restart_instructions"]:
+                console.print(Panel(result["restart_instructions"], title="⚠️  Important", border_style="yellow"))
+                console.print()
+
+            exit_code = 1 if result["errors"] else 0
+            return CommandResult(success=not result["errors"], exit_code=exit_code)
+
+        except Exception as e:
+            console.print(f"[red]Error deploying from GitHub: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _list_available_github_skills(self, args) -> CommandResult:
+        """List available skills from GitHub repository."""
+        try:
+            console.print("\n[bold cyan]Fetching available skills from GitHub...[/bold cyan]\n")
+
+            result = self.skills_deployer.list_available_skills()
+
+            if result.get("error"):
+                console.print(f"[red]Error: {result['error']}[/red]")
+                return CommandResult(success=False, message=result["error"], exit_code=1)
+
+            console.print(
+                f"[green]Found {result['total_skills']} available skills[/green]\n"
+            )
+
+            # Display by category
+            console.print("[bold yellow]By Category:[/bold yellow]\n")
+            for category, skills in sorted(result["by_category"].items()):
+                console.print(f"  [cyan]{category}[/cyan] ({len(skills)} skills)")
+                if hasattr(args, "verbose") and args.verbose:
+                    for skill in sorted(skills, key=lambda s: s.get("name", "")):
+                        console.print(f"    • {skill.get('name', 'unknown')}")
+            console.print()
+
+            # Display by toolchain
+            console.print("[bold yellow]By Toolchain:[/bold yellow]\n")
+            for toolchain, skills in sorted(result["by_toolchain"].items()):
+                console.print(f"  [cyan]{toolchain}[/cyan] ({len(skills)} skills)")
+                if hasattr(args, "verbose") and args.verbose:
+                    for skill in sorted(skills, key=lambda s: s.get("name", "")):
+                        console.print(f"    • {skill.get('name', 'unknown')}")
+            console.print()
+
+            return CommandResult(success=True, exit_code=0)
+
+        except Exception as e:
+            console.print(f"[red]Error listing available skills: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _check_deployed_skills(self, args) -> CommandResult:
+        """Check currently deployed skills in ~/.claude/skills/."""
+        try:
+            result = self.skills_deployer.check_deployed_skills()
+
+            console.print("\n[bold cyan]Claude Code Skills Status:[/bold cyan]\n")
+            console.print(f"[dim]Directory: {result['claude_skills_dir']}[/dim]\n")
+
+            if result["deployed_count"] == 0:
+                console.print("[yellow]No skills currently deployed.[/yellow]")
+                console.print(
+                    "[dim]Use 'claude-mpm skills deploy-github' to deploy skills.[/dim]\n"
+                )
+                return CommandResult(success=True, exit_code=0)
+
+            console.print(
+                f"[green]{result['deployed_count']} skill(s) deployed:[/green]\n"
+            )
+
+            # Create table for deployed skills
+            table = Table(show_header=True, header_style="bold cyan")
+            table.add_column("Skill Name", style="green")
+            table.add_column("Path", style="dim")
+
+            for skill in sorted(result["skills"], key=lambda s: s["name"]):
+                table.add_row(skill["name"], skill["path"])
+
+            console.print(table)
+            console.print()
+
+            return CommandResult(success=True, exit_code=0)
+
+        except Exception as e:
+            console.print(f"[red]Error checking deployed skills: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _remove_skills(self, args) -> CommandResult:
+        """Remove deployed skills."""
+        try:
+            skill_names = getattr(args, "skill_names", None)
+            remove_all = getattr(args, "all", False)
+
+            if remove_all:
+                skill_names = None
+                console.print("\n[bold yellow]Removing ALL deployed skills...[/bold yellow]\n")
+            elif skill_names:
+                console.print(f"\n[bold cyan]Removing {len(skill_names)} skill(s)...[/bold cyan]\n")
+            else:
+                console.print("[red]Error: Specify skill names or use --all[/red]")
+                return CommandResult(success=False, exit_code=1)
+
+            result = self.skills_deployer.remove_skills(skill_names)
+
+            if result["removed_count"] > 0:
+                console.print(
+                    f"[green]✓ Removed {result['removed_count']} skill(s):[/green]"
+                )
+                for skill in result["removed_skills"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            if result["errors"]:
+                console.print(f"[red]✗ {len(result['errors'])} error(s):[/red]")
+                for error in result["errors"]:
+                    console.print(f"  • {error}")
+                console.print()
+
+            exit_code = 1 if result["errors"] else 0
+            return CommandResult(success=not result["errors"], exit_code=exit_code)
+
+        except Exception as e:
+            console.print(f"[red]Error removing skills: {e}[/red]")
             return CommandResult(success=False, message=str(e), exit_code=1)
 
     def _get_skill_metadata(self, skill_name: str) -> Optional[dict]:

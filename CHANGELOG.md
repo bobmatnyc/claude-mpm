@@ -1,8 +1,25 @@
 ## [Unreleased]
 
 ### Added
+- **Skills Deployment System**: Intelligent Claude Code skills deployment with automatic recommendations
+  - SkillsDeployer service for downloading and deploying skills from GitHub
+  - Technology stack detection and automatic skill gap analysis
+  - Research agent enhancement (v2.6.0) with skill detection capabilities
+  - CLI commands: `skills deploy-github`, `list-available`, `check-deployed`, `remove`
+  - Comprehensive skills deployment guide at `docs/guides/skills-deployment-guide.md`
+  - Integration with [claude-mpm-skills repository](https://github.com/bobmatnyc/claude-mpm-skills)
+  - Proactive skill recommendations during project analysis and specific work types
 
 ### Changed
+- Research agent (v2.6.0) now proactively recommends Claude Code skills based on project technology stack
+- Research agent detects frameworks, testing tools, and infrastructure patterns for targeted recommendations
+- Enhanced project analysis to include skill gap detection and deployment guidance
+
+### Documentation
+- Added `docs/agents/research-agent.md` - Complete research agent documentation with skill detection
+- Added `docs/reference/skills-quick-reference.md` - Quick reference card for skills commands
+- Updated `README.md` with Skills Deployment section and usage examples
+- Enhanced skills deployment guide with research agent integration examples
 
 ### Fixed
 

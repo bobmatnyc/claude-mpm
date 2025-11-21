@@ -168,6 +168,11 @@ class SkillsCommands(str, Enum):
     UPDATE = "update"
     INFO = "info"
     CONFIG = "config"
+    # GitHub deployment commands
+    DEPLOY_FROM_GITHUB = "deploy-github"
+    LIST_AVAILABLE = "list-available"
+    CHECK_DEPLOYED = "check-deployed"
+    REMOVE = "remove"
 
 
 class CLIFlags(str, Enum):
