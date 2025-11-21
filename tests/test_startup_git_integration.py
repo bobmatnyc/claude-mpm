@@ -21,21 +21,31 @@ class TestGetRecentCommits:
     def test_returns_empty_list_when_not_git_repo(self):
         """Should return empty list when not in a git repository."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=False):
+            with patch(
+                "claude_mpm.cli.startup_display.is_git_repository", return_value=False
+            ):
                 commits = _get_recent_commits()
                 assert commits == []
 
     def test_returns_empty_list_on_subprocess_error(self):
         """Should return empty list when git command fails."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
-            with patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "git")):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
+            with patch(
+                "subprocess.run", side_effect=subprocess.CalledProcessError(1, "git")
+            ):
                 commits = _get_recent_commits()
                 assert commits == []
 
     def test_returns_empty_list_on_timeout(self):
         """Should return empty list when git command times out."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
-            with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("git", 2)):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
+            with patch(
+                "subprocess.run", side_effect=subprocess.TimeoutExpired("git", 2)
+            ):
                 commits = _get_recent_commits()
                 assert commits == []
 
@@ -45,14 +55,18 @@ class TestGetRecentCommits:
         mock_output += "b2d8e9f • 1 day ago • feat: add new feature\n"
         mock_output += "c1a4f3d • 3 days ago • docs: update README\n"
 
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch(
                 "subprocess.run",
                 return_value=MagicMock(stdout=mock_output, returncode=0),
             ):
                 commits = _get_recent_commits(max_commits=3)
                 assert len(commits) == 3
-                assert commits[0] == "a3f5b7c • 2 hours ago • fix: resolve critical error"
+                assert (
+                    commits[0] == "a3f5b7c • 2 hours ago • fix: resolve critical error"
+                )
                 assert commits[1] == "b2d8e9f • 1 day ago • feat: add new feature"
                 assert commits[2] == "c1a4f3d • 3 days ago • docs: update README"
 
@@ -64,7 +78,9 @@ class TestGetRecentCommits:
         mock_output += "d5e6f7a • 4 days ago • commit 4\n"
         mock_output += "e8f9a1b • 5 days ago • commit 5\n"
 
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch(
                 "subprocess.run",
                 return_value=MagicMock(stdout=mock_output, returncode=0),
@@ -76,16 +92,24 @@ class TestGetRecentCommits:
 
     def test_handles_empty_git_log_output(self):
         """Should return empty list when git log returns no commits."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
-            with patch("subprocess.run", return_value=MagicMock(stdout="", returncode=0)):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
+            with patch(
+                "subprocess.run", return_value=MagicMock(stdout="", returncode=0)
+            ):
                 commits = _get_recent_commits()
                 assert commits == []
 
     def test_filters_empty_lines(self):
         """Should filter out empty lines from git log output."""
-        mock_output = "a3f5b7c • 2 hours ago • commit 1\n\n\nb2d8e9f • 1 day ago • commit 2\n\n"
+        mock_output = (
+            "a3f5b7c • 2 hours ago • commit 1\n\n\nb2d8e9f • 1 day ago • commit 2\n\n"
+        )
 
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch(
                 "subprocess.run",
                 return_value=MagicMock(stdout=mock_output, returncode=0),
@@ -175,7 +199,9 @@ class TestGitCommandFormat:
 
     def test_git_command_uses_correct_format(self):
         """Should use correct git log format string."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(stdout="", returncode=0)
                 _get_recent_commits(max_commits=3)
@@ -189,7 +215,9 @@ class TestGitCommandFormat:
 
     def test_git_command_has_timeout(self):
         """Should set 2 second timeout on git command."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(stdout="", returncode=0)
                 _get_recent_commits()
@@ -200,7 +228,9 @@ class TestGitCommandFormat:
 
     def test_git_command_captures_output(self):
         """Should capture stdout as text."""
-        with patch("claude_mpm.cli.startup_display.is_git_repository", return_value=True):
+        with patch(
+            "claude_mpm.cli.startup_display.is_git_repository", return_value=True
+        ):
             with patch("subprocess.run") as mock_run:
                 mock_run.return_value = MagicMock(stdout="", returncode=0)
                 _get_recent_commits()

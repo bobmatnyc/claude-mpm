@@ -78,7 +78,9 @@ def _get_recent_commits(max_commits: int = 3) -> List[str]:
             return []
 
         # Split into lines and return
-        commits = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+        commits = [
+            line.strip() for line in result.stdout.strip().split("\n") if line.strip()
+        ]
         return commits[:max_commits]
 
     except Exception:
