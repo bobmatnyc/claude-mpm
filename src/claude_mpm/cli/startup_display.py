@@ -67,7 +67,7 @@ def _get_recent_commits(max_commits: int = 3) -> List[str]:
 
         # Run git log with custom format
         result = subprocess.run(
-            ["git", "log", f"--format=%h • %ar • %s", f"-{max_commits}"],
+            ["git", "log", "--format=%h • %ar • %s", f"-{max_commits}"],
             capture_output=True,
             text=True,
             check=True,
