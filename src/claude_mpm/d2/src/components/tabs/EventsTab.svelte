@@ -1,17 +1,32 @@
 <script>
   import { eventsStore } from '../../stores/events.js';
 
-  let expandedEventId = $state(null);
-  let scrollContainer;
+  // Destructure individual stores from eventsStore
+  const { events, count, isEmpty, totalReceived } = eventsStore;
 
-  // Auto-scroll to newest events
+  let expandedEventId = $state(null);
+  let scrollContainer = $state(null);
+  let previousEventCount = $state(0);
+
+  // $effect at top-level (correct Svelte 5 Runes usage)
+  // Effects run during component initialization and re-run when dependencies change
+  // The scrollContainer null-check protects against initial undefined state
   $effect(() => {
-    if (scrollContainer && $eventsStore.count > 0) {
-      // Small delay to ensure DOM update
-      setTimeout(() => {
-        scrollContainer.scrollTop = 0;
-      }, 10);
+    // Access the reactive store value
+    const currentCount = $count;
+
+    // Only scroll if events were added AND container exists (not on initial load or clear)
+    if (scrollContainer && currentCount > 0 && currentCount > previousEventCount) {
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        if (scrollContainer) {
+          scrollContainer.scrollTop = 0;
+        }
+      });
     }
+
+    // Update previous count for next comparison
+    previousEventCount = currentCount;
   });
 
   function toggleExpand(eventId) {
@@ -63,12 +78,12 @@
     <h2>Events Timeline</h2>
     <div class="stats">
       <span class="stat">
-        Total: <strong>{$eventsStore.totalReceived}</strong>
+        Total: <strong>{$totalReceived}</strong>
       </span>
       <span class="stat">
-        Displayed: <strong>{$eventsStore.count}</strong>
+        Displayed: <strong>{$count}</strong>
       </span>
-      {#if $eventsStore.count > 0}
+      {#if $count > 0}
         <button class="clear-btn" onclick={() => eventsStore.clear()}>
           Clear
         </button>
@@ -77,14 +92,14 @@
   </div>
 
   <div class="events-list" bind:this={scrollContainer}>
-    {#if $eventsStore.isEmpty}
+    {#if $isEmpty}
       <div class="empty-state">
         <div class="empty-icon">📡</div>
         <p>Waiting for events...</p>
         <p class="empty-hint">Events will appear here as they are received from Socket.IO</p>
       </div>
     {:else}
-      {#each $eventsStore.events as event (event._id)}
+      {#each $events as event (event._id)}
         <div class="event-item">
           <button
             class="event-header"
@@ -124,22 +139,22 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #0f0f0f;
+    background: var(--bg-primary);
   }
 
   .events-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #1a1a1a;
+    background: var(--bg-secondary);
   }
 
   h2 {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .stats {
@@ -150,19 +165,19 @@
 
   .stat {
     font-size: 13px;
-    color: #888;
+    color: var(--text-tertiary);
   }
 
   .stat strong {
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-weight: 600;
   }
 
   .clear-btn {
     padding: 6px 12px;
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: color-mix(in srgb, var(--error-color) 10%, transparent);
+    color: var(--error-color);
+    border: 1px solid color-mix(in srgb, var(--error-color) 30%, transparent);
     border-radius: 4px;
     font-size: 12px;
     font-weight: 500;
@@ -171,8 +186,8 @@
   }
 
   .clear-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
+    background: color-mix(in srgb, var(--error-color) 20%, transparent);
+    border-color: color-mix(in srgb, var(--error-color) 50%, transparent);
   }
 
   .events-list {
@@ -187,7 +202,7 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #666;
+    color: var(--text-secondary);
     text-align: center;
   }
 
@@ -204,12 +219,12 @@
 
   .empty-hint {
     font-size: 12px;
-    color: #555;
+    color: var(--text-tertiary);
   }
 
   .event-item {
-    background: #1a1a1a;
-    border: 1px solid #333;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     margin-bottom: 12px;
     overflow: hidden;
@@ -217,8 +232,8 @@
   }
 
   .event-item:hover {
-    border-color: #444;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border-color: var(--border-color-light);
+    box-shadow: var(--shadow-md);
   }
 
   .event-header {
@@ -246,7 +261,7 @@
   .event-time {
     font-family: 'Monaco', 'Menlo', monospace;
     font-size: 12px;
-    color: #888;
+    color: var(--text-tertiary);
   }
 
   .event-source {
@@ -262,7 +277,7 @@
   .event-summary {
     flex: 1;
     font-size: 13px;
-    color: #e0e0e0;
+    color: var(--text-primary);
     font-weight: 500;
   }
 
@@ -272,32 +287,32 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: var(--text-secondary);
     border-radius: 4px;
     transition: all 0.2s ease;
     font-size: 10px;
   }
 
   .event-header:hover .expand-icon {
-    background: rgba(255, 255, 255, 0.05);
-    color: #888;
+    background: var(--overlay-bg);
+    color: var(--text-tertiary);
   }
 
   .expand-icon.expanded {
-    color: #3b82f6;
+    color: var(--accent-color);
   }
 
   .event-details {
     padding: 16px;
-    background: #0f0f0f;
-    border-top: 1px solid #333;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
   }
 
   .event-details pre {
     margin: 0;
     padding: 12px;
-    background: #000;
-    border: 1px solid #222;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     overflow-x: auto;
     font-size: 12px;
@@ -305,7 +320,7 @@
   }
 
   .event-details code {
-    color: #10b981;
+    color: var(--success-color);
     font-family: 'Monaco', 'Menlo', monospace;
   }
 </style>

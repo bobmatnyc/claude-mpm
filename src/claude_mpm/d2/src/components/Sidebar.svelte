@@ -1,4 +1,5 @@
 <script>
+  // Use Svelte 5 $bindable() for two-way binding
   let { activeTab = $bindable('events') } = $props();
 
   const tabs = [
@@ -32,8 +33,8 @@
 <style>
   .sidebar {
     width: 200px;
-    background: #1a1a1a;
-    border-right: 1px solid #333;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -52,7 +53,7 @@
     padding: 12px 20px;
     border: none;
     background: transparent;
-    color: #888;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
@@ -62,14 +63,14 @@
   }
 
   .nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #e0e0e0;
+    background: var(--tab-hover-bg);
+    color: var(--text-primary);
   }
 
   .nav-item.active {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
-    border-left-color: #3b82f6;
+    background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+    color: var(--accent-color);
+    border-left-color: var(--accent-color);
   }
 
   .icon {

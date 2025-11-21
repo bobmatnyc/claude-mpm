@@ -1,6 +1,7 @@
 <script>
   import EventsTab from './tabs/EventsTab.svelte';
 
+  // Use Svelte 5 $props()
   let { activeTab } = $props();
 </script>
 
@@ -48,7 +49,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: var(--text-secondary);
     text-align: center;
     padding: 40px;
   }
@@ -62,12 +63,12 @@
   .placeholder h3 {
     font-size: 24px;
     font-weight: 600;
-    color: #888;
+    color: var(--text-secondary);
     margin-bottom: 8px;
   }
 
   .placeholder p {
     font-size: 14px;
-    color: #555;
+    color: var(--text-tertiary);
   }
 </style>
