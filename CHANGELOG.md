@@ -8,6 +8,11 @@
 
 ### Removed
 
+## [4.25.2] - 2025-11-21
+
+### Changed
+- Patch release for deployment testing and quality gate verification
+
 ## [4.25.1] - 2025-11-21
 
 ### Added
