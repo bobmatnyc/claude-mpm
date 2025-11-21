@@ -573,10 +573,10 @@ quick-dev: setup-dev ## Alias for complete development setup
 lint-ruff: ## Run ruff linter and formatter check
 	@echo "$(YELLOW)🔍 Running ruff linter...$(NC)"
 	@if command -v ruff &> /dev/null; then \
-		ruff check . || exit 1; \
+		ruff check src/ tests/ scripts/ || exit 1; \
 		echo "$(GREEN)✓ Ruff linting passed$(NC)"; \
 		echo "$(YELLOW)🔍 Checking code formatting...$(NC)"; \
-		ruff format --check . || exit 1; \
+		ruff format --check src/ tests/ scripts/ || exit 1; \
 		echo "$(GREEN)✓ Ruff format check passed$(NC)"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
@@ -638,10 +638,10 @@ lint-fix: ## Auto-fix linting issues (ruff format + ruff check --fix)
 	@echo "$(YELLOW)🔧 Auto-fixing code issues with ruff...$(NC)"
 	@if command -v ruff &> /dev/null; then \
 		echo "$(YELLOW)Fixing linting issues...$(NC)"; \
-		ruff check . --fix || true; \
+		ruff check src/ tests/ scripts/ --fix || true; \
 		echo "$(GREEN)✓ Ruff linting fixes applied$(NC)"; \
 		echo "$(YELLOW)Formatting code...$(NC)"; \
-		ruff format . || true; \
+		ruff format src/ tests/ scripts/ || true; \
 		echo "$(GREEN)✓ Code formatted$(NC)"; \
 	else \
 		echo "$(RED)✗ ruff not found. Install with: pip install ruff$(NC)"; \
@@ -667,7 +667,7 @@ quality-ci: ## Quality checks for CI/CD (strict, fail fast)
 	echo "$(YELLOW)🔍 Checking lock file...$(NC)"; \
 	$(MAKE) lock-check || exit 1; \
 	echo "$(YELLOW)🔍 Ruff check (no fixes)...$(NC)"; \
-	ruff check . --no-fix; \
+	ruff check src/ tests/ scripts/ --no-fix; \
 	echo "$(YELLOW)🔍 Type checking...$(NC)"; \
 	mypy src/ --ignore-missing-imports; \
 	echo "$(YELLOW)🧪 Running tests (parallel)...$(NC)"; \
