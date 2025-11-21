@@ -8,6 +8,20 @@
 
 ### Removed
 
+## [4.25.0] - 2025-11-21
+
+### Added
+- **Ticketing Agent Delegation**: Mandatory delegation to ticketing agent in PM instructions for ticket management workflows
+- **Git History Display**: CLI startup screen now shows recent git commit activity for better context awareness
+- **Theme Support**: Light/dark theme support added to d2 dashboard for improved user experience
+
+### Fixed
+- Removed unnecessary f-string prefix in startup_display.py
+- Resolved critical Svelte 5 store architecture error in d2 dashboard
+
+### Changed
+- Applied black formatting to git integration code for consistency
+
 ## [4.24.4] - 2025-11-20
 
 ### Fixed
