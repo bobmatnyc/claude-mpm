@@ -127,6 +127,41 @@ We maintain 85%+ test coverage across:
 4. **Security Tests**: Input validation and security measures
 5. **E2E Tests**: Complete user workflows
 
+#### Running Tests
+
+Tests are configured to run in parallel by default using pytest-xdist, providing 3-4x speedup:
+
+```bash
+# Run all tests in parallel (default, fastest)
+make test
+
+# Run tests serially for debugging
+make test-serial
+
+# Run only unit tests (fast)
+make test-fast
+
+# Run with coverage report
+make test-coverage
+
+# Run specific test types
+make test-unit          # Unit tests only
+make test-integration   # Integration tests only
+make test-e2e          # End-to-end tests only
+```
+
+**Parallelization Details:**
+- Tests use all available CPU cores by default (`-n auto`)
+- Expected speedup: 3-4x faster than serial execution
+- Typical execution time: ~30-45 seconds (down from 2-3 minutes)
+- Use `make test-serial` for debugging race conditions or fixture issues
+
+**Writing Thread-Safe Tests:**
+- Ensure test fixtures are isolated (use `tmp_path` for file operations)
+- Avoid shared state between tests
+- Use `@pytest.mark.serial` for tests that must run sequentially
+- Mock external services to prevent port conflicts
+
 ## Documentation
 
 ### Key Documentation Locations

@@ -320,6 +320,46 @@ pre-commit-run: ## Run pre-commit on all files
 
 dev-complete: setup-dev setup-pre-commit ## Complete development setup with pre-commit hooks
 
+# ============================================================================
+# Test Execution Targets
+# ============================================================================
+
+.PHONY: test test-serial test-parallel test-fast test-coverage test-unit test-integration test-e2e
+
+test: test-parallel ## Run tests with parallel execution (default, 3-4x faster)
+
+test-parallel: ## Run tests in parallel using all available CPUs
+	@echo "$(YELLOW)🧪 Running tests in parallel (using all CPUs)...$(NC)"
+	@python -m pytest tests/ -n auto -v
+	@echo "$(GREEN)✓ Parallel tests completed$(NC)"
+
+test-serial: ## Run tests serially for debugging (disables parallelization)
+	@echo "$(YELLOW)🧪 Running tests serially (debugging mode)...$(NC)"
+	@python -m pytest tests/ -n 0 -v
+	@echo "$(GREEN)✓ Serial tests completed$(NC)"
+
+test-fast: ## Run unit tests only in parallel (fastest)
+	@echo "$(YELLOW)⚡ Running unit tests in parallel...$(NC)"
+	@python -m pytest tests/ -n auto -m unit -v
+	@echo "$(GREEN)✓ Unit tests completed$(NC)"
+
+test-coverage: ## Run tests with coverage report (parallel)
+	@echo "$(YELLOW)📊 Running tests with coverage...$(NC)"
+	@python -m pytest tests/ -n auto --cov=src/claude_mpm --cov-report=html --cov-report=term
+	@echo "$(GREEN)✓ Coverage report generated in htmlcov/$(NC)"
+
+test-unit: ## Run unit tests only
+	@echo "$(YELLOW)🧪 Running unit tests...$(NC)"
+	@python -m pytest tests/ -n auto -m unit -v
+
+test-integration: ## Run integration tests only
+	@echo "$(YELLOW)🧪 Running integration tests...$(NC)"
+	@python -m pytest tests/integration/ -n auto -v
+
+test-e2e: ## Run end-to-end tests only
+	@echo "$(YELLOW)🧪 Running e2e tests...$(NC)"
+	@python -m pytest tests/e2e/ -n auto -v
+
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
 	@if [ -f "scripts/apply_deprecation_policy.py" ]; then \
@@ -485,7 +525,7 @@ pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publ
 	@if [ -f "scripts/run_all_tests.sh" ]; then \
 		bash scripts/run_all_tests.sh || exit 1; \
 	elif command -v pytest >/dev/null 2>&1; then \
-		python -m pytest tests/ -v || exit 1; \
+		python -m pytest tests/ -n auto -v || exit 1; \
 	else \
 		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
 	fi
@@ -555,7 +595,7 @@ release-test: ## Run test suite before release
 	@if [ -f "scripts/run_all_tests.sh" ]; then \
 		bash scripts/run_all_tests.sh; \
 	elif command -v pytest >/dev/null 2>&1; then \
-		python -m pytest tests/ -v; \
+		python -m pytest tests/ -n auto -v; \
 	else \
 		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
 	fi
