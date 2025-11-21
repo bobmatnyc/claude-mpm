@@ -8,6 +8,21 @@
 
 ### Removed
 
+## [4.25.3] - 2025-11-21
+
+### Added
+- **Makefile Enhancements**: Comprehensive Makefile improvements (+234 lines, +13 targets)
+  - Ruff-only migration for 10-200x faster linting
+  - ENV variable system for environment-aware builds
+  - Dependency locking targets for reproducible builds
+  - Build metadata tracking and verification
+  - Enhanced pre-publish quality gate
+  - Improved cleanup and maintenance targets
+
+### Changed
+- Migrated from Black/Flake8/isort to Ruff for unified, faster linting
+- Streamlined quality workflow with integrated ENV system
+
 ## [4.25.2] - 2025-11-21
 
 ### Changed
