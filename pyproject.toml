@@ -115,6 +115,16 @@ ignore = [
     "RUF043", # dict/set literal
     "RUF059", # dict/set literal
     "PTH123", # pathlib usage
+    "PTH100", # pathlib usage
+    "PTH109", # pathlib usage
+    "PTH110", # pathlib usage
+    "PTH111", # pathlib usage
+    "PTH118", # pathlib usage
+    "PTH120", # pathlib usage
+    "DTZ003", # datetime timezone
+    "DTZ005", # datetime timezone
+    "DTZ006", # datetime timezone
+    "DTZ007", # datetime timezone
     "C401",   # unnecessary list comprehension
 ]
 
