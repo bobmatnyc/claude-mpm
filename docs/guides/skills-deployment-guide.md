@@ -1481,6 +1481,183 @@ When research agents complete project analysis, include skill recommendations in
 
 ---
 
+## Collection Management
+
+### Overview
+
+Claude MPM supports multiple skill collections from different GitHub repositories. Each collection is managed as a separate git repository and deployed to its own subdirectory under `~/.claude/skills/`.
+
+### Default Collection
+
+By default, Claude MPM uses the official `claude-mpm` collection:
+- Repository: https://github.com/bobmatnyc/claude-mpm-skills
+- 69 skills (51 universal + 18 toolchain-specific)
+- Automatically configured on first use
+
+### Managing Collections
+
+#### List All Collections
+
+```bash
+claude-mpm skills collection-list
+```
+
+Output shows:
+- Collection name
+- Repository URL
+- Enabled/disabled status
+- Priority (lower = higher priority)
+- Last update timestamp
+
+#### Add New Collection
+
+```bash
+claude-mpm skills collection-add <name> <github-url> [--priority N]
+```
+
+Examples:
+```bash
+# Add obra's superpowers collection
+claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers --priority 2
+
+# Add company internal skills
+claude-mpm skills collection-add internal https://github.com/yourcompany/internal-skills
+```
+
+#### Remove Collection
+
+```bash
+claude-mpm skills collection-remove <name>
+```
+
+This removes both the configuration and the deployed skills directory.
+
+#### Enable/Disable Collections
+
+```bash
+# Temporarily disable a collection (keeps config)
+claude-mpm skills collection-disable <name>
+
+# Re-enable a disabled collection
+claude-mpm skills collection-enable <name>
+```
+
+#### Set Default Collection
+
+```bash
+claude-mpm skills collection-set-default <name>
+```
+
+The default collection is used when no explicit collection is specified in deployment commands.
+
+### Deploying from Collections
+
+#### Deploy from Specific Collection
+
+```bash
+claude-mpm skills deploy-github --collection <name> [--toolchain python] [--categories testing]
+```
+
+#### Deploy from Default Collection
+
+```bash
+# Uses default_collection from config
+claude-mpm skills deploy-github --toolchain python
+```
+
+### Git-Based Updates
+
+Collections are managed as git repositories:
+
+**First Install**:
+- Runs `git clone <url>` to `~/.claude/skills/<collection-name>/`
+- Downloads all skills from the repository
+
+**Updates**:
+- Runs `git pull` in existing repository
+- Updates skills to latest versions from GitHub
+- Preserves local directory structure
+
+**Benefits**:
+- Always get latest skills
+- Git version history available
+- Can inspect changes with `git log`
+- Rollback possible with `git checkout`
+
+### Directory Structure
+
+After deploying multiple collections:
+
+```
+~/.claude/skills/
+├── claude-mpm/              # Default collection (priority 1)
+│   ├── .git/
+│   ├── manifest.json
+│   ├── universal/
+│   └── toolchains/
+├── obra-superpowers/        # Community collection (priority 2)
+│   ├── .git/
+│   ├── manifest.json
+│   └── skills/
+└── custom-internal/         # Private collection (priority 3)
+    ├── .git/
+    └── skills/
+```
+
+**Note**: Claude Code discovers all skills in all subdirectories automatically.
+
+### Priority and Conflicts
+
+If multiple collections have skills with the same name:
+- Higher priority collection wins (lower priority number = higher priority)
+- Priority 1 > Priority 2 > Priority 3, etc.
+- Adjust priorities with `collection-add --priority N`
+
+### Configuration File
+
+Collections are stored in `~/.claude-mpm/config.json`:
+
+```json
+{
+  "skills": {
+    "collections": {
+      "claude-mpm": {
+        "url": "https://github.com/bobmatnyc/claude-mpm-skills",
+        "enabled": true,
+        "priority": 1,
+        "last_update": "2025-11-21T15:30:00Z"
+      },
+      "obra-superpowers": {
+        "url": "https://github.com/obra/superpowers",
+        "enabled": true,
+        "priority": 2,
+        "last_update": null
+      }
+    },
+    "default_collection": "claude-mpm"
+  }
+}
+```
+
+### Troubleshooting
+
+**Git repository already exists**:
+- If directory exists but is not a git repo, manual cleanup required
+- Remove directory: `rm -rf ~/.claude/skills/<collection-name>`
+- Retry deployment
+
+**Git pull fails**:
+- Check internet connectivity
+- Verify repository URL is accessible
+- Check for local git conflicts
+
+**Skills not appearing after deployment**:
+- Restart Claude Code (skills load at startup only)
+- Verify skills are in correct directory structure
+- Check Claude Code logs for errors
+
+---
+
 ## Top 10 Skill Deployment Recommendations
 
 ### 1. **Always Check for TDD Skills First**

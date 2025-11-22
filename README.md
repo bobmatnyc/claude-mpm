@@ -206,29 +206,69 @@ See [docs/user/getting-started.md](docs/user/getting-started.md) for complete us
 
 ## Skills Deployment
 
-Claude MPM now includes intelligent Claude Code skills deployment with automatic technology stack detection:
+Claude MPM includes intelligent skills deployment with **multi-collection support**:
 
-- **Automatic Detection**: Research agent analyzes your project's technology stack from configuration files
-- **Smart Recommendations**: Suggests relevant Claude Code skills based on detected frameworks and tools
-- **Easy Deployment**: One-command installation from the [claude-mpm-skills repository](https://github.com/bobmatnyc/claude-mpm-skills)
-- **Batch Operations**: Minimize Claude Code restarts with batched skill deployments
-- **Proactive Workflow**: Research agent recommends skills during project analysis and specific work types
+- **Multiple Sources**: Add skills from different GitHub repositories
+- **Automatic Detection**: Analyzes your project's technology stack
+- **Smart Recommendations**: Research agent suggests relevant skills
+- **Git-Based Updates**: Clone on first install, pull on updates
+- **Easy Management**: Simple CLI commands for all operations
 
 ### Quick Start
 
 ```bash
-# Deploy skills for your project's toolchain
+# Deploy from default collection
 claude-mpm skills deploy-github --toolchain python
 
-# List available skills for detected technologies
-claude-mpm skills list-available
+# Add new collection
+claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers
 
-# Check what's currently deployed
-claude-mpm skills check-deployed
+# Deploy from specific collection
+claude-mpm skills deploy-github --collection obra-superpowers
 
-# Remove deployed skills
-claude-mpm skills remove --all
+# List all collections
+claude-mpm skills collection-list
 ```
+
+### Multi-Collection Management
+
+**Add Collections**:
+```bash
+# Add obra's superpowers collection
+claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers --priority 2
+
+# Add company internal skills
+claude-mpm skills collection-add internal https://github.com/yourcompany/internal-skills
+```
+
+**Deploy from Collections**:
+```bash
+# Deploy from specific collection
+claude-mpm skills deploy-github --collection obra-superpowers --toolchain python
+
+# Deploy from default collection
+claude-mpm skills deploy-github --categories testing
+```
+
+**Manage Collections**:
+```bash
+# List all collections (shows priority, status, last update)
+claude-mpm skills collection-list
+
+# Enable/disable collections
+claude-mpm skills collection-disable claude-mpm
+claude-mpm skills collection-enable claude-mpm
+
+# Set default collection
+claude-mpm skills collection-set-default obra-superpowers
+```
+
+### Git-Based Deployment
+
+Collections are managed as git repositories:
+- **First install**: Runs `git clone` to `~/.claude/skills/<collection-name>/`
+- **Updates**: Runs `git pull` in existing repository
+- **Benefits**: Version history, rollback capability, always latest skills
 
 ### How It Works
 

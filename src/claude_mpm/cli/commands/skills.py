@@ -88,6 +88,13 @@ class SkillsManagementCommand(BaseCommand):
                 SkillsCommands.LIST_AVAILABLE.value: self._list_available_github_skills,
                 SkillsCommands.CHECK_DEPLOYED.value: self._check_deployed_skills,
                 SkillsCommands.REMOVE.value: self._remove_skills,
+                # Collection management commands
+                SkillsCommands.COLLECTION_LIST.value: self._collection_list,
+                SkillsCommands.COLLECTION_ADD.value: self._collection_add,
+                SkillsCommands.COLLECTION_REMOVE.value: self._collection_remove,
+                SkillsCommands.COLLECTION_ENABLE.value: self._collection_enable,
+                SkillsCommands.COLLECTION_DISABLE.value: self._collection_disable,
+                SkillsCommands.COLLECTION_SET_DEFAULT.value: self._collection_set_default,
             }
 
             handler = command_map.get(args.skills_command)
@@ -471,12 +478,20 @@ class SkillsManagementCommand(BaseCommand):
     def _deploy_from_github(self, args) -> CommandResult:
         """Deploy skills from GitHub repository."""
         try:
+            collection = getattr(args, "collection", None)
             toolchain = getattr(args, "toolchain", None)
             categories = getattr(args, "categories", None)
             force = getattr(args, "force", False)
             all_skills = getattr(args, "all", False)
 
-            console.print("\n[bold cyan]Deploying skills from GitHub...[/bold cyan]\n")
+            if collection:
+                console.print(
+                    f"\n[bold cyan]Deploying skills from collection '{collection}'...[/bold cyan]\n"
+                )
+            else:
+                console.print(
+                    "\n[bold cyan]Deploying skills from default collection...[/bold cyan]\n"
+                )
 
             # Auto-detect toolchain if not specified and not deploying all
             if not toolchain and not all_skills:
@@ -488,7 +503,10 @@ class SkillsManagementCommand(BaseCommand):
                 )
 
             result = self.skills_deployer.deploy_skills(
-                toolchain=toolchain, categories=categories, force=force
+                collection=collection,
+                toolchain=toolchain,
+                categories=categories,
+                force=force,
             )
 
             # Display results
@@ -535,11 +553,18 @@ class SkillsManagementCommand(BaseCommand):
     def _list_available_github_skills(self, args) -> CommandResult:
         """List available skills from GitHub repository."""
         try:
-            console.print(
-                "\n[bold cyan]Fetching available skills from GitHub...[/bold cyan]\n"
-            )
+            collection = getattr(args, "collection", None)
 
-            result = self.skills_deployer.list_available_skills()
+            if collection:
+                console.print(
+                    f"\n[bold cyan]Fetching skills from collection '{collection}'...[/bold cyan]\n"
+                )
+            else:
+                console.print(
+                    "\n[bold cyan]Fetching skills from default collection...[/bold cyan]\n"
+                )
+
+            result = self.skills_deployer.list_available_skills(collection=collection)
 
             if result.get("error"):
                 console.print(f"[red]Error: {result['error']}[/red]")
@@ -668,6 +693,210 @@ class SkillsManagementCommand(BaseCommand):
 
         except Exception:
             return None
+
+    # === Collection Management Commands ===
+
+    def _collection_list(self, args) -> CommandResult:
+        """List all configured skill collections."""
+        try:
+            result = self.skills_deployer.list_collections()
+
+            console.print("\n[bold cyan]Skill Collections:[/bold cyan]\n")
+            console.print(
+                f"[dim]Default collection: {result['default_collection']}[/dim]"
+            )
+            console.print(
+                f"[dim]Enabled: {result['enabled_count']} / {result['total_count']}[/dim]\n"
+            )
+
+            if not result["collections"]:
+                console.print("[yellow]No collections configured.[/yellow]")
+                console.print(
+                    "[dim]Use 'claude-mpm skills collection-add' to add a collection.[/dim]\n"
+                )
+                return CommandResult(success=True, exit_code=0)
+
+            # Create table for collections
+            table = Table(show_header=True, header_style="bold cyan")
+            table.add_column("Name", style="green")
+            table.add_column("URL", style="white")
+            table.add_column("Priority", justify="center")
+            table.add_column("Enabled", justify="center")
+            table.add_column("Last Update", style="dim")
+            table.add_column("Default", justify="center")
+
+            # Sort by priority
+            sorted_collections = sorted(
+                result["collections"].items(), key=lambda x: x[1].get("priority", 999)
+            )
+
+            for name, config in sorted_collections:
+                enabled_icon = "✓" if config.get("enabled", True) else "✗"
+                default_icon = "⭐" if name == result["default_collection"] else ""
+                last_update = config.get("last_update") or "Never"
+
+                table.add_row(
+                    name,
+                    config["url"],
+                    str(config.get("priority", "N/A")),
+                    enabled_icon,
+                    last_update,
+                    default_icon,
+                )
+
+            console.print(table)
+            console.print()
+
+            return CommandResult(success=True, exit_code=0)
+
+        except Exception as e:
+            console.print(f"[red]Error listing collections: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _collection_add(self, args) -> CommandResult:
+        """Add a new skill collection."""
+        try:
+            name = getattr(args, "collection_name", None)
+            url = getattr(args, "collection_url", None)
+            priority = getattr(args, "priority", 99)
+
+            if not name or not url:
+                console.print("[red]Error: Collection name and URL are required[/red]")
+                console.print(
+                    "[dim]Usage: claude-mpm skills collection-add NAME URL [--priority N][/dim]"
+                )
+                return CommandResult(success=False, exit_code=1)
+
+            console.print(f"\n[bold cyan]Adding collection '{name}'...[/bold cyan]\n")
+
+            result = self.skills_deployer.add_collection(name, url, priority)
+
+            console.print(f"[green]✓ {result['message']}[/green]")
+            console.print(f"  [dim]URL: {url}[/dim]")
+            console.print(f"  [dim]Priority: {priority}[/dim]\n")
+
+            return CommandResult(success=True, exit_code=0)
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _collection_remove(self, args) -> CommandResult:
+        """Remove a skill collection."""
+        try:
+            name = getattr(args, "collection_name", None)
+
+            if not name:
+                console.print("[red]Error: Collection name is required[/red]")
+                console.print(
+                    "[dim]Usage: claude-mpm skills collection-remove NAME[/dim]"
+                )
+                return CommandResult(success=False, exit_code=1)
+
+            console.print(
+                f"\n[bold yellow]Removing collection '{name}'...[/bold yellow]\n"
+            )
+
+            result = self.skills_deployer.remove_collection(name)
+
+            console.print(f"[green]✓ {result['message']}[/green]")
+            if result.get("directory_removed"):
+                console.print("  [dim]Collection directory removed[/dim]")
+            elif result.get("directory_error"):
+                console.print(
+                    f"  [yellow]Warning: {result['directory_error']}[/yellow]"
+                )
+            console.print()
+
+            return CommandResult(success=True, exit_code=0)
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _collection_enable(self, args) -> CommandResult:
+        """Enable a disabled collection."""
+        try:
+            name = getattr(args, "collection_name", None)
+
+            if not name:
+                console.print("[red]Error: Collection name is required[/red]")
+                console.print(
+                    "[dim]Usage: claude-mpm skills collection-enable NAME[/dim]"
+                )
+                return CommandResult(success=False, exit_code=1)
+
+            result = self.skills_deployer.enable_collection(name)
+
+            console.print(f"\n[green]✓ {result['message']}[/green]\n")
+
+            return CommandResult(success=True, exit_code=0)
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _collection_disable(self, args) -> CommandResult:
+        """Disable a collection."""
+        try:
+            name = getattr(args, "collection_name", None)
+
+            if not name:
+                console.print("[red]Error: Collection name is required[/red]")
+                console.print(
+                    "[dim]Usage: claude-mpm skills collection-disable NAME[/dim]"
+                )
+                return CommandResult(success=False, exit_code=1)
+
+            result = self.skills_deployer.disable_collection(name)
+
+            console.print(f"\n[green]✓ {result['message']}[/green]\n")
+
+            return CommandResult(success=True, exit_code=0)
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _collection_set_default(self, args) -> CommandResult:
+        """Set the default collection."""
+        try:
+            name = getattr(args, "collection_name", None)
+
+            if not name:
+                console.print("[red]Error: Collection name is required[/red]")
+                console.print(
+                    "[dim]Usage: claude-mpm skills collection-set-default NAME[/dim]"
+                )
+                return CommandResult(success=False, exit_code=1)
+
+            result = self.skills_deployer.set_default_collection(name)
+
+            console.print(f"\n[green]✓ {result['message']}[/green]")
+            if result.get("previous_default"):
+                console.print(f"  [dim]Previous: {result['previous_default']}[/dim]")
+            console.print()
+
+            return CommandResult(success=True, exit_code=0)
+
+        except ValueError as e:
+            console.print(f"[red]Error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+        except Exception as e:
+            console.print(f"[red]Unexpected error: {e}[/red]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
 
 
 def manage_skills(args) -> int:

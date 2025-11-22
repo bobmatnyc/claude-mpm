@@ -1,10 +1,31 @@
 ## [Unreleased]
 
 ### Added
+- **Multi-Collection Support**: Manage multiple skill repositories
+  - Add/remove/enable/disable collections with CLI commands
+  - Git-based deployment (clone on first install, pull on updates)
+  - Priority-based ordering for skill conflicts
+  - Default collection configuration
+  - Collections stored in `~/.claude-mpm/config.json`
+- Collection management commands:
+  - `skills collection-list` - List all collections with status, priority, and timestamps
+  - `skills collection-add NAME URL [--priority N]` - Add new collection with optional priority
+  - `skills collection-remove NAME` - Remove collection and deployed skills
+  - `skills collection-enable NAME` - Enable disabled collection
+  - `skills collection-disable NAME` - Temporarily disable collection
+  - `skills collection-set-default NAME` - Set default collection for deployments
 
 ### Changed
+- Skills deployment now uses git clone/pull instead of ZIP downloads
+- Each collection deployed to separate subdirectory under `~/.claude/skills/`
+- Existing commands accept optional `--collection` parameter for targeted deployment
+- Default collection (claude-mpm) automatically configured on first use
 
 ### Documentation
+- Updated `docs/guides/skills-deployment-guide.md` with comprehensive multi-collection section
+- Updated `docs/reference/skills-quick-reference.md` with collection management commands
+- Updated `README.md` Skills Deployment section with multi-collection examples
+- Added collection deployment workflows and troubleshooting guidance
 
 ### Fixed
 

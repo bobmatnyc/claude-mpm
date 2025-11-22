@@ -29,13 +29,11 @@ import json
 import platform
 import shutil
 import subprocess
-import tempfile
-import zipfile
 from pathlib import Path
-from typing import Dict, List, Optional
-from urllib.request import urlopen
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.mixins import LoggerMixin
+from claude_mpm.services.skills_config import SkillsConfig
 
 
 class SkillsDeployerService(LoggerMixin):
@@ -73,12 +71,14 @@ class SkillsDeployerService(LoggerMixin):
         super().__init__()
         self.repo_url = repo_url or self.DEFAULT_REPO_URL
         self.toolchain_analyzer = toolchain_analyzer
+        self.skills_config = SkillsConfig()
 
         # Ensure Claude skills directory exists
         self.CLAUDE_SKILLS_DIR.mkdir(parents=True, exist_ok=True)
 
     def deploy_skills(
         self,
+        collection: Optional[str] = None,
         toolchain: Optional[List[str]] = None,
         categories: Optional[List[str]] = None,
         force: bool = False,
@@ -86,13 +86,14 @@ class SkillsDeployerService(LoggerMixin):
         """Deploy skills from GitHub repository.
 
         This is the main entry point for skill deployment. It:
-        1. Downloads skills from GitHub
+        1. Downloads skills from GitHub collection
         2. Parses manifest for metadata
         3. Filters by toolchain and categories
         4. Deploys to ~/.claude/skills/
         5. Warns about Claude Code restart
 
         Args:
+            collection: Collection name to deploy from (default: uses default collection)
             toolchain: Filter by toolchain (e.g., ['python', 'javascript'])
             categories: Filter by categories (e.g., ['testing', 'debugging'])
             force: Overwrite existing skills
@@ -105,17 +106,22 @@ class SkillsDeployerService(LoggerMixin):
             - deployed_skills: List of deployed skill names
             - restart_required: True if Claude Code needs restart
             - restart_instructions: Message about restarting
+            - collection: Collection name used for deployment
 
         Example:
-            >>> result = deployer.deploy_skills(toolchain=['python'])
+            >>> result = deployer.deploy_skills(collection="obra-superpowers")
+            >>> result = deployer.deploy_skills(toolchain=['python'])  # Uses default
             >>> if result['restart_required']:
             >>>     print(result['restart_instructions'])
         """
-        self.logger.info(f"Deploying skills from {self.repo_url}")
+        # Determine which collection to use
+        collection_name = collection or self.skills_config.get_default_collection()
 
-        # Step 1: Download skills from GitHub
+        self.logger.info(f"Deploying skills from collection '{collection_name}'")
+
+        # Step 1: Download skills from GitHub collection
         try:
-            skills_data = self._download_from_github()
+            skills_data = self._download_from_github(collection_name)
         except Exception as e:
             self.logger.error(f"Failed to download skills: {e}")
             return {
@@ -125,6 +131,7 @@ class SkillsDeployerService(LoggerMixin):
                 "deployed_skills": [],
                 "restart_required": False,
                 "restart_instructions": "",
+                "collection": collection_name,
             }
 
         # Step 2: Parse manifest and flatten skills
@@ -140,6 +147,7 @@ class SkillsDeployerService(LoggerMixin):
                 "deployed_skills": [],
                 "restart_required": False,
                 "restart_instructions": "",
+                "collection": collection_name,
             }
 
         self.logger.info(f"Found {len(skills)} skills in repository")
@@ -219,13 +227,17 @@ class SkillsDeployerService(LoggerMixin):
             "skipped_skills": skipped,
             "restart_required": restart_required,
             "restart_instructions": restart_instructions,
+            "collection": collection_name,
         }
 
-    def list_available_skills(self) -> Dict:
+    def list_available_skills(self, collection: Optional[str] = None) -> Dict:
         """List all available skills from GitHub repository.
 
         Downloads manifest and returns skill metadata grouped by category
         and toolchain.
+
+        Args:
+            collection: Collection name to list from (default: uses default collection)
 
         Returns:
             Dict containing:
@@ -233,15 +245,19 @@ class SkillsDeployerService(LoggerMixin):
             - by_category: Skills grouped by category
             - by_toolchain: Skills grouped by toolchain
             - skills: Full list of skill metadata
+            - collection: Collection name used
 
         Example:
-            >>> result = deployer.list_available_skills()
+            >>> result = deployer.list_available_skills(collection="obra-superpowers")
+            >>> result = deployer.list_available_skills()  # Uses default
             >>> print(f"Available: {result['total_skills']} skills")
             >>> for category, skills in result['by_category'].items():
             >>>     print(f"{category}: {len(skills)} skills")
         """
+        collection_name = collection or self.skills_config.get_default_collection()
+
         try:
-            skills_data = self._download_from_github()
+            skills_data = self._download_from_github(collection_name)
             manifest = skills_data.get("manifest", {})
 
             # Flatten skills from manifest (supports both legacy and new structure)
@@ -291,6 +307,7 @@ class SkillsDeployerService(LoggerMixin):
                 "by_category": by_category,
                 "by_toolchain": by_toolchain,
                 "skills": skills,
+                "collection": collection_name,
             }
 
         except Exception as e:
@@ -301,6 +318,7 @@ class SkillsDeployerService(LoggerMixin):
                 "by_toolchain": {},
                 "skills": [],
                 "error": str(e),
+                "collection": collection_name,
             }
 
     def check_deployed_skills(self) -> Dict:
@@ -404,76 +422,136 @@ class SkillsDeployerService(LoggerMixin):
             "errors": errors,
         }
 
-    def _download_from_github(self) -> Dict:
-        """Download skills repository from GitHub.
+    def _download_from_github(self, collection_name: str) -> Dict:
+        """Download skills repository from GitHub using git clone/pull.
 
-        Downloads ZIP archive and extracts to temporary directory.
+        Logic:
+        1. Get collection config from SkillsConfig
+        2. Determine target directory: ~/.claude/skills/{collection_name}/
+        3. Check if directory exists:
+           - Exists + is git repo → git pull (update)
+           - Exists + not git repo → error (manual cleanup needed)
+           - Not exists → git clone (first install)
+        4. Parse manifest.json from collection
+        5. Update last_update timestamp in config
+        6. Return skills data
+
+        Args:
+            collection_name: Name of collection to download
 
         Returns:
             Dict containing:
-            - temp_dir: Path to temporary directory
+            - temp_dir: Path to collection directory (not temp, but kept for compatibility)
             - manifest: Parsed manifest.json
-            - skills_path: Path to skills directory in temp
+            - repo_dir: Path to repository directory
 
         Raises:
-            Exception: If download or extraction fails
+            ValueError: If collection not found or disabled
+            Exception: If git operations fail
         """
-        # Convert GitHub URL to download URL
-        if "github.com" in self.repo_url:
-            # Extract owner/repo from URL
-            parts = self.repo_url.rstrip("/").split("/")
-            owner_repo = "/".join(parts[-2:])
-            download_url = (
-                f"https://github.com/{owner_repo}/archive/refs/heads/main.zip"
+        # Get collection configuration
+        collection_config = self.skills_config.get_collection(collection_name)
+        if not collection_config:
+            raise ValueError(
+                f"Collection '{collection_name}' not found. "
+                f"Use 'claude-mpm skills collection add' to add it."
             )
+
+        if not collection_config.get("enabled", True):
+            raise ValueError(
+                f"Collection '{collection_name}' is disabled. "
+                f"Use 'claude-mpm skills collection enable {collection_name}' to enable it."
+            )
+
+        repo_url = collection_config["url"]
+        target_dir = self.CLAUDE_SKILLS_DIR / collection_name
+
+        self.logger.info(f"Processing collection '{collection_name}' from {repo_url}")
+
+        # Check if directory exists and handle accordingly
+        if target_dir.exists():
+            git_dir = target_dir / ".git"
+
+            if git_dir.exists():
+                # Update existing: git pull
+                self.logger.info(
+                    f"Updating existing collection '{collection_name}' at {target_dir}"
+                )
+                try:
+                    result = subprocess.run(
+                        ["git", "pull"],
+                        cwd=target_dir,
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                        timeout=60,
+                    )
+                    self.logger.debug(f"Git pull output: {result.stdout}")
+
+                except subprocess.CalledProcessError as e:
+                    raise Exception(
+                        f"Failed to update collection '{collection_name}': {e.stderr}"
+                    ) from e
+                except subprocess.TimeoutExpired as e:
+                    raise Exception(
+                        f"Git pull timed out for collection '{collection_name}'"
+                    ) from e
+            else:
+                # Directory exists but not a git repo - error
+                raise ValueError(
+                    f"Directory {target_dir} exists but is not a git repository. "
+                    f"Please remove it manually and try again:\n"
+                    f"  rm -rf {target_dir}"
+                )
         else:
-            download_url = self.repo_url
+            # First install: git clone
+            self.logger.info(
+                f"Installing new collection '{collection_name}' to {target_dir}"
+            )
+            try:
+                result = subprocess.run(
+                    ["git", "clone", repo_url, str(target_dir)],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=120,
+                )
+                self.logger.debug(f"Git clone output: {result.stdout}")
 
-        self.logger.info(f"Downloading from {download_url}")
+            except subprocess.CalledProcessError as e:
+                raise Exception(
+                    f"Failed to clone collection '{collection_name}': {e.stderr}"
+                ) from e
+            except subprocess.TimeoutExpired as e:
+                raise Exception(
+                    f"Git clone timed out for collection '{collection_name}'"
+                ) from e
 
-        # Create temporary directory
-        temp_dir = Path(tempfile.mkdtemp(prefix="claude_skills_"))
+        # Update last_update timestamp
+        self.skills_config.update_collection_timestamp(collection_name)
+
+        # Parse manifest.json
+        manifest_path = target_dir / "manifest.json"
+        if not manifest_path.exists():
+            raise Exception(
+                f"manifest.json not found in collection '{collection_name}' at {target_dir}"
+            )
 
         try:
-            # Download ZIP file
-            zip_path = temp_dir / "skills.zip"
-
-            with urlopen(download_url) as response:
-                with open(zip_path, "wb") as f:
-                    f.write(response.read())
-
-            self.logger.debug(f"Downloaded to {zip_path}")
-
-            # Extract ZIP
-            with zipfile.ZipFile(zip_path, "r") as zip_ref:
-                zip_ref.extractall(temp_dir)
-
-            # Find extracted directory (usually repo-name-main/)
-            extracted_dirs = [
-                d
-                for d in temp_dir.iterdir()
-                if d.is_dir() and not d.name.startswith(".")
-            ]
-
-            if not extracted_dirs:
-                raise Exception("No directory found in downloaded ZIP")
-
-            repo_dir = extracted_dirs[0]
-
-            # Load manifest.json
-            manifest_path = repo_dir / "manifest.json"
-            if not manifest_path.exists():
-                raise Exception("manifest.json not found in repository")
-
             with open(manifest_path, encoding="utf-8") as f:
                 manifest = json.load(f)
+        except json.JSONDecodeError as e:
+            raise Exception(
+                f"Invalid manifest.json in collection '{collection_name}': {e}"
+            ) from e
 
-            return {"temp_dir": temp_dir, "manifest": manifest, "repo_dir": repo_dir}
+        self.logger.info(
+            f"Successfully loaded collection '{collection_name}' from {target_dir}"
+        )
 
-        except Exception as e:
-            # Cleanup on error
-            self._cleanup(temp_dir)
-            raise e
+        # Return data in same format as before for compatibility
+        # Note: temp_dir is now the persistent collection directory
+        return {"temp_dir": target_dir, "manifest": manifest, "repo_dir": target_dir}
 
     def _flatten_manifest_skills(self, manifest: Dict) -> List[Dict]:
         """Flatten skills from manifest, supporting both structures.
@@ -598,12 +676,18 @@ class SkillsDeployerService(LoggerMixin):
 
         return filtered
 
-    def _deploy_skill(self, skill: Dict, temp_dir: Path, force: bool = False) -> Dict:
+    def _deploy_skill(
+        self, skill: Dict, collection_dir: Path, force: bool = False
+    ) -> Dict:
         """Deploy a single skill to ~/.claude/skills/.
+
+        NOTE: With multi-collection support, skills are now stored in collection
+        subdirectories. This method creates symlinks or copies to maintain the
+        flat structure that Claude Code expects in ~/.claude/skills/.
 
         Args:
             skill: Skill metadata dict
-            temp_dir: Temporary directory containing downloaded skills
+            collection_dir: Collection directory containing skills
             force: Overwrite if already exists
 
         Returns:
@@ -617,21 +701,40 @@ class SkillsDeployerService(LoggerMixin):
             self.logger.debug(f"Skipped {skill_name} (already deployed)")
             return {"deployed": False, "skipped": True, "error": None}
 
-        # Find skill source in temp directory
-        # Structure: temp_dir / repo-main / skills / category / skill-name
-        repo_dir = next(
-            d for d in temp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
-        )
+        # Find skill source in collection directory
+        # Updated structure: collection_dir / skills / category / skill-name
+        # OR: collection_dir / universal / skill-name
+        # OR: collection_dir / toolchains / toolchain-name / skill-name
 
-        skills_base = repo_dir / "skills"
+        skills_base = collection_dir / "skills"
         category = skill.get("category", "")
 
-        # Try to find skill directory
+        # Try multiple possible locations
         source_dir = None
-        if category:
-            source_dir = skills_base / category / skill_name
-        if not source_dir or not source_dir.exists():
-            # Fallback: search for skill in all categories
+        search_paths = []
+
+        # Try category-based path
+        if category and skills_base.exists():
+            search_paths.append(skills_base / category / skill_name)
+
+        # Try universal/toolchains structure
+        if (collection_dir / "universal").exists():
+            search_paths.append(collection_dir / "universal" / skill_name)
+
+        if (collection_dir / "toolchains").exists():
+            toolchain_dir = collection_dir / "toolchains"
+            for tc in toolchain_dir.iterdir():
+                if tc.is_dir():
+                    search_paths.append(tc / skill_name)
+
+        # Search in all possible locations
+        for path in search_paths:
+            if path.exists():
+                source_dir = path
+                break
+
+        # Fallback: search recursively for skill in skills directory
+        if not source_dir and skills_base.exists():
             for cat_dir in skills_base.iterdir():
                 if not cat_dir.is_dir():
                     continue
@@ -644,11 +747,11 @@ class SkillsDeployerService(LoggerMixin):
             return {
                 "deployed": False,
                 "skipped": False,
-                "error": f"Skill source not found: {skill_name}",
+                "error": f"Skill source not found: {skill_name} (searched in {collection_dir})",
             }
 
         # Security: Validate paths
-        if not self._validate_safe_path(temp_dir, source_dir):
+        if not self._validate_safe_path(collection_dir, source_dir):
             return {
                 "deployed": False,
                 "skipped": False,
@@ -671,9 +774,12 @@ class SkillsDeployerService(LoggerMixin):
                     shutil.rmtree(target_dir)
 
             # Copy skill to Claude skills directory
+            # NOTE: We use copy instead of symlink to maintain Claude Code compatibility
             shutil.copytree(source_dir, target_dir)
 
-            self.logger.debug(f"Deployed {skill_name} to {target_dir}")
+            self.logger.debug(
+                f"Deployed {skill_name} from {source_dir} to {target_dir}"
+            )
             return {"deployed": True, "skipped": False, "error": None}
 
         except Exception as e:
@@ -724,12 +830,126 @@ class SkillsDeployerService(LoggerMixin):
     def _cleanup(self, temp_dir: Path) -> None:
         """Cleanup temporary directory.
 
+        NOTE: With multi-collection support, temp_dir is now the persistent
+        collection directory, so we DON'T delete it. This method is kept for
+        backward compatibility but is now a no-op.
+
         Args:
-            temp_dir: Temporary directory to remove
+            temp_dir: Collection directory (not deleted)
         """
-        try:
-            if temp_dir.exists():
-                shutil.rmtree(temp_dir)
-                self.logger.debug(f"Cleaned up temporary directory: {temp_dir}")
-        except Exception as e:
-            self.logger.warning(f"Failed to cleanup temp directory: {e}")
+        # NO-OP: Collection directories are persistent, not temporary
+        # Skills are deployed from collection directories to Claude skills dir
+        self.logger.debug(f"Collection directory preserved at {temp_dir} (not deleted)")
+
+    # === Collection Management Methods ===
+
+    def list_collections(self) -> Dict[str, Any]:
+        """List all configured skill collections.
+
+        Returns:
+            Dict containing:
+            - collections: Dict of collection configurations
+            - default_collection: Name of default collection
+            - enabled_count: Number of enabled collections
+
+        Example:
+            >>> result = deployer.list_collections()
+            >>> for name, config in result['collections'].items():
+            >>>     print(f"{name}: {config['url']} (priority: {config['priority']})")
+        """
+        collections = self.skills_config.get_collections()
+        default = self.skills_config.get_default_collection()
+        enabled = self.skills_config.get_enabled_collections()
+
+        return {
+            "collections": collections,
+            "default_collection": default,
+            "enabled_count": len(enabled),
+            "total_count": len(collections),
+        }
+
+    def add_collection(self, name: str, url: str, priority: int = 99) -> Dict[str, Any]:
+        """Add a new skill collection.
+
+        Args:
+            name: Collection name (must be unique)
+            url: GitHub repository URL
+            priority: Collection priority (lower = higher priority, default: 99)
+
+        Returns:
+            Dict with operation result
+
+        Example:
+            >>> deployer.add_collection("obra-superpowers", "https://github.com/obra/superpowers")
+        """
+        return self.skills_config.add_collection(name, url, priority)
+
+    def remove_collection(self, name: str) -> Dict[str, Any]:
+        """Remove a skill collection.
+
+        Args:
+            name: Collection name to remove
+
+        Returns:
+            Dict with operation result
+
+        Example:
+            >>> deployer.remove_collection("obra-superpowers")
+        """
+        result = self.skills_config.remove_collection(name)
+
+        # Also remove the collection directory
+        collection_dir = self.CLAUDE_SKILLS_DIR / name
+        if collection_dir.exists():
+            try:
+                shutil.rmtree(collection_dir)
+                self.logger.info(f"Removed collection directory: {collection_dir}")
+                result["directory_removed"] = True
+            except Exception as e:
+                self.logger.warning(f"Failed to remove directory {collection_dir}: {e}")
+                result["directory_removed"] = False
+                result["directory_error"] = str(e)
+
+        return result
+
+    def enable_collection(self, name: str) -> Dict[str, Any]:
+        """Enable a disabled collection.
+
+        Args:
+            name: Collection name
+
+        Returns:
+            Dict with operation result
+
+        Example:
+            >>> deployer.enable_collection("obra-superpowers")
+        """
+        return self.skills_config.enable_collection(name)
+
+    def disable_collection(self, name: str) -> Dict[str, Any]:
+        """Disable a collection without removing it.
+
+        Args:
+            name: Collection name
+
+        Returns:
+            Dict with operation result
+
+        Example:
+            >>> deployer.disable_collection("obra-superpowers")
+        """
+        return self.skills_config.disable_collection(name)
+
+    def set_default_collection(self, name: str) -> Dict[str, Any]:
+        """Set the default collection for deployments.
+
+        Args:
+            name: Collection name to set as default
+
+        Returns:
+            Dict with operation result
+
+        Example:
+            >>> deployer.set_default_collection("obra-superpowers")
+        """
+        return self.skills_config.set_default_collection(name)

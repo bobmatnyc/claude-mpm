@@ -8,11 +8,24 @@ Quick reference card for Claude MPM's skills deployment system.
 |---------|-------------|---------|
 | `claude-mpm skills deploy-github --toolchain <name>` | Deploy skills for specific toolchain | `--toolchain python` |
 | `claude-mpm skills deploy-github --categories <cats>` | Deploy skills by categories | `--categories testing,devops` |
+| `claude-mpm skills deploy-github --collection <name>` | Deploy from specific collection | `--collection obra-superpowers` |
 | `claude-mpm skills list-available` | Browse all available skills | Lists all skills from repository |
 | `claude-mpm skills list-available --toolchain <name>` | Filter by toolchain | `--toolchain typescript` |
 | `claude-mpm skills check-deployed` | View currently deployed skills | Shows what's in `~/.claude/skills/` |
 | `claude-mpm skills remove --all` | Remove all deployed skills | Clears skills directory |
 | `claude-mpm skills remove --name <skill>` | Remove specific skill | `--name test-driven-development` |
+
+## Collection Management Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `claude-mpm skills collection-list` | List all configured collections | Shows enabled/disabled, priority, last update |
+| `claude-mpm skills collection-add NAME URL` | Add new collection | `collection-add obra-superpowers https://github.com/obra/superpowers` |
+| `claude-mpm skills collection-add NAME URL --priority N` | Add with custom priority | `--priority 2` (lower = higher priority) |
+| `claude-mpm skills collection-remove NAME` | Remove collection | Removes config and deployed skills |
+| `claude-mpm skills collection-enable NAME` | Enable disabled collection | Re-activates collection for deployment |
+| `claude-mpm skills collection-disable NAME` | Disable collection temporarily | Keeps config but skips in deployment |
+| `claude-mpm skills collection-set-default NAME` | Set default collection | Used when no --collection specified |
 
 ## Toolchain Options
 
@@ -351,6 +364,72 @@ claude-mpm skills deploy-github --categories testing
 claude-mpm skills list-available --toolchain python
 # Then deploy selected skills
 ```
+
+## Collection Deployment Examples
+
+### Add and Deploy from New Collection
+
+```bash
+# Add obra's superpowers
+claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers
+
+# Deploy testing skills from superpowers
+claude-mpm skills deploy-github --collection obra-superpowers --categories testing
+
+# Set as default
+claude-mpm skills collection-set-default obra-superpowers
+```
+
+### Manage Multiple Collections
+
+```bash
+# List all collections
+claude-mpm skills collection-list
+
+# Deploy from each
+claude-mpm skills deploy-github --collection claude-mpm --toolchain python
+claude-mpm skills deploy-github --collection obra-superpowers --categories testing
+
+# Disable one temporarily
+claude-mpm skills collection-disable claude-mpm
+
+# List available from all enabled
+claude-mpm skills list-available
+```
+
+### Priority and Conflict Resolution
+
+```bash
+# Add collections with specific priorities (lower = higher)
+claude-mpm skills collection-add official https://github.com/company/official-skills --priority 1
+claude-mpm skills collection-add community https://github.com/obra/superpowers --priority 2
+claude-mpm skills collection-add experimental https://github.com/dev/experimental --priority 3
+
+# If duplicate skill names exist, priority 1 wins
+```
+
+### Git-Based Updates
+
+Collections use git for version control:
+
+```bash
+# First deployment clones repository
+claude-mpm skills deploy-github --collection obra-superpowers
+# → git clone https://github.com/obra/superpowers ~/.claude/skills/obra-superpowers/
+
+# Subsequent deployments update via git pull
+claude-mpm skills deploy-github --collection obra-superpowers
+# → cd ~/.claude/skills/obra-superpowers && git pull
+
+# Inspect changes
+cd ~/.claude/skills/obra-superpowers
+git log --oneline -n 10
+
+# Rollback if needed
+git checkout <previous-commit>
+```
+
+---
 
 ## Advanced Usage
 

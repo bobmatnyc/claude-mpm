@@ -173,6 +173,13 @@ class SkillsCommands(str, Enum):
     LIST_AVAILABLE = "list-available"
     CHECK_DEPLOYED = "check-deployed"
     REMOVE = "remove"
+    # Collection management commands
+    COLLECTION_LIST = "collection-list"
+    COLLECTION_ADD = "collection-add"
+    COLLECTION_REMOVE = "collection-remove"
+    COLLECTION_ENABLE = "collection-enable"
+    COLLECTION_DISABLE = "collection-disable"
+    COLLECTION_SET_DEFAULT = "collection-set-default"
 
 
 class CLIFlags(str, Enum):

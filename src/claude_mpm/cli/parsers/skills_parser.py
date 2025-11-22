@@ -141,6 +141,11 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         help="Deploy skills from GitHub to ~/.claude/skills/ for Claude Code",
     )
     deploy_github_parser.add_argument(
+        "--collection",
+        "-c",
+        help="Collection to deploy from (default: uses default collection)",
+    )
+    deploy_github_parser.add_argument(
         "--toolchain",
         nargs="+",
         help="Filter by toolchain/language (e.g., python javascript rust)",
@@ -165,6 +170,11 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
     list_available_parser = skills_subparsers.add_parser(
         SkillsCommands.LIST_AVAILABLE.value,
         help="List all available skills from GitHub repository",
+    )
+    list_available_parser.add_argument(
+        "--collection",
+        "-c",
+        help="Collection to list from (default: uses default collection)",
     )
     list_available_parser.add_argument(
         "--verbose",
@@ -193,6 +203,73 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         "--all",
         action="store_true",
         help="Remove all deployed skills",
+    )
+
+    # Collection management commands
+    # List collections
+    skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_LIST.value,
+        help="List all configured skill collections",
+    )
+
+    # Add collection
+    collection_add_parser = skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_ADD.value,
+        help="Add a new skill collection from GitHub",
+    )
+    collection_add_parser.add_argument(
+        "collection_name",
+        help="Name for the collection (e.g., obra-superpowers)",
+    )
+    collection_add_parser.add_argument(
+        "collection_url",
+        help="GitHub repository URL (e.g., https://github.com/obra/superpowers)",
+    )
+    collection_add_parser.add_argument(
+        "--priority",
+        type=int,
+        default=99,
+        help="Collection priority (lower = higher priority, default: 99)",
+    )
+
+    # Remove collection
+    collection_remove_parser = skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_REMOVE.value,
+        help="Remove a skill collection",
+    )
+    collection_remove_parser.add_argument(
+        "collection_name",
+        help="Name of the collection to remove",
+    )
+
+    # Enable collection
+    collection_enable_parser = skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_ENABLE.value,
+        help="Enable a disabled collection",
+    )
+    collection_enable_parser.add_argument(
+        "collection_name",
+        help="Name of the collection to enable",
+    )
+
+    # Disable collection
+    collection_disable_parser = skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_DISABLE.value,
+        help="Disable a collection without removing it",
+    )
+    collection_disable_parser.add_argument(
+        "collection_name",
+        help="Name of the collection to disable",
+    )
+
+    # Set default collection
+    collection_set_default_parser = skills_subparsers.add_parser(
+        SkillsCommands.COLLECTION_SET_DEFAULT.value,
+        help="Set the default collection for deployments",
+    )
+    collection_set_default_parser.add_argument(
+        "collection_name",
+        help="Name of the collection to set as default",
     )
 
     return skills_parser
