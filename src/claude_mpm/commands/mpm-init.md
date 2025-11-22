@@ -44,6 +44,7 @@ This command has two primary modes:
 - **🧠 Memory System**: Initializes project knowledge retention
 - **🔧 Tool Configuration**: Sets up linting, formatting, testing
 - **📝 Holistic Review**: Final organization and validation pass
+- **🔒 GitIgnore Management**: Automatically excludes claude-mpm config directories
 
 ## Options
 
@@ -205,14 +206,27 @@ When enabled, performs:
 - Initializes memory files for project knowledge
 - Documents memory usage patterns
 
-### 7. Holistic Organization (Final Step)
+### 7. GitIgnore Management (Automatic)
+During initialization:
+- **Automatic Updates**: Adds `.claude-mpm/` and `.claude/agents/` to `.gitignore`
+- **Smart Detection**: Skips entries that already exist (no duplicates)
+- **Safe Operation**: Creates `.gitignore` if missing, preserves existing content
+- **Non-Blocking**: Continues initialization even if `.gitignore` update fails
+
+**Entries Added**:
+- `.claude-mpm/`: Configuration directory (sessions, logs, etc.)
+- `.claude/agents/`: Agent runtime files
+
+This ensures claude-mpm configuration files never get committed to version control.
+
+### 8. Holistic Organization (Final Step)
 After all tasks, performs a comprehensive review:
 - Reorganizes content by priority
 - Validates completeness
 - Ensures single-path principle
 - Adds meta-instructions for maintenance
 
-### 8. Update Mode Features (NEW)
+### 9. Update Mode Features (NEW)
 When updating existing documentation:
 - **Smart Merging**: Intelligently merges new content with existing
 - **Custom Preservation**: Keeps your project-specific sections
@@ -470,6 +484,7 @@ The command delegates to the Agentic Coder Optimizer agent which:
 - ✅ **Memory system**: Initialized for knowledge retention
 - ✅ **Developer docs**: Technical documentation (with AST analysis)
 - ✅ **Priority organization**: Instructions ranked by importance
+- ✅ **.gitignore**: Configuration directories automatically excluded
 
 ### For Existing Projects (Update Mode)
 - ✅ **Updated CLAUDE.md**: Refreshed with latest standards
@@ -478,6 +493,7 @@ The command delegates to the Agentic Coder Optimizer agent which:
 - ✅ **Structure verified**: Missing directories created
 - ✅ **Files organized**: Misplaced files moved (if --organize)
 - ✅ **Change summary**: Report of what was updated
+- ✅ **.gitignore**: Config directories added if not present
 
 ### For Quick Update Mode (`/mpm-init update`)
 - ✅ **Activity Report**: Summary of recent 30-day git activity

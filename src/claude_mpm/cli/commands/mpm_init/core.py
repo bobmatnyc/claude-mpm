@@ -155,6 +155,10 @@ class MPMInitCommand:
                 if pre_check_result.get("status") == OperationResult.ERROR:
                     return pre_check_result
 
+            # Update .gitignore to exclude claude-mpm configuration directories
+            if not review_only and not dry_run:
+                self._update_gitignore()
+
             # Build the delegation prompt
             if update_mode:
                 prompt = self._build_update_prompt(
@@ -394,6 +398,48 @@ class MPMInitCommand:
             "checks_passed": checks_passed,
             "warnings": warnings,
         }
+
+    def _update_gitignore(self) -> None:
+        """Update .gitignore to exclude claude-mpm configuration directories.
+
+        Ensures that claude-mpm configuration directories are added to .gitignore
+        to prevent them from being committed to version control.
+
+        This is a non-destructive operation that:
+        - Creates .gitignore if it doesn't exist
+        - Appends missing entries only (never duplicates)
+        - Preserves all existing content
+
+        Standard entries added:
+        - .claude-mpm/: Main configuration directory
+        - .claude/agents/: Agent runtime files
+        """
+        from claude_mpm.utils.gitignore import ensure_claude_mpm_gitignore
+
+        try:
+            result = ensure_claude_mpm_gitignore(str(self.project_path))
+
+            if result.get("status") == "success":
+                if result.get("added"):
+                    self.console.print(
+                        f"[green]✓[/green] Updated .gitignore: {', '.join(result['added'])}"
+                    )
+                    logger.info(f"Added to .gitignore: {result['added']}")
+                elif result.get("existing"):
+                    logger.debug(f".gitignore already contains: {result['existing']}")
+            else:
+                # Non-critical error - log but don't fail initialization
+                logger.warning(
+                    f"Could not update .gitignore: {result.get('error', 'Unknown error')}"
+                )
+                self.console.print(
+                    f"[yellow]⚠️  Could not update .gitignore: {result.get('error')}[/yellow]"
+                )
+
+        except Exception as e:
+            # Non-critical error - log but don't fail initialization
+            logger.warning(f"Error updating .gitignore: {e}")
+            self.console.print(f"[yellow]⚠️  Could not update .gitignore: {e}[/yellow]")
 
     def _build_initialization_prompt(
         self,
