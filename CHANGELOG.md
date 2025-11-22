@@ -1,6 +1,40 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [4.25.5] - 2025-11-22
+
+### Added
+- **Research Agent Work Capture** (v2.7.0): Automatic structured documentation
+  - File-based capture to `docs/research/` with standardized markdown template
+  - Ticketing integration via mcp-ticketer when available
+  - Priority-based routing: Issue ID > Project/Epic > File-only
+  - Work classification: Actionable (subtask) vs Informational (attachment)
+  - Non-blocking design with comprehensive fallback chain
+- **GitIgnore Management**: Automatic `.gitignore` updates during `/mpm-init`
+  - Adds `.claude-mpm/` and `.claude/agents/` automatically
+  - Safe append-only strategy with duplicate detection
+  - Creates `.gitignore` if missing, preserves existing content
+  - Graceful error handling with user-friendly messages
+
+### Changed
+- Research agent (v2.6.0 → v2.7.0) with comprehensive work capture imperatives
+- `/mpm-init` now automatically manages `.gitignore` entries
+- All research outputs saved to `docs/research/` by default
+
+### Documentation
+- Created `docs/research/research-agent-work-capture-integration-2025-11-22.md` documenting work capture design
+- Created `docs/research/skills-configurator-integration.md` with skills menu analysis
+- Created `docs/research/mcp-skills-architecture.md` for mcp-skills project design
+- Updated `/mpm-init` documentation with GitIgnore Management feature
+
+## [4.25.4] - 2025-11-21
+
+### Added
 - **Multi-Collection Support**: Manage multiple skill repositories
   - Add/remove/enable/disable collections with CLI commands
   - Git-based deployment (clone on first install, pull on updates)
