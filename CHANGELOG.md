@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [4.25.7] - 2025-11-23
+
+### Changed
+- Version bump for patch release
+
 ## [4.25.6] - 2025-11-23
 
 ### Added
