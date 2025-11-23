@@ -190,7 +190,7 @@ class AgentWizard:
                         print(f"\n{message}")
                     continue  # Return to main menu
                 elif choice_num == len(templates) + 3:
-                    success, message = self._interactive_import()
+                    _, message = self._interactive_import()
                     if message:
                         # Message already has emoji from the function
                         print(f"\n{message}")
