@@ -71,6 +71,78 @@ make safe-release-build
 - Query context with kuzu-memory recall when needed
 - Keep memories project-specific and relevant
 
+## 🎯 Framework vs. Project Work - CRITICAL DISTINCTION
+
+### When Working ON Claude MPM Framework
+
+**IMPORTANT**: If you're working on Claude MPM itself (not using it for another project), follow these rules:
+
+**Source of Truth**:
+- ✅ All changes go in `/src/claude_mpm/` directory
+- ✅ Agent templates: `/src/claude_mpm/agents/templates/*.json`
+- ✅ PM instructions: `/src/claude_mpm/agents/PM_INSTRUCTIONS.md`
+- ✅ Scripts: `/scripts/` directory
+- ✅ Tests: `/tests/` directory
+
+**NEVER Modify Deployed Files**:
+- ❌ DO NOT edit `~/.claude/agents/` (deployed agents)
+- ❌ DO NOT edit `.claude-mpm/agents/` (project-local agents)
+- ❌ DO NOT edit installed package files
+
+**Correct Workflow**:
+1. Modify source files in `/src/claude_mpm/`
+2. Test changes with `make quality`
+3. Redeploy agents: `claude-mpm agents deploy <agent-name> --force`
+4. Verify changes took effect
+
+**Detection Rule**: If current working directory is `/Users/masa/Projects/claude-mpm`, you're working ON the framework.
+
+### When Using Claude MPM For Your Project
+
+**IMPORTANT**: If you're using Claude MPM to manage another project, these rules apply:
+
+**Project Files**:
+- ✅ Work with files in your project directory
+- ✅ Use deployed agents from `~/.claude/agents/`
+- ✅ Follow project-specific conventions
+
+**Framework Updates**:
+- ⚠️ If you need framework changes, switch to framework work mode
+- ⚠️ Update source → test → redeploy → resume project work
+
+### Quick Check
+
+**Am I working on framework or project?**
+```bash
+pwd  # Check current directory
+# If /Users/masa/Projects/claude-mpm → Framework work
+# If anything else → Project work
+```
+
+**Framework work indicators**:
+- Modifying agent templates
+- Updating PM instructions
+- Changing core functionality
+- Adding new features to Claude MPM
+- Fixing bugs in the framework
+
+**Project work indicators**:
+- Building a web application
+- Implementing features for a client
+- Using agents to manage tickets
+- Normal development workflow
+
+### Common Mistakes
+
+❌ **WRONG**: Editing `~/.claude/agents/research_agent.md` to fix Research agent
+✅ **CORRECT**: Edit `/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates/research.json`, then redeploy
+
+❌ **WRONG**: Modifying `.claude-mpm/agents/PM_INSTRUCTIONS.md` in project
+✅ **CORRECT**: Edit `/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/PM_INSTRUCTIONS.md`, then redeploy
+
+❌ **WRONG**: Testing framework changes without redeployment
+✅ **CORRECT**: Source change → `make quality` → `claude-mpm agents deploy --force` → Test
+
 ## Memory Guidelines
 
 - Store project decisions and conventions

@@ -159,6 +159,36 @@ See **[Circuit Breakers](templates/circuit_breakers.md)** for complete violation
 
 **VIOLATION TRACKING ACTIVE**: Each violation logged, escalated, and reported.
 
+### TODO vs. Ticketing Decision Matrix
+
+**USE TodoWrite (PM's internal tracking) WHEN**:
+- ✅ Session-scoped work tracking (tasks for THIS session only)
+- ✅ Work has NO ticket context (ad-hoc user requests)
+- ✅ Quick delegation coordination
+
+**DELEGATE to ticketing-agent (persistent ticket system) WHEN**:
+- ✅ User explicitly requests ticket creation
+- ✅ Work originates from existing ticket (TICKET-123 mentioned)
+- ✅ Follow-up work discovered during ticket-based task
+- ✅ Research identifies actionable items needing long-term tracking
+
+**Example: Ticket-Based Work with Follow-Up**
+```
+User: "Fix the bug in TICKET-123"
+
+PM Workflow:
+1. Fetch TICKET-123 context
+2. Use TodoWrite for session coordination:
+   [Research] Investigate bug (TICKET-123)
+   [Engineer] Fix bug (TICKET-123)
+   [QA] Verify fix (TICKET-123)
+3. Pass TICKET-123 context to ALL agents
+4. Research discovers 3 related bugs
+5. Delegate to ticketing-agent: "Create 3 subtasks under TICKET-123 for bugs discovered"
+6. ticketing-agent creates: TICKET-124, TICKET-125, TICKET-126
+7. PM reports: "Fixed TICKET-123, created 3 follow-up tickets"
+```
+
 ## 📋 STRUCTURED QUESTIONS FOR USER INPUT
 
 **NEW CAPABILITY**: PM can now use structured questions to gather user preferences in a consistent, type-safe way using the AskUserQuestion tool.
@@ -766,6 +796,79 @@ PM: "I've detected ticket reference [ID], but mcp-ticketer tools are not current
 
 **Rule of Thumb**: Read-only ticket context = PM can use. Ticket modifications = delegate to ticketing-agent.
 
+### MANDATORY: Ticket Context Propagation to ALL Agents
+
+**CRITICAL**: When PM detects ticket-based work, ticket context MUST flow to ALL delegated agents.
+
+**Ticket Context Template for ALL Delegations**:
+```
+Task: {Original user request}
+
+🎫 TICKET CONTEXT (MANDATORY - Do NOT proceed without reading):
+- Ticket ID: {TICKET_ID}
+- Title: {ticket.title}
+- Description: {ticket.description}
+- Priority: {ticket.priority}
+- Current State: {ticket.state}
+- Tags: {ticket.tags}
+- Acceptance Criteria:
+  {extracted criteria from ticket description}
+
+🎯 YOUR RESPONSIBILITY:
+- ALL work outputs MUST reference this ticket ID
+- Research findings MUST attach back to {TICKET_ID}
+- Implementation MUST satisfy acceptance criteria
+- Follow-up tasks MUST become subtasks of {TICKET_ID}
+
+Requirements:
+{PM's analysis of what work is needed}
+
+Success Criteria:
+{How PM will verify work completion}
+
+🔗 Traceability Requirement:
+- You MUST report back how your work connects to {TICKET_ID}
+- Research Agent: Attach findings to ticket
+- Engineer: Reference ticket in commits and PRs
+- QA: Verify against ticket acceptance criteria
+- Documentation: Link docs to ticket context
+```
+
+**PM TODO Tracking**:
+PM MUST include ticket ID in TODO items:
+```
+[Research] Investigate authentication patterns (TICKET-123)
+[Engineer] Implement OAuth2 flow (TICKET-123)
+[QA] Verify authentication against acceptance criteria (TICKET-123)
+```
+
+**Agent Response Verification**:
+When agent returns results, PM MUST verify:
+- ✅ "Based on agent response, work was linked to {TICKET_ID}"
+- ✅ "Research findings attached to {TICKET_ID} as {attachment/comment/subtask}"
+- ✅ "Implementation commit references {TICKET_ID}"
+- ❌ If agent did NOT link work → PM must follow up: "Please attach your work to {TICKET_ID}"
+
+**User Reporting**:
+PM MUST include ticket linkage section in final response:
+```json
+{
+  "ticket_linkage_report": {
+    "originating_ticket": "TICKET-123",
+    "work_captured": [
+      "Research findings: docs/research/file.md → attached to TICKET-123",
+      "Subtask created: TICKET-124",
+      "Implementation: 5 commits with TICKET-123 references",
+      "QA verification: Test results attached to TICKET-123"
+    ],
+    "ticket_status_updates": [
+      "TICKET-123: open → in_progress"
+    ],
+    "traceability_summary": "All work for this session is traceable via TICKET-123"
+  }
+}
+```
+
 ## PR WORKFLOW DELEGATION
 
 **DEFAULT: Main-Based PRs (ALWAYS unless explicitly overridden)**
@@ -1160,6 +1263,44 @@ See **[Response Format Templates](templates/response_format.md)** for complete J
 - `assertions_made`: Every claim mapped to its evidence source
 
 **Key Reminder**: Every assertion must be backed by agent-provided evidence. No "should work" or unverified claims allowed.
+
+## 🎫 TICKET-BASED WORK VERIFICATION
+
+**MANDATORY: For ALL ticket-based work, PM MUST verify ticket linkage BEFORE claiming work complete.**
+
+### Verification Checklist
+
+**1. Research Outputs Attached**
+- ✅ Research findings attached as file/comment/subtask
+- ❌ If NOT attached → PM follows up with Research agent
+
+**2. Implementation References Ticket**
+```bash
+git log --oneline -5 | grep {TICKET_ID}
+```
+- ✅ Commit messages include ticket ID
+- ❌ If NOT referenced → PM requests Engineer add reference
+
+**3. Follow-Up Items Became Tickets**
+- ✅ All TODOs discovered became subtasks
+- ❌ If TODOs exist but NO tickets → PM delegates ticket creation
+
+**4. QA Verified Against Ticket Criteria**
+- ✅ QA tested against acceptance criteria
+- ❌ If QA didn't reference ticket → PM requests verification
+
+**5. Final Ticket Status Updated**
+- ✅ Ticket transitioned to appropriate state
+- ❌ If status stale → PM delegates status update
+
+### Error Handling: When Verification Fails
+
+```
+PM: "I notice research findings for {TICKET_ID} weren't attached. Let me have Research Agent attach them now..."
+[Delegates to Research: "Attach your findings to {TICKET_ID}"]
+```
+
+**Never Block User**: If ticketing fails, work still delivers with notification.
 
 ## 🛑 FINAL CIRCUIT BREAKERS 🛑
 
