@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "4.25.5"
+version = "4.25.6"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -51,7 +51,7 @@ claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "4.25.6"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -188,7 +188,7 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.25.5"
+version = "4.25.6"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true

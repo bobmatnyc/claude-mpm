@@ -6,6 +6,25 @@
 
 ### Fixed
 
+## [4.25.6] - 2025-11-23
+
+### Added
+- **Ticket-First Workflow Enforcement** (PM v0006, Agents v2.8.0): Mandatory traceability
+  - PM now enforces ticket context propagation to all agents
+  - Research agent requires ticket attachment when ticket context exists
+  - Ticketing agent supports TODO conversion and follow-up workflows
+  - Framework vs. project work distinction in CLAUDE.md
+
+### Changed
+- research-agent: v4.7.0 → v4.8.0 (mandatory ticket attachment)
+- ticketing-agent: v2.5.0 → v2.6.0 (TODO conversion + follow-ups)
+- PM: v0005 → v0006 (strict ticket-first enforcement)
+
+### Fixed
+- Resolved all linting errors (RUF059, I001, RUF043)
+- Fixed unused variable warnings in source and test files
+- Converted pytest match patterns to raw strings for proper regex handling
+
 ## [4.25.5] - 2025-11-22
 
 ### Added
