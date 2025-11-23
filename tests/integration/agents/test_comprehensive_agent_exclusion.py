@@ -219,7 +219,7 @@ agent_deployment:
 
         # Run deployment command
         cmd = [str(project_root / "claude-mpm"), "agents", "deploy"]
-        _,  stdout, _ = run_subcommand(cmd, cwd=str(project_root))
+        _, stdout, _ = run_subcommand(cmd, cwd=str(project_root))
 
         if "Excluding agents from deployment" in stdout:
             results["details"].append("✅ CLI exclusion warnings appear")

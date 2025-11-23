@@ -232,9 +232,7 @@ def test_interactive_mode_welcome_message(logger):
     # the interactive session code behavior
 
     # Run a quick interactive session with immediate exit
-    __, stdout, _ = run_claude_mpm_startup(
-        args=["run", "--logging", "INFO"]
-    )
+    __, stdout, _ = run_claude_mpm_startup(args=["run", "--logging", "INFO"])
 
     # Note: This might timeout since interactive mode waits for Claude
     # But we can still check if the welcome message display logic is working
