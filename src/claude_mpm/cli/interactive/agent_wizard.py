@@ -178,13 +178,13 @@ class AgentWizard:
                     if not result[0]:
                         print(f"❌ {result[1]}")
                 elif choice_num == len(templates) + 1:
-                    success, message = self.run_interactive_create()
+                    _, message = self.run_interactive_create()
                     if message:
                         # Message already has emoji from the function
                         print(f"\n{message}")
                     continue  # Return to main menu
                 elif choice_num == len(templates) + 2:
-                    success, message = self._interactive_delete_menu(templates)
+                    _, message = self._interactive_delete_menu(templates)
                     if message:
                         # Message already has emoji from the function
                         print(f"\n{message}")

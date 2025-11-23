@@ -48,7 +48,7 @@ def test_normal_startup_output_style_info(logger):
     """Test that output style information appears in normal startup."""
     logger.info("Testing normal startup with output style info...")
 
-    _returncode, stdout, stderr = run_claude_mpm_startup()
+    __, stdout, _ = run_claude_mpm_startup()
 
     # Combine stdout and stderr for analysis
     output = stdout + stderr
@@ -93,7 +93,7 @@ def test_different_claude_versions(logger):
     # by looking at the code that handles different versions
 
     # Test with current detected version
-    _returncode, stdout, stderr = run_claude_mpm_startup()
+    __, stdout, _ = run_claude_mpm_startup()
     output = stdout + stderr
 
     # Check version detection
@@ -137,7 +137,7 @@ def test_settings_file_scenarios(logger):
         settings_file.write_text(json.dumps(test_settings, indent=2))
         logger.info("Created test settings with claude-mpm active")
 
-        returncode, stdout, stderr = run_claude_mpm_startup()
+        _, stdout, _ = run_claude_mpm_startup()
         output = stdout + stderr
 
         active_claude_mpm = "claude-mpm' is ACTIVE" in output
@@ -148,7 +148,7 @@ def test_settings_file_scenarios(logger):
         settings_file.write_text(json.dumps(test_settings, indent=2))
         logger.info("Created test settings with other-style active")
 
-        _returncode, stdout, stderr = run_claude_mpm_startup()
+        __, stdout, _ = run_claude_mpm_startup()
         output = stdout + stderr
 
         other_active = "other-style" in output and "expected: claude-mpm" in output
@@ -159,7 +159,7 @@ def test_settings_file_scenarios(logger):
         settings_file.write_text(json.dumps(test_settings, indent=2))
         logger.info("Created empty test settings")
 
-        _returncode, stdout, stderr = run_claude_mpm_startup()
+        __, stdout, _ = run_claude_mpm_startup()
         output = stdout + stderr
 
         no_active_style = "none" in output or "no active style" in output.lower()
@@ -197,7 +197,7 @@ def test_output_style_file_scenarios(logger):
         output_style_path.write_text("# Test Output Style\nTest content")
         logger.info("Created test output style file")
 
-        _returncode, stdout, stderr = run_claude_mpm_startup()
+        __, stdout, _ = run_claude_mpm_startup()
         output = stdout + stderr
 
         file_exists_detected = "Output style file exists:" in output
@@ -208,7 +208,7 @@ def test_output_style_file_scenarios(logger):
             output_style_path.unlink()
         logger.info("Removed output style file")
 
-        _returncode, stdout, stderr = run_claude_mpm_startup()
+        __, stdout, _ = run_claude_mpm_startup()
         output = stdout + stderr
 
         file_creation_detected = "Output style will be created at:" in output
@@ -232,7 +232,7 @@ def test_interactive_mode_welcome_message(logger):
     # the interactive session code behavior
 
     # Run a quick interactive session with immediate exit
-    _returncode, stdout, stderr = run_claude_mpm_startup(
+    __, stdout, _ = run_claude_mpm_startup(
         args=["run", "--logging", "INFO"]
     )
 

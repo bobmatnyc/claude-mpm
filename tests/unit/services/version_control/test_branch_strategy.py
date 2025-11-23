@@ -442,7 +442,7 @@ class TestBranchNameValidation:
     def test_validate_branch_name_valid_feature(self, strategy_manager):
         """Test validating valid feature branch name."""
         # Arrange & Act
-        is_valid, message = strategy_manager.validate_branch_name(
+        is_valid, _message = strategy_manager.validate_branch_name(
             "feature/PROJ-123-description"
         )
 

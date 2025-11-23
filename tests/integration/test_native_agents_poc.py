@@ -62,7 +62,7 @@ def main():
         print("❌ Agent deployment may have failed")
 
     # Test 2: List agents
-    success, output, _ = run_test(
+    _, output, _ = run_test(
         "List Available Agents",
         'python scripts/launch_with_agents.py --non-interactive "Please list all available agents you can delegate tasks to"',
     )
@@ -75,7 +75,7 @@ def main():
     print(f"\n✅ Agents found in response: {agents_found}")
 
     # Test 3: Simple delegation
-    success, output, _ = run_test(
+    _, output, _ = run_test(
         "Simple Delegation Test",
         'python scripts/launch_with_agents.py --non-interactive "Delegate to engineer: Create a simple hello world function"',
     )
@@ -83,7 +83,7 @@ def main():
     delegation_worked = "Task(" in output or "delegat" in output.lower()
 
     # Test 4: Multi-agent delegation
-    _success, output, _ = run_test(
+    __, output, _ = run_test(
         "Multi-Agent Delegation",
         '''python scripts/launch_with_agents.py --non-interactive "Please delegate these tasks:
 1. engineer: Create a factorial function

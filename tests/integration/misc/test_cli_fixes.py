@@ -67,7 +67,7 @@ def main():
 
     # Test 2: CLI module execution with --version
     tests_run += 1
-    success, stdout, stderr = run_subcommand(
+    _, stdout, _ = run_subcommand(
         "python -m claude_mpm.cli --version", "CLI module execution with --version"
     )
     if success and "claude-mpm" in stdout.lower():
@@ -77,7 +77,7 @@ def main():
 
     # Test 3: CLI module execution with --help
     tests_run += 1
-    success, stdout, stderr = run_subcommand(
+    _, stdout, _ = run_subcommand(
         "python -m claude_mpm.cli --help", "CLI module execution with --help"
     )
     if success and "usage:" in stdout.lower():
@@ -87,7 +87,7 @@ def main():
 
     # Test 4: Memory system imports (general)
     tests_run += 1
-    success, stdout, stderr = run_subcommand(
+    _, stdout, _ = run_subcommand(
         "python -c \"from claude_mpm.services.memory import MemoryBuilder, MemoryRouter, MemoryOptimizer; print('Memory imports OK')\"",
         "General memory system imports",
     )
@@ -98,7 +98,7 @@ def main():
 
     # Test 5: Agent memory imports
     tests_run += 1
-    success, stdout, stderr = run_subcommand(
+    _, stdout, _ = run_subcommand(
         "python -c \"from claude_mpm.services.agents.memory import AgentMemoryManager, get_memory_manager; print('Agent memory imports OK')\"",
         "Agent-specific memory imports",
     )

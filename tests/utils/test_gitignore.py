@@ -156,7 +156,7 @@ class TestGitIgnoreManager:
         gitignore.write_text("# Comentário em português\n*.pyc\n", encoding="utf-8")
 
         manager = GitIgnoreManager(tmp_path)
-        added, existing = manager.ensure_entries([".claude-mpm/"])
+        added, _existing = manager.ensure_entries([".claude-mpm/"])
 
         assert ".claude-mpm/" in added
 

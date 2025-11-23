@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 def run_subcommand(cmd: List[str], cwd: Optional[str] = None) -> Tuple[int, str, str]:
-    """Run a command and return (exit_code, stdout, stderr)."""
+    """Run a command and return (_,  stdout, _)."""
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, cwd=cwd or os.getcwd(), check=False
@@ -219,7 +219,7 @@ agent_deployment:
 
         # Run deployment command
         cmd = [str(project_root / "claude-mpm"), "agents", "deploy"]
-        exit_code, stdout, stderr = run_subcommand(cmd, cwd=str(project_root))
+        _,  stdout, _ = run_subcommand(cmd, cwd=str(project_root))
 
         if "Excluding agents from deployment" in stdout:
             results["details"].append("✅ CLI exclusion warnings appear")
