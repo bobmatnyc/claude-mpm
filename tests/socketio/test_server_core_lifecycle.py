@@ -200,7 +200,7 @@ class TestSocketIOServerCoreLifecycle:
             server._run_server = mock_run_server
 
             # Should raise timeout exception
-            with pytest.raises(Exception, match="Failed to start.*within.*0.1s"):
+            with pytest.raises(Exception, match=r"Failed to start.*within.*0.1s"):
                 server.start_sync()
 
     @patch("claude_mpm.services.socketio.server.core.SOCKETIO_AVAILABLE", True)
@@ -398,7 +398,7 @@ class TestSocketIOServerCoreLifecycle:
 
         with patch.object(server, "_run_server", side_effect=mock_run_server):
             # Should raise timeout exception since running stays False
-            with pytest.raises(Exception, match="Failed to start Socket.IO server"):
+            with pytest.raises(Exception, match=r"Failed to start Socket.IO server"):
                 server.start_sync()
 
             # Wait for thread to handle the exception

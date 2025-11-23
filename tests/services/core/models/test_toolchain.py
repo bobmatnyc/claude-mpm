@@ -188,10 +188,10 @@ class TestFramework:
 
     def test_invalid_popularity_score_raises_error(self):
         """Test that popularity score outside 0.0-1.0 raises ValueError."""
-        with pytest.raises(ValueError, match="Popularity score must be 0.0-1.0"):
+        with pytest.raises(ValueError, match=r"Popularity score must be 0.0-1.0"):
             Framework(name="Django", popularity_score=1.5)
 
-        with pytest.raises(ValueError, match="Popularity score must be 0.0-1.0"):
+        with pytest.raises(ValueError, match=r"Popularity score must be 0.0-1.0"):
             Framework(name="Django", popularity_score=-0.1)
 
 

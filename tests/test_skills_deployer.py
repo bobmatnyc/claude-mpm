@@ -200,7 +200,7 @@ class TestGitHubDownload:
         mock_response.read.return_value = zip_path.read_bytes()
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-        with pytest.raises(Exception, match="manifest.json not found"):
+        with pytest.raises(Exception, match=r"manifest.json not found"):
             deployer._download_from_github()
 
     @patch("urllib.request.urlopen")

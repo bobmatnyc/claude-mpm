@@ -166,12 +166,12 @@ class TestAgentRecommendation:
 
     def test_invalid_confidence_score_raises_error(self):
         """Test that confidence score outside 0.0-1.0 raises ValueError."""
-        with pytest.raises(ValueError, match="Confidence score must be 0.0-1.0"):
+        with pytest.raises(ValueError, match=r"Confidence score must be 0.0-1.0"):
             AgentRecommendation(
                 agent_id="test", agent_name="Test", confidence_score=1.5
             )
 
-        with pytest.raises(ValueError, match="Confidence score must be 0.0-1.0"):
+        with pytest.raises(ValueError, match=r"Confidence score must be 0.0-1.0"):
             AgentRecommendation(
                 agent_id="test", agent_name="Test", confidence_score=-0.1
             )

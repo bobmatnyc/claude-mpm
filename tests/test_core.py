@@ -424,7 +424,7 @@ class TestRegistry:
             three,
         )
 
-        with pytest.raises(Exception, match="conflict.*retriev"):
+        with pytest.raises(Exception, match=r"conflict.*retriev"):
             first.combine(second, third)
 
     def test_remove(self):
@@ -765,7 +765,7 @@ class TestResolver:
         resolver = Registry().resolver_with_root(resource)
         with pytest.raises(
             exceptions.Unresolvable,
-            match="^'/' does not exist within {'foo': {}}.*'#'",
+            match=r"^'/' does not exist within {'foo': {}}.*'#'",
         ) as e:
             resolver.lookup("#/")
         assert e.value == exceptions.PointerToNowhere(
@@ -1041,7 +1041,7 @@ class TestOpaqueSpecification:
     [Anchor, Registry, Resource, Specification, exceptions.PointerToNowhere],
 )
 def test_nonsubclassable(cls):
-    with pytest.raises(Exception, match="(?i)subclassing"):
+    with pytest.raises(Exception, match=r"(?i)subclassing"):
 
         class Boom(cls):  # pragma: no cover
             pass

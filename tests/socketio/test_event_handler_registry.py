@@ -167,7 +167,7 @@ class TestEventHandlerRegistry:
         registry = EventHandlerRegistry(mock_server)
         registry.initialize([MockEventHandler])
 
-        with pytest.raises(RuntimeError, match="Socket.IO server not available"):
+        with pytest.raises(RuntimeError, match=r"Socket.IO server not available"):
             registry.register_all_events()
 
     def test_register_all_events_success(self):
