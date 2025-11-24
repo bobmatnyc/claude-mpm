@@ -204,10 +204,16 @@ def deploy_output_style_on_startup():
             try:
                 import json
 
-                settings = json.loads(settings_file.read_text())
-                if settings.get("activeOutputStyle") == "claude-mpm":
-                    # Already deployed and active
-                    return
+                # Check if file has content (bug fix: was skipping empty files)
+                if output_style_file.stat().st_size == 0:
+                    # File is empty, need to redeploy with content
+                    pass  # Fall through to deployment below
+                else:
+                    # File has content, check if already active
+                    settings = json.loads(settings_file.read_text())
+                    if settings.get("activeOutputStyle") == "claude-mpm":
+                        # Already deployed and active with content
+                        return
             except Exception:
                 pass  # Continue with deployment if we can't read settings
 
