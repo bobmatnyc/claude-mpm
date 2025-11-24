@@ -6,6 +6,32 @@
 
 ### Fixed
 
+## [4.26.0] - 2025-11-24
+
+### Added
+- **Circuit Breaker #7: Research Gate Violation Detection** (Ticket 1M-163): Improved research agent quality
+  - Research Gate Protocol enforcement with confidence thresholds
+  - Automatic violation detection and intervention
+  - Evidence-based research requirements
+  - Integration with Agent Clarification Framework
+- **Enhanced Ticketing Agent** (Ticket 1M-178): Read full ticket context including comments
+  - Complete ticket history and context awareness
+  - Comment thread analysis
+  - Improved context for ticket operations
+- **Semantic Workflow State Intelligence**: Natural language state transitions
+  - Supports natural language inputs (e.g., "working on it" → IN_PROGRESS)
+  - Confidence-based matching with suggestions
+  - Typo handling and fuzzy matching
+
+### Changed
+- Updated circuit_breakers.md with Research Gate Protocol documentation
+- Enhanced agent instructions with clarification framework
+
+### Fixed
+- Removed conflicting PM ticket tool usage guidance (Ticket 1M-177)
+- Restored OUTPUT_STYLE.md content from git history (Ticket 1M-175)
+- Fixed output style file size check in deployment (Ticket 1M-175)
+
 ## [4.25.10] - 2025-11-24
 
 ### Added
