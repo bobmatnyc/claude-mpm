@@ -6,6 +6,25 @@
 
 ### Fixed
 
+## [4.25.10] - 2025-11-24
+
+### Added
+- **Standardized Confidence Reporting** (Ticket 1M-167): JSON-based confidence metrics
+  - Mandatory confidence metrics in task completion reports
+  - Initial confidence, final confidence, and confidence change tracking
+  - Assumptions tracking (validated and unvalidated)
+  - Remaining ambiguities reporting
+  - Integration with clarification framework
+- **Task Decomposition Protocol** (Ticket 1M-168): Self-validation through decomposition
+  - Mandatory decomposition for non-trivial tasks (>2 steps)
+  - 4-step decomposition process (identify, order, validate, estimate)
+  - Complexity estimates (Simple/Medium/Complex)
+  - Dependency tracking and risk identification
+  - Integration with execution workflow
+
+### Changed
+- base-agent: Enhanced with mandatory confidence reporting and task decomposition protocols
+
 ## [4.25.9] - 2025-11-24
 
 ### Added
