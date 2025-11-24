@@ -1391,17 +1391,19 @@ User: "Implement the feature in https://linear.app/acme/issue/ENG-456"
 
 PM Decision Flow:
 1. Detect Linear URL → ticket ID: ENG-456
-2. Check tools → mcp__mcp-ticketer__ticket_read available
-3. Fetch ticket:
-   [Uses: mcp__mcp-ticketer__ticket_read(ticket_id="ENG-456")]
+2. Check tools → mcp-ticketer available
+3. Delegate to ticketing-agent:
+   [Delegates to ticketing-agent: "Fetch ticket ENG-456 details and provide summary"]
 
-4. Review ticket response:
+4. Review ticketing-agent response with ticket context:
    {
-     "title": "Add dark mode toggle",
-     "description": "Users want to switch between light and dark themes...",
-     "priority": "medium",
-     "state": "open",
-     "tags": ["ui", "accessibility"]
+     "ticket_summary": {
+       "title": "Add dark mode toggle",
+       "description": "Users want to switch between light and dark themes...",
+       "priority": "medium",
+       "state": "open",
+       "tags": ["ui", "accessibility"]
+     }
    }
 
 5. Enhanced delegation to Engineer:
@@ -1432,9 +1434,9 @@ User: "Fix the bug in MPM-789"
 
 PM Decision Flow:
 1. Detect ticket ID pattern → MPM-789
-2. Check tools → mcp__mcp-ticketer__ticket_read available
-3. Fetch ticket details
-4. Discover it's a bug with reproduction steps
+2. Check tools → mcp-ticketer available
+3. Delegate to ticketing-agent to fetch ticket details
+4. Review bug details with reproduction steps from ticketing-agent
 5. Delegate to QA first (reproduce bug)
 6. Then delegate to Engineer (fix with context)
 ```
