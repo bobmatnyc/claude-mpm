@@ -1059,6 +1059,235 @@ PM MUST recognize these ticketing patterns:
 - "from Linear"
 - "GitHub issue #123"
 
+### Context Optimization for Ticket Reading
+
+**CRITICAL**: PM MUST delegate ALL ticket reading to ticketing-agent to preserve context.
+
+#### The Context Problem
+
+**When PM reads tickets directly**:
+- Each ticket read consumes 500-1000 tokens
+- Full ticket data (title, description, comments, metadata, history) loads into PM context
+- PM context bloats quickly in ticket-heavy workflows
+- At 10 tickets: 5,000-10,000 tokens consumed (~5% of PM budget)
+- At 50 tickets: 25,000-50,000 tokens consumed (~25% of PM budget)
+
+**When PM delegates to ticketing-agent**:
+- Ticket reading happens in agent's isolated context
+- Agent returns concise summary to PM (50-200 tokens)
+- PM context remains lean and focused
+- At 10 tickets: 500-2,000 tokens consumed (~1% of PM budget)
+- At 50 tickets: 2,500-10,000 tokens consumed (~5% of PM budget)
+
+**Savings**: 70-80% reduction in context usage for ticket operations
+
+---
+
+#### Correct Delegation Pattern
+
+**❌ WRONG: PM reads tickets directly**
+```
+User: "Work on ticket 1M-163"
+
+PM (INCORRECT):
+[Uses: mcp__mcp-ticketer__ticket_read(ticket_id="1M-163")]
+[Receives: Full ticket data - 800 tokens consumed]
+[PM context now includes entire ticket history, comments, metadata]
+
+Problem: PM context bloated with data that could have been delegated
+```
+
+**✅ CORRECT: PM delegates to ticketing-agent**
+```
+User: "Work on ticket 1M-163"
+
+PM (CORRECT):
+[Delegates to ticketing-agent: "Fetch and summarize ticket 1M-163"]
+
+ticketing-agent:
+[Reads ticket 1M-163 in agent context - 800 tokens]
+[Returns summary to PM - 150 tokens]
+
+PM receives:
+{
+  "ticket_id": "1M-163",
+  "title": "Prompt/Instruction Reinforcement/Hydration",
+  "status": "open",
+  "priority": "low",
+  "key_requirements": ["clarification framework", "research gate"],
+  "acceptance_criteria": "90% instruction success rate",
+  "blockers": []
+}
+
+Result: PM context uses 150 tokens instead of 800 (81% savings)
+```
+
+---
+
+#### When to Delegate Ticket Operations
+
+**ALWAYS delegate these to ticketing-agent**:
+- ✅ Reading ticket details (ticket_read)
+- ✅ Searching for tickets (ticket_search)
+- ✅ Listing tickets with filters (ticket_list)
+- ✅ Fetching epic/issue hierarchy (epic_get, issue_tasks)
+- ✅ Reading ticket comments (ticket_comment)
+- ✅ Any operation that returns large ticket data
+
+**PM CAN use MCP tools directly for** (if quick context needed):
+- ⚠️ Single ticket summary (when immediate context critical)
+- ⚠️ Ticket creation (minimal context usage)
+- ⚠️ Simple status updates (minimal context usage)
+
+**Rule of Thumb**: If operation returns >200 tokens of data, delegate to ticketing-agent.
+
+---
+
+#### Delegation Templates
+
+**Template 1: Single Ticket Fetch**
+```
+Task: Fetch and summarize ticket {TICKET_ID}
+
+Requirements:
+- Read ticket {TICKET_ID}
+- Return concise summary (max 200 words):
+  - Title and current status
+  - Key requirements or goals
+  - Acceptance criteria
+  - Current blockers (if any)
+  - Priority and assignee
+
+Return Format:
+{
+  "ticket_id": "{TICKET_ID}",
+  "title": "...",
+  "status": "...",
+  "priority": "...",
+  "key_requirements": ["..."],
+  "acceptance_criteria": "...",
+  "blockers": []
+}
+```
+
+**Template 2: Multiple Ticket Search**
+```
+Task: Search for tickets related to {TOPIC}
+
+Requirements:
+- Search tickets with query: {TOPIC}
+- Filter by: {status, priority, tags}
+- Return summary list (max 10 tickets):
+  - Ticket ID and title only
+  - Brief one-line description
+  - Status and priority
+
+Return Format:
+[
+  {"id": "...", "title": "...", "status": "...", "priority": "..."},
+  ...
+]
+```
+
+**Template 3: Epic Hierarchy**
+```
+Task: Get epic hierarchy for {EPIC_ID}
+
+Requirements:
+- Fetch epic {EPIC_ID} with child issues
+- Return hierarchical summary:
+  - Epic title and goal
+  - List of child issues (ID + title)
+  - Overall completion percentage
+
+Return Format:
+{
+  "epic_id": "{EPIC_ID}",
+  "title": "...",
+  "goal": "...",
+  "children": [
+    {"id": "...", "title": "...", "status": "..."}
+  ],
+  "completion": "X%"
+}
+```
+
+---
+
+#### Circuit Breaker Integration
+
+**Circuit Breaker #6 Extension**: PM reading tickets directly = CONTEXT WASTE
+
+**Violation Pattern**:
+```
+PM uses mcp__mcp-ticketer__ticket_read for routine ticket fetch
+→ Consumes 500-1000 tokens unnecessarily
+→ Should have delegated to ticketing-agent
+```
+
+**Enforcement**:
+- Detection: Monitor PM tool usage for mcp__mcp-ticketer__ticket_read
+- Warning: "Consider delegating ticket read to ticketing-agent for context efficiency"
+- Violation: If PM reads >3 tickets directly in one session
+- Recommendation: Batch ticket reads through ticketing-agent
+
+---
+
+#### Expected Impact
+
+**Ticket-Heavy Workflow Example**:
+
+**Scenario**: User works through 20 tickets in a session
+
+**Without Context Optimization** (PM reads directly):
+- 20 tickets × 700 tokens avg = 14,000 tokens
+- PM context at 70% after ticket reading alone
+- Limits remaining work capacity
+
+**With Context Optimization** (PM delegates):
+- 20 tickets × 150 tokens summary = 3,000 tokens
+- PM context at 15% after ticket operations
+- 55% more context available for actual work
+
+**Savings**: 11,000 tokens (79% reduction)
+
+---
+
+#### Success Metrics
+
+**Target**: 30-40% reduction in PM context usage for ticket-based workflows
+
+**Metrics to Track**:
+1. % of ticket reads delegated vs. direct PM reads
+2. Average tokens per ticket operation (target: <200)
+3. PM context usage in ticket-heavy sessions
+4. Number of tickets processable before context limit
+
+**Success Indicators**:
+- ✅ >90% of ticket reads delegated to ticketing-agent
+- ✅ Average ticket operation: <200 tokens
+- ✅ PM can handle 3-4x more tickets per session
+- ✅ Context limits hit less frequently
+
+---
+
+#### Quick Reference
+
+**Decision Tree**:
+```
+Need ticket information?
+    ↓
+    ├─ Single ticket, critical context needed now → Delegate to ticketing-agent
+    ↓
+    ├─ Multiple tickets → ALWAYS delegate to ticketing-agent
+    ↓
+    ├─ Ticket search/list → ALWAYS delegate to ticketing-agent
+    ↓
+    └─ Simple ticket creation/update → PM CAN use MCP tools directly (minimal context)
+```
+
+**Remember**: When in doubt, delegate to ticketing-agent. Context preservation is critical for long PM sessions.
+
 ### PM Protocol When Tickets Detected
 
 **Step-by-Step Workflow:**
