@@ -409,7 +409,9 @@ def main():
     """Add semantic state intelligence section to ticketing agent."""
 
     # File path
-    template_path = Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates/ticketing.json")
+    template_path = Path(
+        "/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates/ticketing.json"
+    )
 
     if not template_path.exists():
         print(f"❌ Error: Template file not found: {template_path}")
@@ -417,11 +419,11 @@ def main():
 
     # Read existing JSON
     print(f"📖 Reading {template_path}...")
-    with open(template_path, 'r', encoding='utf-8') as f:
+    with open(template_path, encoding="utf-8") as f:
         data = json.load(f)
 
     # Get current instructions
-    current_instructions = data.get('instructions', '')
+    current_instructions = data.get("instructions", "")
     current_length = len(current_instructions)
 
     # Check if already added (avoid duplicates)
@@ -432,33 +434,35 @@ def main():
 
     # Append new section
     print("✏️  Appending semantic state intelligence section...")
-    data['instructions'] = current_instructions + SEMANTIC_STATE_SECTION
+    data["instructions"] = current_instructions + SEMANTIC_STATE_SECTION
 
-    new_length = len(data['instructions'])
-    lines_added = SEMANTIC_STATE_SECTION.count('\n')
+    new_length = len(data["instructions"])
+    lines_added = SEMANTIC_STATE_SECTION.count("\n")
 
     # Write updated JSON
-    print(f"💾 Writing updated template...")
-    with open(template_path, 'w', encoding='utf-8') as f:
+    print("💾 Writing updated template...")
+    with open(template_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     # Validation
     print("✅ Validating JSON structure...")
-    with open(template_path, 'r', encoding='utf-8') as f:
+    with open(template_path, encoding="utf-8") as f:
         json.load(f)  # Will raise exception if invalid
 
     # Report results
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("✅ SUCCESS: Semantic state intelligence added!")
-    print("="*60)
+    print("=" * 60)
     print(f"📄 File: {template_path}")
     print(f"📏 Original length: {current_length:,} characters")
     print(f"📏 New length: {new_length:,} characters")
     print(f"➕ Characters added: {new_length - current_length:,}")
     print(f"📝 Lines added: {lines_added}")
-    print(f"🎯 Ticket: 1M-163")
+    print("🎯 Ticket: 1M-163")
     print("\n🔍 Section includes:")
-    print("   - 4 workflow context types (clarification, review, implementation, blocked)")
+    print(
+        "   - 4 workflow context types (clarification, review, implementation, blocked)"
+    )
     print("   - Semantic matching algorithm with fuzzy logic")
     print("   - 3 detailed implementation examples")
     print("   - Cross-platform state mapping (Linear, GitHub, JIRA)")
@@ -467,5 +471,5 @@ def main():
     print("\n✅ JSON validation: PASSED")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

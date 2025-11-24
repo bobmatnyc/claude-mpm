@@ -6,6 +6,31 @@
 
 ### Fixed
 
+## [4.25.9] - 2025-11-24
+
+### Added
+- **Agent Clarification Framework** (Ticket 1M-163): 85% confidence threshold enforcement
+  - Mandatory clarity checklist before task execution
+  - Clarification request templates with confidence scoring
+  - Examples of ambiguous vs. clear tasks
+- **Research Gate Protocol** (Ticket 1M-163): Research-first workflow enforcement
+  - Mandatory research validation for ambiguous tasks
+  - Research gate protocol with 4-step validation
+  - Bidirectional ticket linking for research findings
+- **Context Optimization** (Ticket 1M-163): Compact ticket reading mode
+  - 70% token reduction for large ticket lists
+  - Compact mode returns only essential fields
+  - Configurable via `compact=True` parameter
+- **Semantic Workflow States** (Ticket 1M-163): Natural language state transitions
+  - Accepts "working on it" → maps to IN_PROGRESS
+  - Semantic matching with confidence scoring
+  - Handles typos and ambiguous inputs
+
+### Changed
+- base-agent: Enhanced with mandatory clarification framework
+- ticketing-agent: v2.7.0 → v2.8.0 (semantic states, context optimization)
+- PM_INSTRUCTIONS.md: Added research gate protocol enforcement
+
 ## [4.25.8] - 2025-11-23
 
 ### Changed
