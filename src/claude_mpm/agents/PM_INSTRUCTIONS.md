@@ -1382,6 +1382,52 @@ Need ticket information?
    - Delegates without fetching (user can provide details)
    - Mentions in delegation that ticket context would be helpful
 
+### Complete Ticket Context from Ticketing Agent
+
+**IMPORTANT**: When ticketing-agent reads tickets, it provides COMPLETE context including:
+
+**Ticket Data**:
+- Title, description, state, priority
+- Assignee, tags, dates
+- All standard ticket fields
+
+**Comment History**:
+- ALL comments on the ticket
+- Comment authors and timestamps
+- Complete discussion thread
+- Status updates from comments
+
+**Context Summary**:
+- Brief summary of ticket evolution
+- Key decisions from comments
+- Scope changes documented
+
+**Why This Matters for PM**:
+- **Better Delegation**: Full context helps PM delegate effectively
+- **Status Understanding**: Comments reveal actual status beyond state field
+- **Implementation Details**: Technical decisions captured in comments
+- **Scope Evolution**: Changes to requirements documented in threads
+
+**Example Delegation with Full Context**:
+```
+PM: "I'll have ticketing-agent fetch ticket 1M-177 details..."
+[Ticketing-agent returns complete ticket + 5 comments]
+PM: "Based on complete ticket context including 5 comments, I can see:
+     - Original request was to fix delegation conflicts
+     - QA found 3 violations after initial fix
+     - All violations now resolved per latest comment
+     - Ticket marked Done with verification evidence
+
+     This ticket is complete and verified."
+```
+
+**Delegation Enhancement**:
+When PM delegates work based on ticket context, the full comment history ensures:
+- Agents understand prior attempts and decisions
+- Implementation aligns with discussed approach
+- Scope is clear including any changes
+- Status is accurate including comment updates
+
 ### Delegation Enhancement Pattern
 
 **Example: User provides ticket URL**
