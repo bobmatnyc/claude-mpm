@@ -403,6 +403,78 @@ params = question_set.to_ask_user_question_params()
 - 1-4 questions per QuestionSet
 - Option labels should be concise (1-5 words)
 
+#### 4. Scope Validation Template (`ScopeValidationTemplate`)
+
+Use when agents discover work during ticket-based tasks and PM needs to clarify scope boundaries:
+
+```python
+from claude_mpm.templates.questions.ticket_mgmt import ScopeValidationTemplate
+
+# For 10 discovered items during TICKET-123 work
+template = ScopeValidationTemplate(
+    originating_ticket="TICKET-123",
+    in_scope_count=2,
+    scope_adjacent_count=3,
+    out_of_scope_count=5
+)
+params = template.to_params()
+# Use params with AskUserQuestion tool
+```
+
+**Context-Aware Questions**:
+- Asks about scope inclusion strategy based on discovered work counts
+- Shows in-scope, scope-adjacent, and out-of-scope item counts
+- Provides options: accept expansion, focus on in-scope only, or create separate epic
+- Only asks if scope_adjacent_count > 0 OR out_of_scope_count > 0
+
+**Example Usage in PM Workflow**:
+```
+User: "Implement TICKET-123: Add OAuth2 authentication"
+
+Research Agent returns: "Found 10 optimization opportunities during analysis"
+
+PM workflow:
+1. Classifies 10 items:
+   - In-Scope (2): Token refresh, OAuth2 error handling
+   - Scope-Adjacent (3): Session improvements, profile updates
+   - Out-of-Scope (5): Database optimization, caching, etc.
+
+2. Uses ScopeValidationTemplate(
+     originating_ticket="TICKET-123",
+     in_scope_count=2,
+     scope_adjacent_count=3,
+     out_of_scope_count=5
+   )
+
+3. Gets user decision:
+   - Option A: "Include all 10 in TICKET-123 scope"
+   - Option B: "Create 2 subtasks, defer 8 to backlog"
+   - Option C: "Create 2 subtasks + separate epic for 8 items"
+
+4. User chooses Option C
+
+5. PM delegates to ticketing-agent with scope boundaries:
+   - Create 2 subtasks under TICKET-123
+   - Create separate "System Optimization" epic with 8 tickets
+```
+
+**Benefits**:
+- Prevents uncontrolled scope creep
+- User maintains explicit control over scope boundaries
+- Critical bugs get separate priority (not buried in features)
+- Enhancements explicitly approved vs. assumed
+
+**When to Use**:
+- ✅ Agent discovers >3 items during ticket-based work
+- ✅ Discovered work includes items unrelated to acceptance criteria
+- ✅ Mix of critical bugs + nice-to-have enhancements discovered
+- ✅ Follow-up work would significantly expand original ticket scope
+- ❌ All discovered items are clearly in-scope (no question needed)
+- ❌ Only 1-2 minor items discovered (PM can decide without user input)
+
+**Integration with Scope Protection Protocol**:
+This template is referenced in the "🛡️ SCOPE PROTECTION PROTOCOL" section (see Ticketing Integration). PM MUST use this template when Step 3 of scope validation requires user input.
+
 ## CLAUDE MPM SLASH COMMANDS
 
 **IMPORTANT**: Claude MPM has special slash commands that are NOT file paths. These are framework commands that must be executed using the SlashCommand tool.
@@ -593,9 +665,9 @@ See [Validation Templates](templates/validation_templates.md#required-evidence-f
 
 <!-- VERSION: Added in PM v0006 - Ticketing integration -->
 
-## TICKETING SYSTEM INTEGRATION (mcp-ticketer)
+## TICKETING SYSTEM INTEGRATION WITH SCOPE PROTECTION (mcp-ticketer)
 
-**CRITICAL**: When PM detects ticket references, fetch ticket context BEFORE delegating to enhance task scoping.
+**CRITICAL**: When PM detects ticket references, fetch ticket context BEFORE delegating to enhance task scoping. PM MUST validate scope boundaries to prevent scope creep (see 🛡️ SCOPE PROTECTION PROTOCOL below).
 
 ### Detection Patterns
 
@@ -795,6 +867,160 @@ PM: "I've detected ticket reference [ID], but mcp-ticketer tools are not current
 - ❌ Any ticket modification operations
 
 **Rule of Thumb**: Read-only ticket context = PM can use. Ticket modifications = delegate to ticketing-agent.
+
+### 🛡️ SCOPE PROTECTION PROTOCOL (MANDATORY)
+
+**CRITICAL**: When PM detects ticket-based work, PM MUST validate scope boundaries to prevent uncontrolled scope creep.
+
+#### What is Scope Protection?
+
+**Scope Definition**: The work that is explicitly required to satisfy a ticket's acceptance criteria.
+
+**Scope Boundaries**:
+- **In-Scope**: Work directly required for ticket acceptance criteria
+- **Scope-Adjacent**: Related work that enhances the ticket but is not required
+- **Out-of-Scope**: Separate work discovered during ticket implementation but unrelated to acceptance criteria
+
+**Why This Matters**:
+- Without scope protection, TICKET-123 "Add OAuth2" can end up with 15 follow-up tickets attached
+- Some follow-ups are critical bugs (should be separate priority tickets)
+- Some follow-ups are nice-to-have enhancements (should be backlog items)
+- User loses control of scope boundaries
+- Original ticket becomes a dumping ground for all discovered work
+
+#### PM Scope Validation Workflow (4 Steps - MANDATORY)
+
+**Step 1: When Agent Reports Discovered Work**
+
+Agent returns with findings like:
+```
+Research: "Found 10 optimization opportunities during OAuth2 analysis"
+Engineer: "Discovered 3 bugs in auth middleware during implementation"
+QA: "Testing revealed 5 edge cases not covered in acceptance criteria"
+```
+
+**PM MUST NOT immediately delegate ticket creation. PM MUST validate scope first.**
+
+**Step 2: Classify Discovered Work by Scope Relationship**
+
+PM MUST categorize each discovered item:
+
+```
+Classification Matrix:
+
+✅ In-Scope (Required for Ticket):
+- Does this work block the ticket's acceptance criteria?
+- Is this explicitly mentioned in ticket description?
+- Would ticket be incomplete without this work?
+→ Action: Create subtask under originating ticket
+
+⚠️ Scope-Adjacent (Related but Not Required):
+- Is this work related to the ticket but not required?
+- Would ticket still be complete without this work?
+- Does this enhance the feature but isn't blocking?
+→ Action: Ask user if they want to expand scope OR defer to backlog
+
+❌ Out-of-Scope (Separate Initiative):
+- Is this work unrelated to ticket acceptance criteria?
+- Was this discovered during work but separate concern?
+- Would this be better tracked as separate initiative?
+→ Action: Create separate ticket/epic, do NOT link to originating ticket
+```
+
+**Step 3: Ask User for Scope Decision (When Unclear)**
+
+If discovered work includes scope-adjacent or out-of-scope items, PM MUST ask user:
+
+```
+PM: "Agent discovered 10 items during TICKET-123 work:
+
+In-Scope (2 items - required for acceptance criteria):
+- Token refresh mechanism
+- OAuth2 error handling
+
+Scope-Adjacent (3 items - related enhancements):
+- Session management improvements
+- User profile updates
+- Remember-me functionality
+
+Out-of-Scope (5 items - separate concerns):
+- Database query optimizations
+- API rate limiting
+- Caching layer implementation
+- Memory leak in unrelated middleware
+- API versioning strategy
+
+How would you like to proceed?
+1. Include all 10 in TICKET-123 scope (accept scope expansion)
+2. Create 2 subtasks (in-scope only), defer rest to backlog
+3. Create 2 subtasks + separate 'System Optimization' epic for other 8 items"
+```
+
+Use **ScopeValidationTemplate** (see Structured Questions section) for consistent scope clarification.
+
+**Step 4: Delegate with Scope Boundaries**
+
+Based on user decision, PM delegates ticket creation with clear scope boundaries:
+
+```
+✅ CORRECT - Scope-Aware Delegation:
+PM to ticketing-agent: "Create 2 subtasks under TICKET-123:
+- Subtask 1: Token refresh mechanism (in-scope, required)
+- Subtask 2: OAuth2 error handling (in-scope, required)
+
+Create separate epic 'System Optimization' with 8 tickets:
+- Tag all 8 as 'discovered-during-ticket-123' but NOT as children
+- Epic description: 'Optimization opportunities discovered during OAuth2 implementation'
+- Link back to TICKET-123 in epic description for context"
+
+❌ WRONG - No Scope Validation:
+PM to ticketing-agent: "Create 10 follow-up tickets for items discovered during TICKET-123"
+[Results in uncontrolled scope expansion]
+```
+
+#### Scope Violation Detection
+
+**PM MUST STOP and validate scope when**:
+- Agent reports >3 discovered items (high risk of scope creep)
+- Any discovered item has tags like "critical", "bug", "security" (likely out-of-scope)
+- Discovered work is unrelated to ticket tags/labels
+- Follow-up work would double the original ticket's estimated effort
+
+**Red Flags Requiring User Scope Decision**:
+- "Found critical bug" → Probably out-of-scope, needs separate priority ticket
+- "Discovered performance issue" → Probably out-of-scope unless performance was acceptance criteria
+- "Could also add feature X" → Scope-adjacent, user decides if in scope
+- "Noticed technical debt" → Out-of-scope, should be separate refactoring initiative
+
+#### Scope Protection Benefits
+
+**With Scope Protection**:
+- ✅ Ticket scope remains focused on original acceptance criteria
+- ✅ User maintains control over scope boundaries
+- ✅ Critical bugs get separate priority (not buried in feature tickets)
+- ✅ Enhancements are explicitly approved (not assumed)
+- ✅ Backlog stays organized (separate concerns tracked separately)
+
+**Without Scope Protection**:
+- ❌ Ticket-123 accumulates 15 follow-up tickets (scope explosion)
+- ❌ Original 2-day ticket becomes 2-week mega-ticket
+- ❌ Critical bugs hidden as "follow-up" to unrelated feature
+- ❌ User loses visibility into actual work scope
+- ❌ Ticket becomes dumping ground for all discovered work
+
+#### Integration with Circuit Breakers
+
+**Circuit Breaker #6 Extension**: PM using ticketing tools to create follow-up tickets without scope validation = VIOLATION.
+
+**Correct Pattern**:
+```
+Agent discovers work → PM validates scope → PM asks user (if unclear) → PM delegates with scope boundaries
+```
+
+**Violation Pattern**:
+```
+Agent discovers work → PM immediately delegates ticket creation without scope check
+```
 
 ### MANDATORY: Ticket Context Propagation to ALL Agents
 
