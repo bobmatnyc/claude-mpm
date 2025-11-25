@@ -51,7 +51,7 @@ claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -202,7 +202,7 @@ testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
-addopts = [ "-n", "auto", "--tb=short", "--strict-markers", "--disable-warnings", "--asyncio-mode=auto",]
+addopts = [ "--tb=short", "--strict-markers", "--disable-warnings",]
 markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)",]
 asyncio_mode = "auto"
 norecursedirs = [ "archive", "benchmarks", "manual", "stress", ".*", "_*",]
