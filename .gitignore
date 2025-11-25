@@ -325,3 +325,6 @@ docs/_archive/
 
 # Distribution artifacts
 dist/
+*.original
+*.optimized
+*.backup
