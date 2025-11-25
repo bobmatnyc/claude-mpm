@@ -178,7 +178,7 @@ make update-homebrew-tap
 
 **Manual Fallback** (if automation fails):
 ```bash
-cd /path/to/homebrew-claude-mpm
+cd /path/to/homebrew-tools
 ./scripts/update_formula.sh $(cat VERSION)
 git add Formula/claude-mpm.rb
 git commit -m "feat: update to v$(cat VERSION)"

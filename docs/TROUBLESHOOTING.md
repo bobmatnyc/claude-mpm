@@ -363,7 +363,7 @@ pip cache purge
 brew update
 
 # Try tap directly
-brew tap bobmatnyc/claude-mpm
+brew tap bobmatnyc/tools
 brew install claude-mpm
 
 # Or use PyPI

@@ -953,7 +953,7 @@ update-homebrew-tap: ## Update Homebrew tap formula after PyPI publish (non-bloc
 	if [ -f "scripts/update_homebrew_tap.sh" ]; then \
 		./scripts/update_homebrew_tap.sh "$$VERSION" || { \
 			echo "$(YELLOW)⚠️  Homebrew tap update failed (non-blocking)$(NC)"; \
-			echo "$(YELLOW)Manual fallback: cd homebrew-claude-mpm && ./scripts/update_formula.sh $$VERSION$(NC)"; \
+			echo "$(YELLOW)Manual fallback: cd homebrew-tools && ./scripts/update_formula.sh $$VERSION$(NC)"; \
 		}; \
 	else \
 		echo "$(YELLOW)⚠️  Homebrew update script not found (skipping)$(NC)"; \

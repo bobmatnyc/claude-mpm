@@ -205,13 +205,13 @@ Task: Update Homebrew tap for new release
 Requirements:
   - Wait for PyPI package to be available (retry with backoff)
   - Fetch SHA256 from PyPI for version {version}
-  - Update formula in homebrew-claude-mpm repository
+  - Update formula in homebrew-tools repository
   - Update version and checksum in Formula/claude-mpm.rb
   - Run formula tests locally (syntax check, brew audit)
   - Commit changes with conventional commit message
-  - Push changes to homebrew-claude-mpm repository (with confirmation)
+  - Push changes to homebrew-tools repository (with confirmation)
 Success Criteria: Formula updated and committed, or graceful failure logged
-Evidence Required: Git commit SHA in homebrew-claude-mpm or error log
+Evidence Required: Git commit SHA in homebrew-tools or error log
 ```
 
 **Decision**:
@@ -222,7 +222,7 @@ Evidence Required: Git commit SHA in homebrew-claude-mpm or error log
 
 **Manual Fallback** (if automation fails):
 ```bash
-cd /path/to/homebrew-claude-mpm
+cd /path/to/homebrew-tools
 ./scripts/update_formula.sh {version}
 git add Formula/claude-mpm.rb
 git commit -m "feat: update to v{version}"

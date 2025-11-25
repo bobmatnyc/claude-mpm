@@ -32,8 +32,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-TAP_REPO="https://github.com/bobmatnyc/homebrew-claude-mpm.git"
-TAP_DIR="/tmp/homebrew-claude-mpm-update"
+TAP_REPO="https://github.com/bobmatnyc/homebrew-tools.git"
+TAP_DIR="/tmp/homebrew-tools-update"
 PYPI_PACKAGE="claude-mpm"
 FORMULA_FILE="Formula/claude-mpm.rb"
 LOG_FILE="/tmp/homebrew-tap-update.log"
@@ -129,7 +129,7 @@ wait_for_pypi_package() {
 
     log ERROR "PyPI package not found after ${max_attempts} attempts"
     log ERROR "Manual fallback: Wait for PyPI to propagate, then run:"
-    log ERROR "  cd homebrew-claude-mpm && ./scripts/update_formula.sh ${version}"
+    log ERROR "  cd homebrew-tools && ./scripts/update_formula.sh ${version}"
     return 1
 }
 
@@ -384,7 +384,7 @@ push_changes() {
     if [ "$AUTO_PUSH" = false ]; then
         echo ""
         echo -e "${YELLOW}Ready to push changes to GitHub${NC}"
-        echo "Repository: homebrew-claude-mpm"
+        echo "Repository: homebrew-tools"
         echo "Version: v${version}"
         echo ""
         read -p "Push changes? [y/N]: " -n 1 -r
@@ -550,7 +550,7 @@ main() {
     log SUCCESS "✅ Homebrew tap update completed successfully"
     log INFO "Formula updated to version ${VERSION}"
     log INFO "Verification:"
-    log INFO "  brew tap bobmatnyc/claude-mpm"
+    log INFO "  brew tap bobmatnyc/tools"
     log INFO "  brew upgrade claude-mpm"
     log INFO "  claude-mpm --version"
     log INFO ""

@@ -151,7 +151,7 @@ claude-mpm --version
 
 **macOS package manager** for easy installation.
 
-**Repository**: https://github.com/bobmatnyc/homebrew-claude-mpm
+**Repository**: https://github.com/bobmatnyc/homebrew-tools
 
 #### Automated Update Process
 
@@ -172,8 +172,8 @@ After publishing to PyPI, the Homebrew tap is automatically updated:
 If automation fails, update manually:
 
 ```bash
-# Clone or navigate to homebrew-claude-mpm repository
-cd /path/to/homebrew-claude-mpm
+# Clone or navigate to homebrew-tools repository
+cd /path/to/homebrew-tools
 
 # Run update script
 ./scripts/update_formula.sh $(cat VERSION)
@@ -231,7 +231,7 @@ make update-homebrew-tap-dry-run
 
 ```bash
 # Update tap and install
-brew tap bobmatnyc/claude-mpm
+brew tap bobmatnyc/tools
 brew upgrade claude-mpm
 claude-mpm --version
 ```
@@ -316,7 +316,7 @@ deactivate
 rm -rf /tmp/test-install
 
 # Test Homebrew installation (macOS)
-brew tap bobmatnyc/claude-mpm
+brew tap bobmatnyc/tools
 brew upgrade claude-mpm
 claude-mpm --version
 
@@ -359,14 +359,14 @@ claude-mpm --version
 
 2. **Manual update**:
    ```bash
-   cd /path/to/homebrew-claude-mpm
+   cd /path/to/homebrew-tools
    ./scripts/update_formula.sh $(cat VERSION)
    ```
 
 3. **Common issues**:
    - **PyPI package not available**: Wait 5 minutes for CDN propagation
    - **Network failure**: Check GitHub connectivity
-   - **Git conflicts**: Clean up homebrew-claude-mpm working directory
+   - **Git conflicts**: Clean up homebrew-tools working directory
    - **Permission denied**: Verify GitHub push access
 
 4. **Detailed troubleshooting**: See [HOMEBREW_UPDATE_TROUBLESHOOTING.md](HOMEBREW_UPDATE_TROUBLESHOOTING.md)

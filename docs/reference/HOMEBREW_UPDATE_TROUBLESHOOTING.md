@@ -22,7 +22,7 @@ This guide covers common issues and solutions for Homebrew tap updates during th
 cat /tmp/homebrew-tap-update.log
 
 # Check Homebrew tap repository status
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 git status
 git log -1
 ```
@@ -156,8 +156,8 @@ open "https://github.com/settings/keys"
 C. **Use HTTPS Instead**:
 ```bash
 # Change remote URL to HTTPS
-cd /tmp/homebrew-claude-mpm-update
-git remote set-url origin https://github.com/bobmatnyc/homebrew-claude-mpm.git
+cd /tmp/homebrew-tools-update
+git remote set-url origin https://github.com/bobmatnyc/homebrew-tools.git
 
 # Configure GitHub CLI for auth
 gh auth login
@@ -180,7 +180,7 @@ gh auth login
 
 A. **Check Formula Syntax**:
 ```bash
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 ruby -c Formula/claude-mpm.rb
 ```
 
@@ -220,7 +220,7 @@ git push origin main
 
 A. **View Audit Details**:
 ```bash
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 brew audit --strict Formula/claude-mpm.rb
 ```
 
@@ -258,7 +258,7 @@ brew test claude-mpm
 
 A. **Regenerate Resources**:
 ```bash
-cd /path/to/homebrew-claude-mpm
+cd /path/to/homebrew-tools
 python3 scripts/generate_resources.py > /tmp/new_resources.txt
 
 # Compare with current resources
@@ -298,7 +298,7 @@ claude-mpm --version
 
 A. **Review Uncommitted Changes**:
 ```bash
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 git status
 git diff
 ```
@@ -352,7 +352,7 @@ curl -sf "https://pypi.org/pypi/claude-mpm/$(cat VERSION)/json" | jq '.urls[] | 
 #### "Git conflict detected"
 ```bash
 # Fix: Pull latest changes first
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 git fetch origin
 git reset --hard origin/main
 ```
@@ -367,7 +367,7 @@ If automation completely fails, follow these steps:
 
 1. **Clone Homebrew Tap**:
    ```bash
-   git clone https://github.com/bobmatnyc/homebrew-claude-mpm.git /tmp/manual-homebrew-update
+   git clone https://github.com/bobmatnyc/homebrew-tools.git /tmp/manual-homebrew-update
    cd /tmp/manual-homebrew-update
    ```
 
@@ -471,7 +471,7 @@ Monitor Homebrew tap update health:
 tail -50 /tmp/homebrew-tap-update.log
 
 # Check tap repository status
-cd /tmp/homebrew-claude-mpm-update
+cd /tmp/homebrew-tools-update
 git log -5 --oneline
 git status
 ```
@@ -512,7 +512,7 @@ When reporting issues, include:
 
 3. **Git Status**:
    ```bash
-   cd /tmp/homebrew-claude-mpm-update
+   cd /tmp/homebrew-tools-update
    git status
    git log -3
    ```
@@ -528,7 +528,7 @@ When reporting issues, include:
 ### Support Channels
 
 - **GitHub Issues**: https://github.com/bobmatnyc/claude-mpm/issues
-- **Homebrew Tap Issues**: https://github.com/bobmatnyc/homebrew-claude-mpm/issues
+- **Homebrew Tap Issues**: https://github.com/bobmatnyc/homebrew-tools/issues
 - **Documentation**: [docs/reference/DEPLOY.md](DEPLOY.md)
 
 ### Emergency Rollback
@@ -536,7 +536,7 @@ When reporting issues, include:
 If bad formula is pushed:
 
 ```bash
-cd /path/to/homebrew-claude-mpm
+cd /path/to/homebrew-tools
 git revert HEAD
 git push origin main
 ```

@@ -79,7 +79,7 @@ claude-mpm doctor
 
 ```bash
 # Install from official tap
-brew tap bobmatnyc/claude-mpm
+brew tap bobmatnyc/tools
 brew install claude-mpm
 
 # Verify installation
@@ -234,7 +234,7 @@ claude-mpm run --monitor
 pipx install "claude-mpm[monitor]"
 
 # Or using Homebrew
-brew install bobmatnyc/claude-mpm/claude-mpm
+brew install bobmatnyc/tools/claude-mpm
 ```
 
 **Common Issues:**
@@ -341,7 +341,7 @@ pip uninstall claude-mpm
 
 ```bash
 brew uninstall claude-mpm
-brew untap bobmatnyc/claude-mpm
+brew untap bobmatnyc/tools
 ```
 
 ### Clean Up Configuration

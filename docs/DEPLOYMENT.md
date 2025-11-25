@@ -28,7 +28,7 @@ claude-mpm doctor
 
 ```bash
 # Install from official tap
-brew install bobmatnyc/claude-mpm/claude-mpm
+brew install bobmatnyc/tools/claude-mpm
 
 # Verify installation
 claude-mpm --version
@@ -110,7 +110,7 @@ make update-homebrew-tap
 **Manual Fallback:**
 ```bash
 # If automation fails
-cd /path/to/homebrew-claude-mpm
+cd /path/to/homebrew-tools
 ./scripts/update_formula.sh $(cat VERSION)
 git add Formula/claude-mpm.rb
 git commit -m "feat: update to v$(cat VERSION)"
