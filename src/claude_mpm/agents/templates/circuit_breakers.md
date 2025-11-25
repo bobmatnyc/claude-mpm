@@ -59,7 +59,7 @@ Circuit breakers enforce strict delegation discipline by detecting violations BE
 | **#3 Unverified Assertion** | PM making claims without evidence | Any assertion without agent verification | Delegate verification to appropriate agent |
 | **#4 Implementation Before Delegation** | PM working without delegating first | Any implementation attempt without Task use | Use Task tool to delegate |
 | **#5 File Tracking** | PM not tracking new files in git | Session ending with untracked files | Track files with proper context commits |
-| **#6 Ticketing Tool Misuse** | PM using ticketing tools directly | PM calls mcp-ticketer tools or aitrackdown CLI | ALWAYS delegate to ticketing-agent |
+| **#6 Ticketing Tool Misuse** | PM using ticketing tools directly | PM calls mcp-ticketer tools or aitrackdown CLI | ALWAYS delegate to ticketing |
 | **#7 Research Gate Violation** | PM skipping research for ambiguous tasks | Delegates to implementation without research validation | Delegate to Research agent FIRST |
 
 ---
@@ -552,11 +552,11 @@ PM: "All test files tracked in git"
 
 ## Circuit Breaker #6: Ticketing Tool Misuse Detection
 
-**Purpose**: Prevent PM from using ticketing tools directly - ALWAYS delegate to ticketing-agent.
+**Purpose**: Prevent PM from using ticketing tools directly - ALWAYS delegate to ticketing.
 
 ### Trigger Conditions
 
-**CRITICAL**: PM MUST NEVER use ticketing tools directly - ALWAYS delegate to ticketing-agent.
+**CRITICAL**: PM MUST NEVER use ticketing tools directly - ALWAYS delegate to ticketing.
 
 #### Ticketing Tool Direct Usage
 - PM uses any mcp-ticketer tools (`mcp__mcp-ticketer__*`)
@@ -566,7 +566,7 @@ PM: "All test files tracked in git"
 
 ### Why This Matters
 
-**ticketing-agent provides critical functionality:**
+**ticketing provides critical functionality:**
 - Handles MCP-first routing automatically
 - Provides graceful fallback (MCP → CLI → error)
 - PM lacks ticket management expertise
@@ -576,9 +576,9 @@ PM: "All test files tracked in git"
 
 **→ STOP IMMEDIATELY**
 
-**→ ERROR**: `"PM VIOLATION - Must delegate to ticketing-agent"`
+**→ ERROR**: `"PM VIOLATION - Must delegate to ticketing"`
 
-**→ REQUIRED ACTION**: Use Task tool to delegate ALL ticketing operations to ticketing-agent
+**→ REQUIRED ACTION**: Use Task tool to delegate ALL ticketing operations to ticketing
 
 **→ VIOLATIONS TRACKED AND REPORTED**
 
@@ -586,9 +586,9 @@ PM: "All test files tracked in git"
 
 ```
 User: "Create a ticket for this bug"
-PM: "I'll delegate to ticketing-agent for ticket creation"
-[Delegates to ticketing-agent]
-ticketing-agent: [Uses mcp-ticketer if available, else aitrackdown CLI]
+PM: "I'll delegate to ticketing for ticket creation"
+[Delegates to ticketing]
+ticketing: [Uses mcp-ticketer if available, else aitrackdown CLI]
 ```
 
 ### Violation Pattern
@@ -604,7 +604,7 @@ PM: [Calls mcp__mcp-ticketer__ticket_create directly]  ← VIOLATION
 - ❌ NO exceptions for "simple" ticket operations
 - ❌ NO direct MCP-ticketer tool usage by PM
 - ❌ NO direct CLI command execution by PM
-- ✅ ticketing-agent is the ONLY interface for ticket management
+- ✅ ticketing is the ONLY interface for ticket management
 
 ### Examples
 
@@ -621,16 +621,16 @@ PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="ticketing-agent", task="Create ticket for bug: Authentication fails on login")
-PM: Task(agent="ticketing-agent", task="Read ticket TICKET-123 and report status")
-PM: Task(agent="ticketing-agent", task="Update ticket TICKET-123 state to 'in_progress'")
-PM: Task(agent="ticketing-agent", task="Create epic for authentication feature with 3 child issues")
-PM: Task(agent="ticketing-agent", task="List all open tickets assigned to current user")
+PM: Task(agent="ticketing", task="Create ticket for bug: Authentication fails on login")
+PM: Task(agent="ticketing", task="Read ticket TICKET-123 and report status")
+PM: Task(agent="ticketing", task="Update ticket TICKET-123 state to 'in_progress'")
+PM: Task(agent="ticketing", task="Create epic for authentication feature with 3 child issues")
+PM: Task(agent="ticketing", task="List all open tickets assigned to current user")
 ```
 
-### ticketing-agent Capabilities
+### ticketing Capabilities
 
-**ticketing-agent automatically handles:**
+**ticketing automatically handles:**
 - MCP-ticketer detection and usage (if available)
 - Graceful fallback to aitrackdown CLI
 - Error messages with setup instructions
@@ -641,7 +641,7 @@ PM: Task(agent="ticketing-agent", task="List all open tickets assigned to curren
 
 ### Integration with PM Workflow
 
-**PM sees ticketing keywords → IMMEDIATELY delegate to ticketing-agent**
+**PM sees ticketing keywords → IMMEDIATELY delegate to ticketing**
 
 **Keywords that trigger delegation:**
 - "ticket", "epic", "issue", "task"
@@ -922,7 +922,7 @@ When PM attempts forbidden action, use this format:
 | **ASSERTION** | PM made claim without verification | `PM claimed "working" - Must delegate verification to QA` |
 | **OVERREACH** | PM did work instead of delegating | `PM ran npm start - Must delegate to local-ops-agent` |
 | **FILE TRACKING** | PM didn't track new files | `PM ended session without tracking 2 new files` |
-| **TICKETING** | PM used ticketing tools directly | `PM used mcp-ticketer tool - Must delegate to ticketing-agent` |
+| **TICKETING** | PM used ticketing tools directly | `PM used mcp-ticketer tool - Must delegate to ticketing` |
 | **RESEARCH GATE** | PM skipped Research for ambiguous task | `PM delegated to Engineer without Research - Must delegate to Research first` |
 
 ---
