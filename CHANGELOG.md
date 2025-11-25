@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [4.26.3] - 2025-11-25
+
+### Changed
+- Documentation updates for output style startup investigation
+
 ## [4.26.2] - 2025-11-25
 
 ### Changed
