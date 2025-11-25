@@ -6,6 +6,14 @@
 
 ### Fixed
 
+## [4.26.2] - 2025-11-25
+
+### Changed
+- Optimized PM_INSTRUCTIONS.md for token efficiency (Tickets 1M-200, 1M-203)
+
+### Fixed
+- Updated mypy and pytest configuration for compatibility
+
 ## [4.26.1] - 2025-11-24
 
 ### Added
