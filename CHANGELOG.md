@@ -6,6 +6,27 @@
 
 ### Fixed
 
+## [4.26.1] - 2025-11-24
+
+### Added
+- **Ticket Completeness Protocol** (feat a86c9f09): 5-Point Engineer Handoff Checklist
+  - "Zero PM Context" Test for ticket verification
+  - Ticket Attachment Decision Tree
+  - PM Self-Check Protocol for session end
+  - 4 detailed examples (complete/incomplete tickets)
+  - Engineers can now work from ticket context alone (zero PM dependency)
+
+### Fixed
+- **Agent Naming Consistency** (fix 10b6b2b1): Corrected agent naming from 'ticketing-agent' to 'ticketing'
+  - Fixed 100+ instances across PM instructions
+  - Ensures consistent delegation to correct agent name
+  - Prevents delegation errors
+
+### Changed
+- Enhanced Circuit Breaker #6 with ticket completeness violations
+- Strengthened Quick Delegation Matrix for ticketing operations
+- Updated all delegation examples with correct agent names
+
 ## [4.26.0] - 2025-11-24
 
 ### Added
