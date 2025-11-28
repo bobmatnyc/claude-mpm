@@ -6,6 +6,12 @@
 
 ### Fixed
 
+## [4.26.4] - 2025-11-28
+
+### Fixed
+- Corrected ticketing agent_id from 'ticketing-agent' to 'ticketing' to match deployment name
+- Ticketing agent version bumped to 2.6.1
+
 ## [4.26.3] - 2025-11-25
 
 ### Changed

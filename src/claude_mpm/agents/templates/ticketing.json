@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "ticketing-agent",
-  "agent_version": "2.6.0",
+  "agent_id": "ticketing",
+  "agent_version": "2.6.1",
   "agent_type": "documentation",
   "metadata": {
     "name": "Ticketing Agent",
