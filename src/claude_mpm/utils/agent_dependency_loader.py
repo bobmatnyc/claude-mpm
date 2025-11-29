@@ -16,6 +16,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+import yaml
 from packaging.requirements import InvalidRequirement, Requirement
 
 from ..core.logger import get_logger
@@ -89,9 +90,47 @@ class AgentDependencyLoader:
         self.deployed_agents = deployed_agents
         return deployed_agents
 
+    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract and parse YAML frontmatter from markdown.
+
+        Frontmatter must be at the start of the file, delimited by '---'.
+        Example:
+            ---
+            name: agent_name
+            dependencies:
+              python:
+                - package>=1.0.0
+            ---
+            # Agent content...
+
+        Args:
+            content: File content to parse
+
+        Returns:
+            Parsed YAML frontmatter as dict, or None if not found/invalid
+        """
+        if not content.strip().startswith("---"):
+            return None
+
+        # Split on --- delimiters
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            return None
+
+        try:
+            return yaml.safe_load(parts[1])
+        except yaml.YAMLError as e:
+            logger.warning(f"Failed to parse YAML frontmatter: {e}")
+            return None
+
     def load_agent_dependencies(self) -> Dict[str, Dict]:
         """
         Load dependency information for deployed agents from their source configs.
+
+        Searches for agent configuration in both markdown (.md) and JSON (.json) formats.
+        Markdown files with YAML frontmatter are searched first for better maintainability.
+        Falls back to JSON format for backward compatibility.
 
         Returns:
             Dictionary mapping agent IDs to their dependency requirements
@@ -106,19 +145,47 @@ class AgentDependencyLoader:
         ]
 
         for agent_id in self.deployed_agents:
-            # Try to find the agent's JSON config
+            found = False
+
+            # Try to find the agent's config (markdown first, then JSON)
             for config_dir in config_paths:
-                config_file = config_dir / f"{agent_id}.json"
-                if config_file.exists():
+                if found:
+                    break
+
+                # Try markdown first (current format with YAML frontmatter)
+                md_file = config_dir / f"{agent_id}.md"
+                if md_file.exists():
                     try:
-                        with config_file.open() as f:
-                            config = json.load(f)
-                            if "dependencies" in config:
-                                agent_dependencies[agent_id] = config["dependencies"]
-                                logger.debug(f"Loaded dependencies for {agent_id}")
-                                break
+                        content = md_file.read_text(encoding="utf-8")
+                        frontmatter = self._extract_yaml_frontmatter(content)
+                        if frontmatter and "dependencies" in frontmatter:
+                            agent_dependencies[agent_id] = frontmatter["dependencies"]
+                            logger.debug(
+                                f"Loaded dependencies for {agent_id} from markdown"
+                            )
+                            found = True
+                            break
                     except Exception as e:
-                        logger.warning(f"Failed to load config for {agent_id}: {e}")
+                        logger.warning(f"Failed to load markdown for {agent_id}: {e}")
+
+                # Fall back to JSON for backward compatibility
+                if not found:
+                    json_file = config_dir / f"{agent_id}.json"
+                    if json_file.exists():
+                        try:
+                            with json_file.open() as f:
+                                config = json.load(f)
+                                if "dependencies" in config:
+                                    agent_dependencies[agent_id] = config[
+                                        "dependencies"
+                                    ]
+                                    logger.debug(
+                                        f"Loaded dependencies for {agent_id} from JSON"
+                                    )
+                                    found = True
+                                    break
+                        except Exception as e:
+                            logger.warning(f"Failed to load JSON for {agent_id}: {e}")
 
         self.agent_dependencies = agent_dependencies
         logger.debug(f"Loaded dependencies for {len(agent_dependencies)} agents")
