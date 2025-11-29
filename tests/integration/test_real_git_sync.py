@@ -37,8 +37,11 @@ def test_real_github_sync():
         print(f"Test cache directory: {cache_dir}")
         print()
 
-        # Initialize service with default GitHub source
-        service = GitSourceSyncService(cache_dir=str(cache_dir))
+        # Initialize service with correct GitHub source URL (includes /agents subdirectory)
+        service = GitSourceSyncService(
+            source_url="https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main/agents",
+            cache_dir=str(cache_dir),
+        )
 
         print("Step 1: Sync all agents (auto-discovery)...")
         print()
@@ -55,14 +58,15 @@ def test_real_github_sync():
 
         # Verify cache files exist
         print("Step 3: Verify cache files...")
-        synced_agents = results['synced'][:3]  # Check first 3 synced agents
+        synced_agents = results["synced"][:3]  # Check first 3 synced agents
         for agent_name in synced_agents:
-            cache_file = cache_dir / f"{agent_name}.md"
+            # agent_name already includes .md extension
+            cache_file = cache_dir / agent_name
             if cache_file.exists():
                 size = cache_file.stat().st_size
-                print(f"  ✓ {agent_name}.md ({size:,} bytes)")
+                print(f"  ✓ {agent_name} ({size:,} bytes)")
             else:
-                print(f"  ✗ {agent_name}.md (MISSING)")
+                print(f"  ✗ {agent_name} (MISSING)")
         print()
 
         # Test ETag caching (second sync should use cache)
@@ -80,18 +84,26 @@ def test_real_github_sync():
 
         # Check SQLite database
         print("Step 5: Verify SQLite state tracking...")
-        db_path = cache_dir / "sync_state.db"
-        if db_path.exists():
+        # AgentSyncState uses default ~/.config/claude-mpm/agent_sync.db location
+        default_db_path = Path.home() / ".config" / "claude-mpm" / "agent_sync.db"
+
+        # Check for database
+        db_path = None
+        if default_db_path.exists():
+            db_path = default_db_path
             print(f"  ✓ Database created: {db_path}")
+        else:
+            print("  ✗ Database not found at expected location")
+
+        if db_path and db_path.exists():
             print(f"  Database size: {db_path.stat().st_size:,} bytes")
 
             # Check sources
             sources = service.sync_state.get_all_sources()
             print(f"  Registered sources: {len(sources)}")
             for source in sources:
-                print(f"    - {source['source_id']}: {source['source_url']}")
-        else:
-            print("  ✗ Database not created")
+                # SQLite returns columns as 'id' and 'url', not 'source_id' and 'source_url'
+                print(f"    - {source['id']}: {source['url']}")
         print()
 
         # Check for updates
@@ -106,9 +118,15 @@ def test_real_github_sync():
         print()
         print("Summary:")
         print(f"  - Agents synced: {len(results['synced'])}")
-        print(f"  - ETag caching: {'✓ Working' if results2['cache_hits'] > 0 else '✗ Not working'}")
-        print(f"  - SQLite tracking: {'✓ Working' if db_path.exists() else '✗ Not working'}")
+        print(
+            f"  - ETag caching: {'✓ Working' if results2['cache_hits'] > 0 else '✗ Not working'}"
+        )
+        print(
+            f"  - SQLite tracking: {'✓ Working' if db_path and db_path.exists() else '✗ Not working'}"
+        )
         print(f"  - Cache directory: {cache_dir}")
+        if db_path and db_path.exists():
+            print(f"  - Database: {db_path}")
         print()
 
 

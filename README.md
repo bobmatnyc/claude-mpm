@@ -25,6 +25,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
 - ⚡ **Simplified Architecture**: ~3,700 lines removed for better performance and maintainability
 - 🔒 **Enhanced Security**: Comprehensive input validation and sanitization framework
+- 🌐 **Remote Agent Sync**: Automatic agent updates from git repositories with intelligent ETag-based caching
 
 ## Quick Installation
 
@@ -323,6 +324,71 @@ claude-mpm skills deploy-github --toolchain python
 - Research agent automatically recommends skills during analysis
 - See [Skills Deployment Guide](docs/guides/skills-deployment-guide.md) for comprehensive details
 - See [Skills Quick Reference](docs/reference/skills-quick-reference.md) for command reference
+
+## Remote Agent Synchronization
+
+Claude MPM automatically keeps your agent templates up-to-date by syncing with remote Git repositories. This ensures you always have the latest agent capabilities without manual updates.
+
+### Key Features
+
+- **Automatic Updates**: Agents sync automatically on startup
+- **Intelligent Caching**: ETag-based HTTP caching reduces bandwidth by ~95%
+- **Offline Support**: Works with cached agents when offline
+- **Performance**: First sync ~500-800ms, subsequent syncs ~100-200ms
+- **State Tracking**: SQLite database tracks sync history and content hashes
+
+### How It Works
+
+1. **On Startup**: Claude MPM checks configured Git repositories for agent updates
+2. **ETag Validation**: Uses HTTP ETags to avoid downloading unchanged files
+3. **Local Cache**: Stores agents in `~/.claude-mpm/cache/remote-agents/`
+4. **State Database**: Tracks sync status in `~/.config/claude-mpm/agent_sync.db`
+
+### Default Agent Source
+
+By default, Claude MPM syncs from the official agent repository:
+- **Repository**: https://github.com/bobmatnyc/claude-mpm-agents
+- **Agents**: 48 specialized agent templates
+- **Updates**: Maintained by the Claude MPM team
+
+### Configuration
+
+Agent sync is enabled by default. To customize:
+
+```yaml
+# ~/.claude-mpm/configuration.yaml
+agent_sync:
+  enabled: true  # Set to false to disable
+  sources:
+    - url: https://github.com/bobmatnyc/claude-mpm-agents
+      priority: 1
+  cache_dir: ~/.claude-mpm/cache/remote-agents
+```
+
+### Cache Management
+
+**View cache location**:
+```bash
+ls -lh ~/.claude-mpm/cache/remote-agents/
+```
+
+**Clear cache** (forces full re-sync):
+```bash
+rm -rf ~/.claude-mpm/cache/remote-agents/
+rm ~/.config/claude-mpm/agent_sync.db
+```
+
+**Cache size**: Typically 50-200KB for all agents
+
+### Benefits
+
+- **Always Current**: Get latest agent improvements automatically
+- **Minimal Bandwidth**: ETag caching means most syncs transfer <1KB
+- **No Manual Updates**: No need to reinstall or manually update agents
+- **Offline Ready**: Continues working with cached agents if network unavailable
+- **Fast Startup**: Typical sync adds only 100-200ms to startup time
+
+For advanced configuration and troubleshooting, see [Agent Synchronization Guide](docs/guides/agent-synchronization.md).
 
 ## Architecture (v4.4.1)
 

@@ -33,7 +33,6 @@ from claude_mpm.services.agents.sources.git_source_sync_service import (
     NetworkError,
 )
 
-
 # ==============================================================================
 # FIXTURES
 # ==============================================================================
@@ -370,7 +369,9 @@ class TestGitSourceSyncServiceInitialization:
 
             service = GitSourceSyncService(cache_dir=temp_cache_dir)
 
-            expected_url = "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main"
+            expected_url = (
+                "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main"
+            )
             assert service.source_url == expected_url
             assert service.source_id == "github-remote"
             assert service.cache_dir == temp_cache_dir
@@ -444,7 +445,9 @@ class TestGitSourceSyncServiceAgentSync:
         assert len(agent_list) > 0
 
     @patch("requests.Session.get")
-    def test_fetch_with_etag_new_content(self, mock_get, git_sync_service, sample_agent_content):
+    def test_fetch_with_etag_new_content(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test fetching new content (HTTP 200)."""
         # Mock response
         mock_response = Mock()
@@ -485,7 +488,9 @@ class TestGitSourceSyncServiceAgentSync:
         assert call_args[1]["headers"]["If-None-Match"] == '"cached-etag"'
 
     @patch("requests.Session.get")
-    def test_fetch_with_etag_force_refresh(self, mock_get, git_sync_service, sample_agent_content):
+    def test_fetch_with_etag_force_refresh(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test force refresh bypasses ETag cache."""
         # Set cached ETag
         url = "https://example.com/research.md"
@@ -509,7 +514,9 @@ class TestGitSourceSyncServiceAgentSync:
         assert "If-None-Match" not in call_args[1]["headers"]
 
     @patch("requests.Session.get")
-    def test_sync_agents_first_sync(self, mock_get, git_sync_service, sample_agent_content):
+    def test_sync_agents_first_sync(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test first sync downloads all agents."""
         # Mock all agent responses as 200 OK
         mock_response = Mock()
@@ -532,7 +539,9 @@ class TestGitSourceSyncServiceAgentSync:
         assert len(result["failed"]) == 0
 
     @patch("requests.Session.get")
-    def test_sync_agents_with_cache_hits(self, mock_get, git_sync_service, sample_agent_content):
+    def test_sync_agents_with_cache_hits(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test subsequent sync with cache hits (304 responses)."""
         # First sync - download all
         mock_response_200 = Mock()
@@ -570,7 +579,9 @@ class TestGitSourceSyncServiceAgentSync:
         assert result["total_downloaded"] == 0
 
     @patch("requests.Session.get")
-    def test_sync_agents_partial_update(self, mock_get, git_sync_service, sample_agent_content):
+    def test_sync_agents_partial_update(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test sync with some agents updated, some cached."""
         agent_list = git_sync_service._get_agent_list()
 
@@ -703,7 +714,9 @@ class TestOfflineOperation:
         assert content == sample_agent_content
 
     @patch("requests.Session.get")
-    def test_download_agent_file_network_error_no_cache(self, mock_get, git_sync_service):
+    def test_download_agent_file_network_error_no_cache(
+        self, mock_get, git_sync_service
+    ):
         """Test network error with no cache returns None."""
         # Mock network error
         mock_get.side_effect = requests.RequestException("Network unavailable")
@@ -836,7 +849,9 @@ class TestContentHashTracking:
             )
             assert stored_sha == content_sha
 
-    def test_hash_mismatch_triggers_redownload(self, git_sync_service, sample_agent_content):
+    def test_hash_mismatch_triggers_redownload(
+        self, git_sync_service, sample_agent_content
+    ):
         """Test hash mismatch triggers re-download."""
         filename = "research.md"
 
@@ -1005,7 +1020,7 @@ class TestHashMismatchHandling:
 
         mock_get.side_effect = [
             mock_response_304,
-            requests.RequestException("Network error")
+            requests.RequestException("Network error"),
         ]
 
         result = git_sync_service.sync_agents()
@@ -1053,13 +1068,13 @@ class TestCacheFileMissing:
         assert cache_file.exists()
 
         # Verify hash is tracked
-        tracked_sha = git_sync_service.sync_state.get_file_hash("github-remote", filename)
+        tracked_sha = git_sync_service.sync_state.get_file_hash(
+            "github-remote", filename
+        )
         assert tracked_sha is not None
 
     @patch("requests.Session.get")
-    def test_cache_file_missing_redownload_fails(
-        self, mock_get, git_sync_service
-    ):
+    def test_cache_file_missing_redownload_fails(self, mock_get, git_sync_service):
         """Test cache file missing and re-download fails.
 
         Covers lines 343-344: Re-download failure path
@@ -1076,7 +1091,7 @@ class TestCacheFileMissing:
 
         mock_get.side_effect = [
             mock_response_304,
-            requests.RequestException("Network timeout")
+            requests.RequestException("Network timeout"),
         ]
 
         result = git_sync_service.sync_agents()
@@ -1193,7 +1208,9 @@ class TestNetworkResilience:
         assert content is None
 
     @patch("requests.Session.get")
-    def test_download_agent_file_404_fallback(self, mock_get, git_sync_service, sample_agent_content):
+    def test_download_agent_file_404_fallback(
+        self, mock_get, git_sync_service, sample_agent_content
+    ):
         """Test 404 falls back to cache if available.
 
         Covers lines 458-459: 404 warning and None return
@@ -1288,7 +1305,9 @@ class TestAdvancedMigration:
             # Migration should complete despite errors
             assert not old_cache_file.exists()
 
-    def test_migration_corrupted_json_graceful_failure(self, temp_cache_dir, temp_db_path):
+    def test_migration_corrupted_json_graceful_failure(
+        self, temp_cache_dir, temp_db_path
+    ):
         """Test migration handles corrupted JSON gracefully.
 
         Covers lines 651-654: JSON decode error handling
@@ -1313,7 +1332,9 @@ class TestAdvancedMigration:
 class TestCacheIOErrors:
     """Test cache read/write IO error handling."""
 
-    def test_save_to_cache_permission_error(self, git_sync_service, sample_agent_content):
+    def test_save_to_cache_permission_error(
+        self, git_sync_service, sample_agent_content
+    ):
         """Test save to cache handles permission errors.
 
         Covers lines 537-538: PermissionError handling
@@ -1321,7 +1342,9 @@ class TestCacheIOErrors:
         filename = "research.md"
 
         # Mock Path.write_text to raise PermissionError
-        with patch.object(Path, "write_text", side_effect=PermissionError("Access denied")):
+        with patch.object(
+            Path, "write_text", side_effect=PermissionError("Access denied")
+        ):
             # Should not raise, just log
             git_sync_service._save_to_cache(filename, sample_agent_content)
 
@@ -1340,14 +1363,18 @@ class TestCacheIOErrors:
             git_sync_service._save_to_cache(filename, sample_agent_content)
             assert True
 
-    def test_save_to_cache_unexpected_error(self, git_sync_service, sample_agent_content):
+    def test_save_to_cache_unexpected_error(
+        self, git_sync_service, sample_agent_content
+    ):
         """Test save to cache handles unexpected errors.
 
         Covers lines 541-542: General exception handling
         """
         filename = "research.md"
 
-        with patch.object(Path, "write_text", side_effect=RuntimeError("Unexpected error")):
+        with patch.object(
+            Path, "write_text", side_effect=RuntimeError("Unexpected error")
+        ):
             # Should not raise
             git_sync_service._save_to_cache(filename, sample_agent_content)
             assert True
@@ -1361,7 +1388,9 @@ class TestCacheIOErrors:
         cache_file = git_sync_service.cache_dir / filename
         cache_file.write_text("content")
 
-        with patch.object(Path, "read_text", side_effect=PermissionError("Access denied")):
+        with patch.object(
+            Path, "read_text", side_effect=PermissionError("Access denied")
+        ):
             content = git_sync_service._load_from_cache(filename)
             assert content is None
 

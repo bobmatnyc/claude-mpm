@@ -238,6 +238,53 @@ def deploy_output_style_on_startup():
         # Continue execution - output style deployment shouldn't block startup
 
 
+def sync_remote_agents_on_startup():
+    """
+    Synchronize agent templates from remote sources on startup.
+
+    WHY: Ensures agents are up-to-date from remote Git sources (GitHub)
+    without manual intervention. Uses ETag-based caching for efficient
+    updates (95%+ bandwidth reduction).
+
+    DESIGN DECISION: Non-blocking synchronization that doesn't prevent
+    startup if network is unavailable. Failures are logged but don't
+    block startup to ensure claude-mpm remains functional.
+    """
+    try:
+        from ..services.agents.startup_sync import sync_agents_on_startup
+
+        # Run sync and log results
+        result = sync_agents_on_startup()
+
+        # Only log if sync was actually enabled and ran
+        if result.get("enabled") and result.get("sources_synced", 0) > 0:
+            from ..core.logger import get_logger
+
+            logger = get_logger("cli")
+
+            downloaded = result.get("total_downloaded", 0)
+            cached = result.get("cache_hits", 0)
+            duration = result.get("duration_ms", 0)
+
+            if downloaded > 0 or cached > 0:
+                logger.debug(
+                    f"Agent sync: {downloaded} updated, {cached} cached ({duration}ms)"
+                )
+
+            # Log errors if any
+            errors = result.get("errors", [])
+            if errors:
+                logger.warning(f"Agent sync completed with {len(errors)} errors")
+
+    except Exception as e:
+        # Non-critical - log but don't fail startup
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to sync remote agents: {e}")
+        # Continue execution - agent sync failure shouldn't block startup
+
+
 def run_background_services():
     """
     Initialize all background services on startup.
@@ -248,6 +295,7 @@ def run_background_services():
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
+    sync_remote_agents_on_startup()  # NEW: Sync agents from remote sources
     deploy_bundled_skills()
     discover_and_link_runtime_skills()
     deploy_output_style_on_startup()

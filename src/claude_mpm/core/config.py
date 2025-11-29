@@ -591,6 +591,22 @@ class Config:
                 "auto_upgrade": False,  # Automatically upgrade without prompting (use with caution)
                 "cache_ttl": 86400,  # Cache update check results (24 hours)
             },
+            # Agent synchronization configuration
+            "agent_sync": {
+                "enabled": True,  # Enable automatic agent sync on startup
+                "sources": [
+                    {
+                        "id": "github-remote",
+                        "url": "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main/agents",
+                        "priority": 100,
+                        "enabled": True,
+                    }
+                ],
+                "sync_interval": "startup",  # Options: "startup", "hourly", "daily", "manual"
+                "cache_dir": str(
+                    Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+                ),
+            },
         }
 
         # Apply defaults for missing keys

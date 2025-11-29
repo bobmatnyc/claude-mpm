@@ -179,7 +179,7 @@ class GitSourceSyncService:
 
     def __init__(
         self,
-        source_url: str = "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main",
+        source_url: str = "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main/agents",
         cache_dir: Optional[Path] = None,
         source_id: str = "github-remote",
     ):

@@ -4,6 +4,7 @@ How-to guides and frequently asked questions for Claude MPM.
 
 ## Available Guides
 
+- **[Agent Synchronization](agent-synchronization.md)** - Complete guide to git-based agent synchronization system
 - **[FAQ](FAQ.md)** - Frequently asked questions and common issues
 - **[Ticketing Workflows](ticketing-workflows.md)** - Complete guide to `/mpm-ticket` slash command and ticketing workflows
 - **[Ticket-Scoped Work Protection](ticket-scope-protection.md)** - Prevent scope creep with automatic work boundary enforcement

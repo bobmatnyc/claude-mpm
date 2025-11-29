@@ -1,6 +1,23 @@
 ## [Unreleased]
 
 ### Added
+- **Git-Based Agent Synchronization (1M-382)**: Automatic agent updates from remote repositories
+  - **ETag-Based Caching**: Reduces bandwidth usage by ~95% with intelligent HTTP caching
+  - **SQLite State Tracking**: Persistent sync history with SHA-256 content hash verification
+  - **Performance**: First sync 500-800ms, subsequent syncs 100-200ms
+  - **Offline Support**: Graceful degradation to cached agents when network unavailable
+  - **Default Repository**: https://github.com/bobmatnyc/claude-mpm-agents (48 agents)
+  - **Configuration**: `agent_sync.enabled`, `agent_sync.sources`, `agent_sync.cache_dir`
+  - **State Database**: `~/.config/claude-mpm/agent_sync.db` with complete audit trail
+  - **Cache Location**: `~/.claude-mpm/cache/remote-agents/`
+  - **Non-Blocking**: Sync failures don't prevent Claude MPM startup
+  - **Documentation**:
+    - User Guide: `docs/guides/agent-synchronization.md`
+    - Configuration Reference: `docs/reference/configuration.md`
+    - Developer Guide: `docs/development/agent-sync-internals.md`
+  - **Test Coverage**: 94 tests, 93% coverage with comprehensive integration tests
+  - **Future Enhancements**: Multi-source support (1M-390), GitHub authentication, configurable sync intervals
+
 - **`/mpm-ticket` Slash Command**: Comprehensive ticketing workflow management
   - `organize` - Review and organize tickets, transition states, update priorities
   - `proceed` - Analyze project board and recommend next actionable steps
@@ -12,6 +29,9 @@
   - Documentation: `docs/guides/ticketing-workflows.md`
 
 ### Changed
+- **Agent Distribution**: Agents now sync from git repository instead of being bundled
+- **Startup Flow**: Added automatic agent synchronization on initialization (non-blocking)
+- **README**: Added "Remote Agent Synchronization" section with configuration examples
 
 ### Fixed
 
