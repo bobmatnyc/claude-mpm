@@ -6,8 +6,14 @@ Quick navigation for Claude MPM users.
 
 - **[Getting Started](getting-started.md)** - Installation, setup, first run, and essential commands
 - **[User Guide](user-guide.md)** - Features, workflows, best practices, and advanced usage
+  - Includes: `/mpm-ticket` slash command for ticketing workflows
 - **[Skills Versioning Guide](skills-versioning.md)** - Understanding and using versioned skills
 - **[Troubleshooting](troubleshooting.md)** - Common issues, diagnostics, and solutions
+
+## Guides
+
+- **[Ticketing Workflows](../guides/ticketing-workflows.md)** - Comprehensive guide to `/mpm-ticket` command
+- **[Ticket Scope Protection](../guides/ticket-scope-protection.md)** - Best practices for ticket management
 
 ## Quick Links
 
@@ -21,6 +27,7 @@ Quick navigation for Claude MPM users.
 - Auto-configure: See [User Guide - Auto-Configuration](user-guide.md#auto-configuration)
 - Deploy servers: See [User Guide - Local Process Management](user-guide.md#local-process-management)
 - Pause/resume: See [User Guide - Session Management](user-guide.md#session-management)
+- Manage tickets: See [User Guide - Ticketing Workflows](user-guide.md#ticketing-workflows) or [Ticketing Workflows Guide](../guides/ticketing-workflows.md)
 
 **Need Help?**
 - Check [Troubleshooting](troubleshooting.md) first

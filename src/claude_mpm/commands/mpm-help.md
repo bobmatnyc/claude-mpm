@@ -78,8 +78,11 @@ Available Commands:
 /mpm-config [validate|view|status]
   Manage configuration settings
 
+/mpm-ticket [organize|proceed|status|update|project]
+  High-level ticketing workflows and project management
+
 /mpm-tickets [list|create|update]
-  Manage project tickets
+  Low-level ticket CRUD operations and aitrackdown CLI reference
 
 /mpm-organize [--dry-run] [--force]
   Organize project file structure

@@ -5,6 +5,7 @@ How-to guides and frequently asked questions for Claude MPM.
 ## Available Guides
 
 - **[FAQ](FAQ.md)** - Frequently asked questions and common issues
+- **[Ticketing Workflows](ticketing-workflows.md)** - Complete guide to `/mpm-ticket` slash command and ticketing workflows
 - **[Ticket-Scoped Work Protection](ticket-scope-protection.md)** - Prevent scope creep with automatic work boundary enforcement
 - **[Structured Questions](structured-questions.md)** - Understanding and using the structured questions framework
 - **[Makefile Template Integration](makefile-template-integration.md)** - Using python-project-template for new and existing projects

@@ -7,6 +7,7 @@ Available MPM commands:
 - /mpm-doctor - Run diagnostic checks
 - /mpm-help - Show command help
 - /mpm-status - Show MPM status
+- /mpm-ticket - Ticketing workflow management (organize, proceed, status, update, project)
 - /mpm-config - Manage configuration
 - /mpm-resume - Create session resume files
 - /mpm-version - Display version information for project, agents, and skills

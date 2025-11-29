@@ -13,6 +13,7 @@ Complete guide to Claude MPM features and workflows.
 
 - [Auto-Configuration](#auto-configuration)
 - [Agent System](#agent-system)
+- [Ticketing Workflows](#ticketing-workflows)
 - [Skills System](#skills-system)
 - [Memory System](#memory-system)
 - [Local Process Management](#local-process-management)
@@ -169,6 +170,13 @@ Use in Claude Code sessions:
 
 # Deploy recommended agents
 /mpm-agents deploy
+
+# Ticketing workflow management
+/mpm-ticket organize    # Organize tickets, update states and priorities
+/mpm-ticket proceed     # Analyze board and recommend next steps
+/mpm-ticket status      # Generate comprehensive status report
+/mpm-ticket update      # Create project status update
+/mpm-ticket project <url>  # Set project context (Linear/GitHub/JIRA)
 ```
 
 ### Agent Delegation
@@ -200,6 +208,252 @@ PM: Delegates to Documentation
 ↓
 Documentation: Updates API docs
 ```
+
+## Ticketing Workflows
+
+**NEW in v4.27.0** - Orchestrate ticketing operations through the specialized ticketing agent.
+
+### Overview
+
+The `/mpm-ticket` slash command provides high-level ticketing workflows that delegate ALL operations to the **ticketing agent**. The PM never directly uses MCP ticketing tools - all ticketing work is delegated to the specialized ticketing agent.
+
+**Supported Platforms:**
+- Linear (via MCP Ticketer)
+- GitHub Issues (via MCP Ticketer)
+- JIRA (via MCP Ticketer)
+- Asana (via MCP Ticketer)
+- AiTrackDown (CLI fallback)
+
+### Quick Start
+
+```bash
+# In Claude Code sessions
+/mpm-ticket organize         # Clean up and organize your ticket board
+/mpm-ticket proceed          # Get recommendations for what to work on next
+/mpm-ticket status           # Generate comprehensive status report
+/mpm-ticket update           # Create project status update
+/mpm-ticket project <url>    # Set project context
+```
+
+### Subcommands
+
+#### /mpm-ticket organize
+
+**Purpose**: Comprehensive ticket board organization and status updates.
+
+**What it does:**
+1. Lists all open tickets
+2. Transitions completed tickets to 'Done' or 'UAT'
+3. Updates priorities based on current project context
+4. Adds status comments documenting completed work
+5. Identifies stale or blocked tickets
+6. Reports organization results with summary
+
+**Example:**
+```
+User: "/mpm-ticket organize"
+PM: "I'll have ticketing organize the project board..."
+
+[Ticketing agent processes all tickets]
+
+Ticket Organization Complete
+============================
+
+Tickets Transitioned (5):
+✅ TICKET-123: Feature implementation → Done
+✅ TICKET-124: Bug fix → UAT (ready for testing)
+✅ TICKET-125: Research task → In Review
+
+Priorities Updated (3):
+🔴 TICKET-130: Critical security bug → High priority
+🟡 TICKET-131: Performance optimization → Medium priority
+
+Stale Tickets Identified (2):
+⚠️ TICKET-140: No activity for 30 days
+⚠️ TICKET-141: Blocked on external dependency
+
+Next Actions:
+- Review TICKET-140, TICKET-141 for closure
+- Validate UAT tickets with user
+- Monitor high-priority security ticket
+```
+
+#### /mpm-ticket proceed
+
+**Purpose**: Intelligent "what should I work on next?" analysis.
+
+**What it does:**
+1. Gets project status and health metrics
+2. Lists open tickets by priority
+3. Identifies unblocked, high-priority work
+4. Checks for critical dependencies
+5. Recommends top 3 tickets to start next
+6. Explains reasoning for recommendations
+
+**Example:**
+```
+User: "/mpm-ticket proceed"
+PM: "I'll have ticketing analyze the board for next steps..."
+
+Project Status Analysis
+=======================
+
+Project Health: AT_RISK
+- 15 open tickets
+- 3 high-priority items
+- 1 critical blocker
+
+Recommended Next Actions:
+
+1. 🔴 TICKET-177: Fix authentication blocker (CRITICAL)
+   - Priority: High
+   - Blocks: 2 other tickets
+   - Estimated effort: 2-3 hours
+   - Reason: Unblocks entire authentication epic
+
+2. 🟡 TICKET-180: Complete OAuth2 implementation
+   - Priority: Medium
+   - Status: In Progress (70% complete)
+   - Estimated effort: 4 hours
+   - Reason: Close to completion, high impact
+
+3. 🟢 TICKET-185: Add error handling tests
+   - Priority: Medium
+   - Dependencies: None
+   - Estimated effort: 2 hours
+   - Reason: No blockers, improves stability
+```
+
+#### /mpm-ticket status
+
+**Purpose**: Executive summary of project state and ticket status.
+
+**What it does:**
+1. Gets project health metrics
+2. Summarizes ticket counts by state
+3. Lists high-priority open tickets
+4. Identifies blockers and risks
+5. Shows recent activity (last 7 days)
+6. Calculates completion percentage
+7. Provides actionable insights
+
+**Example:**
+```
+User: "/mpm-ticket status"
+PM: "I'll have ticketing generate a comprehensive status report..."
+
+Comprehensive Project Status Report
+===================================
+
+Project Health: ON_TRACK ✅
+
+Ticket Summary:
+- Total: 42 tickets
+- Open: 8 (19%)
+- In Progress: 5 (12%)
+- In Review: 3 (7%)
+- Done: 26 (62%)
+
+Completion Rate: 62% (26/42 tickets)
+
+High-Priority Open Work (3):
+🔴 TICKET-190: Critical security patch
+🔴 TICKET-192: Performance degradation fix
+🟡 TICKET-195: OAuth2 token refresh
+
+Recent Activity (Last 7 Days):
+- 8 tickets completed
+- 4 new tickets created
+- 12 status transitions
+```
+
+#### /mpm-ticket update
+
+**Purpose**: Document sprint/project progress for stakeholders.
+
+**What it does:**
+1. Analyzes project progress since last update
+2. Calculates completion metrics
+3. Identifies key accomplishments
+4. Notes blockers or risks
+5. Sets health indicator (on_track/at_risk/off_track)
+6. Creates ProjectUpdate with summary
+7. Returns update link
+
+**Example:**
+```
+User: "/mpm-ticket update"
+PM: "I'll have ticketing create a project status update..."
+
+Project Update Created
+======================
+
+Update ID: UPDATE-2025-11-29
+Project: Q4 Roadmap Implementation
+Health: ON_TRACK ✅
+
+Summary:
+Sprint completed with strong momentum. 8 tickets completed this week,
+including critical security patches and OAuth2 implementation.
+
+Key Accomplishments:
+✅ OAuth2 implementation complete (TICKET-180)
+✅ Security patches deployed (TICKET-190)
+✅ Performance optimization delivered (TICKET-192)
+
+Update Published:
+🔗 https://linear.app/team/updates/UPDATE-2025-11-29
+```
+
+#### /mpm-ticket project <url>
+
+**Purpose**: Configure project context for Linear, GitHub, or JIRA.
+
+**What it does:**
+1. Parses project URL (Linear/GitHub/JIRA)
+2. Extracts project identifier
+3. Verifies project access
+4. Stores project context for future operations
+5. Confirms project details
+
+**Example:**
+```
+User: "/mpm-ticket project https://linear.app/team/project/abc-123"
+PM: "I'll have ticketing configure project context..."
+
+Project Context Configured
+==========================
+
+Platform: Linear
+Project ID: abc-123-def-456
+Project Name: Q4 Roadmap Implementation
+Team: Engineering
+
+Configuration Saved:
+✅ Default project set
+✅ Access verified
+✅ Future ticket operations will use this project
+```
+
+### Integration with MCP Ticketer
+
+The ticketing agent uses the MCP Ticketer server for all ticket operations:
+
+**MCP Tools Used:**
+- `ticket_list` - List and filter tickets
+- `ticket_read` - Read ticket details
+- `ticket_transition` - Change ticket states
+- `ticket_update` - Update ticket fields
+- `ticket_comment` - Add/read comments
+- `project_status` - Get project health metrics
+- `project_update_create` - Create status updates
+
+**Fallback:** If MCP is unavailable, ticketing agent falls back to AiTrackDown CLI commands.
+
+### Related Documentation
+
+- **[Ticketing Workflows Guide](../guides/ticketing-workflows.md)** - Detailed workflow examples
+- **[Ticket Scope Protection](../guides/ticket-scope-protection.md)** - Best practices for ticket management
 
 ## Skills System
 

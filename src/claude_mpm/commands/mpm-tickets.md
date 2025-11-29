@@ -149,3 +149,16 @@ aitrackdown status
 - **Add comments** to document progress
 - **Use `--severity`** for bugs, `--priority` for features
 - **Associate tasks** with issues using `parent_id` (MCP) or `--issue` (CLI)
+
+## Related Commands
+
+- `/mpm-ticket`: High-level ticketing workflows (organize, proceed, status, update, project)
+- `/mpm-ticket organize`: Clean up and organize ticket board
+- `/mpm-ticket proceed`: Get intelligent next-action recommendations
+- `/mpm-ticket status`: Comprehensive project status report
+- `/mpm-ticket update`: Create project status updates for stakeholders
+- `/mpm-ticket project`: Configure project context for ticketing operations
+
+**When to Use Each:**
+- **Use `/mpm-ticket`** for: Workflows, board organization, status reports, recommendations
+- **Use `/mpm-tickets`** for: Direct ticket CRUD, CLI reference, MCP tool documentation

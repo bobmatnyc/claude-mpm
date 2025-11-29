@@ -1,6 +1,15 @@
 ## [Unreleased]
 
 ### Added
+- **`/mpm-ticket` Slash Command**: Comprehensive ticketing workflow management
+  - `organize` - Review and organize tickets, transition states, update priorities
+  - `proceed` - Analyze project board and recommend next actionable steps
+  - `status` - Generate comprehensive status report with metrics and insights
+  - `update` - Create project status update (Linear ProjectUpdate or equivalent)
+  - `project <url>` - Set project context for Linear/GitHub/JIRA/Asana
+  - Auto-deploys to `~/.claude/commands/mpm-ticket.md`
+  - Delegates all operations to ticketing agent (MCP-first with CLI fallback)
+  - Documentation: `docs/guides/ticketing-workflows.md`
 
 ### Changed
 
