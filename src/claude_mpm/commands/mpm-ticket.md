@@ -512,9 +512,9 @@ PM: [Presents ticketing agent's confirmation]
 
 ## Related Commands
 
-- `/mpm-tickets`: Reference documentation for ticket types and CLI commands
 - `/mpm-status`: Overall Claude MPM system status
 - `/mpm-init`: Initialize or update project documentation
+- `/mpm-help`: Show all available MPM commands
 
 ---
 

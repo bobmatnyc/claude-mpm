@@ -81,9 +81,6 @@ Available Commands:
 /mpm-ticket [organize|proceed|status|update|project]
   High-level ticketing workflows and project management
 
-/mpm-tickets [list|create|update]
-  Low-level ticket CRUD operations and aitrackdown CLI reference
-
 /mpm-organize [--dry-run] [--force]
   Organize project file structure
 

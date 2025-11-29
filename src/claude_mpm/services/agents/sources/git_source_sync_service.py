@@ -1,20 +1,24 @@
 """Git Source Sync Service for agent templates.
 
 Syncs agent markdown files from remote Git repositories (GitHub) using
-ETag-based caching for efficient updates. Implements Stage 1 of the
-three-stage sync algorithm:
+ETag-based caching and SQLite state tracking for efficient updates.
+Implements Stage 1 of the three-stage sync algorithm:
 - Check repository for updates using ETag headers
 - Download agent files via raw.githubusercontent.com URLs
-- Cache content with ETag tracking for efficient re-sync
+- Track content with SHA-256 hashes and sync history in SQLite
 """
 
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+
+from claude_mpm.core.file_utils import get_file_hash
+from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
 
 logger = logging.getLogger(__name__)
 
@@ -177,14 +181,17 @@ class GitSourceSyncService:
         self,
         source_url: str = "https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main",
         cache_dir: Optional[Path] = None,
+        source_id: str = "github-remote",
     ):
         """Initialize Git source sync service.
 
         Args:
             source_url: Base URL for raw files (without trailing slash)
             cache_dir: Local cache directory (defaults to ~/.claude-mpm/cache/remote-agents/)
+            source_id: Unique identifier for this source (for multi-source support)
         """
         self.source_url = source_url.rstrip("/")
+        self.source_id = source_id
 
         # Setup cache directory
         if cache_dir:
@@ -200,12 +207,24 @@ class GitSourceSyncService:
         self.session = requests.Session()
         self.session.headers["Accept"] = "text/plain"
 
-        # Initialize ETag cache
+        # Initialize SQLite state tracking (NEW)
+        self.sync_state = AgentSyncState()
+
+        # Register this source
+        self.sync_state.register_source(
+            source_id=self.source_id, url=self.source_url, enabled=True
+        )
+
+        # Initialize ETag cache (DEPRECATED - kept for backward compatibility)
         etag_cache_file = self.cache_dir / ".etag-cache.json"
         self.etag_cache = ETagCache(etag_cache_file)
 
+        # Migrate old ETag cache to SQLite if it exists
+        if etag_cache_file.exists():
+            self._migrate_etag_cache(etag_cache_file)
+
     def sync_agents(self, force_refresh: bool = False) -> Dict[str, Any]:
-        """Sync agents from remote Git repository.
+        """Sync agents from remote Git repository with SQLite state tracking.
 
         Args:
             force_refresh: Force download even if cache is fresh (bypasses ETag)
@@ -229,6 +248,8 @@ class GitSourceSyncService:
         logger.debug(f"Cache directory: {self.cache_dir}")
         logger.debug(f"Force refresh: {force_refresh}")
 
+        start_time = time.time()
+
         results = {
             "synced": [],
             "cached": [],
@@ -246,17 +267,81 @@ class GitSourceSyncService:
                 content, status = self._fetch_with_etag(url, force_refresh)
 
                 if status == 200:
-                    # New content downloaded
+                    # New content downloaded - save and track
                     self._save_to_cache(agent_filename, content)
+
+                    # Track file with content hash in SQLite
+                    cache_file = self.cache_dir / agent_filename
+                    content_sha = get_file_hash(cache_file, algorithm="sha256")
+                    if content_sha:
+                        self.sync_state.track_file(
+                            source_id=self.source_id,
+                            file_path=agent_filename,
+                            content_sha=content_sha,
+                            local_path=str(cache_file),
+                            file_size=len(content.encode("utf-8")),
+                        )
+
                     results["synced"].append(agent_filename)
                     results["total_downloaded"] += 1
                     logger.info(f"Downloaded: {agent_filename}")
 
                 elif status == 304:
-                    # Not modified - use cached version
-                    results["cached"].append(agent_filename)
-                    results["cache_hits"] += 1
-                    logger.debug(f"Cache hit: {agent_filename}")
+                    # Not modified - verify hash
+                    cache_file = self.cache_dir / agent_filename
+                    if cache_file.exists():
+                        current_sha = get_file_hash(cache_file, algorithm="sha256")
+                        if current_sha and self.sync_state.has_file_changed(
+                            self.source_id, agent_filename, current_sha
+                        ):
+                            # Hash mismatch - re-download
+                            logger.warning(
+                                f"Hash mismatch for {agent_filename}, re-downloading"
+                            )
+                            content, _ = self._fetch_with_etag(url, force_refresh=True)
+                            if content:
+                                self._save_to_cache(agent_filename, content)
+                                # Re-calculate and track hash
+                                new_sha = get_file_hash(cache_file, algorithm="sha256")
+                                if new_sha:
+                                    self.sync_state.track_file(
+                                        source_id=self.source_id,
+                                        file_path=agent_filename,
+                                        content_sha=new_sha,
+                                        local_path=str(cache_file),
+                                        file_size=len(content.encode("utf-8")),
+                                    )
+                                results["synced"].append(agent_filename)
+                                results["total_downloaded"] += 1
+                            else:
+                                results["failed"].append(agent_filename)
+                        else:
+                            # Hash matches - true cache hit
+                            results["cached"].append(agent_filename)
+                            results["cache_hits"] += 1
+                            logger.debug(f"Cache hit: {agent_filename}")
+                    else:
+                        # Cache file missing - re-download
+                        logger.warning(
+                            f"Cache file missing for {agent_filename}, re-downloading"
+                        )
+                        content, _ = self._fetch_with_etag(url, force_refresh=True)
+                        if content:
+                            self._save_to_cache(agent_filename, content)
+                            # Track hash
+                            current_sha = get_file_hash(cache_file, algorithm="sha256")
+                            if current_sha:
+                                self.sync_state.track_file(
+                                    source_id=self.source_id,
+                                    file_path=agent_filename,
+                                    content_sha=current_sha,
+                                    local_path=str(cache_file),
+                                    file_size=len(content.encode("utf-8")),
+                                )
+                            results["synced"].append(agent_filename)
+                            results["total_downloaded"] += 1
+                        else:
+                            results["failed"].append(agent_filename)
 
                 else:
                     # Error status
@@ -270,6 +355,26 @@ class GitSourceSyncService:
             except Exception as e:
                 logger.error(f"Unexpected error for {agent_filename}: {e}")
                 results["failed"].append(agent_filename)
+
+        # Record sync result in history
+        duration_ms = int((time.time() - start_time) * 1000)
+        status = (
+            "success"
+            if not results["failed"]
+            else ("partial" if results["synced"] or results["cached"] else "error")
+        )
+
+        self.sync_state.record_sync_result(
+            source_id=self.source_id,
+            status=status,
+            files_synced=results["total_downloaded"],
+            files_cached=results["cache_hits"],
+            files_failed=len(results["failed"]),
+            duration_ms=duration_ms,
+        )
+
+        # Update source metadata
+        self.sync_state.update_source_sync_metadata(source_id=self.source_id)
 
         # Log summary
         logger.info(
@@ -504,6 +609,49 @@ class GitSourceSyncService:
             "version_control.md",
             "project_organizer.md",
         ]
+
+    def _migrate_etag_cache(self, cache_file: Path):
+        """Migrate old ETag cache to SQLite (one-time operation).
+
+        Args:
+            cache_file: Path to old JSON ETag cache file
+
+        Error Handling:
+        - Migration failures are logged but don't stop initialization
+        - Old cache is renamed to .migrated to prevent re-migration
+        """
+        try:
+            with cache_file.open() as f:
+                old_cache = json.load(f)
+
+            logger.info(f"Migrating {len(old_cache)} ETag entries to SQLite...")
+
+            migrated = 0
+            for url, metadata in old_cache.items():
+                try:
+                    etag = metadata.get("etag")
+                    if etag:
+                        # Store in new system
+                        self.sync_state.update_source_sync_metadata(
+                            source_id=self.source_id, etag=etag
+                        )
+                        migrated += 1
+                except Exception as e:
+                    logger.error(f"Failed to migrate {url}: {e}")
+
+            # Rename old cache to prevent re-migration
+            backup_file = cache_file.with_suffix(".json.migrated")
+            cache_file.rename(backup_file)
+
+            logger.info(
+                f"ETag cache migration complete: {migrated} entries migrated, "
+                f"old cache backed up to {backup_file.name}"
+            )
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in ETag cache, skipping migration: {e}")
+        except Exception as e:
+            logger.error(f"Failed to migrate ETag cache: {e}")
 
     def get_cached_agents_dir(self) -> Path:
         """Get directory containing cached agent files.

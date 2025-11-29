@@ -398,7 +398,7 @@ def display_startup_banner(version: str, logging_level: str) -> None:
     else:
         lines.append(
             _format_two_column_line(
-                "", "/mpm-tickets for more", left_panel_width, right_panel_width
+                "", "/mpm-help for more", left_panel_width, right_panel_width
             )
         )
 

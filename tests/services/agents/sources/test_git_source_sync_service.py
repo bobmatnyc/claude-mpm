@@ -254,13 +254,12 @@ class TestGitSourceSyncService:
             if call_count % 2 == 0:
                 # Every second request fails
                 raise requests.exceptions.Timeout()
-            else:
-                # Every other request succeeds
-                mock_response = mock.MagicMock()
-                mock_response.status_code = 200
-                mock_response.text = "# Agent"
-                mock_response.headers = {"ETag": f'"etag{call_count}"'}
-                return mock_response
+            # Every other request succeeds
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = "# Agent"
+            mock_response.headers = {"ETag": f'"etag{call_count}"'}
+            return mock_response
 
         mock_get.side_effect = side_effect
 
@@ -498,11 +497,10 @@ class TestGitSourceSyncServiceIntegration:
                 r.text = "# Updated Content"
                 r.headers = {"ETag": '"etag2"'}
                 return r
-            else:
-                # Not modified
-                r = mock.MagicMock()
-                r.status_code = 304
-                return r
+            # Not modified
+            r = mock.MagicMock()
+            r.status_code = 304
+            return r
 
         mock_get.side_effect = mixed_response
         results3 = service.sync_agents()
@@ -552,6 +550,7 @@ class TestETagCacheErrorHandling:
 
         # Mock open to raise PermissionError
         import builtins
+
         original_open = builtins.open
 
         def mock_open(*args, **kwargs):
@@ -571,11 +570,12 @@ class TestETagCacheErrorHandling:
 
         # Mock open to raise IOError
         import builtins
+
         original_open = builtins.open
 
         def mock_open(*args, **kwargs):
             if str(cache_file) in str(args[0]) and "w" in args[1]:
-                raise IOError("Disk full")
+                raise OSError("Disk full")
             return original_open(*args, **kwargs)
 
         monkeypatch.setattr("builtins.open", mock_open)
@@ -590,6 +590,7 @@ class TestETagCacheErrorHandling:
 
         # Mock open to raise PermissionError
         import builtins
+
         original_open = builtins.open
 
         def mock_open(*args, **kwargs):
@@ -618,10 +619,13 @@ class TestGitSourceSyncServiceErrorCoverage:
     def test_save_to_cache_permission_error(self, service, monkeypatch):
         """Test handling of permission errors when saving to cache."""
         import builtins
+
         original_open = builtins.open
 
         def mock_open(*args, **kwargs):
-            if "test.md" in str(args[0]) and "w" in str(kwargs.get("mode", args[1] if len(args) > 1 else "")):
+            if "test.md" in str(args[0]) and "w" in str(
+                kwargs.get("mode", args[1] if len(args) > 1 else "")
+            ):
                 raise PermissionError("Permission denied")
             return original_open(*args, **kwargs)
 
@@ -633,11 +637,14 @@ class TestGitSourceSyncServiceErrorCoverage:
     def test_save_to_cache_io_error(self, service, monkeypatch):
         """Test handling of IO errors when saving to cache."""
         import builtins
+
         original_open = builtins.open
 
         def mock_open(*args, **kwargs):
-            if "test.md" in str(args[0]) and "w" in str(kwargs.get("mode", args[1] if len(args) > 1 else "")):
-                raise IOError("Disk full")
+            if "test.md" in str(args[0]) and "w" in str(
+                kwargs.get("mode", args[1] if len(args) > 1 else "")
+            ):
+                raise OSError("Disk full")
             return original_open(*args, **kwargs)
 
         monkeypatch.setattr("builtins.open", mock_open)
@@ -653,6 +660,7 @@ class TestGitSourceSyncServiceErrorCoverage:
 
         # Mock Path.read_text to raise PermissionError
         from pathlib import Path
+
         original_read_text = Path.read_text
 
         def mock_read_text(self, *args, **kwargs):
@@ -673,11 +681,12 @@ class TestGitSourceSyncServiceErrorCoverage:
 
         # Mock Path.read_text to raise IOError
         from pathlib import Path
+
         original_read_text = Path.read_text
 
         def mock_read_text(self, *args, **kwargs):
             if "test.md" in str(self):
-                raise IOError("Read error")
+                raise OSError("Read error")
             return original_read_text(self, *args, **kwargs)
 
         with mock.patch.object(Path, "read_text", mock_read_text):
@@ -693,6 +702,7 @@ class TestGitSourceSyncServiceErrorCoverage:
 
         # Mock Path.read_text to raise generic Exception
         from pathlib import Path
+
         original_read_text = Path.read_text
 
         def mock_read_text(self, *args, **kwargs):
@@ -708,6 +718,7 @@ class TestGitSourceSyncServiceErrorCoverage:
     def test_save_to_cache_generic_exception(self, service, tmp_path):
         """Test handling of generic exceptions when saving to cache."""
         from pathlib import Path
+
         original_write_text = Path.write_text
 
         def mock_write_text(self, *args, **kwargs):
