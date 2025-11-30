@@ -246,14 +246,29 @@ class DoctorReporter:
     def _report_markdown(self, summary: DiagnosticSummary):
         """Generate comprehensive Markdown-formatted report."""
         import datetime
+        import platform
+        import sys
 
-        # Header with timestamp
+        # Header with timestamp and system info
         print("# Claude MPM Doctor Report")
+        print()
+        now = datetime.datetime.now(datetime.timezone.utc)
+        print(f"**Generated:** {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(
-            f"\n**Generated:** {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}"
+            f"**System:** {platform.system()} {platform.release()} ({platform.machine()})"
         )
-        print(f"**Version:** {self._get_version()}\n")
-        print("---\n")
+        print(f"**Python:** {sys.version.split()[0]}")
+        print(f"**claude-mpm:** {self._get_version()}")
+
+        # Get current working directory for context
+        from pathlib import Path
+
+        cwd = Path.cwd()
+        print(f"**Working Directory:** {cwd}")
+
+        print()
+        print("---")
+        print()
 
         # System Overview
         print("## System Overview\n")
@@ -333,10 +348,23 @@ class DoctorReporter:
             print("```")
             print()
 
-        # Footer
+        # Footer with generation metadata
         print("---")
+        print()
+        print("## Report Metadata")
+        print()
+        print("- **Tool:** `claude-mpm doctor`")
+        print(f"- **Version:** {self._get_version()}")
+        print(f"- **Generated:** {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        if self.verbose:
+            print("- **Verbose Mode:** Enabled")
+        print()
+        print("---")
+        print()
+        print("🤖 *Generated with [Claude Code](https://claude.com/claude-code)*")
+        print()
         print(
-            "\n*For more information, run `claude-mpm doctor --verbose` or visit the [documentation](https://github.com/bobmatnyc/claude-mpm).*"
+            "*For more information, run `claude-mpm doctor --verbose` or visit the [documentation](https://github.com/bobmatnyc/claude-mpm).*"
         )
 
     def _color(self, text: str, color: str) -> str:

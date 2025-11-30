@@ -14,6 +14,7 @@ from claude_mpm.core.logging_utils import get_logger
 
 from .checks import (
     AgentCheck,
+    AgentSourcesCheck,
     BaseDiagnosticCheck,
     ClaudeCodeCheck,
     CommonIssuesCheck,
@@ -24,6 +25,7 @@ from .checks import (
     MCPCheck,
     MCPServicesCheck,
     MonitorCheck,
+    SkillSourcesCheck,
     StartupLogCheck,
 )
 from .models import DiagnosticResult, DiagnosticSummary
@@ -56,6 +58,8 @@ class DiagnosticRunner:
             InstructionsCheck,  # Check instruction files early
             ClaudeCodeCheck,
             AgentCheck,
+            AgentSourcesCheck,  # Check agent sources configuration
+            SkillSourcesCheck,  # Check skill sources configuration
             MCPCheck,
             MCPServicesCheck,  # Check external MCP services
             MonitorCheck,
@@ -124,6 +128,8 @@ class DiagnosticRunner:
         level2 = [
             ClaudeCodeCheck,
             AgentCheck,
+            AgentSourcesCheck,
+            SkillSourcesCheck,
             MCPCheck,
             MCPServicesCheck,
             MonitorCheck,
@@ -214,6 +220,9 @@ class DiagnosticRunner:
             "claude_code": ClaudeCodeCheck,
             "agents": AgentCheck,
             "agent": AgentCheck,
+            "agent-sources": AgentSourcesCheck,
+            "agent_sources": AgentSourcesCheck,
+            "sources": AgentSourcesCheck,
             "mcp": MCPCheck,
             "mcp_services": MCPServicesCheck,
             "mcp-services": MCPServicesCheck,
