@@ -4,6 +4,7 @@ How-to guides and frequently asked questions for Claude MPM.
 
 ## Available Guides
 
+- **[Single-Tier Agent System](single-tier-agent-system.md)** - Complete guide to new Git-based single-tier agent system (NEW in v5.0)
 - **[Agent Synchronization](agent-synchronization.md)** - Complete guide to git-based agent synchronization system
 - **[FAQ](FAQ.md)** - Frequently asked questions and common issues
 - **[Ticketing Workflows](ticketing-workflows.md)** - Complete guide to `/mpm-ticket` slash command and ticketing workflows

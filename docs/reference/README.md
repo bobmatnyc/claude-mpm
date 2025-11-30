@@ -4,7 +4,8 @@ Complete reference documentation for Claude MPM systems and architecture.
 
 ## Available References
 
-- **[Configuration](configuration.md)** - Complete configuration reference for Claude MPM (NEW)
+- **[Agent Sources API](agent-sources-api.md)** - Technical API reference for single-tier agent system (NEW in v5.0)
+- **[Configuration](configuration.md)** - Complete configuration reference for Claude MPM
 - **[Deployment Guide](DEPLOY.md)** - Complete deployment procedures and release management
 - **[Project Structure](STRUCTURE.md)** - Codebase organization and file placement
 - **[Services Reference](SERVICES.md)** - Service-oriented architecture details

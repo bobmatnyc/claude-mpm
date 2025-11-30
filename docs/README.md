@@ -31,12 +31,15 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 ### For Users
 - **[Getting Started](user/getting-started.md)** - Installation, setup, and first steps
 - **[User Guide](user/user-guide.md)** - Features, workflows, and best practices
+- **[Single-Tier Agent System](guides/single-tier-agent-system.md)** - Git-based agent management (NEW in v5.0)
 - **[Resume Log System](user/resume-logs.md)** - Proactive context management guide
 - **[Configuration Reference](configuration.md)** - Complete configuration options
 - **[Troubleshooting](user/troubleshooting.md)** - Common issues and solutions
 
 ### For Developers
 - **[Architecture](developer/ARCHITECTURE.md)** - System design and core concepts
+- **[Single-Tier Design](architecture/single-tier-design.md)** - Agent system architecture (NEW in v5.0)
+- **[Agent Sources API](reference/agent-sources-api.md)** - Technical API reference (NEW in v5.0)
 - **[Resume Log Architecture](developer/resume-log-architecture.md)** - Technical implementation details
 - **[Extending](developer/extending.md)** - Build custom agents, hooks, and services
 - **[API Reference](developer/api-reference.md)** - Complete API documentation
