@@ -1,10 +1,12 @@
 """Unit tests for GitSourceManager."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from src.claude_mpm.services.agents.git_source_manager import GitSourceManager
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
 from src.claude_mpm.models.git_repository import GitRepository
+from src.claude_mpm.services.agents.git_source_manager import GitSourceManager
 
 
 class TestGitSourceManagerInitialization:
@@ -22,15 +24,23 @@ class TestGitSourceManagerInitialization:
         manager = GitSourceManager()
 
         # Should use ~/.claude-mpm/cache/remote-agents/
-        assert manager.cache_root.parts[-3:] == (".claude-mpm", "cache", "remote-agents")
+        assert manager.cache_root.parts[-3:] == (
+            ".claude-mpm",
+            "cache",
+            "remote-agents",
+        )
 
 
 class TestGitSourceManagerSyncRepository:
     """Test syncing single repository."""
 
-    @patch("src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService")
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
     @patch("src.claude_mpm.services.agents.git_source_manager.GitSourceSyncService")
-    def test_sync_repository_success(self, mock_sync_service_class, mock_discovery_class):
+    def test_sync_repository_success(
+        self, mock_sync_service_class, mock_discovery_class
+    ):
         """Test successful repository sync."""
         # Setup sync service mock
         mock_sync_service = Mock()
@@ -39,7 +49,7 @@ class TestGitSourceManagerSyncRepository:
             "cached": ["agent3.md"],
             "failed": [],
             "total_downloaded": 2,
-            "cache_hits": 1
+            "cache_hits": 1,
         }
         mock_sync_service_class.return_value = mock_sync_service
 
@@ -49,16 +59,13 @@ class TestGitSourceManagerSyncRepository:
             {
                 "agent_id": "engineer",
                 "metadata": {"name": "Engineer", "version": "2.5.0"},
-                "source_file": "/cache/agents/engineer.md"
+                "source_file": "/cache/agents/engineer.md",
             }
         ]
         mock_discovery_class.return_value = mock_discovery
 
         # Create repository
-        repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
-        )
+        repo = GitRepository(url="https://github.com/owner/repo", subdirectory="agents")
 
         # Sync
         manager = GitSourceManager()
@@ -79,7 +86,7 @@ class TestGitSourceManagerSyncRepository:
             "cached": [],
             "failed": [],
             "total_downloaded": 1,
-            "cache_hits": 0
+            "cache_hits": 0,
         }
         mock_sync_service_class.return_value = mock_sync_service
 
@@ -117,7 +124,7 @@ class TestGitSourceManagerSyncRepository:
             "cached": [],
             "failed": [],
             "total_downloaded": 1,
-            "cache_hits": 0
+            "cache_hits": 0,
         }
         mock_sync_service_class.return_value = mock_sync_service
 
@@ -144,7 +151,7 @@ class TestGitSourceManagerSyncAllRepositories:
             "cached": [],
             "failed": [],
             "total_downloaded": 1,
-            "cache_hits": 0
+            "cache_hits": 0,
         }
         mock_sync_service_class.return_value = mock_sync_service
 
@@ -174,9 +181,9 @@ class TestGitSourceManagerSyncAllRepositories:
                 "cached": [],
                 "failed": [],
                 "total_downloaded": 1,
-                "cache_hits": 0
+                "cache_hits": 0,
             },
-            Exception("Network error")
+            Exception("Network error"),
         ]
         mock_sync_service_class.return_value = mock_sync_service
 
@@ -222,7 +229,9 @@ class TestGitSourceManagerListCachedAgents:
 
         assert len(agents) == 0
 
-    @patch("src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService")
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
     def test_list_cached_agents_from_repository(self, mock_discovery_class):
         """Test listing agents from cached repository."""
         mock_discovery = Mock()
@@ -230,13 +239,14 @@ class TestGitSourceManagerListCachedAgents:
             {
                 "name": "engineer",
                 "version": "2.5.0",
-                "path": "/cache/agents/engineer.md"
+                "path": "/cache/agents/engineer.md",
             }
         ]
         mock_discovery_class.return_value = mock_discovery
 
         # Create temporary cache structure
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
             repo_cache = cache_root / "owner" / "repo" / "agents"
@@ -250,7 +260,9 @@ class TestGitSourceManagerListCachedAgents:
 
             assert len(agents) > 0
 
-    @patch("src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService")
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
     def test_list_cached_agents_filter_by_repository(self, mock_discovery_class):
         """Test filtering agents by repository identifier."""
         mock_discovery = Mock()
@@ -258,12 +270,13 @@ class TestGitSourceManagerListCachedAgents:
             {
                 "name": "engineer",
                 "version": "2.5.0",
-                "path": "/cache/agents/engineer.md"
+                "path": "/cache/agents/engineer.md",
             }
         ]
         mock_discovery_class.return_value = mock_discovery
 
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
 
@@ -279,7 +292,9 @@ class TestGitSourceManagerListCachedAgents:
             manager = GitSourceManager(cache_root)
 
             # Filter by repo1
-            agents_repo1 = manager.list_cached_agents(repo_identifier="owner1/repo1/agents")
+            agents_repo1 = manager.list_cached_agents(
+                repo_identifier="owner1/repo1/agents"
+            )
 
             # Should only include agents from repo1
             # (Implementation detail depends on discovery service)
@@ -291,6 +306,7 @@ class TestGitSourceManagerGetAgentPath:
     def test_get_agent_path_simple(self):
         """Test getting agent path without repository filter."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
             repo_cache = cache_root / "owner" / "repo" / "agents"
@@ -318,6 +334,7 @@ class TestGitSourceManagerGetAgentPath:
     def test_get_agent_path_with_repo_filter(self):
         """Test getting agent path with repository filter."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
 
@@ -328,15 +345,19 @@ class TestGitSourceManagerGetAgentPath:
             repo2_cache.mkdir(parents=True, exist_ok=True)
 
             # Create valid agent markdown files
-            (repo1_cache / "engineer.md").write_text("# Engineer Agent\n\nEngineering specialist v1")
-            (repo2_cache / "engineer.md").write_text("# Engineer Agent\n\nEngineering specialist v2")
+            (repo1_cache / "engineer.md").write_text(
+                "# Engineer Agent\n\nEngineering specialist v1"
+            )
+            (repo2_cache / "engineer.md").write_text(
+                "# Engineer Agent\n\nEngineering specialist v2"
+            )
 
             manager = GitSourceManager(cache_root)
 
             # Get from specific repo - use agent-id format
             path_repo1 = manager.get_agent_path(
                 "engineer-agent",  # agent_id format: lowercase with hyphens
-                repo_identifier="owner1/repo1/agents"
+                repo_identifier="owner1/repo1/agents",
             )
 
             # If not found with agent_id, the test is validating the repo filter logic
@@ -348,12 +369,13 @@ class TestGitSourceManagerGetAgentPath:
 class TestGitSourceManagerPriorityResolution:
     """Test priority-based agent resolution."""
 
-    @patch("src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService")
+    @patch(
+        "src.claude_mpm.services.agents.git_source_manager.RemoteAgentDiscoveryService"
+    )
     def test_priority_resolution_lower_wins(self, mock_discovery_class):
         """Test lower priority number has higher precedence."""
         # This test would require full integration
         # For now, document the expected behavior
-        pass
 
 
 class TestGitSourceManagerErrorHandling:
@@ -363,7 +385,9 @@ class TestGitSourceManagerErrorHandling:
     def test_sync_handles_network_errors(self, mock_sync_service_class):
         """Test sync handles network errors gracefully."""
         mock_sync_service = Mock()
-        mock_sync_service.sync_agents.side_effect = ConnectionError("Network unavailable")
+        mock_sync_service.sync_agents.side_effect = ConnectionError(
+            "Network unavailable"
+        )
         mock_sync_service_class.return_value = mock_sync_service
 
         repo = GitRepository(url="https://github.com/owner/repo")
@@ -377,6 +401,7 @@ class TestGitSourceManagerErrorHandling:
     def test_list_agents_handles_corrupted_cache(self):
         """Test listing agents handles corrupted cache files."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_root = Path(tmpdir)
             repo_cache = cache_root / "owner" / "repo" / "agents"

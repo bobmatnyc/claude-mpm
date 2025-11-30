@@ -51,7 +51,9 @@ class AgentSourceConfiguration:
 
         # If file doesn't exist, return default configuration
         if not config_path.exists():
-            logger.info(f"Configuration file not found at {config_path}, using defaults")
+            logger.info(
+                f"Configuration file not found at {config_path}, using defaults"
+            )
             return cls()
 
         try:
@@ -59,7 +61,9 @@ class AgentSourceConfiguration:
                 data = yaml.safe_load(f)
 
             if not data:
-                logger.warning(f"Empty configuration file at {config_path}, using defaults")
+                logger.warning(
+                    f"Empty configuration file at {config_path}, using defaults"
+                )
                 return cls()
 
             # Parse configuration
@@ -72,13 +76,12 @@ class AgentSourceConfiguration:
                     url=repo_data["url"],
                     subdirectory=repo_data.get("subdirectory"),
                     enabled=repo_data.get("enabled", True),
-                    priority=repo_data.get("priority", 100)
+                    priority=repo_data.get("priority", 100),
                 )
                 repositories.append(repo)
 
             return cls(
-                disable_system_repo=disable_system_repo,
-                repositories=repositories
+                disable_system_repo=disable_system_repo, repositories=repositories
             )
 
         except Exception as e:
@@ -114,7 +117,7 @@ class AgentSourceConfiguration:
                     "priority": repo.priority,
                 }
                 for repo in self.repositories
-            ]
+            ],
         }
 
         try:
@@ -146,7 +149,7 @@ class AgentSourceConfiguration:
             url="https://github.com/bobmatnyc/claude-mpm-agents",
             subdirectory="agents",
             enabled=True,
-            priority=100
+            priority=100,
         )
 
     def get_enabled_repositories(self) -> list[GitRepository]:

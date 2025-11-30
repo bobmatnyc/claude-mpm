@@ -1,9 +1,11 @@
 """Unit tests for AgentSourceConfiguration."""
 
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
 import yaml
+
 from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
 from src.claude_mpm.models.git_repository import GitRepository
 
@@ -78,8 +80,7 @@ class TestAgentSourceConfigurationSystemRepo:
         repo3 = GitRepository(url="https://github.com/owner/repo3", priority=100)
 
         config = AgentSourceConfiguration(
-            disable_system_repo=True,
-            repositories=[repo1, repo2, repo3]
+            disable_system_repo=True, repositories=[repo1, repo2, repo3]
         )
         enabled = config.get_enabled_repositories()
 
@@ -116,10 +117,7 @@ class TestAgentSourceConfigurationRepositoryManagement:
 
     def test_remove_repository_by_identifier(self):
         """Test removing a repository by identifier."""
-        repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
-        )
+        repo = GitRepository(url="https://github.com/owner/repo", subdirectory="agents")
         config = AgentSourceConfiguration(repositories=[repo])
 
         removed = config.remove_repository("owner/repo/agents")
@@ -158,8 +156,7 @@ class TestAgentSourceConfigurationDisabledRepos:
         repo3 = GitRepository(url="https://github.com/owner/repo3", enabled=True)
 
         config = AgentSourceConfiguration(
-            disable_system_repo=True,
-            repositories=[repo1, repo2, repo3]
+            disable_system_repo=True, repositories=[repo1, repo2, repo3]
         )
         enabled = config.get_enabled_repositories()
 
@@ -176,13 +173,10 @@ class TestAgentSourceConfigurationYAMLPersistence:
     def test_save_to_yaml(self):
         """Test saving configuration to YAML file."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents",
-            priority=50
+            url="https://github.com/owner/repo", subdirectory="agents", priority=50
         )
         config = AgentSourceConfiguration(
-            disable_system_repo=False,
-            repositories=[repo]
+            disable_system_repo=False, repositories=[repo]
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -249,18 +243,17 @@ repositories:
             url="https://github.com/owner/repo1",
             subdirectory="agents",
             priority=50,
-            enabled=True
+            enabled=True,
         )
         repo2 = GitRepository(
             url="https://github.com/owner/repo2",
             subdirectory="tools",
             priority=100,
-            enabled=False
+            enabled=False,
         )
 
         original = AgentSourceConfiguration(
-            disable_system_repo=True,
-            repositories=[repo1, repo2]
+            disable_system_repo=True, repositories=[repo1, repo2]
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -299,12 +292,10 @@ class TestAgentSourceConfigurationValidation:
     def test_validate_duplicate_identifiers(self):
         """Test validation detects duplicate repository identifiers."""
         repo1 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
+            url="https://github.com/owner/repo", subdirectory="agents"
         )
         repo2 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
+            url="https://github.com/owner/repo", subdirectory="agents"
         )
 
         config = AgentSourceConfiguration(repositories=[repo1, repo2])
@@ -318,9 +309,7 @@ class TestAgentSourceConfigurationValidation:
     def test_validate_success(self):
         """Test validation passes for valid configuration."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents",
-            priority=50
+            url="https://github.com/owner/repo", subdirectory="agents", priority=50
         )
 
         config = AgentSourceConfiguration(repositories=[repo])

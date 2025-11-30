@@ -116,7 +116,9 @@ class GitRepository:
 
             # Must be HTTP or HTTPS
             if parsed.scheme not in ("http", "https"):
-                errors.append(f"URL must use http:// or https:// protocol, got: {parsed.scheme}")
+                errors.append(
+                    f"URL must use http:// or https:// protocol, got: {parsed.scheme}"
+                )
 
             # Must be GitHub (for now)
             if not parsed.netloc.endswith("github.com"):

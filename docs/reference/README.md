@@ -4,9 +4,11 @@ Complete reference documentation for Claude MPM systems and architecture.
 
 ## Available References
 
+- **[Doctor Command CLI Reference](cli-doctor.md)** - Complete CLI reference for doctor command (NEW)
 - **[Agent Sources API](agent-sources-api.md)** - Technical API reference for single-tier agent system (NEW in v5.0)
 - **[Configuration](configuration.md)** - Complete configuration reference for Claude MPM
 - **[Deployment Guide](DEPLOY.md)** - Complete deployment procedures and release management
+- **[Slash Commands Reference](slash-commands.md)** - Complete slash commands reference
 - **[Project Structure](STRUCTURE.md)** - Codebase organization and file placement
 - **[Services Reference](SERVICES.md)** - Service-oriented architecture details
 - **[Memory System](MEMORY.md)** - Memory and context management
@@ -18,19 +20,25 @@ Complete reference documentation for Claude MPM systems and architecture.
 
 ## Quick Reference
 
+**System Diagnostics:**
+- [Doctor Command CLI Reference](cli-doctor.md) - Complete CLI reference (NEW)
+- [Doctor Command Guide](../guides/doctor-command.md) - User guide and troubleshooting (NEW)
+- [Slash Commands Reference](slash-commands.md) - Complete slash commands reference
+
 **System Architecture:**
 - [Services Reference](SERVICES.md) - Five service domains
 - [Project Structure](STRUCTURE.md) - Code organization
 - [Architecture Overview](../developer/ARCHITECTURE.md) - System design
 
 **Operations:**
-- [Configuration](configuration.md) - Configuration options and settings (NEW)
+- [Configuration](configuration.md) - Configuration options and settings
 - [Deployment Guide](DEPLOY.md) - Release procedures
 - [Memory System](MEMORY.md) - Context management
 - [Testing Guide](QA.md) - Quality standards
 - [Skills Quick Reference](skills-quick-reference.md) - Skills deployment commands
 
 **Skills & Agents:**
+- [Agent Sources API](agent-sources-api.md) - Single-tier agent system API
 - [Skills Quick Reference](skills-quick-reference.md) - Command reference for skill deployment
 - [Research Agent](../agents/research-agent.md) - Skill detection and recommendations
 - [Skills Deployment Guide](../guides/skills-deployment-guide.md) - Comprehensive deployment guide

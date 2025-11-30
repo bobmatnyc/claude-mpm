@@ -6,7 +6,6 @@ sources are accessible, and skills are discoverable from configured repositories
 """
 
 import logging
-import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -287,7 +286,9 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             details={"total": total_sources, "enabled": enabled_sources},
         )
 
-    def _check_system_repo_accessible(self, sources: List) -> Optional[DiagnosticResult]:
+    def _check_system_repo_accessible(
+        self, sources: List
+    ) -> Optional[DiagnosticResult]:
         """Check if system repository is accessible.
 
         Args:

@@ -1,0 +1,527 @@
+"""Tests for Git skill source manager.
+
+Test Coverage:
+- Multi-source sync orchestration
+- Priority resolution algorithm
+- Source-specific skill retrieval
+- Caching and path management
+- Error handling for sync failures
+"""
+
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from src.claude_mpm.config.skill_sources import (
+    SkillSource,
+    SkillSourceConfiguration,
+)
+from src.claude_mpm.services.skills.git_skill_source_manager import (
+    GitSkillSourceManager,
+)
+
+
+class TestGitSkillSourceManager:
+    """Tests for GitSkillSourceManager class."""
+
+    @pytest.fixture
+    def temp_cache_dir(self):
+        """Create a temporary cache directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.fixture
+    def temp_config_file(self):
+        """Create a temporary config file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            config_path = Path(f.name)
+        yield config_path
+        if config_path.exists():
+            config_path.unlink()
+
+    @pytest.fixture
+    def mock_config(self, temp_config_file):
+        """Create a mock configuration."""
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+
+        # Add test sources
+        sources = [
+            SkillSource(
+                id="system",
+                type="git",
+                url="https://github.com/bobmatnyc/claude-mpm-skills",
+                priority=0,
+                enabled=True,
+            ),
+            SkillSource(
+                id="custom",
+                type="git",
+                url="https://github.com/owner/custom-skills",
+                priority=100,
+                enabled=True,
+            ),
+        ]
+        config.save(sources)
+
+        return config
+
+    @pytest.fixture
+    def manager(self, mock_config, temp_cache_dir):
+        """Create a GitSkillSourceManager instance for testing."""
+        return GitSkillSourceManager(config=mock_config, cache_dir=temp_cache_dir)
+
+    def test_initialization(self, mock_config, temp_cache_dir):
+        """Test manager initialization."""
+        manager = GitSkillSourceManager(config=mock_config, cache_dir=temp_cache_dir)
+
+        assert manager.config == mock_config
+        assert manager.cache_dir == temp_cache_dir
+        assert temp_cache_dir.exists()
+
+    def test_initialization_default_cache_dir(self, mock_config):
+        """Test initialization with default cache directory."""
+        manager = GitSkillSourceManager(config=mock_config)
+
+        expected_cache = Path.home() / ".claude-mpm" / "cache" / "skills"
+        assert manager.cache_dir == expected_cache
+
+    def test_initialization_with_injected_sync_service(
+        self, mock_config, temp_cache_dir
+    ):
+        """Test initialization with injected sync service."""
+        mock_sync_service = Mock()
+
+        manager = GitSkillSourceManager(
+            config=mock_config,
+            cache_dir=temp_cache_dir,
+            sync_service=mock_sync_service,
+        )
+
+        assert manager.sync_service == mock_sync_service
+
+    def test_get_source_cache_path(self, manager):
+        """Test cache path generation for sources."""
+        source = SkillSource(
+            id="test-source",
+            type="git",
+            url="https://github.com/owner/repo",
+        )
+
+        cache_path = manager._get_source_cache_path(source)
+
+        assert cache_path == manager.cache_dir / "test-source"
+
+    def test_build_raw_github_url(self, manager):
+        """Test building raw GitHub URL from source."""
+        source = SkillSource(
+            id="test",
+            type="git",
+            url="https://github.com/owner/repo",
+            branch="main",
+        )
+
+        url = manager._build_raw_github_url(source)
+
+        assert url == "https://raw.githubusercontent.com/owner/repo/main"
+
+    def test_build_raw_github_url_with_git_suffix(self, manager):
+        """Test URL building handles .git suffix."""
+        source = SkillSource(
+            id="test",
+            type="git",
+            url="https://github.com/owner/repo.git",
+            branch="develop",
+        )
+
+        url = manager._build_raw_github_url(source)
+
+        assert url == "https://raw.githubusercontent.com/owner/repo/develop"
+
+    def test_build_raw_github_url_invalid_raises_error(self, manager):
+        """Test URL building raises error for invalid URL."""
+        # Create source bypassing validation
+        source = SkillSource.__new__(SkillSource)
+        source.id = "test"
+        source.type = "git"
+        source.url = "https://example.com/invalid"
+        source.branch = "main"
+        source.priority = 100
+        source.enabled = True
+
+        with pytest.raises(ValueError, match="Invalid GitHub URL"):
+            manager._build_raw_github_url(source)
+
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
+    )
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
+    )
+    def test_sync_source(
+        self, mock_discovery_class, mock_sync_class, manager, temp_cache_dir
+    ):
+        """Test syncing a single source."""
+        # Setup mocks
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.sync_agents.return_value = {
+            "total_downloaded": 5,
+            "cache_hits": 2,
+        }
+        mock_sync_class.return_value = mock_sync_instance
+
+        mock_discovery_instance = MagicMock()
+        mock_discovery_instance.discover_skills.return_value = [
+            {"name": "skill1"},
+            {"name": "skill2"},
+        ]
+        mock_discovery_class.return_value = mock_discovery_instance
+
+        # Sync source
+        result = manager.sync_source("system", force=False)
+
+        # Verify result
+        assert result["synced"] is True
+        assert result["files_updated"] == 5
+        assert result["files_cached"] == 2
+        assert result["skills_discovered"] == 2
+        assert "timestamp" in result
+
+        # Verify sync service was called
+        mock_sync_instance.sync_agents.assert_called_once_with(force_refresh=False)
+
+    def test_sync_source_nonexistent_raises_error(self, manager):
+        """Test syncing non-existent source raises error."""
+        with pytest.raises(ValueError, match="Source not found"):
+            manager.sync_source("nonexistent")
+
+    def test_sync_source_disabled_returns_error(self, manager, temp_config_file):
+        """Test syncing disabled source returns error."""
+        # Add disabled source
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="disabled",
+            type="git",
+            url="https://github.com/owner/repo",
+            enabled=False,
+        )
+        config.add_source(source)
+
+        manager.config = config
+
+        result = manager.sync_source("disabled")
+
+        assert result["synced"] is False
+        assert "disabled" in result["error"].lower()
+
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
+    )
+    def test_sync_source_sync_failure(self, mock_sync_class, manager):
+        """Test sync_source handles sync failures gracefully."""
+        # Setup mock to raise exception
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.sync_agents.side_effect = Exception("Sync failed")
+        mock_sync_class.return_value = mock_sync_instance
+
+        result = manager.sync_source("system")
+
+        assert result["synced"] is False
+        assert "Sync failed" in result["error"]
+        assert "timestamp" in result
+
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
+    )
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
+    )
+    def test_sync_all_sources(self, mock_discovery_class, mock_sync_class, manager):
+        """Test syncing all enabled sources."""
+        # Setup mocks
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.sync_agents.return_value = {
+            "total_downloaded": 3,
+            "cache_hits": 1,
+        }
+        mock_sync_class.return_value = mock_sync_instance
+
+        mock_discovery_instance = MagicMock()
+        mock_discovery_instance.discover_skills.return_value = [{"name": "skill"}]
+        mock_discovery_class.return_value = mock_discovery_instance
+
+        # Sync all sources
+        results = manager.sync_all_sources()
+
+        # Verify results
+        assert results["synced_count"] == 2  # system + custom
+        assert results["failed_count"] == 0
+        assert "timestamp" in results
+        assert "system" in results["sources"]
+        assert "custom" in results["sources"]
+
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
+    )
+    def test_sync_all_sources_partial_failure(self, mock_sync_class, manager):
+        """Test sync_all_sources handles partial failures."""
+        # Setup mock to fail for one source
+        call_count = [0]
+
+        def side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return {"total_downloaded": 1, "cache_hits": 0}
+            raise Exception("Sync failed")
+
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.sync_agents.side_effect = side_effect
+        mock_sync_class.return_value = mock_sync_instance
+
+        # Patch discovery service to return empty list
+        with patch(
+            "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
+        ) as mock_discovery:
+            mock_discovery.return_value.discover_skills.return_value = []
+
+            results = manager.sync_all_sources()
+
+        # Verify partial success
+        assert results["synced_count"] == 1
+        assert results["failed_count"] == 1
+
+    def test_get_all_skills_no_cache(self, manager):
+        """Test get_all_skills returns empty list when no cache exists."""
+        skills = manager.get_all_skills()
+        assert skills == []
+
+    def test_get_all_skills_with_skills(self, manager, temp_cache_dir):
+        """Test get_all_skills returns skills from cache."""
+        # Create skill files in cache
+        for source_id in ["system", "custom"]:
+            source_dir = temp_cache_dir / source_id
+            source_dir.mkdir(parents=True)
+
+            skill_content = f"""---
+name: Skill from {source_id}
+description: Test skill
+---
+
+Content
+"""
+            (source_dir / "skill.md").write_text(skill_content, encoding="utf-8")
+
+        skills = manager.get_all_skills()
+
+        # Should find skills from both sources
+        assert len(skills) > 0
+        skill_names = [s["name"] for s in skills]
+        assert any("system" in name for name in skill_names)
+
+    def test_get_all_skills_priority_resolution(self, manager, temp_cache_dir):
+        """Test get_all_skills applies priority resolution."""
+        # Create same skill in both sources with different priorities
+        for source_id, priority in [("system", 0), ("custom", 100)]:
+            source_dir = temp_cache_dir / source_id
+            source_dir.mkdir(parents=True)
+
+            skill_content = f"""---
+name: Duplicate Skill
+description: From {source_id}
+---
+
+Content from {source_id}
+"""
+            (source_dir / "duplicate.md").write_text(skill_content, encoding="utf-8")
+
+        skills = manager.get_all_skills()
+
+        # Should only have one skill (from higher priority source)
+        duplicate_skills = [s for s in skills if s["name"] == "Duplicate Skill"]
+        assert len(duplicate_skills) == 1
+
+        # Should be from system (priority 0)
+        assert duplicate_skills[0]["source_id"] == "system"
+
+    def test_get_skills_by_source(self, manager, temp_cache_dir):
+        """Test get_skills_by_source returns skills from specific source."""
+        # Create skill in system cache
+        system_dir = temp_cache_dir / "system"
+        system_dir.mkdir(parents=True)
+
+        skill_content = """---
+name: System Skill
+description: Test
+---
+
+Content
+"""
+        (system_dir / "skill.md").write_text(skill_content, encoding="utf-8")
+
+        skills = manager.get_skills_by_source("system")
+
+        assert len(skills) == 1
+        assert skills[0]["name"] == "System Skill"
+        assert skills[0]["source_id"] == "system"
+
+    def test_get_skills_by_source_nonexistent(self, manager):
+        """Test get_skills_by_source returns empty list for non-existent source."""
+        skills = manager.get_skills_by_source("nonexistent")
+        assert skills == []
+
+    def test_get_skills_by_source_no_cache(self, manager):
+        """Test get_skills_by_source returns empty list when cache doesn't exist."""
+        skills = manager.get_skills_by_source("system")
+        assert skills == []
+
+    def test_apply_priority_resolution_empty_input(self, manager):
+        """Test priority resolution with empty input."""
+        result = manager._apply_priority_resolution({})
+        assert result == []
+
+    def test_apply_priority_resolution_single_source(self, manager):
+        """Test priority resolution with single source."""
+        skills_by_source = {
+            "system": [
+                {"skill_id": "skill1", "name": "Skill 1", "source_priority": 0},
+                {"skill_id": "skill2", "name": "Skill 2", "source_priority": 0},
+            ]
+        }
+
+        result = manager._apply_priority_resolution(skills_by_source)
+
+        assert len(result) == 2
+
+    def test_apply_priority_resolution_duplicate_skills(self, manager):
+        """Test priority resolution with duplicate skill IDs."""
+        skills_by_source = {
+            "system": [
+                {
+                    "skill_id": "duplicate",
+                    "name": "Duplicate",
+                    "source_priority": 0,
+                    "source_id": "system",
+                }
+            ],
+            "custom": [
+                {
+                    "skill_id": "duplicate",
+                    "name": "Duplicate",
+                    "source_priority": 100,
+                    "source_id": "custom",
+                }
+            ],
+        }
+
+        result = manager._apply_priority_resolution(skills_by_source)
+
+        # Should only have one skill
+        assert len(result) == 1
+
+        # Should be from system (lower priority)
+        assert result[0]["source_id"] == "system"
+
+    def test_apply_priority_resolution_multiple_duplicates(self, manager):
+        """Test priority resolution with multiple skill groups."""
+        skills_by_source = {
+            "high": [
+                {"skill_id": "skill1", "source_priority": 0},
+                {"skill_id": "skill2", "source_priority": 0},
+            ],
+            "medium": [
+                {"skill_id": "skill1", "source_priority": 50},
+                {"skill_id": "skill3", "source_priority": 50},
+            ],
+            "low": [
+                {"skill_id": "skill2", "source_priority": 100},
+                {"skill_id": "skill3", "source_priority": 100},
+            ],
+        }
+
+        result = manager._apply_priority_resolution(skills_by_source)
+
+        # Should have 3 unique skills
+        assert len(result) == 3
+
+        # skill1 should be from high (priority 0)
+        skill1 = next(s for s in result if s["skill_id"] == "skill1")
+        assert skill1["source_priority"] == 0
+
+        # skill2 should be from high (priority 0)
+        skill2 = next(s for s in result if s["skill_id"] == "skill2")
+        assert skill2["source_priority"] == 0
+
+        # skill3 should be from medium (priority 50)
+        skill3 = next(s for s in result if s["skill_id"] == "skill3")
+        assert skill3["source_priority"] == 50
+
+    def test_repr(self, manager, temp_cache_dir):
+        """Test string representation."""
+        repr_str = repr(manager)
+
+        assert "GitSkillSourceManager" in repr_str
+        assert str(temp_cache_dir) in repr_str
+        assert "sources=2" in repr_str
+        assert "enabled=2" in repr_str
+
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
+    )
+    @patch(
+        "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
+    )
+    def test_sync_source_with_force_flag(
+        self, mock_discovery_class, mock_sync_class, manager
+    ):
+        """Test sync_source passes force flag to sync service."""
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.sync_agents.return_value = {
+            "total_downloaded": 1,
+            "cache_hits": 0,
+        }
+        mock_sync_class.return_value = mock_sync_instance
+
+        mock_discovery_instance = MagicMock()
+        mock_discovery_instance.discover_skills.return_value = []
+        mock_discovery_class.return_value = mock_discovery_instance
+
+        manager.sync_source("system", force=True)
+
+        mock_sync_instance.sync_agents.assert_called_once_with(force_refresh=True)
+
+    def test_sync_all_sources_no_enabled_sources(
+        self, temp_cache_dir, temp_config_file
+    ):
+        """Test sync_all_sources with no enabled sources."""
+        # Create config with only disabled sources
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="disabled",
+            type="git",
+            url="https://github.com/owner/repo",
+            enabled=False,
+        )
+        config.save([source])
+
+        manager = GitSkillSourceManager(config=config, cache_dir=temp_cache_dir)
+
+        results = manager.sync_all_sources()
+
+        assert results["synced_count"] == 0
+        assert results["failed_count"] == 0
+        assert len(results["sources"]) == 0
+
+    def test_get_all_skills_discovery_failure(self, manager, temp_cache_dir):
+        """Test get_all_skills handles discovery failures gracefully."""
+        # Create cache directory but with invalid skill file
+        system_dir = temp_cache_dir / "system"
+        system_dir.mkdir(parents=True)
+
+        # Create file that will cause discovery to fail
+        (system_dir / "invalid.md").write_text("invalid content", encoding="utf-8")
+
+        skills = manager.get_all_skills()
+
+        # Should return empty list or skip failed sources
+        assert isinstance(skills, list)

@@ -806,6 +806,23 @@ rm -rf ~/.claude-mpm/agents/
 
 ## Troubleshooting
 
+### Quick Diagnostics
+
+**Always start with the doctor command** for automated health checks:
+
+```bash
+# Run agent sources diagnostics
+claude-mpm doctor --checks agent-sources
+
+# Get detailed information
+claude-mpm doctor --checks agent-sources --verbose
+
+# Generate shareable report
+claude-mpm doctor --output-file
+```
+
+**See**: [Doctor Command Guide](doctor-command.md) for complete diagnostics documentation.
+
 ### Agents Not Appearing
 
 **Symptom**: Deployed agents don't show up in Claude Desktop
@@ -816,7 +833,13 @@ rm -rf ~/.claude-mpm/agents/
 3. Sync failed
 4. Cache corruption
 
-**Solutions**:
+**Quick Diagnostics**:
+```bash
+# Run agent sources health check
+claude-mpm doctor --checks agent-sources --verbose
+```
+
+**Manual Solutions**:
 
 ```bash
 # 1. Check sources configured
@@ -880,7 +903,13 @@ claude-mpm source set-priority company/custom-agents 90
 - GitHub API rate limiting
 - Authentication required for private repos
 
-**Solutions**:
+**Quick Diagnostics**:
+```bash
+# Check source reachability
+claude-mpm doctor --checks agent-sources --verbose
+```
+
+**Manual Solutions**:
 
 ```bash
 # 1. Check repository info
@@ -968,7 +997,13 @@ claude-mpm agents available
 
 **Cause**: Invalid YAML syntax or configuration values
 
-**Solution**: Validate configuration:
+**Quick Diagnostics**:
+```bash
+# Validate configuration
+claude-mpm doctor --checks agent-sources
+```
+
+**Manual Solution**: Validate configuration:
 
 ```bash
 # 1. Check YAML syntax
@@ -1590,6 +1625,8 @@ cat ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/enginee
 
 ## Related Documentation
 
+- **[Doctor Command Guide](doctor-command.md)** - Complete diagnostics guide (NEW)
+- **[Doctor CLI Reference](../reference/cli-doctor.md)** - CLI command reference (NEW)
 - **[Agent Synchronization Guide](agent-synchronization.md)** - Detailed sync mechanism
 - **[Configuration Reference](../reference/configuration.md)** - Complete configuration options
 - **[Agent Sources API](../reference/agent-sources-api.md)** - Technical API reference
@@ -1600,6 +1637,7 @@ cat ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/enginee
 
 **Need Help?**
 
-- Run `claude-mpm doctor` for diagnostics
+- Run `claude-mpm doctor --checks agent-sources` for automated diagnostics
+- Check [Doctor Command Guide](doctor-command.md) for troubleshooting
 - Check [Troubleshooting Guide](../user/troubleshooting.md)
 - Report issues: [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)

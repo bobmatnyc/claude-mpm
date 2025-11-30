@@ -61,9 +61,7 @@ class GitSourceManager:
         logger.info(f"GitSourceManager initialized with cache: {self.cache_root}")
 
     def sync_repository(
-        self,
-        repo: GitRepository,
-        force: bool = False
+        self, repo: GitRepository, force: bool = False
     ) -> Dict[str, Any]:
         """
         Sync a single repository from Git.
@@ -110,13 +108,15 @@ class GitSourceManager:
                 subdirectory = repo.subdirectory.strip("/")
                 source_url = f"https://raw.githubusercontent.com/{owner}/{repo_name}/{branch}/{subdirectory}"
             else:
-                source_url = f"https://raw.githubusercontent.com/{owner}/{repo_name}/{branch}"
+                source_url = (
+                    f"https://raw.githubusercontent.com/{owner}/{repo_name}/{branch}"
+                )
 
             # Initialize sync service
             sync_service = GitSourceSyncService(
                 source_url=source_url,
                 cache_dir=repo.cache_path,
-                source_id=repo.identifier
+                source_id=repo.identifier,
             )
 
             # Sync agents
@@ -134,7 +134,9 @@ class GitSourceManager:
                 "files_removed": 0,  # TODO: Track deletions
                 "files_cached": sync_results.get("cache_hits", 0),
                 "agents_discovered": [
-                    agent.get("metadata", {}).get("name", agent.get("agent_id", "unknown"))
+                    agent.get("metadata", {}).get(
+                        "name", agent.get("agent_id", "unknown")
+                    )
                     for agent in discovered_agents
                 ],
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -157,9 +159,7 @@ class GitSourceManager:
             }
 
     def sync_all_repositories(
-        self,
-        repos: List[GitRepository],
-        force: bool = False
+        self, repos: List[GitRepository], force: bool = False
     ) -> Dict[str, Dict[str, Any]]:
         """Sync multiple repositories.
 
@@ -205,10 +205,7 @@ class GitSourceManager:
 
             except Exception as e:
                 logger.error(f"Exception syncing {repo.identifier}: {e}")
-                results[repo.identifier] = {
-                    "synced": False,
-                    "error": str(e)
-                }
+                results[repo.identifier] = {"synced": False, "error": str(e)}
 
         logger.info(
             f"Sync complete: {sum(1 for r in results.values() if r.get('synced'))} "
@@ -218,8 +215,7 @@ class GitSourceManager:
         return results
 
     def list_cached_agents(
-        self,
-        repo_identifier: Optional[str] = None
+        self, repo_identifier: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """List all cached agents, optionally filtered by repository.
 
@@ -255,10 +251,9 @@ class GitSourceManager:
                 cache_path = self.cache_root / "/".join(parts)
 
                 if cache_path.exists():
-                    agents.extend(self._discover_agents_in_directory(
-                        cache_path,
-                        repo_identifier
-                    ))
+                    agents.extend(
+                        self._discover_agents_in_directory(cache_path, repo_identifier)
+                    )
         else:
             # Scan all cached repositories
             if not self.cache_root.exists():
@@ -281,17 +276,14 @@ class GitSourceManager:
                     for subdir in repo_dir.iterdir():
                         if subdir.is_dir():
                             sub_repo_id = f"{repo_id}/{subdir.name}"
-                            agents.extend(self._discover_agents_in_directory(
-                                subdir,
-                                sub_repo_id
-                            ))
+                            agents.extend(
+                                self._discover_agents_in_directory(subdir, sub_repo_id)
+                            )
 
         return agents
 
     def _discover_agents_in_directory(
-        self,
-        directory: Path,
-        repo_identifier: str
+        self, directory: Path, repo_identifier: str
     ) -> List[Dict[str, Any]]:
         """Discover agents in a specific directory.
 
@@ -317,9 +309,7 @@ class GitSourceManager:
             return []
 
     def get_agent_path(
-        self,
-        agent_name: str,
-        repo_identifier: Optional[str] = None
+        self, agent_name: str, repo_identifier: Optional[str] = None
     ) -> Optional[Path]:
         """Get cached path for a specific agent.
 

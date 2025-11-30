@@ -397,6 +397,20 @@ def create_parser(
         pass
 
     try:
+        from .skill_source_parser import add_skill_source_subparser
+
+        add_skill_source_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
+        from .agent_source_parser import add_agent_source_subparser
+
+        add_agent_source_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .auto_configure_parser import add_auto_configure_subparser
 
         add_auto_configure_subparser(subparsers)

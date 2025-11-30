@@ -126,6 +126,22 @@ def execute_command(command: str, args) -> int:
         result = handle_verify(args)
         return result if result is not None else 0
 
+    # Handle skill-source command with lazy import
+    if command == "skill-source":
+        # Lazy import to avoid loading unless needed
+        from .commands.skill_source import skill_source_command
+
+        result = skill_source_command(args)
+        return result if result is not None else 0
+
+    # Handle agent-source command with lazy import
+    if command == "agent-source":
+        # Lazy import to avoid loading unless needed
+        from .commands.agent_source import agent_source_command
+
+        result = agent_source_command(args)
+        return result if result is not None else 0
+
     # Handle auto-configure command with lazy import
     if command == "auto-configure":
         # Lazy import to avoid loading unless needed
@@ -249,6 +265,8 @@ def execute_command(command: str, args) -> int:
         "verify",
         "auto-configure",
         "local-deploy",
+        "skill-source",
+        "agent-source",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

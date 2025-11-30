@@ -60,6 +60,7 @@ def add_doctor_parser(subparsers):
             "filesystem",
             "claude",
             "agents",
+            "agent-sources",
             "mcp",
             "monitor",
             "common",
@@ -116,6 +117,8 @@ def doctor_command(args):
         Exit code (0 for success, 1 for warnings, 2 for errors)
     """
     # Configure logging
+    from datetime import datetime, timezone
+
     from claude_mpm.core.logging_utils import get_logger
 
     logger = get_logger(__name__)
@@ -123,12 +126,17 @@ def doctor_command(args):
     # Handle output file parameter - support both --output and --output-file
     output_file = args.output or args.output_file
     if output_file is not None:
-        # If output_file is specified without a path, use default
+        # If output_file is specified without a path, use default with timestamp
         if str(output_file) == ".":
-            output_file = Path("mpm-doctor-report.md")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            output_file = Path(f"mpm-doctor-report-{timestamp}.md")
         elif not str(output_file).endswith((".md", ".json", ".txt")):
             # Add .md extension if no extension provided
             output_file = Path(str(output_file) + ".md")
+
+        # Create parent directories if needed
+        output_file = output_file.absolute()
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Determine output format
     if args.json:

@@ -1,8 +1,10 @@
 """Unit tests for GitRepository model."""
 
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import pytest
+
 from src.claude_mpm.models.git_repository import GitRepository
 
 
@@ -29,7 +31,7 @@ class TestGitRepositoryValidation:
             enabled=False,
             priority=50,
             last_synced=now,
-            etag="abc123"
+            etag="abc123",
         )
 
         assert repo.url == "https://github.com/owner/repo"
@@ -61,10 +63,7 @@ class TestGitRepositoryValidation:
 
     def test_validation_negative_priority(self):
         """Test validation rejects negative priority."""
-        repo = GitRepository(
-            url="https://github.com/owner/repo",
-            priority=-1
-        )
+        repo = GitRepository(url="https://github.com/owner/repo", priority=-1)
         errors = repo.validate()
 
         assert len(errors) > 0
@@ -72,10 +71,7 @@ class TestGitRepositoryValidation:
 
     def test_validation_priority_too_high(self):
         """Test validation warns about priority > 1000."""
-        repo = GitRepository(
-            url="https://github.com/owner/repo",
-            priority=1001
-        )
+        repo = GitRepository(url="https://github.com/owner/repo", priority=1001)
         errors = repo.validate()
 
         # Warning, not error
@@ -85,8 +81,7 @@ class TestGitRepositoryValidation:
     def test_validation_subdirectory_absolute_path(self):
         """Test validation rejects absolute subdirectory paths."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="/absolute/path"
+            url="https://github.com/owner/repo", subdirectory="/absolute/path"
         )
         errors = repo.validate()
 
@@ -96,9 +91,7 @@ class TestGitRepositoryValidation:
     def test_validation_success(self):
         """Test validation passes for valid repository."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents",
-            priority=50
+            url="https://github.com/owner/repo", subdirectory="agents", priority=50
         )
         errors = repo.validate()
 
@@ -111,8 +104,7 @@ class TestGitRepositoryIdentifier:
     def test_identifier_with_subdirectory(self):
         """Test identifier includes subdirectory."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents/backend"
+            url="https://github.com/owner/repo", subdirectory="agents/backend"
         )
 
         assert repo.identifier == "owner/repo/agents/backend"
@@ -141,14 +133,17 @@ class TestGitRepositoryCachePath:
 
     def test_cache_path_default_location(self):
         """Test cache path uses default location."""
-        repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
-        )
+        repo = GitRepository(url="https://github.com/owner/repo", subdirectory="agents")
         cache_path = repo.cache_path
 
         # Should be ~/.claude-mpm/cache/remote-agents/owner/repo/agents/
-        assert cache_path.parts[-5:] == ("cache", "remote-agents", "owner", "repo", "agents")
+        assert cache_path.parts[-5:] == (
+            "cache",
+            "remote-agents",
+            "owner",
+            "repo",
+            "agents",
+        )
         assert cache_path.is_absolute()
 
     def test_cache_path_without_subdirectory(self):
@@ -162,12 +157,19 @@ class TestGitRepositoryCachePath:
     def test_cache_path_with_nested_subdirectory(self):
         """Test cache path with nested subdirectory."""
         repo = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="tools/agents/backend"
+            url="https://github.com/owner/repo", subdirectory="tools/agents/backend"
         )
         cache_path = repo.cache_path
 
-        assert cache_path.parts[-7:] == ("cache", "remote-agents", "owner", "repo", "tools", "agents", "backend")
+        assert cache_path.parts[-7:] == (
+            "cache",
+            "remote-agents",
+            "owner",
+            "repo",
+            "tools",
+            "agents",
+            "backend",
+        )
 
     def test_cache_path_is_absolute(self):
         """Test cache path is always absolute."""
@@ -181,12 +183,10 @@ class TestGitRepositoryEquality:
     def test_equality_same_url_and_subdirectory(self):
         """Test repositories with same URL and subdirectory are equal."""
         repo1 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
+            url="https://github.com/owner/repo", subdirectory="agents"
         )
         repo2 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
+            url="https://github.com/owner/repo", subdirectory="agents"
         )
 
         # Identifier should be same
@@ -195,13 +195,9 @@ class TestGitRepositoryEquality:
     def test_inequality_different_subdirectory(self):
         """Test repositories with different subdirectories are not equal."""
         repo1 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="agents"
+            url="https://github.com/owner/repo", subdirectory="agents"
         )
-        repo2 = GitRepository(
-            url="https://github.com/owner/repo",
-            subdirectory="tools"
-        )
+        repo2 = GitRepository(url="https://github.com/owner/repo", subdirectory="tools")
 
         assert repo1.identifier != repo2.identifier
 
@@ -224,15 +220,15 @@ class TestGitRepositoryPriority:
     def test_lower_priority_means_higher_precedence(self):
         """Test that lower priority number means higher precedence in sorting."""
         high_priority_repo = GitRepository(
-            url="https://github.com/owner/repo1",
-            priority=50
+            url="https://github.com/owner/repo1", priority=50
         )
         low_priority_repo = GitRepository(
-            url="https://github.com/owner/repo2",
-            priority=100
+            url="https://github.com/owner/repo2", priority=100
         )
 
-        repos = sorted([low_priority_repo, high_priority_repo], key=lambda r: r.priority)
+        repos = sorted(
+            [low_priority_repo, high_priority_repo], key=lambda r: r.priority
+        )
 
         # Lower number should come first
         assert repos[0].priority == 50
