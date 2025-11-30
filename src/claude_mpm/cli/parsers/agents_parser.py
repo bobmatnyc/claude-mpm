@@ -266,6 +266,23 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         help="Only show summary, not individual agents",
     )
 
+    # Migrate user-level agents to project-level (DEPRECATION support)
+    migrate_parser = agents_subparsers.add_parser(
+        "migrate-to-project",
+        help="Migrate user-level agents to project-level (user-level is DEPRECATED)",
+    )
+    migrate_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be migrated without actually doing it",
+    )
+    migrate_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Overwrite existing project agents if conflicts",
+    )
+
     # Auto-configuration commands (TSK-0054 Phase 5)
     from .auto_configure_parser import (
         add_agents_detect_subparser,

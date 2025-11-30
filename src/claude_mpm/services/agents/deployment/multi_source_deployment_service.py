@@ -21,19 +21,29 @@ from claude_mpm.core.logging_config import get_logger
 
 from .agent_discovery_service import AgentDiscoveryService
 from .agent_version_manager import AgentVersionManager
+from .remote_agent_discovery_service import RemoteAgentDiscoveryService
 
 
 class MultiSourceAgentDeploymentService:
     """Service for deploying agents from multiple sources with version comparison.
 
     This service ensures that the highest version of each agent is deployed,
-    regardless of whether it comes from system templates, project agents, or
-    user agents.
+    regardless of whether it comes from system templates, project agents,
+    user agents, or remote agents.
+
+    4-Tier Agent Discovery:
+    1. System templates (lowest priority) - Built-in agents
+    2. User agents (DEPRECATED) - User-level customizations (~/.claude-mpm/agents/)
+    3. Remote agents - Agents cached from GitHub
+    4. Project agents (highest priority) - Project-specific customizations
 
     WHY: The current system processes agents from a single source at a time,
     which can result in lower version agents being deployed if they exist in
     a higher priority source. This service fixes that by comparing versions
     across all sources.
+
+    DEPRECATION: User-level agents (~/.claude-mpm/agents/) are deprecated and
+    will be removed in v5.0.0. Use project-level agents instead.
     """
 
     def __init__(self):
@@ -46,18 +56,30 @@ class MultiSourceAgentDeploymentService:
         system_templates_dir: Optional[Path] = None,
         project_agents_dir: Optional[Path] = None,
         user_agents_dir: Optional[Path] = None,
+        remote_agents_dir: Optional[Path] = None,
         working_directory: Optional[Path] = None,
     ) -> Dict[str, List[Dict[str, Any]]]:
-        """Discover agents from all available sources.
+        """Discover agents from all 4 tiers (system, user, remote, project).
+
+        Priority hierarchy (highest to lowest):
+        4. Project agents - Highest priority, project-specific customizations
+        3. Remote agents - GitHub-synced agents from cache
+        2. User agents - DEPRECATED, user-level customizations
+        1. System templates - Lowest priority, built-in agents
 
         Args:
             system_templates_dir: Directory containing system agent templates
             project_agents_dir: Directory containing project-specific agents
-            user_agents_dir: Directory containing user custom agents
+            user_agents_dir: Directory containing user custom agents (DEPRECATED)
+            remote_agents_dir: Directory containing cached remote agents
             working_directory: Current working directory for finding project agents
 
         Returns:
             Dictionary mapping agent names to list of agent info from different sources
+
+        Deprecation Warning:
+            User-level agents are deprecated and will show a warning if found.
+            Use 'claude-mpm agents migrate-to-project' to migrate them.
         """
         agents_by_name = {}
 
@@ -80,24 +102,53 @@ class MultiSourceAgentDeploymentService:
             if not user_agents_dir.exists():
                 user_agents_dir = None
 
-        # Discover agents from each source
+        if not remote_agents_dir:
+            # Check for remote agents in cache directory
+            cache_dir = Path.home() / ".claude-mpm" / "cache"
+            remote_agents_dir = cache_dir / "remote-agents"
+            if not remote_agents_dir.exists():
+                remote_agents_dir = None
+
+        # Discover agents from each source in priority order
+        # Note: We process in reverse priority order (system first) and build up the dictionary
+        # The select_highest_version_agents() method will handle the actual prioritization
         sources = [
             ("system", system_templates_dir),
-            ("project", project_agents_dir),
             ("user", user_agents_dir),
+            ("remote", remote_agents_dir),
+            ("project", project_agents_dir),
         ]
+
+        # Track if we found user agents for deprecation warning
+        user_agents_found = False
 
         for source_name, source_dir in sources:
             if source_dir and source_dir.exists():
                 self.logger.debug(
                     f"Discovering agents from {source_name} source: {source_dir}"
                 )
-                discovery_service = AgentDiscoveryService(source_dir)
-                # Pass log_discovery=False to avoid duplicate logging
-                agents = discovery_service.list_available_agents(log_discovery=False)
+
+                # Use appropriate discovery service based on source type
+                if source_name == "remote":
+                    # Remote agents are Markdown, use RemoteAgentDiscoveryService
+                    remote_service = RemoteAgentDiscoveryService(source_dir)
+                    agents = remote_service.discover_remote_agents()
+                else:
+                    # Other sources are JSON, use AgentDiscoveryService
+                    discovery_service = AgentDiscoveryService(source_dir)
+                    # Pass log_discovery=False to avoid duplicate logging
+                    agents = discovery_service.list_available_agents(
+                        log_discovery=False
+                    )
+
+                # Track user agents for deprecation warning
+                if source_name == "user" and agents:
+                    user_agents_found = True
 
                 for agent_info in agents:
-                    agent_name = agent_info.get("name")
+                    agent_name = agent_info.get("name") or agent_info.get(
+                        "metadata", {}
+                    ).get("name")
                     if not agent_name:
                         continue
 
@@ -115,6 +166,26 @@ class MultiSourceAgentDeploymentService:
                 self.logger.info(
                     f"Discovered {len(agents)} {source_name} agent templates from {source_dir.name}"
                 )
+
+        # Show deprecation warning if user agents found
+        if user_agents_found:
+            self.logger.warning(
+                "\n"
+                "⚠️  DEPRECATION WARNING: User-level agents found in ~/.claude-mpm/agents/\n"
+                "   User-level agent deployment is deprecated and will be removed in v5.0.0\n"
+                "\n"
+                "   Why this change?\n"
+                "   - Project isolation: Agents should be project-specific\n"
+                "   - Version control: Project agents can be versioned with your code\n"
+                "   - Team consistency: All team members use the same agents\n"
+                "\n"
+                "   Migration:\n"
+                "   1. Run: claude-mpm agents migrate-to-project\n"
+                "   2. Verify agents work in .claude-mpm/agents/\n"
+                "   3. Remove: rm -rf ~/.claude-mpm/agents/\n"
+                "\n"
+                "   Learn more: https://docs.claude-mpm.dev/agents/migration\n"
+            )
 
         return agents_by_name
 
@@ -226,17 +297,19 @@ class MultiSourceAgentDeploymentService:
         system_templates_dir: Optional[Path] = None,
         project_agents_dir: Optional[Path] = None,
         user_agents_dir: Optional[Path] = None,
+        remote_agents_dir: Optional[Path] = None,
         working_directory: Optional[Path] = None,
         excluded_agents: Optional[List[str]] = None,
         config: Optional[Config] = None,
         cleanup_outdated: bool = True,
     ) -> Tuple[Dict[str, Path], Dict[str, str], Dict[str, Any]]:
-        """Get the highest version agents from all sources for deployment.
+        """Get the highest version agents from all 4 tiers for deployment.
 
         Args:
             system_templates_dir: Directory containing system agent templates
             project_agents_dir: Directory containing project-specific agents
-            user_agents_dir: Directory containing user custom agents
+            user_agents_dir: Directory containing user custom agents (DEPRECATED)
+            remote_agents_dir: Directory containing cached remote agents
             working_directory: Current working directory for finding project agents
             excluded_agents: List of agent names to exclude from deployment
             config: Configuration object for additional filtering
@@ -248,11 +321,12 @@ class MultiSourceAgentDeploymentService:
             - Dictionary mapping agent names to their source
             - Dictionary with cleanup results (removed, preserved, errors)
         """
-        # Discover all available agents
+        # Discover all available agents from 4 tiers
         agents_by_name = self.discover_agents_from_all_sources(
             system_templates_dir=system_templates_dir,
             project_agents_dir=project_agents_dir,
             user_agents_dir=user_agents_dir,
+            remote_agents_dir=remote_agents_dir,
             working_directory=working_directory,
         )
 

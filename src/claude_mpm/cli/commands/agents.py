@@ -156,6 +156,8 @@ class AgentsCommand(AgentCommand):
                 "delete": self._delete_local_agent,
                 "manage": self._manage_local_agents,
                 "configure": self._configure_deployment,
+                # Migration command (DEPRECATION support)
+                "migrate-to-project": self._migrate_to_project,
                 # Auto-configuration commands (TSK-0054 Phase 5)
                 "detect": self._detect_toolchain,
                 "recommend": self._recommend_agents,
@@ -1447,6 +1449,121 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error recommending agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error recommending agents: {e}")
+
+    def _migrate_to_project(self, args) -> CommandResult:
+        """Migrate user-level agents to project-level.
+
+        DEPRECATION: User-level agents (~/.claude-mpm/agents/) are deprecated and
+        will be removed in v5.0.0. This command migrates them to project-level
+        (.claude-mpm/agents/) where they belong.
+
+        Args:
+            args: Command arguments with dry_run and force flags
+
+        Returns:
+            CommandResult with migration status
+        """
+        import shutil
+
+        try:
+            user_agents_dir = Path.home() / ".claude-mpm" / "agents"
+            project_agents_dir = Path.cwd() / ".claude-mpm" / "agents"
+
+            dry_run = getattr(args, "dry_run", False)
+            force = getattr(args, "force", False)
+
+            # Check if user agents directory exists
+            if not user_agents_dir.exists():
+                print("✅ No user-level agents found. Nothing to migrate.")
+                return CommandResult.success_result("No user-level agents to migrate")
+
+            # Find all user agent files
+            user_agent_files = list(user_agents_dir.glob("*.json")) + list(
+                user_agents_dir.glob("*.md")
+            )
+
+            if not user_agent_files:
+                print("✅ No user-level agents found. Nothing to migrate.")
+                return CommandResult.success_result("No user-level agents to migrate")
+
+            # Display what we found
+            print(f"\n📦 Found {len(user_agent_files)} user-level agent(s) to migrate:")
+            for agent_file in user_agent_files:
+                print(f"  - {agent_file.name}")
+
+            if dry_run:
+                print("\n🔍 DRY RUN: Would migrate to:")
+                print(f"  → {project_agents_dir}")
+                print("\nRun without --dry-run to perform the migration.")
+                return CommandResult.success_result(
+                    "Dry run completed",
+                    data={
+                        "user_agents_found": len(user_agent_files),
+                        "target_directory": str(project_agents_dir),
+                    },
+                )
+
+            # Create project agents directory
+            project_agents_dir.mkdir(parents=True, exist_ok=True)
+
+            # Migrate agents
+            migrated = 0
+            skipped = 0
+            errors = []
+
+            for agent_file in user_agent_files:
+                target_file = project_agents_dir / agent_file.name
+
+                # Check for conflicts
+                if target_file.exists() and not force:
+                    print(f"⚠️  Skipping {agent_file.name} (already exists in project)")
+                    print("   Use --force to overwrite existing agents")
+                    skipped += 1
+                    continue
+
+                try:
+                    # Copy agent to project directory
+                    shutil.copy2(agent_file, target_file)
+                    migrated += 1
+                    print(f"✅ Migrated {agent_file.name}")
+                except Exception as e:
+                    error_msg = f"Failed to migrate {agent_file.name}: {e}"
+                    errors.append(error_msg)
+                    print(f"❌ {error_msg}")
+
+            # Summary
+            print("\n📊 Migration Summary:")
+            print(f"  ✅ Migrated: {migrated}/{len(user_agent_files)}")
+            if skipped > 0:
+                print(f"  ⏭️  Skipped: {skipped} (already exist)")
+            if errors:
+                print(f"  ❌ Errors: {len(errors)}")
+
+            if migrated > 0:
+                print(f"\n✅ Successfully migrated {migrated} agent(s) to:")
+                print(f"   {project_agents_dir}")
+                print(
+                    "\n⚠️  IMPORTANT: Verify agents work correctly, then remove user-level agents:"
+                )
+                print(f"   rm -rf {user_agents_dir}")
+                print("\n💡 Why this change?")
+                print("   - Project isolation: Each project has its own agents")
+                print("   - Version control: Agents can be versioned with your code")
+                print("   - Team consistency: Everyone uses the same agents")
+
+            return CommandResult.success_result(
+                f"Migrated {migrated} agents",
+                data={
+                    "migrated": migrated,
+                    "skipped": skipped,
+                    "errors": errors,
+                    "total": len(user_agent_files),
+                },
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error migrating agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error migrating agents: {e}")
 
 
 def manage_agents(args):
