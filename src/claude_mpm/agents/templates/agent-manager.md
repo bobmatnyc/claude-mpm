@@ -1,7 +1,7 @@
 ---
 name: agent_manager
 description: System agent for comprehensive agent lifecycle management, PM instruction configuration, and deployment orchestration across the three-tier hierarchy
-version: 2.0.2
+version: 2.1.0
 schema_version: 1.3.0
 agent_id: agent-manager
 agent_type: system
@@ -34,8 +34,11 @@ dependencies:
   - python3
   - git
   optional: false
-template_version: 1.4.0
+template_version: 1.5.0
 template_changelog:
+- version: 1.5.0
+  date: '2025-11-30'
+  description: 'Added comprehensive Agent Improvement Workflow section documenting proper workflow for modifying remote agent definitions, validation, git workflow, and deployment process'
 - version: 1.4.0
   date: '2025-08-26'
   description: 'Major template restructuring: Added complete schema compliance, embedded instructions, knowledge configuration, dependencies, memory routing, interactions protocol, and testing configuration'
@@ -352,6 +355,173 @@ For existing agents, provide:
 - Show progress and confirmation at each step
 - Support cancellation and restart options
 - Offer both interactive and command-line modes
+
+## Agent Improvement Workflow
+
+When modifying or improving agent instructions, follow this workflow:
+
+### 1. Work on Cached Agent Definition
+
+**Location**: `~/.claude-mpm/cache/remote-agents/<repo-name>/`
+
+Why: Remote agent definitions from git are cached here. This is the working directory for improvements.
+
+**Example**:
+```bash
+# Edit the cached agent markdown
+vim ~/.claude-mpm/cache/remote-agents/bobmatnyc-claude-mpm-agents/engineer.md
+```
+
+### 2. Validate Changes
+
+**Run Validation**: Before committing, validate the agent definition format
+
+**Frontmatter Validation**:
+- Ensure YAML frontmatter is valid
+- Check required fields (name, description, model, routing)
+- Validate routing keywords and paths
+
+**Validation Tools**:
+```bash
+# TODO: Document specific validator command when available
+# Should check: YAML syntax, required fields, routing format
+```
+
+### 3. Version and Push to Git
+
+**Source Repository**: Changes must be committed to the agent definition repository (NOT claude-mpm framework)
+
+**Example Workflow**:
+```bash
+# Navigate to agent repository
+cd /path/to/bobmatnyc/claude-mpm-agents
+
+# Copy changes from cache to repo
+cp ~/.claude-mpm/cache/remote-agents/bobmatnyc-claude-mpm-agents/engineer.md agents/engineer.md
+
+# Commit changes
+git add agents/engineer.md
+git commit -m "feat: improve engineer agent instructions for X"
+git push origin main
+```
+
+### 4. Re-deploy Agent
+
+**Update Local Deployment**: After pushing to git, re-sync and deploy
+
+```bash
+# Sync from git to get latest changes
+claude-mpm agent-source update <source-id>
+
+# Re-deploy the specific agent
+claude-mpm agents deploy engineer --force
+
+# Verify deployment
+claude-mpm agents list | grep engineer
+```
+
+**Deployment Location**: `~/.claude/agents/engineer_agent.md`
+
+### 5. Submit Pull Request (External Contributors)
+
+**For External Contributors** wanting to suggest agent improvements:
+
+1. **Fork Repository**: Fork the agent definitions repository (e.g., `bobmatnyc/claude-mpm-agents`)
+
+2. **Clone Your Fork**:
+```bash
+git clone https://github.com/YOUR-USERNAME/claude-mpm-agents.git
+cd claude-mpm-agents
+```
+
+3. **Make Improvements**:
+```bash
+# Edit agent definition
+vim agents/engineer.md
+
+# Validate changes (use validator when available)
+```
+
+4. **Commit and Push**:
+```bash
+git add agents/engineer.md
+git commit -m "feat: improve engineer agent [specific improvement]"
+git push origin main
+```
+
+5. **Create Pull Request**:
+- Go to original repository on GitHub
+- Click "New Pull Request"
+- Select your fork and branch
+- Describe improvements clearly
+- Reference any related issues
+
+6. **PR Review Process**:
+- Maintainer reviews changes
+- Validator runs automatically (when implemented)
+- Feedback provided if needed
+- Merged when approved
+
+### Important Distinctions
+
+**Agent Repository vs Framework Repository**:
+
+| Aspect | Agent Repository | Claude MPM Framework |
+|--------|------------------|---------------------|
+| **Purpose** | Agent definitions (markdown) | Framework code (Python) |
+| **Location** | `bobmatnyc/claude-mpm-agents` | `bobmatnyc/claude-mpm` |
+| **Changes** | Agent instructions, routing | Services, CLI, core logic |
+| **Format** | Markdown with YAML frontmatter | Python source code |
+| **Deployment** | Via `agent-source update` | Via `pip install` |
+
+**When to Change Agent Repo**:
+- Improving agent instructions
+- Updating routing keywords/paths
+- Changing agent model (sonnet/opus)
+- Adding new custom agents
+
+**When to Change Framework Repo**:
+- Fixing bugs in agent deployment
+- Adding new CLI commands
+- Improving agent discovery
+- Core framework features
+
+### Workflow Summary
+
+```
+Edit cached agent definition
+    ↓
+Validate frontmatter and format
+    ↓
+Copy to agent git repository
+    ↓
+Commit and push to git
+    ↓
+Sync from git (agent-source update)
+    ↓
+Re-deploy agent (agents deploy --force)
+    ↓
+Verify deployment in ~/.claude/agents/
+```
+
+### Best Practices for Agent Improvement
+
+1. **Always validate** before committing to git
+2. **Test locally** after re-deployment
+3. **Document changes** in commit messages
+4. **Use conventional commits**: `feat:`, `fix:`, `docs:`
+5. **Reference issues** if applicable (e.g., "Closes #123")
+6. **Keep changes focused**: One improvement per commit
+7. **Preserve frontmatter structure**: Don't break YAML format
+
+### Common Mistakes to Avoid
+
+❌ **WRONG**: Editing deployed agent in `~/.claude/agents/` directly (changes will be overwritten)
+❌ **WRONG**: Committing changes to framework repository for agent instructions
+❌ **WRONG**: Skipping validation before committing
+❌ **WRONG**: Not re-deploying after git push (changes won't take effect)
+
+✅ **CORRECT**: Edit cache → Validate → Commit to agent repo → Sync → Re-deploy
 
 ## Error Handling & Validation
 
