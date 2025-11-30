@@ -7,9 +7,10 @@ Extracted from AgentDeploymentService as part of the refactoring to improve
 maintainability and testability.
 """
 
-import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
@@ -59,8 +60,8 @@ class AgentDiscoveryService:
             )
             return agents
 
-        # Find all JSON template files
-        template_files = list(self.templates_dir.glob("*.json"))
+        # Find all markdown template files with YAML frontmatter
+        template_files = list(self.templates_dir.glob("*.md"))
 
         for template_file in template_files:
             try:
@@ -105,8 +106,8 @@ class AgentDiscoveryService:
             self.logger.error(f"Templates directory not found: {self.templates_dir}")
             return []
 
-        # Get all template files
-        template_files = list(self.templates_dir.glob("*.json"))
+        # Get all markdown template files
+        template_files = list(self.templates_dir.glob("*.md"))
 
         if not template_files:
             self.logger.warning(f"No agent templates found in {self.templates_dir}")
@@ -157,7 +158,7 @@ class AgentDiscoveryService:
         Returns:
             Path to template file if found, None otherwise
         """
-        template_file = self.templates_dir / f"{agent_name}.json"
+        template_file = self.templates_dir / f"{agent_name}.md"
 
         if template_file.exists():
             if self._validate_template_file(template_file):
@@ -199,59 +200,45 @@ class AgentDiscoveryService:
 
     def _extract_agent_metadata(self, template_file: Path) -> Optional[Dict[str, Any]]:
         """
-        Extract metadata from an agent template file.
+        Extract metadata from an agent template file with YAML frontmatter.
 
         Args:
-            template_file: Path to the template file
+            template_file: Path to the markdown template file
 
         Returns:
             Dictionary with agent metadata or None if extraction fails
         """
         try:
-            # Read and parse template file
+            # Read template file content
             template_content = template_file.read_text()
-            template_data = json.loads(template_content)
 
-            # Extract basic metadata from the metadata section (per agent schema)
-            metadata = template_data.get("metadata", {})
-            capabilities = template_data.get("capabilities", {})
+            # Extract YAML frontmatter
+            frontmatter = self._extract_yaml_frontmatter(template_content)
+            if not frontmatter:
+                self.logger.warning(
+                    f"No valid YAML frontmatter in {template_file.name}"
+                )
+                return None
 
-            # Handle capabilities as either dict or list
-            if isinstance(capabilities, list):
-                # If capabilities is a list (like in php-engineer.json), treat it as capabilities list
-                tools_list = template_data.get(
-                    "tools", []
-                )  # Look for tools at root level
-                model_value = template_data.get("model", "sonnet")
-            else:
-                # If capabilities is a dict, extract tools and model from it
-                tools_list = capabilities.get("tools", [])
-                model_value = capabilities.get("model", "sonnet")
-
+            # Extract metadata directly from frontmatter (flat structure)
+            # Markdown templates use flat YAML structure, not nested "metadata" section
             agent_info = {
-                "name": metadata.get("name", template_file.stem),
-                "description": metadata.get(
-                    "description",
-                    template_data.get("description", "No description available"),
+                "name": frontmatter.get("name", template_file.stem),
+                "description": frontmatter.get(
+                    "description", "No description available"
                 ),
-                "type": template_data.get(
-                    "agent_type",
-                    metadata.get("category", template_data.get("category", "agent")),
-                ),  # Extract agent type
-                "version": template_data.get(
-                    "agent_version",
-                    template_data.get("version", metadata.get("version", "1.0.0")),
+                "type": frontmatter.get(
+                    "agent_type", frontmatter.get("category", "agent")
                 ),
-                "tools": tools_list,
-                "specializations": metadata.get(
-                    "tags", template_data.get("tags", [])
-                ),  # Use tags as specializations, fallback to root-level tags
+                "version": frontmatter.get("version", "1.0.0"),
+                "tools": frontmatter.get("tools", []),
+                "specializations": frontmatter.get("tags", []),
                 "file": template_file.name,
                 "path": str(template_file),
                 "file_path": str(template_file),  # Keep for backward compatibility
                 "size": template_file.stat().st_size,
-                "model": model_value,
-                "author": metadata.get("author", "unknown"),
+                "model": frontmatter.get("model", "sonnet"),
+                "author": frontmatter.get("author", "unknown"),
             }
 
             # Validate required fields
@@ -261,8 +248,8 @@ class AgentDiscoveryService:
 
             return agent_info
 
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid JSON in template {template_file.name}: {e}")
+        except yaml.YAMLError as e:
+            self.logger.error(f"Invalid YAML frontmatter in {template_file.name}: {e}")
             return None
         except Exception as e:
             self.logger.error(
@@ -270,37 +257,73 @@ class AgentDiscoveryService:
             )
             return None
 
+    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract and parse YAML frontmatter from markdown.
+
+        Frontmatter must be at the start of the file, delimited by '---'.
+        Example:
+            ---
+            name: agent_name
+            description: Agent description
+            version: 1.0.0
+            ---
+            # Agent content...
+
+        Args:
+            content: File content to parse
+
+        Returns:
+            Parsed YAML frontmatter as dict, or None if not found/invalid
+        """
+        if not content.strip().startswith("---"):
+            return None
+
+        # Split on --- delimiters
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            return None
+
+        try:
+            return yaml.safe_load(parts[1])
+        except yaml.YAMLError as e:
+            self.logger.warning(f"Failed to parse YAML frontmatter: {e}")
+            return None
+
     def _is_mpm_agent(self, template_file: Path) -> bool:
         """Check if agent is authored by Claude MPM team.
 
         MPM agents must have:
         - An author field containing 'claude mpm', 'claude-mpm', or 'anthropic'
-        - A valid agent_version field
+        - A valid version field
 
         Args:
-            template_file: Path to the agent template JSON file
+            template_file: Path to the agent template markdown file
 
         Returns:
             True if this is an MPM agent, False otherwise
         """
         try:
-            template_data = json.loads(template_file.read_text())
-            metadata = template_data.get("metadata", {})
+            # Extract YAML frontmatter
+            content = template_file.read_text()
+            frontmatter = self._extract_yaml_frontmatter(content)
+            if not frontmatter:
+                return False
 
             # Check for author field
-            author = metadata.get("author", "").lower()
+            author = frontmatter.get("author", "").lower()
             has_valid_author = any(
                 pattern in author
                 for pattern in ["claude mpm", "claude-mpm", "anthropic"]
             )
 
             # Check for version field
-            has_version = bool(template_data.get("agent_version"))
+            has_version = bool(frontmatter.get("version"))
 
             if not has_valid_author or not has_version:
                 self.logger.debug(
                     f"Filtered non-MPM agent {template_file.name}: "
-                    f"author='{metadata.get('author', 'missing')}', "
+                    f"author='{frontmatter.get('author', 'missing')}', "
                     f"version={'present' if has_version else 'missing'}"
                 )
 
@@ -366,10 +389,10 @@ class AgentDiscoveryService:
 
     def _validate_template_file(self, template_file: Path) -> bool:
         """
-        Validate that a template file is properly formatted.
+        Validate that a template file is properly formatted with YAML frontmatter.
 
         Args:
-            template_file: Path to template file to validate
+            template_file: Path to markdown template file to validate
 
         Returns:
             True if template is valid, False otherwise
@@ -379,23 +402,27 @@ class AgentDiscoveryService:
             if not template_file.exists():
                 return False
 
-            # Parse JSON content
+            # Read and parse YAML frontmatter
             content = template_file.read_text()
-            template_data = json.loads(content)
+            frontmatter = self._extract_yaml_frontmatter(content)
+            if not frontmatter:
+                self.logger.warning(
+                    f"Template {template_file.name} has no valid YAML frontmatter"
+                )
+                return False
 
-            # Check required fields in metadata section (per agent schema)
-            metadata = template_data.get("metadata", {})
+            # Check required fields (flat structure in markdown templates)
             required_fields = ["name", "description"]
             for field in required_fields:
-                if field not in metadata:
+                if field not in frontmatter:
                     self.logger.warning(
-                        f"Template {template_file.name} missing required field in metadata: {field}"
+                        f"Template {template_file.name} missing required field: {field}"
                     )
                     return False
 
             # Validate agent ID format (Claude Code requirements)
             # Use agent_id for validation, not the display name
-            agent_id = template_data.get("agent_id", "")
+            agent_id = frontmatter.get("agent_id", "")
             if not self._is_valid_agent_name(agent_id):
                 self.logger.warning(
                     f"Invalid agent ID format in {template_file.name}: {agent_id}"
@@ -404,8 +431,10 @@ class AgentDiscoveryService:
 
             return True
 
-        except json.JSONDecodeError:
-            self.logger.error(f"Invalid JSON in template: {template_file.name}")
+        except yaml.YAMLError:
+            self.logger.error(
+                f"Invalid YAML frontmatter in template: {template_file.name}"
+            )
             return False
         except Exception as e:
             self.logger.error(
@@ -431,25 +460,28 @@ class AgentDiscoveryService:
 
         return bool(re.match(pattern, agent_name))
 
-    def _is_mpm_agent(
+    def _is_mpm_agent_with_config(
         self, template_file: Path, config: Optional[Config] = None
     ) -> bool:
-        """Check if agent is authored by Claude MPM team.
+        """Check if agent is authored by Claude MPM team with configurable patterns.
 
         MPM agents must have:
         - An author field containing configurable MPM patterns (default: 'claude mpm', 'claude-mpm', 'anthropic')
-        - A valid agent_version field
+        - A valid version field
 
         Args:
-            template_file: Path to the agent template JSON file
+            template_file: Path to the agent template markdown file
             config: Configuration object for MPM patterns
 
         Returns:
             True if this is an MPM agent, False otherwise
         """
         try:
-            template_data = json.loads(template_file.read_text())
-            metadata = template_data.get("metadata", {})
+            # Extract YAML frontmatter
+            content = template_file.read_text()
+            frontmatter = self._extract_yaml_frontmatter(content)
+            if not frontmatter:
+                return False
 
             # Get MPM author patterns from config
             if config:
@@ -461,13 +493,13 @@ class AgentDiscoveryService:
                 mpm_patterns = ["claude mpm", "claude-mpm", "anthropic"]
 
             # Check for author field
-            author = metadata.get("author", "").lower()
+            author = frontmatter.get("author", "").lower()
             has_valid_author = any(
                 pattern.lower() in author for pattern in mpm_patterns
             )
 
             # Check for version field
-            has_version = bool(template_data.get("agent_version"))
+            has_version = bool(frontmatter.get("version"))
 
             return has_valid_author and has_version
 
@@ -494,8 +526,8 @@ class AgentDiscoveryService:
         if not self.templates_dir.exists():
             return stats
 
-        # Count template files
-        template_files = list(self.templates_dir.glob("*.json"))
+        # Count markdown template files
+        template_files = list(self.templates_dir.glob("*.md"))
         stats["total_templates"] = len(template_files)
 
         # Validate each template

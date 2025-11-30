@@ -31,14 +31,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from claude_mpm.config.agent_sources import AgentSourceConfiguration
 from claude_mpm.config.paths import paths
 from claude_mpm.constants import Paths
 from claude_mpm.core.config import Config
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.services.shared import ConfigServiceBase
-
-from ...config.agent_sources import AgentSourceConfiguration
 
 # Import git source management for remote agent sync
 from ..git_source_manager import GitSourceManager
