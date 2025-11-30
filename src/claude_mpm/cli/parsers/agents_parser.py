@@ -283,6 +283,38 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         help="Overwrite existing project agents if conflicts",
     )
 
+    # Deploy all agents from sources (single-tier deployment)
+    deploy_all_parser = agents_subparsers.add_parser(
+        "deploy-all",
+        help="Deploy all agents from configured sources (single-tier deployment)",
+    )
+    deploy_all_parser.add_argument(
+        "--force-sync",
+        action="store_true",
+        help="Force sync repositories before deploying (ignore cache)",
+    )
+    deploy_all_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deployed without actually deploying",
+    )
+
+    # List available agents from sources
+    available_parser = agents_subparsers.add_parser(
+        "available",
+        help="List available agents from all configured sources",
+    )
+    available_parser.add_argument(
+        "--source",
+        help="Filter by source repository (e.g., 'owner/repo/subdirectory')",
+    )
+    available_parser.add_argument(
+        "--format",
+        choices=["table", "json", "simple"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
     # Auto-configuration commands (TSK-0054 Phase 5)
     from .auto_configure_parser import (
         add_agents_detect_subparser,

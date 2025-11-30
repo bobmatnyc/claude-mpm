@@ -390,6 +390,13 @@ def create_parser(
         pass
 
     try:
+        from .source_parser import add_source_subparser
+
+        add_source_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .auto_configure_parser import add_auto_configure_subparser
 
         add_auto_configure_subparser(subparsers)
