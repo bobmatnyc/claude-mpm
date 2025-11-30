@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: status
+aliases: [mpm-status]
+migration_target: /mpm/system:status
+category: system
+deprecated_aliases: []
+description: Display Claude MPM status including environment, services, and health
+---
 # Show claude-mpm status and environment
 
 Display the current status of Claude MPM including environment information, active services, and system health.

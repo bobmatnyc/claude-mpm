@@ -1,3 +1,12 @@
+---
+namespace: mpm/agents
+command: detect
+aliases: [mpm-agents-detect]
+migration_target: /mpm/agents:detect
+category: agents
+deprecated_aliases: []
+description: Scan project to detect programming languages, frameworks, tools, and configurations
+---
 # Detect project toolchain and frameworks
 
 Scan your project to detect programming languages, frameworks, tools, and configurations.

@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: monitor
+aliases: [mpm-monitor]
+migration_target: /mpm/system:monitor
+category: system
+deprecated_aliases: []
+description: Control Claude MPM monitoring server for real-time dashboard interface
+---
 # Manage Socket.IO monitoring server
 
 Control the Claude MPM monitoring server that powers the real-time dashboard interface for event tracking and project visualization.

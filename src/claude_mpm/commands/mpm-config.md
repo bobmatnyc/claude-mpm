@@ -1,141 +1,34 @@
-# View and validate claude-mpm configuration
+---
+namespace: mpm/config
+command: view
+aliases: [mpm-config]
+migration_target: /mpm/config:view
+category: config
+deprecated_aliases: []
+deprecated: true
+replacement: mpm-config-view
+description: ⚠️ DEPRECATED - Use /mpm-config-view instead
+---
+# ⚠️ DEPRECATED: Use `/mpm-config-view` instead
 
-Manage Claude MPM configuration settings through validation, viewing, and status checks.
+This command has been renamed for better organization.
 
-## Usage
+**Old Command**: `/mpm-config`
+**New Command**: `/mpm-config-view`
+**Future Command**: `/mpm/config:view` (when Claude Code supports hierarchical namespaces)
 
-```
-/mpm-config [subcommand] [options]
-```
+This alias will be removed in Claude MPM v5.1.0.
 
-## Description
+---
 
-This slash command provides access to Claude MPM's configuration management capabilities through the actual CLI commands.
+## Migration Information
 
-## Available Subcommands
+**Ticket**: 1M-400 - Phase 1 Enhanced Flat Naming with Namespace Metadata
 
-### Validate Configuration
-Validate configuration files for correctness and completeness.
+This command has been restructured as part of the hierarchical namespace migration. Please update your workflows to use the new command name.
 
-```
-/mpm-config validate [--config-file PATH] [--strict] [--fix]
-```
+## What This Command Does
 
-**Options:**
-- `--config-file PATH`: Validate specific config file (default: all)
-- `--strict`: Use strict validation rules
-- `--fix`: Attempt to fix validation errors automatically
+View and validate Claude MPM configuration settings.
 
-**Example:**
-```
-/mpm-config validate --strict
-/mpm-config validate --config-file .claude/config.yaml --fix
-```
-
-### View Configuration
-Display current configuration settings.
-
-```
-/mpm-config view [--section SECTION] [--format FORMAT] [--show-defaults]
-```
-
-**Options:**
-- `--section SECTION`: Specific configuration section to view
-- `--format FORMAT`: Output format (yaml, json, table)
-- `--show-defaults`: Include default values in output
-
-**Examples:**
-```
-/mpm-config view
-/mpm-config view --section agents --format json
-/mpm-config view --show-defaults
-```
-
-### Configuration Status
-Show configuration health and status.
-
-```
-/mpm-config status [--verbose]
-```
-
-**Options:**
-- `--verbose`: Show detailed status information
-
-**Example:**
-```
-/mpm-config status --verbose
-```
-
-## Implementation
-
-This command executes:
-```bash
-claude-mpm config [subcommand] [options]
-```
-
-The slash command passes through to the actual CLI configuration management system.
-
-## Configuration Categories
-
-Configuration is organized into sections:
-
-- **agents**: Agent deployment and management settings
-- **memory**: Memory system configuration
-- **websocket**: WebSocket server settings (port, host)
-- **hooks**: Hook service configuration
-- **logging**: Logging levels and output
-- **tickets**: Ticket tracking settings
-- **monitor**: Dashboard and monitoring settings
-
-## Expected Output
-
-### Validation Output
-```
-Validating configuration files...
-
-✓ .claude/config.yaml: Valid
-✓ .claude/agents/config.yaml: Valid
-✓ Configuration schema: Valid
-
-Configuration is valid and ready to use.
-```
-
-### View Output
-```yaml
-agents:
-  deploy_mode: project
-  auto_reload: true
-
-websocket:
-  host: localhost
-  port: 8765
-
-logging:
-  level: INFO
-  format: detailed
-```
-
-### Status Output
-```
-Configuration Status
-====================
-
-Files Found: 2
-  ✓ .claude/config.yaml
-  ✓ .claude/agents/config.yaml
-
-Validation: Passed
-Schema Version: 4.5
-Last Modified: 2025-01-15 14:30:22
-
-Active Settings:
-  - WebSocket Port: 8765
-  - Agent Deploy Mode: project
-  - Logging Level: INFO
-```
-
-## Related Commands
-
-- `/mpm-status`: Show overall system status
-- `/mpm-doctor`: Diagnose configuration issues
-- `/mpm-init`: Initialize project configuration
+For full documentation, use `/mpm-config-view`.

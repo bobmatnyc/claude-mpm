@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: version
+aliases: [mpm-version]
+migration_target: /mpm/system:version
+category: system
+deprecated_aliases: []
+description: Show comprehensive version information for Claude MPM
+---
 # Display Claude MPM Version Information
 
 Show comprehensive version information for Claude MPM project, agents, and skills.

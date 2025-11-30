@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: init
+aliases: [mpm-init]
+migration_target: /mpm/system:init
+category: system
+deprecated_aliases: []
+description: Initialize or update project for Claude Code and Claude MPM
+---
 # /mpm-init [update]
 
 Initialize or intelligently update your project for optimal use with Claude Code and Claude MPM using the Agentic Coder Optimizer agent.

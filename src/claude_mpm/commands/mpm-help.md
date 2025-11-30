@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: help
+aliases: [mpm-help]
+migration_target: /mpm/system:help
+category: system
+deprecated_aliases: []
+description: Display help information for Claude MPM slash commands and CLI capabilities
+---
 # Show help for available MPM commands
 
 Display help information for Claude MPM slash commands and CLI capabilities.

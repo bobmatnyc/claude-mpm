@@ -1,3 +1,12 @@
+---
+namespace: mpm/agents
+command: recommend
+aliases: [mpm-agents-recommend]
+migration_target: /mpm/agents:recommend
+category: agents
+deprecated_aliases: []
+description: Get intelligent agent recommendations based on detected project toolchain
+---
 # Show recommended agents for detected project stack
 
 Get intelligent agent recommendations based on your project's detected toolchain.

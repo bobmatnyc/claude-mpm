@@ -1,3 +1,12 @@
+---
+namespace: mpm
+command: main
+aliases: [mpm]
+migration_target: /mpm
+category: system
+deprecated_aliases: []
+description: Access Claude MPM functionality and manage multi-agent orchestration
+---
 # Claude MPM - Multi-Agent Project Manager
 
 Access Claude MPM functionality and manage your multi-agent orchestration.

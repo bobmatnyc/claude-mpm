@@ -1,3 +1,12 @@
+---
+namespace: mpm/system
+command: doctor
+aliases: [mpm-doctor]
+migration_target: /mpm/system:doctor
+category: system
+deprecated_aliases: []
+description: Run comprehensive diagnostic checks on Claude MPM installation
+---
 # Run diagnostic checks on claude-mpm installation
 
 Run comprehensive diagnostic checks on your Claude MPM installation to identify and fix common issues.

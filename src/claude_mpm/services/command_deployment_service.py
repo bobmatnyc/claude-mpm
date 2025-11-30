@@ -4,11 +4,14 @@ This service handles:
 1. Copying command markdown files from source to user's ~/.claude/commands directory
 2. Creating the commands directory if it doesn't exist
 3. Overwriting existing commands to ensure they're up-to-date
+4. Parsing and validating YAML frontmatter for namespace metadata (Phase 1 - 1M-400)
 """
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.logger import get_logger
@@ -38,6 +41,79 @@ class CommandDeploymentService(BaseService):
 
     async def _cleanup(self) -> None:
         """Cleanup service resources."""
+
+    def _parse_frontmatter(self, content: str) -> Tuple[Optional[Dict[str, Any]], str]:
+        """Parse YAML frontmatter from command file.
+
+        Ticket: 1M-400 Phase 1 - Enhanced Flat Naming with Namespace Metadata
+
+        Args:
+            content: Command file content
+
+        Returns:
+            Tuple of (frontmatter_dict, content_without_frontmatter)
+            If no frontmatter found, returns (None, original_content)
+        """
+        if not content.startswith("---\n"):
+            return None, content
+
+        try:
+            # Split on closing ---
+            parts = content.split("\n---\n", 1)
+            if len(parts) != 2:
+                return None, content
+
+            frontmatter_str = parts[0].replace("---\n", "", 1)
+            body = parts[1]
+
+            frontmatter = yaml.safe_load(frontmatter_str)
+            return frontmatter, body
+        except yaml.YAMLError as e:
+            self.logger.warning(f"YAML parsing error: {e}")
+            return None, content
+
+    def _validate_frontmatter(
+        self, frontmatter: Dict[str, Any], filepath: Path
+    ) -> List[str]:
+        """Validate frontmatter schema.
+
+        Ticket: 1M-400 Phase 1 - Enhanced Flat Naming with Namespace Metadata
+
+        Args:
+            frontmatter: Parsed frontmatter dictionary
+            filepath: Path to command file (for error reporting)
+
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        errors = []
+        required_fields = ["namespace", "command", "category", "description"]
+
+        for field in required_fields:
+            if field not in frontmatter:
+                errors.append(f"Missing required field: {field}")
+
+        # Validate category
+        valid_categories = ["agents", "config", "tickets", "session", "system"]
+        if (
+            "category" in frontmatter
+            and frontmatter["category"] not in valid_categories
+        ):
+            errors.append(
+                f"Invalid category: {frontmatter['category']} "
+                f"(must be one of {valid_categories})"
+            )
+
+        # Validate data types
+        if "aliases" in frontmatter and not isinstance(frontmatter["aliases"], list):
+            errors.append("Field 'aliases' must be a list")
+
+        if "deprecated_aliases" in frontmatter and not isinstance(
+            frontmatter["deprecated_aliases"], list
+        ):
+            errors.append("Field 'deprecated_aliases' must be a list")
+
+        return errors
 
     def deploy_commands(self, force: bool = False) -> Dict[str, Any]:
         """Deploy MPM slash commands to user's Claude configuration.
@@ -83,6 +159,21 @@ class CommandDeploymentService(BaseService):
                 target_file = self.target_dir / source_file.name
 
                 try:
+                    # Validate frontmatter if present (1M-400 Phase 1)
+                    content = source_file.read_text()
+                    frontmatter, _ = self._parse_frontmatter(content)
+
+                    if frontmatter:
+                        validation_errors = self._validate_frontmatter(
+                            frontmatter, source_file
+                        )
+                        if validation_errors:
+                            self.logger.warning(
+                                f"Frontmatter validation issues in {source_file.name}: "
+                                f"{'; '.join(validation_errors)}"
+                            )
+                            # Continue deployment but log warnings
+
                     # Check if file exists and if we should overwrite
                     if (
                         target_file.exists()
