@@ -66,7 +66,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     status=ValidationSeverity.ERROR,
                     message="Agent sources not configured",
                     details=details,
-                    fix_command="claude-mpm source add https://github.com/bobmatnyc/claude-mpm-agents",
+                    fix_command="claude-mpm agent-source add https://github.com/bobmatnyc/claude-mpm-agents",
                     fix_description="Add default system repository",
                     sub_results=sub_results if self.verbose else [],
                 )
@@ -149,8 +149,8 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
             elif warning_results:
                 status = ValidationSeverity.WARNING
                 message = f"Agent sources have {len(warning_results)} minor issue(s)"
-                fix_command = "claude-mpm source sync --force"
-                fix_description = "Sync all sources to refresh cache"
+                fix_command = "claude-mpm agent-source update"
+                fix_description = "Update all sources to refresh cache"
             else:
                 status = OperationResult.SUCCESS
                 enabled_count = details["enabled_sources"]
@@ -188,7 +188,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 status=ValidationSeverity.ERROR,
                 message=f"Configuration file not found: {config_path}",
                 details={"path": str(config_path)},
-                fix_command="claude-mpm source add https://github.com/bobmatnyc/claude-mpm-agents",
+                fix_command="claude-mpm agent-source add https://github.com/bobmatnyc/claude-mpm-agents",
                 fix_description="Create configuration and add default repository",
             )
 
@@ -266,7 +266,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 status=ValidationSeverity.WARNING,
                 message="No agent sources configured",
                 details={"total": 0, "enabled": 0},
-                fix_command="claude-mpm source add https://github.com/bobmatnyc/claude-mpm-agents",
+                fix_command="claude-mpm agent-source add https://github.com/bobmatnyc/claude-mpm-agents",
                 fix_description="Add default agent repository",
             )
 
@@ -345,7 +345,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     "unreachable_count": len(unreachable),
                     "sources": details,
                 },
-                fix_command="claude-mpm source list",
+                fix_command="claude-mpm agent-source list",
                 fix_description="Check source URLs and network connectivity",
             )
         if unreachable:
@@ -440,8 +440,8 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 status=ValidationSeverity.WARNING,
                 message=f"Cache directory does not exist: {cache_dir}",
                 details={"path": str(cache_dir), "exists": False},
-                fix_command="claude-mpm source sync",
-                fix_description="Create cache directory and sync sources",
+                fix_command="claude-mpm agent-source update",
+                fix_description="Create cache directory and update sources",
             )
 
         # Check if writable
@@ -546,8 +546,8 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     status=ValidationSeverity.WARNING,
                     message="No agents discovered from configured sources",
                     details={"total_agents": 0, "agents_by_source": {}},
-                    fix_command="claude-mpm source sync",
-                    fix_description="Sync sources to discover agents",
+                    fix_command="claude-mpm agent-source update",
+                    fix_description="Update sources to discover agents",
                 )
 
             # Group agents by source
