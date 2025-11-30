@@ -161,6 +161,9 @@ class AgentsCommand(AgentCommand):
                 # Auto-configuration commands (TSK-0054 Phase 5)
                 "detect": self._detect_toolchain,
                 "recommend": self._recommend_agents,
+                # Agent selection modes (Phase 3: 1M-382)
+                "deploy-minimal": self._deploy_minimal_configuration,
+                "deploy-auto": self._deploy_auto_configure,
             }
 
             if args.agents_command in command_map:
@@ -1564,6 +1567,203 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error migrating agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error migrating agents: {e}")
+
+    def _deploy_minimal_configuration(self, args) -> CommandResult:
+        """Deploy minimal configuration (6 core agents).
+
+        Part of Phase 3 (1M-382): Agent Selection Modes.
+        Deploy exactly 6 agents for basic Claude MPM workflow:
+        engineer, documentation, qa, research, ops, ticketing.
+        """
+        try:
+            from ...config.agent_sources import AgentSourceConfiguration
+            from ...services.agents.agent_selection_service import (
+                AgentSelectionService,
+            )
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
+
+            # Initialize services
+            config = AgentSourceConfiguration.load()
+            deployment_dir = Path.home() / ".claude" / "agents"
+            deployment_service = SingleTierDeploymentService(config, deployment_dir)
+            selection_service = AgentSelectionService(deployment_service)
+
+            # Get dry_run flag
+            dry_run = getattr(args, "dry_run", False)
+
+            # Deploy minimal configuration
+            print("🎯 Deploying minimal configuration (6 core agents)...")
+            if dry_run:
+                print("🔍 DRY RUN MODE - No agents will be deployed\n")
+
+            result = selection_service.deploy_minimal_configuration(dry_run=dry_run)
+
+            # Format output
+            output_format = self._get_output_format(args)
+            if self._is_structured_format(output_format):
+                formatted = (
+                    self._formatter.format_as_json(result)
+                    if str(output_format).lower() == OutputFormat.JSON
+                    else self._formatter.format_as_yaml(result)
+                )
+                print(formatted)
+                return CommandResult.success_result(
+                    f"Minimal configuration {result['status']}", data=result
+                )
+
+            # Text output
+            print(f"\n{'=' * 60}")
+            print(f"Status: {result['status'].upper()}")
+            print(f"Mode: {result['mode']}")
+            print(f"{'=' * 60}")
+            print(
+                f"\n📊 Summary: {result['deployed_count']} deployed, "
+                f"{result['failed_count']} failed, {result['missing_count']} missing"
+            )
+
+            if result["deployed_agents"]:
+                print(f"\n✅ Deployed agents ({len(result['deployed_agents'])}):")
+                for agent in result["deployed_agents"]:
+                    print(f"  • {agent}")
+
+            if result["failed_agents"]:
+                print(f"\n❌ Failed agents ({len(result['failed_agents'])}):")
+                for agent in result["failed_agents"]:
+                    print(f"  • {agent}")
+
+            if result["missing_agents"]:
+                print(f"\n⚠️  Missing agents ({len(result['missing_agents'])}):")
+                for agent in result["missing_agents"]:
+                    print(f"  • {agent}")
+                print("\nThese agents are not available in configured sources.")
+
+            if dry_run:
+                print(
+                    "\n💡 This was a dry run. Run without --dry-run to deploy agents."
+                )
+
+            return CommandResult.success_result(
+                f"Minimal configuration {result['status']}", data=result
+            )
+
+        except Exception as e:
+            self.logger.error(
+                f"Error deploying minimal configuration: {e}", exc_info=True
+            )
+            return CommandResult.error_result(
+                f"Error deploying minimal configuration: {e}"
+            )
+
+    def _deploy_auto_configure(self, args) -> CommandResult:
+        """Auto-detect toolchain and deploy matching agents.
+
+        Part of Phase 3 (1M-382): Agent Selection Modes.
+        Detect project toolchain (languages, frameworks, build tools) and
+        deploy matching specialized agents.
+        """
+        try:
+            from ...config.agent_sources import AgentSourceConfiguration
+            from ...services.agents.agent_selection_service import (
+                AgentSelectionService,
+            )
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
+
+            # Initialize services
+            config = AgentSourceConfiguration.load()
+            deployment_dir = Path.home() / ".claude" / "agents"
+            deployment_service = SingleTierDeploymentService(config, deployment_dir)
+            selection_service = AgentSelectionService(deployment_service)
+
+            # Get arguments
+            project_path = getattr(args, "path", Path.cwd())
+            dry_run = getattr(args, "dry_run", False)
+
+            # Deploy auto-configure
+            print(f"🔍 Auto-detecting toolchain in {project_path}...")
+            if dry_run:
+                print("🔍 DRY RUN MODE - No agents will be deployed\n")
+
+            result = selection_service.deploy_auto_configure(
+                project_path=project_path, dry_run=dry_run
+            )
+
+            # Format output
+            output_format = self._get_output_format(args)
+            if self._is_structured_format(output_format):
+                formatted = (
+                    self._formatter.format_as_json(result)
+                    if str(output_format).lower() == OutputFormat.JSON
+                    else self._formatter.format_as_yaml(result)
+                )
+                print(formatted)
+                return CommandResult.success_result(
+                    f"Auto-configure {result['status']}", data=result
+                )
+
+            # Text output
+            print(f"\n{'=' * 60}")
+            print(f"Status: {result['status'].upper()}")
+            print(f"Mode: {result['mode']}")
+            print(f"{'=' * 60}")
+
+            # Show detected toolchain
+            toolchain = result.get("toolchain", {})
+            print("\n🔧 Detected Toolchain:")
+            if toolchain.get("languages"):
+                print(f"  Languages: {', '.join(toolchain['languages'])}")
+            if toolchain.get("frameworks"):
+                print(f"  Frameworks: {', '.join(toolchain['frameworks'])}")
+            if toolchain.get("build_tools"):
+                print(f"  Build Tools: {', '.join(toolchain['build_tools'])}")
+
+            if not any(toolchain.values()):
+                print("  (No toolchain detected)")
+
+            # Show recommended agents
+            recommended = result.get("recommended_agents", [])
+            if recommended:
+                print(f"\n🎯 Recommended agents ({len(recommended)}):")
+                for agent in recommended:
+                    print(f"  • {agent}")
+
+            # Show deployment summary
+            print(
+                f"\n📊 Summary: {result['deployed_count']} deployed, "
+                f"{result['failed_count']} failed, {result['missing_count']} missing"
+            )
+
+            if result.get("deployed_agents"):
+                print(f"\n✅ Deployed agents ({len(result['deployed_agents'])}):")
+                for agent in result["deployed_agents"]:
+                    print(f"  • {agent}")
+
+            if result.get("failed_agents"):
+                print(f"\n❌ Failed agents ({len(result['failed_agents'])}):")
+                for agent in result["failed_agents"]:
+                    print(f"  • {agent}")
+
+            if result.get("missing_agents"):
+                print(f"\n⚠️  Missing agents ({len(result['missing_agents'])}):")
+                for agent in result["missing_agents"]:
+                    print(f"  • {agent}")
+                print("\nThese agents are not available in configured sources.")
+
+            if dry_run:
+                print(
+                    "\n💡 This was a dry run. Run without --dry-run to deploy agents."
+                )
+
+            return CommandResult.success_result(
+                f"Auto-configure {result['status']}", data=result
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error in auto-configure: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error in auto-configure: {e}")
 
 
 def manage_agents(args):

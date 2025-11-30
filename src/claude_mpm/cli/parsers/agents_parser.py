@@ -324,4 +324,33 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
     add_agents_detect_subparser(agents_subparsers)
     add_agents_recommend_subparser(agents_subparsers)
 
+    # Phase 3: Agent Selection Modes (single-tier deployment)
+    # Minimal configuration - deploy 6 core agents
+    deploy_minimal_parser = agents_subparsers.add_parser(
+        "deploy-minimal",
+        help="Deploy minimal configuration (6 core agents: engineer, documentation, qa, research, ops, ticketing)",
+    )
+    deploy_minimal_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deployed without actually deploying",
+    )
+
+    # Auto-configure - detect toolchain and deploy matching agents
+    deploy_auto_parser = agents_subparsers.add_parser(
+        "deploy-auto",
+        help="Auto-detect project toolchain and deploy matching agents",
+    )
+    deploy_auto_parser.add_argument(
+        "--path",
+        type=Path,
+        default=Path.cwd(),
+        help="Project path to scan for toolchain detection (default: current directory)",
+    )
+    deploy_auto_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deployed without actually deploying",
+    )
+
     return agents_parser
