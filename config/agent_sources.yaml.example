@@ -1,0 +1,152 @@
+# Agent Source Configuration
+# Location: ~/.claude-mpm/config/agent_sources.yaml
+#
+# This file configures Git repositories that contain agent markdown files.
+# Agents are synced from these repositories and deployed to .claude/agents/
+
+# ========================================
+# System Repository Configuration
+# ========================================
+
+# Disable default system repository (bobmatnyc/claude-mpm-agents)
+# Default: false (system repo is enabled)
+disable_system_repo: false
+
+# ========================================
+# Custom Agent Repositories
+# ========================================
+
+# List of custom Git repositories containing agents
+# Priority: Lower number = higher precedence (50 > 100)
+# Agents from higher priority repos override lower priority repos
+repositories:
+  # Example 1: Company internal agents repository
+  # - url: https://github.com/mycompany/claude-agents
+  #   subdirectory: null  # Use root of repository
+  #   enabled: true
+  #   priority: 50  # Higher priority than system repo (100)
+
+  # Example 2: Monorepo with agents in subdirectory
+  # - url: https://github.com/mycompany/monorepo
+  #   subdirectory: tools/agents  # Only sync this subdirectory
+  #   enabled: true
+  #   priority: 75  # Medium priority
+
+  # Example 3: Personal agents repository
+  # - url: https://github.com/myuser/personal-agents
+  #   subdirectory: agents
+  #   enabled: true
+  #   priority: 150  # Lower priority than system
+
+  # Example 4: Disabled repository (for temporary exclusion)
+  # - url: https://github.com/mycompany/experimental-agents
+  #   subdirectory: agents
+  #   enabled: false  # Skip syncing this repo
+  #   priority: 200
+
+# ========================================
+# Configuration Notes
+# ========================================
+
+# Priority Resolution:
+#   - Lower priority number = higher precedence
+#   - If same agent exists in multiple repos, highest priority wins
+#   - System repo has priority 100 by default
+#   - Recommended range: 0-1000
+
+# Subdirectory Paths:
+#   - Must be relative paths (no leading slash)
+#   - Examples: "agents", "tools/agents", "agents/backend"
+#   - null or empty = use repository root
+
+# Repository URLs:
+#   - Must be GitHub repositories (for now)
+#   - Format: https://github.com/owner/repository
+#   - Private repos require authentication (future feature)
+
+# Sync Behavior:
+#   - ETag-based HTTP caching for efficiency
+#   - Only downloads changed files
+#   - Incremental updates with SHA-256 tracking
+#   - Failed syncs don't block other repositories
+
+# ========================================
+# Usage Examples
+# ========================================
+
+# Minimal configuration (system repo only):
+#   disable_system_repo: false
+#   repositories: []
+
+# Custom-only mode (no system repo):
+#   disable_system_repo: true
+#   repositories:
+#     - url: https://github.com/mycompany/all-agents
+#       subdirectory: agents
+#       enabled: true
+#       priority: 100
+
+# Multi-team configuration:
+#   disable_system_repo: false  # Keep system agents
+#   repositories:
+#     - url: https://github.com/company/backend-agents
+#       subdirectory: agents
+#       enabled: true
+#       priority: 50  # Backend agents have highest priority
+#     - url: https://github.com/company/frontend-agents
+#       subdirectory: agents
+#       enabled: true
+#       priority: 60  # Frontend agents second priority
+#     - url: https://github.com/company/shared-agents
+#       subdirectory: agents
+#       enabled: true
+#       priority: 80  # Shared agents lower priority
+#   # System agents (priority 100) used as fallback
+
+# ========================================
+# CLI Commands
+# ========================================
+
+# List configured repositories:
+#   claude-mpm agents repo list
+
+# Add a new repository:
+#   claude-mpm agents repo add owner/repo --subdirectory agents --priority 50
+
+# Sync all repositories:
+#   claude-mpm agents repo sync
+
+# Sync specific repository:
+#   claude-mpm agents repo sync owner/repo
+
+# Remove a repository:
+#   claude-mpm agents repo remove owner/repo
+
+# Enable/disable repository:
+#   claude-mpm agents repo enable owner/repo
+#   claude-mpm agents repo disable owner/repo
+
+# Deploy agents from specific repository:
+#   claude-mpm agents deploy --repositories owner/repo
+
+# Browse available agents:
+#   claude-mpm agents browse
+
+# ========================================
+# Troubleshooting
+# ========================================
+
+# Verify configuration:
+#   claude-mpm agents config validate
+
+# Test repository connectivity:
+#   claude-mpm agents repo test owner/repo
+
+# Clear cache and re-sync:
+#   claude-mpm agents repo sync --force
+
+# View sync logs:
+#   tail -f ~/.claude-mpm/logs/agent_sync.log
+
+# Check cache contents:
+#   ls -la ~/.claude-mpm/cache/remote-agents/
