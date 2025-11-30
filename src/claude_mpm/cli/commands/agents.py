@@ -164,6 +164,8 @@ class AgentsCommand(AgentCommand):
                 # Agent selection modes (Phase 3: 1M-382)
                 "deploy-minimal": self._deploy_minimal_configuration,
                 "deploy-auto": self._deploy_auto_configure,
+                # Agent source management (Phase 2: 1M-442)
+                "available": self._list_available_from_sources,
             }
 
             if args.agents_command in command_map:
@@ -400,6 +402,106 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error listing agents by tier: {e}", exc_info=True)
             return CommandResult.error_result(f"Error listing agents by tier: {e}")
+
+    def _list_available_from_sources(self, args) -> CommandResult:
+        """List available agents from all configured git sources.
+
+        This command shows agents discovered from configured agent sources
+        (Git repositories) after syncing their cache. Implements Phase 2 of 1M-442.
+
+        Args:
+            args: Command arguments with optional source filter and format
+
+        Returns:
+            CommandResult with agent list or error
+        """
+        try:
+            from ...config.agent_sources import AgentSourceConfiguration
+            from ...services.agents.git_source_manager import GitSourceManager
+
+            # Load agent sources configuration
+            config = AgentSourceConfiguration.load()
+            enabled_repos = [r for r in config.repositories if r.enabled]
+
+            if not enabled_repos:
+                message = (
+                    "No agent sources configured.\n\n"
+                    "Configure sources with:\n"
+                    "  claude-mpm agent-source add <url>\n\n"
+                    "Example:\n"
+                    "  claude-mpm agent-source add https://github.com/owner/repo/agents"
+                )
+                print(message)
+                return CommandResult.error_result("No agent sources configured")
+
+            # Initialize git source manager
+            manager = GitSourceManager()
+
+            # Sync all configured sources (with timeout)
+            self.logger.info(f"Syncing {len(enabled_repos)} agent sources...")
+            sync_results = {}
+
+            for repo in enabled_repos:
+                try:
+                    result = manager.sync_repository(repo, force=False)
+                    sync_results[repo.identifier] = result
+                except Exception as e:
+                    self.logger.warning(f"Failed to sync {repo.identifier}: {e}")
+                    sync_results[repo.identifier] = {"synced": False, "error": str(e)}
+
+            # Get source filter from args
+            source_filter = getattr(args, "source", None)
+
+            # List all cached agents
+            all_agents = manager.list_cached_agents(repo_identifier=source_filter)
+
+            if not all_agents:
+                message = "No agents found in configured sources."
+                if sync_results:
+                    failed_count = sum(
+                        1 for r in sync_results.values() if not r.get("synced")
+                    )
+                    if failed_count > 0:
+                        message += f"\n\n{failed_count} source(s) failed to sync. Check logs for details."
+                print(message)
+                return CommandResult.success_result(message, data={"agents": []})
+
+            # Format output
+            output_format = getattr(args, "format", "table")
+
+            if output_format == "json":
+                import json
+
+                print(json.dumps(all_agents, indent=2))
+            elif output_format == "simple":
+                for agent in all_agents:
+                    name = agent.get("metadata", {}).get(
+                        "name", agent.get("agent_id", "unknown")
+                    )
+                    repo = agent.get("repository", "unknown")
+                    print(f"{name} (from {repo})")
+            else:  # table format
+                print(f"\n{'Agent Name':<30} {'Repository':<40} {'Version':<15}")
+                print("=" * 85)
+                for agent in all_agents:
+                    name = agent.get("metadata", {}).get(
+                        "name", agent.get("agent_id", "unknown")
+                    )
+                    repo = agent.get("repository", "unknown")
+                    version = agent.get("version", "unknown")[:12]
+                    print(f"{name:<30} {repo:<40} {version:<15}")
+                print(
+                    f"\nTotal: {len(all_agents)} agents from {len(sync_results)} sources"
+                )
+
+            return CommandResult.success_result(
+                f"Listed {len(all_agents)} agents from sources",
+                data={"agents": all_agents, "sync_results": sync_results},
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error listing available agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing available agents: {e}")
 
     def _deploy_agents(self, args, force=False) -> CommandResult:
         """Deploy both system and project agents."""

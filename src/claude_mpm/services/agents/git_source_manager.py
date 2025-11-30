@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.claude_mpm.models.git_repository import GitRepository
-from src.claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
+from claude_mpm.models.git_repository import GitRepository
+from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
     RemoteAgentDiscoveryService,
 )
-from src.claude_mpm.services.agents.sources.git_source_sync_service import (
+from claude_mpm.services.agents.sources.git_source_sync_service import (
     GitSourceSyncService,
 )
 

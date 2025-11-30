@@ -38,6 +38,10 @@ from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.services.shared import ConfigServiceBase
 
+from ...config.agent_sources import AgentSourceConfiguration
+
+# Import git source management for remote agent sync
+from ..git_source_manager import GitSourceManager
 from .agent_configuration_manager import AgentConfigurationManager
 from .agent_discovery_service import AgentDiscoveryService
 from .agent_environment_manager import AgentEnvironmentManager
@@ -184,8 +188,106 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         # Initialize format converter service
         self.format_converter = AgentFormatConverter()
 
+        # Initialize git source manager for remote agent sync
+        self.git_source_manager = GitSourceManager()
+        self.agent_source_config = AgentSourceConfiguration.load()
+
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
+
+    def _sync_remote_agent_sources(self, timeout_seconds: int = 30) -> Dict[str, Any]:
+        """Sync git-based agent sources before deployment.
+
+        This method follows the skills system pattern: sync configured git repositories
+        to cache before discovery. Network failures are logged but don't block deployment.
+
+        Args:
+            timeout_seconds: Timeout for git operations (default: 30 seconds)
+
+        Returns:
+            Dictionary with sync results:
+            {
+                "synced_count": int,
+                "failed_count": int,
+                "repositories": Dict[str, Dict],  # repo_id -> sync result
+                "duration_ms": float
+            }
+
+        Error Handling:
+            - Network failures: Logged as warnings, sync continues
+            - Invalid repos: Logged as errors, sync continues
+            - Timeout: Individual repo timeouts don't stop overall sync
+            - Missing cache dir: Created automatically
+        """
+        import time
+
+        start_time = time.time()
+
+        results = {
+            "synced_count": 0,
+            "failed_count": 0,
+            "repositories": {},
+            "duration_ms": 0,
+        }
+
+        # Load agent sources configuration
+        try:
+            config = AgentSourceConfiguration.load()
+            enabled_repos = [r for r in config.repositories if r.enabled]
+
+            if not enabled_repos:
+                self.logger.debug("No enabled agent sources configured")
+                return results
+
+            self.logger.info(f"Syncing {len(enabled_repos)} agent git sources...")
+
+            # Sync each enabled repository
+            for repo in enabled_repos:
+                repo_id = repo.identifier
+                try:
+                    # Sync with timeout (individual repo sync)
+                    sync_result = self.git_source_manager.sync_repository(
+                        repo,
+                        force=False,  # Use ETag-based caching
+                    )
+
+                    results["repositories"][repo_id] = sync_result
+
+                    if sync_result.get("synced"):
+                        results["synced_count"] += 1
+                        agents_discovered = sync_result.get("agents_discovered", [])
+                        self.logger.info(
+                            f"Synced {repo_id}: {sync_result.get('files_updated', 0)} files, "
+                            f"{len(agents_discovered)} agents"
+                        )
+                    else:
+                        results["failed_count"] += 1
+                        error = sync_result.get("error", "Unknown error")
+                        self.logger.warning(f"Failed to sync {repo_id}: {error}")
+
+                except Exception as e:
+                    # Don't let individual repo failures stop deployment
+                    results["failed_count"] += 1
+                    results["repositories"][repo_id] = {
+                        "synced": False,
+                        "error": str(e),
+                    }
+                    self.logger.warning(f"Exception syncing {repo_id}: {e}")
+
+        except Exception as e:
+            # Configuration loading failure - log but don't crash
+            self.logger.warning(f"Failed to load agent sources config: {e}")
+            results["failed_count"] = -1  # Indicates config failure
+
+        results["duration_ms"] = (time.time() - start_time) * 1000
+
+        if results["synced_count"] > 0:
+            self.logger.info(
+                f"Agent source sync complete: {results['synced_count']} succeeded, "
+                f"{results['failed_count']} failed ({results['duration_ms']:.0f}ms)"
+            )
+
+        return results
 
     def deploy_agents(
         self,
@@ -267,6 +369,10 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         # METRICS: Record deployment start time for performance tracking
         deployment_start_time = time.time()
 
+        # PHASE 2 (1M-442): Sync git-based agent sources before deployment
+        # This ensures remote agents from configured sources are cached and discoverable
+        sync_results = self._sync_remote_agent_sources()
+
         # Try async deployment for better performance if requested
         if use_async:
             async_results = self._try_async_deployment(
@@ -291,6 +397,13 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         results = self.results_manager.initialize_deployment_results(
             agents_dir, deployment_start_time
         )
+
+        # Add git source sync results to deployment results
+        if (
+            sync_results.get("synced_count", 0) > 0
+            or sync_results.get("failed_count", 0) > 0
+        ):
+            results["remote_sources"] = sync_results
 
         try:
             # Create agents directory if needed

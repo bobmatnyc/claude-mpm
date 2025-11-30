@@ -7,7 +7,7 @@ from typing import Optional
 
 import yaml
 
-from src.claude_mpm.models.git_repository import GitRepository
+from claude_mpm.models.git_repository import GitRepository
 
 logger = logging.getLogger(__name__)
 
