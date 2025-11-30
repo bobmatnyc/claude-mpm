@@ -310,9 +310,9 @@ def handle_update_skill_sources(args) -> int:
             # Sync source
             result = manager.sync_source(args.source_id, force=args.force)
 
-            if result.get("success"):
+            if result.get("synced"):
                 print(f"✅ Successfully updated {args.source_id}")
-                skills_count = result.get("skills_count", 0)
+                skills_count = result.get("skills_discovered", 0)
                 print(f"   Skills discovered: {skills_count}")
 
                 if skills_count > 0:
