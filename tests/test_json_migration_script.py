@@ -328,7 +328,7 @@ class TestConvertJsonToMarkdown:
         json_path = tmp_path / "test.json"
         json_path.write_text(json.dumps(template), encoding="utf-8")
 
-        markdown, validation = convert_json_to_markdown(json_path)
+        _markdown, validation = convert_json_to_markdown(json_path)
 
         # Should have warnings about tag format
         assert len(validation.warnings) > 0

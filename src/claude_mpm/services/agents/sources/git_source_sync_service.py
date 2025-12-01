@@ -668,7 +668,7 @@ class GitSourceSyncService:
                 if response.status_code == 200:
                     files = response.json()
 
-                    # Filter for .md files, exclude README.md
+                    # Filter for .md files, exclude README.md, only sync from /agents/ directory
                     agent_files = [
                         f["name"]
                         for f in files
@@ -676,6 +676,7 @@ class GitSourceSyncService:
                         and f.get("name", "").endswith(".md")
                         and f.get("name") != "README.md"
                         and f.get("type") == "file"
+                        and f.get("path", "").startswith("agents/")
                     ]
 
                     if agent_files:

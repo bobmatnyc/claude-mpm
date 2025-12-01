@@ -39,7 +39,7 @@ description: List all available agents
 
 Body of the command goes here.
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         assert frontmatter is not None
         assert frontmatter["namespace"] == "mpm/agents"
@@ -55,7 +55,7 @@ Body of the command goes here.
 
 No frontmatter here.
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         assert frontmatter is None
         assert body == content
@@ -69,7 +69,7 @@ command: list
 ---
 # Content
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         # Should return None on parse error and log warning
         assert frontmatter is None
@@ -83,7 +83,7 @@ command: list
 
 # Content without closing delimiter
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         # Should return None if closing delimiter missing
         assert frontmatter is None
@@ -95,7 +95,7 @@ command: list
 ---
 # Content
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         # Empty YAML should parse to None or empty dict
         assert frontmatter is None or frontmatter == {}
@@ -113,7 +113,7 @@ aliases: [mpm-agents]
 ---
 # Content
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         assert frontmatter is not None
         assert "multiline" in frontmatter["description"]

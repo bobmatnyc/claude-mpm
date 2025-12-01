@@ -9,6 +9,7 @@ synced but never deployed.
 """
 
 import tempfile
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -26,16 +27,19 @@ class TestAgentStartupDeployment:
         """
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
-            tempfile.TemporaryDirectory() as tmp_dir,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
+            mock_progress_bar = stack.enter_context(
+                patch("claude_mpm.utils.progress.ProgressBar")
+            )
+            tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
@@ -107,14 +111,15 @@ class TestAgentStartupDeployment:
         """Verify deployment is skipped if sync was not enabled or failed."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
             # Mock sync returning disabled/no results
             mock_sync_agents.return_value = {
                 "enabled": False,
@@ -138,16 +143,19 @@ class TestAgentStartupDeployment:
         """Verify deployment failures don't crash startup."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
-            tempfile.TemporaryDirectory() as tmp_dir,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
+            mock_progress_bar = stack.enter_context(
+                patch("claude_mpm.utils.progress.ProgressBar")
+            )
+            tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
@@ -193,15 +201,16 @@ class TestAgentStartupDeployment:
         """Verify deployment is skipped if cache is empty."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-            tempfile.TemporaryDirectory() as tmp_dir,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
+            tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
@@ -241,17 +250,20 @@ class TestAgentStartupDeployment:
         """
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
-            patch("builtins.print") as mock_print,
-            tempfile.TemporaryDirectory() as tmp_dir,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
+            mock_progress_bar = stack.enter_context(
+                patch("claude_mpm.utils.progress.ProgressBar")
+            )
+            mock_print = stack.enter_context(patch("builtins.print"))
+            tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
@@ -323,17 +335,20 @@ class TestAgentStartupDeployment:
         """Verify no error messages are shown when deployment succeeds."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup
 
-        with (
-            patch(
-                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
-            ) as mock_sync_agents,
-            patch(
-                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
-            ) as mock_deployment_service_class,
-            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
-            patch("builtins.print") as mock_print,
-            tempfile.TemporaryDirectory() as tmp_dir,
-        ):
+        with ExitStack() as stack:
+            mock_sync_agents = stack.enter_context(
+                patch("claude_mpm.services.agents.startup_sync.sync_agents_on_startup")
+            )
+            mock_deployment_service_class = stack.enter_context(
+                patch(
+                    "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+                )
+            )
+            mock_progress_bar = stack.enter_context(
+                patch("claude_mpm.utils.progress.ProgressBar")
+            )
+            mock_print = stack.enter_context(patch("builtins.print"))
+            tmp_dir = stack.enter_context(tempfile.TemporaryDirectory())
             # Setup mocks
             tmp_path = Path(tmp_dir)
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"

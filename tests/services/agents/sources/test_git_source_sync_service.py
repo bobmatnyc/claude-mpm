@@ -412,11 +412,19 @@ class TestGitSourceSyncService:
             mock_response = mock.MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = [
-                {"name": "research.md", "type": "file"},
-                {"name": "engineer.md", "type": "file"},
-                {"name": "qa.md", "type": "file"},
-                {"name": "README.md", "type": "file"},  # Should be excluded
-                {"name": "agents", "type": "dir"},  # Should be excluded
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {"name": "engineer.md", "type": "file", "path": "agents/engineer.md"},
+                {"name": "qa.md", "type": "file", "path": "agents/qa.md"},
+                {
+                    "name": "README.md",
+                    "type": "file",
+                    "path": "agents/README.md",
+                },  # Should be excluded
+                {
+                    "name": "agents",
+                    "type": "dir",
+                    "path": "agents",
+                },  # Should be excluded
             ]
             mock_get.return_value = mock_response
 
@@ -466,9 +474,13 @@ class TestGitSourceSyncService:
             mock_response = mock.MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = [
-                {"name": "research.md", "type": "file"},
-                {"name": "README.md", "type": "file"},  # Should be excluded
-                {"name": "engineer.md", "type": "file"},
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {
+                    "name": "README.md",
+                    "type": "file",
+                    "path": "agents/README.md",
+                },  # Should be excluded
+                {"name": "engineer.md", "type": "file", "path": "agents/engineer.md"},
             ]
             mock_get.return_value = mock_response
 
@@ -486,10 +498,22 @@ class TestGitSourceSyncService:
             mock_response = mock.MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = [
-                {"name": "research.md", "type": "file"},
-                {"name": "script.py", "type": "file"},  # Should be excluded
-                {"name": "config.json", "type": "file"},  # Should be excluded
-                {"name": "agents", "type": "dir"},  # Should be excluded
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {
+                    "name": "script.py",
+                    "type": "file",
+                    "path": "agents/script.py",
+                },  # Should be excluded
+                {
+                    "name": "config.json",
+                    "type": "file",
+                    "path": "agents/config.json",
+                },  # Should be excluded
+                {
+                    "name": "agents",
+                    "type": "dir",
+                    "path": "agents",
+                },  # Should be excluded
             ]
             mock_get.return_value = mock_response
 
@@ -507,15 +531,103 @@ class TestGitSourceSyncService:
             mock_response = mock.MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = [
-                {"name": "zebra.md", "type": "file"},
-                {"name": "alpha.md", "type": "file"},
-                {"name": "beta.md", "type": "file"},
+                {"name": "zebra.md", "type": "file", "path": "agents/zebra.md"},
+                {"name": "alpha.md", "type": "file", "path": "agents/alpha.md"},
+                {"name": "beta.md", "type": "file", "path": "agents/beta.md"},
             ]
             mock_get.return_value = mock_response
 
             agent_list = service._get_agent_list()
 
             assert agent_list == ["alpha.md", "beta.md", "zebra.md"]
+
+    def test_get_agent_list_excludes_template_files(self, service):
+        """Test that template files from /templates/ directory are excluded."""
+        # Mock GitHub API response with template files
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {"name": "engineer.md", "type": "file", "path": "agents/engineer.md"},
+                {
+                    "name": "template.md",
+                    "type": "file",
+                    "path": "templates/template.md",
+                },
+                {"name": "example.md", "type": "file", "path": "templates/example.md"},
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            # Only agents from /agents/ should be included
+            assert len(agent_list) == 2
+            assert "research.md" in agent_list
+            assert "engineer.md" in agent_list
+            assert "template.md" not in agent_list
+            assert "example.md" not in agent_list
+
+    def test_get_agent_list_excludes_root_md_files(self, service):
+        """Test that .md files in repository root are excluded."""
+        # Mock GitHub API response with root-level .md files
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {"name": "CHANGELOG.md", "type": "file", "path": "CHANGELOG.md"},
+                {"name": "CONTRIBUTING.md", "type": "file", "path": "CONTRIBUTING.md"},
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            # Only agents from /agents/ should be included
+            assert len(agent_list) == 1
+            assert "research.md" in agent_list
+            assert "CHANGELOG.md" not in agent_list
+            assert "CONTRIBUTING.md" not in agent_list
+
+    def test_get_agent_list_handles_nested_agents_directory(self, service):
+        """Test that nested paths within /agents/ are handled correctly."""
+        # Mock GitHub API response with nested agent paths
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {"name": "deep.md", "type": "file", "path": "agents/subfolder/deep.md"},
+                {"name": "other.md", "type": "file", "path": "docs/agents/other.md"},
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            # Only agents directly starting with "agents/" should be included
+            assert len(agent_list) == 2
+            assert "research.md" in agent_list
+            assert "deep.md" in agent_list
+            assert "other.md" not in agent_list
+
+    def test_get_agent_list_handles_missing_path_field(self, service):
+        """Test graceful handling when path field is missing from API response."""
+        # Mock GitHub API response with missing path fields
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file", "path": "agents/research.md"},
+                {"name": "nopath.md", "type": "file"},  # Missing path field
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            # Only agents with valid path starting with "agents/" should be included
+            assert len(agent_list) == 1
+            assert "research.md" in agent_list
+            assert "nopath.md" not in agent_list
 
     @mock.patch("requests.Session.get")
     def test_etag_update_on_new_content(self, mock_get, service):
