@@ -185,12 +185,14 @@ class TestPhase2CacheArchitecture:
         mock_get.side_effect = [refs_response, tree_response, file_response]
 
         # Sync repository
-        files_updated, files_cached = manager._recursive_sync_repository(
+        _files_updated, _files_cached = manager._recursive_sync_repository(
             source, cache_path, force=False
         )
 
         # Verify nested structure is preserved
-        expected_file = cache_path / "collections" / "toolchains" / "python" / "pytest.md"
+        expected_file = (
+            cache_path / "collections" / "toolchains" / "python" / "pytest.md"
+        )
         assert expected_file.exists()
         assert expected_file.read_text() == "# Pytest Skill\n\nContent"
 
@@ -226,7 +228,7 @@ class TestPhase2CacheArchitecture:
         mock_get.side_effect = [refs_response, tree_response, file_response]
 
         # Sync repository
-        files_updated, files_cached = manager._recursive_sync_repository(
+        _files_updated, _files_cached = manager._recursive_sync_repository(
             source, cache_path, force=False
         )
 
@@ -332,9 +334,7 @@ Content
         # Should have deployed skill1 but not skill2
         assert any("skill1" in name.lower() for name in deployed_names)
 
-    def test_deploy_skills_to_project_force_overwrite(
-        self, manager, temp_project_dir
-    ):
+    def test_deploy_skills_to_project_force_overwrite(self, manager, temp_project_dir):
         """Test force flag overwrites existing deployments."""
         source = manager.config.get_source("test-source")
         cache_path = manager._get_source_cache_path(source)
@@ -363,9 +363,7 @@ V1"""
         assert result3["deployed_count"] >= 1 or result3["updated_count"] >= 1
 
     @patch("requests.get")
-    def test_integration_sync_and_deploy(
-        self, mock_get, manager, temp_project_dir
-    ):
+    def test_integration_sync_and_deploy(self, mock_get, manager, temp_project_dir):
         """Test complete sync-to-cache then deploy-to-project flow."""
         # Mock GitHub API responses
         refs_response = Mock()

@@ -30,9 +30,7 @@ class TestGitTreeAPIDiscovery:
         # Mock API responses
         mock_refs_response = Mock()
         mock_refs_response.status_code = 200
-        mock_refs_response.json.return_value = {
-            "object": {"sha": "abc123def456"}
-        }
+        mock_refs_response.json.return_value = {"object": {"sha": "abc123def456"}}
 
         mock_tree_response = Mock()
         mock_tree_response.status_code = 200
@@ -81,9 +79,7 @@ class TestGitTreeAPIDiscovery:
         # Mock Tree API responses
         mock_refs_response = Mock()
         mock_refs_response.status_code = 200
-        mock_refs_response.json.return_value = {
-            "object": {"sha": "abc123"}
-        }
+        mock_refs_response.json.return_value = {"object": {"sha": "abc123"}}
 
         mock_tree_response = Mock()
         mock_tree_response.status_code = 200
@@ -151,9 +147,7 @@ class TestDeploymentFromCache:
 
             # Populate cache with test agents
             service._save_to_cache("research.md", "# Research Agent")
-            service._save_to_cache(
-                "engineer/core/engineer.md", "# Engineer Agent"
-            )
+            service._save_to_cache("engineer/core/engineer.md", "# Engineer Agent")
             service._save_to_cache("qa.md", "# QA Agent")
 
             yield service

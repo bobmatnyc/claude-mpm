@@ -410,17 +410,26 @@ class GitSourceSyncService:
         # Update source metadata
         self.sync_state.update_source_sync_metadata(source_id=self.source_id)
 
-        # Finish progress bar
+        # Finish progress bar with clear breakdown
         if progress_bar:
-            success_count = results["total_downloaded"] + results["cache_hits"]
+            downloaded = results["total_downloaded"]
+            cached = results["cache_hits"]
+            total = downloaded + cached
             failed_count = len(results["failed"])
+
             if failed_count > 0:
                 progress_bar.finish(
-                    message=f"Complete: {success_count} synced, {failed_count} failed"
+                    message=f"Complete: {downloaded} downloaded, {cached} cached, {failed_count} failed ({total} total)"
+                )
+            # Show breakdown to clarify only changed files were downloaded
+            elif cached > 0:
+                progress_bar.finish(
+                    message=f"Complete: {downloaded} downloaded, {cached} cached ({total} total)"
                 )
             else:
+                # All new downloads (first sync)
                 progress_bar.finish(
-                    message=f"Complete: {success_count} {progress_suffix} synced"
+                    message=f"Complete: {downloaded} {progress_suffix} downloaded"
                 )
 
         # Log summary

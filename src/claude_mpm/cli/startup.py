@@ -419,6 +419,8 @@ def sync_remote_skills_on_startup():
     3. Log deployment results
     """
     try:
+        from pathlib import Path
+
         from ..config.skill_sources import SkillSourceConfiguration
         from ..services.skills.git_skill_source_manager import GitSkillSourceManager
         from ..utils.progress import ProgressBar
@@ -481,9 +483,18 @@ def sync_remote_skills_on_startup():
             force=False, progress_callback=sync_progress.update
         )
 
-        # Finish sync progress bar
-        total_files = results["total_files_updated"] + results["total_files_cached"]
-        sync_progress.finish(f"Complete: {total_files} files synced")
+        # Finish sync progress bar with clear breakdown
+        downloaded = results["total_files_updated"]
+        cached = results["total_files_cached"]
+        total_files = downloaded + cached
+
+        if cached > 0:
+            sync_progress.finish(
+                f"Complete: {downloaded} downloaded, {cached} cached ({total_files} total)"
+            )
+        else:
+            # All new downloads (first sync)
+            sync_progress.finish(f"Complete: {downloaded} files downloaded")
 
         # Phase 2: Deploy skills to ~/.claude/skills/
         # This flattens nested Git structure (e.g., collaboration/parallel-agents/SKILL.md)
