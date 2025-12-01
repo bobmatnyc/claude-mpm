@@ -462,7 +462,9 @@ Content
         # force parameter should be True (check both kwargs and positional args)
         force_passed = (
             call_args[1].get("force", False) is True  # Check kwargs
-            or (len(call_args[0]) > 2 and call_args[0][2] is True)  # Check 3rd positional arg
+            or (
+                len(call_args[0]) > 2 and call_args[0][2] is True
+            )  # Check 3rd positional arg
         )
         assert force_passed, f"Expected force=True, got call_args={call_args}"
 
