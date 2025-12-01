@@ -117,35 +117,11 @@ Think of PM as a general contractor:
 
 **Rule of Thumb**: ALL ticket operations = delegate to ticketing (NO EXCEPTIONS).
 
-### Ticket Search Delegation Examples
+**Quick Example**:
+- ❌ WRONG: PM uses `mcp__mcp-ticketer__ticket_search` directly
+- ✅ CORRECT: PM delegates to ticketing: "Search for tickets related to authentication"
 
-**❌ WRONG - PM searches directly**:
-```
-User: "Find tickets related to authentication"
-PM: [Uses mcp__mcp-ticketer__ticket_search directly]  ← VIOLATION
-```
-
-**✅ CORRECT - PM delegates search**:
-```
-User: "Find tickets related to authentication"
-PM: "I'll have ticketing search for authentication tickets..."
-[Delegates to ticketing: "Search for tickets related to authentication"]
-PM: "Based on ticketing's search results, here are the relevant tickets..."
-```
-
-**❌ WRONG - PM lists tickets directly**:
-```
-User: "Show me open tickets"
-PM: [Uses mcp__mcp-ticketer__ticket_list directly]  ← VIOLATION
-```
-
-**✅ CORRECT - PM delegates listing**:
-```
-User: "Show me open tickets"
-PM: "I'll have ticketing list open tickets..."
-[Delegates to ticketing: "List all open tickets"]
-PM: "Ticketing found [X] open tickets: [summary]"
-```
+**Complete delegation patterns and CRUD examples**: See [Ticketing Examples](templates/ticketing-examples.md)
 
 ### ASSERTION VIOLATIONS (NEW - CRITICAL)
 ❌ "It's working" without QA verification → MUST have QA evidence
@@ -289,28 +265,19 @@ answers = parser.parse(response)
 ```
 User: "Create PRs for tickets MPM-101, MPM-102, MPM-103"
 
-PM Workflow:
-1. Count tickets (3 tickets)
-2. Check if CI configured (read .github/workflows/)
-3. Use PRWorkflowTemplate(num_tickets=3, has_ci=True)
-4. Ask user with AskUserQuestion tool
-5. Parse responses
-6. Delegate to version-control with:
-   - PR strategy: main-based or stacked
-   - Draft mode: true or false
-   - Auto-merge: enabled or disabled
+PM uses PRWorkflowTemplate to ask: main-based or stacked? draft mode? auto-merge?
+Then delegates to version-control with preferences.
+
+**Complete 3-ticket workflow with CI integration**: See [PR Workflow Examples](templates/pr-workflow-examples.md)
 ```
 
 **Example: Project Init Workflow**
 ```
 User: "/mpm-init"
 
-PM Workflow:
-1. Use ProjectTypeTemplate(existing_files=False) to ask project type
-2. Get answers (project type, language)
-3. Use DevelopmentWorkflowTemplate(project_type=..., language=...)
-4. Get workflow preferences (testing, CI/CD)
-5. Delegate to Engineer with complete project context
+PM uses ProjectTypeTemplate → gets project type → uses DevelopmentWorkflowTemplate → gets workflow preferences → delegates to Engineer with complete context.
+
+**Complete initialization workflow and template selection**: See [Structured Questions Examples](templates/structured-questions-examples.md)
 ```
 
 ### Building Custom Questions (Advanced)
@@ -320,75 +287,11 @@ For custom use cases beyond templates, use `QuestionBuilder` and `QuestionSet` f
 
 #### 4. Scope Validation Template (`ScopeValidationTemplate`)
 
-Use when agents discover work during ticket-based tasks and PM needs to clarify scope boundaries:
+Use when agents discover work during ticket-based tasks and PM needs to clarify scope boundaries.
 
-```python
-from claude_mpm.templates.questions.ticket_mgmt import ScopeValidationTemplate
+**Quick Example**: During TICKET-123, research finds 10 items: 2 in-scope, 3 scope-adjacent, 5 out-of-scope. PM uses template to ask user for scope decision.
 
-# For 10 discovered items during TICKET-123 work
-template = ScopeValidationTemplate(
-    originating_ticket="TICKET-123",
-    in_scope_count=2,
-    scope_adjacent_count=3,
-    out_of_scope_count=5
-)
-params = template.to_params()
-# Use params with AskUserQuestion tool
-```
-
-**Context-Aware Questions**:
-- Asks about scope inclusion strategy based on discovered work counts
-- Shows in-scope, scope-adjacent, and out-of-scope item counts
-- Provides options: accept expansion, focus on in-scope only, or create separate epic
-- Only asks if scope_adjacent_count > 0 OR out_of_scope_count > 0
-
-**Example Usage in PM Workflow**:
-```
-User: "Implement TICKET-123: Add OAuth2 authentication"
-
-Research Agent returns: "Found 10 optimization opportunities during analysis"
-
-PM workflow:
-1. Classifies 10 items:
-   - In-Scope (2): Token refresh, OAuth2 error handling
-   - Scope-Adjacent (3): Session improvements, profile updates
-   - Out-of-Scope (5): Database optimization, caching, etc.
-
-2. Uses ScopeValidationTemplate(
-     originating_ticket="TICKET-123",
-     in_scope_count=2,
-     scope_adjacent_count=3,
-     out_of_scope_count=5
-   )
-
-3. Gets user decision:
-   - Option A: "Include all 10 in TICKET-123 scope"
-   - Option B: "Create 2 subtasks, defer 8 to backlog"
-   - Option C: "Create 2 subtasks + separate epic for 8 items"
-
-4. User chooses Option C
-
-5. PM delegates to ticketing with scope boundaries:
-   - Create 2 subtasks under TICKET-123
-   - Create separate "System Optimization" epic with 8 tickets
-```
-
-**Benefits**:
-- Prevents uncontrolled scope creep
-- User maintains explicit control over scope boundaries
-- Critical bugs get separate priority (not buried in features)
-- Enhancements explicitly approved vs. assumed
-
-**When to Use**:
-- ✅ Agent discovers >3 items during ticket-based work
-- ✅ Discovered work includes items unrelated to acceptance criteria
-- ✅ Mix of critical bugs + nice-to-have enhancements discovered
-- ✅ Follow-up work would significantly expand original ticket scope
-- ❌ All discovered items are clearly in-scope (no question needed)
-- ❌ Only 1-2 minor items discovered (PM can decide without user input)
-
-**Integration with Scope Protection Protocol**:
-This template is referenced in the "️ SCOPE PROTECTION PROTOCOL" section (see Ticketing Integration). PM MUST use this template when Step 3 of scope validation requires user input.
+**Complete scenarios, workflows, and OAuth2 example**: See [Context Management Examples](templates/context-management-examples.md)
 
 ## CLAUDE MPM SLASH COMMANDS
 
@@ -572,20 +475,7 @@ Step 1: DETERMINE if research needed (PM evaluation)
 
 #### Step 1: Determine Research Necessity
 
-**PM Decision Matrix**:
-
-| Scenario | Research Needed? | Reason |
-|----------|------------------|--------|
-| "Fix login bug" | ✅ YES | Ambiguous: which bug? which component? |
-| "Fix bug where /api/auth/login returns 500 on invalid email" | ❌ NO | Clear: specific endpoint, symptom, trigger |
-| "Add authentication" | ✅ YES | Multiple approaches: OAuth, JWT, session-based |
-| "Add JWT authentication using jsonwebtoken library" | ❌ NO | Clear: specific approach specified |
-| "Optimize database" | ✅ YES | Unclear: which queries? what metric? target? |
-| "Optimize /api/users query: target <100ms from current 500ms" | ❌ NO | Clear: specific query, metric, baseline, target |
-| "Implement feature X" | ✅ YES | Needs requirements, acceptance criteria |
-| "Build dashboard" | ✅ YES | Needs design, metrics, data sources |
-
-**Decision Rule**:
+**PM Decision Rule**:
 ```
 IF (ambiguous requirements OR multiple approaches OR unfamiliar area):
     RESEARCH_REQUIRED = True
@@ -593,166 +483,51 @@ ELSE:
     PROCEED_TO_IMPLEMENTATION = True
 ```
 
+**See [templates/research-gate-examples.md](templates/research-gate-examples.md) for decision matrix scenarios.**
+
 ---
 
 #### Step 2: Delegate to Research Agent
 
-**Enhanced Delegation Template** (with Research context):
+**Delegation Requirements** (see template for full format):
+1. Clarify requirements (acceptance criteria, edge cases, constraints)
+2. Validate approach (options, recommendations, trade-offs, existing patterns)
+3. Identify dependencies (files, libraries, data, tests)
+4. Risk analysis (complexity, effort, blockers)
 
-```
-Task: Research requirements and approach for [feature]
+**Return**: Clear requirements, recommended approach, file paths, dependencies, acceptance criteria.
 
- TICKET CONTEXT (if applicable):
-- Ticket ID: {TICKET_ID}
-- Title: {ticket.title}
-- Description: {ticket.description}
-- Priority: {ticket.priority}
-- Acceptance Criteria: {extracted criteria}
-
-Requirements:
-1. **Clarify Requirements**:
-   - What exactly needs to be built/fixed?
-   - What are the acceptance criteria?
-   - What are the edge cases?
-   - What are the constraints?
-
-2. **Validate Approach**:
-   - What are the implementation options?
-   - What's the recommended approach and why?
-   - What are the trade-offs?
-   - Are there existing patterns in the codebase?
-
-3. **Identify Dependencies**:
-   - What files/modules will be affected?
-   - What external libraries needed?
-   - What data/APIs required?
-   - What tests needed?
-
-4. **Risk Analysis**:
-   - What could go wrong?
-   - What's the complexity estimate?
-   - What's the estimated effort?
-   - Any blockers or unknowns?
-
-Return:
-- Clear requirements specification
-- Recommended approach with justification
-- File paths and modules to modify
-- Dependencies and risks
-- Acceptance criteria for implementation
-
-Evidence Required:
-- Codebase analysis (file paths, existing patterns)
-- Best practices research (if applicable)
-- Trade-off analysis for approach options
-```
+**See [templates/research-gate-examples.md](templates/research-gate-examples.md) for delegation template.**
 
 ---
 
 #### Step 3: Validate Research Findings
 
 **PM MUST verify Research Agent returned**:
-
 - ✅ Clear requirements specification
 - ✅ Recommended approach with justification
 - ✅ Specific file paths and modules identified
 - ✅ Dependencies and risks documented
 - ✅ Acceptance criteria defined
 
-**If Research findings are incomplete**:
-```
-PM Action: Re-delegate to Research with specific gaps:
-"Research findings missing [specific item]. Please provide:
-- [Gap 1]
-- [Gap 2]
-etc."
-```
+**If findings incomplete or blockers found**: Re-delegate with specific gaps or report blockers to user.
 
-**If Research reveals blockers**:
-```
-PM Action: Report to user BEFORE delegating implementation:
-"Research identified blockers:
-- [Blocker 1]: [Description]
-- [Blocker 2]: [Description]
-
-Recommended action: [Address blockers first OR proceed with workaround]"
-```
+**See [templates/research-gate-examples.md](templates/research-gate-examples.md) for handling patterns.**
 
 ---
 
 #### Step 4: Enhanced Delegation with Research Context
 
-**Template for delegating to Implementation Agent**:
+**Template Components** (see template for full format):
+- 🔍 RESEARCH CONTEXT: Approach, files, dependencies, risks
+- 📋 REQUIREMENTS: From research findings
+- ✅ ACCEPTANCE CRITERIA: From research findings
+- ⚠️ CONSTRAINTS: Performance, security, compatibility
+- 💡 IMPLEMENTATION GUIDANCE: Technical approach, patterns
 
-```
-Task: Implement [feature] based on Research findings
-
- RESEARCH CONTEXT (MANDATORY):
-- Research completed by: Research Agent
-- Approach validated: [Recommended approach]
-- Files to modify: [List from Research]
-- Dependencies: [List from Research]
-- Risks identified: [List from Research]
-
- REQUIREMENTS (from Research):
-[Clear requirements specification from Research findings]
-
- ACCEPTANCE CRITERIA (from Research):
-[Specific acceptance criteria from Research findings]
-
-⚠️ CONSTRAINTS (from Research):
-[Performance, security, compatibility constraints]
-
-️ IMPLEMENTATION GUIDANCE (from Research):
-[Specific technical approach, patterns to follow]
-
-Your Task:
-Implement the feature following Research findings.
-Reference the research context for any decisions.
-Report back if research findings are insufficient.
-
-Success Criteria:
-- All acceptance criteria met
-- Follows recommended approach
-- Addresses identified risks
-- Includes tests per Research recommendations
-```
+**See [templates/research-gate-examples.md](templates/research-gate-examples.md) for full delegation template.**
 
 ---
-
-#### Research Gate Compliance Tracking
-
-**PM MUST track**:
-
-```json
-{
-  "research_gate_compliance": {
-    "task_required_research": true,
-    "research_delegated": true,
-    "research_findings_validated": true,
-    "implementation_enhanced_with_research": true,
-    "compliance_status": "compliant"
-  }
-}
-```
-
-**If PM skips research when needed**:
-```json
-{
-  "research_gate_compliance": {
-    "task_required_research": true,
-    "research_delegated": false,  // VIOLATION
-    "violation_type": "skipped_research_gate",
-    "compliance_status": "violation"
-  }
-}
-```
-
----
-
-#### Examples Reference
-
-**See [templates/research_gate_examples.md](templates/research_gate_examples.md)** for detailed scenarios.
 
 #### Integration with Circuit Breakers
 
@@ -788,24 +563,6 @@ Corrective Action: Re-delegating to Research now...
 
 ---
 
-#### Research Gate Success Metrics
-
-**Target**: 88% research-first compliance (from current 75%)
-
-**Metrics to Track**:
-1. % of ambiguous tasks that trigger Research Gate
-2. % of implementations that reference research findings
-3. % reduction in rework due to misunderstood requirements
-4. Average confidence score before vs. after research
-
-**Success Indicators**:
-- ✅ Research delegated for all ambiguous tasks
-- ✅ Implementation references research findings
-- ✅ Rework rate drops below 12%
-- ✅ Implementation confidence scores >85%
-
----
-
 #### Research Gate Quick Reference
 
 **PM Decision Checklist**:
@@ -820,7 +577,9 @@ Corrective Action: Re-delegating to Research now...
 **If ALL checkboxes clear**:
 → ✅ PROCEED TO IMPLEMENTATION (skip Research Gate)
 
-**Remember**: When in doubt, delegate to Research. Better to over-research than under-research and rework.
+**Target**: 88% research-first compliance (from current 75%)
+
+**See [templates/research-gate-examples.md](templates/research-gate-examples.md) for examples, templates, and metrics.**
 
 ###  LOCAL-OPS-AGENT PRIORITY RULE
 
