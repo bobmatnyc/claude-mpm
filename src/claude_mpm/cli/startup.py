@@ -97,7 +97,7 @@ def deploy_bundled_skills():
     WHY: Automatically deploy skills from the bundled/ directory to .claude/skills/
     to ensure skills are available for agents without manual intervention.
 
-    DESIGN DECISION: Deployment happens silently on startup with logging only.
+    DESIGN DECISION: Deployment happens with minimal feedback (checkmark on success).
     Failures are logged but don't block startup to ensure claude-mpm remains
     functional even if skills deployment fails. Respects auto_deploy config setting.
     """
@@ -128,9 +128,13 @@ def deploy_bundled_skills():
         logger = get_logger("cli")
 
         if deployment_result.get("deployed"):
-            logger.info(
-                f"Skills: Deployed {len(deployment_result['deployed'])} skill(s)"
-            )
+            # Show simple feedback for deployed skills
+            deployed_count = len(deployment_result["deployed"])
+            print(f"✓ Bundled skills ready ({deployed_count} deployed)", flush=True)
+            logger.info(f"Skills: Deployed {deployed_count} skill(s)")
+        elif not deployment_result.get("errors"):
+            # No deployment needed, skills already present
+            print("✓ Bundled skills ready", flush=True)
 
         if deployment_result.get("errors"):
             logger.warning(
@@ -153,7 +157,8 @@ def discover_and_link_runtime_skills():
     WHY: Automatically discover and link skills added to .claude/skills/
     without requiring manual configuration.
 
-    DESIGN DECISION: Failures are logged but don't block startup to ensure
+    DESIGN DECISION: Provides simple feedback on completion.
+    Failures are logged but don't block startup to ensure
     claude-mpm remains functional even if skills discovery fails.
     """
     try:
@@ -162,6 +167,8 @@ def discover_and_link_runtime_skills():
         )
 
         discover_skills()
+        # Show simple success feedback
+        print("✓ Runtime skills linked", flush=True)
     except Exception as e:
         # Import logger here to avoid circular imports
         from ..core.logger import get_logger
@@ -200,6 +207,7 @@ def deploy_output_style_on_startup():
         settings_file = Path.home() / ".claude" / "settings.json"
         output_style_file = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
 
+        already_configured = False
         if settings_file.exists() and output_style_file.exists():
             try:
                 import json
@@ -213,9 +221,14 @@ def deploy_output_style_on_startup():
                     settings = json.loads(settings_file.read_text())
                     if settings.get("activeOutputStyle") == "claude-mpm":
                         # Already deployed and active with content
-                        return
+                        already_configured = True
             except Exception:
                 pass  # Continue with deployment if we can't read settings
+
+        if already_configured:
+            # Show feedback that output style is ready
+            print("✓ Output style configured", flush=True)
+            return
 
         # Read OUTPUT_STYLE.md content
         output_style_path = Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
@@ -228,6 +241,7 @@ def deploy_output_style_on_startup():
 
         # Deploy the output style (deploys file and activates it)
         output_style_manager.deploy_output_style(output_style_content)
+        print("✓ Output style configured", flush=True)
 
     except Exception as e:
         # Non-critical - log but don't fail startup
@@ -666,8 +680,8 @@ def check_mcp_auto_configuration():
     user consent.
 
     DESIGN DECISION: This is blocking but quick - it only runs once and has
-    a 10-second timeout. We want to catch users on first run for the best
-    experience.
+    a 10-second timeout. Shows progress feedback during checks to avoid
+    appearing frozen.
 
     OPTIMIZATION: Skip ALL MCP checks for doctor and configure commands to avoid
     duplicate checks (doctor performs its own comprehensive check, configure
@@ -683,6 +697,9 @@ def check_mcp_auto_configuration():
     try:
         from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
 
+        # Show progress feedback - this operation can take 10+ seconds
+        print("Checking MCP configuration...", end="", flush=True)
+
         # This function handles all the logic:
         # - Checks if already configured
         # - Checks if pipx installation
@@ -691,7 +708,13 @@ def check_mcp_auto_configuration():
         # - Configures if user agrees
         check_and_configure_mcp()
 
+        # Clear the "Checking..." message by overwriting with spaces
+        print("\r" + " " * 30 + "\r", end="", flush=True)
+
     except Exception as e:
+        # Clear progress message on error
+        print("\r" + " " * 30 + "\r", end="", flush=True)
+
         # Non-critical - log but don't fail
         from ..core.logger import get_logger
 
@@ -711,11 +734,13 @@ def check_mcp_auto_configuration():
         _fix_success, fix_message = mcp_manager.fix_mcp_service_issues()
         if fix_message and "Fixed:" in fix_message:
             logger.info(f"MCP service fixes applied: {fix_message}")
+            print("✓ MCP services fixed", flush=True)
 
         # Ensure all services are configured correctly
         _config_success, config_message = mcp_manager.ensure_mcp_services_configured()
         if config_message and "Added MCP services" in config_message:
             logger.info(f"MCP services configured: {config_message}")
+            print("✓ MCP services configured", flush=True)
 
     except Exception as e:
         # Non-critical - log but don't fail
