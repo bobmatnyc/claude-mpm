@@ -5,6 +5,7 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 """
 
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Dict
 
@@ -104,3 +105,84 @@ class SystemInstructionsDeployer:
             self.logger.error(error_msg)
             results["errors"].append(error_msg)
             # Not raising AgentDeploymentError as this is non-critical
+
+        # Also deploy templates directory
+        self.deploy_templates(claude_dir, force_rebuild, results)
+
+    def deploy_templates(
+        self,
+        claude_dir: Path,
+        force_rebuild: bool,
+        results: Dict[str, Any],
+    ) -> None:
+        """
+        Deploy template reference files to project .claude/templates directory.
+
+        Templates are documentation files referenced in PM_INSTRUCTIONS.md that provide
+        detailed protocols, examples, and matrices. They are deployed alongside the
+        main instruction files for easy access.
+
+        Args:
+            claude_dir: Project .claude directory
+            force_rebuild: Force rebuild even if exists
+            results: Results dictionary to update
+        """
+        try:
+            # Find templates source directory
+            from claude_mpm.config.paths import paths
+
+            templates_source = paths.agents_dir / "templates"
+
+            if not templates_source.exists():
+                self.logger.warning(f"Templates source directory not found: {templates_source}")
+                return
+
+            # Create templates target directory
+            templates_target = claude_dir / "templates"
+            templates_target.mkdir(parents=True, exist_ok=True)
+
+            # Deploy template markdown files
+            template_files = list(templates_source.glob("*.md"))
+            deployed_count = 0
+            skipped_count = 0
+
+            for template_file in template_files:
+                # Skip special files
+                if template_file.name.startswith("__"):
+                    continue
+
+                target_file = templates_target / template_file.name
+
+                # Check if update needed
+                if (
+                    not force_rebuild
+                    and target_file.exists()
+                    and target_file.stat().st_mtime >= template_file.stat().st_mtime
+                ):
+                    skipped_count += 1
+                    continue
+
+                # Copy template file
+                shutil.copy2(template_file, target_file)
+                deployed_count += 1
+
+                self.logger.debug(f"Deployed template: {template_file.name}")
+
+            # Track results
+            if deployed_count > 0:
+                template_info = {
+                    "name": "templates/",
+                    "count": deployed_count,
+                    "target": str(templates_target),
+                }
+                results["deployed"].append(template_info)
+                self.logger.info(f"Deployed {deployed_count} template files to {templates_target}")
+
+            if skipped_count > 0:
+                self.logger.debug(f"Skipped {skipped_count} up-to-date template files")
+
+        except Exception as e:
+            error_msg = f"Failed to deploy templates: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)
+            # Not raising exception as template deployment is non-critical
