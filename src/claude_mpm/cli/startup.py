@@ -568,6 +568,12 @@ def run_background_services():
     Initialize all background services on startup.
 
     WHY: Centralizes all startup service initialization for cleaner main().
+
+    NOTE: System instructions (PM_INSTRUCTIONS.md, WORKFLOW.md, MEMORY.md) and
+    templates do NOT deploy automatically on startup. They only deploy when user
+    explicitly requests them via agent-manager commands. This prevents unwanted
+    file creation in project .claude/ directories.
+    See: SystemInstructionsDeployer and agent_deployment.py line 504-509
     """
     initialize_project_registry()
     check_mcp_auto_configuration()
