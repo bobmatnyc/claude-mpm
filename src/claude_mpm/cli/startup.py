@@ -574,9 +574,16 @@ def run_background_services():
     verify_mcp_gateway_startup()
     check_for_updates_async()
     sync_remote_agents_on_startup()  # Sync agents from remote sources
-    sync_remote_skills_on_startup()  # NEW: Sync skills from remote sources
-    deploy_bundled_skills()
-    discover_and_link_runtime_skills()
+
+    # Skills deployment order (precedence: remote > bundled)
+    # 1. Deploy bundled skills first (base layer from package)
+    # 2. Sync and deploy remote skills (Git sources, can override bundled)
+    # 3. Discover and link runtime skills (user-added skills)
+    # This ensures remote skills take precedence over bundled skills when names conflict
+    deploy_bundled_skills()  # Base layer: package-bundled skills
+    sync_remote_skills_on_startup()  # Override layer: Git-based skills (takes precedence)
+    discover_and_link_runtime_skills()  # Discovery: user-added skills
+
     deploy_output_style_on_startup()
 
 
@@ -655,7 +662,18 @@ def check_mcp_auto_configuration():
     DESIGN DECISION: This is blocking but quick - it only runs once and has
     a 10-second timeout. We want to catch users on first run for the best
     experience.
+
+    OPTIMIZATION: Skip ALL MCP checks for doctor and configure commands to avoid
+    duplicate checks (doctor performs its own comprehensive check, configure
+    allows users to select services).
     """
+    # Skip MCP service checks for the doctor and configure commands
+    # The doctor command performs its own comprehensive MCP service check
+    # The configure command allows users to configure which services to enable
+    # Running both would cause duplicate checks and log messages (9 seconds apart)
+    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure"):
+        return
+
     try:
         from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
 
@@ -673,13 +691,6 @@ def check_mcp_auto_configuration():
 
         logger = get_logger("cli")
         logger.debug(f"MCP auto-configuration check failed: {e}")
-
-    # Skip MCP service fixes for the doctor and configure commands
-    # The doctor command performs its own comprehensive MCP service check
-    # The configure command allows users to configure which services to enable
-    # Running both would cause duplicate checks and log messages (9 seconds apart)
-    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure"):
-        return
 
     # Also ensure MCP services are properly configured in ~/.claude.json
     # This fixes incorrect paths and adds missing services
@@ -749,68 +760,14 @@ def verify_mcp_gateway_startup():
 
         # DISABLED: Pre-warming MCP servers can interfere with Claude Code's MCP management
         # This was causing issues with MCP server initialization and stderr handling
-        # def run_pre_warming():
-        #     loop = None
-        #     try:
-        #         start_time = time.time()
-        #         loop = asyncio.new_event_loop()
-        #         asyncio.set_event_loop(loop)
-        #
-        #         # Pre-warm MCP servers (especially vector search)
-        #         logger.info("Pre-warming MCP servers to eliminate startup delay...")
-        #         loop.run_until_complete(pre_warm_mcp_servers())
-        #
-        #         pre_warm_time = time.time() - start_time
-        #         if pre_warm_time > 1.0:
-        #             logger.info(f"MCP servers pre-warmed in {pre_warm_time:.2f}s")
+        # Pre-warming functionality has been removed. Gateway verification only runs
+        # if MCP gateway is not already configured.
 
-        # Dummy function to maintain structure
-        def run_pre_warming():
-            loop = None
-            try:
-                time.time()
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                # Also run gateway verification if needed
-                if not gateway_configured:
-                    loop.run_until_complete(verify_mcp_gateway_on_startup())
-
-            except Exception as e:
-                # Non-blocking - log but don't fail
-                logger.debug(f"MCP pre-warming error (non-critical): {e}")
-            finally:
-                # Properly clean up event loop to prevent kqueue warnings
-                if loop is not None:
-                    try:
-                        # Cancel all running tasks
-                        pending = asyncio.all_tasks(loop)
-                        for task in pending:
-                            task.cancel()
-                        # Wait for tasks to complete cancellation
-                        if pending:
-                            loop.run_until_complete(
-                                asyncio.gather(*pending, return_exceptions=True)
-                            )
-                    except Exception:
-                        pass  # Ignore cleanup errors
-                    finally:
-                        loop.close()
-                        # Clear the event loop reference to help with cleanup
-                        asyncio.set_event_loop(None)
-
-        # Run pre-warming in background thread
-        import threading
-
-        pre_warm_thread = threading.Thread(target=run_pre_warming, daemon=True)
-        pre_warm_thread.start()
-
-        return
-
-        # Run detailed verification in background if not configured
+        # Run gateway verification in background if not configured
         if not gateway_configured:
-            # Note: We don't await this to avoid blocking startup
+
             def run_verification():
+                """Background thread to verify MCP gateway configuration."""
                 loop = None
                 try:
                     loop = asyncio.new_event_loop()
