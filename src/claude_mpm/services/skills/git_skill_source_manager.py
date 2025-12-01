@@ -469,7 +469,7 @@ class GitSkillSourceManager:
             if f.endswith(".md") or f.endswith(".json") or f == ".gitignore"
         ]
 
-        for file_path in relevant_files:
+        for idx, file_path in enumerate(relevant_files, start=1):
             # Build raw GitHub URL
             raw_url = f"https://raw.githubusercontent.com/{owner_repo}/{source.branch}/{file_path}"
 
@@ -485,7 +485,7 @@ class GitSkillSourceManager:
 
             # Call progress callback if provided
             if progress_callback:
-                progress_callback(1)
+                progress_callback(idx)
 
         self.logger.info(
             f"Repository sync complete: {files_updated} updated, {files_cached} cached"
@@ -735,7 +735,7 @@ class GitSkillSourceManager:
             f"Deploying {len(all_skills)} skills to {target_dir} (force={force})"
         )
 
-        for skill in all_skills:
+        for idx, skill in enumerate(all_skills, start=1):
             skill_name = skill.get("name", "unknown")
             deployment_name = skill.get("deployment_name")
 
@@ -745,7 +745,7 @@ class GitSkillSourceManager:
                 )
                 errors.append(f"{skill_name}: Missing deployment_name")
                 if progress_callback:
-                    progress_callback(1)
+                    progress_callback(idx)
                 continue
 
             try:
@@ -767,7 +767,7 @@ class GitSkillSourceManager:
 
             # Call progress callback for each skill processed
             if progress_callback:
-                progress_callback(1)
+                progress_callback(idx)
 
         self.logger.info(
             f"Deployment complete: {len(deployed)} deployed, "
