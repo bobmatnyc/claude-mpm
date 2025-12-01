@@ -95,8 +95,10 @@ class TestGitSourceManagerSyncRepository:
 
         result = manager.sync_repository(repo, force=True)
 
-        # Verify force_refresh was passed
-        mock_sync_service.sync_agents.assert_called_once_with(force_refresh=True)
+        # Verify force_refresh was passed with show_progress
+        mock_sync_service.sync_agents.assert_called_once_with(
+            force_refresh=True, show_progress=True
+        )
         assert result["synced"] is True
 
     @patch("src.claude_mpm.services.agents.git_source_manager.GitSourceSyncService")

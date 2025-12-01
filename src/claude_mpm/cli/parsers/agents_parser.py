@@ -193,6 +193,11 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         action="store_true",
         help="Show what would be deployed without actually deploying",
     )
+    deploy_agents_parser.add_argument(
+        "--preset",
+        type=str,
+        help="Deploy agents by preset name (minimal, python-dev, nextjs-fullstack, etc.)",
+    )
 
     # Validate agents
     validate_agents_parser = agents_subparsers.add_parser(

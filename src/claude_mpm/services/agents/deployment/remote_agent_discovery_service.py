@@ -65,11 +65,85 @@ class RemoteAgentDiscoveryService:
         self.remote_agents_dir = remote_agents_dir
         self.logger = get_logger(__name__)
 
+    def _generate_hierarchical_id(self, file_path: Path) -> str:
+        """Generate hierarchical agent ID from file path.
+
+        Converts file path relative to agents subdirectory into hierarchical ID.
+
+        Design Decision: Path-based IDs for hierarchy preservation
+
+        Rationale: Agent IDs must reflect directory hierarchy to enable:
+        - Category-based filtering (engineer/backend/python-engineer)
+        - Preset matching against AUTO-DEPLOY-INDEX.md
+        - Multi-level organization without name collisions
+
+        Bug #4 Fix: Calculate relative to /agents/ subdirectory, not repository root
+        This ensures agent IDs are based on their position within the agents directory.
+
+        Example:
+            Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
+            Root:   /cache/bobmatnyc/claude-mpm-agents/agents
+            Output: engineer/backend/python-engineer
+
+        Args:
+            file_path: Absolute path to agent Markdown file
+
+        Returns:
+            Hierarchical agent ID with forward slashes
+        """
+        try:
+            # Calculate relative to /agents/ subdirectory (Bug #4 fix)
+            agents_dir = self.remote_agents_dir / "agents"
+            relative_path = file_path.relative_to(agents_dir)
+
+            # Remove .md extension and convert to forward slashes
+            agent_id = str(relative_path.with_suffix("")).replace("\\", "/")
+
+            return agent_id
+        except ValueError:
+            # File is not under agents subdirectory, fall back to filename
+            self.logger.warning(
+                f"File {file_path} not under agents directory, using filename"
+            )
+            return file_path.stem
+
+    def _detect_category_from_path(self, file_path: Path) -> str:
+        """Detect category from file path hierarchy.
+
+        Extracts category from directory structure. Category is the path
+        from agents subdirectory to the file, excluding the filename.
+
+        Bug #4 Fix: Calculate relative to /agents/ subdirectory, not repository root
+        This ensures categories are based on agent organization within /agents/.
+
+        Example:
+            Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
+            Root:   /cache/bobmatnyc/claude-mpm-agents/agents
+            Output: engineer/backend
+
+        Args:
+            file_path: Absolute path to agent Markdown file
+
+        Returns:
+            Category path with forward slashes, or "universal" if in root
+        """
+        try:
+            # Calculate relative to /agents/ subdirectory (Bug #4 fix)
+            agents_dir = self.remote_agents_dir / "agents"
+            relative_path = file_path.relative_to(agents_dir)
+            parts = relative_path.parts[:-1]  # Exclude filename
+            return "/".join(parts) if parts else "universal"
+        except ValueError:
+            return "universal"
+
     def discover_remote_agents(self) -> List[Dict[str, Any]]:
         """Discover all remote agents from cache directory.
 
-        Scans the remote agents directory for *.md files and converts each
+        Scans the remote agents directory for *.md files recursively and converts each
         to JSON template format. Skips files that can't be parsed.
+
+        Bug #4 Fix: Only scan /agents/ subdirectory, not entire repository
+        This prevents README.md, CHANGELOG.md, etc. from being treated as agents.
 
         Returns:
             List of agent dictionaries in JSON template format
@@ -90,11 +164,20 @@ class RemoteAgentDiscoveryService:
             )
             return agents
 
-        # Find all Markdown files
-        md_files = list(self.remote_agents_dir.glob("*.md"))
-        self.logger.debug(
-            f"Found {len(md_files)} Markdown files in {self.remote_agents_dir}"
-        )
+        # Bug #4 Fix: Only scan /agents/ subdirectory, not entire repository
+        # This prevents non-agent files (README.md, CHANGELOG.md, etc.) from polluting results
+        agents_dir = self.remote_agents_dir / "agents"
+
+        if not agents_dir.exists():
+            self.logger.warning(
+                f"Agents subdirectory not found: {agents_dir}. "
+                f"Expected agents to be in /agents/ subdirectory."
+            )
+            return agents
+
+        # Find all Markdown files recursively in /agents/ subdirectory only
+        md_files = list(agents_dir.rglob("*.md"))
+        self.logger.debug(f"Found {len(md_files)} Markdown files in {agents_dir}")
 
         for md_file in md_files:
             try:
@@ -187,15 +270,12 @@ class RemoteAgentDiscoveryService:
         # Get version (SHA-256 hash) from cache metadata
         version = self._get_agent_version(md_file)
 
-        # Generate agent_id from name (lowercase, replace spaces/underscores with hyphens)
-        # 1. Convert to lowercase
-        # 2. Replace spaces and underscores with hyphens
-        # 3. Remove any characters that aren't alphanumeric or hyphens
-        # 4. Collapse multiple consecutive hyphens into one
-        agent_id = name.lower()
-        agent_id = agent_id.replace(" ", "-").replace("_", "-")
-        agent_id = re.sub(r"[^a-z0-9-]+", "", agent_id)
-        agent_id = re.sub(r"-+", "-", agent_id)  # Collapse multiple hyphens
+        # Bug #3 fix: Generate hierarchical agent_id from file path
+        # This preserves directory structure for category filtering and preset matching
+        agent_id = self._generate_hierarchical_id(md_file)
+
+        # Bug #1 fix: Detect category from directory path
+        category = self._detect_category_from_path(md_file)
 
         # Convert to JSON template format and return
         # IMPORTANT: Include 'path' field for compatibility with deployment validation (ticket 1M-480)
@@ -207,7 +287,7 @@ class RemoteAgentDiscoveryService:
                 "description": description,
                 "version": version,
                 "author": "remote",  # Mark as remote agent
-                "category": "agent",
+                "category": category,  # Use detected category from path
             },
             "model": model,
             "source": "remote",  # Mark as remote agent
@@ -217,6 +297,7 @@ class RemoteAgentDiscoveryService:
             ),  # Add 'path' field for deployment compatibility (1M-480)
             "file_path": str(md_file),  # Keep for backward compatibility
             "version": version,  # Include at root level for version comparison
+            "category": category,  # Add category at root level for filtering
             "routing": {"keywords": keywords, "paths": paths, "priority": priority},
         }
 

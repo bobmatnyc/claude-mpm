@@ -561,8 +561,12 @@ class AgentsCommand(AgentCommand):
             return CommandResult.error_result(f"Error discovering agents: {e}")
 
     def _deploy_agents(self, args, force=False) -> CommandResult:
-        """Deploy both system and project agents."""
+        """Deploy both system and project agents, or deploy by preset."""
         try:
+            # Handle preset deployment
+            if hasattr(args, "preset") and args.preset:
+                return self._deploy_preset(args)
+
             # Deploy system agents
             system_result = self.deployment_service.deploy_system_agents(force=force)
 
@@ -607,6 +611,173 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error deploying agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error deploying agents: {e}")
+
+    def _deploy_preset(self, args) -> CommandResult:
+        """Deploy agents by preset name.
+
+        This method implements Phase 2 of the agents/skills CLI redesign,
+        enabling preset-based deployment like:
+            claude-mpm agents deploy --preset python-dev
+
+        Args:
+            args: Command arguments with preset name and optional flags
+
+        Returns:
+            CommandResult with deployment status
+        """
+        try:
+            from pathlib import Path
+
+            from ...config.agent_sources import AgentSourceConfiguration
+            from ...services.agents.agent_preset_service import AgentPresetService
+            from ...services.agents.git_source_manager import GitSourceManager
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
+
+            preset_name = args.preset
+            dry_run = getattr(args, "dry_run", False)
+
+            # Initialize services
+            config = AgentSourceConfiguration.load()
+            deployment_dir = Path.home() / ".claude" / "agents"
+            git_source_manager = GitSourceManager()
+            preset_service = AgentPresetService(git_source_manager)
+            deployment_service = SingleTierDeploymentService(config, deployment_dir)
+
+            # Validate preset
+            if not preset_service.validate_preset(preset_name):
+                available = preset_service.list_presets()
+                print(f"❌ Unknown preset: {preset_name}")
+                print("\n📚 Available presets:")
+                for preset in available:
+                    print(
+                        f"  • {preset['name']}: {preset['description']} ({preset['agent_count']} agents)"
+                    )
+                    print(f"    Use cases: {', '.join(preset['use_cases'])}")
+                return CommandResult.error_result(f"Unknown preset: {preset_name}")
+
+            # Resolve preset to agent list
+            print(f"\n🔍 Resolving preset: {preset_name}")
+            resolution = preset_service.resolve_agents(
+                preset_name, validate_availability=True
+            )
+
+            # Show preset info
+            preset_info = resolution["preset_info"]
+            print(f"\n🎯 Preset: {preset_info['description']}")
+            print(f"   Agents: {preset_info['agent_count']}")
+            print(f"   Use cases: {', '.join(preset_info['use_cases'])}")
+
+            # Show warnings for missing agents
+            if resolution["missing_agents"]:
+                print("\n⚠️  Missing agents (not found in configured sources):")
+                for agent_id in resolution["missing_agents"]:
+                    print(f"    • {agent_id}")
+                print("\n💡 These agents are not available in your configured sources.")
+                print("   Deployment will continue with available agents.")
+
+            # Show conflicts
+            if resolution["conflicts"]:
+                print("\n⚠️  Priority conflicts detected:")
+                for conflict in resolution["conflicts"]:
+                    sources = ", ".join(conflict["sources"])
+                    print(f"    • {conflict['agent_id']} (found in: {sources})")
+                print("    Using highest priority source for each")
+
+            # Dry run mode
+            if dry_run:
+                print("\n🔍 DRY RUN: Preview agent deployment\n")
+                print("Agents to deploy:")
+                for agent in resolution["agents"]:
+                    source = agent.get("source", "unknown")
+                    print(f"  ✓ {agent['agent_id']} (from {source})")
+                print(
+                    "\n💡 This is a dry run. Run without --dry-run to actually deploy."
+                )
+                return CommandResult.success_result(
+                    "Dry run complete",
+                    data={
+                        "preset": preset_name,
+                        "agents": resolution["agents"],
+                        "missing": resolution["missing_agents"],
+                    },
+                )
+
+            # Deploy agents
+            print(f"\n📦 Deploying {len(resolution['agents'])} agents...")
+            deployed_count = 0
+            failed_count = 0
+            skipped_count = len(resolution["missing_agents"])
+            deployed_agents = []
+            failed_agents = []
+
+            for agent in resolution["agents"]:
+                agent_id = agent["agent_id"]
+                try:
+                    # Deploy using single-tier deployment service
+                    result = deployment_service.deploy_agent(
+                        agent_id, source_repo=agent.get("source"), dry_run=False
+                    )
+
+                    if result.get("deployed"):
+                        deployed_count += 1
+                        deployed_agents.append(agent_id)
+                        print(f"  ✓ {agent_id}")
+                    else:
+                        failed_count += 1
+                        failed_agents.append(
+                            {
+                                "agent_id": agent_id,
+                                "error": result.get("error", "Unknown"),
+                            }
+                        )
+                        print(f"  ✗ {agent_id}: {result.get('error', 'Failed')}")
+
+                except Exception as e:
+                    failed_count += 1
+                    failed_agents.append({"agent_id": agent_id, "error": str(e)})
+                    print(f"  ✗ {agent_id}: {e}")
+
+            # Summary
+            print(f"\n{'=' * 60}")
+            print("📊 Deployment Summary")
+            print(f"{'=' * 60}")
+            print(f"  ✅ Deployed: {deployed_count}")
+            print(f"  ❌ Failed: {failed_count}")
+            print(f"  ⏭️  Skipped: {skipped_count} (missing from sources)")
+            print(f"{'=' * 60}\n")
+
+            if failed_agents:
+                print("❌ Failed agents:")
+                for failure in failed_agents:
+                    print(f"  • {failure['agent_id']}: {failure['error']}")
+                print()
+
+            if deployed_count > 0:
+                print(f"✅ Successfully deployed {deployed_count} agents!")
+                return CommandResult.success_result(
+                    f"Deployed {deployed_count} agents from preset '{preset_name}'",
+                    data={
+                        "preset": preset_name,
+                        "deployed": deployed_agents,
+                        "failed": failed_agents,
+                        "skipped": resolution["missing_agents"],
+                    },
+                )
+            return CommandResult.error_result(
+                f"No agents deployed from preset '{preset_name}'",
+                data={
+                    "preset": preset_name,
+                    "failed": failed_agents,
+                    "skipped": resolution["missing_agents"],
+                },
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error deploying preset: {e}", exc_info=True)
+            print(f"\n❌ Error deploying preset: {e}")
+            return CommandResult.error_result(f"Error deploying preset: {e}")
 
     def _clean_agents(self, args) -> CommandResult:
         """Clean deployed agents."""

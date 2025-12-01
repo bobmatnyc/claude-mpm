@@ -8,7 +8,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.local_template_manager import (
@@ -26,6 +26,18 @@ class AgentWizard:
         """Initialize the agent wizard."""
         self.manager = LocalAgentTemplateManager()
         self.logger = logger
+
+        # Initialize remote discovery services
+        try:
+            from claude_mpm.services.agents.git_source_manager import GitSourceManager
+
+            self.source_manager = GitSourceManager()
+            self.discovery_enabled = True
+            self.logger.debug("Remote agent discovery enabled")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize remote discovery: {e}")
+            self.source_manager = None
+            self.discovery_enabled = False
 
     def run_interactive_create(self) -> Tuple[bool, str]:
         """Run interactive agent creation wizard.
@@ -117,6 +129,77 @@ class AgentWizard:
             self.logger.error(error_msg, exc_info=True)
             return False, error_msg
 
+    def _merge_agent_sources(self) -> List[Dict[str, Any]]:
+        """
+        Merge agents from all sources with precedence: local > discovered.
+
+        Returns list of agents with metadata:
+        {
+            "agent_id": "engineer/backend/python-engineer",
+            "name": "Python Engineer",
+            "description": "...",
+            "source_type": "system" | "project",
+            "source_identifier": "bobmatnyc/claude-mpm-agents",
+            "category": "engineer/backend",
+            "deployed": True | False,
+            "path": "/path/to/agent.md"
+        }
+        """
+        agents = {}
+
+        # Get discovered agents (system/user sources)
+        if self.discovery_enabled and self.source_manager:
+            try:
+                discovered = self.source_manager.list_cached_agents()
+                self.logger.debug(f"Discovered {len(discovered)} remote agents")
+
+                for agent in discovered:
+                    agent_id = agent.get("agent_id", "")
+                    if not agent_id:
+                        continue
+
+                    # Extract metadata
+                    metadata = agent.get("metadata", {})
+                    agents[agent_id] = {
+                        "agent_id": agent_id,
+                        "name": metadata.get("name", agent_id),
+                        "description": metadata.get("description", ""),
+                        "source_type": "system",
+                        "source_identifier": agent.get("source", "unknown"),
+                        "category": agent.get("category", ""),
+                        "deployed": False,  # Will be updated below
+                        "path": agent.get("path", agent.get("source_file", "")),
+                    }
+            except Exception as e:
+                self.logger.warning(f"Failed to discover remote agents: {e}")
+
+        # Get local agents (project-level, highest precedence)
+        local_templates = self.manager.list_local_templates()
+        for template in local_templates:
+            agent_id = template.agent_id
+            agents[agent_id] = {
+                "agent_id": agent_id,
+                "name": template.metadata.get("name", agent_id),
+                "description": template.metadata.get("description", ""),
+                "source_type": "project",
+                "source_identifier": "local",
+                "category": template.metadata.get("category", ""),
+                "deployed": True,  # Local templates are deployed
+                "path": str(self._get_template_path(template)),
+            }
+
+        # Check deployment status for discovered agents
+        deployed_dir = Path.cwd() / ".claude" / "agents"
+        if deployed_dir.exists():
+            for agent_id, agent_data in agents.items():
+                deployed_file = deployed_dir / f"{agent_id.replace('/', '-')}.md"
+                # Also check hierarchical path
+                deployed_file_alt = deployed_dir / f"{agent_id.split('/')[-1]}.md"
+                if deployed_file.exists() or deployed_file_alt.exists():
+                    agent_data["deployed"] = True
+
+        return list(agents.values())
+
     def run_interactive_manage(self) -> Tuple[bool, str]:
         """Run interactive agent management menu.
 
@@ -125,15 +208,17 @@ class AgentWizard:
         """
         try:
             while True:
-                # List current local agents
-                templates = self.manager.list_local_templates()
+                # Get merged agents from all sources
+                all_agents = self._merge_agent_sources()
 
                 print("\n" + "=" * 60)
                 print("🔧  Agent Management Menu")
                 print("=" * 60)
 
-                if not templates:
-                    print("\n📭 No local agents found.")
+                if not all_agents:
+                    print(
+                        "\n📭 No agents found. Configure sources with 'claude-mpm agents discover'"
+                    )
                     print("\n1. Create new agent")
                     print("2. Import agents")
                     print("3. Exit")
@@ -148,21 +233,44 @@ class AgentWizard:
                         return True, "Management menu exited"
                     print("❌ Invalid choice. Please try again.")
                     continue
-                # Show existing agents
-                print(f"\n📋 Found {len(templates)} local agent(s):")
-                for i, template in enumerate(templates, 1):
-                    tier_icon = "🏢" if template.tier == "project" else "👤"
+
+                # Show existing agents in a table
+                print(f"\n📋 Found {len(all_agents)} agent(s):\n")
+                print(
+                    f"{'#':<4} {'Agent ID':<40} {'Name':<25} {'Source':<20} {'Status':<10}"
+                )
+                print("-" * 105)
+
+                for i, agent in enumerate(all_agents, 1):
+                    agent_id = agent["agent_id"]
+                    name = (
+                        agent["name"][:24] if len(agent["name"]) > 24 else agent["name"]
+                    )
+                    source_label = (
+                        f"[{agent['source_type']}] {agent['source_identifier']}"[:19]
+                    )
+                    status = "✓ Deployed" if agent["deployed"] else "Available"
+
                     print(
-                        f"   {i}. {tier_icon} {template.agent_id} - {template.metadata.get('name', template.agent_id)}"
+                        f"{i:<4} {agent_id:<40} {name:<25} {source_label:<20} {status:<10}"
                     )
 
-                print(f"\n{len(templates) + 1}. Create new agent")
-                print(f"{len(templates) + 2}. Delete agent(s)")
-                print(f"{len(templates) + 3}. Import agents")
-                print(f"{len(templates) + 4}. Export all agents")
-                print(f"{len(templates) + 5}. Exit")
+                # Enhanced menu options
+                print(f"\n{len(all_agents) + 1}. Deploy agent")
+                print(f"{len(all_agents) + 2}. Create new agent")
+                print(f"{len(all_agents) + 3}. Delete agent(s)")
+                print(f"{len(all_agents) + 4}. Import agents")
+                print(f"{len(all_agents) + 5}. Export all agents")
+                if self.discovery_enabled:
+                    print(f"{len(all_agents) + 6}. Browse & filter agents")
+                    print(f"{len(all_agents) + 7}. Deploy preset")
+                    print(f"{len(all_agents) + 8}. Manage agent sources")
+                    print(f"{len(all_agents) + 9}. Exit")
+                    max_choice = len(all_agents) + 9
+                else:
+                    print(f"{len(all_agents) + 6}. Exit")
+                    max_choice = len(all_agents) + 6
 
-                max_choice = len(templates) + 5
                 choice = input(f"\nSelect option [1-{max_choice}]: ").strip()
 
                 try:
@@ -171,37 +279,46 @@ class AgentWizard:
                     print("❌ Invalid choice. Please enter a number.")
                     continue
 
-                if 1 <= choice_num <= len(templates):
-                    # Manage specific agent
-                    selected_template = templates[choice_num - 1]
-                    result = self._manage_single_agent(selected_template)
-                    if not result[0]:
-                        print(f"❌ {result[1]}")
-                elif choice_num == len(templates) + 1:
+                if 1 <= choice_num <= len(all_agents):
+                    # View agent details
+                    selected_agent = all_agents[choice_num - 1]
+                    self._show_agent_details(selected_agent)
+                    continue
+                if choice_num == len(all_agents) + 1:
+                    self._deploy_agent_interactive(all_agents)
+                elif choice_num == len(all_agents) + 2:
                     _, message = self.run_interactive_create()
                     if message:
-                        # Message already has emoji from the function
                         print(f"\n{message}")
-                    continue  # Return to main menu
-                elif choice_num == len(templates) + 2:
-                    _, message = self._interactive_delete_menu(templates)
+                    continue
+                elif choice_num == len(all_agents) + 3:
+                    local_templates = self.manager.list_local_templates()
+                    _, message = self._interactive_delete_menu(local_templates)
                     if message:
-                        # Message already has emoji from the function
                         print(f"\n{message}")
-                    continue  # Return to main menu
-                elif choice_num == len(templates) + 3:
+                    continue
+                elif choice_num == len(all_agents) + 4:
                     _, message = self._interactive_import()
                     if message:
-                        # Message already has emoji from the function
                         print(f"\n{message}")
-                    continue  # Return to main menu
-                elif choice_num == len(templates) + 4:
+                    continue
+                elif choice_num == len(all_agents) + 5:
                     _success, message = self._interactive_export()
                     if message:
-                        # Message already has emoji from the function
                         print(f"\n{message}")
-                    continue  # Return to main menu
-                elif choice_num == len(templates) + 5:
+                    continue
+                elif choice_num == len(all_agents) + 6 and self.discovery_enabled:
+                    self._browse_agents_interactive()
+                    continue
+                elif choice_num == len(all_agents) + 7 and self.discovery_enabled:
+                    self._deploy_preset_interactive()
+                    continue
+                elif choice_num == len(all_agents) + 8 and self.discovery_enabled:
+                    self._manage_sources_interactive()
+                    continue
+                elif (choice_num == len(all_agents) + 9 and self.discovery_enabled) or (
+                    choice_num == len(all_agents) + 6 and not self.discovery_enabled
+                ):
                     return True, "Management menu exited"
                 else:
                     print("❌ Invalid choice. Please try again.")
@@ -918,6 +1035,759 @@ class AgentWizard:
                 message += f"   - {agent_id}: {', '.join(errors)}\n"
 
         return len(results["successful"]) > 0, message.strip()
+
+    def _show_agent_details(self, agent: Dict[str, Any]) -> None:
+        """Show detailed information about an agent.
+
+        Args:
+            agent: Agent metadata dictionary
+        """
+        print("\n" + "=" * 60)
+        print(f"📄 Agent Details: {agent['agent_id']}")
+        print("=" * 60)
+        print(f"Name:         {agent['name']}")
+        print(f"Category:     {agent['category'] or 'N/A'}")
+        print(f"Source:       [{agent['source_type']}] {agent['source_identifier']}")
+        print(f"Status:       {'✓ Deployed' if agent['deployed'] else 'Available'}")
+        print(f"Path:         {agent['path']}")
+
+        if agent["description"]:
+            print("\nDescription:")
+            print(
+                f"  {agent['description'][:200]}{'...' if len(agent['description']) > 200 else ''}"
+            )
+
+        input("\nPress Enter to continue...")
+
+    def _deploy_agent_interactive(self, available_agents: List[Dict[str, Any]]):
+        """Interactive agent deployment.
+
+        Args:
+            available_agents: List of all available agents
+        """
+        # Filter to non-deployed agents
+        deployable = [a for a in available_agents if not a["deployed"]]
+
+        if not deployable:
+            print("\n✅ All agents are already deployed!")
+            input("\nPress Enter to continue...")
+            return
+
+        print("\n" + "=" * 60)
+        print("📦 Deploy Agent")
+        print("=" * 60)
+        print(f"\n{len(deployable)} agent(s) available to deploy:\n")
+
+        for i, agent in enumerate(deployable, 1):
+            print(f"  {i}. {agent['agent_id']}")
+            print(
+                f"     {agent['description'][:60]}{'...' if len(agent['description']) > 60 else ''}"
+            )
+
+        choice = input("\nEnter agent number (or 'c' to cancel): ").strip()
+        if choice.lower() == "c":
+            return
+
+        try:
+            idx = int(choice) - 1
+            if idx < 0 or idx >= len(deployable):
+                print("❌ Invalid selection")
+                input("\nPress Enter to continue...")
+                return
+
+            agent = deployable[idx]
+
+            # Deploy agent using deployment service
+            print(f"\n🚀 Deploying {agent['agent_id']}...")
+
+            try:
+                # Use SingleAgentDeployer for deployment
+                from claude_mpm.services.agents.deployment.agent_template_builder import (
+                    AgentTemplateBuilder,
+                )
+                from claude_mpm.services.agents.deployment.agent_version_manager import (
+                    AgentVersionManager,
+                )
+                from claude_mpm.services.agents.deployment.deployment_results_manager import (
+                    DeploymentResultsManager,
+                )
+                from claude_mpm.services.agents.deployment.single_agent_deployer import (
+                    SingleAgentDeployer,
+                )
+
+                # Initialize deployment services
+                template_builder = AgentTemplateBuilder()
+                version_manager = AgentVersionManager()
+                results_manager = DeploymentResultsManager(self.logger)
+                deployer = SingleAgentDeployer(
+                    template_builder=template_builder,
+                    version_manager=version_manager,
+                    results_manager=results_manager,
+                    logger=self.logger,
+                )
+
+                # Prepare deployment parameters
+                template_path = Path(agent["path"])
+                target_dir = Path.cwd() / ".claude" / "agents"
+
+                # Find base_agent.json in multiple possible locations
+                base_agent_candidates = [
+                    Path.home()
+                    / ".claude-mpm"
+                    / "agents"
+                    / "templates"
+                    / "base_agent.json",
+                    Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
+                    Path(__file__).parent.parent.parent
+                    / "agents"
+                    / "templates"
+                    / "base_agent.json",
+                ]
+                base_agent_path = None
+                for candidate in base_agent_candidates:
+                    if candidate.exists():
+                        base_agent_path = candidate
+                        break
+
+                if not base_agent_path:
+                    base_agent_path = base_agent_candidates[
+                        0
+                    ]  # Use default even if not exists
+
+                # Deploy the agent
+                success = deployer.deploy_agent(
+                    agent_name=agent["agent_id"],
+                    templates_dir=template_path.parent,
+                    target_dir=target_dir,
+                    base_agent_path=base_agent_path,
+                    force_rebuild=True,
+                    working_directory=Path.cwd(),
+                )
+
+                if success:
+                    print(f"\n✅ Successfully deployed {agent['agent_id']}")
+                else:
+                    print(f"\n❌ Failed to deploy {agent['agent_id']}")
+
+            except Exception as e:
+                self.logger.error(f"Deployment failed: {e}", exc_info=True)
+                print(f"\n❌ Deployment error: {e}")
+
+            input("\nPress Enter to continue...")
+
+        except ValueError:
+            print("❌ Invalid selection")
+            input("\nPress Enter to continue...")
+        except Exception as e:
+            self.logger.error(f"Deployment error: {e}", exc_info=True)
+            print(f"\n❌ Error: {e}")
+            input("\nPress Enter to continue...")
+
+    def _browse_agents_interactive(self):
+        """Interactive agent browsing with filters."""
+        if not self.discovery_enabled or not self.source_manager:
+            print("\n❌ Discovery service not available")
+            input("\nPress Enter to continue...")
+            return
+
+        while True:
+            print("\n" + "=" * 60)
+            print("🔍 Browse & Filter Agents")
+            print("=" * 60)
+
+            # Show filter menu
+            print("\n[bold]Filter by:[/bold]")
+            print("  [1] Category (engineer/backend, qa, ops, etc.)")
+            print("  [2] Language (python, typescript, rust, etc.)")
+            print("  [3] Framework (react, nextjs, flask, etc.)")
+            print("  [4] Show all agents")
+            print("  [b] Back to main menu")
+
+            choice = input("\nSelect filter option: ").strip()
+
+            if choice == "b":
+                break
+
+            filtered_agents = []
+            filter_description = ""
+
+            if choice == "1":
+                # Category filtering
+                categories = [
+                    "engineer/backend",
+                    "engineer/frontend",
+                    "qa",
+                    "ops",
+                    "documentation",
+                    "universal",
+                ]
+                print("\n[bold]Available categories:[/bold]")
+                for idx, cat in enumerate(categories, 1):
+                    print(f"  {idx}. {cat}")
+
+                cat_choice = input("\nSelect category number: ").strip()
+                try:
+                    category = categories[int(cat_choice) - 1]
+                    all_agents = self._merge_agent_sources()
+                    filtered_agents = [
+                        a
+                        for a in all_agents
+                        if a.get("category", "").startswith(category)
+                    ]
+                    filter_description = f"Category: {category}"
+                except (ValueError, IndexError):
+                    print("❌ Invalid selection")
+                    input("\nPress Enter to continue...")
+                    continue
+
+            elif choice == "2":
+                # Language filtering (using AUTO-DEPLOY-INDEX if available)
+                language = input(
+                    "\nEnter language (python, typescript, rust, go, etc.): "
+                ).strip()
+
+                try:
+                    # Find AUTO-DEPLOY-INDEX.md in agent repository
+                    from claude_mpm.services.agents.auto_deploy_index_parser import (
+                        AutoDeployIndexParser,
+                    )
+
+                    index_path = (
+                        Path.home()
+                        / ".claude-mpm"
+                        / "cache"
+                        / "remote-agents"
+                        / "bobmatnyc"
+                        / "claude-mpm-agents"
+                        / "AUTO-DEPLOY-INDEX.md"
+                    )
+                    if not index_path.exists():
+                        print(
+                            f"[yellow]Could not find AUTO-DEPLOY-INDEX.md at: {index_path}[/yellow]"
+                        )
+                        input("\nPress Enter to continue...")
+                        continue
+
+                    parser = AutoDeployIndexParser(index_path)
+                    lang_agents = parser.get_agents_by_language(language.lower())
+
+                    # Get full agent details from discovery
+                    all_agents = self._merge_agent_sources()
+                    agent_ids = lang_agents.get("core", []) + lang_agents.get(
+                        "optional", []
+                    )
+                    filtered_agents = [
+                        a for a in all_agents if a["agent_id"] in agent_ids
+                    ]
+                    filter_description = f"Language: {language}"
+                except Exception as e:
+                    self.logger.error(f"Language filter error: {e}", exc_info=True)
+                    print(f"[yellow]Could not filter by language: {e}[/yellow]")
+                    input("\nPress Enter to continue...")
+                    continue
+
+            elif choice == "3":
+                # Framework filtering
+                framework = input(
+                    "\nEnter framework (react, nextjs, flask, django, etc.): "
+                ).strip()
+
+                try:
+                    from claude_mpm.services.agents.auto_deploy_index_parser import (
+                        AutoDeployIndexParser,
+                    )
+
+                    index_path = (
+                        Path.home()
+                        / ".claude-mpm"
+                        / "cache"
+                        / "remote-agents"
+                        / "bobmatnyc"
+                        / "claude-mpm-agents"
+                        / "AUTO-DEPLOY-INDEX.md"
+                    )
+                    if not index_path.exists():
+                        print(
+                            f"[yellow]Could not find AUTO-DEPLOY-INDEX.md at: {index_path}[/yellow]"
+                        )
+                        input("\nPress Enter to continue...")
+                        continue
+
+                    parser = AutoDeployIndexParser(index_path)
+                    framework_agent_ids = parser.get_agents_by_framework(
+                        framework.lower()
+                    )
+
+                    all_agents = self._merge_agent_sources()
+                    filtered_agents = [
+                        a for a in all_agents if a["agent_id"] in framework_agent_ids
+                    ]
+                    filter_description = f"Framework: {framework}"
+                except Exception as e:
+                    self.logger.error(f"Framework filter error: {e}", exc_info=True)
+                    print(f"[yellow]Could not filter by framework: {e}[/yellow]")
+                    input("\nPress Enter to continue...")
+                    continue
+
+            elif choice == "4":
+                # Show all agents
+                filtered_agents = self._merge_agent_sources()
+                filter_description = "All agents"
+            else:
+                print("❌ Invalid choice")
+                input("\nPress Enter to continue...")
+                continue
+
+            # Display filtered results
+            print("\n" + "=" * 60)
+            print(f"📋 {filter_description} ({len(filtered_agents)} agents)")
+            print("=" * 60)
+
+            if not filtered_agents:
+                print("\n[yellow]No agents found matching filter[/yellow]")
+            else:
+                print(f"\n{'#':<4} {'Agent ID':<40} {'Name':<25} {'Status':<12}")
+                print("-" * 85)
+
+                for idx, agent in enumerate(filtered_agents, 1):
+                    agent_id = (
+                        agent["agent_id"][:39]
+                        if len(agent["agent_id"]) > 39
+                        else agent["agent_id"]
+                    )
+                    name = (
+                        agent["name"][:24] if len(agent["name"]) > 24 else agent["name"]
+                    )
+                    status = "✓ Deployed" if agent.get("deployed") else "Available"
+                    print(f"{idx:<4} {agent_id:<40} {name:<25} {status:<12}")
+
+            print("\n[bold]Actions:[/bold]")
+            print("  [d] Deploy agent from this list")
+            print("  [v] View agent details")
+            print("  [n] New filter")
+            print("  [b] Back to main menu")
+
+            action = input("\nSelect action: ").strip()
+
+            if action == "b":
+                break
+            if action == "n":
+                continue
+            if action == "d":
+                self._deploy_from_filtered_list(filtered_agents)
+            elif action == "v":
+                self._view_from_filtered_list(filtered_agents)
+            else:
+                print("❌ Invalid choice")
+                input("\nPress Enter to continue...")
+
+    def _deploy_from_filtered_list(self, agents: List[Dict[str, Any]]):
+        """Deploy an agent from a filtered list.
+
+        Args:
+            agents: List of agent dictionaries with metadata
+        """
+        if not agents:
+            print("\n[yellow]No agents in list[/yellow]")
+            input("\nPress Enter to continue...")
+            return
+
+        deployable = [a for a in agents if not a.get("deployed")]
+
+        if not deployable:
+            print("\n[yellow]All agents in this list are already deployed[/yellow]")
+            input("\nPress Enter to continue...")
+            return
+
+        agent_num = input(
+            f"\nEnter agent number to deploy (1-{len(agents)}) or 'c' to cancel: "
+        ).strip()
+        if agent_num.lower() == "c":
+            return
+
+        try:
+            idx = int(agent_num) - 1
+            if idx < 0 or idx >= len(agents):
+                print("❌ Invalid agent number")
+                input("\nPress Enter to continue...")
+                return
+
+            agent = agents[idx]
+
+            if agent.get("deployed"):
+                print(f"\n[yellow]{agent['agent_id']} is already deployed[/yellow]")
+            else:
+                print(f"\n🚀 Deploying {agent['agent_id']}...")
+
+                from claude_mpm.services.agents.deployment.agent_template_builder import (
+                    AgentTemplateBuilder,
+                )
+                from claude_mpm.services.agents.deployment.agent_version_manager import (
+                    AgentVersionManager,
+                )
+                from claude_mpm.services.agents.deployment.deployment_results_manager import (
+                    DeploymentResultsManager,
+                )
+                from claude_mpm.services.agents.deployment.single_agent_deployer import (
+                    SingleAgentDeployer,
+                )
+
+                # Initialize deployment services
+                template_builder = AgentTemplateBuilder()
+                version_manager = AgentVersionManager()
+                results_manager = DeploymentResultsManager(self.logger)
+                deployer = SingleAgentDeployer(
+                    template_builder=template_builder,
+                    version_manager=version_manager,
+                    results_manager=results_manager,
+                    logger=self.logger,
+                )
+
+                # Prepare deployment parameters
+                template_path = Path(agent["path"])
+                target_dir = Path.cwd() / ".claude" / "agents"
+
+                # Find base_agent.json in multiple possible locations
+                base_agent_candidates = [
+                    Path.home()
+                    / ".claude-mpm"
+                    / "agents"
+                    / "templates"
+                    / "base_agent.json",
+                    Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
+                    Path(__file__).parent.parent.parent
+                    / "agents"
+                    / "templates"
+                    / "base_agent.json",
+                ]
+                base_agent_path = None
+                for candidate in base_agent_candidates:
+                    if candidate.exists():
+                        base_agent_path = candidate
+                        break
+
+                if not base_agent_path:
+                    base_agent_path = base_agent_candidates[
+                        0
+                    ]  # Use default even if not exists
+
+                # Deploy the agent
+                success = deployer.deploy_agent(
+                    agent_name=agent["agent_id"],
+                    templates_dir=template_path.parent,
+                    target_dir=target_dir,
+                    base_agent_path=base_agent_path,
+                    force_rebuild=True,
+                    working_directory=Path.cwd(),
+                )
+
+                if success:
+                    print(f"[green]✓ Successfully deployed {agent['agent_id']}[/green]")
+                else:
+                    print(f"[red]✗ Failed to deploy {agent['agent_id']}[/red]")
+
+            input("\nPress Enter to continue...")
+        except ValueError:
+            print("❌ Invalid agent number")
+            input("\nPress Enter to continue...")
+        except Exception as e:
+            self.logger.error(f"Deployment error: {e}", exc_info=True)
+            print(f"❌ Deployment error: {e}")
+            input("\nPress Enter to continue...")
+
+    def _view_from_filtered_list(self, agents: List[Dict[str, Any]]):
+        """View details of an agent from filtered list.
+
+        Args:
+            agents: List of agent dictionaries with metadata
+        """
+        if not agents:
+            print("\n[yellow]No agents in list[/yellow]")
+            input("\nPress Enter to continue...")
+            return
+
+        agent_num = input(
+            f"\nEnter agent number to view (1-{len(agents)}) or 'c' to cancel: "
+        ).strip()
+        if agent_num.lower() == "c":
+            return
+
+        try:
+            idx = int(agent_num) - 1
+            if idx < 0 or idx >= len(agents):
+                print("❌ Invalid agent number")
+                input("\nPress Enter to continue...")
+                return
+
+            agent = agents[idx]
+            self._show_agent_details(agent)
+        except ValueError:
+            print("❌ Invalid agent number")
+            input("\nPress Enter to continue...")
+
+    def _deploy_preset_interactive(self):
+        """Interactive preset deployment with preview and confirmation."""
+        from claude_mpm.services.agents.agent_preset_service import AgentPresetService
+
+        if not self.source_manager:
+            print("\n❌ Source manager not available")
+            input("\nPress Enter to continue...")
+            return
+
+        preset_service = AgentPresetService(self.source_manager)
+
+        while True:
+            print("\n" + "=" * 60)
+            print("📦 Deploy Agent Preset")
+            print("=" * 60)
+
+            # List available presets
+            presets = preset_service.list_presets()
+
+            print(f"\n{len(presets)} preset(s) available:\n")
+            print(f"{'#':<4} {'Preset':<20} {'Agents':<10} {'Description':<50}")
+            print("-" * 90)
+
+            for idx, preset in enumerate(presets, 1):
+                description = (
+                    preset["description"][:48] + "..."
+                    if len(preset["description"]) > 50
+                    else preset["description"]
+                )
+                print(
+                    f"{idx:<4} {preset['name']:<20} {len(preset.get('agents', [])):<10} {description:<50}"
+                )
+
+            print("\n[bold]Actions:[/bold]")
+            print("  [1-11] Select preset number")
+            print("  [b] Back to main menu")
+
+            choice = input("\nSelect preset number or action: ").strip()
+
+            if choice.lower() == "b":
+                break
+
+            try:
+                idx = int(choice) - 1
+                if idx < 0 or idx >= len(presets):
+                    raise ValueError("Out of range")
+
+                preset_name = presets[idx]["name"]
+
+                # Show preset details
+                print("\n" + "=" * 60)
+                print(f"📦 Preset: {preset_name}")
+                print("=" * 60)
+                print(f"\n[bold]Description:[/bold] {presets[idx]['description']}\n")
+
+                # Resolve preset
+                print("🔍 Resolving preset agents...")
+                resolution = preset_service.resolve_agents(
+                    preset_name, validate_availability=True
+                )
+
+                if resolution.get("missing_agents"):
+                    print(
+                        f"\n⚠️  [red]Missing agents ({len(resolution['missing_agents'])}):[/red]"
+                    )
+                    for agent_id in resolution["missing_agents"]:
+                        print(f"  • {agent_id}")
+                    print("\n[yellow]Cannot deploy preset with missing agents[/yellow]")
+                    input("\nPress Enter to continue...")
+                    continue
+
+                # Show agents to deploy
+                agents = resolution.get("agents", [])
+                print(f"\n[bold]Agents to deploy ({len(agents)}):[/bold]\n")
+
+                print(f"{'Agent ID':<40} {'Name':<25} {'Source':<25}")
+                print("-" * 95)
+
+                for agent in agents:
+                    # Get agent metadata
+                    agent_metadata = agent.get("metadata", {})
+                    agent_meta_data = agent_metadata.get("metadata", {})
+
+                    agent_id = (
+                        agent.get("agent_id", "")[:39]
+                        if len(agent.get("agent_id", "")) > 39
+                        else agent.get("agent_id", "")
+                    )
+                    name = (
+                        agent_meta_data.get("name", "")[:24]
+                        if len(agent_meta_data.get("name", "")) > 24
+                        else agent_meta_data.get("name", "")
+                    )
+                    source = (
+                        agent.get("source", "unknown")[:24]
+                        if len(agent.get("source", "unknown")) > 24
+                        else agent.get("source", "unknown")
+                    )
+
+                    print(f"{agent_id:<40} {name:<25} {source:<25}")
+
+                # Confirm deployment
+                print("\n[bold]Options:[/bold]")
+                print("  [y] Deploy all agents")
+                print("  [n] Cancel")
+
+                confirm = input("\nProceed with deployment? ").strip()
+
+                if confirm.lower() == "y":
+                    print(f"\n🚀 Deploying preset '{preset_name}'...\n")
+
+                    from claude_mpm.services.agents.deployment.agent_template_builder import (
+                        AgentTemplateBuilder,
+                    )
+                    from claude_mpm.services.agents.deployment.agent_version_manager import (
+                        AgentVersionManager,
+                    )
+                    from claude_mpm.services.agents.deployment.deployment_results_manager import (
+                        DeploymentResultsManager,
+                    )
+                    from claude_mpm.services.agents.deployment.single_agent_deployer import (
+                        SingleAgentDeployer,
+                    )
+
+                    # Initialize deployment services once for all agents
+                    template_builder = AgentTemplateBuilder()
+                    version_manager = AgentVersionManager()
+                    results_manager = DeploymentResultsManager(self.logger)
+                    deployer = SingleAgentDeployer(
+                        template_builder=template_builder,
+                        version_manager=version_manager,
+                        results_manager=results_manager,
+                        logger=self.logger,
+                    )
+
+                    target_dir = Path.cwd() / ".claude" / "agents"
+
+                    # Find base_agent.json
+                    base_agent_candidates = [
+                        Path.home()
+                        / ".claude-mpm"
+                        / "agents"
+                        / "templates"
+                        / "base_agent.json",
+                        Path.home() / ".claude-mpm" / "cache" / "base_agent.json",
+                        Path(__file__).parent.parent.parent
+                        / "agents"
+                        / "templates"
+                        / "base_agent.json",
+                    ]
+                    base_agent_path = None
+                    for candidate in base_agent_candidates:
+                        if candidate.exists():
+                            base_agent_path = candidate
+                            break
+
+                    if not base_agent_path:
+                        base_agent_path = base_agent_candidates[0]
+
+                    deployed = 0
+                    failed = 0
+
+                    for agent in agents:
+                        agent_id = agent["agent_id"]
+                        agent_metadata = agent.get("metadata", {})
+                        agent_path = agent_metadata.get(
+                            "path", agent_metadata.get("source_file", "")
+                        )
+
+                        if not agent_path:
+                            print(f"  Deploying {agent_id}... [red]✗ (no path)[/red]")
+                            failed += 1
+                            continue
+
+                        print(f"  Deploying {agent_id}...", end=" ", flush=True)
+
+                        try:
+                            template_path = Path(agent_path)
+                            success = deployer.deploy_agent(
+                                agent_name=agent_id,
+                                templates_dir=template_path.parent,
+                                target_dir=target_dir,
+                                base_agent_path=base_agent_path,
+                                force_rebuild=True,
+                                working_directory=Path.cwd(),
+                            )
+
+                            if success:
+                                print("[green]✓[/green]")
+                                deployed += 1
+                            else:
+                                print("[red]✗[/red]")
+                                failed += 1
+                        except Exception as e:
+                            print(f"[red]✗ ({e})[/red]")
+                            self.logger.error(
+                                f"Failed to deploy {agent_id}: {e}", exc_info=True
+                            )
+                            failed += 1
+
+                    print("\n[bold]Summary:[/bold]")
+                    print(f"  • Deployed: {deployed}")
+                    print(f"  • Failed: {failed}")
+                    print(f"  • Total: {len(agents)}")
+
+                    if failed == 0:
+                        print(
+                            f"\n[green]✓ Preset '{preset_name}' deployed successfully![/green]"
+                        )
+                    else:
+                        print(
+                            f"\n[yellow]⚠ Preset deployed with {failed} failures[/yellow]"
+                        )
+
+                input("\nPress Enter to continue...")
+                break
+
+            except (ValueError, IndexError):
+                print("❌ Invalid preset selection")
+                input("\nPress Enter to continue...")
+            except Exception as e:
+                self.logger.error(f"Preset deployment error: {e}", exc_info=True)
+                print(f"❌ Error: {e}")
+                input("\nPress Enter to continue...")
+
+    def _manage_sources_interactive(self):
+        """Interactive source management."""
+        if not self.discovery_enabled or not self.source_manager:
+            print("\n❌ Source manager not available")
+            input("\nPress Enter to continue...")
+            return
+
+        print("\n" + "=" * 60)
+        print("🔗 Manage Agent Sources")
+        print("=" * 60)
+
+        try:
+            from claude_mpm.config.agent_sources import AgentSourceConfiguration
+
+            config = AgentSourceConfiguration()
+            sources = config.list_sources()
+
+            if not sources:
+                print("\n📭 No sources configured.")
+            else:
+                print(f"\n{len(sources)} source(s) configured:\n")
+                print(f"{'Source':<40} {'Priority':<10} {'Status':<10}")
+                print("-" * 60)
+
+                for source in sources:
+                    identifier = source.get("identifier", "unknown")[:39]
+                    priority = str(source.get("priority", 100))
+                    status = "✓ Active" if source.get("enabled", True) else "Disabled"
+                    print(f"{identifier:<40} {priority:<10} {status:<10}")
+
+            print("\n💡 Use 'claude-mpm agent-source' command to add/remove sources")
+            print("💡 Use 'claude-mpm agents discover' command to refresh agent cache")
+
+        except Exception as e:
+            self.logger.error(f"Failed to list sources: {e}", exc_info=True)
+            print(f"\n❌ Error: {e}")
+
+        input("\nPress Enter to continue...")
 
 
 def run_interactive_agent_wizard() -> int:

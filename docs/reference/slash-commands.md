@@ -4,6 +4,31 @@
 
 This document provides a comprehensive reference for all Claude MPM slash commands, organized by category with enhanced naming for better discoverability and future hierarchical namespace support.
 
+## What's New in v5.0 ✨
+
+Three powerful new commands for intelligent agent configuration:
+
+- **`/mpm-agents-detect`** - Scan project to detect languages, frameworks, and tools
+- **`/mpm-agents-recommend`** - Get intelligent agent recommendations with confidence scores
+- **`/mpm-agents-auto-configure`** - Full auto-configuration workflow (detect + recommend + deploy)
+
+**Quick Start**:
+```bash
+# Automatic setup in 60 seconds
+/mpm-agents-auto-configure
+
+# Or step-by-step
+/mpm-agents-detect              # See what's detected
+/mpm-agents-recommend           # Review recommendations
+/mpm-agents-auto-configure --yes  # Deploy
+```
+
+**Learn More**:
+- [Auto-Configuration User Guide](../user/auto-configuration.md) - Complete documentation
+- [Agent Presets Guide](../user/agent-presets.md) - Alternative approach for standard stacks
+
+---
+
 ## Command Naming Convention
 
 Claude MPM uses an enhanced flat naming scheme that prepares for future hierarchical namespaces:
@@ -14,7 +39,7 @@ Claude MPM uses an enhanced flat naming scheme that prepares for future hierarch
 
 ### Command Categories
 
-1. **Agents** (`mpm/agents`) - Agent management and auto-configuration
+1. **Agents** (`mpm/agents`) - Agent management and auto-configuration ✨ Enhanced in v5.0
 2. **Config** (`mpm/config`) - Configuration viewing and validation
 3. **Tickets** (`mpm/ticket`) - Ticketing workflows and organization
 4. **Session** (`mpm/session`) - Session management and resumption
@@ -47,6 +72,7 @@ Commands for managing Claude MPM agents, including detection, recommendations, a
 ### `/mpm-agents-detect`
 
 **Future**: `/mpm/agents:detect`
+**New in**: v5.0.0 ✨
 **Description**: Scan project to detect programming languages, frameworks, tools, and configurations
 
 **Usage**:
@@ -55,19 +81,50 @@ Commands for managing Claude MPM agents, including detection, recommendations, a
 ```
 
 **What it detects**:
-- Programming languages (Python, Node.js, Rust, Go, Java)
-- Frameworks (FastAPI, Next.js, React, Express, Django, etc.)
-- Testing tools (pytest, Jest, Playwright, Cypress)
-- Build tools (Vite, Webpack, Rollup, esbuild)
-- Deployment configurations (Docker, Vercel, Railway, PM2)
+- **Languages** (8+): Python, JavaScript, TypeScript, Go, Rust, PHP, Ruby, Java
+- **Backend Frameworks**: FastAPI, Django, Flask, Express, NestJS, Spring Boot, Laravel, Rails
+- **Frontend Frameworks**: React, Next.js, Vue, Svelte, Angular
+- **Testing Tools**: pytest, Jest, Playwright, Cypress
+- **Build Tools**: Vite, Webpack, Rollup, esbuild
+- **Deployment**: Docker, Vercel, Railway, Kubernetes, GitHub Actions
 
-**Output**: Comprehensive toolchain summary with detected versions
+**Output**: Comprehensive toolchain summary with:
+- Detected versions for each technology
+- Confidence scores (0-100%)
+- Evidence supporting detections
+- Categorized by type (languages, frameworks, deployment)
+
+**When to use**:
+- Understanding what Claude MPM can detect in your project
+- Debugging auto-configuration issues
+- Planning manual agent deployment
+- Verifying project structure before auto-configure
+
+**Example Output**:
+```
+🔤 Detected Languages:
+  Python 3.11.0 (100% confidence)
+  TypeScript 5.0.0 (80% confidence)
+
+🏗️  Detected Frameworks:
+  FastAPI 0.104.1 (95% confidence)
+  React 18.2.0 (85% confidence)
+
+🚀 Deployment Targets:
+  Docker (90% confidence)
+```
+
+**See Also**:
+- **User Guide**: [Auto-Configuration Guide](../user/auto-configuration.md#detection-details) - Complete detection documentation
+- **CLI Reference**: [agents detect](cli-agents.md#agent-detection) - Command-line usage
+- **Related Commands**: `/mpm-agents-recommend`, `/mpm-agents-auto-configure`
 
 ---
 
 ### `/mpm-agents-recommend`
 
 **Future**: `/mpm/agents:recommend`
+**New in**: v5.0.0 ✨
 **Description**: Get intelligent agent recommendations based on detected project toolchain
 
 **Usage**:
@@ -76,12 +133,42 @@ Commands for managing Claude MPM agents, including detection, recommendations, a
 ```
 
 **What it provides**:
-- **Essential agents**: Core agents required for your stack
-- **Recommended agents**: Complementary agents for full functionality
-- **Optional agents**: Specialized agents for detected tools
-- **Rationale**: Explanation for each recommendation
+- **Essential agents** (high confidence): Core agents required for your stack
+- **Recommended agents** (medium confidence): Complementary agents for full functionality
+- **Optional agents** (low confidence): Specialized agents for detected tools
+- **Confidence scores**: 0-100% confidence for each recommendation
+- **Rationale**: Clear explanation for why each agent is recommended
 
-**Related**: `/mpm-agents-detect`, `/mpm-agents-auto-configure`
+**Recommendation Categories**:
+- **Essential** (90-100% confidence): Must-have agents for your stack
+- **Recommended** (70-89% confidence): Strongly suggested agents
+- **Optional** (50-69% confidence): Nice-to-have specialized agents
+
+**When to use**:
+- After running `/mpm-agents-detect` to see what agents match
+- Evaluating which agents to deploy manually
+- Comparing auto-configuration with preset options
+- Understanding confidence thresholds
+
+**Example Output**:
+```
+📋 ESSENTIAL (8 agents):
+  ✓ python-engineer (95%) - Python/FastAPI development
+  ✓ api-qa (90%) - API testing
+  ✓ ops (80%) - Docker operations
+
+📋 RECOMMENDED (3 agents):
+  ○ research (70%) - Documentation lookup
+  ○ ticketing (65%) - Project management
+
+📋 OPTIONAL (2 agents):
+  ○ vercel-ops (55%) - Vercel deployment
+```
+
+**See Also**:
+- **User Guide**: [Auto-Configuration Guide](../user/auto-configuration.md#recommendation-engine) - Recommendation algorithm details
+- **CLI Reference**: [agents recommend](cli-agents.md#agent-recommendations) - Command options and thresholds
+- **Related Commands**: `/mpm-agents-detect`, `/mpm-agents-auto-configure`
 
 ---
 
@@ -89,7 +176,8 @@ Commands for managing Claude MPM agents, including detection, recommendations, a
 
 **Aliases**: `/mpm-auto-configure` (deprecated)
 **Future**: `/mpm/agents:auto-configure`
-**Description**: Automatically detect project toolchain and configure appropriate agents
+**New in**: v5.0.0 ✨
+**Description**: Automatically detect project toolchain, recommend agents, and deploy complete configuration
 
 **Usage**:
 ```bash
@@ -98,15 +186,58 @@ Commands for managing Claude MPM agents, including detection, recommendations, a
 
 **Options**:
 - `--preview` - Show what would be configured without making changes
-- `--yes` - Automatically apply recommendations without prompting
+- `--yes` - Automatically apply recommendations without prompting (non-interactive)
 - `--force` - Force reconfiguration even if agents already deployed
+- `--threshold INT` - Set confidence threshold (0-100, default: 70)
 
-**Workflow**:
-1. Detect project toolchain
-2. Generate agent recommendations
-3. Deploy recommended agents (with confirmation)
+**Complete Workflow** (3 phases):
+1. **Detect**: Scan project for technologies (like `/mpm-agents-detect`)
+2. **Recommend**: Generate agent recommendations (like `/mpm-agents-recommend`)
+3. **Deploy**: Deploy approved agents to `.claude-mpm/cache/agents/`
 
-**Related**: `/mpm-agents-detect`, `/mpm-agents-recommend`
+**Interactive vs Non-Interactive**:
+- **Interactive** (default): Shows recommendations, asks for confirmation
+- **Non-Interactive** (`--yes`): Auto-deploys without prompts (for scripts/CI)
+
+**When to use**:
+- First-time setup of a new project
+- Adding Claude MPM to existing project
+- Quick agent deployment based on current stack
+- Standardizing team environments
+- CI/CD pipeline integration
+
+**Example Workflow**:
+```
+🔍 Detecting project stack...
+  ✓ Found: Python 3.11, FastAPI 0.104, React 18.2
+
+💡 Recommending agents...
+  ✓ 8 essential agents
+  ✓ 3 recommended agents
+
+📦 Deploy 11 agents? [Y/n]: y
+
+🚀 Deploying agents...
+  ✓ python-engineer
+  ✓ react-engineer
+  ✓ api-qa
+  (... 8 more)
+
+✅ Configuration complete!
+```
+
+**Comparison with Alternatives**:
+| Method | Speed | Accuracy | Best For |
+|--------|-------|----------|----------|
+| **Auto-configure** | 30-60s | High (project-specific) | Custom/mixed stacks |
+| **Presets** | <5s | Medium (generic) | Standard stacks |
+| **Manual** | Minutes | Highest (explicit) | Specific needs |
+
+**See Also**:
+- **User Guide**: [Auto-Configuration Guide](../user/auto-configuration.md) - Complete workflow documentation
+- **User Guide**: [Agent Presets Guide](../user/agent-presets.md) - Compare with preset approach
+- **CLI Reference**: [agents auto-configure](cli-agents.md#auto-configuration) - Full command reference
+- **Related Commands**: `/mpm-agents-detect`, `/mpm-agents-recommend`
 
 ---
 
@@ -392,9 +523,27 @@ Validation warnings are logged but don't block deployment.
 
 ## Related Documentation
 
-- [Research: Hierarchical Namespace Analysis](../research/slash-command-hierarchical-namespace-analysis-2025-11-29.md)
-- [Agent Capabilities Reference](../agents/agent-capabilities-reference.md)
-- [User Guide](../user/user-guide.md)
+### New in v5.0
+
+- **[Auto-Configuration User Guide](../user/auto-configuration.md)** - Complete guide to auto-configuration features
+- **[Agent Presets Guide](../user/agent-presets.md)** - Pre-configured agent bundles for common stacks
+- **[CLI Agents Reference](cli-agents.md)** - Command-line interface for agent management
+
+### User Guides
+
+- **[Getting Started](../user/getting-started.md)** - First steps with Claude MPM
+- **[Agent Sources Guide](../user/agent-sources.md)** - Managing agent repositories
+- **[User Guide](../user/user-guide.md)** - Complete user documentation
+- **[Troubleshooting](../user/troubleshooting.md)** - Common issues and solutions
+
+### Reference Documentation
+
+- **[Agent Capabilities Reference](../agents/agent-capabilities-reference.md)** - Detailed agent descriptions
+- **[Configuration Reference](configuration.md)** - Configuration file format
+
+### Implementation
+
+- **[Hierarchical Namespace Analysis](../research/slash-command-hierarchical-namespace-analysis-2025-11-29.md)** - Future namespace design
 
 ---
 

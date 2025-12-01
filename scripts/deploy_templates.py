@@ -65,8 +65,12 @@ def deploy_templates(target_dir: Path = None, verbose: bool = True) -> bool:
     if not source_dir:
         print("Error: Could not locate templates source directory", file=sys.stderr)
         print("Templates should be in:", file=sys.stderr)
-        print("  - Development: <repo>/src/claude_mpm/agents/templates/", file=sys.stderr)
-        print("  - Packaged: python package claude_mpm.agents.templates", file=sys.stderr)
+        print(
+            "  - Development: <repo>/src/claude_mpm/agents/templates/", file=sys.stderr
+        )
+        print(
+            "  - Packaged: python package claude_mpm.agents.templates", file=sys.stderr
+        )
         return False
 
     # Create target directory
@@ -119,20 +123,15 @@ def main():
         "--target",
         type=Path,
         default=None,
-        help="Target directory (default: ~/.claude-mpm/templates)"
+        help="Target directory (default: ~/.claude-mpm/templates)",
     )
     parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress progress messages"
+        "--quiet", action="store_true", help="Suppress progress messages"
     )
 
     args = parser.parse_args()
 
-    success = deploy_templates(
-        target_dir=args.target,
-        verbose=not args.quiet
-    )
+    success = deploy_templates(target_dir=args.target, verbose=not args.quiet)
 
     sys.exit(0 if success else 1)
 

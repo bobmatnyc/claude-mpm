@@ -75,7 +75,11 @@ Agent with cache metadata
 
 
 def test_discover_remote_agents(temp_remote_agents_dir, sample_remote_agent_md):
-    """Test discovering remote agents from cache directory."""
+    """Test discovering remote agents from cache directory.
+
+    Bug #3 fix: Agent IDs are now generated from file paths, not name headings.
+    File test_agent.md -> agent_id: test_agent (not test-agent from heading)
+    """
     service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
     agents = service.discover_remote_agents()
 
@@ -83,7 +87,8 @@ def test_discover_remote_agents(temp_remote_agents_dir, sample_remote_agent_md):
     agent = agents[0]
 
     # Verify agent metadata structure
-    assert agent["agent_id"] == "test-agent"
+    # Bug #3 fix: agent_id comes from filename (test_agent.md -> test_agent)
+    assert agent["agent_id"] == "test_agent"
     assert agent["metadata"]["name"] == "Test Agent"
     assert (
         agent["metadata"]["description"] == "This is a test agent for remote discovery."
@@ -250,27 +255,48 @@ Description for agent {i}
 
 
 def test_agent_id_generation(temp_remote_agents_dir):
-    """Test agent_id is correctly generated from name."""
+    """Test agent_id is correctly generated from file path.
+
+    Bug #3 fix: Agent IDs are now hierarchical based on file paths,
+    not normalized from the heading name. This enables category-based
+    filtering and preset matching.
+    """
     test_cases = [
-        ("Simple Agent", "simple-agent"),
-        ("Agent With Numbers 123", "agent-with-numbers-123"),
-        ("UPPERCASE AGENT", "uppercase-agent"),
-        ("Agent_With_Underscores", "agent-with-underscores"),
-        ("Agent!!!Special###Chars", "agentspecialchars"),
+        ("Simple Agent", "simple-agent.md", "simple-agent"),
+        (
+            "Agent With Numbers 123",
+            "agent-with-numbers-123.md",
+            "agent-with-numbers-123",
+        ),
+        ("UPPERCASE AGENT", "uppercase-agent.md", "uppercase-agent"),
+        (
+            "Backend/Python Engineer",
+            "backend/python-engineer.md",
+            "backend/python-engineer",
+        ),
+        ("QA/Test Agent", "qa/test-agent.md", "qa/test-agent"),
     ]
 
-    for name, expected_id in test_cases:
-        agent_md = temp_remote_agents_dir / f"test_{expected_id}.md"
-        agent_md.write_text(f"# {name}\n\nDescription")
+    for name, filename, expected_id in test_cases:
+        agent_path = temp_remote_agents_dir / filename
+        agent_path.parent.mkdir(parents=True, exist_ok=True)
+        agent_path.write_text(f"# {name}\n\nDescription")
 
         service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
-        result = service._parse_markdown_agent(agent_md)
+        result = service._parse_markdown_agent(agent_path)
 
         assert result is not None
-        assert result["agent_id"] == expected_id, f"Failed for name: {name}"
+        assert result["agent_id"] == expected_id, (
+            f"Failed for name: {name}, filename: {filename}"
+        )
 
         # Clean up for next iteration
-        agent_md.unlink()
+        agent_path.unlink()
+        # Clean up empty directories
+        if agent_path.parent != temp_remote_agents_dir and not list(
+            agent_path.parent.iterdir()
+        ):
+            agent_path.parent.rmdir()
 
 
 def test_remote_agent_includes_path_field(

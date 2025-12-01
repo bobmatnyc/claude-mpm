@@ -11,6 +11,18 @@
         "KUZU_MEMORY_PROJECT_ROOT": "/Users/masa/Projects/claude-mpm",
         "KUZU_MEMORY_DB": "/Users/masa/Projects/claude-mpm/kuzu-memories"
       }
+    },
+    "mcp-vector-search": {
+      "command": "uv",
+      "args": [
+        "run",
+        "mcp-vector-search",
+        "mcp"
+      ],
+      "env": {
+        "MCP_ENABLE_FILE_WATCHING": "true"
+      },
+      "type": "stdio"
     }
   }
 }

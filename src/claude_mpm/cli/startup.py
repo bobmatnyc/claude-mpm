@@ -751,7 +751,6 @@ def verify_mcp_gateway_startup():
 
     try:
         import asyncio
-        import time
 
         from ..core.logger import get_logger
         from ..services.mcp_gateway.core.startup_verification import (

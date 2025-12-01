@@ -58,6 +58,10 @@ class GitSourceManager:
         self.cache_root = cache_root
         self.cache_root.mkdir(parents=True, exist_ok=True)
 
+        # Bug #2 fix: Store repository metadata for source attribution
+        # Maps repo_identifier -> {priority, url, ...}
+        self._repo_metadata: Dict[str, Dict[str, Any]] = {}
+
         logger.info(f"GitSourceManager initialized with cache: {self.cache_root}")
 
     def sync_repository(
@@ -98,6 +102,14 @@ class GitSourceManager:
             ...     print(f"Synced {result['files_updated']} files")
         """
         logger.info(f"Syncing repository: {repo.identifier}")
+
+        # Bug #2 fix: Store repository metadata for later source attribution
+        self._repo_metadata[repo.identifier] = {
+            "priority": repo.priority,
+            "url": repo.url,
+            "subdirectory": repo.subdirectory,
+            "enabled": repo.enabled,
+        }
 
         try:
             # Build source URL for raw GitHub content
@@ -223,13 +235,51 @@ class GitSourceManager:
 
         return results
 
+    def _ensure_metadata_loaded(self) -> None:
+        """Load repository metadata from configuration if not already loaded.
+
+        Bug #2 fix: Ensures repository metadata (priority, URL) is available
+        for source attribution even when list_cached_agents() is called
+        without prior sync_repository() calls.
+
+        Attempts to load from AgentSourceConfiguration and populates
+        _repo_metadata dictionary with priority and URL for each repository.
+        """
+        # Skip if metadata already populated
+        if self._repo_metadata:
+            return
+
+        try:
+            from ...config.agent_sources import AgentSourceConfiguration
+
+            config = AgentSourceConfiguration()
+            sources = config.list_sources()
+
+            for source in sources:
+                # Source dict has: identifier, url, subdirectory, enabled, priority
+                self._repo_metadata[source["identifier"]] = {
+                    "priority": source.get("priority", 100),
+                    "url": source.get("url", ""),
+                    "subdirectory": source.get("subdirectory"),
+                    "enabled": source.get("enabled", True),
+                }
+
+            logger.debug(f"Loaded metadata for {len(self._repo_metadata)} repositories")
+
+        except Exception as e:
+            logger.warning(f"Failed to load repository metadata from config: {e}")
+            # Continue with empty metadata - will use defaults in _discover_agents_in_directory
+
     def list_cached_agents(
         self, repo_identifier: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """List all cached agents, optionally filtered by repository.
 
         Scans cache directories for agent markdown files and returns
-        metadata for each discovered agent.
+        metadata for each discovered agent with source attribution.
+
+        Bug #2 fix: Enriches agents with repository metadata (priority, URL)
+        from stored configuration or attempts to load from config file.
 
         Args:
             repo_identifier: Optional repository filter (e.g., "owner/repo/agents")
@@ -241,7 +291,12 @@ class GitSourceManager:
                     "name": "engineer",
                     "version": "2.5.0",
                     "path": "/cache/owner/repo/agents/engineer.md",
-                    "repository": "owner/repo/agents"
+                    "repository": "owner/repo/agents",
+                    "source": {
+                        "identifier": "owner/repo/agents",
+                        "priority": 100,
+                        "url": "https://github.com/owner/repo"
+                    }
                 }
             ]
 
@@ -250,6 +305,15 @@ class GitSourceManager:
             >>> for agent in agents:
             ...     print(f"{agent['name']} v{agent['version']} from {agent['repository']}")
         """
+        logger.debug(
+            f"[DEBUG] list_cached_agents START: repo_identifier={repo_identifier}"
+        )
+
+        # Bug #2 fix: Load metadata from config if not already loaded
+        logger.debug("[DEBUG] Calling _ensure_metadata_loaded()")
+        self._ensure_metadata_loaded()
+        logger.debug("[DEBUG] Metadata loaded successfully")
+
         agents = []
 
         # If repo_identifier specified, only scan that repository
@@ -260,56 +324,85 @@ class GitSourceManager:
                 cache_path = self.cache_root / "/".join(parts)
 
                 if cache_path.exists():
+                    metadata = self._repo_metadata.get(repo_identifier, {})
                     agents.extend(
-                        self._discover_agents_in_directory(cache_path, repo_identifier)
+                        self._discover_agents_in_directory(
+                            cache_path, repo_identifier, metadata
+                        )
                     )
         else:
             # Scan all cached repositories
+            logger.debug("[DEBUG] Scanning all cached repositories")
             if not self.cache_root.exists():
+                logger.debug(f"[DEBUG] Cache root doesn't exist: {self.cache_root}")
                 return []
 
             # Walk cache directory structure
+            logger.debug(f"[DEBUG] Walking cache root: {self.cache_root}")
             for owner_dir in self.cache_root.iterdir():
                 if not owner_dir.is_dir():
                     continue
+                logger.debug(f"[DEBUG] Processing owner_dir: {owner_dir.name}")
 
                 for repo_dir in owner_dir.iterdir():
                     if not repo_dir.is_dir():
                         continue
+                    logger.debug(f"[DEBUG] Processing repo_dir: {repo_dir.name}")
 
-                    # Check for agents in repo root
+                    # Bug #5 fix: Don't iterate subdirectories - RemoteAgentDiscoveryService
+                    # now handles the /agents/ subdirectory internally (Bug #4 fix).
+                    # Iterating subdirectories caused it to treat /agents/ hierarchy as
+                    # separate repositories (engineer/backend, ops/tooling, etc.)
                     repo_id = f"{owner_dir.name}/{repo_dir.name}"
-                    agents.extend(self._discover_agents_in_directory(repo_dir, repo_id))
+                    metadata = self._repo_metadata.get(repo_id, {})
+                    logger.debug(f"[DEBUG] Discovering agents in repo root: {repo_id}")
+                    agents.extend(
+                        self._discover_agents_in_directory(repo_dir, repo_id, metadata)
+                    )
+                    logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
 
-                    # Check for subdirectories
-                    for subdir in repo_dir.iterdir():
-                        if subdir.is_dir():
-                            sub_repo_id = f"{repo_id}/{subdir.name}"
-                            agents.extend(
-                                self._discover_agents_in_directory(subdir, sub_repo_id)
-                            )
-
+        logger.debug(f"[DEBUG] list_cached_agents COMPLETE: {len(agents)} total agents")
         return agents
 
     def _discover_agents_in_directory(
-        self, directory: Path, repo_identifier: str
+        self,
+        directory: Path,
+        repo_identifier: str,
+        repo_metadata: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
-        """Discover agents in a specific directory.
+        """Discover agents in a specific directory with source attribution.
+
+        Bug #2 fix: Enriches agent metadata with source information including
+        repository identifier, priority, and URL for proper attribution.
 
         Args:
             directory: Directory to scan
             repo_identifier: Repository identifier for metadata
+            repo_metadata: Optional repository metadata (priority, URL, etc.)
 
         Returns:
-            List of agent metadata dictionaries
+            List of agent metadata dictionaries with source attribution
         """
         try:
             discovery_service = RemoteAgentDiscoveryService(directory)
             discovered = discovery_service.discover_remote_agents()
 
-            # Add repository identifier to each agent
+            # Default metadata if not provided
+            if repo_metadata is None:
+                repo_metadata = {}
+
+            # Bug #2 fix: Enrich each agent with proper source attribution
             for agent in discovered:
                 agent["repository"] = repo_identifier
+
+                # Add source attribution at root level for CLI compatibility
+                # source: repository identifier string
+                # priority: numeric priority from config
+                # source_url: full GitHub URL for reference
+                if "source" not in agent or agent["source"] == "remote":
+                    agent["source"] = repo_identifier
+                agent["priority"] = repo_metadata.get("priority", 100)
+                agent["source_url"] = repo_metadata.get("url", "")
 
             return discovered
 
