@@ -47,9 +47,9 @@ class SystemInstructionsDeployer:
             # Framework files to deploy
             framework_files = [
                 (
-                    "INSTRUCTIONS.md",
-                    "INSTRUCTIONS.md",
-                ),  # Keep INSTRUCTIONS.md as is - NEVER rename to CLAUDE.md
+                    "PM_INSTRUCTIONS.md",
+                    "PM_INSTRUCTIONS.md",
+                ),  # Keep PM_INSTRUCTIONS.md as is - NEVER rename to CLAUDE.md
                 ("WORKFLOW.md", "WORKFLOW.md"),
                 ("MEMORY.md", "MEMORY.md"),
             ]
