@@ -2,10 +2,25 @@
 
 Complete reference documentation for Claude MPM systems and architecture.
 
+## 🌟 New in v4.5.0: Git-First Agent Architecture
+
+Claude MPM now uses **git-first architecture** for agent deployment:
+
+- **4-Tier Discovery System**: Local project → Git sources (by priority) → Built-in fallback
+- **ETag-Based Caching**: Intelligent HTTP caching reduces bandwidth by 95%+
+- **Priority-Based Resolution**: Multiple repositories with configurable precedence
+- **Automatic Sync**: Agents update from Git on startup (non-blocking)
+
+**Technical Documentation:**
+- [Agent Source Commands CLI Reference](cli-agent-source.md) - Complete command reference
+- [Agent Sources API](agent-sources-api.md) - Python API and architecture
+- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+
 ## Available References
 
-- **[Doctor Command CLI Reference](cli-doctor.md)** - Complete CLI reference for doctor command (NEW)
-- **[Agent Sources API](agent-sources-api.md)** - Technical API reference for single-tier agent system (NEW in v5.0)
+- **[Agent Source Commands CLI Reference](cli-agent-source.md)** - ⭐ Complete CLI reference for `agent-source` commands (v4.5.0+)
+- **[Agent Sources API](agent-sources-api.md)** - ⭐ Technical API reference for git-first agent system (v4.5.0+)
+- **[Doctor Command CLI Reference](cli-doctor.md)** - Complete CLI reference for doctor command
 - **[Configuration](configuration.md)** - Complete configuration reference for Claude MPM
 - **[Deployment Guide](DEPLOY.md)** - Complete deployment procedures and release management
 - **[Slash Commands Reference](slash-commands.md)** - Complete slash commands reference
@@ -38,10 +53,15 @@ Complete reference documentation for Claude MPM systems and architecture.
 - [Skills Quick Reference](skills-quick-reference.md) - Skills deployment commands
 
 **Skills & Agents:**
-- [Agent Sources API](agent-sources-api.md) - Single-tier agent system API
-- [Skills Quick Reference](skills-quick-reference.md) - Command reference for skill deployment
-- [Research Agent](../agents/research-agent.md) - Skill detection and recommendations
-- [Skills Deployment Guide](../guides/skills-deployment-guide.md) - Comprehensive deployment guide
+- **Git-First Agent Architecture (v4.5.0+):**
+  - [Agent Source Commands CLI](cli-agent-source.md) - Complete command reference
+  - [Agent Sources API](agent-sources-api.md) - Python API and architecture
+  - [Agent Sources User Guide](../user/agent-sources.md) - User guide with examples
+  - [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+- **Skills System:**
+  - [Skills Quick Reference](skills-quick-reference.md) - Command reference for skill deployment
+  - [Research Agent](../agents/research-agent.md) - Skill detection and recommendations
+  - [Skills Deployment Guide](../guides/skills-deployment-guide.md) - Comprehensive deployment guide
 
 **Development:**
 - [Testing & QA](QA.md) - Testing requirements

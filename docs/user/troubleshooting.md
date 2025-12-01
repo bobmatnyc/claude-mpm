@@ -19,6 +19,15 @@ Common issues and solutions for Claude MPM.
   - [Python Version Mismatch](#python-version-mismatch)
   - [Dependency Conflicts](#dependency-conflicts)
 - [Agent Issues](#agent-issues)
+  - [Agent not found Error](#agent-not-found-error)
+  - [Agent Won't Load](#agent-wont-load)
+  - [PM Agent Not Delegating](#pm-agent-not-delegating)
+  - [Agent Source Issues](#agent-source-issues)
+    - [Agent Source Update Timeout](#agent-source-update-timeout)
+    - [Git Authentication Failures](#git-authentication-failures)
+    - [Agent Not Found from Source](#agent-not-found-from-source)
+    - [Priority Conflicts](#priority-conflicts)
+    - [Common Error Messages](#common-error-messages)
 - [Monitoring Issues](#monitoring-issues)
 - [Local Deployment Issues](#local-deployment-issues)
 - [Memory Issues](#memory-issues)
@@ -226,6 +235,222 @@ claude-mpm agents validate --verbose
 - Specialist agent files missing
 - Task too simple (doesn't require delegation)
 - PM instructions modified incorrectly
+
+### Agent Source Issues
+
+**New in v4.5.0:** Claude MPM uses git-first architecture for agent deployment. Agents are sourced from Git repositories by default.
+
+**Documentation:**
+- [Agent Sources User Guide](agent-sources.md) - Complete guide with examples
+- [CLI Reference](../reference/cli-agent-source.md) - All `agent-source` commands
+- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+
+**Quick Diagnostics:**
+```bash
+# Check agent source health
+claude-mpm doctor --checks agent-sources --verbose
+
+# List all sources
+claude-mpm agent-source list
+
+# Update all sources
+claude-mpm agent-source update
+```
+
+#### Agent Source Update Timeout
+
+**Problem**: `agent-source update` times out or hangs.
+
+**Causes:**
+- Slow network connection
+- Large repository size
+- GitHub API rate limiting
+- Firewall blocking GitHub
+
+**Solutions:**
+
+```bash
+# 1. Check network connectivity
+ping github.com
+curl -I https://github.com
+
+# 2. Run diagnostics
+claude-mpm doctor --checks agent-sources --verbose
+
+# 3. Use --force to bypass cache
+claude-mpm agent-source update --force
+
+# 4. Update specific source only
+claude-mpm agent-source update <source-id>
+
+# 5. Check GitHub status
+# Visit: https://www.githubstatus.com/
+```
+
+#### Git Authentication Failures
+
+**Problem**: `Authentication failed` or `Permission denied` errors.
+
+**Causes:**
+- Private repositories without credentials
+- Expired access tokens
+- SSH key authentication (not supported)
+
+**Solutions:**
+
+```bash
+# 1. Use HTTPS URLs (not SSH)
+# ✓ Correct: https://github.com/owner/repo
+# ✗ Wrong: git@github.com:owner/repo.git
+
+# 2. For private repos, use personal access token
+claude-mpm agent-source add \
+  https://YOUR_TOKEN@github.com/owner/private-repo
+
+# 3. Verify repository accessibility
+curl -I https://github.com/owner/repo
+
+# 4. Check repository is public or you have access
+```
+
+**Security note:** Store tokens securely, never commit them.
+
+#### Agent Not Found from Source
+
+**Problem**: Agent exists in source but not available for deployment.
+
+**Diagnosis:**
+
+```bash
+# 1. List sources and check status
+claude-mpm agent-source list
+
+# 2. Update sources
+claude-mpm agent-source update --force
+
+# 3. Show source details with agents
+claude-mpm agent-source show <source-id> --agents
+
+# 4. Check cache directory
+ls -la ~/.claude-mpm/agent-sources/<source-id>/
+
+# 5. Run diagnostics
+claude-mpm doctor --checks agent-sources --verbose
+```
+
+**Solutions:**
+
+```bash
+# Enable disabled source
+claude-mpm agent-source enable <source-id>
+
+# Force sync
+claude-mpm agent-source update --force
+
+# Clear cache and re-sync
+rm -rf ~/.claude-mpm/agent-sources/<source-id>/
+claude-mpm agent-source update <source-id>
+
+# Verify agent file format
+cat ~/.claude-mpm/agent-sources/<source-id>/<agent>.md
+```
+
+#### Priority Conflicts
+
+**Problem**: Wrong agent version deployed, unexpected agent behavior.
+
+**Causes:**
+- Multiple sources with same priority
+- Multiple sources providing same agent name
+- Misunderstanding priority order (lower = higher precedence)
+
+**Diagnosis:**
+
+```bash
+# 1. Check priority configuration
+claude-mpm agent-source list --by-priority
+
+# 2. Run conflict detection
+claude-mpm doctor --checks agent-sources --verbose
+
+# 3. Check deployed agent source
+claude-mpm agents list-deployed
+```
+
+**Solutions:**
+
+```bash
+# Set distinct priorities (remove and re-add)
+claude-mpm agent-source remove source1
+claude-mpm agent-source add <url1> --priority 10
+
+# Disable conflicting source temporarily
+claude-mpm agent-source disable source2
+
+# Use project-local override (highest priority)
+cp ~/.claude-mpm/agent-sources/source1/agent.md \
+   .claude-mpm/agents/agent.md
+
+# Redeploy with --force
+claude-mpm agents deploy <agent-name> --force
+```
+
+**Best practice:** Use distinct priority ranges (see [Agent Sources Guide - Priority System](agent-sources.md#priority-system)).
+
+#### Common Error Messages
+
+**Error: `Source already configured`**
+
+```bash
+# Check existing sources
+claude-mpm agent-source list
+
+# Remove old source first
+claude-mpm agent-source remove <source-id>
+
+# Re-add with new settings
+claude-mpm agent-source add <url> --priority <new-priority>
+```
+
+**Error: `Invalid Git URL format`**
+
+```bash
+# ✓ Valid formats:
+https://github.com/owner/repo
+https://github.com/owner/repo.git
+
+# ✗ Invalid formats:
+git@github.com:owner/repo.git  # SSH not supported
+github.com/owner/repo          # Missing protocol
+```
+
+**Error: `Failed to fetch repository`**
+
+```bash
+# Verify URL manually
+curl -I https://github.com/owner/repo
+
+# For private repos, use token
+claude-mpm agent-source add \
+  https://TOKEN@github.com/owner/private-repo
+
+# Check network/firewall
+ping github.com
+```
+
+**Error: `No agents found in source`**
+
+```bash
+# Verify subdirectory path
+claude-mpm agent-source show <source-id>
+
+# Remove and re-add with correct subdirectory
+claude-mpm agent-source remove <source-id>
+claude-mpm agent-source add <url> --subdirectory correct/path
+
+# Force update
+claude-mpm agent-source update --force
+```
 
 ## Monitoring Issues
 

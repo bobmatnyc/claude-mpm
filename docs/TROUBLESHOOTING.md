@@ -175,6 +175,84 @@ claude-mpm verify --json
 3. Verify service installation
 4. Run `claude-mpm verify --fix`
 
+### Instruction Cache Issues
+
+#### Problem: Deployment fails with "Argument list too long"
+
+**Symptom**: `OSError: [Errno E2BIG] Argument list too long`
+
+**Cause**: Instruction caching not working, falling back to inline instructions that exceed ARG_MAX
+
+**Solution**:
+
+1. Check if cache exists:
+```bash
+ls -lh .claude-mpm/PM_INSTRUCTIONS.md*
+```
+
+2. If missing, ensure directory permissions:
+```bash
+mkdir -p .claude-mpm
+chmod 755 .claude-mpm
+```
+
+3. Regenerate cache:
+```bash
+rm -f .claude-mpm/PM_INSTRUCTIONS.md*
+claude-mpm agents deploy research
+```
+
+4. Verify cache was created:
+```bash
+cat .claude-mpm/PM_INSTRUCTIONS.md.meta | jq .
+```
+
+**Prevention**: Instruction caching should happen automatically. If this error occurs, file a bug report.
+
+#### Cache Not Updating
+
+**Symptom**: Changes to PM instructions not reflected in cached file
+
+**Diagnostic**:
+```bash
+# Check current cache metadata
+cat .claude-mpm/PM_INSTRUCTIONS.md.meta | jq .
+
+# Check cache timestamp
+cat .claude-mpm/PM_INSTRUCTIONS.md.meta | jq .cached_at
+```
+
+**Solution**:
+```bash
+# Force regenerate cache
+rm -f .claude-mpm/PM_INSTRUCTIONS.md*
+claude-mpm agents deploy research
+
+# Verify new cache created
+cat .claude-mpm/PM_INSTRUCTIONS.md.meta | jq .cached_at
+cat .claude-mpm/PM_INSTRUCTIONS.md.meta | jq .content_hash
+```
+
+#### Cache Permission Errors
+
+**Symptom**: `PermissionError` when creating or updating cache
+
+**Solution**:
+```bash
+# Check directory permissions
+ls -ld .claude-mpm
+
+# Fix permissions
+chmod 755 .claude-mpm
+chmod 644 .claude-mpm/PM_INSTRUCTIONS.md*
+
+# Check ownership
+ls -l .claude-mpm/
+
+# If owned by another user, change ownership
+sudo chown -R $USER:$USER .claude-mpm/
+```
+
 ### Memory Issues
 
 #### High Memory Usage
