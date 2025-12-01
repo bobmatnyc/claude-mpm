@@ -143,6 +143,122 @@ pwd  # Check current directory
 ❌ **WRONG**: Testing framework changes without redeployment
 ✅ **CORRECT**: Source change → `make quality` → `claude-mpm agents deploy --force` → Test
 
+## 🔧 MCP Service Integration Architecture
+
+**IMPORTANT**: MCP service-specific instructions belong in agent files, NOT in PM instructions.
+
+### Architecture Principle
+
+```
+PM Instructions (Lean)
+  ↓ delegates
+Agent Instructions (MCP-aware)
+  ↓ uses
+MCP Service Tools
+```
+
+### MCP Instruction Placement
+
+**PM knows (PM_INSTRUCTIONS.md)**:
+- ✅ WHEN to delegate (detection patterns, triggers)
+- ✅ WHO to delegate to (agent names)
+- ✅ MUST delegate rules (Circuit Breakers)
+- ❌ NOT how MCP tools work (implementation details)
+
+**Agents know (agent instruction files)**:
+- ✅ HOW to use MCP service tools
+- ✅ MCP-specific workflows and protocols
+- ✅ Graceful degradation when MCP unavailable
+- ✅ Tool usage patterns and best practices
+
+### MCP Service Mappings
+
+| MCP Service | Target Agent | Agent Location |
+|-------------|--------------|----------------|
+| `mcp-ticketer` | ticketing | `~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/documentation/ticketing.md` |
+| `mcp-vector-search` | research | `~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/universal/research.md` |
+
+### Agent Development Workflow
+
+**When adding MCP service instructions to agents**:
+
+1. **Navigate to agent repository**:
+   ```bash
+   cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents
+   ```
+
+2. **Edit the appropriate agent file**:
+   ```bash
+   # For mcp-ticketer instructions
+   vim ticketing.md
+
+   # For mcp-vector-search instructions
+   vim research.md
+   ```
+
+3. **Add MCP-specific section to agent**:
+   ```markdown
+   ## MCP Service Integration: {service-name}
+
+   **When available**: This agent can use {service} tools for enhanced capabilities.
+
+   ### Tool Usage
+   - {tool-name}: {purpose}
+
+   ### Workflows
+   {MCP-specific protocols}
+
+   ### Graceful Degradation
+   When {service} unavailable: {fallback behavior}
+   ```
+
+4. **Commit and push changes**:
+   ```bash
+   git add agents/{agent-name}.md
+   git commit -m "feat: add mcp-{service} integration to {agent}"
+   git push origin main
+   ```
+
+5. **Sync to local**:
+   ```bash
+   # Users will get updates via sync mechanism
+   claude-mpm agents sync
+   ```
+
+### Benefits of This Architecture
+
+- ✅ **Lean PM**: PM instructions stay focused on delegation, not implementation
+- ✅ **Separation of concerns**: Agents own their MCP tool expertise
+- ✅ **Graceful degradation**: Agents handle MCP unavailability independently
+- ✅ **Maintainability**: MCP changes only affect relevant agents
+- ✅ **Token efficiency**: PM doesn't load MCP details it never uses
+
+### Example: mcp-ticketer Integration
+
+**Before** (bloated PM_INSTRUCTIONS.md):
+```markdown
+# PM knows 886 lines of mcp-ticketer protocols
+## TICKETING SYSTEM INTEGRATION (31.5% of PM instructions)
+- Scope protection protocols
+- Ticket completeness protocols
+- Context propagation rules
+- [... 800+ more lines ...]
+```
+
+**After** (lean delegation):
+```markdown
+# PM_INSTRUCTIONS.md (10 lines)
+## TICKETING INTEGRATION
+**Rule**: ALL ticket operations MUST be delegated to ticketing agent.
+PM NEVER uses mcp__mcp-ticketer__* tools directly (Circuit Breaker #6).
+
+# ticketing.md (agent instructions - 886 lines)
+## MCP Service Integration: mcp-ticketer
+[All the detailed protocols agents need]
+```
+
+**Token Savings**: 31.5% reduction in PM instructions when mcp-ticketer content moves to ticketing agent.
+
 ## Memory Guidelines
 
 - Store project decisions and conventions
