@@ -65,6 +65,17 @@ def add_skill_source_subparser(subparsers) -> argparse.ArgumentParser:
         action="store_true",
         help="Add repository but keep it disabled",
     )
+    add_parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Test repository access without saving to configuration",
+    )
+    add_parser.add_argument(
+        "--no-test",
+        action="store_true",
+        dest="skip_test",
+        help="Skip immediate testing (not recommended)",
+    )
 
     # Remove repository
     remove_parser = skill_source_subparsers.add_parser(

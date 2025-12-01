@@ -374,7 +374,21 @@ class MultiSourceAgentDeploymentService:
         agent_sources = {}
 
         for agent_name, agent_info in selected_agents.items():
-            template_path = Path(agent_info["path"])
+            # Defensive: Try multiple path fields for backward compatibility (ticket 1M-480)
+            # Priority: 'path' -> 'file_path' -> 'source_file'
+            path_str = (
+                agent_info.get("path")
+                or agent_info.get("file_path")
+                or agent_info.get("source_file")
+            )
+
+            if not path_str:
+                self.logger.warning(
+                    f"Agent '{agent_name}' missing path information (no 'path', 'file_path', or 'source_file' field)"
+                )
+                continue
+
+            template_path = Path(path_str)
             if template_path.exists():
                 # Use the file stem as the key for consistency
                 file_stem = template_path.stem
@@ -445,8 +459,20 @@ class MultiSourceAgentDeploymentService:
                 if agent_info["source"] != "user":
                     continue
 
+                # Defensive: Get path from agent_info (ticket 1M-480)
+                path_str = (
+                    agent_info.get("path")
+                    or agent_info.get("file_path")
+                    or agent_info.get("source_file")
+                )
+                if not path_str:
+                    self.logger.warning(
+                        f"User agent '{agent_name}' missing path information, skipping cleanup"
+                    )
+                    continue
+
                 # Safety check - ensure path is within user agents directory
-                user_agent_path = Path(agent_info["path"])
+                user_agent_path = Path(path_str)
                 try:
                     # Resolve paths to compare them safely
                     resolved_user_path = user_agent_path.resolve()

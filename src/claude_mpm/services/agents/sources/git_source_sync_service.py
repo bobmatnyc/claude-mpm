@@ -19,6 +19,7 @@ import requests
 
 from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
+from claude_mpm.utils.progress import create_progress_bar
 
 logger = logging.getLogger(__name__)
 
@@ -223,11 +224,20 @@ class GitSourceSyncService:
         if etag_cache_file.exists():
             self._migrate_etag_cache(etag_cache_file)
 
-    def sync_agents(self, force_refresh: bool = False) -> Dict[str, Any]:
+    def sync_agents(
+        self,
+        force_refresh: bool = False,
+        show_progress: bool = True,
+        progress_prefix: str = "Syncing agents",
+        progress_suffix: str = "agents",
+    ) -> Dict[str, Any]:
         """Sync agents from remote Git repository with SQLite state tracking.
 
         Args:
             force_refresh: Force download even if cache is fresh (bypasses ETag)
+            show_progress: Show ASCII progress bar during sync (default: True, auto-detects TTY)
+            progress_prefix: Custom prefix for progress bar (default: "Syncing agents")
+            progress_suffix: Custom suffix for completion message (default: "agents")
 
         Returns:
             Dictionary with sync results:
@@ -261,8 +271,19 @@ class GitSourceSyncService:
         # Get list of agents to sync
         agent_list = self._get_agent_list()
 
-        for agent_filename in agent_list:
+        # Create progress bar if enabled
+        progress_bar = None
+        if show_progress:
+            progress_bar = create_progress_bar(
+                total=len(agent_list), prefix=progress_prefix
+            )
+
+        for idx, agent_filename in enumerate(agent_list, start=1):
             try:
+                # Update progress bar with current file
+                if progress_bar:
+                    progress_bar.update(idx, message=agent_filename)
+
                 url = f"{self.source_url}/{agent_filename}"
                 content, status = self._fetch_with_etag(url, force_refresh)
 
@@ -284,7 +305,7 @@ class GitSourceSyncService:
 
                     results["synced"].append(agent_filename)
                     results["total_downloaded"] += 1
-                    logger.info(f"Downloaded: {agent_filename}")
+                    logger.debug(f"Downloaded: {agent_filename}")
 
                 elif status == 304:
                     # Not modified - verify hash
@@ -375,6 +396,19 @@ class GitSourceSyncService:
 
         # Update source metadata
         self.sync_state.update_source_sync_metadata(source_id=self.source_id)
+
+        # Finish progress bar
+        if progress_bar:
+            success_count = results["total_downloaded"] + results["cache_hits"]
+            failed_count = len(results["failed"])
+            if failed_count > 0:
+                progress_bar.finish(
+                    message=f"Complete: {success_count} synced, {failed_count} failed"
+                )
+            else:
+                progress_bar.finish(
+                    message=f"Complete: {success_count} {progress_suffix} synced"
+                )
 
         # Log summary
         logger.info(
@@ -578,25 +612,105 @@ class GitSourceSyncService:
     def _get_agent_list(self) -> List[str]:
         """Get list of agent filenames to sync.
 
-        Design Decision: Hardcoded agent list for Stage 1
+        Design Decision: Auto-discovery via GitHub API with fallback
 
-        Rationale: Simplest approach for single-source support. Avoids
-        GitHub API calls and rate limits. Rejected manifest file approach
-        because it requires an extra HTTP request and repository changes.
+        Rationale: GitHub API provides reliable directory listing. Rate limits
+        are acceptable (60/hour unauthenticated, 5000/hour authenticated) for
+        this operation. Using API allows discovering ALL agents automatically
+        without manual maintenance of hardcoded list.
+
+        Trade-offs:
+        - Performance: One extra API call (~200-500ms) per sync operation
+        - Rate Limits: Consumes 1 API call per sync (acceptable for infrequent syncs)
+        - Reliability: Fallback to static list if API fails
+        - Maintainability: No manual updates needed when agents are added/removed
 
         Alternatives Considered:
-        1. Manifest file (agents.json): Rejected - requires repo changes
-        2. GitHub API directory listing: Rejected - uses rate limit
-        3. Auto-discovery via convention: Rejected - complex, error-prone
+        1. Manifest file (agents.json): Requires repository write access
+        2. Hardcoded list only: Misses new agents, requires code updates
+        3. Web scraping HTML: Fragile, breaks when GitHub changes UI
 
-        Future Enhancement: Replace with manifest file when multi-source
-        support is implemented (ticket 1M-390).
+        Error Handling:
+        - Network errors: Falls back to static list
+        - Rate limit exceeded: Falls back to static list
+        - JSON parse errors: Falls back to static list
 
         Returns:
-            List of agent filenames (e.g., ["research.md", "engineer.md"])
+            List of agent filenames (e.g., ["research.md", "engineer.md", ...])
         """
-        # Hardcoded list for Stage 1 - will be replaced with manifest
-        # file or auto-discovery in future iterations
+        # Extract repository info from source URL
+        # URL format: https://raw.githubusercontent.com/owner/repo/branch/path
+        try:
+            # Parse GitHub API URL from raw URL
+            # raw.githubusercontent.com/owner/repo/branch/path -> api.github.com/repos/owner/repo/contents/path
+            url_parts = self.source_url.replace(
+                "https://raw.githubusercontent.com/", ""
+            ).split("/")
+
+            if len(url_parts) >= 3:
+                owner = url_parts[0]
+                repo = url_parts[1]
+                branch = url_parts[2]
+                path = "/".join(url_parts[3:]) if len(url_parts) > 3 else ""
+
+                # Construct GitHub API URL
+                api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+                if branch and branch != "main":
+                    api_url += f"?ref={branch}"
+
+                logger.debug(f"Fetching agent list from GitHub API: {api_url}")
+
+                # Make API request with timeout
+                # Override session's Accept header for API call (needs application/json)
+                api_headers = {"Accept": "application/vnd.github+json"}
+                response = self.session.get(api_url, headers=api_headers, timeout=10)
+
+                if response.status_code == 200:
+                    files = response.json()
+
+                    # Filter for .md files, exclude README.md
+                    agent_files = [
+                        f["name"]
+                        for f in files
+                        if isinstance(f, dict)
+                        and f.get("name", "").endswith(".md")
+                        and f.get("name") != "README.md"
+                        and f.get("type") == "file"
+                    ]
+
+                    if agent_files:
+                        logger.info(
+                            f"Discovered {len(agent_files)} agents via GitHub API"
+                        )
+                        # Sort for consistent ordering
+                        return sorted(agent_files)
+                    logger.warning("No agent files found via API, using fallback list")
+
+                elif response.status_code == 403:
+                    logger.warning(
+                        "GitHub API rate limit exceeded (HTTP 403), using fallback list. "
+                        "Consider setting GITHUB_TOKEN environment variable."
+                    )
+                else:
+                    logger.warning(
+                        f"GitHub API returned HTTP {response.status_code}, using fallback list"
+                    )
+
+        except requests.RequestException as e:
+            logger.warning(
+                f"Network error fetching agent list from API: {e}, using fallback list"
+            )
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.warning(
+                f"Error parsing GitHub API response: {e}, using fallback list"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Unexpected error fetching agent list: {e}, using fallback list"
+            )
+
+        # Fallback to known agent list if API fails
+        logger.debug("Using fallback agent list")
         return [
             "research.md",
             "engineer.md",

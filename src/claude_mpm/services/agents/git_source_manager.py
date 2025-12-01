@@ -61,7 +61,7 @@ class GitSourceManager:
         logger.info(f"GitSourceManager initialized with cache: {self.cache_root}")
 
     def sync_repository(
-        self, repo: GitRepository, force: bool = False
+        self, repo: GitRepository, force: bool = False, show_progress: bool = True
     ) -> Dict[str, Any]:
         """
         Sync a single repository from Git.
@@ -75,6 +75,7 @@ class GitSourceManager:
         Args:
             repo: GitRepository to sync
             force: Force sync even if cache is fresh (bypasses ETag)
+            show_progress: Show ASCII progress bar during sync (default: True)
 
         Returns:
             Dictionary with sync results:
@@ -119,8 +120,10 @@ class GitSourceManager:
                 source_id=repo.identifier,
             )
 
-            # Sync agents
-            sync_results = sync_service.sync_agents(force_refresh=force)
+            # Sync agents with progress bar
+            sync_results = sync_service.sync_agents(
+                force_refresh=force, show_progress=show_progress
+            )
 
             # Discover agents in cache
             discovery_service = RemoteAgentDiscoveryService(repo.cache_path)
@@ -159,7 +162,10 @@ class GitSourceManager:
             }
 
     def sync_all_repositories(
-        self, repos: List[GitRepository], force: bool = False
+        self,
+        repos: List[GitRepository],
+        force: bool = False,
+        show_progress: bool = True,
     ) -> Dict[str, Dict[str, Any]]:
         """Sync multiple repositories.
 
@@ -169,6 +175,7 @@ class GitSourceManager:
         Args:
             repos: List of repositories to sync
             force: Force sync even if cache is fresh
+            show_progress: Show ASCII progress bar during sync (default: True)
 
         Returns:
             Dictionary mapping repository identifier to sync results:
@@ -200,7 +207,9 @@ class GitSourceManager:
                 continue
 
             try:
-                result = self.sync_repository(repo, force=force)
+                result = self.sync_repository(
+                    repo, force=force, show_progress=show_progress
+                )
                 results[repo.identifier] = result
 
             except Exception as e:

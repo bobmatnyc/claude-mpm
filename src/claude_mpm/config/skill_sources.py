@@ -3,6 +3,7 @@
 This module manages skill sources configuration, which defines Git repositories
 containing skill files (Markdown with YAML frontmatter). It supports:
 - System repository (bobmatnyc/claude-mpm-skills) with priority 0
+- Official Anthropic repository (anthropics/skills) with priority 1
 - Multiple custom repositories with priority-based resolution
 - YAML persistence for configuration
 - Source management (add, remove, enable, disable)
@@ -173,6 +174,12 @@ class SkillSourceConfiguration:
             branch: main
             priority: 0
             enabled: true
+          - id: anthropic-official
+            type: git
+            url: https://github.com/anthropics/skills
+            branch: main
+            priority: 1
+            enabled: true
 
     Design Pattern: Configuration as Code
 
@@ -227,12 +234,12 @@ class SkillSourceConfiguration:
             >>> for source in sources:
             ...     print(f"{source.id}: {source.url}")
         """
-        # If file doesn't exist, return default system source
+        # If file doesn't exist, return default sources
         if not self.config_path.exists():
             self.logger.info(
-                f"Configuration file not found at {self.config_path}, using default"
+                f"Configuration file not found at {self.config_path}, using defaults"
             )
-            return [self._get_default_system_source()]
+            return self._get_default_sources()
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
@@ -240,9 +247,9 @@ class SkillSourceConfiguration:
 
             if not data or "sources" not in data:
                 self.logger.warning(
-                    f"Empty or invalid configuration at {self.config_path}, using default"
+                    f"Empty or invalid configuration at {self.config_path}, using defaults"
                 )
-                return [self._get_default_system_source()]
+                return self._get_default_sources()
 
             # Parse sources
             sources = []
@@ -262,8 +269,8 @@ class SkillSourceConfiguration:
                     continue
 
             if not sources:
-                self.logger.warning("No valid sources found, using default")
-                return [self._get_default_system_source()]
+                self.logger.warning("No valid sources found, using defaults")
+                return self._get_default_sources()
 
             return sources
 
@@ -272,7 +279,7 @@ class SkillSourceConfiguration:
                 f"Failed to load configuration from {self.config_path}: {e}"
             )
             self.logger.info("Using default configuration")
-            return [self._get_default_system_source()]
+            return self._get_default_sources()
 
     def save(self, sources: List[SkillSource]) -> None:
         """Save skill sources to configuration file.
@@ -527,20 +534,51 @@ class SkillSourceConfiguration:
 
         return warnings
 
+    def _get_default_sources(self) -> List[SkillSource]:
+        """Get default skill sources (system + official Anthropic).
+
+        Returns:
+            List of default SkillSource instances
+
+        Design Decision: Multiple default sources
+
+        Rationale: Provide users with both curated system skills and official
+        Anthropic skills out-of-the-box. System repo maintains highest priority
+        for custom/override capabilities.
+
+        Default Sources:
+            1. System repo (priority 0): bobmatnyc/claude-mpm-skills
+            2. Anthropic repo (priority 1): anthropics/skills
+        """
+        return [
+            SkillSource(
+                id="system",
+                type="git",
+                url="https://github.com/bobmatnyc/claude-mpm-skills",
+                branch="main",
+                priority=0,
+                enabled=True,
+            ),
+            SkillSource(
+                id="anthropic-official",
+                type="git",
+                url="https://github.com/anthropics/skills",
+                branch="main",
+                priority=1,
+                enabled=True,
+            ),
+        ]
+
     def _get_default_system_source(self) -> SkillSource:
-        """Get default system skill source.
+        """Get default system skill source (legacy method).
 
         Returns:
             SkillSource for system repository
+
+        Note: Deprecated in favor of _get_default_sources() which includes
+        both system and Anthropic sources. Kept for backward compatibility.
         """
-        return SkillSource(
-            id="system",
-            type="git",
-            url="https://github.com/bobmatnyc/claude-mpm-skills",
-            branch="main",
-            priority=0,
-            enabled=True,
-        )
+        return self._get_default_sources()[0]
 
     def __repr__(self) -> str:
         """Return string representation of configuration."""

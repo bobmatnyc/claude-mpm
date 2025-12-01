@@ -12,20 +12,111 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 > **Quick Start**: See [docs/user/getting-started.md](docs/user/getting-started.md) to get running in 5 minutes!
 
+## 🚀 What's New in v5.0
+
+### Git Repository Integration for Agents & Skills
+
+Claude MPM now supports **Git repositories** for distributing and managing agents and skills - the most requested feature from our community!
+
+**🎯 Key Highlights:**
+- **📦 Massive Library**: 47+ agents and 37+ skills deployed automatically from curated repositories
+- **🏢 Official Content**: Anthropic's official skills repository included by default
+- **🔧 Fully Extensible**: Add your own agent/skill repositories with immediate testing
+- **🌳 Smart Organization**: Hierarchical BASE-AGENT.md inheritance for shared templates
+- **📊 Clear Visibility**: Two-phase progress bars show sync and deployment status
+- **✅ Fail-Fast Testing**: Test repositories before they cause startup issues
+
+#### Quick Start: Add Your Own Repository
+
+```bash
+# Add custom agent repository (with immediate testing)
+claude-mpm agent-source add https://github.com/yourorg/your-agents
+
+# Add custom skill repository
+claude-mpm skill-source add https://github.com/yourorg/your-skills
+
+# Test repository without saving
+claude-mpm agent-source add https://github.com/yourorg/your-agents --test
+
+# List all configured sources
+claude-mpm agent-source list
+```
+
+#### Default Repositories
+
+**Agents** (47+ agents):
+- 🏢 System: `bobmatnyc/claude-mpm-agents` - Core agent templates
+
+**Skills** (37+ skills):
+- 🏢 System: `bobmatnyc/claude-mpm-skills` - Community skills
+- 🎯 Official: `anthropics/skills` - Anthropic's official skills (14+ skills)
+
+**What This Means:**
+- ✅ **Automatic Setup**: Everything deploys on first run
+- ✅ **Always Updated**: Git repositories sync on startup
+- ✅ **Nested Support**: Repositories with subdirectories are automatically flattened
+- ✅ **Template Inheritance**: BASE-AGENT.md files cascade from parent directories
+- ✅ **Priority System**: Control which sources win when multiple repos provide the same agent/skill
+
+#### Hierarchical Organization Example
+
+Support for BASE-AGENT.md enables powerful template inheritance:
+
+```
+your-agents/
+  BASE-AGENT.md              # Root shared content (all agents inherit)
+  engineering/
+    BASE-AGENT.md            # Engineering-specific (engineering/* agents inherit)
+    python/
+      fastapi-engineer.md    # Inherits both BASE files
+```
+
+See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-agents.md) for complete guide.
+
 ## Features
 
-- 🤖 **Multi-Agent System**: 37 specialized agents for comprehensive project management
-- 🎯 **Skills System**: 21 bundled skills with auto-linking, three-tier organization (bundled/user/project), and interactive configuration
-- 🔄 **Session Management**: Resume previous sessions with `--resume`
-- 📋 **Resume Log System**: Proactive context management with automatic 10k-token session logs at 70%/85%/95% thresholds
-- 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🔌 **MCP Integration**: Full support for Model Context Protocol services
-- 📁 **Multi-Project Support**: Per-session working directories
-- 🔍 **Git Integration**: View diffs and track changes across projects
-- 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
-- ⚡ **Simplified Architecture**: ~3,700 lines removed for better performance and maintainability
-- 🔒 **Enhanced Security**: Comprehensive input validation and sanitization framework
-- 🌐 **Remote Agent Sync**: Automatic agent updates from git repositories with intelligent ETag-based caching
+### 🎯 Multi-Agent Orchestration
+
+- **47+ Specialized Agents**: Comprehensive coverage from Git repositories (Python, Rust, QA, Security, Ops, etc.)
+- **Smart Task Routing**: PM agent intelligently delegates work to specialist agents
+- **Session Management**: Resume previous sessions with `--resume`
+- **Resume Log System**: Proactive context management with automatic 10k-token session logs at 70%/85%/95% thresholds
+
+### 📦 Git Repository Integration (NEW in v5.0)
+
+- **🏢 Curated Content**: Default repositories with 47+ agents and 37+ skills
+- **🎯 Official Skills**: Anthropic's official skills included by default
+- **🔧 Custom Repositories**: Add your own via CLI or configuration
+- **🌳 Nested Support**: Automatic flattening of nested directory structures
+- **📝 Template Inheritance**: BASE-AGENT.md for hierarchical organization
+- **✅ Immediate Testing**: Fail-fast validation when adding repositories
+- **📊 Progress Visibility**: Two-phase progress bars (sync + deployment)
+- **⚡ Smart Caching**: ETag-based caching reduces bandwidth by 95%+
+
+### 🎯 Skills System
+
+- **37+ Skills**: Comprehensive skill library from curated repositories
+- **Official Skills**: 14+ skills from Anthropic's official repository
+- **Three-Tier Organization**: Bundled/user/project skills with priority resolution
+- **Auto-Linking**: Skills automatically linked to relevant agents
+- **Interactive Configuration**: Skills wizard via `claude-mpm configure`
+- **Version Tracking**: Semantic versioning for all skills
+
+### 🔌 Advanced Integration
+
+- **MCP Integration**: Full support for Model Context Protocol services
+- **Real-Time Monitoring**: Live dashboard with `--monitor` flag
+- **Multi-Project Support**: Per-session working directories
+- **Git Integration**: View diffs and track changes across projects
+
+### ⚡ Performance & Security
+
+- **Simplified Architecture**: ~3,700 lines removed for better performance
+- **Enhanced Security**: Comprehensive input validation and sanitization
+- **Intelligent Caching**: File-based instruction caching for optimal performance
+  - ✅ Eliminates ARG_MAX limits on Linux (exceeds by 19.1%) and Windows (exceeds by 476%)
+  - ✅ ~200ms faster agent startup with hash-based cache invalidation
+  - ✅ Automatic and transparent (no configuration required)
 
 ## Quick Installation
 
@@ -72,7 +163,24 @@ claude --version
 
 # Run diagnostics (checks Claude Code compatibility)
 claude-mpm doctor
+
+# Verify Git repositories are synced
+ls ~/.claude/agents/    # Should show 47+ agents
+ls ~/.claude/skills/    # Should show 37+ skills
+
+# Check agent sources
+claude-mpm agent-source list
+
+# Check skill sources
+claude-mpm skill-source list
 ```
+
+**What You Should See:**
+- ✅ 47+ agents deployed to `~/.claude/agents/`
+- ✅ 37+ skills deployed to `~/.claude/skills/`
+- ✅ Two agent sources configured (system + official)
+- ✅ Two skill sources configured (system + official)
+- ✅ Progress bars showing sync and deployment phases
 
 **💡 Optional Dependencies**:
 - `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components
@@ -205,111 +313,155 @@ claude-mpm doctor --checks updates
 
 See [docs/user/getting-started.md](docs/user/getting-started.md) for complete usage examples.
 
-## Skills Deployment
+## Managing Agent & Skill Repositories
 
-Claude MPM includes intelligent skills deployment with **multi-collection support**:
-
-- **Multiple Sources**: Add skills from different GitHub repositories
-- **Automatic Detection**: Analyzes your project's technology stack
-- **Smart Recommendations**: Research agent suggests relevant skills
-- **Git-Based Updates**: Clone on first install, pull on updates
-- **Easy Management**: Simple CLI commands for all operations
+Claude MPM uses **Git repositories** to distribute and manage agents and skills. This provides automatic updates, version control, and easy sharing of agent/skill libraries.
 
 ### Quick Start
 
 ```bash
-# Deploy from default collection
-claude-mpm skills deploy-github --toolchain python
+# Add custom agent repository
+claude-mpm agent-source add https://github.com/yourorg/your-agents
 
-# Add new collection
-claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers
+# Add custom skill repository
+claude-mpm skill-source add https://github.com/yourorg/your-skills
 
-# Deploy from specific collection
-claude-mpm skills deploy-github --collection obra-superpowers
+# Test repository without saving (fail-fast validation)
+claude-mpm agent-source add https://github.com/yourorg/your-agents --test
 
-# List all collections
-claude-mpm skills collection-list
+# List configured sources
+claude-mpm agent-source list
+claude-mpm skill-source list
+
+# Update from all sources
+claude-mpm agent-source update
+claude-mpm skill-source update
 ```
 
-### Multi-Collection Management
+### Priority System
 
-**Add Collections**:
+When multiple sources provide the same agent/skill, priority controls which one wins:
+
+- **Lower number = Higher precedence** (priority 10 beats priority 100)
+- **Local agents/skills** (`.claude-mpm/agents/`, `.claude-mpm/skills/`) always override
+- **System defaults** provide fallback
+
+**Example Configuration:**
+
+```yaml
+# ~/.claude-mpm/config/agent_sources.yaml
+repositories:
+  - url: https://github.com/myteam/agents
+    priority: 10    # Highest precedence (custom agents)
+
+  - url: https://github.com/bobmatnyc/claude-mpm-agents
+    priority: 100   # System default (official agents)
+```
+
+### Hierarchical Organization with BASE-AGENT.md
+
+Support for BASE-AGENT.md enables powerful template inheritance:
+
+```
+your-agents/
+  BASE-AGENT.md              # Root shared content (all agents inherit)
+  engineering/
+    BASE-AGENT.md            # Engineering-specific (engineering/* inherit)
+    python/
+      fastapi-engineer.md    # Inherits both BASE files
+      django-engineer.md     # Inherits both BASE files
+    rust/
+      systems-engineer.md    # Inherits both BASE files
+```
+
+**How It Works:**
+1. **Cascading Inheritance**: Each agent inherits from all BASE-AGENT.md files in parent directories
+2. **Automatic Flattening**: Nested repositories are automatically flattened during deployment
+3. **DRY Templates**: Share common instructions across related agents
+4. **Maintainability**: Update shared content in one place
+
+See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-agents.md) for complete guide.
+
+### Configuration via YAML
+
+Edit configuration files directly:
+- **Agents**: `~/.claude-mpm/config/agent_sources.yaml`
+- **Skills**: `~/.claude-mpm/config/skill_sources.yaml`
+
+**Example agent_sources.yaml:**
+
+```yaml
+repositories:
+  - url: https://github.com/bobmatnyc/claude-mpm-agents
+    priority: 100
+    enabled: true
+
+  - url: https://github.com/yourorg/custom-agents
+    priority: 10
+    enabled: true
+```
+
+### Benefits
+
+✅ **Always Up-to-Date**: Repositories sync automatically on startup
+✅ **Bandwidth Efficient**: ETag-based caching reduces network usage by 95%+
+✅ **Version Control**: Track changes through Git history
+✅ **Immediate Testing**: Fail-fast validation prevents startup issues
+✅ **Nested Support**: Automatic flattening of directory structures
+✅ **Template Inheritance**: BASE-AGENT.md for DRY principles
+✅ **Progress Visibility**: Two-phase progress bars (sync + deployment)
+✅ **Community Access**: Latest improvements available immediately
+✅ **Organization Libraries**: Share team-specific content across projects
+
+### Documentation
+
+- **[Agent Sources User Guide](docs/user/agent-sources.md)** - Complete guide with examples
+- **[CLI Reference](docs/reference/cli-agent-source.md)** - All `agent-source` commands
+- **[Hierarchical BASE-AGENT.md](docs/features/hierarchical-base-agents.md)** - Template inheritance guide
+- **[Migration Guide](docs/migration/agent-sources-git-default-v4.5.0.md)** - Upgrading from v4.4.x
+- **[Troubleshooting](docs/user/troubleshooting.md#agent-source-issues)** - Common issues and solutions
+
+## Skills Deployment
+
+Skills are automatically deployed from Git repositories, just like agents. Claude MPM includes **37+ skills** from curated repositories:
+
+- **System Skills**: Community skills from `bobmatnyc/claude-mpm-skills`
+- **Official Skills**: Anthropic's official skills from `anthropics/skills`
+- **Custom Skills**: Add your own skill repositories
+
+### Quick Usage
+
 ```bash
-# Add obra's superpowers collection
-claude-mpm skills collection-add obra-superpowers https://github.com/obra/superpowers --priority 2
+# Skills are automatically deployed on first run
+# No manual deployment needed!
 
-# Add company internal skills
-claude-mpm skills collection-add internal https://github.com/yourcompany/internal-skills
+# Add custom skill repository
+claude-mpm skill-source add https://github.com/yourorg/custom-skills
+
+# List configured skill sources
+claude-mpm skill-source list
+
+# Update skills from all sources
+claude-mpm skill-source update
 ```
 
-**Deploy from Collections**:
-```bash
-# Deploy from specific collection
-claude-mpm skills deploy-github --collection obra-superpowers --toolchain python
+### How Skills Work
 
-# Deploy from default collection
-claude-mpm skills deploy-github --categories testing
-```
-
-**Manage Collections**:
-```bash
-# List all collections (shows priority, status, last update)
-claude-mpm skills collection-list
-
-# Enable/disable collections
-claude-mpm skills collection-disable claude-mpm
-claude-mpm skills collection-enable claude-mpm
-
-# Set default collection
-claude-mpm skills collection-set-default obra-superpowers
-```
-
-### Git-Based Deployment
-
-Collections are managed as git repositories:
-- **First install**: Runs `git clone` to `~/.claude/skills/<collection-name>/`
-- **Updates**: Runs `git pull` in existing repository
-- **Benefits**: Version history, rollback capability, always latest skills
-
-### How It Works
-
-1. **Research Agent Analyzes Project**
-   - Scans configuration files (package.json, pyproject.toml, etc.)
-   - Detects frameworks (FastAPI, React, Next.js, etc.)
-   - Identifies testing tools (pytest, Playwright, Jest, etc.)
-   - Discovers infrastructure patterns (Docker, GitHub Actions, etc.)
-
-2. **Skill Gap Detection**
-   - Compares detected technologies to deployed skills
-   - Identifies missing skills that would improve workflow
-   - Prioritizes recommendations (high/medium/low)
-
-3. **Proactive Recommendations**
-   - During project initialization
-   - When new technologies are added
-   - When specific work types begin (testing, debugging, deployment)
-   - When quality issues are detected
-
-### Example: Python FastAPI Project
-
-```markdown
-Research Agent Analysis:
-Technology Stack Detected: Python 3.11, FastAPI, pytest, Docker, GitHub Actions
-
-Recommended Skills:
-- test-driven-development (high priority) - TDD workflow enforcement
-- backend-engineer (high priority) - API design patterns
-- docker-workflow (medium priority) - Container best practices
-- ci-cd-pipeline-builder (medium priority) - GitHub Actions optimization
-
-Deploy with:
-claude-mpm skills deploy-github --toolchain python
-```
+1. **Automatic Deployment**: All skills from configured repositories deploy on startup
+2. **Three-Tier Organization**:
+   - **Bundled**: System and official skills (37+)
+   - **User**: Custom skills in `~/.config/claude-mpm/skills/`
+   - **Project**: Project-specific skills in `.claude-mpm/skills/`
+3. **Priority Resolution**: Project → User → Bundled (local always wins)
+4. **Auto-Linking**: Skills automatically linked to relevant agents
+5. **Version Tracking**: All skills support semantic versioning
 
 ### Technology → Skills Mapping
 
-| Your Technology | Recommended Skills |
-|-----------------|-------------------|
+The Research agent automatically analyzes your project and recommends relevant skills:
+
+| Your Technology | Auto-Recommended Skills |
+|-----------------|-------------------------|
 | Python + pytest | test-driven-development, python-style |
 | FastAPI/Flask | backend-engineer |
 | React/Next.js | frontend-development, web-frameworks |
@@ -317,82 +469,32 @@ claude-mpm skills deploy-github --toolchain python
 | GitHub Actions | ci-cd-pipeline-builder |
 | Playwright | webapp-testing |
 
+### Interactive Management
+
+```bash
+# Interactive skills wizard
+claude-mpm configure
+# Choose option 2: Skills Management
+
+# Features:
+# - View all deployed skills
+# - Configure skill assignments to agents
+# - Auto-link skills based on agent roles
+# - Manage custom skill repositories
+```
+
 ### Important Notes
 
-- Skills load at Claude Code STARTUP ONLY - restart required after deployment
-- Batch deploy related skills to minimize restarts
-- Research agent automatically recommends skills during analysis
+- ⚠️ Skills load at **Claude Code startup only** - restart required after adding repositories
+- ✅ Batch add related skill repositories to minimize restarts
+- ✅ Research agent automatically recommends missing skills during project analysis
 - See [Skills Deployment Guide](docs/guides/skills-deployment-guide.md) for comprehensive details
 - See [Skills Quick Reference](docs/reference/skills-quick-reference.md) for command reference
 
-## Remote Agent Synchronization
 
-Claude MPM automatically keeps your agent templates up-to-date by syncing with remote Git repositories. This ensures you always have the latest agent capabilities without manual updates.
+## Architecture
 
-### Key Features
-
-- **Automatic Updates**: Agents sync automatically on startup
-- **Intelligent Caching**: ETag-based HTTP caching reduces bandwidth by ~95%
-- **Offline Support**: Works with cached agents when offline
-- **Performance**: First sync ~500-800ms, subsequent syncs ~100-200ms
-- **State Tracking**: SQLite database tracks sync history and content hashes
-
-### How It Works
-
-1. **On Startup**: Claude MPM checks configured Git repositories for agent updates
-2. **ETag Validation**: Uses HTTP ETags to avoid downloading unchanged files
-3. **Local Cache**: Stores agents in `~/.claude-mpm/cache/remote-agents/`
-4. **State Database**: Tracks sync status in `~/.config/claude-mpm/agent_sync.db`
-
-### Default Agent Source
-
-By default, Claude MPM syncs from the official agent repository:
-- **Repository**: https://github.com/bobmatnyc/claude-mpm-agents
-- **Agents**: 48 specialized agent templates
-- **Updates**: Maintained by the Claude MPM team
-
-### Configuration
-
-Agent sync is enabled by default. To customize:
-
-```yaml
-# ~/.claude-mpm/configuration.yaml
-agent_sync:
-  enabled: true  # Set to false to disable
-  sources:
-    - url: https://github.com/bobmatnyc/claude-mpm-agents
-      priority: 1
-  cache_dir: ~/.claude-mpm/cache/remote-agents
-```
-
-### Cache Management
-
-**View cache location**:
-```bash
-ls -lh ~/.claude-mpm/cache/remote-agents/
-```
-
-**Clear cache** (forces full re-sync):
-```bash
-rm -rf ~/.claude-mpm/cache/remote-agents/
-rm ~/.config/claude-mpm/agent_sync.db
-```
-
-**Cache size**: Typically 50-200KB for all agents
-
-### Benefits
-
-- **Always Current**: Get latest agent improvements automatically
-- **Minimal Bandwidth**: ETag caching means most syncs transfer <1KB
-- **No Manual Updates**: No need to reinstall or manually update agents
-- **Offline Ready**: Continues working with cached agents if network unavailable
-- **Fast Startup**: Typical sync adds only 100-200ms to startup time
-
-For advanced configuration and troubleshooting, see [Agent Synchronization Guide](docs/guides/agent-synchronization.md).
-
-## Architecture (v4.4.1)
-
-Following Phase 3 architectural simplification in v4.4.1, Claude MPM features:
+Claude MPM features a clean, service-oriented architecture:
 
 - **Streamlined Rich Interface**: Removed complex TUI system (~2,500 lines) for cleaner user experience
 - **MCP Integration**: Full support for Model Context Protocol services with automatic detection
@@ -615,23 +717,37 @@ See [docs/reference/MEMORY.md](docs/reference/MEMORY.md) and [docs/developer/11-
 - **Cross-Referenced**: Links between related topics and sections
 - **Up-to-Date**: Version 4.16.3 with web performance optimization skill
 
-## Recent Updates (v4.16.3)
+## Recent Updates (v5.0) 🎉
 
-**Web Performance Optimization**: New `web-performance-optimization` skill for Lighthouse metrics, Core Web Vitals (LCP, INP, CLS), and framework-specific optimization patterns.
+**Major Release**: Git Repository Integration for Agents & Skills
 
-## Previous Updates (v4.16.1)
+**🚀 What's New:**
+- **Git Repository Support**: Agents and skills now deploy from Git repositories
+- **47+ Agents**: Comprehensive agent library from curated repositories
+- **37+ Skills**: System skills + Official Anthropic skills automatically deployed
+- **Hierarchical BASE-AGENT.md**: Template inheritance for DRY principles
+- **Nested Repository Support**: Automatic flattening of directory structures
+- **Immediate Testing**: Fail-fast validation when adding repositories
+- **Two-Phase Progress**: Clear visibility during sync and deployment
+- **ETag Caching**: 95%+ bandwidth reduction with intelligent caching
 
-**Local Development Skills**: Added 4 new toolchain-specific skills: `nextjs-local-dev`, `fastapi-local-dev`, `vite-local-dev`, and `express-local-dev` for professional local server management with PM2, HMR, and production-grade patterns.
+**🔧 Repository Management:**
+- `claude-mpm agent-source add/list/update` - Manage agent repositories
+- `claude-mpm skill-source add/list/update` - Manage skill repositories
+- Priority-based resolution for multiple sources
+- YAML configuration support
 
-**Skills System Integration**: 20 bundled skills with auto-linking, three-tier organization, and interactive configuration. Eliminates 85% of redundant guidance across agent templates (~15,000 lines of reusable content).
+**📚 Documentation:**
+- Complete guides for Git repository integration
+- Hierarchical BASE-AGENT.md documentation
+- Migration guides for existing installations
+- Troubleshooting and best practices
 
-**Enhanced Documentation**: Complete documentation suite with PDF guides, reorganized structure, and comprehensive design documents for skills integration.
-
-**Agent Template Improvements**: Cleaned agent templates with skills integration, removing redundant guidance while maintaining full capability coverage.
-
-**Interactive Skills Management**: New skills wizard accessible via `claude-mpm configure` for viewing, configuring, and auto-linking skills to agents.
-
-**Bug Fixes**: Resolved agent template inconsistencies and improved configuration management.
+**🎯 Benefits:**
+- Always up-to-date content from repositories
+- Community-driven agent and skill libraries
+- Easy sharing of organizational content
+- Version control for all templates
 
 See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions.
 

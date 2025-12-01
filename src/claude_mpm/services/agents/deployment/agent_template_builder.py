@@ -76,8 +76,90 @@ class AgentTemplateBuilder:
 
         return tool_list
 
+    def _discover_base_agent_templates(self, agent_file: Path) -> List[Path]:
+        """Discover BASE-AGENT.md files in hierarchy from agent file to repository root.
+
+        This method implements hierarchical BASE template discovery by walking up the
+        directory tree from the agent file location and collecting all BASE-AGENT.md
+        files found along the way.
+
+        Composition Order (closest to farthest):
+        1. Local BASE-AGENT.md (same directory as agent)
+        2. Parent BASE-AGENT.md (parent directory)
+        3. Grandparent BASE-AGENT.md (grandparent directory)
+        ... continuing to repository root
+
+        Args:
+            agent_file: Path to the agent template file
+
+        Returns:
+            List of BASE-AGENT.md paths ordered from closest to farthest
+            (same directory to root)
+
+        Example:
+            Given structure:
+            repo/
+              BASE-AGENT.md           # Root (index 2)
+              engineering/
+                BASE-AGENT.md         # Parent (index 1)
+                python/
+                  BASE-AGENT.md       # Local (index 0)
+                  fastapi-engineer.md # Agent file
+
+            Returns: [
+                repo/engineering/python/BASE-AGENT.md,
+                repo/engineering/BASE-AGENT.md,
+                repo/BASE-AGENT.md
+            ]
+        """
+        base_templates = []
+        current_dir = agent_file.parent
+
+        # Walk up directory tree until we reach root or a reasonable limit
+        # Stop at repository root or after 10 levels (safety limit)
+        max_depth = 10
+        depth = 0
+
+        while current_dir and depth < max_depth:
+            # Check for BASE-AGENT.md in current directory
+            base_agent_file = current_dir / "BASE-AGENT.md"
+            if base_agent_file.exists() and base_agent_file.is_file():
+                base_templates.append(base_agent_file)
+                self.logger.debug(f"Found BASE-AGENT.md at: {base_agent_file}")
+
+            # Stop at git repository root if detected
+            if (current_dir / ".git").exists():
+                self.logger.debug(f"Reached git repository root at: {current_dir}")
+                break
+
+            # Stop at common repository root indicators
+            if current_dir.name in [".claude-mpm", "remote-agents", "cache"]:
+                self.logger.debug(
+                    f"Reached repository root indicator at: {current_dir}"
+                )
+                break
+
+            # Move to parent directory
+            parent = current_dir.parent
+            if parent == current_dir:  # Reached filesystem root
+                break
+
+            current_dir = parent
+            depth += 1
+
+        if base_templates:
+            self.logger.info(
+                f"Discovered {len(base_templates)} BASE-AGENT.md file(s) for {agent_file.name}"
+            )
+
+        return base_templates
+
     def _load_base_agent_instructions(self, agent_type: str) -> str:
         """Load BASE instructions for a specific agent type.
+
+        DEPRECATED: This method loads BASE_{TYPE}.md files (old pattern).
+        New pattern uses hierarchical BASE-AGENT.md files discovered via
+        _discover_base_agent_templates() and composed in build_agent_markdown().
 
         Args:
             agent_type: The type of agent (engineer, qa, ops, research, documentation)
@@ -392,9 +474,6 @@ class AgentTemplateBuilder:
 
         frontmatter = "\n".join(frontmatter_lines)
 
-        # Load BASE instructions for this agent type
-        base_instructions = self._load_base_agent_instructions(agent_type)
-
         # Get agent instructions from template data (primary) or base agent data (fallback)
         raw_instructions = template_data.get("instructions")
 
@@ -411,15 +490,38 @@ class AgentTemplateBuilder:
                 or "# Agent Instructions\n\nThis agent provides specialized assistance."
             )
 
-        # Combine BASE instructions with agent-specific instructions
-        if base_instructions:
-            # Create a combined instruction set
-            content = f"{base_instructions}\n\n---\n\n{agent_specific_instructions}"
-            self.logger.debug(
-                f"Combined BASE instructions with agent-specific instructions for {agent_type}"
-            )
-        else:
-            content = agent_specific_instructions
+        # Compose hierarchical BASE-AGENT.md templates
+        # Order: agent-specific + local BASE + parent BASE + ... + root BASE
+        content_parts = [agent_specific_instructions]
+
+        # Discover BASE-AGENT.md files in directory hierarchy
+        base_templates = self._discover_base_agent_templates(template_path)
+
+        # Append each BASE template (order: closest to farthest)
+        for base_template_path in base_templates:
+            try:
+                base_content = base_template_path.read_text(encoding="utf-8")
+                if base_content.strip():
+                    content_parts.append(base_content)
+                    self.logger.debug(
+                        f"Composed BASE template: {base_template_path.relative_to(template_path.parent.parent) if template_path.parent.parent in base_template_path.parents else base_template_path.name}"
+                    )
+            except Exception as e:
+                self.logger.warning(
+                    f"Failed to read BASE template {base_template_path}: {e}"
+                )
+
+        # Fallback: Load legacy BASE_{TYPE}.md if no hierarchical templates found
+        if len(content_parts) == 1:  # Only agent-specific instructions
+            legacy_base_instructions = self._load_base_agent_instructions(agent_type)
+            if legacy_base_instructions:
+                content_parts.append(legacy_base_instructions)
+                self.logger.debug(
+                    f"Using legacy BASE_{agent_type.upper()}.md (no hierarchical BASE-AGENT.md found)"
+                )
+
+        # Join all parts with separator
+        content = "\n\n---\n\n".join(content_parts)
 
         # Add memory update instructions if not already present
         if "memory-update" not in content and "Remember" not in content:

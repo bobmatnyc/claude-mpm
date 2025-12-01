@@ -113,7 +113,21 @@ class SkillDiscoveryService:
     def discover_skills(self) -> List[Dict[str, Any]]:
         """Discover all skills in directory.
 
-        Scans directory for *.md files and parses each as a skill.
+        Scans directory RECURSIVELY for SKILL.md files and parses each as a skill.
+        This supports nested Git repository structures while deploying to flat structure.
+
+        Nested Repository Structure:
+            collaboration/
+                dispatching-parallel-agents/SKILL.md
+                brainstorming/SKILL.md
+            debugging/
+                systematic-debugging/SKILL.md
+
+        Deployed Flat Structure:
+            collaboration-dispatching-parallel-agents/SKILL.md
+            collaboration-brainstorming/SKILL.md
+            debugging-systematic-debugging/SKILL.md
+
         Skips files that can't be parsed or are missing required fields.
 
         Returns:
@@ -128,7 +142,9 @@ class SkillDiscoveryService:
                     "agent_types": List[str],  # Applicable agent types (optional)
                     "content": str,            # Skill body content
                     "source_file": str,        # Path to skill file
-                    "resources": List[str]     # Bundled resource paths (optional)
+                    "resources": List[str],    # Bundled resource paths (optional)
+                    "deployment_name": str,    # Flattened deployment directory name
+                    "relative_path": str       # Relative path from skills_dir to SKILL.md
                 }
             ]
 
@@ -143,22 +159,60 @@ class SkillDiscoveryService:
             self.logger.debug(f"Skills directory does not exist: {self.skills_dir}")
             return skills
 
-        # Find all Markdown files
-        md_files = list(self.skills_dir.glob("*.md"))
-        self.logger.debug(f"Found {len(md_files)} Markdown files in {self.skills_dir}")
+        # Find all SKILL.md files recursively (Claude Code standard naming)
+        skill_md_files = list(self.skills_dir.rglob("SKILL.md"))
 
-        for md_file in md_files:
+        # Also find legacy *.md files in top-level directory for backward compatibility
+        legacy_md_files = [
+            f
+            for f in self.skills_dir.glob("*.md")
+            if f.name != "SKILL.md" and f.name.lower() != "readme.md"
+        ]
+
+        all_skill_files = skill_md_files + legacy_md_files
+
+        self.logger.debug(
+            f"Found {len(skill_md_files)} SKILL.md files recursively "
+            f"and {len(legacy_md_files)} legacy .md files in {self.skills_dir}"
+        )
+
+        # Track deployment names to detect collisions
+        deployment_names = {}
+
+        for skill_file in all_skill_files:
             try:
-                skill_dict = self._parse_skill_file(md_file)
+                # Calculate deployment name from path
+                deployment_name = self._calculate_deployment_name(skill_file)
+
+                # Detect name collisions
+                if deployment_name in deployment_names:
+                    self.logger.warning(
+                        f"Deployment name collision: '{deployment_name}' would be created by both:\n"
+                        f"  - {deployment_names[deployment_name]}\n"
+                        f"  - {skill_file}\n"
+                        f"Skipping {skill_file} to avoid overwrite."
+                    )
+                    continue
+
+                skill_dict = self._parse_skill_file(skill_file)
                 if skill_dict:
+                    # Add deployment metadata
+                    skill_dict["deployment_name"] = deployment_name
+                    skill_dict["relative_path"] = str(
+                        skill_file.relative_to(self.skills_dir)
+                    )
+
                     skills.append(skill_dict)
-                    self.logger.debug(f"Successfully parsed skill: {md_file.name}")
+                    deployment_names[deployment_name] = skill_file
+                    self.logger.debug(
+                        f"Successfully parsed skill: {skill_file.name} -> {deployment_name}"
+                    )
                 else:
                     self.logger.warning(
-                        f"Failed to parse skill (missing required fields): {md_file.name}"
+                        f"Failed to parse skill (missing required fields): {skill_file}"
                     )
             except Exception as e:
-                self.logger.warning(f"Failed to parse skill {md_file.name}: {e}")
+                self.logger.warning(f"Failed to parse skill {skill_file}: {e}")
 
         self.logger.info(f"Discovered {len(skills)} skills from {self.skills_dir.name}")
         return skills
@@ -310,6 +364,87 @@ class SkillDiscoveryService:
             raise ValueError("Frontmatter must be a YAML dictionary")
 
         return frontmatter, body
+
+    def _calculate_deployment_name(self, skill_file: Path) -> str:
+        """Calculate flat deployment name from nested skill path.
+
+        Flattens nested Git repository structure into hyphen-separated name
+        suitable for Claude Code's flat skill directory structure.
+
+        Path Flattening Algorithm:
+        1. Get relative path from skills_dir to skill file
+        2. Extract all parent directory names (excluding the final skill directory)
+        3. Join path components with hyphens
+        4. Normalize to lowercase, remove special characters
+
+        Args:
+            skill_file: Path to SKILL.md or skill markdown file
+
+        Returns:
+            Flattened deployment directory name
+
+        Examples:
+            >>> # Nested repository structure
+            >>> skill_file = Path("cache/skills/system/collaboration/dispatching-parallel-agents/SKILL.md")
+            >>> name = service._calculate_deployment_name(skill_file)
+            >>> name
+            'collaboration-dispatching-parallel-agents'
+
+            >>> # Single-level structure (legacy)
+            >>> skill_file = Path("cache/skills/system/code-review.md")
+            >>> name = service._calculate_deployment_name(skill_file)
+            >>> name
+            'code-review'
+
+            >>> # Deep nesting
+            >>> skill_file = Path("cache/skills/system/aws/s3/bucket-ops/SKILL.md")
+            >>> name = service._calculate_deployment_name(skill_file)
+            >>> name
+            'aws-s3-bucket-ops'
+        """
+        # Get relative path from skills_dir to skill file
+        try:
+            relative_path = skill_file.relative_to(self.skills_dir)
+        except ValueError:
+            # Fallback: skill_file is not under skills_dir
+            # Use just the filename
+            self.logger.warning(
+                f"Skill file {skill_file} is not under {self.skills_dir}, "
+                f"using filename as deployment name"
+            )
+            return skill_file.stem
+
+        # Get all path parts (directories + filename)
+        parts = list(relative_path.parts)
+
+        # Handle different structures:
+        # 1. SKILL.md case: collaboration/dispatching-parallel-agents/SKILL.md
+        #    -> Take parent directories: ['collaboration', 'dispatching-parallel-agents']
+        # 2. Legacy .md case: code-review.md
+        #    -> Take just filename stem: ['code-review']
+
+        if skill_file.name == "SKILL.md":
+            # SKILL.md case: use all parent directories as deployment name
+            # Remove the final 'SKILL.md' part
+            deployment_parts = parts[:-1]
+
+            if not deployment_parts:
+                # Edge case: SKILL.md at top level
+                # Use parent directory name or 'skill'
+                deployment_parts = ["skill"]
+        else:
+            # Legacy .md case: use filename stem
+            deployment_parts = [skill_file.stem]
+
+        # Join with hyphens and normalize
+        deployment_name = "-".join(deployment_parts)
+
+        # Normalize: lowercase, remove special chars, collapse hyphens
+        deployment_name = deployment_name.lower()
+        deployment_name = deployment_name.replace("_", "-")
+        deployment_name = re.sub(r"[^a-z0-9-]+", "", deployment_name)
+        deployment_name = re.sub(r"-+", "-", deployment_name)
+        return deployment_name.strip("-")
 
     def _generate_skill_id(self, name: str) -> str:
         """Generate skill ID from name.

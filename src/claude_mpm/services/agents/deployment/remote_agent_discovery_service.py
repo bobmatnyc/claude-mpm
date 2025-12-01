@@ -198,6 +198,8 @@ class RemoteAgentDiscoveryService:
         agent_id = re.sub(r"-+", "-", agent_id)  # Collapse multiple hyphens
 
         # Convert to JSON template format and return
+        # IMPORTANT: Include 'path' field for compatibility with deployment validation (ticket 1M-480)
+        # Git-sourced agents must have 'path' field to match structure from AgentDiscoveryService
         return {
             "agent_id": agent_id,
             "metadata": {
@@ -210,6 +212,10 @@ class RemoteAgentDiscoveryService:
             "model": model,
             "source": "remote",  # Mark as remote agent
             "source_file": str(md_file),
+            "path": str(
+                md_file
+            ),  # Add 'path' field for deployment compatibility (1M-480)
+            "file_path": str(md_file),  # Keep for backward compatibility
             "version": version,  # Include at root level for version comparison
             "routing": {"keywords": keywords, "paths": paths, "priority": priority},
         }

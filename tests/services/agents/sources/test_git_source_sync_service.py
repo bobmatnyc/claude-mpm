@@ -148,12 +148,27 @@ class TestGitSourceSyncService:
     @mock.patch("requests.Session.get")
     def test_sync_agents_first_download(self, mock_get, service):
         """Test first sync downloads all agents."""
-        # Mock successful HTTP response
-        mock_response = mock.MagicMock()
-        mock_response.status_code = 200
-        mock_response.text = "# Research Agent\n---\nagent_id: research"
-        mock_response.headers = {"ETag": '"abc123"'}
-        mock_get.return_value = mock_response
+
+        def mock_get_side_effect(url, *args, **kwargs):
+            """Mock both API and raw file requests."""
+            mock_response = mock.MagicMock()
+
+            # GitHub API request for agent list
+            if "api.github.com" in url:
+                mock_response.status_code = 200
+                mock_response.json.return_value = [
+                    {"name": "research.md", "type": "file"},
+                    {"name": "engineer.md", "type": "file"},
+                ]
+            # Raw file download
+            else:
+                mock_response.status_code = 200
+                mock_response.text = "# Agent Content\n---\nagent_id: test"
+                mock_response.headers = {"ETag": '"abc123"'}
+
+            return mock_response
+
+        mock_get.side_effect = mock_get_side_effect
 
         results = service.sync_agents()
 
@@ -167,20 +182,40 @@ class TestGitSourceSyncService:
     def test_sync_agents_with_etag_cache_hit(self, mock_get, service, tmp_path):
         """Test that 304 response uses cached content."""
         # First sync - download
-        mock_response_200 = mock.MagicMock()
-        mock_response_200.status_code = 200
-        mock_response_200.text = "# Agent Content"
-        mock_response_200.headers = {"ETag": '"abc123"'}
-        mock_get.return_value = mock_response_200
+        call_count = [0]
 
+        def first_sync_side_effect(url, *args, **kwargs):
+            """Mock for first sync."""
+            mock_response = mock.MagicMock()
+            if "api.github.com" in url:
+                mock_response.status_code = 200
+                mock_response.json.return_value = [
+                    {"name": "research.md", "type": "file"},
+                ]
+            else:
+                mock_response.status_code = 200
+                mock_response.text = "# Agent Content"
+                mock_response.headers = {"ETag": '"abc123"'}
+            return mock_response
+
+        mock_get.side_effect = first_sync_side_effect
         results1 = service.sync_agents()
         assert len(results1["synced"]) > 0
 
         # Second sync - should get 304
-        mock_response_304 = mock.MagicMock()
-        mock_response_304.status_code = 304
-        mock_get.return_value = mock_response_304
+        def second_sync_side_effect(url, *args, **kwargs):
+            """Mock for second sync with cache hit."""
+            mock_response = mock.MagicMock()
+            if "api.github.com" in url:
+                mock_response.status_code = 200
+                mock_response.json.return_value = [
+                    {"name": "research.md", "type": "file"},
+                ]
+            else:
+                mock_response.status_code = 304
+            return mock_response
 
+        mock_get.side_effect = second_sync_side_effect
         results2 = service.sync_agents()
 
         # Should use cache
@@ -189,7 +224,13 @@ class TestGitSourceSyncService:
         assert len(results2["synced"]) == 0
 
         # Check that If-None-Match header was sent
-        assert mock_get.call_args[1]["headers"]["If-None-Match"] == '"abc123"'
+        # Get the last call that was not to the API
+        for call in reversed(mock_get.call_args_list):
+            if "api.github.com" not in str(call):
+                headers = call[1].get("headers", {})
+                if "If-None-Match" in headers:
+                    assert headers["If-None-Match"] == '"abc123"'
+                    break
 
     @mock.patch("requests.Session.get")
     def test_sync_agents_force_refresh(self, mock_get, service):
@@ -364,16 +405,117 @@ class TestGitSourceSyncService:
         content = service._load_from_cache("nonexistent.md")
         assert content is None
 
-    def test_get_agent_list(self, service):
-        """Test getting agent list."""
-        agent_list = service._get_agent_list()
+    def test_get_agent_list_via_api(self, service):
+        """Test getting agent list via GitHub API."""
+        # Mock GitHub API response on the service's session
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file"},
+                {"name": "engineer.md", "type": "file"},
+                {"name": "qa.md", "type": "file"},
+                {"name": "README.md", "type": "file"},  # Should be excluded
+                {"name": "agents", "type": "dir"},  # Should be excluded
+            ]
+            mock_get.return_value = mock_response
 
-        # Should return list of agent filenames
-        assert isinstance(agent_list, list)
-        assert len(agent_list) > 0
-        assert all(name.endswith(".md") for name in agent_list)
-        assert "research.md" in agent_list
-        assert "engineer.md" in agent_list
+            agent_list = service._get_agent_list()
+
+            # Should return list of agent filenames from API
+            assert isinstance(agent_list, list)
+            assert len(agent_list) == 3  # README.md and directory excluded
+            assert all(name.endswith(".md") for name in agent_list)
+            assert "research.md" in agent_list
+            assert "engineer.md" in agent_list
+            assert "qa.md" in agent_list
+            assert "README.md" not in agent_list
+
+    def test_get_agent_list_api_failure_fallback(self, service):
+        """Test fallback to hardcoded list when API fails."""
+        # Mock API failure on the service's session
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_get.side_effect = requests.exceptions.Timeout()
+
+            agent_list = service._get_agent_list()
+
+            # Should return fallback list
+            assert isinstance(agent_list, list)
+            assert len(agent_list) == 10  # Fallback list size
+            assert "research.md" in agent_list
+            assert "engineer.md" in agent_list
+
+    def test_get_agent_list_rate_limit_fallback(self, service):
+        """Test fallback when GitHub API rate limit is exceeded."""
+        # Mock rate limit response on the service's session
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 403
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            # Should return fallback list
+            assert isinstance(agent_list, list)
+            assert len(agent_list) == 10  # Fallback list size
+
+    def test_get_agent_list_excludes_readme(self, service):
+        """Test that README.md is excluded from agent list."""
+        # Mock GitHub API response with README.md
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file"},
+                {"name": "README.md", "type": "file"},  # Should be excluded
+                {"name": "engineer.md", "type": "file"},
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            assert "README.md" not in agent_list
+            assert "research.md" in agent_list
+            assert "engineer.md" in agent_list
+            assert len(agent_list) == 2
+
+    def test_get_agent_list_filters_non_md_files(self, service):
+        """Test that non-.md files are excluded from agent list."""
+        # Mock GitHub API response with mixed file types
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "research.md", "type": "file"},
+                {"name": "script.py", "type": "file"},  # Should be excluded
+                {"name": "config.json", "type": "file"},  # Should be excluded
+                {"name": "agents", "type": "dir"},  # Should be excluded
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            assert len(agent_list) == 1
+            assert "research.md" in agent_list
+            assert "script.py" not in agent_list
+            assert "config.json" not in agent_list
+
+    def test_get_agent_list_sorts_alphabetically(self, service):
+        """Test that agent list is sorted alphabetically."""
+        # Mock GitHub API response with unsorted files
+        with mock.patch.object(service.session, "get") as mock_get:
+            mock_response = mock.MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = [
+                {"name": "zebra.md", "type": "file"},
+                {"name": "alpha.md", "type": "file"},
+                {"name": "beta.md", "type": "file"},
+            ]
+            mock_get.return_value = mock_response
+
+            agent_list = service._get_agent_list()
+
+            assert agent_list == ["alpha.md", "beta.md", "zebra.md"]
 
     @mock.patch("requests.Session.get")
     def test_etag_update_on_new_content(self, mock_get, service):

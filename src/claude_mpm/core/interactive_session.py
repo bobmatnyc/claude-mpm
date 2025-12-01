@@ -396,12 +396,74 @@ class InteractiveSession:
                 cmd.extend(agents_flag)
                 self.logger.info("✓ Native agents mode: Using --agents CLI flag")
 
-        # Add system instructions
+        # Add system instructions with file-based caching
         from claude_mpm.core.claude_runner import create_simple_context
+        from claude_mpm.services.instructions.instruction_cache_service import (
+            InstructionCacheService,
+        )
 
         system_prompt = self.runner._create_system_prompt()
         if system_prompt and system_prompt != create_simple_context():
-            cmd.extend(["--append-system-prompt", system_prompt])
+            # Try to use cached instruction file for better performance
+            try:
+                # Initialize cache service with project root
+                if "CLAUDE_MPM_USER_PWD" in os.environ:
+                    project_root = Path(os.environ["CLAUDE_MPM_USER_PWD"])
+                else:
+                    project_root = Path.cwd()
+
+                # Instruction Caching (1M-446)
+                # Cache assembled instructions to file to avoid ARG_MAX limits on Linux/Windows.
+                # - Linux: 128 KB limit, instructions are ~152 KB (exceeds by 19.1%)
+                # - Windows: 32 KB limit (exceeds by 476%)
+                # Cache updates only when content hash changes (hash-based invalidation).
+                # Fallback to inline instruction if cache fails (graceful degradation).
+                cache_service = InstructionCacheService(project_root=project_root)
+
+                # Update cache with assembled instruction content
+                cache_result = cache_service.update_cache(
+                    instruction_content=system_prompt
+                )
+
+                # Use cache file if available
+                if (
+                    cache_result.get("updated")
+                    or cache_service.get_cache_path().exists()
+                ):
+                    cache_file = cache_service.get_cache_path()
+
+                    # Log cache operation
+                    if cache_result.get("updated"):
+                        self.logger.info(
+                            f"Instruction cache updated: {cache_result.get('reason', 'unknown')}"
+                        )
+                        self.logger.debug(
+                            f"Cache hash: {cache_result.get('content_hash', 'N/A')[:8]}..."
+                        )
+                        self.logger.debug(
+                            f"Cache size: {cache_result.get('content_size_kb', 'N/A')} KB"
+                        )
+                    else:
+                        self.logger.debug(
+                            f"Using cached instructions: {cache_result.get('reason', 'unknown')}"
+                        )
+
+                    # Use file-based loading for better performance
+                    cmd.extend(["--system-prompt-file", str(cache_file)])
+                    self.logger.info(
+                        f"✓ Using file-based instruction loading: {cache_file}"
+                    )
+                else:
+                    # Fallback to inline if cache file doesn't exist
+                    self.logger.warning(
+                        "Cache file not available, falling back to inline instruction"
+                    )
+                    cmd.extend(["--append-system-prompt", system_prompt])
+
+            except Exception as e:
+                # Graceful fallback - cache failures don't break deployment
+                self.logger.warning(f"Failed to cache instructions, using inline: {e}")
+                cmd.extend(["--append-system-prompt", system_prompt])
 
         # Final command verification
         # self.logger.info(f"Final Claude command built: {' '.join(cmd)}")

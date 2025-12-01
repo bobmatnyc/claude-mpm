@@ -200,9 +200,10 @@ class AsyncAgentDeploymentService:
                 return str(directory), []
 
             # Use asyncio to run glob in executor (since Path.glob is blocking)
+            # Agent templates migrated to Markdown with YAML frontmatter (v4.26.0+)
             loop = asyncio.get_event_loop()
             files = await loop.run_in_executor(
-                self.executor, lambda: list(directory.glob("*.json"))
+                self.executor, lambda: list(directory.glob("*.md"))
             )
 
             self.logger.debug(f"Found {len(files)} agents in {directory}")

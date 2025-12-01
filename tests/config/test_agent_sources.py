@@ -14,11 +14,34 @@ class TestAgentSourceConfigurationCreation:
     """Test AgentSourceConfiguration creation."""
 
     def test_create_default_configuration(self):
-        """Test creating configuration with defaults."""
+        """Test creating configuration with defaults.
+
+        Note: As of v4.5.0, default changed to disable_system_repo=True
+        (git sources are now preferred over built-in templates).
+        """
         config = AgentSourceConfiguration()
 
-        assert config.disable_system_repo is False
+        # Default changed in v4.5.0 to prefer git sources
+        assert config.disable_system_repo is True
         assert len(config.repositories) == 0
+
+    def test_create_default_configuration_with_git_sources(self):
+        """Test creating default configuration with git sources enabled.
+
+        This is the new default behavior in v4.5.0.
+        """
+        config = AgentSourceConfiguration.create_default_configuration()
+
+        # Should have system repo disabled and git sources enabled
+        assert config.disable_system_repo is True
+        assert len(config.repositories) == 1
+
+        # Verify default repository configuration
+        default_repo = config.repositories[0]
+        assert "bobmatnyc/claude-mpm-agents" in default_repo.url
+        assert default_repo.subdirectory == "agents"
+        assert default_repo.enabled is True
+        assert default_repo.priority == 100
 
     def test_create_with_custom_repos(self):
         """Test creating configuration with custom repositories."""
@@ -219,15 +242,23 @@ repositories:
             assert config.repositories[1].enabled is False
 
     def test_load_from_nonexistent_file(self):
-        """Test loading from non-existent file returns defaults."""
+        """Test loading from non-existent file creates and returns default configuration.
+
+        Note: As of v4.5.0, default configuration includes git sources enabled.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = Path(tmpdir) / "nonexistent.yaml"
 
             config = AgentSourceConfiguration.load(config_path)
 
-            # Should return default configuration
-            assert config.disable_system_repo is False
-            assert len(config.repositories) == 0
+            # Should create default configuration with git sources (v4.5.0)
+            assert config.disable_system_repo is True
+            # Default configuration now includes bobmatnyc/claude-mpm-agents
+            assert len(config.repositories) == 1
+            assert "bobmatnyc/claude-mpm-agents" in config.repositories[0].url
+
+            # Verify the file was created
+            assert config_path.exists()
 
     def test_load_with_default_path(self):
         """Test loading with default path (~/.claude-mpm/config/agent_sources.yaml)."""

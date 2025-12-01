@@ -124,8 +124,8 @@ class DeploymentValidator:
             elif not templates_dir.is_dir():
                 result.add_error(f"Templates path is not a directory: {templates_dir}")
             else:
-                # Check for template files
-                template_files = list(templates_dir.glob("*.json"))
+                # Check for template files (templates migrated to .md in v4.26.0+)
+                template_files = list(templates_dir.glob("*.md"))
                 if not template_files:
                     result.add_warning(f"No template files found in: {templates_dir}")
                 else:

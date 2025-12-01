@@ -20,6 +20,130 @@ from ...services.skills.skill_discovery_service import SkillDiscoveryService
 logger = logging.getLogger(__name__)
 
 
+def _test_skill_repository_access(source: SkillSource) -> dict:
+    """Test if skill repository is accessible via GitHub API.
+
+    Design Decision: Test via GitHub API, not Git clone
+
+    Rationale: GitHub API is faster and less resource-intensive than
+    cloning the repository. We can validate access and existence without
+    downloading any files.
+
+    Args:
+        source: SkillSource to test
+
+    Returns:
+        Dictionary with:
+        - accessible: bool (True if repo can be reached)
+        - error: str (error message if not accessible)
+
+    Example:
+        >>> source = SkillSource(id="custom", type="git", url="https://github.com/owner/repo")
+        >>> result = _test_skill_repository_access(source)
+        >>> print(result["accessible"])
+        True
+    """
+    import requests
+
+    try:
+        # Parse GitHub URL
+        url = source.url.rstrip("/").replace(".git", "")
+        parts = url.split("github.com/")
+        if len(parts) != 2:
+            return {"accessible": False, "error": "Invalid GitHub URL format"}
+
+        repo_path = parts[1].strip("/")
+        owner_repo = "/".join(repo_path.split("/")[:2])
+
+        # Test GitHub API access
+        api_url = f"https://api.github.com/repos/{owner_repo}"
+
+        response = requests.get(api_url, timeout=10)
+
+        if response.status_code == 200:
+            return {"accessible": True, "error": None}
+        if response.status_code == 404:
+            return {
+                "accessible": False,
+                "error": f"Repository not found: {owner_repo}",
+            }
+        if response.status_code == 403:
+            return {
+                "accessible": False,
+                "error": "Access denied (private repository or rate limit)",
+            }
+        return {
+            "accessible": False,
+            "error": f"HTTP {response.status_code}: {response.reason}",
+        }
+
+    except Exception as e:
+        return {"accessible": False, "error": str(e)}
+
+
+def _test_skill_repository_sync(source: SkillSource) -> dict:
+    """Test syncing skill repository and discovering skills.
+
+    Design Decision: Use temporary cache for testing
+
+    Rationale: We want to test sync without polluting the main cache.
+    Use a temporary directory that gets cleaned up after testing.
+
+    Args:
+        source: SkillSource to test sync
+
+    Returns:
+        Dictionary with:
+        - synced: bool (True if sync successful)
+        - skills_discovered: int (number of skills found)
+        - error: str (error message if sync failed)
+
+    Example:
+        >>> source = SkillSource(id="custom", type="git", url="https://github.com/owner/repo")
+        >>> result = _test_skill_repository_sync(source)
+        >>> print(result["synced"])
+        True
+        >>> print(result["skills_discovered"])
+        5
+    """
+    import tempfile
+    from pathlib import Path
+
+    try:
+        # Create temporary cache directory
+        with tempfile.TemporaryDirectory() as temp_cache:
+            temp_cache_path = Path(temp_cache)
+
+            # Create temporary config with just this source
+            temp_config_path = temp_cache_path / "skill_sources.yaml"
+            temp_config = SkillSourceConfiguration(config_path=temp_config_path)
+
+            # Save source to temp config
+            temp_config.save([source])
+
+            # Sync repository
+            manager = GitSkillSourceManager(
+                config=temp_config, cache_dir=temp_cache_path
+            )
+            sync_result = manager.sync_source(source.id, force=True)
+
+            if not sync_result.get("synced"):
+                return {
+                    "synced": False,
+                    "skills_discovered": 0,
+                    "error": sync_result.get("error", "Unknown sync error"),
+                }
+
+            return {
+                "synced": True,
+                "skills_discovered": sync_result.get("skills_discovered", 0),
+                "error": None,
+            }
+
+    except Exception as e:
+        return {"synced": False, "skills_discovered": 0, "error": str(e)}
+
+
 def _generate_source_id(url: str) -> str:
     """Generate source ID from Git URL.
 
@@ -97,13 +221,24 @@ def skill_source_command(args) -> int:
 
 
 def handle_add_skill_source(args) -> int:
-    """Add a new skill source.
+    """Add a new skill source with immediate testing.
 
     Args:
-        args: Parsed arguments with url, priority, branch, disabled
+        args: Parsed arguments with url, priority, branch, disabled, test, skip_test
 
     Returns:
         Exit code
+
+    Design Decision: Immediate testing on add (fail-fast approach)
+
+    Rationale: Adding a repository that can't be accessed or synced leads to
+    broken state at startup. By testing immediately, we provide instant feedback
+    and prevent configuration pollution.
+
+    Test Mode Behavior:
+    - --test: Test only, don't save to configuration
+    - --no-test: Skip testing entirely (not recommended)
+    - Default: Test and save if successful
     """
     try:
         # Load configuration
@@ -137,13 +272,59 @@ def handle_add_skill_source(args) -> int:
             enabled=enabled,
         )
 
+        # Determine if we should test
+        test_mode = getattr(args, "test", False)
+        skip_test = getattr(args, "skip_test", False)
+
+        # Test repository access unless explicitly skipped
+        if not skip_test:
+            print(f"🔍 Testing repository access: {args.url}")
+            print()
+
+            test_result = _test_skill_repository_access(source)
+
+            if not test_result["accessible"]:
+                print(f"❌ Repository not accessible: {test_result['error']}")
+                print()
+                print("💡 Check the URL and try again")
+                return 1
+
+            print("✅ Repository accessible")
+
+            # Test sync and discovery
+            print("🔍 Testing sync and skill discovery...")
+            print()
+
+            sync_result = _test_skill_repository_sync(source)
+
+            if not sync_result["synced"]:
+                print(f"❌ Sync failed: {sync_result['error']}")
+                print()
+                print("💡 Repository may be valid but sync failed")
+                print(
+                    "   You can still add it with --no-test if you want to troubleshoot later"
+                )
+                return 1
+
+            skills_count = sync_result.get("skills_discovered", 0)
+            print("✅ Sync successful")
+            print(f"   Discovered {skills_count} skills")
+            print()
+
+        # If test mode, stop here
+        if test_mode:
+            print("✅ Test complete - repository is valid and accessible")
+            print()
+            print("💡 To add this repository, run without --test flag:")
+            print(f"   claude-mpm skill-source add {args.url}")
+            return 0
+
         # Check for priority conflicts
-        conflicts = config.validate_priority_conflicts()
-        if source_id in conflicts:
-            conflict_info = conflicts[source_id]
-            print("⚠️  Priority conflict detected:")
-            for conflict_source in conflict_info["conflicts"]:
-                print(f"   Source '{conflict_source}' has the same priority")
+        warnings = config.validate_priority_conflicts()
+        if warnings:
+            print("⚠️  Priority conflicts detected:")
+            for warning in warnings:
+                print(f"   {warning}")
             print()
             print("💡 Lower priority number = higher precedence")
 
@@ -161,7 +342,8 @@ def handle_add_skill_source(args) -> int:
         print()
 
         if enabled:
-            print(f"💡 Run 'claude-mpm skill-source update {source_id}' to sync skills")
+            print("💡 Repository configured and tested successfully")
+            print("   Skills from this source will be available on next startup")
         else:
             print(f"💡 Enable it: claude-mpm skill-source enable {source_id}")
 

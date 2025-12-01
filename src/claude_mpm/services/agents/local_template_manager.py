@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import yaml
+
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 
@@ -193,10 +195,16 @@ class LocalAgentTemplateManager:
             directory: Directory to search for templates
             tier: Tier level ('project' or 'user')
         """
-        for template_file in directory.glob("*.json"):
+        # Agent templates migrated to Markdown with YAML frontmatter (v4.26.0+)
+        for template_file in directory.glob("*.md"):
             try:
-                with template_file.open() as f:
-                    data = json.load(f)
+                # Read markdown content and extract YAML frontmatter
+                content = template_file.read_text()
+                frontmatter = self._extract_yaml_frontmatter(content)
+                if not frontmatter:
+                    logger.warning(f"No YAML frontmatter in {template_file.name}")
+                    continue
+                data = frontmatter
 
                 # Create LocalAgentTemplate
                 template = LocalAgentTemplate.from_json(data)
@@ -222,6 +230,30 @@ class LocalAgentTemplateManager:
 
             except Exception as e:
                 logger.error(f"Failed to load template from {template_file}: {e}")
+
+    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract and parse YAML frontmatter from markdown content.
+
+        Args:
+            content: File content to parse
+
+        Returns:
+            Parsed YAML frontmatter as dict, or None if not found/invalid
+        """
+        if not content.strip().startswith("---"):
+            return None
+
+        # Split on --- delimiters
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            return None
+
+        try:
+            return yaml.safe_load(parts[1])
+        except yaml.YAMLError as e:
+            logger.warning(f"Failed to parse YAML frontmatter: {e}")
+            return None
 
     def create_local_template(
         self,
@@ -375,16 +407,16 @@ class LocalAgentTemplateManager:
         # Track files to delete
         files_to_delete = []
 
-        # Find template files
+        # Find template files (templates migrated to .md in v4.26.0+)
         for tier_name, agent_dir in dirs_to_check:
-            template_file = agent_dir / f"{agent_id}.json"
+            template_file = agent_dir / f"{agent_id}.md"
             if template_file.exists():
                 files_to_delete.append((tier_name, "template", template_file))
 
                 # Check for version history
                 versions_dir = agent_dir / "versions" / agent_id
                 if versions_dir.exists():
-                    for version_file in versions_dir.glob("*.json"):
+                    for version_file in versions_dir.glob("*.md"):
                         files_to_delete.append((tier_name, "version", version_file))
                     files_to_delete.append((tier_name, "versions_dir", versions_dir))
 
@@ -715,10 +747,16 @@ class LocalAgentTemplateManager:
             return 0
 
         count = 0
-        for template_file in input_dir.glob("*.json"):
+        # Agent templates migrated to Markdown with YAML frontmatter (v4.26.0+)
+        for template_file in input_dir.glob("*.md"):
             try:
-                with template_file.open() as f:
-                    data = json.load(f)
+                # Read markdown content and extract YAML frontmatter
+                content = template_file.read_text()
+                frontmatter = self._extract_yaml_frontmatter(content)
+                if not frontmatter:
+                    logger.warning(f"No YAML frontmatter in {template_file.name}")
+                    continue
+                data = frontmatter
 
                 template = LocalAgentTemplate.from_json(data)
                 template.tier = tier

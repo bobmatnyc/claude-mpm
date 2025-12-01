@@ -21,6 +21,7 @@
 .PHONY: update-homebrew-tap update-homebrew-tap-dry-run
 .PHONY: quality-ci build-metadata build-info-json
 .PHONY: env-info env-set-dev env-set-staging env-set-prod
+.PHONY: migrate-agents-v5 migrate-agents-v5-dry-run
 
 # ============================================================================
 # Shell Configuration (Strict Mode)
@@ -1203,3 +1204,20 @@ auto-help: ## Show automated release system help
 	@echo "$(BLUE)Current version:$(NC) $$(cat VERSION)"
 	@echo "$(BLUE)Build number:$(NC) $$(cat BUILD_NUMBER)"
 	@echo "$(BLUE)Version management:$(NC) Automated script (scripts/automated_release.py)"
+
+# ============================================================================
+# Migration Targets
+# ============================================================================
+
+# Migrate from JSON-template agents to Git-sourced agents (v5.0)
+migrate-agents-v5: ## Migrate old JSON-template agents to Git-sourced agents
+	@echo "$(YELLOW)🔄 Starting v5.0 agent migration...$(NC)"
+	python scripts/migrate_agents_v5.py --force
+	@echo "$(GREEN)✓ Migration completed$(NC)"
+
+# Dry run of agent migration
+migrate-agents-v5-dry-run: ## Preview agent migration without making changes
+	@echo "$(BLUE)🔍 Previewing v5.0 agent migration (dry run)...$(NC)"
+	python scripts/migrate_agents_v5.py --dry-run
+	@echo "$(GREEN)✓ Dry run completed$(NC)"
+

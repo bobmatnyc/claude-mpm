@@ -8,6 +8,8 @@ Uses unified agent loader to load prompts from JSON templates in agents/template
 for better structure and maintainability.
 """
 
+from pathlib import Path
+
 # Import from unified agent loader
 from .agent_loader import (
     clear_agent_cache,
@@ -15,6 +17,9 @@ from .agent_loader import (
     list_available_agents,
     validate_agent_files,
 )
+
+# Path to PM instructions (used by InstructionCacheService)
+PM_INSTRUCTIONS_PATH = Path(__file__).parent / "PM_INSTRUCTIONS.md"
 
 # Import agent metadata (previously AGENT_CONFIG)
 from .agents_metadata import (
@@ -37,6 +42,7 @@ __all__ = [
     "DOCUMENTATION_CONFIG",
     "ENGINEER_CONFIG",
     "OPS_CONFIG",
+    "PM_INSTRUCTIONS_PATH",
     "QA_CONFIG",
     "RESEARCH_CONFIG",
     "SECURITY_CONFIG",

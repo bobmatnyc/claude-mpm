@@ -8,11 +8,12 @@ This service provides comprehensive agent lifecycle management including:
 - Integration with deployment services
 """
 
-import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
+
+import yaml
 
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.core.logging_config import get_logger
@@ -285,10 +286,15 @@ class AgentBuilderService:
         if not self.templates_dir.exists():
             return templates
 
-        for template_file in self.templates_dir.glob("*.json"):
+        # Agent templates migrated to Markdown with YAML frontmatter (v4.26.0+)
+        for template_file in self.templates_dir.glob("*.md"):
             try:
-                with template_file.open() as f:
-                    config = json.load(f)
+                # Read markdown content and extract YAML frontmatter
+                content = template_file.read_text()
+                config = self._extract_yaml_frontmatter(content)
+                if not config:
+                    self.logger.warning(f"No YAML frontmatter in {template_file.name}")
+                    continue
 
                 # Use filename stem as ID if not specified in config
                 template_id = config.get("id") or template_file.stem
@@ -307,6 +313,30 @@ class AgentBuilderService:
                 self.logger.warning(f"Failed to load template {template_file}: {e}")
 
         return templates
+
+    def _extract_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract and parse YAML frontmatter from markdown content.
+
+        Args:
+            content: File content to parse
+
+        Returns:
+            Parsed YAML frontmatter as dict, or None if not found/invalid
+        """
+        if not content.strip().startswith("---"):
+            return None
+
+        # Split on --- delimiters
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            return None
+
+        try:
+            return yaml.safe_load(parts[1])
+        except yaml.YAMLError as e:
+            self.logger.warning(f"Failed to parse YAML frontmatter: {e}")
+            return None
 
     def _validate_agent_id(self, agent_id: str) -> None:
         """Validate agent ID format.
@@ -371,16 +401,22 @@ class AgentBuilderService:
         if template_id in self._template_cache:
             return self._template_cache[template_id].copy()
 
-        template_file = self.templates_dir / f"{template_id}.json"
+        # Agent templates migrated to Markdown with YAML frontmatter (v4.26.0+)
+        template_file = self.templates_dir / f"{template_id}.md"
 
         if not template_file.exists():
             raise AgentDeploymentError(f"Template '{template_id}' not found")
 
         try:
-            with template_file.open() as f:
-                config = json.load(f)
-                self._template_cache[template_id] = config
-                return config.copy()
+            # Read markdown content and extract YAML frontmatter
+            content = template_file.read_text()
+            config = self._extract_yaml_frontmatter(content)
+            if not config:
+                raise AgentDeploymentError(
+                    f"No YAML frontmatter in template '{template_id}'"
+                )
+            self._template_cache[template_id] = config
+            return config.copy()
         except Exception as e:
             raise AgentDeploymentError(
                 f"Failed to load template '{template_id}': {e}"

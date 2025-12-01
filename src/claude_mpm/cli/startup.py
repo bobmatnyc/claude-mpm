@@ -285,6 +285,153 @@ def sync_remote_agents_on_startup():
         # Continue execution - agent sync failure shouldn't block startup
 
 
+def sync_remote_skills_on_startup():
+    """
+    Synchronize skill templates from remote sources on startup.
+
+    WHY: Ensures skills are up-to-date from remote Git sources (GitHub)
+    without manual intervention. Provides consistency with agent syncing.
+
+    DESIGN DECISION: Non-blocking synchronization that doesn't prevent
+    startup if network is unavailable. Failures are logged but don't
+    block startup to ensure claude-mpm remains functional.
+
+    Workflow:
+    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
+    2. Deploy skills to ~/.claude/skills/ with flat structure - Phase 2 progress bar
+    3. Log deployment results
+    """
+    try:
+        from ..config.skill_sources import SkillSourceConfiguration
+        from ..services.skills.git_skill_source_manager import GitSkillSourceManager
+        from ..utils.progress import ProgressBar
+
+        config = SkillSourceConfiguration()
+        manager = GitSkillSourceManager(config)
+
+        # Get enabled sources
+        enabled_sources = config.get_enabled_sources()
+        if not enabled_sources:
+            return  # No sources enabled, nothing to sync
+
+        # Phase 1: Sync files from Git sources
+        # We need to discover file count first to show accurate progress
+        # This requires pre-scanning repositories via GitHub API
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+
+        # Discover total file count across all sources
+        total_file_count = 0
+        for source in enabled_sources:
+            try:
+                # Parse GitHub URL
+                url_parts = (
+                    source.url.rstrip("/").replace(".git", "").split("github.com/")
+                )
+                if len(url_parts) == 2:
+                    repo_path = url_parts[1].strip("/")
+                    owner_repo = "/".join(repo_path.split("/")[:2])
+
+                    # Use Tree API to discover all files
+                    all_files = manager._discover_repository_files_via_tree_api(
+                        owner_repo, source.branch
+                    )
+
+                    # Count relevant files (markdown, JSON)
+                    relevant_files = [
+                        f
+                        for f in all_files
+                        if f.endswith(".md") or f.endswith(".json") or f == ".gitignore"
+                    ]
+                    total_file_count += len(relevant_files)
+
+            except Exception as e:
+                logger.debug(f"Failed to discover files for {source.id}: {e}")
+                # Use estimate if discovery fails
+                total_file_count += 150
+
+        # Create progress bar for sync phase with actual file count
+        sync_progress = ProgressBar(
+            total=total_file_count if total_file_count > 0 else 1,
+            prefix="Syncing skills",
+            show_percentage=True,
+            show_counter=True,
+        )
+
+        # Sync all sources with progress callback
+        results = manager.sync_all_sources(
+            force=False, progress_callback=sync_progress.update
+        )
+
+        # Finish sync progress bar
+        total_files = results["total_files_updated"] + results["total_files_cached"]
+        sync_progress.finish(f"Complete: {total_files} files synced")
+
+        # Phase 2: Deploy skills to ~/.claude/skills/
+        # This flattens nested Git structure (e.g., collaboration/parallel-agents/SKILL.md)
+        # into flat deployment (e.g., collaboration-dispatching-parallel-agents/SKILL.md)
+        if results["synced_count"] > 0:
+            # Get all skills to determine deployment count
+            all_skills = manager.get_all_skills()
+            skill_count = len(all_skills)
+
+            if skill_count > 0:
+                # Create progress bar for deployment phase
+                deploy_progress = ProgressBar(
+                    total=skill_count,
+                    prefix="Deploying skills",
+                    show_percentage=True,
+                    show_counter=True,
+                )
+
+                # Deploy skills with progress callback
+                deployment_result = manager.deploy_skills(
+                    force=False, progress_callback=deploy_progress.update
+                )
+
+                # Finish deployment progress bar
+                deployed = deployment_result.get("deployed_count", 0)
+                skipped = deployment_result.get("skipped_count", 0)
+                total_available = deployed + skipped
+
+                # Show total available skills (deployed + already existing)
+                # This is more user-friendly than just showing newly deployed count
+                if deployed > 0:
+                    deploy_progress.finish(
+                        f"Complete: {deployed} deployed, {skipped} already present ({total_available} total)"
+                    )
+                else:
+                    deploy_progress.finish(
+                        f"Complete: {total_available} skills ready (all up-to-date)"
+                    )
+
+                # Log deployment errors if any
+                from ..core.logger import get_logger
+
+                logger = get_logger("cli")
+
+                errors = deployment_result.get("errors", [])
+                if errors:
+                    logger.warning(
+                        f"Skill deployment completed with {len(errors)} errors: {errors}"
+                    )
+
+                # Log sync errors if any
+                if results["failed_count"] > 0:
+                    logger.warning(
+                        f"Skill sync completed with {results['failed_count']} failures"
+                    )
+
+    except Exception as e:
+        # Non-critical - log but don't fail startup
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to sync remote skills: {e}")
+        # Continue execution - skill sync failure shouldn't block startup
+
+
 def run_background_services():
     """
     Initialize all background services on startup.
@@ -295,7 +442,8 @@ def run_background_services():
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
-    sync_remote_agents_on_startup()  # NEW: Sync agents from remote sources
+    sync_remote_agents_on_startup()  # Sync agents from remote sources
+    sync_remote_skills_on_startup()  # NEW: Sync skills from remote sources
     deploy_bundled_skills()
     discover_and_link_runtime_skills()
     deploy_output_style_on_startup()

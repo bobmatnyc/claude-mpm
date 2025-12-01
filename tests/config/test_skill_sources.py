@@ -162,33 +162,38 @@ class TestSkillSourceConfiguration:
         assert config.config_path == temp_config_file
 
     def test_load_nonexistent_file_returns_default(self, config):
-        """Test load() returns default source when file doesn't exist."""
+        """Test load() returns default sources when file doesn't exist."""
         sources = config.load()
 
-        assert len(sources) == 1
+        assert len(sources) == 2  # system + anthropic-official
         assert sources[0].id == "system"
         assert sources[0].url == "https://github.com/bobmatnyc/claude-mpm-skills"
         assert sources[0].priority == 0
+        assert sources[1].id == "anthropic-official"
+        assert sources[1].url == "https://github.com/anthropics/skills"
+        assert sources[1].priority == 1
 
     def test_load_empty_file_returns_default(self, config):
-        """Test load() returns default when file is empty."""
+        """Test load() returns default sources when file is empty."""
         # Create empty file
         config.config_path.write_text("", encoding="utf-8")
 
         sources = config.load()
 
-        assert len(sources) == 1
+        assert len(sources) == 2  # system + anthropic-official
         assert sources[0].id == "system"
+        assert sources[1].id == "anthropic-official"
 
     def test_load_invalid_yaml_returns_default(self, config):
-        """Test load() returns default when YAML is invalid."""
+        """Test load() returns default sources when YAML is invalid."""
         # Create file with invalid YAML
         config.config_path.write_text("invalid: yaml: content:", encoding="utf-8")
 
         sources = config.load()
 
-        assert len(sources) == 1
+        assert len(sources) == 2  # system + anthropic-official
         assert sources[0].id == "system"
+        assert sources[1].id == "anthropic-official"
 
     def test_load_valid_configuration(self, config):
         """Test load() parses valid configuration correctly."""
@@ -325,7 +330,7 @@ class TestSkillSourceConfiguration:
         config.add_source(source)
 
         sources = config.load()
-        assert len(sources) == 2  # Default + custom
+        assert len(sources) == 3  # system + anthropic-official + custom
         assert any(s.id == "custom" for s in sources)
 
     def test_add_source_duplicate_id_raises_error(self, config):
@@ -562,5 +567,41 @@ class TestSkillSourceConfiguration:
         repr_str = repr(config)
 
         assert "SkillSourceConfiguration" in repr_str
-        assert "sources=2" in repr_str  # Default + test
-        assert "enabled=2" in repr_str
+        assert "sources=3" in repr_str  # system + anthropic-official + test
+        assert "enabled=3" in repr_str
+
+    def test_default_sources_include_anthropic(self, config):
+        """Test that default sources include official Anthropic repository."""
+        sources = config._get_default_sources()
+
+        # Should have exactly 2 sources: system and anthropic-official
+        assert len(sources) == 2
+
+        # Verify system source (priority 0)
+        system_source = sources[0]
+        assert system_source.id == "system"
+        assert system_source.url == "https://github.com/bobmatnyc/claude-mpm-skills"
+        assert system_source.priority == 0
+        assert system_source.branch == "main"
+        assert system_source.enabled is True
+
+        # Verify Anthropic source (priority 1)
+        anthropic_source = sources[1]
+        assert anthropic_source.id == "anthropic-official"
+        assert anthropic_source.url == "https://github.com/anthropics/skills"
+        assert anthropic_source.priority == 1
+        assert anthropic_source.branch == "main"
+        assert anthropic_source.enabled is True
+
+    def test_anthropic_source_lower_priority_than_system(self, config):
+        """Test that Anthropic source has lower priority than system (higher number)."""
+        sources = config._get_default_sources()
+
+        system_source = next(s for s in sources if s.id == "system")
+        anthropic_source = next(s for s in sources if s.id == "anthropic-official")
+
+        # System should have priority 0 (highest)
+        # Anthropic should have priority 1 (lower than system)
+        assert system_source.priority < anthropic_source.priority
+        assert system_source.priority == 0
+        assert anthropic_source.priority == 1

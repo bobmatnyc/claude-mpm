@@ -25,11 +25,37 @@ class AgentSourceConfiguration:
 
     Attributes:
         disable_system_repo: If True, don't include default system repository
+                            (default: True as of v4.5.0 - git sources are now preferred)
         repositories: List of custom Git repositories
     """
 
-    disable_system_repo: bool = False
+    disable_system_repo: bool = True  # Changed from False to True in v4.5.0
     repositories: list[GitRepository] = field(default_factory=list)
+
+    @classmethod
+    def create_default_configuration(cls) -> "AgentSourceConfiguration":
+        """Create default configuration with git sources enabled.
+
+        Returns:
+            AgentSourceConfiguration with default git repository configured
+
+        Example:
+            >>> config = AgentSourceConfiguration.create_default_configuration()
+            >>> print(config.repositories[0].url)
+            'https://github.com/bobmatnyc/claude-mpm-agents'
+        """
+        # Create default git repository
+        default_repo = GitRepository(
+            url="https://github.com/bobmatnyc/claude-mpm-agents",
+            subdirectory="agents",
+            enabled=True,
+            priority=100,
+        )
+
+        return cls(
+            disable_system_repo=True,  # Disable built-in templates, use git sources
+            repositories=[default_repo],
+        )
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> "AgentSourceConfiguration":
@@ -49,12 +75,18 @@ class AgentSourceConfiguration:
         if config_path is None:
             config_path = Path.home() / ".claude-mpm" / "config" / "agent_sources.yaml"
 
-        # If file doesn't exist, return default configuration
+        # If file doesn't exist, create default configuration with git sources
         if not config_path.exists():
             logger.info(
-                f"Configuration file not found at {config_path}, using defaults"
+                f"Configuration file not found at {config_path}, creating default with git sources"
             )
-            return cls()
+            default_config = cls.create_default_configuration()
+            # Save the default configuration for future use
+            try:
+                default_config.save(config_path)
+            except Exception as e:
+                logger.warning(f"Could not save default configuration: {e}")
+            return default_config
 
         try:
             with open(config_path) as f:
@@ -67,7 +99,9 @@ class AgentSourceConfiguration:
                 return cls()
 
             # Parse configuration
-            disable_system_repo = data.get("disable_system_repo", False)
+            # Note: Default changed from False to True in v4.5.0
+            # For backward compatibility, if key is missing, use new default (True)
+            disable_system_repo = data.get("disable_system_repo", True)
 
             # Parse repositories
             repositories = []
@@ -89,12 +123,15 @@ class AgentSourceConfiguration:
             logger.info("Using default configuration")
             return cls()
 
-    def save(self, config_path: Optional[Path] = None) -> None:
+    def save(
+        self, config_path: Optional[Path] = None, include_comments: bool = True
+    ) -> None:
         """Save configuration to YAML file.
 
         Args:
             config_path: Path to YAML configuration file.
                         Defaults to ~/.claude-mpm/config/agent_sources.yaml
+            include_comments: Whether to include helpful comments in the YAML file
 
         Example:
             >>> config = AgentSourceConfiguration()
@@ -106,22 +143,45 @@ class AgentSourceConfiguration:
         # Ensure parent directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Build YAML data structure
-        data = {
-            "disable_system_repo": self.disable_system_repo,
-            "repositories": [
-                {
-                    "url": repo.url,
-                    "subdirectory": repo.subdirectory,
-                    "enabled": repo.enabled,
-                    "priority": repo.priority,
-                }
-                for repo in self.repositories
-            ],
-        }
-
         try:
             with open(config_path, "w") as f:
+                # Write header comments if requested
+                if include_comments:
+                    f.write("# Claude MPM Agent Sources Configuration\n")
+                    f.write("#\n")
+                    f.write(
+                        "# This file configures where Claude MPM discovers agent templates.\n"
+                    )
+                    f.write(
+                        "# Git sources are the recommended approach for agent management.\n"
+                    )
+                    f.write("#\n")
+                    f.write(
+                        "# disable_system_repo: Set to true to use git sources instead of built-in templates\n"
+                    )
+                    f.write(
+                        "# repositories: List of git repositories containing agent markdown files\n"
+                    )
+                    f.write("#\n")
+                    f.write(
+                        "# Default repository: https://github.com/bobmatnyc/claude-mpm-agents\n"
+                    )
+                    f.write("#\n\n")
+
+                # Build YAML data structure
+                data = {
+                    "disable_system_repo": self.disable_system_repo,
+                    "repositories": [
+                        {
+                            "url": repo.url,
+                            "subdirectory": repo.subdirectory,
+                            "enabled": repo.enabled,
+                            "priority": repo.priority,
+                        }
+                        for repo in self.repositories
+                    ],
+                }
+
                 yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
 
             logger.info(f"Configuration saved to {config_path}")

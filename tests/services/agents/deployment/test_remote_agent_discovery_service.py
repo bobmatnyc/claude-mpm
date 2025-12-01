@@ -271,3 +271,34 @@ def test_agent_id_generation(temp_remote_agents_dir):
 
         # Clean up for next iteration
         agent_md.unlink()
+
+
+def test_remote_agent_includes_path_field(
+    temp_remote_agents_dir, sample_remote_agent_md
+):
+    """Test that remote agents include 'path' field for deployment compatibility (ticket 1M-480).
+
+    WHY: Git-sourced agents must include 'path' field to match the structure
+    expected by MultiSourceAgentDeploymentService. Previously only 'source_file'
+    was included, causing KeyError during deployment validation.
+
+    Related: Ticket 1M-480 - Fix 'path' field deployment for git-sourced agents
+    """
+    service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
+    agents = service.discover_remote_agents()
+
+    assert len(agents) == 1
+    agent = agents[0]
+
+    # Verify 'path' field is present and correct
+    assert "path" in agent, "Remote agent missing 'path' field (ticket 1M-480)"
+    assert agent["path"] == str(sample_remote_agent_md)
+
+    # Verify backward compatibility fields
+    assert "file_path" in agent, "Remote agent missing 'file_path' field"
+    assert agent["file_path"] == str(sample_remote_agent_md)
+    assert "source_file" in agent, "Remote agent missing 'source_file' field"
+    assert agent["source_file"] == str(sample_remote_agent_md)
+
+    # Verify all path fields point to same file
+    assert agent["path"] == agent["file_path"] == agent["source_file"]

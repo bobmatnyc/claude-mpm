@@ -245,9 +245,12 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 repo_id = repo.identifier
                 try:
                     # Sync with timeout (individual repo sync)
+                    # NOTE: show_progress=False to avoid duplicate progress bars
+                    # (startup sync already showed progress to user)
                     sync_result = self.git_source_manager.sync_repository(
                         repo,
                         force=False,  # Use ETag-based caching
+                        show_progress=False,  # Suppress progress (startup already synced)
                     )
 
                     results["repositories"][repo_id] = sync_result

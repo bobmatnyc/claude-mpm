@@ -200,8 +200,8 @@ class SingleAgentDeployer:
         - Enables selective agent management in projects
         """
         try:
-            # Find the template file
-            template_file = templates_dir / f"{agent_name}.json"
+            # Find the template file (templates migrated to .md in v4.26.0+)
+            template_file = templates_dir / f"{agent_name}.md"
             if not template_file.exists():
                 self.logger.error(f"Agent template not found: {agent_name}")
                 return False

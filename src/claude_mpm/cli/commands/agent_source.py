@@ -23,6 +23,122 @@ from ...services.agents.git_source_manager import GitSourceManager
 logger = logging.getLogger(__name__)
 
 
+def _test_repository_access(repo: GitRepository) -> dict:
+    """Test if repository is accessible via GitHub API.
+
+    Design Decision: Test via GitHub API, not Git clone
+
+    Rationale: GitHub API is faster and less resource-intensive than
+    cloning the repository. We can validate access and existence without
+    downloading any files.
+
+    Args:
+        repo: GitRepository to test
+
+    Returns:
+        Dictionary with:
+        - accessible: bool (True if repo can be reached)
+        - error: str (error message if not accessible)
+
+    Example:
+        >>> repo = GitRepository(url="https://github.com/owner/repo")
+        >>> result = _test_repository_access(repo)
+        >>> print(result["accessible"])
+        True
+    """
+    import requests
+
+    try:
+        # Parse GitHub URL to extract owner/repo
+        owner, repo_name = repo._parse_github_url(repo.url)
+
+        # Test GitHub API access
+        api_url = f"https://api.github.com/repos/{owner}/{repo_name}"
+
+        response = requests.get(api_url, timeout=10)
+
+        if response.status_code == 200:
+            return {"accessible": True, "error": None}
+        if response.status_code == 404:
+            return {
+                "accessible": False,
+                "error": f"Repository not found: {owner}/{repo_name}",
+            }
+        if response.status_code == 403:
+            return {
+                "accessible": False,
+                "error": "Access denied (private repository or rate limit)",
+            }
+        return {
+            "accessible": False,
+            "error": f"HTTP {response.status_code}: {response.reason}",
+        }
+
+    except Exception as e:
+        return {"accessible": False, "error": str(e)}
+
+
+def _test_repository_sync(repo: GitRepository) -> dict:
+    """Test syncing repository and discovering agents.
+
+    Design Decision: Use temporary cache for testing
+
+    Rationale: We want to test sync without polluting the main cache.
+    Use a temporary directory that gets cleaned up after testing.
+
+    Args:
+        repo: GitRepository to test sync
+
+    Returns:
+        Dictionary with:
+        - synced: bool (True if sync successful)
+        - agents_discovered: list[str] (agent names found)
+        - error: str (error message if sync failed)
+
+    Example:
+        >>> repo = GitRepository(url="https://github.com/owner/repo")
+        >>> result = _test_repository_sync(repo)
+        >>> print(result["synced"])
+        True
+        >>> print(result["agents_discovered"])
+        ['engineer', 'pm', 'research']
+    """
+    import tempfile
+    from pathlib import Path
+
+    try:
+        # Create temporary cache directory
+        with tempfile.TemporaryDirectory() as temp_cache:
+            temp_cache_path = Path(temp_cache)
+
+            # Override cache path for testing
+            original_cache_path = repo.cache_path
+            repo.cache_path = temp_cache_path / repo.identifier
+
+            # Sync repository
+            manager = GitSourceManager(cache_root=temp_cache_path)
+            sync_result = manager.sync_repository(repo, force=True, show_progress=False)
+
+            # Restore original cache path
+            repo.cache_path = original_cache_path
+
+            if not sync_result.get("synced"):
+                return {
+                    "synced": False,
+                    "agents_discovered": [],
+                    "error": sync_result.get("error", "Unknown sync error"),
+                }
+
+            return {
+                "synced": True,
+                "agents_discovered": sync_result.get("agents_discovered", []),
+                "error": None,
+            }
+
+    except Exception as e:
+        return {"synced": False, "agents_discovered": [], "error": str(e)}
+
+
 def _generate_source_id(url: str) -> str:
     """Generate source ID from Git URL.
 
@@ -100,13 +216,31 @@ def agent_source_command(args) -> int:
 
 
 def handle_add_agent_source(args) -> int:
-    """Add a new agent source.
+    """Add a new agent source with immediate testing.
 
     Args:
-        args: Parsed arguments with url, priority, branch, subdirectory, disabled
+        args: Parsed arguments with url, priority, branch, subdirectory, disabled, test, skip_test
 
     Returns:
         Exit code
+
+    Design Decision: Immediate testing on add (fail-fast approach)
+
+    Rationale: Adding a repository that can't be accessed or synced leads to
+    broken state at startup. By testing immediately, we provide instant feedback
+    and prevent configuration pollution.
+
+    Test Mode Behavior:
+    - --test: Test only, don't save to configuration
+    - --no-test: Skip testing entirely (not recommended)
+    - Default: Test and save if successful
+
+    Testing Steps:
+    1. Validate repository URL format
+    2. Test Git access (can we reach the repository?)
+    3. Test sync (can we clone and discover agents?)
+    4. Report results with clear feedback
+    5. Save to configuration only if tests pass
     """
     try:
         # Load configuration
@@ -148,6 +282,62 @@ def handle_add_agent_source(args) -> int:
                 print(f"   - {error}")
             return 1
 
+        # Determine if we should test
+        test_mode = getattr(args, "test", False)
+        skip_test = getattr(args, "skip_test", False)
+
+        # Test repository access unless explicitly skipped
+        if not skip_test:
+            print(f"🔍 Testing repository access: {args.url}")
+            print()
+
+            test_result = _test_repository_access(repo)
+
+            if not test_result["accessible"]:
+                print(f"❌ Repository not accessible: {test_result['error']}")
+                print()
+                print("💡 Check the URL and try again")
+                return 1
+
+            print("✅ Repository accessible")
+
+            # Test sync and discovery
+            print("🔍 Testing sync and agent discovery...")
+            print()
+
+            sync_result = _test_repository_sync(repo)
+
+            if not sync_result["synced"]:
+                print(f"❌ Sync failed: {sync_result['error']}")
+                print()
+                print("💡 Repository may be valid but sync failed")
+                print(
+                    "   You can still add it with --no-test if you want to troubleshoot later"
+                )
+                return 1
+
+            agents_count = len(sync_result.get("agents_discovered", []))
+            print("✅ Sync successful")
+            print(f"   Discovered {agents_count} agents")
+
+            if agents_count > 0:
+                print()
+                print("   Agents found:")
+                for agent_name in sync_result["agents_discovered"][:5]:
+                    print(f"     - {agent_name}")
+                if agents_count > 5:
+                    print(f"     ... and {agents_count - 5} more")
+
+            print()
+
+        # If test mode, stop here
+        if test_mode:
+            print("✅ Test complete - repository is valid and accessible")
+            print()
+            print("💡 To add this repository, run without --test flag:")
+            print(f"   claude-mpm agent-source add {args.url}")
+            return 0
+
         # Check for priority conflicts
         conflicts = [r for r in config.repositories if r.priority == args.priority]
         if conflicts:
@@ -175,9 +365,8 @@ def handle_add_agent_source(args) -> int:
         print()
 
         if enabled:
-            print(
-                f"💡 Run 'claude-mpm agent-source update {repo.identifier}' to sync agents"
-            )
+            print("💡 Repository configured and tested successfully")
+            print("   Agents from this source will be available on next startup")
         else:
             print(f"💡 Enable it: claude-mpm agent-source enable {repo.identifier}")
 
