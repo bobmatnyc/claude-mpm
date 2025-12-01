@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List
 
+import yaml
+
 from claude_mpm.core.logging_config import get_logger
 
 
@@ -154,6 +156,105 @@ class AgentTemplateBuilder:
 
         return base_templates
 
+    def _parse_markdown_template(self, template_path: Path) -> dict:
+        """Parse Markdown template with YAML frontmatter.
+
+        Extracts metadata from YAML frontmatter and content from Markdown body.
+        Supports the new agent template format with YAML frontmatter between --- delimiters.
+
+        Args:
+            template_path: Path to the Markdown template file
+
+        Returns:
+            Dictionary containing metadata and instructions
+
+        Raises:
+            ValueError: If frontmatter is missing or malformed
+            yaml.YAMLError: If YAML parsing fails
+        """
+        content = template_path.read_text(encoding="utf-8")
+
+        # Split frontmatter and body
+        # Format: ---\n<yaml>\n---\n<markdown>
+        if not content.startswith("---"):
+            raise ValueError(
+                f"Markdown template missing YAML frontmatter: {template_path}"
+            )
+
+        # Split by --- delimiters
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            raise ValueError(f"Malformed YAML frontmatter in template: {template_path}")
+
+        # parts[0] is empty (before first ---)
+        # parts[1] is YAML frontmatter
+        # parts[2] is Markdown content
+        yaml_content = parts[1].strip()
+        markdown_content = parts[2].strip()
+
+        # Parse YAML frontmatter
+        try:
+            metadata = yaml.safe_load(yaml_content)
+            if not isinstance(metadata, dict):
+                raise ValueError(
+                    f"YAML frontmatter must be a dictionary: {template_path}"
+                )
+        except yaml.YAMLError as e:
+            self.logger.error(
+                f"Failed to parse YAML frontmatter in {template_path}: {e}"
+            )
+            raise
+
+        # Validate required fields
+        required_fields = ["name", "description", "version"]
+        missing_fields = [field for field in required_fields if field not in metadata]
+        if missing_fields:
+            raise ValueError(
+                f"Missing required fields in template {template_path}: {missing_fields}"
+            )
+
+        # Add the markdown content as instructions field
+        metadata["instructions"] = markdown_content
+
+        # Normalize metadata structure to match JSON template format
+        # JSON templates have these fields at top level, Markdown may have them nested
+        self._normalize_metadata_structure(metadata)
+
+        return metadata
+
+    def _normalize_metadata_structure(self, metadata: dict) -> None:
+        """Normalize metadata structure to match expected JSON template format.
+
+        This ensures both Markdown and JSON templates produce the same metadata structure
+        for downstream processing.
+
+        Args:
+            metadata: Metadata dictionary to normalize (modified in-place)
+        """
+        # Map Markdown frontmatter fields to JSON template structure
+        # Handle tags: YAML list vs JSON comma-separated string
+        if "tags" in metadata and isinstance(metadata["tags"], list):
+            # Keep as list for now, normalize_tools_input will handle both formats
+            pass
+
+        # Map agent_id to name if name is missing
+        if "agent_id" in metadata and "name" not in metadata:
+            metadata["name"] = metadata["agent_id"]
+
+        # Ensure capabilities dict exists
+        if "capabilities" not in metadata:
+            metadata["capabilities"] = {}
+
+        # Merge top-level capability fields into capabilities dict
+        capability_fields = ["memory_limit", "cpu_limit", "network_access"]
+        for field in capability_fields:
+            if field in metadata:
+                metadata["capabilities"][field] = metadata.pop(field)
+
+        # Add model to capabilities if present at top level
+        if "model" in metadata and "model" not in metadata["capabilities"]:
+            metadata["capabilities"]["model"] = metadata["model"]
+
     def _load_base_agent_instructions(self, agent_type: str) -> str:
         """Load BASE instructions for a specific agent type.
 
@@ -238,7 +339,7 @@ class AgentTemplateBuilder:
 
         Args:
             agent_name: Name of the agent
-            template_path: Path to the agent template JSON file
+            template_path: Path to the agent template (JSON or Markdown file)
             base_agent_data: Base agent configuration data
             source_info: Source of the agent (system/project/user)
 
@@ -248,15 +349,33 @@ class AgentTemplateBuilder:
         Raises:
             FileNotFoundError: If template file doesn't exist
             json.JSONDecodeError: If template JSON is invalid
+            yaml.YAMLError: If template YAML is invalid
+            ValueError: If template format is unsupported or malformed
         """
         if not template_path.exists():
             raise FileNotFoundError(f"Template file not found: {template_path}")
 
+        # Format detection: route to appropriate parser
         try:
-            template_content = template_path.read_text()
-            template_data = json.loads(template_content)
+            if template_path.suffix == ".md":
+                # Parse Markdown template with YAML frontmatter
+                self.logger.debug(f"Parsing Markdown template: {template_path}")
+                template_data = self._parse_markdown_template(template_path)
+            elif template_path.suffix == ".json":
+                # Parse JSON template (legacy format)
+                self.logger.debug(f"Parsing JSON template: {template_path}")
+                template_content = template_path.read_text()
+                template_data = json.loads(template_content)
+            else:
+                raise ValueError(
+                    f"Unsupported template format: {template_path.suffix}. "
+                    f"Expected .md or .json"
+                )
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON in template {template_path}: {e}")
+            raise
+        except (yaml.YAMLError, ValueError) as e:
+            self.logger.error(f"Invalid template {template_path}: {e}")
             raise
 
         # Extract tools from template with fallback

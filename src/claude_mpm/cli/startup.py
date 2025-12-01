@@ -298,8 +298,26 @@ def sync_remote_agents_on_startup():
                 agent_count = 0
 
                 if cache_dir.exists():
-                    # Count JSON files in cache (agent templates)
-                    agent_count = len(list(cache_dir.rglob("*.json")))
+                    # Count MD files in cache (agent markdown files from Git)
+                    # Only check root directory (avoid counting subdirectory duplicates)
+                    # Exclude PM templates and BASE-AGENT - only count deployable agents
+                    pm_templates = {
+                        "base-agent.md",
+                        "circuit_breakers.md",
+                        "pm_examples.md",
+                        "pm_red_flags.md",
+                        "research_gate_examples.md",
+                        "response_format.md",
+                        "ticket_completeness_examples.md",
+                        "validation_templates.md",
+                        "git_file_tracking.md",
+                    }
+                    agent_files = [
+                        f
+                        for f in cache_dir.glob("*.md")
+                        if f.name.lower() not in pm_templates
+                    ]
+                    agent_count = len(agent_files)
 
                 if agent_count > 0:
                     # Create progress bar for deployment phase
@@ -337,12 +355,36 @@ def sync_remote_agents_on_startup():
                             f"Complete: {total_available} agents ready (all up-to-date)"
                         )
 
-                    # Log deployment errors if any
+                    # Display deployment errors to user (not just logs)
                     deploy_errors = deployment_result.get("errors", [])
                     if deploy_errors:
+                        # Log for debugging
                         logger.warning(
                             f"Agent deployment completed with {len(deploy_errors)} errors: {deploy_errors}"
                         )
+
+                        # Display errors to user with clear formatting
+                        print("\n⚠️  Agent Deployment Errors:")
+
+                        # Show first 10 errors to avoid overwhelming output
+                        max_errors_to_show = 10
+                        errors_to_display = deploy_errors[:max_errors_to_show]
+
+                        for error in errors_to_display:
+                            # Format error message for readability
+                            # Errors typically come as strings like "agent.md: Error message"
+                            print(f"   - {error}")
+
+                        # If more errors exist, show count
+                        if len(deploy_errors) > max_errors_to_show:
+                            remaining = len(deploy_errors) - max_errors_to_show
+                            print(f"   ... and {remaining} more error(s)")
+
+                        # Show summary message
+                        print(
+                            f"\n❌ Failed to deploy {len(deploy_errors)} agent(s). Please check the error messages above."
+                        )
+                        print("   Run with --verbose for detailed error information.\n")
 
             except Exception as e:
                 # Deployment failure shouldn't block startup

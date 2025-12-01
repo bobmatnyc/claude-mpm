@@ -41,10 +41,11 @@ class TestAgentStartupDeployment:
             cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
             cache_dir.mkdir(parents=True)
 
-            # Create some agent JSON files in cache to simulate synced agents
-            (cache_dir / "agent1.json").write_text('{"name": "agent1"}')
-            (cache_dir / "agent2.json").write_text('{"name": "agent2"}')
-            (cache_dir / "agent3.json").write_text('{"name": "agent3"}')
+            # Create some agent MD files in cache to simulate synced agents
+            # Note: Code counts .md files, not .json files
+            (cache_dir / "agent1.md").write_text("# Agent 1")
+            (cache_dir / "agent2.md").write_text("# Agent 2")
+            (cache_dir / "agent3.md").write_text("# Agent 3")
 
             # Mock sync phase (Phase 1) - return successful sync
             mock_sync_agents.return_value = {
@@ -153,7 +154,7 @@ class TestAgentStartupDeployment:
             cache_dir.mkdir(parents=True)
 
             # Create agent in cache
-            (cache_dir / "agent1.json").write_text('{"name": "agent1"}')
+            (cache_dir / "agent1.md").write_text("# Agent 1")
 
             # Mock sync returning success
             mock_sync_agents.return_value = {
@@ -230,6 +231,158 @@ class TestAgentStartupDeployment:
                 # if cache is empty (no agents to deploy)
                 mock_deployment_service_class.assert_called_once()
                 mock_deployment_service_class.return_value.deploy_agents.assert_not_called()
+
+    def test_sync_remote_agents_displays_deployment_errors_to_user(self):
+        """Verify deployment errors are displayed to the user, not just logged.
+
+        This test verifies the fix for the issue where deployment errors were
+        logged but never shown to the user, making it appear that everything
+        succeeded when in fact all agents failed to deploy.
+        """
+        from claude_mpm.cli.startup import sync_remote_agents_on_startup
+
+        with (
+            patch(
+                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+            ) as mock_sync_agents,
+            patch(
+                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+            ) as mock_deployment_service_class,
+            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
+            patch("builtins.print") as mock_print,
+            tempfile.TemporaryDirectory() as tmp_dir,
+        ):
+            # Setup mocks
+            tmp_path = Path(tmp_dir)
+            cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir.mkdir(parents=True)
+
+            # Create agent files in cache
+            (cache_dir / "agent1.md").write_text("# Agent 1")
+            (cache_dir / "agent2.md").write_text("# Agent 2")
+
+            # Mock sync returning success
+            mock_sync_agents.return_value = {
+                "enabled": True,
+                "sources_synced": 1,
+                "total_downloaded": 2,
+                "cache_hits": 0,
+                "errors": [],
+                "duration_ms": 500,
+            }
+
+            # Mock deployment service to return errors
+            mock_deployment_service = MagicMock()
+            mock_deployment_service_class.return_value = mock_deployment_service
+
+            # Simulate deployment with errors
+            mock_deployment_service.deploy_agents.return_value = {
+                "deployed": [],
+                "updated": [],
+                "skipped": [],
+                "errors": [
+                    "agent1.md: Failed to parse template: JSONDecodeError",
+                    "agent2.md: Failed to parse template: Invalid frontmatter",
+                ],
+                "total": 2,
+            }
+
+            # Mock progress bar
+            mock_progress_instance = MagicMock()
+            mock_progress_bar.return_value = mock_progress_instance
+
+            # Mock Path.home()
+            with patch("pathlib.Path.home", return_value=tmp_path):
+                # Run the function
+                sync_remote_agents_on_startup()
+
+                # CRITICAL VERIFICATION: Errors should be displayed to user via print()
+                # Check that print was called with error messages
+                print_calls = [str(call) for call in mock_print.call_args_list]
+                print_output = "\n".join(print_calls)
+
+                # Verify error header is displayed
+                assert any("Agent Deployment Errors" in call for call in print_calls), (
+                    "Error header not displayed to user"
+                )
+
+                # Verify specific errors are shown
+                assert any("agent1.md" in call for call in print_calls), (
+                    "First error not displayed to user"
+                )
+                assert any("agent2.md" in call for call in print_calls), (
+                    "Second error not displayed to user"
+                )
+
+                # Verify summary message is shown
+                assert any("Failed to deploy" in call for call in print_calls), (
+                    "Summary message not displayed to user"
+                )
+
+    def test_sync_remote_agents_no_error_display_when_successful(self):
+        """Verify no error messages are shown when deployment succeeds."""
+        from claude_mpm.cli.startup import sync_remote_agents_on_startup
+
+        with (
+            patch(
+                "claude_mpm.services.agents.startup_sync.sync_agents_on_startup"
+            ) as mock_sync_agents,
+            patch(
+                "claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService"
+            ) as mock_deployment_service_class,
+            patch("claude_mpm.utils.progress.ProgressBar") as mock_progress_bar,
+            patch("builtins.print") as mock_print,
+            tempfile.TemporaryDirectory() as tmp_dir,
+        ):
+            # Setup mocks
+            tmp_path = Path(tmp_dir)
+            cache_dir = tmp_path / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir.mkdir(parents=True)
+
+            # Create agent file in cache
+            (cache_dir / "agent1.md").write_text("# Agent 1")
+
+            # Mock sync returning success
+            mock_sync_agents.return_value = {
+                "enabled": True,
+                "sources_synced": 1,
+                "total_downloaded": 1,
+                "cache_hits": 0,
+                "errors": [],
+                "duration_ms": 500,
+            }
+
+            # Mock deployment service to return success (no errors)
+            mock_deployment_service = MagicMock()
+            mock_deployment_service_class.return_value = mock_deployment_service
+
+            mock_deployment_service.deploy_agents.return_value = {
+                "deployed": ["agent1"],
+                "updated": [],
+                "skipped": [],
+                "errors": [],  # No errors
+                "total": 1,
+            }
+
+            # Mock progress bar
+            mock_progress_instance = MagicMock()
+            mock_progress_bar.return_value = mock_progress_instance
+
+            # Mock Path.home()
+            with patch("pathlib.Path.home", return_value=tmp_path):
+                # Run the function
+                sync_remote_agents_on_startup()
+
+                # CRITICAL VERIFICATION: No error messages should be displayed
+                print_calls = [str(call) for call in mock_print.call_args_list]
+
+                # Verify error messages are NOT shown
+                assert not any(
+                    "Agent Deployment Errors" in call for call in print_calls
+                ), "Error header shown when no errors occurred"
+                assert not any("Failed to deploy" in call for call in print_calls), (
+                    "Failure message shown when deployment succeeded"
+                )
 
 
 if __name__ == "__main__":
