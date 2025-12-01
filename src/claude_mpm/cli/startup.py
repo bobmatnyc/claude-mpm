@@ -503,8 +503,11 @@ def sync_remote_skills_on_startup():
                 )
 
                 # Deploy skills with progress callback
+                # Deploy to project directory (like agents), not user directory
                 deployment_result = manager.deploy_skills(
-                    force=False, progress_callback=deploy_progress.update
+                    target_dir=Path.cwd() / ".claude" / "skills",
+                    force=False,
+                    progress_callback=deploy_progress.update,
                 )
 
                 # Finish deployment progress bar
