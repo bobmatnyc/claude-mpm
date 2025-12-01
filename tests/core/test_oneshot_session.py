@@ -737,7 +737,9 @@ class TestOneshotSession:
             result = oneshot_session._get_simple_context()
             assert result == "simple context"
 
-    def test_build_final_command_with_file_based_caching(self, oneshot_session, tmp_path):
+    def test_build_final_command_with_file_based_caching(
+        self, oneshot_session, tmp_path
+    ):
         """Test file-based caching to avoid ARG_MAX limits (1M-485)."""
         prompt = "test prompt"
         infrastructure = {"cmd": ["claude"]}
@@ -748,11 +750,11 @@ class TestOneshotSession:
         with patch.object(
             oneshot_session, "_get_simple_context", return_value="simple context"
         ):
-            oneshot_session.runner._create_system_prompt.return_value = large_system_prompt
-
-            result = oneshot_session._build_final_command(
-                prompt, None, infrastructure
+            oneshot_session.runner._create_system_prompt.return_value = (
+                large_system_prompt
             )
+
+            result = oneshot_session._build_final_command(prompt, None, infrastructure)
 
             # Verify file-based loading is used
             assert "--system-prompt-file" in result
@@ -783,9 +785,7 @@ class TestOneshotSession:
         ), patch("tempfile.mkstemp", side_effect=OSError("File creation failed")):
             oneshot_session.runner._create_system_prompt.return_value = system_prompt
 
-            result = oneshot_session._build_final_command(
-                prompt, None, infrastructure
-            )
+            result = oneshot_session._build_final_command(prompt, None, infrastructure)
 
             # Should fallback to inline
             assert "--append-system-prompt" in result
@@ -815,7 +815,9 @@ class TestOneshotSession:
 
         assert oneshot_session.temp_system_prompt_file is None
 
-    def test_cleanup_session_handles_temp_file_deletion_error(self, oneshot_session, tmp_path):
+    def test_cleanup_session_handles_temp_file_deletion_error(
+        self, oneshot_session, tmp_path
+    ):
         """Test cleanup handles errors during temp file deletion."""
         temp_file = tmp_path / "test_file.md"
         temp_file.write_text("content")

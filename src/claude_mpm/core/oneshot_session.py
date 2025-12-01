@@ -174,6 +174,9 @@ class OneshotSession:
                 # Use --system-prompt-file flag (matches interactive mode pattern)
                 cmd.extend(["--system-prompt-file", temp_path])
 
+                # User-visible notification
+                print(f"📄 Reading system prompt from: {temp_path}")
+
                 self.logger.info(
                     f"Using file-based system prompt loading: {temp_path} "
                     f"({len(system_prompt) / 1024:.1f} KB)"
