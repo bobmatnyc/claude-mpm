@@ -61,6 +61,7 @@ class TestOneshotSession:
         assert session.start_time is None
         assert session.session_id is None
         assert session.original_cwd is None
+        assert session.temp_system_prompt_file is None
 
     def test_initialize_session_success(self, oneshot_session):
         """Test successful session initialization."""
@@ -223,7 +224,7 @@ class TestOneshotSession:
             mock_build.assert_called_once_with(prompt, None, infrastructure)
 
     def test_build_final_command_with_context(self, oneshot_session):
-        """Test building final command with context."""
+        """Test building final command with context using file-based system prompt."""
         prompt = "test prompt"
         context = "test context"
         infrastructure = {"cmd": ["claude"]}
@@ -237,14 +238,18 @@ class TestOneshotSession:
                 prompt, context, infrastructure
             )
 
-            expected = [
-                "claude",
-                "--print",
-                "test context\n\ntest prompt",
-                "--append-system-prompt",
-                "system prompt",
-            ]
-            assert result == expected
+            # File-based loading should be used (1M-485)
+            assert result[0:3] == ["claude", "--print", "test context\n\ntest prompt"]
+            assert "--system-prompt-file" in result
+
+            # Get temp file and verify
+            file_idx = result.index("--system-prompt-file") + 1
+            temp_file_path = result[file_idx]
+            assert Path(temp_file_path).exists()
+            assert Path(temp_file_path).read_text() == "system prompt"
+
+            # Cleanup
+            Path(temp_file_path).unlink()
 
     def test_build_final_command_no_system_prompt(self, oneshot_session):
         """Test building final command without system prompt."""
@@ -731,6 +736,99 @@ class TestOneshotSession:
         ):
             result = oneshot_session._get_simple_context()
             assert result == "simple context"
+
+    def test_build_final_command_with_file_based_caching(self, oneshot_session, tmp_path):
+        """Test file-based caching to avoid ARG_MAX limits (1M-485)."""
+        prompt = "test prompt"
+        infrastructure = {"cmd": ["claude"]}
+
+        # Create large system prompt that exceeds ARG_MAX
+        large_system_prompt = "x" * 150000  # 150 KB
+
+        with patch.object(
+            oneshot_session, "_get_simple_context", return_value="simple context"
+        ):
+            oneshot_session.runner._create_system_prompt.return_value = large_system_prompt
+
+            result = oneshot_session._build_final_command(
+                prompt, None, infrastructure
+            )
+
+            # Verify file-based loading is used
+            assert "--system-prompt-file" in result
+            assert "--append-system-prompt" not in result
+
+            # Get temp file path
+            file_idx = result.index("--system-prompt-file") + 1
+            temp_file_path = result[file_idx]
+
+            # Verify temp file exists and contains system prompt
+            assert Path(temp_file_path).exists()
+            assert Path(temp_file_path).read_text() == large_system_prompt
+
+            # Verify temp file path is stored for cleanup
+            assert oneshot_session.temp_system_prompt_file == temp_file_path
+
+            # Cleanup
+            Path(temp_file_path).unlink()
+
+    def test_build_final_command_file_creation_fallback(self, oneshot_session):
+        """Test fallback to inline when file creation fails."""
+        prompt = "test prompt"
+        infrastructure = {"cmd": ["claude"]}
+        system_prompt = "test system prompt"
+
+        with patch.object(
+            oneshot_session, "_get_simple_context", return_value="simple context"
+        ), patch("tempfile.mkstemp", side_effect=OSError("File creation failed")):
+            oneshot_session.runner._create_system_prompt.return_value = system_prompt
+
+            result = oneshot_session._build_final_command(
+                prompt, None, infrastructure
+            )
+
+            # Should fallback to inline
+            assert "--append-system-prompt" in result
+            assert system_prompt in result
+            assert "--system-prompt-file" not in result
+
+    def test_cleanup_session_removes_temp_file(self, oneshot_session, tmp_path):
+        """Test that cleanup removes temporary system prompt file."""
+        # Create a temp file
+        temp_file = tmp_path / "test_system_prompt.md"
+        temp_file.write_text("test content")
+
+        oneshot_session.temp_system_prompt_file = str(temp_file)
+
+        # Cleanup should remove the file
+        oneshot_session.cleanup_session()
+
+        assert not temp_file.exists()
+        assert oneshot_session.temp_system_prompt_file is None
+
+    def test_cleanup_session_handles_missing_temp_file(self, oneshot_session):
+        """Test cleanup handles case where temp file doesn't exist."""
+        oneshot_session.temp_system_prompt_file = "/nonexistent/file.md"
+
+        # Should not raise exception
+        oneshot_session.cleanup_session()
+
+        assert oneshot_session.temp_system_prompt_file is None
+
+    def test_cleanup_session_handles_temp_file_deletion_error(self, oneshot_session, tmp_path):
+        """Test cleanup handles errors during temp file deletion."""
+        temp_file = tmp_path / "test_file.md"
+        temp_file.write_text("content")
+
+        oneshot_session.temp_system_prompt_file = str(temp_file)
+
+        # Mock unlink to raise error
+        with patch.object(Path, "unlink", side_effect=OSError("Delete failed")):
+            # Should not raise exception
+            oneshot_session.cleanup_session()
+
+            # Temp file reference should still be cleared
+            assert oneshot_session.temp_system_prompt_file is None
 
 
 class TestOneshotSessionIntegration:

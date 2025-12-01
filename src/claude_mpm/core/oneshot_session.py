@@ -7,6 +7,7 @@ breaking down the monolithic run_oneshot method into focused, testable component
 import contextlib
 import os
 import subprocess
+import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -37,6 +38,7 @@ class OneshotSession:
         self.start_time = None
         self.session_id = None
         self.original_cwd = None
+        self.temp_system_prompt_file = None
 
     def initialize_session(self, prompt: str) -> Tuple[bool, Optional[str]]:
         """Initialize the oneshot session.
@@ -134,7 +136,13 @@ class OneshotSession:
     def _build_final_command(
         self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
     ) -> list:
-        """Build the final command with prompt and system instructions."""
+        """Build the final command with prompt and system instructions.
+
+        Uses file-based caching to avoid Linux ARG_MAX limits:
+        - Linux MAX_ARG_STRLEN: 128 KB per argument
+        - System prompt size: ~138.7 KB (exceeds limit by 7.7 KB)
+        - Solution: Write to temp file, pass file path (~60 bytes)
+        """
         full_prompt = f"{context}\n\n{prompt}" if context else prompt
         cmd = infrastructure["cmd"] + ["--print", full_prompt]
 
@@ -148,9 +156,35 @@ class OneshotSession:
                 self.logger.warning("System prompt contains Python code references!")
 
         if system_prompt and system_prompt != self._get_simple_context():
-            # The problem might be with insert positioning
-            # Let's add system prompt differently
-            cmd.extend(["--append-system-prompt", system_prompt])
+            # Use file-based loading to avoid ARG_MAX limits (1M-485)
+            # Create temp file for system prompt
+            try:
+                # Create temp file in system temp directory
+                temp_fd, temp_path = tempfile.mkstemp(
+                    suffix=".md", prefix="claude_mpm_system_prompt_"
+                )
+
+                # Write system prompt to temp file
+                with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+                    f.write(system_prompt)
+
+                # Store temp file path for cleanup
+                self.temp_system_prompt_file = temp_path
+
+                # Use --system-prompt-file flag (matches interactive mode pattern)
+                cmd.extend(["--system-prompt-file", temp_path])
+
+                self.logger.info(
+                    f"Using file-based system prompt loading: {temp_path} "
+                    f"({len(system_prompt) / 1024:.1f} KB)"
+                )
+
+            except Exception as e:
+                # Fallback to inline if file creation fails
+                self.logger.warning(
+                    f"Failed to create temp file for system prompt, using inline: {e}"
+                )
+                cmd.extend(["--append-system-prompt", system_prompt])
 
         return cmd
 
@@ -203,6 +237,20 @@ class OneshotSession:
 
     def cleanup_session(self) -> None:
         """Clean up the session and restore state."""
+        # Clean up temp system prompt file
+        if self.temp_system_prompt_file:
+            try:
+                temp_file_path = Path(self.temp_system_prompt_file)
+                if temp_file_path.exists():
+                    temp_file_path.unlink()
+                    self.logger.debug(
+                        f"Cleaned up temp system prompt file: {self.temp_system_prompt_file}"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Failed to clean up temp system prompt file: {e}")
+            finally:
+                self.temp_system_prompt_file = None
+
         # Restore original working directory
         if self.original_cwd:
             with contextlib.suppress(Exception):
