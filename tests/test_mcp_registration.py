@@ -16,6 +16,10 @@ import pytest
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
+    UnifiedTicketTool,
+)
+
 from src.claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 
 # Import the same components as the MCP server scripts
@@ -26,9 +30,6 @@ from src.claude_mpm.services.mcp_gateway.tools.base_adapter import (
 )
 from src.claude_mpm.services.mcp_gateway.tools.document_summarizer import (
     DocumentSummarizerTool,
-)
-from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
-    UnifiedTicketTool,
 )
 
 
