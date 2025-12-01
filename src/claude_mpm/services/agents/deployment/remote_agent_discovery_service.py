@@ -97,9 +97,7 @@ class RemoteAgentDiscoveryService:
             relative_path = file_path.relative_to(agents_dir)
 
             # Remove .md extension and convert to forward slashes
-            agent_id = str(relative_path.with_suffix("")).replace("\\", "/")
-
-            return agent_id
+            return str(relative_path.with_suffix("")).replace("\\", "/")
         except ValueError:
             # File is not under agents subdirectory, fall back to filename
             self.logger.warning(

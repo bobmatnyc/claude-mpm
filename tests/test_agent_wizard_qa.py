@@ -26,7 +26,7 @@ class TestAgentDiscoveryAndDisplay:
     @pytest.fixture
     def wizard(self):
         """Create wizard instance with mocked discovery service."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             wizard.discovery_enabled = True
             wizard.source_manager = Mock()
@@ -47,7 +47,7 @@ class TestAgentDiscoveryAndDisplay:
             "ops/core",
             "ops/security",
             "universal",
-            "security"
+            "security",
         ]
 
         languages = ["python", "javascript", "typescript", "golang", "rust"]
@@ -57,22 +57,26 @@ class TestAgentDiscoveryAndDisplay:
         for category in categories:
             for lang in languages:  # ALL 5 languages per category to get 45 agents
                 agent_id += 1
-                agents.append({
-                    "agent_id": f"{category}/{lang}-engineer-{agent_id}",
-                    "metadata": {
-                        "name": f"{lang.title()} {category.split('/')[-1].title()} Engineer",
-                        "description": f"Expert {lang} developer for {category} projects",
+                agents.append(
+                    {
+                        "agent_id": f"{category}/{lang}-engineer-{agent_id}",
+                        "metadata": {
+                            "name": f"{lang.title()} {category.split('/')[-1].title()} Engineer",
+                            "description": f"Expert {lang} developer for {category} projects",
+                            "category": category,
+                            "language": lang,
+                        },
+                        "source": "bobmatnyc/claude-mpm-agents",
                         "category": category,
-                        "language": lang,
-                    },
-                    "source": "bobmatnyc/claude-mpm-agents",
-                    "category": category,
-                    "path": f"/fake/path/{category}/{lang}-engineer.md",
-                })
+                        "path": f"/fake/path/{category}/{lang}-engineer.md",
+                    }
+                )
 
         return agents
 
-    def test_merge_agent_sources_returns_40_plus_agents(self, wizard, mock_discovered_agents):
+    def test_merge_agent_sources_returns_40_plus_agents(
+        self, wizard, mock_discovered_agents
+    ):
         """Test that _merge_agent_sources returns 40+ discovered agents."""
         wizard.source_manager.list_cached_agents.return_value = mock_discovered_agents
 
@@ -90,14 +94,17 @@ class TestAgentDiscoveryAndDisplay:
         for agent in agents:
             assert "source_type" in agent
             assert "source_identifier" in agent
-            assert agent["source_identifier"] in ["bobmatnyc/claude-mpm-agents", "local"]
+            assert agent["source_identifier"] in [
+                "bobmatnyc/claude-mpm-agents",
+                "local",
+            ]
 
     def test_deployment_status_shown_correctly(self, wizard, mock_discovered_agents):
         """Test that deployment status is correctly determined."""
         wizard.source_manager.list_cached_agents.return_value = mock_discovered_agents
 
         # Mock deployed directory
-        with patch('pathlib.Path.exists') as mock_exists:
+        with patch("pathlib.Path.exists") as mock_exists:
             mock_exists.return_value = False  # No agents deployed
 
             agents = wizard._merge_agent_sources()
@@ -112,12 +119,22 @@ class TestAgentDiscoveryAndDisplay:
 
         agents = wizard._merge_agent_sources()
 
-        required_fields = ["agent_id", "name", "description", "source_type",
-                          "source_identifier", "category", "deployed", "path"]
+        required_fields = [
+            "agent_id",
+            "name",
+            "description",
+            "source_type",
+            "source_identifier",
+            "category",
+            "deployed",
+            "path",
+        ]
 
         for agent in agents:
             for field in required_fields:
-                assert field in agent, f"Agent {agent['agent_id']} missing field: {field}"
+                assert field in agent, (
+                    f"Agent {agent['agent_id']} missing field: {field}"
+                )
 
 
 class TestDiscoveryBrowsing:
@@ -126,7 +143,7 @@ class TestDiscoveryBrowsing:
     @pytest.fixture
     def wizard(self):
         """Create wizard with mock discovery."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             wizard.discovery_enabled = True
             wizard.source_manager = Mock()
@@ -145,7 +162,7 @@ class TestDiscoveryBrowsing:
                 "source_identifier": "bobmatnyc/claude-mpm-agents",
                 "deployed": False,
                 "path": "/fake/path/python-engineer.md",
-                "metadata": {"language": "python"}
+                "metadata": {"language": "python"},
             },
             "engineer/backend/golang-engineer": {
                 "agent_id": "engineer/backend/golang-engineer",
@@ -156,7 +173,7 @@ class TestDiscoveryBrowsing:
                 "source_identifier": "bobmatnyc/claude-mpm-agents",
                 "deployed": False,
                 "path": "/fake/path/golang-engineer.md",
-                "metadata": {"language": "golang"}
+                "metadata": {"language": "golang"},
             },
             "engineer/frontend/react-engineer": {
                 "agent_id": "engineer/frontend/react-engineer",
@@ -167,7 +184,7 @@ class TestDiscoveryBrowsing:
                 "source_identifier": "bobmatnyc/claude-mpm-agents",
                 "deployed": False,
                 "path": "/fake/path/react-engineer.md",
-                "metadata": {"framework": "react", "language": "javascript"}
+                "metadata": {"framework": "react", "language": "javascript"},
             },
             "documentation/documentation": {
                 "agent_id": "documentation/documentation",
@@ -178,15 +195,16 @@ class TestDiscoveryBrowsing:
                 "source_identifier": "bobmatnyc/claude-mpm-agents",
                 "deployed": False,
                 "path": "/fake/path/documentation.md",
-                "metadata": {}
-            }
+                "metadata": {},
+            },
         }
 
     def test_filter_by_category(self, wizard, diverse_agents):
         """Test filtering agents by category."""
         # Simulate filtering for backend engineers
         filtered = {
-            agent_id: agent for agent_id, agent in diverse_agents.items()
+            agent_id: agent
+            for agent_id, agent in diverse_agents.items()
             if agent["category"] == "engineer/backend"
         }
 
@@ -197,7 +215,8 @@ class TestDiscoveryBrowsing:
         """Test filtering agents by language."""
         # Simulate filtering for Python
         filtered = {
-            agent_id: agent for agent_id, agent in diverse_agents.items()
+            agent_id: agent
+            for agent_id, agent in diverse_agents.items()
             if agent.get("metadata", {}).get("language") == "python"
         }
 
@@ -212,7 +231,8 @@ class TestDiscoveryBrowsing:
         """Test filtering agents by framework."""
         # Simulate filtering for React
         filtered = {
-            agent_id: agent for agent_id, agent in diverse_agents.items()
+            agent_id: agent
+            for agent_id, agent in diverse_agents.items()
             if agent.get("metadata", {}).get("framework") == "react"
         }
 
@@ -235,7 +255,7 @@ class TestPresetDeployment:
     @pytest.fixture
     def wizard(self):
         """Create wizard with preset service."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             wizard.discovery_enabled = True
             wizard.source_manager = Mock()
@@ -244,7 +264,9 @@ class TestPresetDeployment:
     def test_preset_list_shows_11_presets(self, wizard):
         """Test that preset list shows all available presets."""
         # Mock the AgentPresetService import
-        with patch('claude_mpm.services.agents.agent_preset_service.AgentPresetService') as mock_service_class:
+        with patch(
+            "claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+        ) as mock_service_class:
             service = Mock()
             service.list_presets.return_value = [
                 {
@@ -256,14 +278,14 @@ class TestPresetDeployment:
                         "documentation/documentation",
                         "engineer/backend/python-engineer",
                         "qa/qa",
-                        "ops/core/ops"
-                    ]
+                        "ops/core/ops",
+                    ],
                 },
                 {
                     "name": "full-stack-web",
                     "description": "Complete web development team",
-                    "agents": ["agent1", "agent2", "agent3"]
-                }
+                    "agents": ["agent1", "agent2", "agent3"],
+                },
             ]
             mock_service_class.return_value = service
 
@@ -280,7 +302,9 @@ class TestPresetDeployment:
 
     def test_minimal_preset_has_6_agents(self, wizard):
         """Test that minimal preset resolves to 6 agents."""
-        with patch('claude_mpm.services.agents.agent_preset_service.AgentPresetService') as mock_service_class:
+        with patch(
+            "claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+        ) as mock_service_class:
             service = Mock()
             service.resolve_agents.return_value = {
                 "agents": [
@@ -288,59 +312,61 @@ class TestPresetDeployment:
                         "agent_id": "universal/memory-manager",
                         "metadata": {
                             "metadata": {"name": "Memory Manager"},
-                            "path": "/fake/path/memory-manager.md"
+                            "path": "/fake/path/memory-manager.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     },
                     {
                         "agent_id": "universal/research",
                         "metadata": {
                             "metadata": {"name": "Research Agent"},
-                            "path": "/fake/path/research.md"
+                            "path": "/fake/path/research.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     },
                     {
                         "agent_id": "documentation/documentation",
                         "metadata": {
                             "metadata": {"name": "Documentation Agent"},
-                            "path": "/fake/path/documentation.md"
+                            "path": "/fake/path/documentation.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     },
                     {
                         "agent_id": "engineer/backend/python-engineer",
                         "metadata": {
                             "metadata": {"name": "Python Engineer"},
-                            "path": "/fake/path/python-engineer.md"
+                            "path": "/fake/path/python-engineer.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     },
                     {
                         "agent_id": "qa/qa",
                         "metadata": {
                             "metadata": {"name": "QA Agent"},
-                            "path": "/fake/path/qa.md"
+                            "path": "/fake/path/qa.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     },
                     {
                         "agent_id": "ops/core/ops",
                         "metadata": {
                             "metadata": {"name": "Ops Agent"},
-                            "path": "/fake/path/ops.md"
+                            "path": "/fake/path/ops.md",
                         },
-                        "source": "bobmatnyc/claude-mpm-agents"
-                    }
+                        "source": "bobmatnyc/claude-mpm-agents",
+                    },
                 ],
-                "missing_agents": []
+                "missing_agents": [],
             }
             mock_service_class.return_value = service
 
             resolution = service.resolve_agents("minimal", validate_availability=True)
 
             agents = resolution.get("agents", [])
-            assert len(agents) == 6, f"Expected 6 agents in minimal preset, got {len(agents)}"
+            assert len(agents) == 6, (
+                f"Expected 6 agents in minimal preset, got {len(agents)}"
+            )
 
             # Verify expected agents
             expected_ids = [
@@ -349,7 +375,7 @@ class TestPresetDeployment:
                 "documentation/documentation",
                 "engineer/backend/python-engineer",
                 "qa/qa",
-                "ops/core/ops"
+                "ops/core/ops",
             ]
 
             actual_ids = [a["agent_id"] for a in agents]
@@ -357,17 +383,19 @@ class TestPresetDeployment:
 
     def test_preset_resolution_shows_source_attribution(self, wizard):
         """Test that resolved agents show source attribution."""
-        with patch('claude_mpm.services.agents.agent_preset_service.AgentPresetService') as mock_service_class:
+        with patch(
+            "claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+        ) as mock_service_class:
             service = Mock()
             service.resolve_agents.return_value = {
                 "agents": [
                     {
                         "agent_id": "universal/memory-manager",
                         "metadata": {"metadata": {"name": "Memory Manager"}},
-                        "source": "bobmatnyc/claude-mpm-agents"
+                        "source": "bobmatnyc/claude-mpm-agents",
                     }
                 ],
-                "missing_agents": []
+                "missing_agents": [],
             }
             mock_service_class.return_value = service
 
@@ -380,11 +408,13 @@ class TestPresetDeployment:
 
     def test_preset_detects_missing_agents(self, wizard):
         """Test that preset deployment detects missing agents."""
-        with patch('claude_mpm.services.agents.agent_preset_service.AgentPresetService') as mock_service_class:
+        with patch(
+            "claude_mpm.services.agents.agent_preset_service.AgentPresetService"
+        ) as mock_service_class:
             service = Mock()
             service.resolve_agents.return_value = {
                 "agents": [],
-                "missing_agents": ["nonexistent/agent"]
+                "missing_agents": ["nonexistent/agent"],
             }
             mock_service_class.return_value = service
 
@@ -399,7 +429,7 @@ class TestAgentDetailsViewing:
     @pytest.fixture
     def wizard(self):
         """Create wizard instance."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             return wizard
 
@@ -413,11 +443,11 @@ class TestAgentDetailsViewing:
             "source_identifier": "bobmatnyc/claude-mpm-agents",
             "deployed": True,
             "path": "/fake/path/python-engineer.md",
-            "description": "Expert Python backend developer"
+            "description": "Expert Python backend developer",
         }
 
         # Mock input to avoid blocking
-        with patch('builtins.input', return_value=''):
+        with patch("builtins.input", return_value=""):
             wizard._show_agent_details(agent)
 
         captured = capsys.readouterr()
@@ -440,10 +470,10 @@ class TestAgentDetailsViewing:
             "source_identifier": "test",
             "deployed": False,
             "path": "/fake/path",
-            "description": "A" * 300  # Very long description
+            "description": "A" * 300,  # Very long description
         }
 
-        with patch('builtins.input', return_value=''):
+        with patch("builtins.input", return_value=""):
             wizard._show_agent_details(agent)
 
         captured = capsys.readouterr()
@@ -459,7 +489,7 @@ class TestSourceManagement:
     @pytest.fixture
     def wizard(self):
         """Create wizard with source manager."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             wizard.discovery_enabled = True
             wizard.source_manager = Mock()
@@ -471,7 +501,7 @@ class TestSourceManagement:
                     "type": "git",
                     "priority": 100,
                     "enabled": True,
-                    "url": "https://github.com/bobmatnyc/claude-mpm-agents.git"
+                    "url": "https://github.com/bobmatnyc/claude-mpm-agents.git",
                 }
             ]
 
@@ -493,7 +523,7 @@ class TestErrorHandling:
     @pytest.fixture
     def wizard(self):
         """Create wizard instance."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             return wizard
 
@@ -524,7 +554,9 @@ class TestErrorHandling:
 
         # Should have default values
         assert len(agents) > 0
-        incomplete_agent = next((a for a in agents if a["agent_id"] == "test/incomplete"), None)
+        incomplete_agent = next(
+            (a for a in agents if a["agent_id"] == "test/incomplete"), None
+        )
         assert incomplete_agent is not None
         assert incomplete_agent["name"] == "test/incomplete"
         assert incomplete_agent["description"] == ""
@@ -547,7 +579,7 @@ class TestIntegrationWorkflow:
     @pytest.fixture
     def wizard(self):
         """Create fully configured wizard."""
-        with patch('claude_mpm.services.agents.git_source_manager.GitSourceManager'):
+        with patch("claude_mpm.services.agents.git_source_manager.GitSourceManager"):
             wizard = AgentWizard()
             wizard.discovery_enabled = True
             wizard.source_manager = Mock()
@@ -562,11 +594,11 @@ class TestIntegrationWorkflow:
                 "metadata": {
                     "name": "Test Agent 1",
                     "description": "Test description",
-                    "category": "test"
+                    "category": "test",
                 },
                 "source": "test-source",
                 "category": "test",
-                "path": "/fake/path"
+                "path": "/fake/path",
             }
         ]
 
@@ -580,7 +612,7 @@ class TestIntegrationWorkflow:
 
         # View details of first agent
         agent = agents[0]
-        with patch('builtins.input', return_value=''):
+        with patch("builtins.input", return_value=""):
             wizard._show_agent_details(agent)
 
         captured = capsys.readouterr()

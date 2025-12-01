@@ -150,14 +150,7 @@ class AgentsCommand(AgentCommand):
                 "deps-install": self._install_agent_dependencies,
                 "deps-list": self._list_agent_dependencies,
                 "deps-fix": self._fix_agent_dependencies,
-                "cleanup": lambda a: (
-                    lambda exit_code: CommandResult(
-                        success=exit_code == 0,
-                        message="Agent cleanup complete"
-                        if exit_code == 0
-                        else "Agent cleanup failed",
-                    )
-                )(handle_agents_cleanup(a)),
+                "cleanup": lambda a: self._handle_cleanup_command(a),
                 "cleanup-orphaned": self._cleanup_orphaned_agents,
                 # Local agent management commands
                 "create": self._create_local_agent,
@@ -1238,6 +1231,16 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error fixing dependencies: {e}", exc_info=True)
             return CommandResult.error_result(f"Error fixing dependencies: {e}")
+
+    def _handle_cleanup_command(self, args) -> CommandResult:
+        """Handle cleanup command with proper result wrapping."""
+        exit_code = handle_agents_cleanup(args)
+        return CommandResult(
+            success=exit_code == 0,
+            message="Agent cleanup complete"
+            if exit_code == 0
+            else "Agent cleanup failed",
+        )
 
     def _cleanup_orphaned_agents(self, args) -> CommandResult:
         """Clean up orphaned agents that don't have templates."""

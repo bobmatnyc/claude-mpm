@@ -9,6 +9,7 @@ PM runtime execution.
 import shutil
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Try to use importlib.resources for packaged installations
 try:
@@ -47,7 +48,7 @@ def get_templates_source_dir():
     return None
 
 
-def deploy_templates(target_dir: Path = None, verbose: bool = True) -> bool:
+def deploy_templates(target_dir: Optional[Path] = None, verbose: bool = True) -> bool:
     """Deploy template files to target directory.
 
     Args:

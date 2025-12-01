@@ -163,7 +163,7 @@ class TestAutoDeployIndexParserParse:
         assert "react" in framework_mappings or "react-projects" in framework_mappings
 
         # Get the actual key used
-        react_key = next(k for k in framework_mappings.keys() if "react" in k.lower())
+        react_key = next(k for k in framework_mappings if "react" in k.lower())
         react_agents = framework_mappings[react_key]
 
         assert isinstance(react_agents, list)
@@ -178,7 +178,7 @@ class TestAutoDeployIndexParserParse:
         assert len(platform_mappings) > 0
 
         # Check for common platforms
-        platform_keys = [k.lower() for k in platform_mappings.keys()]
+        platform_keys = [k.lower() for k in platform_mappings]
         assert any("vercel" in k for k in platform_keys), "Vercel platform not found"
 
     def test_parse_with_nonexistent_file(self):
