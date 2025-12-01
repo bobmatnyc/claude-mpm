@@ -240,6 +240,28 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         help="Maximum retry attempts per package (default: 3)",
     )
 
+    # Cleanup: sync, install, and remove old underscore-named agents
+    cleanup_parser = agents_subparsers.add_parser(
+        "cleanup",
+        help="Sync agents, install with new naming, and remove old underscore-named duplicates",
+    )
+    cleanup_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without actually doing it",
+    )
+    cleanup_parser.add_argument(
+        "--target",
+        type=Path,
+        help="Target directory for agent deployment (default: project .claude-mpm/agents/)",
+    )
+    cleanup_parser.add_argument(
+        "--global",
+        dest="global_deployment",
+        action="store_true",
+        help="Deploy to global ~/.claude/agents/ instead of project directory",
+    )
+
     # Cleanup orphaned agents
     cleanup_orphaned_parser = agents_subparsers.add_parser(
         "cleanup-orphaned", help="Clean up orphaned agents that don't have templates"

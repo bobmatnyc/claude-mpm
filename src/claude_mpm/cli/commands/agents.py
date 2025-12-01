@@ -26,6 +26,7 @@ from ..shared import (
     CommandResult,
 )
 from ..utils import get_agent_versions_display
+from .agents_cleanup import handle_agents_cleanup
 
 
 def _is_structured_output(args) -> bool:
@@ -149,6 +150,12 @@ class AgentsCommand(AgentCommand):
                 "deps-install": self._install_agent_dependencies,
                 "deps-list": self._list_agent_dependencies,
                 "deps-fix": self._fix_agent_dependencies,
+                "cleanup": lambda a: (
+                    lambda exit_code: CommandResult(
+                        success=exit_code == 0,
+                        message="Agent cleanup complete" if exit_code == 0 else "Agent cleanup failed",
+                    )
+                )(handle_agents_cleanup(a)),
                 "cleanup-orphaned": self._cleanup_orphaned_agents,
                 # Local agent management commands
                 "create": self._create_local_agent,
