@@ -249,14 +249,23 @@ def sync_remote_agents_on_startup():
     DESIGN DECISION: Non-blocking synchronization that doesn't prevent
     startup if network is unavailable. Failures are logged but don't
     block startup to ensure claude-mpm remains functional.
+
+    Workflow:
+    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
+    2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
+    3. Log deployment results
     """
     try:
+        from ..services.agents.deployment.agent_deployment import (
+            AgentDeploymentService,
+        )
         from ..services.agents.startup_sync import sync_agents_on_startup
+        from ..utils.progress import ProgressBar
 
-        # Run sync and log results
+        # Phase 1: Sync files from Git sources
         result = sync_agents_on_startup()
 
-        # Only log if sync was actually enabled and ran
+        # Only proceed with deployment if sync was enabled and ran
         if result.get("enabled") and result.get("sources_synced", 0) > 0:
             from ..core.logger import get_logger
 
@@ -275,6 +284,72 @@ def sync_remote_agents_on_startup():
             errors = result.get("errors", [])
             if errors:
                 logger.warning(f"Agent sync completed with {len(errors)} errors")
+
+            # Phase 2: Deploy agents from cache to ~/.claude/agents/
+            # This mirrors the skills deployment pattern (lines 371-407)
+            try:
+                # Initialize deployment service
+                deployment_service = AgentDeploymentService()
+
+                # Count agents in cache to show accurate progress
+                from pathlib import Path
+
+                cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+                agent_count = 0
+
+                if cache_dir.exists():
+                    # Count JSON files in cache (agent templates)
+                    agent_count = len(list(cache_dir.rglob("*.json")))
+
+                if agent_count > 0:
+                    # Create progress bar for deployment phase
+                    deploy_progress = ProgressBar(
+                        total=agent_count,
+                        prefix="Deploying agents",
+                        show_percentage=True,
+                        show_counter=True,
+                    )
+
+                    # Deploy agents with progress callback
+                    deploy_target = Path.home() / ".claude" / "agents"
+                    deployment_result = deployment_service.deploy_agents(
+                        target_dir=deploy_target,
+                        force_rebuild=False,  # Only deploy if versions differ
+                        deployment_mode="update",  # Version-aware updates
+                    )
+
+                    # Update progress bar (single increment since deploy_agents is batch)
+                    deploy_progress.update(agent_count)
+
+                    # Finish deployment progress bar
+                    deployed = len(deployment_result.get("deployed", []))
+                    updated = len(deployment_result.get("updated", []))
+                    skipped = len(deployment_result.get("skipped", []))
+                    total_available = deployed + updated + skipped
+
+                    # Show total available agents (deployed + updated + already existing)
+                    if deployed > 0 or updated > 0:
+                        deploy_progress.finish(
+                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_available} total)"
+                        )
+                    else:
+                        deploy_progress.finish(
+                            f"Complete: {total_available} agents ready (all up-to-date)"
+                        )
+
+                    # Log deployment errors if any
+                    deploy_errors = deployment_result.get("errors", [])
+                    if deploy_errors:
+                        logger.warning(
+                            f"Agent deployment completed with {len(deploy_errors)} errors: {deploy_errors}"
+                        )
+
+            except Exception as e:
+                # Deployment failure shouldn't block startup
+                from ..core.logger import get_logger
+
+                logger = get_logger("cli")
+                logger.warning(f"Failed to deploy agents from cache: {e}")
 
     except Exception as e:
         # Non-critical - log but don't fail startup

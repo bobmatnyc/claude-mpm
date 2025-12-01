@@ -29,12 +29,7 @@ def migrator(tmp_path):
 @pytest.fixture
 def mock_agents():
     """Return list of mock agent filenames."""
-    return [
-        "engineer_agent.md",
-        "qa_agent.md",
-        "research_agent.md",
-        "pm_agent.md"
-    ]
+    return ["engineer_agent.md", "qa_agent.md", "research_agent.md", "pm_agent.md"]
 
 
 class TestAgentMigrator:
@@ -74,11 +69,7 @@ class TestAgentMigrator:
 
     def test_create_archive_readme(self, migrator):
         """Test README generation."""
-        agents = [
-            Path("agent1.md"),
-            Path("agent2.md"),
-            Path("agent3.md")
-        ]
+        agents = [Path("agent1.md"), Path("agent2.md"), Path("agent3.md")]
 
         readme = migrator.create_archive_readme(agents)
 
@@ -106,7 +97,7 @@ class TestAgentMigrator:
         assert migrator.archive_path.exists()
 
         # Verify archive contents
-        with zipfile.ZipFile(migrator.archive_path, 'r') as zf:
+        with zipfile.ZipFile(migrator.archive_path, "r") as zf:
             namelist = zf.namelist()
 
             # Check README
@@ -150,14 +141,14 @@ class TestAgentMigrator:
     def test_verify_archive_missing_files(self, migrator):
         """Test archive verification with missing files."""
         # Create incomplete archive
-        with zipfile.ZipFile(migrator.archive_path, 'w') as zf:
+        with zipfile.ZipFile(migrator.archive_path, "w") as zf:
             zf.writestr("README.txt", "test")
             zf.writestr("agents/agent1.md", "content")
 
         # Try to verify with more agents
         agents = [
             Path("agent1.md"),
-            Path("agent2.md")  # This one is missing
+            Path("agent2.md"),  # This one is missing
         ]
 
         assert not migrator.verify_archive(agents)
@@ -196,13 +187,12 @@ class TestAgentMigrator:
         for agent in mock_agents:
             assert (migrator.agents_dir / agent).exists()
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_deploy_git_agents_success(self, mock_run, migrator):
         """Test successful Git agent deployment."""
         # Mock successful deployment
         mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="Deployed 47 agents successfully"
+            returncode=0, stdout="Deployed 47 agents successfully"
         )
 
         success, count = migrator.deploy_git_agents()
@@ -215,13 +205,12 @@ class TestAgentMigrator:
         call_args = mock_run.call_args[0][0]
         assert call_args == ["claude-mpm", "agent-source", "sync"]
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_deploy_git_agents_failure(self, mock_run, migrator):
         """Test Git agent deployment failure."""
         # Mock failed deployment
         mock_run.return_value = MagicMock(
-            returncode=1,
-            stderr="Deployment failed: network error"
+            returncode=1, stderr="Deployment failed: network error"
         )
 
         success, count = migrator.deploy_git_agents()
@@ -229,7 +218,7 @@ class TestAgentMigrator:
         assert not success
         assert count == 0
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_deploy_git_agents_dry_run(self, mock_run, migrator):
         """Test dry-run doesn't deploy agents."""
         migrator.dry_run = True
@@ -248,34 +237,31 @@ class TestAgentMigrator:
 
         assert migrator.confirm_migration([])
 
-    @patch('builtins.input', return_value='y')
+    @patch("builtins.input", return_value="y")
     def test_confirm_migration_yes(self, mock_input, migrator):
         """Test user confirms migration."""
         migrator.force = False
 
         assert migrator.confirm_migration([Path("agent1.md")])
 
-    @patch('builtins.input', return_value='n')
+    @patch("builtins.input", return_value="n")
     def test_confirm_migration_no(self, mock_input, migrator):
         """Test user rejects migration."""
         migrator.force = False
 
         assert not migrator.confirm_migration([Path("agent1.md")])
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_run_no_agents(self, mock_run, migrator):
         """Test migration with no old agents."""
         # Mock Git sync
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="Synced 47 agents"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="Synced 47 agents")
 
         exit_code = migrator.run()
 
         assert exit_code == 0
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_run_with_agents_success(self, mock_run, migrator, mock_agents):
         """Test successful migration."""
         # Create agents
@@ -283,10 +269,7 @@ class TestAgentMigrator:
             (migrator.agents_dir / agent).write_text(f"Content of {agent}")
 
         # Mock Git sync
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="Deployed 47 agents"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="Deployed 47 agents")
 
         exit_code = migrator.run()
 
@@ -308,7 +291,7 @@ class TestAgentMigrator:
             (migrator.agents_dir / agent).write_text(f"Content of {agent}")
 
         # Mock user input
-        with patch('builtins.input', return_value='n'):
+        with patch("builtins.input", return_value="n"):
             exit_code = migrator.run()
 
         assert exit_code == 1
@@ -336,7 +319,7 @@ class TestArchiveIntegrity:
 
         # Extract to temp directory
         with tempfile.TemporaryDirectory() as extract_dir:
-            with zipfile.ZipFile(migrator.archive_path, 'r') as zf:
+            with zipfile.ZipFile(migrator.archive_path, "r") as zf:
                 zf.extractall(extract_dir)
 
             extract_path = Path(extract_dir)
@@ -367,8 +350,7 @@ class TestArchiveIntegrity:
 
         # Calculate compression ratio
         uncompressed_size = sum(
-            (migrator.agents_dir / agent).stat().st_size
-            for agent in mock_agents
+            (migrator.agents_dir / agent).stat().st_size for agent in mock_agents
         )
         compressed_size = migrator.archive_path.stat().st_size
 

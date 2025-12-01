@@ -57,9 +57,7 @@ class AgentMigrator:
             old_agents.extend(self.agents_dir.glob(pattern))
 
         # Remove duplicates and sort
-        old_agents = sorted(set(old_agents))
-
-        return old_agents
+        return sorted(set(old_agents))
 
     def is_git_sourced_agent(self, agent_path: Path) -> bool:
         """Check if agent is Git-sourced (has metadata).
@@ -91,7 +89,7 @@ class AgentMigrator:
         agent_list = "\n".join(f"  - {agent.name}" for agent in old_agents)
 
         return f"""Claude MPM v5.0 Agent Migration Archive
-{'=' * 50}
+{"=" * 50}
 
 This archive contains old JSON-template based agents that were
 replaced with Git-sourced agents during the v5.0 migration.
@@ -150,7 +148,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             return True
 
         try:
-            with zipfile.ZipFile(self.archive_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            with zipfile.ZipFile(self.archive_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 # Add README
                 readme = self.create_archive_readme(old_agents)
                 zf.writestr("README.txt", readme)
@@ -185,7 +183,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             True if archive is valid
         """
         try:
-            with zipfile.ZipFile(self.archive_path, 'r') as zf:
+            with zipfile.ZipFile(self.archive_path, "r") as zf:
                 # Check for README
                 if "README.txt" not in zf.namelist():
                     return False
@@ -247,9 +245,10 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             # Use agent-source sync to deploy from Git
             result = subprocess.run(
                 ["claude-mpm", "agent-source", "sync"],
+                check=False,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=300,  # 5 minute timeout
             )
 
             if result.returncode == 0:
@@ -259,13 +258,13 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
 
                 # Try to extract agent count from output
                 import re
-                match = re.search(r'(\d+)\s+agents?', output, re.IGNORECASE)
+
+                match = re.search(r"(\d+)\s+agents?", output, re.IGNORECASE)
                 agent_count = int(match.group(1)) if match else 0
 
                 return True, agent_count
-            else:
-                print(f"❌ Deployment failed: {result.stderr}")
-                return False, 0
+            print(f"❌ Deployment failed: {result.stderr}")
+            return False, 0
 
         except subprocess.TimeoutExpired:
             print("❌ Deployment timed out after 5 minutes")
@@ -286,14 +285,14 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
         if self.force:
             return True
 
-        print(f"\n⚠️  This will:")
+        print("\n⚠️  This will:")
         print(f"   1. Archive {len(old_agents)} old agents to {self.archive_path}")
         print(f"   2. Remove old agent files from {self.agents_dir}")
-        print(f"   3. Deploy fresh Git-sourced agents")
+        print("   3. Deploy fresh Git-sourced agents")
         print()
 
         response = input("Continue? [y/N]: ").strip().lower()
-        return response in ('y', 'yes')
+        return response in ("y", "yes")
 
     def run(self) -> int:
         """Execute migration.
@@ -319,7 +318,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
             if not self.dry_run:
                 success, count = self.deploy_git_agents()
                 if success:
-                    print(f"✅ Git agents synced successfully")
+                    print("✅ Git agents synced successfully")
                     if count > 0:
                         print(f"   {count} agents available")
                 else:
@@ -360,7 +359,7 @@ See: docs/migration/agent-sources-git-default-v4.5.0.md
 
         success, new_count = self.deploy_git_agents()
         if success:
-            print(f"   ✅ Deployed successfully")
+            print("   ✅ Deployed successfully")
             if new_count > 0:
                 print(f"   ✅ {new_count} agents available")
         else:
@@ -394,12 +393,10 @@ def main():
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Preview migration without making changes"
+        help="Preview migration without making changes",
     )
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompts"
+        "--force", action="store_true", help="Skip confirmation prompts"
     )
 
     args = parser.parse_args()
