@@ -194,17 +194,35 @@ class ProgressBar:
         Rationale: Avoids flooding logs with hundreds of progress lines while
         still providing useful feedback. Rejected logging every update because
         it creates noise in CI/CD logs and log files.
+
+        Respects show_percentage and show_counter settings for consistent output
+        across TTY and non-TTY modes.
         """
         percentage = int((self.current / self.total) * 100) if self.total > 0 else 0
 
         # Log at milestones: 0%, 25%, 50%, 75%, 100%
         milestones = [0, 25, 50, 75, 100]
         if percentage in milestones or self.current == self.total:
-            msg_suffix = f" - {message}" if message else ""
-            print(
-                f"{self.prefix}: {self.current}/{self.total} ({percentage}%){msg_suffix}",
-                flush=True,
-            )
+            # Build output respecting show_percentage and show_counter settings
+            if message and not (self.show_counter or self.show_percentage):
+                # Simple format: "Prefix: message"
+                output = f"{self.prefix}: {message}"
+            else:
+                # Complex format with counter/percentage
+                parts = [self.prefix]
+
+                if self.show_counter:
+                    parts.append(f"{self.current}/{self.total}")
+
+                if self.show_percentage:
+                    parts.append(f"({percentage}%)")
+
+                if message:
+                    parts.append(f"- {message}")
+
+                output = " ".join(parts)
+
+            print(output, flush=True)
 
     def _render_progress_bar(self, message: str) -> None:
         """Render and display progress bar in TTY mode.

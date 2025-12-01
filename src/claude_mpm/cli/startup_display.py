@@ -264,9 +264,9 @@ def display_startup_banner(version: str, logging_level: str) -> None:
         version: Claude MPM version string
         logging_level: Current logging level (OFF/INFO/DEBUG)
     """
-    # Display launch message (subtle, dim styling)
-    print(f"{DIM}Launching Claude Multi-agent Product Manager (claude-mpm)...{RESET}")
-    print()  # Empty line after launch message
+    # Note: Banner is shown BEFORE "Launching Claude..." progress bar (in cli/__init__.py)
+    # This ensures users see welcome message before background services start
+    print()  # Empty line before banner
 
     # Get terminal width and calculate panel sizes
     terminal_width = _get_terminal_width()

@@ -17,6 +17,7 @@ from typing import Optional
 from claude_mpm.config.paths import paths
 
 from ..constants import CLICommands
+from ..utils.progress import ProgressBar
 from .executor import ensure_run_attributes, execute_command
 from .helpers import (
     handle_missing_configuration,
@@ -72,13 +73,30 @@ def main(argv: Optional[list] = None):
     logger = setup_mcp_server_logging(args)
 
     ensure_directories()
-    if not should_skip_background_services(args, processed_argv):
-        run_background_services()
 
-    # Display startup banner (unless help/version/utility commands)
+    # Display startup banner FIRST (unless help/version/utility commands)
     if should_show_banner(args):
         logging_level = getattr(args, "logging", "OFF")
         display_startup_banner(__version__, logging_level)
+
+    if not should_skip_background_services(args, processed_argv):
+        # Show "Launching Claude..." progress bar during background services startup
+        # This matches the visual style of agent/skill sync progress bars
+        launch_progress = ProgressBar(
+            total=100,
+            prefix="Launching Claude",
+            show_percentage=False,
+            show_counter=False,
+            bar_width=25,
+        )
+
+        try:
+            launch_progress.update(10)  # Start progress
+            run_background_services()
+            launch_progress.finish(message="Ready")
+        except Exception:
+            launch_progress.finish(message="Failed")
+            raise
 
     if hasattr(args, "debug") and args.debug:
         logger.debug(f"Command: {args.command}")
