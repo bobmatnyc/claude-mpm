@@ -154,22 +154,13 @@ class TestGitSkillSourceManager:
             manager._build_raw_github_url(source)
 
     @patch(
-        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
-    )
-    @patch(
         "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
     )
-    def test_sync_source(
-        self, mock_discovery_class, mock_sync_class, manager, temp_cache_dir
-    ):
+    def test_sync_source(self, mock_discovery_class, manager, temp_cache_dir):
         """Test syncing a single source."""
-        # Setup mocks
-        mock_sync_instance = MagicMock()
-        mock_sync_instance.sync_agents.return_value = {
-            "total_downloaded": 5,
-            "cache_hits": 2,
-        }
-        mock_sync_class.return_value = mock_sync_instance
+        # Replace _recursive_sync_repository with a mock
+        mock_recursive_sync = MagicMock(return_value=(5, 2))
+        manager._recursive_sync_repository = mock_recursive_sync
 
         mock_discovery_instance = MagicMock()
         mock_discovery_instance.discover_skills.return_value = [
@@ -188,13 +179,8 @@ class TestGitSkillSourceManager:
         assert result["skills_discovered"] == 2
         assert "timestamp" in result
 
-        # Verify sync service was called with skill progress parameters
-        mock_sync_instance.sync_agents.assert_called_once_with(
-            force_refresh=False,
-            show_progress=True,
-            progress_prefix="Syncing skills",
-            progress_suffix="skills",
-        )
+        # Verify recursive sync was called
+        mock_recursive_sync.assert_called_once()
 
     def test_sync_source_nonexistent_raises_error(self, manager):
         """Test syncing non-existent source raises error."""
@@ -220,15 +206,12 @@ class TestGitSkillSourceManager:
         assert result["synced"] is False
         assert "disabled" in result["error"].lower()
 
-    @patch(
-        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
-    )
-    def test_sync_source_sync_failure(self, mock_sync_class, manager):
+    def test_sync_source_sync_failure(self, manager):
         """Test sync_source handles sync failures gracefully."""
-        # Setup mock to raise exception
-        mock_sync_instance = MagicMock()
-        mock_sync_instance.sync_agents.side_effect = Exception("Sync failed")
-        mock_sync_class.return_value = mock_sync_instance
+        # Replace _recursive_sync_repository with a mock that raises exception
+        manager._recursive_sync_repository = MagicMock(
+            side_effect=Exception("Sync failed")
+        )
 
         result = manager.sync_source("system")
 
@@ -237,20 +220,12 @@ class TestGitSkillSourceManager:
         assert "timestamp" in result
 
     @patch(
-        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
-    )
-    @patch(
         "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
     )
-    def test_sync_all_sources(self, mock_discovery_class, mock_sync_class, manager):
+    def test_sync_all_sources(self, mock_discovery_class, manager):
         """Test syncing all enabled sources."""
-        # Setup mocks
-        mock_sync_instance = MagicMock()
-        mock_sync_instance.sync_agents.return_value = {
-            "total_downloaded": 3,
-            "cache_hits": 1,
-        }
-        mock_sync_class.return_value = mock_sync_instance
+        # Replace _recursive_sync_repository with a mock
+        manager._recursive_sync_repository = MagicMock(return_value=(3, 1))
 
         mock_discovery_instance = MagicMock()
         mock_discovery_instance.discover_skills.return_value = [{"name": "skill"}]
@@ -266,23 +241,19 @@ class TestGitSkillSourceManager:
         assert "system" in results["sources"]
         assert "custom" in results["sources"]
 
-    @patch(
-        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
-    )
-    def test_sync_all_sources_partial_failure(self, mock_sync_class, manager):
+    def test_sync_all_sources_partial_failure(self, manager):
         """Test sync_all_sources handles partial failures."""
-        # Setup mock to fail for one source
+        # Setup mock to fail for one source (second call)
         call_count = [0]
 
         def side_effect(*args, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
-                return {"total_downloaded": 1, "cache_hits": 0}
-            raise Exception("Sync failed")
+                return (1, 0)  # First source succeeds
+            raise Exception("Sync failed")  # Second source fails
 
-        mock_sync_instance = MagicMock()
-        mock_sync_instance.sync_agents.side_effect = side_effect
-        mock_sync_class.return_value = mock_sync_instance
+        # Replace _recursive_sync_repository with a mock
+        manager._recursive_sync_repository = MagicMock(side_effect=side_effect)
 
         # Patch discovery service to return empty list
         with patch(
@@ -471,21 +442,13 @@ Content
         assert "enabled=2" in repr_str
 
     @patch(
-        "src.claude_mpm.services.skills.git_skill_source_manager.GitSourceSyncService"
-    )
-    @patch(
         "src.claude_mpm.services.skills.git_skill_source_manager.SkillDiscoveryService"
     )
-    def test_sync_source_with_force_flag(
-        self, mock_discovery_class, mock_sync_class, manager
-    ):
+    def test_sync_source_with_force_flag(self, mock_discovery_class, manager):
         """Test sync_source passes force flag to sync service."""
-        mock_sync_instance = MagicMock()
-        mock_sync_instance.sync_agents.return_value = {
-            "total_downloaded": 1,
-            "cache_hits": 0,
-        }
-        mock_sync_class.return_value = mock_sync_instance
+        # Replace _recursive_sync_repository with a mock
+        mock_recursive_sync = MagicMock(return_value=(1, 0))
+        manager._recursive_sync_repository = mock_recursive_sync
 
         mock_discovery_instance = MagicMock()
         mock_discovery_instance.discover_skills.return_value = []
@@ -493,12 +456,15 @@ Content
 
         manager.sync_source("system", force=True)
 
-        mock_sync_instance.sync_agents.assert_called_once_with(
-            force_refresh=True,
-            show_progress=True,
-            progress_prefix="Syncing skills",
-            progress_suffix="skills",
+        # Verify recursive sync was called with force=True
+        assert mock_recursive_sync.called
+        call_args = mock_recursive_sync.call_args
+        # force parameter should be True (check both kwargs and positional args)
+        force_passed = (
+            call_args[1].get("force", False) is True  # Check kwargs
+            or (len(call_args[0]) > 2 and call_args[0][2] is True)  # Check 3rd positional arg
         )
+        assert force_passed, f"Expected force=True, got call_args={call_args}"
 
     def test_sync_all_sources_no_enabled_sources(
         self, temp_cache_dir, temp_config_file
