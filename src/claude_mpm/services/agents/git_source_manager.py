@@ -346,6 +346,191 @@ class GitSourceManager:
 
         return None
 
+    def list_cached_agents_with_filters(
+        self,
+        repo_identifier: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """List cached agents with optional filters.
+
+        This method extends list_cached_agents() by adding semantic filtering
+        based on AUTO-DEPLOY-INDEX.md categories. Filters are applied using
+        the AutoDeployIndexParser to match agents by category, language,
+        framework, platform, or specialization.
+
+        Design Decision: Filter at application layer, not database layer
+
+        Rationale: Agent discovery is file-based (no database), so filtering
+        happens in-memory after discovery. For the expected dataset size
+        (100-1000 agents), this performs well (~10-50ms).
+
+        Trade-offs:
+        - Simplicity: No query optimization needed, straightforward logic
+        - Performance: Fast enough for CLI use case (< 100ms)
+        - Scalability: May need optimization for 10K+ agents
+
+        Args:
+            repo_identifier: Filter by specific repository
+            filters: Dict with optional keys:
+                - category: str (e.g., "engineer/backend", "qa")
+                - language: str (e.g., "python", "javascript")
+                - framework: str (e.g., "react", "nextjs")
+                - platform: str (e.g., "vercel", "gcp")
+                - specialization: str (e.g., "data", "security")
+
+        Returns:
+            List of agent definitions with metadata:
+            [
+                {
+                    "agent_id": "engineer/backend/python-engineer",
+                    "name": "Python Engineer",
+                    "version": "1.2.0",
+                    "description": "...",
+                    "source": "bobmatnyc/claude-mpm-agents",
+                    "priority": 100,
+                    "category": "engineer/backend",
+                    "metadata": {...}
+                }
+            ]
+
+        Example:
+            >>> # Filter by category
+            >>> agents = manager.list_cached_agents_with_filters(
+            ...     filters={"category": "engineer/backend"}
+            ... )
+            >>> for agent in agents:
+            ...     print(f"{agent['agent_id']} from {agent['source']}")
+
+            >>> # Filter by language
+            >>> agents = manager.list_cached_agents_with_filters(
+            ...     filters={"language": "python"}
+            ... )
+
+            >>> # Multiple filters
+            >>> agents = manager.list_cached_agents_with_filters(
+            ...     filters={"category": "engineer/frontend", "framework": "react"}
+            ... )
+        """
+        # Get all cached agents
+        all_agents = self.list_cached_agents(repo_identifier)
+
+        # If no filters, return all agents
+        if not filters:
+            return all_agents
+
+        # Load AUTO-DEPLOY-INDEX.md parser
+        from .auto_deploy_index_parser import AutoDeployIndexParser
+
+        # Find AUTO-DEPLOY-INDEX.md in bobmatnyc/claude-mpm-agents cache
+        index_path = (
+            self.cache_root / "bobmatnyc" / "claude-mpm-agents" / "AUTO-DEPLOY-INDEX.md"
+        )
+
+        if not index_path.exists():
+            logger.warning(f"AUTO-DEPLOY-INDEX.md not found at: {index_path}")
+            logger.warning("Filtering by category/language/framework unavailable")
+            # Return all agents if index not found
+            return all_agents
+
+        parser = AutoDeployIndexParser(index_path)
+
+        # Build set of matching agent IDs based on filters
+        matching_agent_ids = set()
+
+        # Filter by category
+        if "category" in filters:
+            category = filters["category"]
+            category_agents = parser.get_agents_by_category(category)
+            matching_agent_ids.update(category_agents)
+            logger.debug(
+                f"Category '{category}': {len(category_agents)} matching agents"
+            )
+
+        # Filter by language
+        if "language" in filters:
+            language = filters["language"]
+            lang_agents = parser.get_agents_by_language(language)
+            lang_agent_ids = lang_agents.get("core", []) + lang_agents.get(
+                "optional", []
+            )
+            if matching_agent_ids:
+                # Intersection with previous filters
+                matching_agent_ids &= set(lang_agent_ids)
+            else:
+                matching_agent_ids.update(lang_agent_ids)
+            logger.debug(
+                f"Language '{language}': {len(lang_agent_ids)} matching agents"
+            )
+
+        # Filter by framework
+        if "framework" in filters:
+            framework = filters["framework"]
+            framework_agents = parser.get_agents_by_framework(framework)
+            if matching_agent_ids:
+                # Intersection with previous filters
+                matching_agent_ids &= set(framework_agents)
+            else:
+                matching_agent_ids.update(framework_agents)
+            logger.debug(
+                f"Framework '{framework}': {len(framework_agents)} matching agents"
+            )
+
+        # Filter by platform
+        if "platform" in filters:
+            platform = filters["platform"]
+            platform_agents = parser.get_agents_by_platform(platform)
+            if matching_agent_ids:
+                # Intersection with previous filters
+                matching_agent_ids &= set(platform_agents)
+            else:
+                matching_agent_ids.update(platform_agents)
+            logger.debug(
+                f"Platform '{platform}': {len(platform_agents)} matching agents"
+            )
+
+        # Filter by specialization
+        if "specialization" in filters:
+            specialization = filters["specialization"]
+            spec_agents = parser.get_agents_by_specialization(specialization)
+            if matching_agent_ids:
+                # Intersection with previous filters
+                matching_agent_ids &= set(spec_agents)
+            else:
+                matching_agent_ids.update(spec_agents)
+            logger.debug(
+                f"Specialization '{specialization}': {len(spec_agents)} matching agents"
+            )
+
+        # Filter all_agents to only include matching IDs
+        filtered_agents = []
+
+        for agent in all_agents:
+            # Extract agent_id from metadata or infer from path
+            agent_id = agent.get("agent_id")
+
+            if not agent_id:
+                # Try to infer from metadata.name or source_file
+                name = agent.get("metadata", {}).get("name", "")
+                if name:
+                    agent_id = name.lower().replace(" ", "-")
+
+            # Check if agent matches filter
+            if agent_id in matching_agent_ids:
+                # Add source attribution
+                agent["source"] = agent.get("repository", "unknown")
+
+                # Add category if not present
+                if "category" not in agent and "/" in agent_id:
+                    agent["category"] = agent_id.rsplit("/", 1)[0]
+
+                filtered_agents.append(agent)
+
+        logger.info(
+            f"Filtered {len(filtered_agents)} agents from {len(all_agents)} total"
+        )
+
+        return filtered_agents
+
     def __repr__(self) -> str:
         """Return string representation."""
         return f"GitSourceManager(cache_root='{self.cache_root}')"

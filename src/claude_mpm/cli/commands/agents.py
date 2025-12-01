@@ -153,7 +153,9 @@ class AgentsCommand(AgentCommand):
                 "cleanup": lambda a: (
                     lambda exit_code: CommandResult(
                         success=exit_code == 0,
-                        message="Agent cleanup complete" if exit_code == 0 else "Agent cleanup failed",
+                        message="Agent cleanup complete"
+                        if exit_code == 0
+                        else "Agent cleanup failed",
                     )
                 )(handle_agents_cleanup(a)),
                 "cleanup-orphaned": self._cleanup_orphaned_agents,
@@ -173,6 +175,8 @@ class AgentsCommand(AgentCommand):
                 "deploy-auto": self._deploy_auto_configure,
                 # Agent source management (Phase 2: 1M-442)
                 "available": self._list_available_from_sources,
+                # Agent discovery with rich filtering (Phase 1: Discovery & Browsing)
+                "discover": self._discover_agents,
             }
 
             if args.agents_command in command_map:
@@ -509,6 +513,52 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error listing available agents: {e}", exc_info=True)
             return CommandResult.error_result(f"Error listing available agents: {e}")
+
+    def _discover_agents(self, args) -> CommandResult:
+        """Discover agents with rich filtering capabilities.
+
+        This command extends the 'available' command by adding semantic filtering
+        based on AUTO-DEPLOY-INDEX.md categories. Users can filter by category,
+        language, framework, platform, and specialization.
+
+        Design Decision: Delegate to agents_discover.py module
+
+        Rationale: Keep CLI command logic separate from routing logic for better
+        testability and maintainability. The discover_command function handles
+        all the complex filtering and formatting logic.
+
+        Args:
+            args: Command arguments with filter options:
+                - source: Source repository filter
+                - category: Category filter (e.g., 'engineer/backend')
+                - language: Language filter (e.g., 'python')
+                - framework: Framework filter (e.g., 'react')
+                - platform: Platform filter (e.g., 'vercel')
+                - specialization: Specialization filter (e.g., 'data')
+                - format: Output format (table, json, simple)
+                - verbose: Show descriptions and metadata
+
+        Returns:
+            CommandResult with filtered agent list or error
+
+        Example:
+            >>> # Called via: claude-mpm agents discover --category engineer/backend
+            >>> _discover_agents(args)
+            CommandResult(success=True, message="Discovered 8 agents")
+        """
+        try:
+            from .agents_discover import discover_command
+
+            # Call discover_command and convert exit code to CommandResult
+            exit_code = discover_command(args)
+
+            if exit_code == 0:
+                return CommandResult.success_result("Agent discovery complete")
+            return CommandResult.error_result("Agent discovery failed")
+
+        except Exception as e:
+            self.logger.error(f"Error discovering agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error discovering agents: {e}")
 
     def _deploy_agents(self, args, force=False) -> CommandResult:
         """Deploy both system and project agents."""

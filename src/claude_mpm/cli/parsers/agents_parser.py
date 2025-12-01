@@ -337,6 +337,47 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         help="Output format (default: table)",
     )
 
+    # Discover agents with rich filtering (Phase 1: Discovery & Browsing)
+    discover_parser = agents_subparsers.add_parser(
+        "discover",
+        help="Discover available agents from configured sources with rich filtering",
+    )
+    discover_parser.add_argument(
+        "--source",
+        help="Filter by specific source ID (e.g., 'owner/repo')",
+    )
+    discover_parser.add_argument(
+        "--category",
+        help="Filter by category (e.g., 'engineer/backend', 'qa', 'ops/platform')",
+    )
+    discover_parser.add_argument(
+        "--language",
+        help="Filter by programming language (e.g., 'python', 'javascript', 'rust')",
+    )
+    discover_parser.add_argument(
+        "--framework",
+        help="Filter by framework (e.g., 'react', 'nextjs', 'django')",
+    )
+    discover_parser.add_argument(
+        "--platform",
+        help="Filter by platform (e.g., 'vercel', 'gcp', 'docker')",
+    )
+    discover_parser.add_argument(
+        "--specialization",
+        help="Filter by specialization (e.g., 'data', 'security', 'mobile')",
+    )
+    discover_parser.add_argument(
+        "--format",
+        choices=["table", "json", "simple"],
+        default="table",
+        help="Output format (default: table)",
+    )
+    discover_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show descriptions and metadata for each agent",
+    )
+
     # Auto-configuration commands (TSK-0054 Phase 5)
     from .auto_configure_parser import (
         add_agents_detect_subparser,

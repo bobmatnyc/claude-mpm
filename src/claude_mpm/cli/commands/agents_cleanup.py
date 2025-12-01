@@ -15,10 +15,9 @@ should be removed (e.g., python_engineer.md → python-engineer.md).
 
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from ...config.agent_sources import AgentSourceConfiguration
-from ...services.agents.git_source_manager import GitSourceManager
 from ...services.agents.sources.git_source_sync_service import GitSourceSyncService
 
 logger = logging.getLogger(__name__)
@@ -98,8 +97,8 @@ def handle_agents_cleanup(args) -> int:
         else:
             target_dir = Path.cwd() / ".claude-mpm" / "agents"
 
-        print(f"\n🧹 Agent Cleanup")
-        print(f"{'='*60}")
+        print("\n🧹 Agent Cleanup")
+        print(f"{'=' * 60}")
 
         if dry_run:
             print("🔍 DRY RUN MODE - No changes will be made\n")
@@ -111,7 +110,9 @@ def handle_agents_cleanup(args) -> int:
         repositories = config.get_enabled_repositories()
 
         if not repositories:
-            print("⚠️  No agent sources configured. Run 'claude-mpm agent-source add' first.")
+            print(
+                "⚠️  No agent sources configured. Run 'claude-mpm agent-source add' first."
+            )
             return 1
 
         sync_service = GitSourceSyncService()
@@ -128,7 +129,9 @@ def handle_agents_cleanup(args) -> int:
                 continue
 
         if synced_count == 0:
-            print("⚠️  No agents synced. Check your network connection or agent sources.")
+            print(
+                "⚠️  No agents synced. Check your network connection or agent sources."
+            )
             return 1
 
         print(f"\n✓ Synced {synced_count} agents total")
@@ -145,10 +148,10 @@ def handle_agents_cleanup(args) -> int:
         new_agent_names = [agent.name for agent in cached_agents]
 
         if not dry_run:
-            result = sync_service.deploy_agents_to_project(
-                Path.cwd(), force=True
+            result = sync_service.deploy_agents_to_project(Path.cwd(), force=True)
+            deployed_count = len(result.get("deployed", [])) + len(
+                result.get("updated", [])
             )
-            deployed_count = len(result.get("deployed", [])) + len(result.get("updated", []))
             print(f"✓ Deployed {deployed_count} agents")
         else:
             print(f"  Would deploy {len(cached_agents)} agents:")
@@ -158,7 +161,7 @@ def handle_agents_cleanup(args) -> int:
                 print(f"    ... and {len(cached_agents) - 10} more")
 
         # Phase 3: Remove old underscore-named agents
-        print(f"\n🗑️  Phase 3: Removing old underscore-named agents...")
+        print("\n🗑️  Phase 3: Removing old underscore-named agents...")
 
         # Find deployed agents
         deployed_agents = list(target_dir.glob("*.md"))
@@ -172,7 +175,8 @@ def handle_agents_cleanup(args) -> int:
                 # Find the new equivalent name
                 normalized = _normalize_agent_name(agent.name)
                 dash_equiv = [
-                    name for name in new_agent_names
+                    name
+                    for name in new_agent_names
                     if _normalize_agent_name(name) == normalized
                 ]
                 equiv_str = f" → {dash_equiv[0]}" if dash_equiv else ""
@@ -188,15 +192,15 @@ def handle_agents_cleanup(args) -> int:
                 print(f"  Would remove {len(old_agents)} old agents")
 
         # Summary
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("✅ Cleanup complete!")
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  • Synced: {synced_count} agents")
         print(f"  • Deployed: {len(cached_agents)} agents")
         print(f"  • Removed: {len(old_agents)} old agents")
 
         if dry_run:
-            print(f"\n💡 Run without --dry-run to apply changes")
+            print("\n💡 Run without --dry-run to apply changes")
 
         return 0
 
