@@ -321,7 +321,9 @@ class MPMInitCommand:
             error_msg = (
                 result.stderr
                 if result.stderr
-                else result.stdout if result.stdout else "Unknown error occurred"
+                else result.stdout
+                if result.stdout
+                else "Unknown error occurred"
             )
 
             logger.error(f"claude-mpm run failed: {error_msg}")

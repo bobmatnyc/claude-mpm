@@ -108,9 +108,7 @@ class TestResumeFlagVerification(unittest.TestCase):
                             ):
                                 mock_input.return_value = "test input"
                                 mock_session = MockSession.return_value
-                                mock_session.get_last_interactive_session.return_value = (
-                                    None
-                                )
+                                mock_session.get_last_interactive_session.return_value = None
 
                                 # Create mock runner instance
                                 mock_runner_instance = Mock()

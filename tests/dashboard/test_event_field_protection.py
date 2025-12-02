@@ -178,9 +178,9 @@ class TestEventFieldProtection:
         # Check critical protected fields
         for field in ["type", "subtype", "timestamp", "id"]:
             if field in test_case["expected"]:
-                assert (
-                    result.get(field) == test_case["expected"][field]
-                ), f"Field '{field}' was incorrectly overwritten or transformed"
+                assert result.get(field) == test_case["expected"][field], (
+                    f"Field '{field}' was incorrectly overwritten or transformed"
+                )
 
         # Check that data fields were copied (except protected ones)
         if test_case["input"].get("data"):
@@ -193,9 +193,9 @@ class TestEventFieldProtection:
                     "event",
                     "event_type",
                 ]:
-                    assert (
-                        result.get(key) == value
-                    ), f"Data field '{key}' was not copied to top level"
+                    assert result.get(key) == value, (
+                        f"Data field '{key}' was not copied to top level"
+                    )
 
     def test_hook_pre_tool_not_overwritten(self):
         """Specific test for hook.pre_tool events."""

@@ -35,9 +35,9 @@ def test_agent_deployment():
         service = AgentDeploymentService()
 
         # Verify working directory is set correctly
-        assert (
-            service.working_directory == user_dir
-        ), f"Working directory mismatch: {service.working_directory} != {user_dir}"
+        assert service.working_directory == user_dir, (
+            f"Working directory mismatch: {service.working_directory} != {user_dir}"
+        )
         print("✓ AgentDeploymentService correctly uses CLAUDE_MPM_USER_PWD")
 
         # Test deploy_agents method
@@ -46,26 +46,26 @@ def test_agent_deployment():
 
         # Verify target directory is in user directory
         expected_dir = user_dir / ".claude" / "agents"
-        assert (
-            target_dir == expected_dir
-        ), f"Deploy target mismatch: {target_dir} != {expected_dir}"
+        assert target_dir == expected_dir, (
+            f"Deploy target mismatch: {target_dir} != {expected_dir}"
+        )
         print(f"✓ Agents deployed to correct directory: {target_dir}")
 
         # Test verify_deployment method
         verification = service.verify_deployment()
         config_dir = Path(verification["config_dir"])
         expected_config = user_dir / ".claude"
-        assert (
-            config_dir == expected_config
-        ), f"Config dir mismatch: {config_dir} != {expected_config}"
+        assert config_dir == expected_config, (
+            f"Config dir mismatch: {config_dir} != {expected_config}"
+        )
         print(f"✓ Verification uses correct config directory: {config_dir}")
 
         # Test set_claude_environment method
         env_vars = service.set_claude_environment()
         claude_config = Path(env_vars.get("CLAUDE_CONFIG_DIR", ""))
-        assert (
-            claude_config == expected_config.absolute()
-        ), f"Environment config mismatch: {claude_config} != {expected_config.absolute()}"
+        assert claude_config == expected_config.absolute(), (
+            f"Environment config mismatch: {claude_config} != {expected_config.absolute()}"
+        )
         print(
             f"✓ Environment variables set correctly: CLAUDE_CONFIG_DIR={claude_config}"
         )
@@ -97,9 +97,9 @@ def test_claude_runner():
         runner = ClaudeRunner(enable_tickets=False, log_level="OFF")
 
         # Verify deployment service has correct working directory
-        assert (
-            runner.deployment_service.working_directory == user_dir
-        ), f"Runner deployment service mismatch: {runner.deployment_service.working_directory} != {user_dir}"
+        assert runner.deployment_service.working_directory == user_dir, (
+            f"Runner deployment service mismatch: {runner.deployment_service.working_directory} != {user_dir}"
+        )
         print("✓ ClaudeRunner's deployment service uses correct directory")
 
         # Test ensure_project_agents method

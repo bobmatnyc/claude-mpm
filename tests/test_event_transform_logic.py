@@ -104,9 +104,9 @@ def test_protected_fields():
 
     result1 = simulate_transform_event(test1)
     assert result1["type"] == "hook", f"Expected type 'hook', got '{result1['type']}'"
-    assert (
-        result1["subtype"] == "pre_tool"
-    ), f"Expected subtype 'pre_tool', got '{result1['subtype']}'"
+    assert result1["subtype"] == "pre_tool", (
+        f"Expected subtype 'pre_tool', got '{result1['subtype']}'"
+    )
     assert result1["tool_name"] == "Edit", "tool_name should be copied to top level"
     print(
         "✓ Test 1 PASSED: Hook event preserves type/subtype despite conflicting data fields"
@@ -120,18 +120,18 @@ def test_protected_fields():
     }
 
     result2 = simulate_transform_event(test2)
-    assert (
-        result2["type"] == "subagent"
-    ), f"Expected type 'subagent', got '{result2['type']}'"
-    assert (
-        result2["subtype"] == "start"
-    ), f"Expected subtype 'start', got '{result2['subtype']}'"
-    assert (
-        result2["agent_type"] == "Engineer"
-    ), "agent_type should be copied to top level"
-    assert (
-        result2["originalEventName"] == "SubagentStart"
-    ), "originalEventName should be preserved"
+    assert result2["type"] == "subagent", (
+        f"Expected type 'subagent', got '{result2['type']}'"
+    )
+    assert result2["subtype"] == "start", (
+        f"Expected subtype 'start', got '{result2['subtype']}'"
+    )
+    assert result2["agent_type"] == "Engineer", (
+        "agent_type should be copied to top level"
+    )
+    assert result2["originalEventName"] == "SubagentStart", (
+        "originalEventName should be preserved"
+    )
     assert "event" not in result2, "'event' field should be removed"
     print("✓ Test 2 PASSED: Legacy event format correctly transformed")
 
@@ -144,12 +144,12 @@ def test_protected_fields():
     }
 
     result3 = simulate_transform_event(test3)
-    assert (
-        result3["type"] == "session"
-    ), f"Expected type 'session', got '{result3['type']}'"
-    assert (
-        result3["subtype"] == "started"
-    ), f"Expected subtype 'started', got '{result3['subtype']}'"
+    assert result3["type"] == "session", (
+        f"Expected type 'session', got '{result3['type']}'"
+    )
+    assert result3["subtype"] == "started", (
+        f"Expected subtype 'started', got '{result3['subtype']}'"
+    )
     assert result3["session_id"] == "abc123", "session_id should be copied to top level"
     print("✓ Test 3 PASSED: Session event preserves original subtype")
 
@@ -164,12 +164,12 @@ def test_protected_fields():
     }
 
     result4 = simulate_transform_event(test4)
-    assert (
-        result4["timestamp"] == "2024-01-01T10:00:00"
-    ), "Original timestamp should be preserved"
-    assert (
-        result4["test_name"] == "unit_test"
-    ), "test_name should be copied to top level"
+    assert result4["timestamp"] == "2024-01-01T10:00:00", (
+        "Original timestamp should be preserved"
+    )
+    assert result4["test_name"] == "unit_test", (
+        "test_name should be copied to top level"
+    )
     print("✓ Test 4 PASSED: Timestamp field is protected from overwriting")
 
     # Test 5: Dotted type format (session.started)
@@ -180,15 +180,15 @@ def test_protected_fields():
     }
 
     result5 = simulate_transform_event(test5)
-    assert (
-        result5["type"] == "session"
-    ), f"Expected type 'session', got '{result5['type']}'"
-    assert (
-        result5["subtype"] == "started"
-    ), f"Expected subtype 'started', got '{result5['subtype']}'"
-    assert (
-        result5["originalEventName"] == "session.started"
-    ), "originalEventName should preserve dotted format"
+    assert result5["type"] == "session", (
+        f"Expected type 'session', got '{result5['type']}'"
+    )
+    assert result5["subtype"] == "started", (
+        f"Expected subtype 'started', got '{result5['subtype']}'"
+    )
+    assert result5["originalEventName"] == "session.started", (
+        "originalEventName should preserve dotted format"
+    )
     print("✓ Test 5 PASSED: Dotted type format correctly split")
 
     print("\n" + "=" * 50)

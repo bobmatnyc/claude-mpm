@@ -141,9 +141,9 @@ class TestMemoryHookService:
 
         # Check each interface method is implemented
         for method_name in interface_methods:
-            assert hasattr(
-                service, method_name
-            ), f"Method {method_name} not implemented"
-            assert callable(
-                getattr(service, method_name)
-            ), f"Method {method_name} is not callable"
+            assert hasattr(service, method_name), (
+                f"Method {method_name} not implemented"
+            )
+            assert callable(getattr(service, method_name)), (
+                f"Method {method_name} is not callable"
+            )

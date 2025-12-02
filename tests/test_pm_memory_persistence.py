@@ -100,9 +100,9 @@ Implementation complete.
     print(f"\nEngineer memory in user dir exists: {user_eng_file.exists()}")
     print(f"Engineer memory in project dir exists: {project_eng_file.exists()}")
 
-    assert (
-        project_eng_file.exists()
-    ), "Engineer memory should be saved to project directory"
+    assert project_eng_file.exists(), (
+        "Engineer memory should be saved to project directory"
+    )
 
     print("✓ Test 2 passed: Other agent memory saved to project directory")
 
@@ -129,9 +129,9 @@ Implementation complete.
     print(f"New PM file exists: {user_pm_file.exists()}")
 
     assert user_pm_file.exists(), "New PM memory file should exist"
-    assert (
-        old_pm_file.exists() or backup_file.exists()
-    ), "Old PM file should be backed up, not deleted"
+    assert old_pm_file.exists() or backup_file.exists(), (
+        "Old PM file should be backed up, not deleted"
+    )
 
     print("✓ Test 3 passed: PM memory migration preserves old files")
 

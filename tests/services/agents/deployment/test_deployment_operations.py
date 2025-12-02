@@ -29,9 +29,9 @@ class TestDeploymentOperations(TestAgentDeploymentService):
             True,
             "version outdated",
         )
-        mock_dependencies["template_builder"].build_agent_markdown.return_value = (
-            "---\nname: agent\n---\nAgent content"
-        )
+        mock_dependencies[
+            "template_builder"
+        ].build_agent_markdown.return_value = "---\nname: agent\n---\nAgent content"
         mock_dependencies["format_converter"].convert_yaml_to_md.return_value = {
             "converted": []
         }
@@ -68,9 +68,9 @@ class TestDeploymentOperations(TestAgentDeploymentService):
             {"agent1": "system"},
             {"removed": []},
         )
-        mock_dependencies["template_builder"].build_agent_markdown.return_value = (
-            "---\nname: agent1\n---\nAgent content"
-        )
+        mock_dependencies[
+            "template_builder"
+        ].build_agent_markdown.return_value = "---\nname: agent1\n---\nAgent content"
 
         with patch.object(service, "_load_deployment_config") as mock_load_config:
             mock_load_config.return_value = (Mock(), [])
@@ -174,7 +174,9 @@ class TestDeploymentOperations(TestAgentDeploymentService):
             "needs update",
         )
         mock_dependencies["version_manager"].parse_version.return_value = (2, 0, 0)
-        mock_dependencies["template_builder"].build_agent_markdown.return_value = (
+        mock_dependencies[
+            "template_builder"
+        ].build_agent_markdown.return_value = (
             "---\nname: test_agent\n---\nAgent content"
         )
 
@@ -205,7 +207,9 @@ class TestDeploymentOperations(TestAgentDeploymentService):
         )
 
         # Setup mocks
-        mock_dependencies["template_builder"].build_agent_markdown.return_value = (
+        mock_dependencies[
+            "template_builder"
+        ].build_agent_markdown.return_value = (
             "---\nname: test_agent\nversion: 2.0.0\n---\nNew content"
         )
 

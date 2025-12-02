@@ -393,7 +393,9 @@ class EventHandlers:
             "status": (
                 "success"
                 if exit_code == 0
-                else "blocked" if exit_code == 2 else "error"
+                else "blocked"
+                if exit_code == 2
+                else "error"
             ),
             "duration_ms": duration,
             "result_summary": result_data,

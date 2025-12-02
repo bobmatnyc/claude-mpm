@@ -314,22 +314,22 @@ class TestAgentStartupDeployment:
                 print_output = "\n".join(print_calls)
 
                 # Verify error header is displayed
-                assert any(
-                    "Agent Deployment Errors" in call for call in print_calls
-                ), "Error header not displayed to user"
+                assert any("Agent Deployment Errors" in call for call in print_calls), (
+                    "Error header not displayed to user"
+                )
 
                 # Verify specific errors are shown
-                assert any(
-                    "agent1.md" in call for call in print_calls
-                ), "First error not displayed to user"
-                assert any(
-                    "agent2.md" in call for call in print_calls
-                ), "Second error not displayed to user"
+                assert any("agent1.md" in call for call in print_calls), (
+                    "First error not displayed to user"
+                )
+                assert any("agent2.md" in call for call in print_calls), (
+                    "Second error not displayed to user"
+                )
 
                 # Verify summary message is shown
-                assert any(
-                    "Failed to deploy" in call for call in print_calls
-                ), "Summary message not displayed to user"
+                assert any("Failed to deploy" in call for call in print_calls), (
+                    "Summary message not displayed to user"
+                )
 
     def test_sync_remote_agents_no_error_display_when_successful(self):
         """Verify no error messages are shown when deployment succeeds."""
@@ -395,9 +395,9 @@ class TestAgentStartupDeployment:
                 assert not any(
                     "Agent Deployment Errors" in call for call in print_calls
                 ), "Error header shown when no errors occurred"
-                assert not any(
-                    "Failed to deploy" in call for call in print_calls
-                ), "Failure message shown when deployment succeeded"
+                assert not any("Failed to deploy" in call for call in print_calls), (
+                    "Failure message shown when deployment succeeded"
+                )
 
 
 if __name__ == "__main__":

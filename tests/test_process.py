@@ -1457,9 +1457,9 @@ class TestProcess(PsutilTestCase):
             for name in exclude:
                 d.pop(name, None)
             return {
-                k.replace("\r", "")
-                .replace("\n", ""): v.replace("\r", "")
-                .replace("\n", "")
+                k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace(
+                    "\n", ""
+                )
                 for k, v in d.items()
             }
 

@@ -124,9 +124,9 @@ class TestAutoDeployIndexParserParse:
         ]
 
         for agent in expected_agents:
-            assert (
-                agent in universal_agents
-            ), f"Expected agent '{agent}' not found in universal agents"
+            assert agent in universal_agents, (
+                f"Expected agent '{agent}' not found in universal agents"
+            )
 
     def test_parse_language_mappings(self, parser):
         """Test parsing language-specific mappings."""
@@ -215,9 +215,9 @@ class TestAutoDeployIndexParserGetters:
         ]
 
         for category in expected_categories:
-            assert any(
-                category in c for c in categories
-            ), f"Expected category '{category}' not found"
+            assert any(category in c for c in categories), (
+                f"Expected category '{category}' not found"
+            )
 
     def test_get_agents_by_category(self, parser):
         """Test filtering agents by category."""
@@ -229,9 +229,9 @@ class TestAutoDeployIndexParserGetters:
 
         # All agents should start with 'engineer/backend/'
         for agent in agents:
-            assert agent.startswith(
-                "engineer/backend/"
-            ), f"Agent '{agent}' doesn't match category"
+            assert agent.startswith("engineer/backend/"), (
+                f"Agent '{agent}' doesn't match category"
+            )
 
     def test_get_agents_by_category_nonexistent(self, parser):
         """Test filtering by nonexistent category returns empty list."""

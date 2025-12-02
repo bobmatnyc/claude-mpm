@@ -212,9 +212,9 @@ class TestTwoPhaseProgressBars:
         sync_remote_skills_on_startup()
 
         # Verify two progress bars were created
-        assert (
-            mock_progress_class.call_count == 2
-        ), "Should create 2 progress bars (sync + deploy)"
+        assert mock_progress_class.call_count == 2, (
+            "Should create 2 progress bars (sync + deploy)"
+        )
 
         # Verify sync progress bar configuration
         sync_call = mock_progress_class.call_args_list[0]

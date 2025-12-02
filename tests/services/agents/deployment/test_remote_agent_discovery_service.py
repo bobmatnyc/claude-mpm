@@ -286,9 +286,9 @@ def test_agent_id_generation(temp_remote_agents_dir):
         result = service._parse_markdown_agent(agent_path)
 
         assert result is not None
-        assert (
-            result["agent_id"] == expected_id
-        ), f"Failed for name: {name}, filename: {filename}"
+        assert result["agent_id"] == expected_id, (
+            f"Failed for name: {name}, filename: {filename}"
+        )
 
         # Clean up for next iteration
         agent_path.unlink()

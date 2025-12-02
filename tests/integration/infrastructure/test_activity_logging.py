@@ -23,25 +23,25 @@ def test_configuration():
     config = Config()
 
     # Check old response logging is disabled
-    assert not config.get(
-        "response_logging.enabled", True
-    ), "Response logging should be disabled"
-    assert not config.get(
-        "response_tracking.enabled", True
-    ), "Response tracking should be disabled"
+    assert not config.get("response_logging.enabled", True), (
+        "Response logging should be disabled"
+    )
+    assert not config.get("response_tracking.enabled", True), (
+        "Response tracking should be disabled"
+    )
     print("✅ Old response logging disabled")
 
     # Check event aggregator is enabled
-    assert config.get(
-        "event_aggregator.enabled", False
-    ), "Event aggregator should be enabled"
+    assert config.get("event_aggregator.enabled", False), (
+        "Event aggregator should be enabled"
+    )
     print("✅ Event aggregator enabled")
 
     # Check activity directory
     activity_dir = config.get("event_aggregator.activity_directory", "")
-    assert (
-        activity_dir == ".claude-mpm/activity"
-    ), f"Activity directory should be .claude-mpm/activity, got {activity_dir}"
+    assert activity_dir == ".claude-mpm/activity", (
+        f"Activity directory should be .claude-mpm/activity, got {activity_dir}"
+    )
     print(f"✅ Activity directory: {activity_dir}")
 
     return True
@@ -57,9 +57,9 @@ def test_aggregator_initialization():
 
     # Check save directory
     expected_dir = Path.cwd() / ".claude-mpm" / "activity"
-    assert (
-        aggregator.save_dir == expected_dir
-    ), f"Save dir should be {expected_dir}, got {aggregator.save_dir}"
+    assert aggregator.save_dir == expected_dir, (
+        f"Save dir should be {expected_dir}, got {aggregator.save_dir}"
+    )
     print(f"✅ Save directory: {aggregator.save_dir}")
 
     # Check directory was created

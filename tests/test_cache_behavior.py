@@ -109,12 +109,12 @@ def test_manual_cache_clearing():
     print(f"   Memories loaded: {'actual_memories' in content}")
 
     # Verify caches are populated
-    assert (
-        loader._deployed_agents_cache is not None
-    ), "Deployed agents cache should be populated"
-    assert (
-        loader._agent_capabilities_cache is not None
-    ), "Capabilities cache should be populated"
+    assert loader._deployed_agents_cache is not None, (
+        "Deployed agents cache should be populated"
+    )
+    assert loader._agent_capabilities_cache is not None, (
+        "Capabilities cache should be populated"
+    )
     print("   ✓ Caches are populated")
 
     # Clear all caches
@@ -122,12 +122,12 @@ def test_manual_cache_clearing():
     loader.clear_all_caches()
 
     # Verify caches are cleared
-    assert (
-        loader._deployed_agents_cache is None
-    ), "Deployed agents cache should be cleared"
-    assert (
-        loader._agent_capabilities_cache is None
-    ), "Capabilities cache should be cleared"
+    assert loader._deployed_agents_cache is None, (
+        "Deployed agents cache should be cleared"
+    )
+    assert loader._agent_capabilities_cache is None, (
+        "Capabilities cache should be cleared"
+    )
     assert loader._memories_cache is None, "Memories cache should be cleared"
     assert len(loader._agent_metadata_cache) == 0, "Metadata cache should be cleared"
     print("   ✓ All caches cleared successfully")
@@ -141,12 +141,12 @@ def test_manual_cache_clearing():
 
     # Clear only agent caches
     loader.clear_agent_caches()
-    assert (
-        loader._deployed_agents_cache is None
-    ), "Deployed agents cache should be cleared"
-    assert (
-        loader._agent_capabilities_cache is None
-    ), "Capabilities cache should be cleared"
+    assert loader._deployed_agents_cache is None, (
+        "Deployed agents cache should be cleared"
+    )
+    assert loader._agent_capabilities_cache is None, (
+        "Capabilities cache should be cleared"
+    )
     print("   ✓ Agent caches cleared selectively")
 
     # Load memory and test memory cache clearing

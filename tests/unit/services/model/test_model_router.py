@@ -637,9 +637,7 @@ class TestProviderStatus:
             router_auto.ollama_provider, "get_metrics", return_value={}
         ), patch.object(
             router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.claude_provider, "get_metrics", return_value={}
-        ):
+        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
             # Act
             status = await router_auto.get_provider_status()
 
@@ -666,9 +664,7 @@ class TestProviderStatus:
             router_auto.ollama_provider, "get_metrics", return_value={}
         ), patch.object(
             router_auto.claude_provider, "is_available", return_value=True
-        ), patch.object(
-            router_auto.claude_provider, "get_metrics", return_value={}
-        ):
+        ), patch.object(router_auto.claude_provider, "get_metrics", return_value={}):
             # Act
             status = await router_auto.get_provider_status()
 

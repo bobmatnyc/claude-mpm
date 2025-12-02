@@ -254,9 +254,7 @@ class TestConcurrentEvents(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             # Configure duplicate detector to allow all events
             mock_dup_instance = MockDup.return_value
             mock_dup_instance.is_duplicate.return_value = False
@@ -395,9 +393,7 @@ class TestErrorRecovery(unittest.TestCase):
                 "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
             ), patch(
                 "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-            ), patch(
-                "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-            ):
+            ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
                 handler = ClaudeHookHandler()
                 self.assertIsNotNone(handler)
 
@@ -419,9 +415,7 @@ class TestPerformanceMetrics(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             handler = ClaudeHookHandler()
 
             # Process many events and measure time
@@ -462,9 +456,7 @@ class TestPerformanceMetrics(unittest.TestCase):
             "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
         ), patch(
             "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"
-        ):
+        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
             handler = ClaudeHookHandler()
 
             # Process many events

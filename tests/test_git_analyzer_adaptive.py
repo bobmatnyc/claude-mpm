@@ -67,9 +67,9 @@ class TestAdaptiveContextAnalysis:
         )
 
         # Assertions
-        assert (
-            result["adaptive_mode"] is False
-        ), "Should NOT use adaptive mode for high velocity"
+        assert result["adaptive_mode"] is False, (
+            "Should NOT use adaptive mode for high velocity"
+        )
         assert (
             "actual_time_span" not in result or result.get("actual_time_span") is None
         )
@@ -123,16 +123,16 @@ class TestAdaptiveContextAnalysis:
         )
 
         # Assertions
-        assert (
-            result["adaptive_mode"] is True
-        ), "Should use adaptive mode for low velocity"
-        assert (
-            result.get("actual_time_span") is not None
-        ), "Should have actual time span"
+        assert result["adaptive_mode"] is True, (
+            "Should use adaptive mode for low velocity"
+        )
+        assert result.get("actual_time_span") is not None, (
+            "Should have actual time span"
+        )
         assert result.get("reason") is not None, "Should explain why expanded"
-        assert (
-            "minimum 25 commits" in result["reason"]
-        ), "Reason should mention min commits"
+        assert "minimum 25 commits" in result["reason"], (
+            "Reason should mention min commits"
+        )
         assert result["has_activity"] is True
         assert result["min_commits_target"] == 25
 

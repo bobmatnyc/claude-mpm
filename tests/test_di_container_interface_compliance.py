@@ -46,9 +46,9 @@ class TestDIContainerInterfaceCompliance:
     def test_di_container_implements_interface():
         """Test that DIContainer explicitly implements IServiceContainer."""
         container = DIContainer()
-        assert isinstance(
-            container, IServiceContainer
-        ), "DIContainer must inherit from IServiceContainer"
+        assert isinstance(container, IServiceContainer), (
+            "DIContainer must inherit from IServiceContainer"
+        )
 
     def test_register_method_exists():
         """Test that register method exists with correct signature."""
@@ -69,9 +69,9 @@ class TestDIContainerInterfaceCompliance:
         container = DIContainer()
 
         # Method should exist
-        assert hasattr(
-            container, "register_instance"
-        ), "DIContainer must have register_instance method"
+        assert hasattr(container, "register_instance"), (
+            "DIContainer must have register_instance method"
+        )
 
         # Test instance registration
         instance = TestServiceImpl()
@@ -99,9 +99,9 @@ class TestDIContainerInterfaceCompliance:
         container = DIContainer()
 
         # Method should exist
-        assert hasattr(
-            container, "resolve_all"
-        ), "DIContainer must have resolve_all method"
+        assert hasattr(container, "resolve_all"), (
+            "DIContainer must have resolve_all method"
+        )
 
         # Test with no registrations
         results = container.resolve_all(ITestService)
@@ -120,9 +120,9 @@ class TestDIContainerInterfaceCompliance:
         container = DIContainer()
 
         # Method should exist
-        assert hasattr(
-            container, "is_registered"
-        ), "DIContainer must have is_registered method"
+        assert hasattr(container, "is_registered"), (
+            "DIContainer must have is_registered method"
+        )
 
         # Test before registration
         assert not container.is_registered(ITestService)
@@ -145,9 +145,9 @@ class TestDIContainerInterfaceCompliance:
         ]
 
         for method_name in interface_methods:
-            assert hasattr(
-                container, method_name
-            ), f"DIContainer must have {method_name} method"
+            assert hasattr(container, method_name), (
+                f"DIContainer must have {method_name} method"
+            )
             method = getattr(container, method_name)
             assert callable(method), f"{method_name} must be callable"
 

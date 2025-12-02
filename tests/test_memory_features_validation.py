@@ -199,16 +199,16 @@ class MemorySystemValidator:
                 )
                 if found_in_section:
                     categorization_accuracy += 1
-                    categorization_results[input_category][
-                        "correctly_categorized"
-                    ] = True
-                    categorization_results[input_category][
-                        "found_in_section"
-                    ] = expected_section
+                    categorization_results[input_category]["correctly_categorized"] = (
+                        True
+                    )
+                    categorization_results[input_category]["found_in_section"] = (
+                        expected_section
+                    )
                 else:
-                    categorization_results[input_category][
-                        "correctly_categorized"
-                    ] = False
+                    categorization_results[input_category]["correctly_categorized"] = (
+                        False
+                    )
             else:
                 categorization_results[input_category]["correctly_categorized"] = False
 

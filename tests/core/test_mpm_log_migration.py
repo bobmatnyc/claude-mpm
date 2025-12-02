@@ -339,12 +339,12 @@ class TestMPMLogMigration:
 
             # Verify directory structure exists
             for log_type, expected_path in expected_dirs.items():
-                assert (
-                    expected_path.exists()
-                ), f"Directory {expected_path} should exist for {log_type}"
-                assert (
-                    expected_path.is_dir()
-                ), f"Path {expected_path} should be a directory"
+                assert expected_path.exists(), (
+                    f"Directory {expected_path} should exist for {log_type}"
+                )
+                assert expected_path.is_dir(), (
+                    f"Path {expected_path} should be a directory"
+                )
 
             log_manager.shutdown()
 

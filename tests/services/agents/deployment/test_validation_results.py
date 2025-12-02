@@ -186,9 +186,9 @@ Agent content"""
             "failed_deployments": 2,
         }
 
-        mock_dependencies["metrics_collector"].get_deployment_metrics.return_value = (
-            expected_metrics
-        )
+        mock_dependencies[
+            "metrics_collector"
+        ].get_deployment_metrics.return_value = expected_metrics
 
         result = service.get_deployment_metrics()
 
@@ -202,9 +202,9 @@ Agent content"""
             "agents_deployed": 25,
         }
 
-        mock_dependencies["metrics_collector"].get_deployment_status.return_value = (
-            expected_status
-        )
+        mock_dependencies[
+            "metrics_collector"
+        ].get_deployment_status.return_value = expected_status
 
         result = service.get_deployment_status()
 

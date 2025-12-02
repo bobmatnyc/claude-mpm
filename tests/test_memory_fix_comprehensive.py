@@ -45,9 +45,9 @@ def test_memory_system_comprehensive():
             project_file = (
                 test_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
             )
-            assert (
-                project_file.exists()
-            ), f"{agent_id} memory should be in project directory"
+            assert project_file.exists(), (
+                f"{agent_id} memory should be in project directory"
+            )
             print(f"  ✅ Created in project dir: {project_file.relative_to(test_dir)}")
 
         print("\n" + "=" * 70)

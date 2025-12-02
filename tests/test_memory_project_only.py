@@ -50,9 +50,9 @@ def test_memory_project_only():
             print(
                 f"   PM memory contains test pattern: {'Test PM learning pattern' in content}"
             )
-            assert (
-                "Test PM learning pattern" in content
-            ), "PM memory should contain test pattern"
+            assert "Test PM learning pattern" in content, (
+                "PM memory should contain test pattern"
+            )
 
         # Test other agents
         print("\n3. Testing Engineer agent memory...")
@@ -64,9 +64,9 @@ def test_memory_project_only():
         )
         print(f"   Project engineer file exists: {project_eng_file.exists()}")
 
-        assert (
-            project_eng_file.exists()
-        ), "Engineer memory should be in project directory"
+        assert project_eng_file.exists(), (
+            "Engineer memory should be in project directory"
+        )
 
         # Test memory extraction
         print("\n4. Testing memory extraction...")
@@ -89,9 +89,9 @@ def test_memory_project_only():
             print(
                 f"   PM memory contains extracted items: {'Always use project directory' in content}"
             )
-            assert (
-                "Always use project directory" in content
-            ), "Should extract and save to project"
+            assert "Always use project directory" in content, (
+                "Should extract and save to project"
+            )
 
         # Verify no user directory was created
         print("\n5. Verifying no user directory created...")

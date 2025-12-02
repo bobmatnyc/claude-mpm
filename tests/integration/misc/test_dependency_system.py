@@ -98,9 +98,9 @@ def test_version_conflict_resolution():
 
     # Check that highest version is preferred
     assert "7.0" in resolved["pytest"], f"Expected version 7.0 in {resolved['pytest']}"
-    assert (
-        "2.25.0" in resolved["requests"]
-    ), f"Expected version 2.25.0 in {resolved['requests']}"
+    assert "2.25.0" in resolved["requests"], (
+        f"Expected version 2.25.0 in {resolved['requests']}"
+    )
 
     print("✅ Version conflict resolution test passed")
     return True

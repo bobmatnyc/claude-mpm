@@ -53,9 +53,7 @@ class TestDaemonProcessManagement:
             "claude_mpm.scripts.socketio_daemon.LOG_FILE", mock_paths["log_file"]
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running", return_value=False
-        ), patch(
-            "os.fork", return_value=12345
-        ) as mock_fork, patch(
+        ), patch("os.fork", return_value=12345) as mock_fork, patch(
             "claude_mpm.scripts.socketio_daemon.PortManager"
         ) as mock_pm:
             # Setup port manager
@@ -91,9 +89,7 @@ class TestDaemonProcessManagement:
             "claude_mpm.scripts.socketio_daemon.PID_FILE", mock_paths["pid_file"]
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running", return_value=True
-        ), patch(
-            "builtins.print"
-        ) as mock_print:
+        ), patch("builtins.print") as mock_print:
             from claude_mpm.scripts import socketio_daemon
 
             socketio_daemon.start_server()
@@ -116,9 +112,7 @@ class TestDaemonProcessManagement:
         ), patch(
             "claude_mpm.scripts.socketio_daemon.is_running",
             side_effect=[True, False],
-        ), patch(
-            "os.kill"
-        ) as mock_kill:
+        ), patch("os.kill") as mock_kill:
             from claude_mpm.scripts import socketio_daemon
 
             socketio_daemon.stop_server()
@@ -197,9 +191,7 @@ class TestPortManagement:
 
             with patch(
                 "claude_mpm.scripts.socketio_daemon.is_running", return_value=False
-            ), patch(
-                "os.fork", return_value=0
-            ):  # Child process
+            ), patch("os.fork", return_value=0):  # Child process
                 with patch("os.setsid"):
                     with patch("builtins.open", mock_open()):
                         with patch(

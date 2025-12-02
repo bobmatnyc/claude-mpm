@@ -26,9 +26,9 @@ def test_bundled_skills_count():
     for f in sorted(skill_files):
         print(f"  - {f.stem}")
 
-    assert (
-        len(skill_files) == 20
-    ), f"Expected 20 bundled skills, found {len(skill_files)}"
+    assert len(skill_files) == 20, (
+        f"Expected 20 bundled skills, found {len(skill_files)}"
+    )
     print("✅ PASS: Exactly 20 bundled skills found")
     return True
 

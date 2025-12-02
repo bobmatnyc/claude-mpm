@@ -28,9 +28,9 @@ def test_server_initialization():
         print("✓ Server initialized successfully")
 
         # Check that handler attributes will be set after start
-        assert not hasattr(
-            server, "event_registry"
-        ), "Registry should not exist before start"
+        assert not hasattr(server, "event_registry"), (
+            "Registry should not exist before start"
+        )
         print("✓ Registry not initialized before start (expected)")
 
         return True

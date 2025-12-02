@@ -23,17 +23,17 @@ def test_filter_function():
     # Test 1: --resume should pass through
     test_args = ["--resume", "--model", "opus"]
     filtered = filter_claude_mpm_args(test_args)
-    assert (
-        "--resume" in filtered
-    ), f"Expected --resume in filtered args, got: {filtered}"
+    assert "--resume" in filtered, (
+        f"Expected --resume in filtered args, got: {filtered}"
+    )
     print("✓ --resume passes through filter")
 
     # Test 2: --mpm-resume should be filtered out
     test_args = ["--mpm-resume", "last", "--resume"]
     filtered = filter_claude_mpm_args(test_args)
-    assert (
-        "--mpm-resume" not in filtered
-    ), f"--mpm-resume should be filtered, got: {filtered}"
+    assert "--mpm-resume" not in filtered, (
+        f"--mpm-resume should be filtered, got: {filtered}"
+    )
     assert "last" not in filtered, f"'last' value should be filtered, got: {filtered}"
     assert "--resume" in filtered, f"--resume should remain, got: {filtered}"
     print("✓ --mpm-resume is filtered while --resume passes through")
@@ -72,9 +72,9 @@ def test_argument_parsing():
     # Test 3: --resume with --mpm-resume
     args = parser.parse_args(["--resume", "--mpm-resume", "last"])
     assert args.resume, f"resume should be True, got: {args.resume}"
-    assert (
-        args.mpm_resume == "last"
-    ), f"mpm_resume should be 'last', got: {args.mpm_resume}"
+    assert args.mpm_resume == "last", (
+        f"mpm_resume should be 'last', got: {args.mpm_resume}"
+    )
     print("✓ Both --resume and --mpm-resume work together")
 
     print("✅ All argument parsing tests passed!\n")
@@ -101,18 +101,18 @@ def test_command_construction():
     args = Args()
     args.resume = True
     _ensure_run_attributes(args)
-    assert (
-        "--resume" in args.claude_args
-    ), f"Expected --resume in claude_args, got: {args.claude_args}"
+    assert "--resume" in args.claude_args, (
+        f"Expected --resume in claude_args, got: {args.claude_args}"
+    )
     print("✓ --resume added to claude_args when flag is set")
 
     # Test 2: --resume not added when flag is False
     args = Args()
     args.resume = False
     _ensure_run_attributes(args)
-    assert (
-        "--resume" not in args.claude_args
-    ), f"--resume should not be in claude_args, got: {args.claude_args}"
+    assert "--resume" not in args.claude_args, (
+        f"--resume should not be in claude_args, got: {args.claude_args}"
+    )
     print("✓ --resume not added when flag is False")
 
     # Test 3: --resume not duplicated if already in claude_args
@@ -120,9 +120,9 @@ def test_command_construction():
     args.resume = True
     args.claude_args = ["--resume", "--model", "opus"]
     _ensure_run_attributes(args)
-    assert (
-        args.claude_args.count("--resume") == 1
-    ), f"--resume should appear once, got: {args.claude_args}"
+    assert args.claude_args.count("--resume") == 1, (
+        f"--resume should appear once, got: {args.claude_args}"
+    )
     print("✓ --resume not duplicated if already present")
 
     print("✅ All command construction tests passed!\n")

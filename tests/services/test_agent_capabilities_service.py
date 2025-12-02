@@ -199,9 +199,9 @@ This is the agent content.
 
         for agent_id, content, expected_category in test_cases:
             result = self._categorize_agent(agent_id, content)
-            assert (
-                result == expected_category
-            ), f"Failed for {agent_id}: expected {expected_category}, got {result}"
+            assert result == expected_category, (
+                f"Failed for {agent_id}: expected {expected_category}, got {result}"
+            )
 
 
 if __name__ == "__main__":

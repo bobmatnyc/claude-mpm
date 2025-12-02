@@ -421,7 +421,8 @@ class TestIntegrationWithRealTemplates:
 
         # Mock deployed agents for found templates
         loader.deployed_agents = {
-            template.stem: template for template in md_templates[:5]  # Test first 5
+            template.stem: template
+            for template in md_templates[:5]  # Test first 5
         }
 
         # Load dependencies

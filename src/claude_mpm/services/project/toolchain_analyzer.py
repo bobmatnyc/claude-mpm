@@ -318,7 +318,9 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
                     else (
                         3
                         if f.confidence == ConfidenceLevel.MEDIUM
-                        else 2 if f.confidence == ConfidenceLevel.LOW else 1
+                        else 2
+                        if f.confidence == ConfidenceLevel.LOW
+                        else 1
                     )
                 ),
                 f.popularity_score,
