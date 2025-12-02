@@ -1147,6 +1147,7 @@ class ConfigureCommand(BaseCommand):
         for agent_id in to_remove:
             try:
                 from pathlib import Path
+                import json
 
                 # Remove from project, legacy, and user locations
                 project_path = (
@@ -1160,6 +1161,35 @@ class ConfigureCommand(BaseCommand):
                     if path.exists():
                         path.unlink()
                         removed = True
+
+                # Also remove from virtual deployment state
+                deployment_state_paths = [
+                    Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
+                    Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
+                ]
+
+                for state_path in deployment_state_paths:
+                    if state_path.exists():
+                        try:
+                            with state_path.open() as f:
+                                state = json.load(f)
+
+                            # Remove agent from deployment state
+                            agents = state.get("last_check_results", {}).get(
+                                "agents", {}
+                            )
+                            if agent_id in agents:
+                                del agents[agent_id]
+                                removed = True
+
+                                # Save updated state
+                                with state_path.open("w") as f:
+                                    json.dump(state, f, indent=2)
+                        except (json.JSONDecodeError, KeyError) as e:
+                            # Log but don't fail - physical removal still counts
+                            self.logger.debug(
+                                f"Failed to update deployment state at {state_path}: {e}"
+                            )
 
                 if removed:
                     remove_success += 1
