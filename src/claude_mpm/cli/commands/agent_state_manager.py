@@ -263,7 +263,7 @@ class SimpleAgentManager:
             return []
 
     def _is_agent_deployed(self, agent_id: str) -> bool:
-        """Check if agent is deployed in current project or user directory.
+        """Check if agent is deployed (virtual deployment or physical files).
 
         Args:
             agent_id: Full agent ID (may include hierarchy like engineer/backend/python-engineer)
@@ -271,6 +271,46 @@ class SimpleAgentManager:
         Returns:
             True if agent is deployed, False otherwise
         """
+        # Check virtual deployment state (primary method)
+        deployment_state_paths = [
+            Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
+            Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
+        ]
+
+        for state_path in deployment_state_paths:
+            if state_path.exists():
+                try:
+                    with state_path.open() as f:
+                        state = json.load(f)
+
+                    # Check if agent is in deployment state
+                    agents = state.get("last_check_results", {}).get("agents", {})
+
+                    # Check full agent_id
+                    if agent_id in agents:
+                        self.logger.debug(
+                            f"Agent {agent_id} found in virtual deployment state"
+                        )
+                        return True
+
+                    # Check leaf name for hierarchical IDs
+                    if "/" in agent_id:
+                        leaf_name = agent_id.split("/")[-1]
+                        if leaf_name in agents:
+                            self.logger.debug(
+                                f"Agent {agent_id} (leaf: {leaf_name}) found in virtual deployment state"
+                            )
+                            return True
+                except (json.JSONDecodeError, KeyError) as e:
+                    self.logger.debug(
+                        f"Failed to read deployment state from {state_path}: {e}"
+                    )
+                    continue
+                except Exception as e:
+                    self.logger.debug(f"Unexpected error reading deployment state: {e}")
+                    continue
+
+        # Fallback to physical file checks (legacy support)
         # For hierarchical IDs, check both full ID and leaf name
         agent_file_names = [f"{agent_id}.md"]
 
@@ -285,6 +325,9 @@ class SimpleAgentManager:
             for agent_file_name in agent_file_names:
                 agent_file = project_agents_dir / agent_file_name
                 if agent_file.exists():
+                    self.logger.debug(
+                        f"Agent {agent_id} found as physical file: {agent_file}"
+                    )
                     return True
 
         # Check ~/.claude/agents/ directory (user level)
@@ -293,6 +336,9 @@ class SimpleAgentManager:
             for agent_file_name in agent_file_names:
                 agent_file = user_agents_dir / agent_file_name
                 if agent_file.exists():
+                    self.logger.debug(
+                        f"Agent {agent_id} found as physical file: {agent_file}"
+                    )
                     return True
 
         return False
