@@ -19,7 +19,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 Claude MPM now supports **Git repositories** for distributing and managing agents and skills - the most requested feature from our community!
 
 **🎯 Key Highlights:**
-- **📦 Massive Library**: 47+ agents and 37+ skills deployed automatically from curated repositories
+- **📦 Massive Library**: 47+ agents and hundreds of skills deployed automatically from curated repositories
 - **🏢 Official Content**: Anthropic's official skills repository included by default
 - **🔧 Fully Extensible**: Add your own agent/skill repositories with immediate testing
 - **🌳 Smart Organization**: Hierarchical BASE-AGENT.md inheritance for shared templates
@@ -47,7 +47,7 @@ claude-mpm agent-source list
 **Agents** (47+ agents):
 - 🏢 System: `bobmatnyc/claude-mpm-agents` - Core agent templates
 
-**Skills** (37+ skills):
+**Skills** (hundreds of skills):
 - 🏢 System: `bobmatnyc/claude-mpm-skills` - Community skills
 - 🎯 Official: `anthropics/skills` - Anthropic's official skills (14+ skills)
 
@@ -84,7 +84,7 @@ See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-
 
 ### 📦 Git Repository Integration (NEW in v5.0)
 
-- **🏢 Curated Content**: Default repositories with 47+ agents and 37+ skills
+- **🏢 Curated Content**: Default repositories with 47+ agents and hundreds of skills
 - **🎯 Official Skills**: Anthropic's official skills included by default
 - **🔧 Custom Repositories**: Add your own via CLI or configuration
 - **🌳 Nested Support**: Automatic flattening of nested directory structures
@@ -95,7 +95,7 @@ See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-
 
 ### 🎯 Skills System
 
-- **37+ Skills**: Comprehensive skill library from curated repositories
+- **Hundreds of Skills**: Comprehensive skill library from curated repositories
 - **Official Skills**: 14+ skills from Anthropic's official repository
 - **Three-Tier Organization**: Bundled/user/project skills with priority resolution
 - **Auto-Linking**: Skills automatically linked to relevant agents
@@ -166,7 +166,7 @@ claude-mpm doctor
 
 # Verify Git repositories are synced
 ls ~/.claude/agents/    # Should show 47+ agents
-ls ~/.claude/skills/    # Should show 37+ skills
+ls ~/.claude/skills/    # Should show hundreds of skills
 
 # Check agent sources
 claude-mpm agent-source list
@@ -177,7 +177,7 @@ claude-mpm skill-source list
 
 **What You Should See:**
 - ✅ 47+ agents deployed to `~/.claude/agents/`
-- ✅ 37+ skills deployed to `~/.claude/skills/`
+- ✅ Hundreds of skills deployed to `~/.claude/skills/`
 - ✅ Two agent sources configured (system + official)
 - ✅ Two skill sources configured (system + official)
 - ✅ Progress bars showing sync and deployment phases
@@ -423,7 +423,7 @@ repositories:
 
 ## Skills Deployment
 
-Skills are automatically deployed from Git repositories, just like agents. Claude MPM includes **37+ skills** from curated repositories:
+Skills are automatically deployed from Git repositories, just like agents. Claude MPM includes **hundreds of skills** from curated repositories:
 
 - **System Skills**: Community skills from `bobmatnyc/claude-mpm-skills`
 - **Official Skills**: Anthropic's official skills from `anthropics/skills`
@@ -449,7 +449,7 @@ claude-mpm skill-source update
 
 1. **Automatic Deployment**: All skills from configured repositories deploy on startup
 2. **Three-Tier Organization**:
-   - **Bundled**: System and official skills (37+)
+   - **Bundled**: System and official skills (hundreds)
    - **User**: Custom skills in `~/.config/claude-mpm/skills/`
    - **Project**: Project-specific skills in `.claude-mpm/skills/`
 3. **Priority Resolution**: Project → User → Bundled (local always wins)
@@ -724,7 +724,7 @@ See [docs/reference/MEMORY.md](docs/reference/MEMORY.md) and [docs/developer/11-
 **🚀 What's New:**
 - **Git Repository Support**: Agents and skills now deploy from Git repositories
 - **47+ Agents**: Comprehensive agent library from curated repositories
-- **37+ Skills**: System skills + Official Anthropic skills automatically deployed
+- **Hundreds of Skills**: System skills + Official Anthropic skills automatically deployed
 - **Hierarchical BASE-AGENT.md**: Template inheritance for DRY principles
 - **Nested Repository Support**: Automatic flattening of directory structures
 - **Immediate Testing**: Fail-fast validation when adding repositories

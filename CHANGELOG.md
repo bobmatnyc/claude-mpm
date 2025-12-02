@@ -16,7 +16,7 @@
 
 ### 🚀 Major Features
 
-This release represents a major milestone in Claude MPM's evolution with comprehensive Git repository integration for both agents and skills, bringing the total from 4 built-in skills to 37+ skills and 47+ agents available out-of-box.
+This release represents a major milestone in Claude MPM's evolution with comprehensive Git repository integration for both agents and skills, bringing the total from 4 built-in skills to hundreds of skills and 47+ agents available out-of-box.
 
 #### Git Repository Integration for Skills
 
@@ -24,7 +24,7 @@ This release represents a major milestone in Claude MPM's evolution with compreh
 - **Default Repositories**:
   - `bobmatnyc/claude-mpm-skills` (community skills)
   - `anthropics/skills` (official Anthropic skills)
-- **37+ Skills Available**: Massive expansion from 4 built-in skills
+- **Hundreds of Skills Available**: Massive expansion from 4 built-in skills
 - **Custom Repositories**: Add your own via `claude-mpm skill-source add <url>`
 - **Nested Repository Support**: Automatic flattening for Claude Code compatibility
 - **Immediate Testing**: Validate repositories before adding
@@ -166,7 +166,7 @@ Building on the 4.5.0 git-first architecture, this release adds:
 - **Performance**:
   - Repository sync: 500-800ms (first run), 100-200ms (cached)
   - Agent discovery: ~200ms with GitHub API
-  - Skill deployment: ~1-2s for 37+ skills
+  - Skill deployment: ~1-2s for 89+ skills
   - Progress bars: Real-time updates with <50ms latency
 
 - **Backward Compatibility**:
