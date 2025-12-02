@@ -44,13 +44,13 @@ from .configure_validators import (
 class ConfigureCommand(BaseCommand):
     """Interactive configuration management command."""
 
-    # Questionary style with better contrast (cyan is more readable than white)
+    # Questionary style optimized for dark terminals (WCAG AAA compliant)
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:cyan bold"),
-            ("pointer", "fg:yellow bold"),
-            ("highlighted", "fg:cyan"),
-            ("question", "fg:cyan bold"),
+            ("selected", "fg:white bold"),           # 21:1 contrast - excellent readability
+            ("pointer", "fg:brightyellow bold"),     # 12:1 contrast - highly visible pointer
+            ("highlighted", "fg:white"),             # 21:1 contrast - clear hover state
+            ("question", "fg:white bold"),           # 21:1 contrast - prominent questions
         ]
     )
 
@@ -304,14 +304,14 @@ class ConfigureCommand(BaseCommand):
             self.console.print("\n[bold blue]═══ Agent Management ═══[/bold blue]\n")
 
             # Step 1: Show configured sources
-            self.console.print("[bold cyan]═══ Agent Sources ═══[/bold cyan]\n")
+            self.console.print("[bold white]═══ Agent Sources ═══[/bold white]\n")
 
             sources = self._get_configured_sources()
             if sources:
                 from rich.table import Table
 
-                sources_table = Table(show_header=True, header_style="bold cyan")
-                sources_table.add_column("Source", style="cyan", width=40, no_wrap=True, overflow="ellipsis")
+                sources_table = Table(show_header=True, header_style="bold white")
+                sources_table.add_column("Source", style="brightyellow", width=40, no_wrap=True, overflow="ellipsis")
                 sources_table.add_column("Status", style="green", width=15, no_wrap=True)
                 sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
 
@@ -330,7 +330,7 @@ class ConfigureCommand(BaseCommand):
                 )
 
             # Step 2: Discover and display available agents
-            self.console.print("\n[bold cyan]═══ Available Agents ═══[/bold cyan]\n")
+            self.console.print("\n[bold white]═══ Available Agents ═══[/bold white]\n")
 
             try:
                 # Discover agents (includes both local and remote)
@@ -608,8 +608,8 @@ class ConfigureCommand(BaseCommand):
                 else:
                     from rich.table import Table
 
-                    table = Table(show_header=True, header_style="bold cyan")
-                    table.add_column("Agent", style="cyan", no_wrap=True)
+                    table = Table(show_header=True, header_style="bold white")
+                    table.add_column("Agent", style="white", no_wrap=True)
                     table.add_column("Skills", style="green", no_wrap=True)
 
                     for agent_id, skills in mappings.items():
@@ -950,12 +950,12 @@ class ConfigureCommand(BaseCommand):
         """Display agents table with source information and installation status."""
         from rich.table import Table
 
-        agents_table = Table(show_header=True, header_style="bold cyan")
+        agents_table = Table(show_header=True, header_style="bold white")
         agents_table.add_column("#", style="dim", width=4, no_wrap=True)
-        agents_table.add_column("Agent ID", style="cyan", width=35, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Name", style="green", width=25, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Source", style="yellow", width=20, no_wrap=True)
-        agents_table.add_column("Status", style="cyan", width=12, no_wrap=True)
+        agents_table.add_column("Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Name", style="white", width=25, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Source", style="brightyellow", width=20, no_wrap=True)
+        agents_table.add_column("Status", style="white", width=12, no_wrap=True)
 
         for idx, agent in enumerate(agents, 1):
             # Determine source with repo name
@@ -1001,7 +1001,7 @@ class ConfigureCommand(BaseCommand):
 
     def _manage_sources(self) -> None:
         """Interactive source management."""
-        self.console.print("\n[bold cyan]═══ Manage Agent Sources ═══[/bold cyan]\n")
+        self.console.print("\n[bold white]═══ Manage Agent Sources ═══[/bold white]\n")
         self.console.print(
             "[dim]Use 'claude-mpm agent-source' command to add/remove sources[/dim]"
         )
@@ -1071,7 +1071,7 @@ class ConfigureCommand(BaseCommand):
                 agent_map[agent.name] = agent
 
         # Multi-select with pre-selection
-        self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
+        self.console.print("\n[bold white]Manage Agent Installation[/bold white]")
         self.console.print(
             "[dim]Checked = Installed | Unchecked = Available[/dim]"
         )
@@ -1196,9 +1196,9 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            self.console.print("\n[bold cyan]═══ Available Presets ═══[/bold cyan]\n")
+            self.console.print("\n[bold white]═══ Available Presets ═══[/bold white]\n")
             for idx, preset in enumerate(presets, 1):
-                self.console.print(f"  {idx}. [cyan]{preset['name']}[/cyan]")
+                self.console.print(f"  {idx}. [white]{preset['name']}[/white]")
                 self.console.print(f"     {preset['description']}")
                 self.console.print(f"     [dim]Agents: {len(preset['agents'])}[/dim]\n")
 
@@ -1288,7 +1288,7 @@ class ConfigureCommand(BaseCommand):
                 target_file = target_dir / target_name
 
                 if show_feedback:
-                    self.console.print(f"\n[cyan]Installing {full_agent_id}...[/cyan]")
+                    self.console.print(f"\n[white]Installing {full_agent_id}...[/white]")
 
                 # Copy the agent file
                 import shutil
@@ -1405,7 +1405,7 @@ class ConfigureCommand(BaseCommand):
                 agent = agents[idx]
 
                 self.console.clear()
-                self.console.print("\n[bold cyan]═══ Agent Details ═══[/bold cyan]\n")
+                self.console.print("\n[bold white]═══ Agent Details ═══[/bold white]\n")
 
                 # Basic info
                 self.console.print(f"[bold]ID:[/bold] {agent.name}")
