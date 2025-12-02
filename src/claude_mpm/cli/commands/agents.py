@@ -551,34 +551,60 @@ class AgentsCommand(AgentCommand):
             return CommandResult.error_result(f"Error discovering agents: {e}")
 
     def _deploy_agents(self, args, force=False) -> CommandResult:
-        """Deploy both system and project agents, or deploy by preset."""
+        """Deploy agents using two-phase sync: cache → deploy.
+
+        Phase 3 Integration (1M-486): Uses Git sync service for deployment.
+        - Phase 1: Sync agents to ~/.claude-mpm/cache/agents/ (if needed)
+        - Phase 2: Deploy from cache to project .claude-mpm/agents/
+
+        This replaces the old single-tier deployment with a multi-project
+        architecture where one cache serves multiple project deployments.
+        """
         try:
-            # Handle preset deployment
+            # Handle preset deployment (uses different path)
             if hasattr(args, "preset") and args.preset:
                 return self._deploy_preset(args)
 
-            # Deploy system agents
-            system_result = self.deployment_service.deploy_system_agents(force=force)
+            from ...services.agents.sources.git_source_sync_service import (
+                GitSourceSyncService,
+            )
 
-            # Deploy project agents if they exist
-            project_result = self.deployment_service.deploy_project_agents(force=force)
+            # Initialize git sync service
+            git_sync = GitSourceSyncService()
+            project_dir = Path.cwd()
 
-            # Combine results
+            self.logger.info("Phase 1: Syncing agents to cache...")
+
+            # Sync to cache (downloads from GitHub if needed)
+            sync_result = git_sync.sync_repository(force=force)
+
+            if not sync_result.get("synced"):
+                error_msg = sync_result.get("error", "Unknown sync error")
+                self.logger.error(f"Sync failed: {error_msg}")
+                return CommandResult.error_result(f"Sync failed: {error_msg}")
+
+            self.logger.info(f"Phase 1 complete: {sync_result.get('agent_count', 0)} agents in cache")
+            self.logger.info(f"Phase 2: Deploying agents to {project_dir}...")
+
+            # Deploy from cache to project directory
+            deploy_result = git_sync.deploy_agents_to_project(
+                project_dir=project_dir,
+                agent_list=None,  # Deploy all cached agents
+                force=force,
+            )
+
+            # Format combined results for output
             combined_result = {
-                "deployed_count": system_result.get("deployed_count", 0)
-                + project_result.get("deployed_count", 0),
-                "deployed": system_result.get("deployed", [])
-                + project_result.get("deployed", []),
-                "updated_count": system_result.get("updated_count", 0)
-                + project_result.get("updated_count", 0),
-                "updated": system_result.get("updated", [])
-                + project_result.get("updated", []),
-                "skipped": system_result.get("skipped", [])
-                + project_result.get("skipped", []),
-                "errors": system_result.get("errors", [])
-                + project_result.get("errors", []),
-                "target_dir": system_result.get("target_dir")
-                or project_result.get("target_dir"),
+                "deployed_count": len(deploy_result.get("deployed", [])) + len(deploy_result.get("updated", [])),
+                "deployed": deploy_result.get("deployed", []),
+                "updated": deploy_result.get("updated", []),
+                "skipped": deploy_result.get("skipped", []),
+                "errors": deploy_result.get("failed", []),
+                "target_dir": deploy_result.get("deployment_dir", ""),
+                "sync_info": {
+                    "cached_agents": sync_result.get("agent_count", 0),
+                    "cache_dir": sync_result.get("cache_dir", ""),
+                },
             }
 
             output_format = self._get_output_format(args)
@@ -589,12 +615,13 @@ class AgentsCommand(AgentCommand):
             )
             print(formatted)
 
+            success_count = len(deploy_result["deployed"]) + len(deploy_result["updated"])
             return CommandResult.success_result(
-                f"Deployed {combined_result['deployed_count']} agents",
+                f"Deployed {success_count} agents from cache",
                 data={
-                    "system_agents": system_result,
-                    "project_agents": project_result,
-                    "total_deployed": combined_result["deployed_count"],
+                    "sync_result": sync_result,
+                    "deploy_result": deploy_result,
+                    "total_deployed": success_count,
                 },
             )
 

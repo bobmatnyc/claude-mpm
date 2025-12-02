@@ -195,55 +195,109 @@ class SkillsManagementCommand(BaseCommand):
             return CommandResult(success=False, message=str(e), exit_code=1)
 
     def _deploy_skills(self, args) -> CommandResult:
-        """Deploy bundled skills to project."""
+        """Deploy skills using two-phase sync: cache → deploy.
+
+        Phase 3 Integration (1M-486): Uses Git skill source manager for deployment.
+        - Phase 1: Sync skills to ~/.claude-mpm/cache/skills/ (if needed)
+        - Phase 2: Deploy from cache to project .claude-mpm/skills/
+
+        This replaces bundled skill deployment with a multi-project
+        architecture where one cache serves multiple project deployments.
+        """
         try:
+            from pathlib import Path
+
+            from ...config.skill_sources import SkillSourceConfiguration
+            from ...services.skills.git_skill_source_manager import (
+                GitSkillSourceManager,
+            )
+
             force = getattr(args, "force", False)
             specific_skills = getattr(args, "skills", None)
 
             console.print("\n[bold cyan]Deploying skills...[/bold cyan]\n")
 
-            result = self.skills_service.deploy_bundled_skills(
-                force=force, skill_names=specific_skills
+            # Initialize git skill source manager
+            config = SkillSourceConfiguration.load()
+            git_skill_manager = GitSkillSourceManager(config)
+            project_dir = Path.cwd()
+
+            # Phase 1: Sync skills to cache
+            console.print("[dim]Phase 1: Syncing skills to cache...[/dim]")
+            sync_results = git_skill_manager.sync_all_sources(force=force)
+
+            synced_count = sum(
+                1 for result in sync_results.values() if result.get("synced")
+            )
+            console.print(
+                f"[dim]Synced {synced_count} skill source(s)[/dim]\n"
+            )
+
+            # Phase 2: Deploy from cache to project
+            console.print("[dim]Phase 2: Deploying from cache to project...[/dim]\n")
+            deploy_result = git_skill_manager.deploy_skills_to_project(
+                project_dir=project_dir,
+                skill_list=specific_skills,
+                force=force,
             )
 
             # Display results
-            if result["deployed"]:
+            if deploy_result["deployed"]:
                 console.print(
-                    f"[green]✓ Deployed {len(result['deployed'])} skill(s):[/green]"
+                    f"[green]✓ Deployed {len(deploy_result['deployed'])} skill(s):[/green]"
                 )
-                for skill in result["deployed"]:
+                for skill in deploy_result["deployed"]:
                     console.print(f"  • {skill}")
                 console.print()
 
-            if result["skipped"]:
+            if deploy_result["updated"]:
                 console.print(
-                    f"[yellow]⊘ Skipped {len(result['skipped'])} skill(s) (already deployed):[/yellow]"
+                    f"[green]⟳ Updated {len(deploy_result['updated'])} skill(s):[/green]"
                 )
-                for skill in result["skipped"]:
+                for skill in deploy_result["updated"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            if deploy_result["skipped"]:
+                console.print(
+                    f"[yellow]⊘ Skipped {len(deploy_result['skipped'])} skill(s) (already up-to-date):[/yellow]"
+                )
+                for skill in deploy_result["skipped"]:
                     console.print(f"  • {skill}")
                 console.print("[dim]Use --force to redeploy[/dim]\n")
 
-            if result["errors"]:
+            if deploy_result["failed"]:
                 console.print(
-                    f"[red]✗ Failed to deploy {len(result['errors'])} skill(s):[/red]"
+                    f"[red]✗ Failed to deploy {len(deploy_result['failed'])} skill(s):[/red]"
                 )
-                for skill, error in result["errors"].items():
-                    console.print(f"  • {skill}: {error}")
+                for skill in deploy_result["failed"]:
+                    console.print(f"  • {skill}")
                 console.print()
 
             # Summary
+            success_count = len(deploy_result["deployed"]) + len(deploy_result["updated"])
             total = (
-                len(result["deployed"]) + len(result["skipped"]) + len(result["errors"])
+                success_count
+                + len(deploy_result["skipped"])
+                + len(deploy_result["failed"])
             )
             console.print(
-                f"[bold]Summary:[/bold] {len(result['deployed'])} deployed, "
-                f"{len(result['skipped'])} skipped, {len(result['errors'])} errors "
-                f"(Total: {total})\n"
+                f"[bold]Summary:[/bold] {success_count} deployed/updated, "
+                f"{len(deploy_result['skipped'])} skipped, "
+                f"{len(deploy_result['failed'])} errors (Total: {total})\n"
+            )
+
+            console.print(
+                f"[dim]Deployment directory: {deploy_result['deployment_dir']}[/dim]\n"
             )
 
             # Exit with error if any deployments failed
-            exit_code = 1 if result["errors"] else 0
-            return CommandResult(success=not result["errors"], exit_code=exit_code)
+            exit_code = 1 if deploy_result["failed"] else 0
+            return CommandResult(
+                success=not deploy_result["failed"],
+                message=f"Deployed {success_count} skills from cache",
+                exit_code=exit_code,
+            )
 
         except Exception as e:
             console.print(f"[red]Error deploying skills: {e}[/red]")

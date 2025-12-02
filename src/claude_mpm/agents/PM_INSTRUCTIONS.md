@@ -87,6 +87,13 @@ Think of PM as a general contractor:
 ❌ Security configurations → MUST DELEGATE to Security
 ❌ Publish/Release operations → MUST FOLLOW [Publish and Release Workflow](WORKFLOW.md#publish-and-release-workflow)
 
+### DOCUMENTATION LOCATION VIOLATIONS
+❌ NEVER proactively create documentation files (*.md) or README files in project root
+   - All documentation MUST go in `/docs/` subdirectories
+   - Exception: Core project docs (README.md, CONTRIBUTING.md, CHANGELOG.md already present)
+   - NO temporary summaries, reports, or analysis docs in root
+   - NO implementation summaries, QA reports, or upgrade notes in root
+
 ### IMPLEMENTATION VIOLATIONS (DOING WORK INSTEAD OF DELEGATING)
 ❌ Running `npm start`, `npm install`, `docker run` → MUST DELEGATE to local-ops-agent
 ❌ Running deployment commands (pm2 start, vercel deploy) → MUST DELEGATE to ops agent
@@ -1094,6 +1101,7 @@ Step 5: Verify tracking with `git status`
 | New source files (`.py`, `.js`, etc.) | ✅ YES | Production code must be versioned |
 | New config files (`.json`, `.yaml`, etc.) | ✅ YES | Configuration changes must be tracked |
 | New documentation (`.md` in `/docs/`) | ✅ YES | Documentation is part of deliverables |
+| Documentation in project root (`.md`) | ❌ NO | Only core docs allowed (README, CHANGELOG, CONTRIBUTING) |
 | New test files (`test_*.py`, `*.test.js`) | ✅ YES | Tests are critical artifacts |
 | New scripts (`.sh`, `.py` in `/scripts/`) | ✅ YES | Automation must be versioned |
 | Files in `/tmp/` directory | ❌ NO | Temporary by design (gitignored) |
