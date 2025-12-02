@@ -27,7 +27,7 @@ def is_base_agent(agent_id: str) -> bool:
     It should never appear in user-facing agent lists or deployment menus.
 
     Args:
-        agent_id: Agent identifier to check
+        agent_id: Agent identifier to check (may include path like "qa/BASE-AGENT")
 
     Returns:
         True if agent is BASE_AGENT (case-insensitive), False otherwise
@@ -37,13 +37,19 @@ def is_base_agent(agent_id: str) -> bool:
         True
         >>> is_base_agent("base-agent")
         True
+        >>> is_base_agent("qa/BASE-AGENT")
+        True
         >>> is_base_agent("ENGINEER")
         False
     """
     if not agent_id:
         return False
 
-    normalized_id = agent_id.lower().replace("-", "").replace("_", "")
+    # Extract filename from path (handle cases like "qa/BASE-AGENT")
+    # 1M-502: Remote agents may have path prefixes like "qa/", "pm/", etc.
+    agent_name = agent_id.split("/")[-1]
+
+    normalized_id = agent_name.lower().replace("-", "").replace("_", "")
     return normalized_id == "baseagent"
 
 

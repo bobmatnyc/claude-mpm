@@ -344,7 +344,7 @@ class ConfigureCommand(BaseCommand):
                         "[dim]Configure sources with 'claude-mpm agent-source add'[/dim]\n"
                     )
                 else:
-                    # Display agents in a table
+                    # Display agents in a table (already filtered at line 339)
                     self._display_agents_with_source_info(agents)
 
             except Exception as e:
@@ -955,16 +955,19 @@ class ConfigureCommand(BaseCommand):
         agents_table.add_column("Agent ID", style="cyan", width=35)
         agents_table.add_column("Name", style="green", width=25)
         agents_table.add_column("Source", style="yellow", width=15)
-        agents_table.add_column("Status", style="magenta", width=12)
+        agents_table.add_column("Status", width=12)  # No default style for status (1M-502 Fix #3)
 
         for idx, agent in enumerate(agents, 1):
             # Determine source type
             source_type = getattr(agent, "source_type", "local")
             source_label = "Remote" if source_type == "remote" else "Local"
 
-            # Determine deployment status
+            # Determine deployment status (1M-502 Phase 1 Fix #3)
             is_deployed = getattr(agent, "is_deployed", False)
-            status = "✓ Deployed" if is_deployed else "Available"
+            if is_deployed:
+                status = "[green]✓ Deployed[/green]"
+            else:
+                status = "[dim]○ Available[/dim]"
 
             # Get display name (for remote agents, use display_name instead of agent_id)
             display_name = getattr(agent, "display_name", agent.name)
@@ -991,7 +994,7 @@ class ConfigureCommand(BaseCommand):
         Prompt.ask("\nPress Enter to continue")
 
     def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
-        """Deploy agents individually with selection interface."""
+        """Deploy agents with multi-select interface (1M-502 Phase 1 Fix #2)."""
         if not agents:
             self.console.print("[yellow]No agents available for deployment[/yellow]")
             Prompt.ask("\nPress Enter to continue")
@@ -1005,26 +1008,53 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        self.console.print(f"\n[bold]Deployable agents ({len(deployable)}):[/bold]")
-        for idx, agent in enumerate(deployable, 1):
+        # Build multi-select choices
+        agent_choices = []
+        for agent in deployable:
             display_name = getattr(agent, "display_name", agent.name)
-            self.console.print(f"  {idx}. {agent.name} - {display_name}")
+            source_type = getattr(agent, "source_type", "local")
+            source_label = "Remote" if source_type == "remote" else "Local"
 
-        selection = Prompt.ask("\nEnter agent number to deploy (or 'c' to cancel)")
-        if selection.lower() == "c":
+            choice_title = f"{agent.name} - {display_name} [{source_label}]"
+            agent_choices.append(
+                questionary.Choice(title=choice_title, value=agent)
+            )
+
+        # Multi-select with space bar (1M-502 UX improvement)
+        self.console.print(
+            f"\n[bold]Select agents to deploy:[/bold] "
+            f"[dim](Space to select, Enter to confirm, Esc to cancel)[/dim]"
+        )
+
+        selected_agents = questionary.checkbox(
+            "",  # Empty message since we printed instructions above
+            choices=agent_choices,
+            style=self.QUESTIONARY_STYLE,
+        ).ask()
+
+        if not selected_agents:  # User pressed Esc or selected nothing
+            self.console.print("[dim]Deployment cancelled[/dim]")
+            Prompt.ask("\nPress Enter to continue")
             return
 
-        try:
-            idx = int(selection) - 1
-            if 0 <= idx < len(deployable):
-                agent = deployable[idx]
-                self._deploy_single_agent(agent)
+        # Deploy all selected agents
+        success_count = 0
+        fail_count = 0
+        for agent in selected_agents:
+            result = self._deploy_single_agent(agent, show_feedback=False)
+            if result:
+                success_count += 1
             else:
-                self.console.print("[red]Invalid selection[/red]")
-                Prompt.ask("\nPress Enter to continue")
-        except (ValueError, IndexError):
-            self.console.print("[red]Invalid selection[/red]")
-            Prompt.ask("\nPress Enter to continue")
+                fail_count += 1
+
+        # Summary
+        self.console.print(f"\n[bold]Deployment Summary:[/bold]")
+        if success_count > 0:
+            self.console.print(f"  [green]✓ {success_count} agent(s) deployed successfully[/green]")
+        if fail_count > 0:
+            self.console.print(f"  [red]✗ {fail_count} agent(s) failed to deploy[/red]")
+
+        Prompt.ask("\nPress Enter to continue")
 
     def _deploy_agents_preset(self) -> None:
         """Deploy agents using preset configuration."""

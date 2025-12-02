@@ -68,6 +68,19 @@ class TestIsBaseAgent:
         """None value should not be detected."""
         assert is_base_agent(None) is False
 
+    def test_base_agent_with_path_prefix(self):
+        """BASE_AGENT with path prefix should be detected (1M-502 Fix #1)."""
+        assert is_base_agent("qa/BASE_AGENT") is True
+        assert is_base_agent("qa/BASE-AGENT") is True
+        assert is_base_agent("pm/base-agent") is True
+        assert is_base_agent("engineer/BASE_AGENT") is True
+
+    def test_regular_agent_with_path_not_detected(self):
+        """Regular agents with path prefix should not be BASE_AGENT."""
+        assert is_base_agent("qa/QA") is False
+        assert is_base_agent("pm/PM") is False
+        assert is_base_agent("engineer/ENGINEER") is False
+
 
 class TestFilterBaseAgents:
     """Test BASE_AGENT filtering from agent lists."""
@@ -106,6 +119,23 @@ class TestFilterBaseAgents:
         ]
         filtered = filter_base_agents(agents)
         assert [a["agent_id"] for a in filtered] == ["ALPHA", "CHARLIE", "DELTA"]
+
+    def test_filter_base_agent_with_path_prefix(self):
+        """BASE_AGENT with path prefix should be filtered (1M-502 Fix #1)."""
+        agents = [
+            {"agent_id": "qa/QA", "name": "QA Agent"},
+            {"agent_id": "qa/BASE_AGENT", "name": "Base QA Instructions"},
+            {"agent_id": "pm/PM", "name": "PM Agent"},
+            {"agent_id": "engineer/BASE-AGENT", "name": "Base Engineer"},
+        ]
+        filtered = filter_base_agents(agents)
+        assert len(filtered) == 2
+        assert "qa/QA" in [a["agent_id"] for a in filtered]
+        assert "pm/PM" in [a["agent_id"] for a in filtered]
+        # Verify BASE_AGENT variants are removed
+        filtered_ids = [a["agent_id"] for a in filtered]
+        assert "qa/BASE_AGENT" not in filtered_ids
+        assert "engineer/BASE-AGENT" not in filtered_ids
 
     def test_filter_empty_list(self):
         """Filtering empty list should return empty list."""
