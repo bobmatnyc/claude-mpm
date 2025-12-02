@@ -44,13 +44,13 @@ from .configure_validators import (
 class ConfigureCommand(BaseCommand):
     """Interactive configuration management command."""
 
-    # Questionary style with better contrast
+    # Questionary style with better contrast (cyan is more readable than white)
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:white bold"),
+            ("selected", "fg:cyan bold"),
             ("pointer", "fg:yellow bold"),
-            ("highlighted", "fg:white"),
-            ("question", "fg:white bold"),
+            ("highlighted", "fg:cyan"),
+            ("question", "fg:cyan bold"),
         ]
     )
 
@@ -297,7 +297,7 @@ class ConfigureCommand(BaseCommand):
         return self.navigation.show_main_menu()
 
     def _manage_agents(self) -> None:
-        """Enhanced agent management with remote agent discovery and deployment."""
+        """Enhanced agent management with remote agent discovery and installation."""
         while True:
             self.console.clear()
             self.navigation.display_header()
@@ -310,9 +310,9 @@ class ConfigureCommand(BaseCommand):
             if sources:
                 from rich.table import Table
 
-                sources_table = Table(show_header=True, header_style="bold white")
-                sources_table.add_column("Source", style="white", width=40, no_wrap=True, overflow="ellipsis")
-                sources_table.add_column("Status", style="white", width=15, no_wrap=True)
+                sources_table = Table(show_header=True, header_style="bold cyan")
+                sources_table.add_column("Source", style="cyan", width=40, no_wrap=True, overflow="ellipsis")
+                sources_table.add_column("Status", style="green", width=15, no_wrap=True)
                 sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
 
                 for source in sources:
@@ -359,7 +359,7 @@ class ConfigureCommand(BaseCommand):
                     choices=[
                         "Manage sources (add/remove repositories)",
                         "Select Agents",
-                        "Deploy preset (predefined sets)",
+                        "Install preset (predefined sets)",
                         "Remove agents",
                         "View agent details",
                         "Toggle agents (legacy enable/disable)",
@@ -379,7 +379,7 @@ class ConfigureCommand(BaseCommand):
                     self._manage_sources()
                 elif choice == "Select Agents":
                     self._deploy_agents_individual(agents_var)
-                elif choice == "Deploy preset (predefined sets)":
+                elif choice == "Install preset (predefined sets)":
                     self._deploy_agents_preset()
                 elif choice == "Remove agents":
                     self._remove_agents(agents_var)
@@ -608,9 +608,9 @@ class ConfigureCommand(BaseCommand):
                 else:
                     from rich.table import Table
 
-                    table = Table(show_header=True, header_style="bold white")
-                    table.add_column("Agent", style="white", no_wrap=True)
-                    table.add_column("Skills", style="white", no_wrap=True)
+                    table = Table(show_header=True, header_style="bold cyan")
+                    table.add_column("Agent", style="cyan", no_wrap=True)
+                    table.add_column("Skills", style="green", no_wrap=True)
 
                     for agent_id, skills in mappings.items():
                         skills_str = (
@@ -947,27 +947,46 @@ class ConfigureCommand(BaseCommand):
         return [a for a in agents if a.name in filtered_names]
 
     def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
-        """Display agents table with source information and deployment status."""
+        """Display agents table with source information and installation status."""
         from rich.table import Table
 
-        agents_table = Table(show_header=True, header_style="bold white")
+        agents_table = Table(show_header=True, header_style="bold cyan")
         agents_table.add_column("#", style="dim", width=4, no_wrap=True)
-        agents_table.add_column("Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Name", style="white", width=25, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Source", style="yellow", width=15, no_wrap=True)
-        agents_table.add_column("Status", style="white", width=12, no_wrap=True)
+        agents_table.add_column("Agent ID", style="cyan", width=35, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Name", style="green", width=25, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Source", style="yellow", width=20, no_wrap=True)
+        agents_table.add_column("Status", style="cyan", width=12, no_wrap=True)
 
         for idx, agent in enumerate(agents, 1):
-            # Determine source type
+            # Determine source with repo name
             source_type = getattr(agent, "source_type", "local")
-            source_label = "Remote" if source_type == "remote" else "Local"
 
-            # Determine deployment status with better contrast
-            is_deployed = getattr(agent, "is_deployed", False)
-            if is_deployed:
-                status = "[bright_green]✓ Deployed[/bright_green]"
+            if source_type == "remote":
+                # Get repo name from agent metadata
+                source_dict = getattr(agent, "source_dict", {})
+                repo_url = source_dict.get("source", "")
+
+                # Extract repo name from URL
+                if "bobmatnyc/claude-mpm" in repo_url or "claude-mpm" in repo_url.lower():
+                    source_label = "MPM Agents"
+                elif "/" in repo_url:
+                    # Extract last part of org/repo
+                    parts = repo_url.rstrip("/").split("/")
+                    if len(parts) >= 2:
+                        source_label = f"{parts[-2]}/{parts[-1]}"
+                    else:
+                        source_label = "Community"
+                else:
+                    source_label = "Community"
             else:
-                status = "[bright_black]○ Available[/bright_black]"
+                source_label = "Local"
+
+            # Determine installation status (removed symbols for cleaner look)
+            is_installed = getattr(agent, "is_deployed", False)
+            if is_installed:
+                status = "[green]Installed[/green]"
+            else:
+                status = "Available"
 
             # Get display name (for remote agents, use display_name instead of agent_id)
             display_name = getattr(agent, "display_name", agent.name)
@@ -993,7 +1012,7 @@ class ConfigureCommand(BaseCommand):
         Prompt.ask("\nPress Enter to continue")
 
     def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
-        """Manage agent deployment state (unified deploy/remove interface)."""
+        """Manage agent installation state (unified install/remove interface)."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
             Prompt.ask("\nPress Enter to continue")
@@ -1050,9 +1069,9 @@ class ConfigureCommand(BaseCommand):
                 agent_map[agent.name] = agent
 
         # Multi-select with pre-selection
-        self.console.print("\n[bold white]Manage Agent Deployment[/bold white]")
+        self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
         self.console.print(
-            "[dim]Checked = Deployed | Unchecked = Not Deployed[/dim]"
+            "[dim]Checked = Installed | Unchecked = Available[/dim]"
         )
         self.console.print(
             "[dim]Use arrow keys to navigate, space to select/unselect, "
@@ -1087,7 +1106,7 @@ class ConfigureCommand(BaseCommand):
         # Show what will happen
         self.console.print("\n[bold]Changes to apply:[/bold]")
         if to_deploy:
-            self.console.print(f"[green]Deploy {len(to_deploy)} agent(s)[/green]")
+            self.console.print(f"[green]Install {len(to_deploy)} agent(s)[/green]")
             for agent_id in to_deploy:
                 self.console.print(f"  + {agent_id}")
         if to_remove:
@@ -1106,15 +1125,15 @@ class ConfigureCommand(BaseCommand):
         remove_success = 0
         remove_fail = 0
 
-        # Deploy new agents
+        # Install new agents
         for agent_id in to_deploy:
             agent = agent_map.get(agent_id)
             if agent and self._deploy_single_agent(agent, show_feedback=False):
                 deploy_success += 1
-                self.console.print(f"[green]✓ Deployed: {agent_id}[/green]")
+                self.console.print(f"[green]✓ Installed: {agent_id}[/green]")
             else:
                 deploy_fail += 1
-                self.console.print(f"[red]✗ Failed to deploy: {agent_id}[/red]")
+                self.console.print(f"[red]✗ Failed to install: {agent_id}[/red]")
 
         # Remove agents
         for agent_id in to_remove:
@@ -1147,9 +1166,9 @@ class ConfigureCommand(BaseCommand):
         # Show summary
         self.console.print()
         if deploy_success > 0:
-            self.console.print(f"[green]✓ Deployed {deploy_success} agent(s)[/green]")
+            self.console.print(f"[green]✓ Installed {deploy_success} agent(s)[/green]")
         if deploy_fail > 0:
-            self.console.print(f"[red]✗ Failed to deploy {deploy_fail} agent(s)[/red]")
+            self.console.print(f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]")
         if remove_success > 0:
             self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
         if remove_fail > 0:
@@ -1158,7 +1177,7 @@ class ConfigureCommand(BaseCommand):
         Prompt.ask("\nPress Enter to continue")
 
     def _deploy_agents_preset(self) -> None:
-        """Deploy agents using preset configuration."""
+        """Install agents using preset configuration."""
         try:
             from claude_mpm.services.agents.agent_preset_service import (
                 AgentPresetService,
@@ -1201,14 +1220,14 @@ class ConfigureCommand(BaseCommand):
                     Prompt.ask("\nPress Enter to continue")
                     return
 
-                # Confirm deployment
+                # Confirm installation
                 self.console.print(
                     f"\n[bold]Preset '{preset_name}' includes {len(resolution['agents'])} agents[/bold]"
                 )
-                if Confirm.ask("Deploy all agents?", default=True):
-                    deployed = 0
+                if Confirm.ask("Install all agents?", default=True):
+                    installed = 0
                     for agent in resolution["agents"]:
-                        # Convert dict to AgentConfig-like object for deployment
+                        # Convert dict to AgentConfig-like object for installation
                         agent_config = AgentConfig(
                             name=agent.get("agent_id", "unknown"),
                             description=agent.get("metadata", {}).get(
@@ -1220,10 +1239,10 @@ class ConfigureCommand(BaseCommand):
                         agent_config.full_agent_id = agent.get("agent_id", "unknown")
 
                         if self._deploy_single_agent(agent_config, show_feedback=False):
-                            deployed += 1
+                            installed += 1
 
                     self.console.print(
-                        f"\n[green]✓ Deployed {deployed}/{len(resolution['agents'])} agents[/green]"
+                        f"\n[green]✓ Installed {installed}/{len(resolution['agents'])} agents[/green]"
                     )
 
                 Prompt.ask("\nPress Enter to continue")
@@ -1232,14 +1251,14 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
 
         except Exception as e:
-            self.console.print(f"[red]Error deploying preset: {e}[/red]")
-            self.logger.error(f"Preset deployment failed: {e}", exc_info=True)
+            self.console.print(f"[red]Error installing preset: {e}[/red]")
+            self.logger.error(f"Preset installation failed: {e}", exc_info=True)
             Prompt.ask("\nPress Enter to continue")
 
     def _deploy_single_agent(
         self, agent: AgentConfig, show_feedback: bool = True
     ) -> bool:
-        """Deploy a single agent to the appropriate location."""
+        """Install a single agent to the appropriate location."""
         try:
             # Check if this is a remote agent with source_dict
             source_dict = getattr(agent, "source_dict", None)
@@ -1267,7 +1286,7 @@ class ConfigureCommand(BaseCommand):
                 target_file = target_dir / target_name
 
                 if show_feedback:
-                    self.console.print(f"\n[cyan]Deploying {full_agent_id}...[/cyan]")
+                    self.console.print(f"\n[cyan]Installing {full_agent_id}...[/cyan]")
 
                 # Copy the agent file
                 import shutil
@@ -1276,38 +1295,38 @@ class ConfigureCommand(BaseCommand):
 
                 if show_feedback:
                     self.console.print(
-                        f"[green]✓ Successfully deployed {full_agent_id} to {target_file}[/green]"
+                        f"[green]✓ Successfully installed {full_agent_id} to {target_file}[/green]"
                     )
                     Prompt.ask("\nPress Enter to continue")
 
                 return True
-            # Legacy local template deployment (not implemented here)
+            # Legacy local template installation (not implemented here)
             if show_feedback:
                 self.console.print(
-                    "[yellow]Local template deployment not yet implemented[/yellow]"
+                    "[yellow]Local template installation not yet implemented[/yellow]"
                 )
                 Prompt.ask("\nPress Enter to continue")
             return False
 
         except Exception as e:
             if show_feedback:
-                self.console.print(f"[red]Error deploying agent: {e}[/red]")
-                self.logger.error(f"Agent deployment failed: {e}", exc_info=True)
+                self.console.print(f"[red]Error installing agent: {e}[/red]")
+                self.logger.error(f"Agent installation failed: {e}", exc_info=True)
                 Prompt.ask("\nPress Enter to continue")
             return False
 
     def _remove_agents(self, agents: List[AgentConfig]) -> None:
-        """Remove deployed agents."""
-        # Filter to deployed agents only
-        deployed = [a for a in agents if getattr(a, "is_deployed", False)]
+        """Remove installed agents."""
+        # Filter to installed agents only
+        installed = [a for a in agents if getattr(a, "is_deployed", False)]
 
-        if not deployed:
-            self.console.print("[yellow]No agents are currently deployed[/yellow]")
+        if not installed:
+            self.console.print("[yellow]No agents are currently installed[/yellow]")
             Prompt.ask("\nPress Enter to continue")
             return
 
-        self.console.print(f"\n[bold]Deployed agents ({len(deployed)}):[/bold]")
-        for idx, agent in enumerate(deployed, 1):
+        self.console.print(f"\n[bold]Installed agents ({len(installed)}):[/bold]")
+        for idx, agent in enumerate(installed, 1):
             display_name = getattr(agent, "display_name", agent.name)
             self.console.print(f"  {idx}. {agent.name} - {display_name}")
 
@@ -1317,8 +1336,8 @@ class ConfigureCommand(BaseCommand):
 
         try:
             idx = int(selection) - 1
-            if 0 <= idx < len(deployed):
-                agent = deployed[idx]
+            if 0 <= idx < len(installed):
+                agent = installed[idx]
                 full_agent_id = getattr(agent, "full_agent_id", agent.name)
 
                 # Determine possible file names (hierarchical and leaf)
@@ -1406,9 +1425,9 @@ class ConfigureCommand(BaseCommand):
                     self.console.print(f"[bold]Source:[/bold] {source}")
                     self.console.print(f"[bold]Version:[/bold] {version[:16]}...")
 
-                # Deployment status
-                is_deployed = getattr(agent, "is_deployed", False)
-                status = "✓ Deployed" if is_deployed else "Available"
+                # Installation status
+                is_installed = getattr(agent, "is_deployed", False)
+                status = "Installed" if is_installed else "Available"
                 self.console.print(f"[bold]Status:[/bold] {status}")
 
                 Prompt.ask("\nPress Enter to continue")
