@@ -1057,7 +1057,9 @@ class ConfigureCommand(BaseCommand):
                     choice_text += f" - {display_name}"
 
                 # Pre-check if deployed
-                is_deployed = agent.name in deployed_ids
+                # Extract leaf name from full path for comparison with deployed_ids
+                agent_leaf_name = agent.name.split("/")[-1]
+                is_deployed = agent_leaf_name in deployed_ids
 
                 agent_choices.append(
                     questionary.Choice(

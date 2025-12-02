@@ -169,17 +169,24 @@ class SimpleAgentManager:
                     # Normalize agent ID (remove -agent suffix if present, replace underscores)
                     normalized_id = agent_id.replace("-agent", "").replace("_", "-")
 
-                    agents.append(
-                        AgentConfig(
-                            name=normalized_id,
-                            description=(
-                                description[:80] + "..."
-                                if len(description) > 80
-                                else description
-                            ),
-                            dependencies=display_tools,
-                        )
+                    # Check if this agent is deployed
+                    is_deployed = self._is_agent_deployed(normalized_id)
+
+                    agent_config = AgentConfig(
+                        name=normalized_id,
+                        description=(
+                            description[:80] + "..."
+                            if len(description) > 80
+                            else description
+                        ),
+                        dependencies=display_tools,
                     )
+
+                    # Set deployment status
+                    agent_config.is_deployed = is_deployed
+                    agent_config.source_type = "local"
+
+                    agents.append(agent_config)
 
                 except (json.JSONDecodeError, KeyError) as e:
                     # Log malformed templates but continue
