@@ -279,6 +279,91 @@ class TestGetDeployedAgentIds:
             assert "ENGINEER" in deployed
             assert len(deployed) == 1  # Only .md file
 
+    def test_virtual_deployment_state_detection(self):
+        """Agents in .mpm_deployment_state should be detected."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            # Create deployment state file
+            state_file = agents_dir / ".mpm_deployment_state"
+            state_data = {
+                "deployment_hash": "test-hash",
+                "last_check_time": 1234567890.0,
+                "last_check_results": {
+                    "agents": {
+                        "python-engineer": {"python": {"satisfied": [], "missing": []}},
+                        "qa": {"python": {"satisfied": [], "missing": []}},
+                        "gcp-ops": {"python": {"satisfied": [], "missing": []}},
+                    }
+                },
+                "agent_count": 3,
+            }
+
+            with state_file.open("w") as f:
+                json.dump(state_data, f)
+
+            deployed = get_deployed_agent_ids(project_dir)
+            assert "python-engineer" in deployed
+            assert "qa" in deployed
+            assert "gcp-ops" in deployed
+            assert len(deployed) == 3
+
+    def test_virtual_and_physical_combined(self):
+        """Agents from both virtual state and physical files should be detected."""
+        import json
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            # Create deployment state file
+            state_file = agents_dir / ".mpm_deployment_state"
+            state_data = {
+                "last_check_results": {
+                    "agents": {
+                        "python-engineer": {"python": {"satisfied": [], "missing": []}},
+                        "qa": {"python": {"satisfied": [], "missing": []}},
+                    }
+                },
+                "agent_count": 2,
+            }
+
+            with state_file.open("w") as f:
+                json.dump(state_data, f)
+
+            # Also create physical file
+            (agents_dir / "DEVOPS.md").write_text("# DevOps Agent")
+
+            deployed = get_deployed_agent_ids(project_dir)
+            assert "python-engineer" in deployed
+            assert "qa" in deployed
+            assert "DEVOPS" in deployed
+            assert len(deployed) == 3  # Combined from both sources
+
+    def test_malformed_deployment_state_graceful(self):
+        """Malformed deployment state should not break detection."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_dir = Path(tmpdir)
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            # Create malformed state file
+            state_file = agents_dir / ".mpm_deployment_state"
+            state_file.write_text("not valid json{}")
+
+            # Create physical file
+            (agents_dir / "ENGINEER.md").write_text("# Engineer")
+
+            # Should still detect physical file even if state is malformed
+            deployed = get_deployed_agent_ids(project_dir)
+            assert "ENGINEER" in deployed
+            assert len(deployed) == 1
+
 
 class TestFilterDeployedAgents:
     """Test filtering of deployed agents from lists."""

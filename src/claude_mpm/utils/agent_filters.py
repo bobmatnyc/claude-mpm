@@ -83,42 +83,107 @@ def filter_base_agents(agents: List[Dict]) -> List[Dict]:
 def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     """Get set of currently deployed agent IDs.
 
-    Checks both new architecture (.claude-mpm/agents/) and legacy architecture
-    (.claude/agents/) for deployed agent files. This ensures backward compatibility
-    during the migration period.
+    Checks virtual deployment state (.mpm_deployment_state) first, then falls back
+    to physical .md files for backward compatibility. This ensures agents are detected
+    whether deployed virtually or as physical files.
 
     Args:
         project_dir: Project directory to check, defaults to current working directory
 
     Returns:
-        Set of deployed agent IDs (filenames without .md extension)
+        Set of deployed agent IDs (leaf names like "python-engineer", "qa")
 
     Examples:
         >>> deployed = get_deployed_agent_ids()
+        >>> "python-engineer" in deployed  # If agent exists in deployment state
+        True
         >>> "ENGINEER" in deployed  # If ENGINEER.md exists
         True
 
     Design Rationale:
-        - Supports both .claude-mpm/agents/ (new) and .claude/agents/ (legacy)
-        - Returns set for O(1) membership testing
-        - Handles missing directories gracefully (returns empty set)
+        - Primary detection: Virtual deployment state (.mpm_deployment_state)
+        - Fallback detection: Physical .md files (.claude-mpm/agents/, .claude/agents/)
+        - Returns leaf names for consistent comparison with agent_id formats
+        - Combines both detection methods for complete coverage
+        - Graceful error handling for malformed or missing state files
+
+    Related:
+        - Fixes checkbox interface showing all agents as "○ [Available]" instead of "● [Installed]"
+        - Matches detection logic from _is_agent_deployed() in agent_state_manager.py
+        - Related to ticket 1M-502: Virtual deployment state detection
     """
     deployed = set()
+
+    # Track if project_dir was explicitly provided
+    explicit_project_dir = project_dir is not None
 
     if project_dir is None:
         project_dir = Path.cwd()
 
+    # NEW: Check virtual deployment state (primary method)
+    # This is the current deployment model used by Claude Code
+    deployment_state_paths = [
+        project_dir / ".claude" / "agents" / ".mpm_deployment_state",
+    ]
+
+    # Only check user-level state if using default project directory
+    # This prevents test isolation issues when explicit project_dir is provided
+    if not explicit_project_dir:
+        deployment_state_paths.append(
+            Path.home() / ".claude" / "agents" / ".mpm_deployment_state"
+        )
+
+    for state_path in deployment_state_paths:
+        if state_path.exists():
+            try:
+                import json
+
+                with state_path.open() as f:
+                    state = json.load(f)
+
+                # Extract agent IDs from deployment state
+                # Agent IDs are leaf names (e.g., "python-engineer", "qa")
+                agents = state.get("last_check_results", {}).get("agents", {})
+                deployed.update(agents.keys())
+
+            except (json.JSONDecodeError, KeyError) as e:
+                # Log error but continue - don't break if state file is malformed
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Failed to read deployment state from {state_path}: {e}")
+                continue
+            except Exception as e:
+                # Catch unexpected errors - fail gracefully
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.debug(f"Unexpected error reading deployment state: {e}")
+                continue
+
+    # EXISTING: Check physical .md files (fallback for backward compatibility)
     # Check new architecture
     new_agents_dir = project_dir / ".claude-mpm" / "agents"
     if new_agents_dir.exists():
         for file in new_agents_dir.glob("*.md"):
-            deployed.add(file.stem)
+            if file.stem not in {"BASE-AGENT", ".DS_Store"}:
+                deployed.add(file.stem)
 
     # Check legacy architecture
     legacy_agents_dir = project_dir / ".claude" / "agents"
     if legacy_agents_dir.exists():
         for file in legacy_agents_dir.glob("*.md"):
-            deployed.add(file.stem)
+            if file.stem not in {"BASE-AGENT", ".DS_Store"}:
+                deployed.add(file.stem)
+
+    # Check user-level directory only if using default project directory
+    # This prevents test isolation issues when explicit project_dir is provided
+    if not explicit_project_dir:
+        user_agents_dir = Path.home() / ".claude" / "agents"
+        if user_agents_dir.exists():
+            for file in user_agents_dir.glob("*.md"):
+                if file.stem not in {"BASE-AGENT", ".DS_Store"}:
+                    deployed.add(file.stem)
 
     return deployed
 
