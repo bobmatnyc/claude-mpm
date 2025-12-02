@@ -522,7 +522,7 @@ def sync_remote_skills_on_startup():
                 # Create progress bar for deployment phase
                 deploy_progress = ProgressBar(
                     total=skill_count,
-                    prefix="Deploying skills",
+                    prefix="Deploying skill directories",
                     show_percentage=True,
                     show_counter=True,
                 )
