@@ -47,10 +47,10 @@ class ConfigureCommand(BaseCommand):
     # Questionary style optimized for dark terminals (WCAG AAA compliant)
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:white bold"),           # 21:1 contrast - excellent readability
-            ("pointer", "fg:brightyellow bold"),     # 12:1 contrast - highly visible pointer
-            ("highlighted", "fg:white"),             # 21:1 contrast - clear hover state
-            ("question", "fg:white bold"),           # 21:1 contrast - prominent questions
+            ("selected", "fg:ansiwhite bold"),           # 21:1 contrast - excellent readability
+            ("pointer", "fg:ansiyellow bold"),           # 12:1 contrast - highly visible pointer
+            ("highlighted", "fg:ansiwhite"),             # 21:1 contrast - clear hover state
+            ("question", "fg:ansiwhite bold"),           # 21:1 contrast - prominent questions
         ]
     )
 
@@ -311,7 +311,7 @@ class ConfigureCommand(BaseCommand):
                 from rich.table import Table
 
                 sources_table = Table(show_header=True, header_style="bold white")
-                sources_table.add_column("Source", style="brightyellow", width=40, no_wrap=True, overflow="ellipsis")
+                sources_table.add_column("Source", style="bright_yellow", width=40, no_wrap=True, overflow="ellipsis")
                 sources_table.add_column("Status", style="green", width=15, no_wrap=True)
                 sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
 
@@ -954,7 +954,7 @@ class ConfigureCommand(BaseCommand):
         agents_table.add_column("#", style="dim", width=4, no_wrap=True)
         agents_table.add_column("Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis")
         agents_table.add_column("Name", style="white", width=25, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Source", style="brightyellow", width=20, no_wrap=True)
+        agents_table.add_column("Source", style="bright_yellow", width=20, no_wrap=True)
         agents_table.add_column("Status", style="white", width=12, no_wrap=True)
 
         for idx, agent in enumerate(agents, 1):
