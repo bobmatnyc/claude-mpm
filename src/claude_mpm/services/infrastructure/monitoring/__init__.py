@@ -9,10 +9,10 @@ from .base import HealthChecker, HealthCheckResult, HealthMetric
 
 # Legacy exports for backward compatibility
 from .legacy import (
-                     AdvancedHealthMonitor,
-                     NetworkConnectivityChecker,
-                     ProcessResourceChecker,
-                     ServiceHealthChecker,
+    AdvancedHealthMonitor,
+    NetworkConnectivityChecker,
+    ProcessResourceChecker,
+    ServiceHealthChecker,
 )
 from .network import NetworkHealthService
 from .process import ProcessHealthService

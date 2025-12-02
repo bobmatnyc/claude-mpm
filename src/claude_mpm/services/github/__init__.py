@@ -7,10 +7,10 @@ Used by agent-improver and skills-manager agents.
 """
 
 from .github_cli_service import (
-                                 GitHubAuthenticationError,
-                                 GitHubCLIError,
-                                 GitHubCLINotInstalledError,
-                                 GitHubCLIService,
+    GitHubAuthenticationError,
+    GitHubCLIError,
+    GitHubCLINotInstalledError,
+    GitHubCLIService,
 )
 
 __all__ = [

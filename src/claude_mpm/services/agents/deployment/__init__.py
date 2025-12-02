@@ -2,11 +2,11 @@
 
 from .agent_deployment import AgentDeploymentService
 from .agent_lifecycle_manager import (
-                                      AgentLifecycleManager,
-                                      AgentLifecycleRecord,
-                                      LifecycleOperation,
-                                      LifecycleOperationResult,
-                                      LifecycleState,
+    AgentLifecycleManager,
+    AgentLifecycleRecord,
+    LifecycleOperation,
+    LifecycleOperationResult,
+    LifecycleState,
 )
 from .agent_versioning import AgentVersionManager
 

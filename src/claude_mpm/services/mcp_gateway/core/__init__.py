@@ -7,20 +7,20 @@ Core interfaces and base classes for the MCP Gateway service.
 
 from .base import BaseMCPService
 from .exceptions import (
-                         MCPCommunicationError,
-                         MCPConfigurationError,
-                         MCPException,
-                         MCPServerError,
-                         MCPToolNotFoundError,
-                         MCPValidationError,
+    MCPCommunicationError,
+    MCPConfigurationError,
+    MCPException,
+    MCPServerError,
+    MCPToolNotFoundError,
+    MCPValidationError,
 )
 from .interfaces import (
-                         IMCPCommunication,
-                         IMCPConfiguration,
-                         IMCPGateway,
-                         IMCPLifecycle,
-                         IMCPToolAdapter,
-                         IMCPToolRegistry,
+    IMCPCommunication,
+    IMCPConfiguration,
+    IMCPGateway,
+    IMCPLifecycle,
+    IMCPToolAdapter,
+    IMCPToolRegistry,
 )
 
 __all__ = [

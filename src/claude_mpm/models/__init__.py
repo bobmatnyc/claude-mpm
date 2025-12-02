@@ -6,12 +6,12 @@ providing a single source of truth for data structures across the system.
 """
 
 from .agent_definition import (
-                               AgentDefinition,
-                               AgentMetadata,
-                               AgentPermissions,
-                               AgentSection,
-                               AgentType,
-                               AgentWorkflow,
+    AgentDefinition,
+    AgentMetadata,
+    AgentPermissions,
+    AgentSection,
+    AgentType,
+    AgentWorkflow,
 )
 
 __all__ = [

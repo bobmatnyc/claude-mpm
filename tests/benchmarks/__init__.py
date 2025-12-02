@@ -20,10 +20,10 @@ Usage:
 """
 
 from .performance_validation_suite import (
-                                           BenchmarkResult,
-                                           BenchmarkSuite,
-                                           PerformanceBenchmarks,
-                                           PerformanceTarget,
+    BenchmarkResult,
+    BenchmarkSuite,
+    PerformanceBenchmarks,
+    PerformanceTarget,
 )
 
 __all__ = [

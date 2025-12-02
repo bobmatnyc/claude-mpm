@@ -14,10 +14,10 @@ Key Components:
 """
 
 from .consumers import (
-                        DeadLetterConsumer,
-                        LoggingConsumer,
-                        MetricsConsumer,
-                        SocketIOConsumer,
+    DeadLetterConsumer,
+    LoggingConsumer,
+    MetricsConsumer,
+    SocketIOConsumer,
 )
 from .core import Event, EventBus, EventMetadata, EventPriority
 from .interfaces import ConsumerConfig, IEventConsumer, IEventProducer

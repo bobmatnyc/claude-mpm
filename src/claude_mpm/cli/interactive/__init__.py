@@ -6,9 +6,9 @@ arguments.
 """
 
 from .agent_wizard import (
-                           AgentWizard,
-                           run_interactive_agent_manager,
-                           run_interactive_agent_wizard,
+    AgentWizard,
+    run_interactive_agent_manager,
+    run_interactive_agent_wizard,
 )
 from .skills_wizard import SkillsWizard, discover_and_link_runtime_skills
 

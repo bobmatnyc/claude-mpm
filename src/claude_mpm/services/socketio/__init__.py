@@ -5,13 +5,13 @@ with separated event handlers for improved maintainability.
 """
 
 from .handlers import (
-                       BaseEventHandler,
-                       ConnectionEventHandler,
-                       EventHandlerRegistry,
-                       FileEventHandler,
-                       GitEventHandler,
-                       MemoryEventHandler,
-                       ProjectEventHandler,
+    BaseEventHandler,
+    ConnectionEventHandler,
+    EventHandlerRegistry,
+    FileEventHandler,
+    GitEventHandler,
+    MemoryEventHandler,
+    ProjectEventHandler,
 )
 
 __all__ = [

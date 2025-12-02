@@ -62,38 +62,38 @@ Note: ProcessStatus has been consolidated into ServiceState (core.enums) as of P
 from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.interfaces.health import IHealthCheck, IHealthCheckManager
 from claude_mpm.services.core.interfaces.process import (
-                                                        IDeploymentStateManager,
-                                                        ILocalProcessManager,
+    IDeploymentStateManager,
+    ILocalProcessManager,
 )
 from claude_mpm.services.core.interfaces.restart import (
-                                                        ICrashDetector,
-                                                        IRestartManager,
-                                                        IRestartPolicy,
+    ICrashDetector,
+    IRestartManager,
+    IRestartPolicy,
 )
 from claude_mpm.services.core.interfaces.stability import (
-                                                        ILogMonitor,
-                                                        IMemoryLeakDetector,
-                                                        IResourceMonitor,
+    ILogMonitor,
+    IMemoryLeakDetector,
+    IResourceMonitor,
 )
 from claude_mpm.services.core.models.health import DeploymentHealth, HealthCheckResult
 from claude_mpm.services.core.models.process import (
-                                                        PROTECTED_PORT_RANGES,
-                                                        DeploymentState,
-                                                        ProcessInfo,
-                                                        ProcessStatus,
-                                                        StartConfig,
-                                                        is_port_protected,
+    PROTECTED_PORT_RANGES,
+    DeploymentState,
+    ProcessInfo,
+    ProcessStatus,
+    StartConfig,
+    is_port_protected,
 )
 from claude_mpm.services.core.models.restart import (
-                                                        CircuitBreakerState,
-                                                        RestartAttempt,
-                                                        RestartConfig,
-                                                        RestartHistory,
+    CircuitBreakerState,
+    RestartAttempt,
+    RestartConfig,
+    RestartHistory,
 )
 from claude_mpm.services.core.models.stability import (
-                                                        LogPatternMatch,
-                                                        MemoryTrend,
-                                                        ResourceUsage,
+    LogPatternMatch,
+    MemoryTrend,
+    ResourceUsage,
 )
 
 # Import service implementations

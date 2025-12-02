@@ -7,10 +7,10 @@ Used by agent-improver and skills-manager agents.
 """
 
 from .git_operations_service import (
-                                     GitAuthenticationError,
-                                     GitConflictError,
-                                     GitOperationError,
-                                     GitOperationsService,
+    GitAuthenticationError,
+    GitConflictError,
+    GitOperationError,
+    GitOperationsService,
 )
 
 __all__ = [

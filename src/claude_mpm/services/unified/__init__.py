@@ -19,23 +19,23 @@ Components:
 """
 
 from .interfaces import (
-                         IAnalyzerService,
-                         IConfigurationService,
-                         IDeploymentService,
-                         ServiceCapability,
-                         ServiceMetadata,
+    IAnalyzerService,
+    IConfigurationService,
+    IDeploymentService,
+    ServiceCapability,
+    ServiceMetadata,
 )
 from .migration import (
-                         FeatureFlag,
-                         MigrationStatus,
-                         ServiceMapper,
-                         create_compatibility_wrapper,
+    FeatureFlag,
+    MigrationStatus,
+    ServiceMapper,
+    create_compatibility_wrapper,
 )
 from .strategies import (
-                         AnalyzerStrategy,
-                         ConfigStrategy,
-                         DeploymentStrategy,
-                         StrategyRegistry,
+    AnalyzerStrategy,
+    ConfigStrategy,
+    DeploymentStrategy,
+    StrategyRegistry,
 )
 from .unified_analyzer import UnifiedAnalyzer
 from .unified_config import UnifiedConfigManager
