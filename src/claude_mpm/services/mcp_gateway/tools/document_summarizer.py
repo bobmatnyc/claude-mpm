@@ -16,9 +16,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (MCPToolDefinition,
-                                                             MCPToolInvocation,
-                                                             MCPToolResult)
+from claude_mpm.services.mcp_gateway.core.interfaces import (
+    MCPToolDefinition,
+    MCPToolInvocation,
+    MCPToolResult,
+)
 from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 
