@@ -47,10 +47,10 @@ class ConfigureCommand(BaseCommand):
     # Questionary style optimized for dark terminals (WCAG AAA compliant)
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:ansiwhite bold"),           # 21:1 contrast - excellent readability
-            ("pointer", "fg:ansiyellow bold"),           # 12:1 contrast - highly visible pointer
-            ("highlighted", "fg:ansiwhite"),             # 21:1 contrast - clear hover state
-            ("question", "fg:ansiwhite bold"),           # 21:1 contrast - prominent questions
+            ("selected", "fg:#e0e0e0 bold"),           # Light gray - excellent readability
+            ("pointer", "fg:#ffd700 bold"),            # Gold/yellow - highly visible pointer
+            ("highlighted", "fg:#e0e0e0"),             # Light gray - clear hover state
+            ("question", "fg:#e0e0e0 bold"),           # Light gray bold - prominent questions
         ]
     )
 
@@ -1051,15 +1051,21 @@ class ConfigureCommand(BaseCommand):
             if agent.name in {a["agent_id"] for a in all_agents}:
                 display_name = getattr(agent, "display_name", agent.name)
 
-                # Simple format: "agent/path - Display Name"
-                choice_text = f"{agent.name}"
-                if display_name and display_name != agent.name:
-                    choice_text += f" - {display_name}"
-
                 # Pre-check if deployed
                 # Extract leaf name from full path for comparison with deployed_ids
                 agent_leaf_name = agent.name.split("/")[-1]
                 is_deployed = agent_leaf_name in deployed_ids
+
+                # Simple format: "agent/path - Display Name [Status]"
+                choice_text = f"{agent.name}"
+                if display_name and display_name != agent.name:
+                    choice_text += f" - {display_name}"
+
+                # Add install status indicator
+                if is_deployed:
+                    choice_text += " [Installed]"
+                else:
+                    choice_text += " [Available]"
 
                 agent_choices.append(
                     questionary.Choice(
