@@ -94,6 +94,14 @@ def main(argv: Optional[list] = None):
             launch_progress.update(10)  # Start progress
             run_background_services()
             launch_progress.finish(message="Ready")
+
+            # Inform user about Claude Code initialization delay (3-5 seconds)
+            # This message appears before os.execvpe() replaces our process
+            # See: docs/research/claude-startup-delay-analysis-2025-12-01.md
+            print(
+                "⏳ Starting Claude Code... (this may take a few seconds)",
+                flush=True,
+            )
         except Exception:
             launch_progress.finish(message="Failed")
             raise
