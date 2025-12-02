@@ -12,6 +12,18 @@
 
 ### Security
 
+## [5.0.1] - 2025-12-01
+
+### Changed
+- Improved skills deployment message clarity
+- Updated "hundreds of skills" messaging across documentation
+- Enhanced startup verification for better reliability
+- Improved Linear ticket transition handling
+
+### Fixed
+- Quality gate validation for patch releases
+- Startup progress indicator accuracy
+
 ## [5.0.0] - 2025-11-30
 
 ### 🚀 Major Features
