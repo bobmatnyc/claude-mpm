@@ -23,6 +23,7 @@ from rich.text import Text
 
 from ...core.config import Config
 from ...services.version_service import VersionService
+from ...utils.agent_filters import apply_all_filters
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
@@ -334,6 +335,8 @@ class ConfigureCommand(BaseCommand):
             try:
                 # Discover agents (includes both local and remote)
                 agents = self.agent_manager.discover_agents(include_remote=True)
+                # Filter BASE_AGENT from display (1M-502 Phase 1)
+                agents = self._filter_agent_configs(agents, filter_deployed=False)
 
                 if not agents:
                     self.console.print("[yellow]No agents found[/yellow]")
@@ -560,6 +563,8 @@ class ConfigureCommand(BaseCommand):
 
                 # Get list of enabled agents
                 agents = self.agent_manager.discover_agents()
+                # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
+                agents = self._filter_agent_configs(agents, filter_deployed=False)
                 enabled_agents = [
                     a.name
                     for a in agents
@@ -626,6 +631,8 @@ class ConfigureCommand(BaseCommand):
 
                 # Get enabled agents
                 agents = self.agent_manager.discover_agents()
+                # Filter BASE_AGENT from all agent operations (1M-502 Phase 1)
+                agents = self._filter_agent_configs(agents, filter_deployed=False)
                 enabled_agents = [
                     a.name
                     for a in agents
@@ -757,6 +764,8 @@ class ConfigureCommand(BaseCommand):
     def _list_agents_non_interactive(self) -> CommandResult:
         """List agents in non-interactive mode."""
         agents = self.agent_manager.discover_agents()
+        # Filter BASE_AGENT from all agent lists (1M-502 Phase 1)
+        agents = self._filter_agent_configs(agents, filter_deployed=False)
 
         data = []
         for agent in agents:
@@ -900,6 +909,43 @@ class ConfigureCommand(BaseCommand):
             self.logger.warning(f"Failed to get configured sources: {e}")
             return []
 
+    def _filter_agent_configs(
+        self, agents: List[AgentConfig], filter_deployed: bool = False
+    ) -> List[AgentConfig]:
+        """Filter AgentConfig objects using agent_filters utilities.
+
+        Converts AgentConfig objects to dictionaries for filtering,
+        then back to AgentConfig. Always filters BASE_AGENT.
+        Optionally filters deployed agents.
+
+        Args:
+            agents: List of AgentConfig objects
+            filter_deployed: Whether to filter out deployed agents (default: False)
+
+        Returns:
+            Filtered list of AgentConfig objects
+        """
+        # Convert AgentConfig to dict format for filtering
+        agent_dicts = []
+        for agent in agents:
+            agent_dicts.append(
+                {
+                    "agent_id": agent.name,
+                    "name": agent.name,
+                    "description": agent.description,
+                    "deployed": getattr(agent, "is_deployed", False),
+                }
+            )
+
+        # Apply filters (always filter BASE_AGENT)
+        filtered_dicts = apply_all_filters(
+            agent_dicts, filter_base=True, filter_deployed=filter_deployed
+        )
+
+        # Convert back to AgentConfig objects
+        filtered_names = {d["agent_id"] for d in filtered_dicts}
+        return [a for a in agents if a.name in filtered_names]
+
     def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
         """Display agents table with source information and deployment status."""
         from rich.table import Table
@@ -951,8 +997,8 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Filter to non-deployed agents
-        deployable = [a for a in agents if not getattr(a, "is_deployed", False)]
+        # Filter BASE_AGENT and deployed agents (1M-502 Phase 1)
+        deployable = self._filter_agent_configs(agents, filter_deployed=True)
 
         if not deployable:
             self.console.print("[yellow]All agents are already deployed[/yellow]")

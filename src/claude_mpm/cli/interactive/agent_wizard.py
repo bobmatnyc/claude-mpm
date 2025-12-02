@@ -15,6 +15,7 @@ from claude_mpm.services.agents.local_template_manager import (
     LocalAgentTemplate,
     LocalAgentTemplateManager,
 )
+from claude_mpm.utils.agent_filters import apply_all_filters
 
 logger = get_logger(__name__)
 
@@ -206,7 +207,10 @@ class AgentWizard:
                 if deployed_file.exists() or deployed_file_alt.exists():
                     agent_data["deployed"] = True
 
-        return list(agents.values())
+        # Filter BASE_AGENT from all agent lists (1M-502 Phase 1)
+        # BASE_AGENT is a build tool, not a deployable agent
+        agent_list = list(agents.values())
+        return apply_all_filters(agent_list, filter_base=True, filter_deployed=False)
 
     def run_interactive_manage(self) -> Tuple[bool, str]:
         """Run interactive agent management menu.
@@ -1073,8 +1077,11 @@ class AgentWizard:
         Args:
             available_agents: List of all available agents
         """
-        # Filter to non-deployed agents
-        deployable = [a for a in available_agents if not a["deployed"]]
+        # Filter to non-deployed agents using improved detection (1M-502 Phase 1)
+        # This checks both .claude-mpm/agents/ and .claude/agents/
+        deployable = apply_all_filters(
+            available_agents, filter_base=True, filter_deployed=True
+        )
 
         if not deployable:
             print("\n✅ All agents are already deployed!")
