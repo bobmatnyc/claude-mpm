@@ -12,6 +12,19 @@
 
 ### Security
 
+## [5.0.2] - 2025-12-02
+
+### Added
+- Arrow-key navigation support in configurator using questionary library
+- User guide for new menu navigation system (docs/CONFIGURATOR_MENU_GUIDE.md)
+
+### Changed
+- Upgraded configurator menus from letter-based input to intuitive arrow-key navigation
+- Improved user experience matching industry standards (AWS CLI, npm, etc.)
+
+### Fixed
+- User confusion about how to select menu options (now uses arrow keys + Enter)
+
 ## [5.0.1] - 2025-12-01
 
 ### Changed
