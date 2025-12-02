@@ -27,10 +27,14 @@ from typing import Any, Dict, List, Optional, Union
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
 
-from .interfaces import (DeploymentResult, IDeploymentService, IUnifiedService,
-                         ServiceCapability, ServiceMetadata)
-from .strategies import (DeploymentStrategy, StrategyContext,
-                         get_strategy_registry)
+from .interfaces import (
+    DeploymentResult,
+    IDeploymentService,
+    IUnifiedService,
+    ServiceCapability,
+    ServiceMetadata,
+)
+from .strategies import DeploymentStrategy, StrategyContext, get_strategy_registry
 
 
 class UnifiedDeploymentService(IDeploymentService, IUnifiedService):

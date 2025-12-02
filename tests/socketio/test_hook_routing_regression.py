@@ -25,8 +25,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 
-from claude_mpm.services.socketio.handlers.connection import \
-    ConnectionEventHandler
+from claude_mpm.services.socketio.handlers.connection import ConnectionEventHandler
 from claude_mpm.services.socketio.handlers.hook import HookEventHandler
 
 

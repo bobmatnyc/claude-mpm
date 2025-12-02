@@ -21,8 +21,12 @@ from unittest.mock import MagicMock, Mock, mock_open, patch
 import pytest
 
 from claude_mpm.services.version_control.semantic_versioning import (
-    ChangeAnalysis, SemanticVersion, SemanticVersionManager, VersionBumpType,
-    VersionMetadata)
+    ChangeAnalysis,
+    SemanticVersion,
+    SemanticVersionManager,
+    VersionBumpType,
+    VersionMetadata,
+)
 
 # ============================================================================
 # TEST FIXTURES

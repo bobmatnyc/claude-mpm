@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from test_code_analysis_browser import CodeAnalysisBrowserTest
 from test_code_analysis_performance import CodeAnalysisPerformanceTest
+
 # Import test modules
 from test_code_analysis_socketio_client import CodeAnalysisSocketIOTest
 from test_code_event_flow import CompleteEventFlowTest
@@ -252,8 +253,7 @@ class ComprehensiveTestRunner:
         # Check for Chrome/Firefox drivers
         try:
             from selenium import webdriver
-            from selenium.webdriver.chrome.options import \
-                Options as ChromeOptions
+            from selenium.webdriver.chrome.options import Options as ChromeOptions
 
             chrome_options = ChromeOptions()
             chrome_options.add_argument("--headless")

@@ -17,10 +17,8 @@ from rich.prompt import Prompt
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.project.archive_manager import ArchiveManager
-from claude_mpm.services.project.documentation_manager import \
-    DocumentationManager
-from claude_mpm.services.project.enhanced_analyzer import \
-    EnhancedProjectAnalyzer
+from claude_mpm.services.project.documentation_manager import DocumentationManager
+from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer
 from claude_mpm.services.project.project_organizer import ProjectOrganizer
 from claude_mpm.utils.display_helper import DisplayHelper
 

@@ -9,15 +9,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.claude_mpm.cli.startup_display import (_format_logging_status,
-                                                _format_two_column_line,
-                                                _get_alien_art,
-                                                _get_cwd_display,
-                                                _get_terminal_width,
-                                                _get_username,
-                                                _parse_changelog_highlights,
-                                                display_startup_banner,
-                                                should_show_banner)
+from src.claude_mpm.cli.startup_display import (
+    _format_logging_status,
+    _format_two_column_line,
+    _get_alien_art,
+    _get_cwd_display,
+    _get_terminal_width,
+    _get_username,
+    _parse_changelog_highlights,
+    display_startup_banner,
+    should_show_banner,
+)
 
 
 class TestUsernameDetection:

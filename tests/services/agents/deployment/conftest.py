@@ -11,8 +11,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
 
 
 class TestAgentDeploymentService:

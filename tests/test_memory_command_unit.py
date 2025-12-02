@@ -16,9 +16,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.memory import (MemoryManagementCommand,
-                                            _parse_memory_content,
-                                            _show_status, manage_memory)
+from claude_mpm.cli.commands.memory import (
+    MemoryManagementCommand,
+    _parse_memory_content,
+    _show_status,
+    manage_memory,
+)
 from claude_mpm.cli.shared.base_command import CommandResult
 from claude_mpm.services.agents.memory import AgentMemoryManager
 

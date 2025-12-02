@@ -13,15 +13,26 @@ from contextlib import closing
 from socket import AF_INET, AF_INET6, SOCK_DGRAM, SOCK_STREAM
 
 import psutil
-from psutil import (FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX, SUNOS,
-                    WINDOWS)
+from psutil import FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX, SUNOS, WINDOWS
 from psutil._common import supports_ipv6
-from psutil.tests import (AF_UNIX, HAS_NET_CONNECTIONS_UNIX, SKIP_SYSCONS,
-                          PsutilTestCase, bind_socket, bind_unix_socket,
-                          check_connection_ntuple, create_sockets,
-                          filter_proc_net_connections, pytest, reap_children,
-                          retry_on_failure, skip_on_access_denied,
-                          tcp_socketpair, unix_socketpair, wait_for_file)
+from psutil.tests import (
+    AF_UNIX,
+    HAS_NET_CONNECTIONS_UNIX,
+    SKIP_SYSCONS,
+    PsutilTestCase,
+    bind_socket,
+    bind_unix_socket,
+    check_connection_ntuple,
+    create_sockets,
+    filter_proc_net_connections,
+    pytest,
+    reap_children,
+    retry_on_failure,
+    skip_on_access_denied,
+    tcp_socketpair,
+    unix_socketpair,
+    wait_for_file,
+)
 
 SOCK_SEQPACKET = getattr(socket, "SOCK_SEQPACKET", object())
 

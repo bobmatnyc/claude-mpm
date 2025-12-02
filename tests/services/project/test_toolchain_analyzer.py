@@ -17,16 +17,20 @@ from typing import Generator
 
 import pytest
 
-from claude_mpm.services.core.models.toolchain import (ConfidenceLevel,
-                                                       DeploymentTarget,
-                                                       Framework,
-                                                       LanguageDetection,
-                                                       ToolchainAnalysis)
+from claude_mpm.services.core.models.toolchain import (
+    ConfidenceLevel,
+    DeploymentTarget,
+    Framework,
+    LanguageDetection,
+    ToolchainAnalysis,
+)
 from claude_mpm.services.project.detection_strategies import (
-    GoDetectionStrategy, NodeJSDetectionStrategy, PythonDetectionStrategy,
-    RustDetectionStrategy)
-from claude_mpm.services.project.toolchain_analyzer import \
-    ToolchainAnalyzerService
+    GoDetectionStrategy,
+    NodeJSDetectionStrategy,
+    PythonDetectionStrategy,
+    RustDetectionStrategy,
+)
+from claude_mpm.services.project.toolchain_analyzer import ToolchainAnalyzerService
 
 
 @pytest.fixture

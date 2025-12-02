@@ -12,8 +12,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from src.claude_mpm.services.agents.agent_selection_service import \
-    AgentSelectionService
+from src.claude_mpm.services.agents.agent_selection_service import AgentSelectionService
 
 
 class TestMinimalConfiguration:

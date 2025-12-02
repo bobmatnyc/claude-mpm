@@ -24,10 +24,12 @@ from mcp.server import Server
 from mcp.types import EmbeddedResource, ImageContent, TextContent, Tool
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
-from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPCommunication,
-                                                             IMCPGateway,
-                                                             IMCPToolRegistry,
-                                                             MCPToolInvocation)
+from claude_mpm.services.mcp_gateway.core.interfaces import (
+    IMCPCommunication,
+    IMCPGateway,
+    IMCPToolRegistry,
+    MCPToolInvocation,
+)
 
 
 class MCPGateway(BaseMCPService, IMCPGateway):

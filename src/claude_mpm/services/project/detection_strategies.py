@@ -21,8 +21,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from ..core.models.toolchain import (ConfidenceLevel, Framework,
-                                     LanguageDetection, ToolchainComponent)
+from ..core.models.toolchain import (
+    ConfidenceLevel,
+    Framework,
+    LanguageDetection,
+    ToolchainComponent,
+)
 
 
 @dataclass

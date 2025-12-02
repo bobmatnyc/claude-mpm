@@ -28,8 +28,7 @@ from unittest.mock import Mock
 import pytest
 
 from claude_mpm.services.core.models.stability import MemoryTrend
-from claude_mpm.services.local_ops.memory_leak_detector import \
-    MemoryLeakDetector
+from claude_mpm.services.local_ops.memory_leak_detector import MemoryLeakDetector
 
 # ============================================================================
 # Memory Leak Detector Tests

@@ -8,8 +8,7 @@ import unittest.mock
 from pathlib import Path
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 def run_final_integration_test():

@@ -249,8 +249,9 @@ class SessionManager:
         """
         try:
             # Lazy import to avoid circular dependencies
-            from claude_mpm.services.infrastructure.resume_log_generator import \
-                ResumeLogGenerator
+            from claude_mpm.services.infrastructure.resume_log_generator import (
+                ResumeLogGenerator,
+            )
 
             generator = ResumeLogGenerator()
 
@@ -294,8 +295,9 @@ class SessionManager:
         try:
             # Lazy import to avoid circular dependencies
             from claude_mpm.models.resume_log import ContextMetrics, ResumeLog
-            from claude_mpm.services.infrastructure.resume_log_generator import \
-                ResumeLogGenerator
+            from claude_mpm.services.infrastructure.resume_log_generator import (
+                ResumeLogGenerator,
+            )
 
             generator = ResumeLogGenerator()
 

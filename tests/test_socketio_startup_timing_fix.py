@@ -18,8 +18,10 @@ from unittest.mock import MagicMock, patch
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.cli.commands.run import (_check_socketio_server_running,
-                                         _start_standalone_socketio_server)
+from claude_mpm.cli.commands.run import (
+    _check_socketio_server_running,
+    _start_standalone_socketio_server,
+)
 from claude_mpm.core.logger import get_logger
 
 

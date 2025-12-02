@@ -13,8 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.core.hook_error_memory import (HookErrorMemory,
-                                               get_hook_error_memory)
+from claude_mpm.core.hook_error_memory import HookErrorMemory, get_hook_error_memory
 
 
 class TestHookErrorMemory:

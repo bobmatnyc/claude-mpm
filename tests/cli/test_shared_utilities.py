@@ -10,18 +10,18 @@ from argparse import ArgumentParser
 
 import yaml
 
-from claude_mpm.cli.shared.argument_patterns import (CommonArguments,
-                                                     add_agent_arguments,
-                                                     add_common_arguments,
-                                                     add_config_arguments,
-                                                     add_logging_arguments,
-                                                     add_memory_arguments,
-                                                     add_output_arguments)
+from claude_mpm.cli.shared.argument_patterns import (
+    CommonArguments,
+    add_agent_arguments,
+    add_common_arguments,
+    add_config_arguments,
+    add_logging_arguments,
+    add_memory_arguments,
+    add_output_arguments,
+)
 from claude_mpm.cli.shared.base_command import CommandResult
-from claude_mpm.cli.shared.error_handling import (CLIErrorHandler,
-                                                  handle_cli_errors)
-from claude_mpm.cli.shared.output_formatters import (OutputFormatter,
-                                                     format_output)
+from claude_mpm.cli.shared.error_handling import CLIErrorHandler, handle_cli_errors
+from claude_mpm.cli.shared.output_formatters import OutputFormatter, format_output
 
 
 class TestCommonArguments:

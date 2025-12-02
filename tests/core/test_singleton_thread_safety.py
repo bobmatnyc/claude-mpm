@@ -16,14 +16,18 @@ from typing import List, Set
 import pytest
 
 from claude_mpm.core.config import Config
-from claude_mpm.core.shared.singleton_manager import (SingletonManager,
-                                                      SingletonMixin,
-                                                      singleton)
+from claude_mpm.core.shared.singleton_manager import (
+    SingletonManager,
+    SingletonMixin,
+    singleton,
+)
 from claude_mpm.services.core.base import SingletonService
 from claude_mpm.services.event_bus.event_bus import EventBus
 from claude_mpm.services.event_bus.relay import get_relay, stop_relay
-from claude_mpm.services.memory.failure_tracker import (get_failure_tracker,
-                                                        reset_failure_tracker)
+from claude_mpm.services.memory.failure_tracker import (
+    get_failure_tracker,
+    reset_failure_tracker,
+)
 from claude_mpm.services.session_manager import SessionManager
 
 

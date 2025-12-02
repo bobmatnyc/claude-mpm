@@ -9,8 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_mpm.services.agent_capabilities_service import \
-    AgentCapabilitiesService
+from claude_mpm.services.agent_capabilities_service import AgentCapabilitiesService
 
 
 class TestAgentCapabilitiesService:

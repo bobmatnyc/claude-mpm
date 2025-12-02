@@ -11,12 +11,14 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.core.models.toolchain import (ConfidenceLevel,
-                                                       DeploymentTarget,
-                                                       Framework,
-                                                       LanguageDetection,
-                                                       ToolchainAnalysis,
-                                                       ToolchainComponent)
+from claude_mpm.services.core.models.toolchain import (
+    ConfidenceLevel,
+    DeploymentTarget,
+    Framework,
+    LanguageDetection,
+    ToolchainAnalysis,
+    ToolchainComponent,
+)
 
 
 class TestConfidenceLevel:

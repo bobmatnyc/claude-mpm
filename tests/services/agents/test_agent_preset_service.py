@@ -6,8 +6,7 @@ Tests preset resolution, validation, and agent lookup functionality.
 import pytest
 
 from src.claude_mpm.config.agent_presets import get_preset_names
-from src.claude_mpm.services.agents.agent_preset_service import \
-    AgentPresetService
+from src.claude_mpm.services.agents.agent_preset_service import AgentPresetService
 
 
 class TestAgentPresetService:

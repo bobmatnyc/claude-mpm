@@ -6,8 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 class TestUserMemoryAggregation(unittest.TestCase):

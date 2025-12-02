@@ -11,17 +11,28 @@ for better structure and maintainability.
 from pathlib import Path
 
 # Import from unified agent loader
-from .agent_loader import (clear_agent_cache, get_agent_prompt,
-                           list_available_agents, validate_agent_files)
+from .agent_loader import (
+    clear_agent_cache,
+    get_agent_prompt,
+    list_available_agents,
+    validate_agent_files,
+)
 
 # Path to PM instructions (used by InstructionCacheService)
 PM_INSTRUCTIONS_PATH = Path(__file__).parent / "PM_INSTRUCTIONS.md"
 
 # Import agent metadata (previously AGENT_CONFIG)
-from .agents_metadata import (ALL_AGENT_CONFIGS, DATA_ENGINEER_CONFIG,
-                              DOCUMENTATION_CONFIG, ENGINEER_CONFIG,
-                              OPS_CONFIG, QA_CONFIG, RESEARCH_CONFIG,
-                              SECURITY_CONFIG, VERSION_CONTROL_CONFIG)
+from .agents_metadata import (
+    ALL_AGENT_CONFIGS,
+    DATA_ENGINEER_CONFIG,
+    DOCUMENTATION_CONFIG,
+    ENGINEER_CONFIG,
+    OPS_CONFIG,
+    QA_CONFIG,
+    RESEARCH_CONFIG,
+    SECURITY_CONFIG,
+    VERSION_CONTROL_CONFIG,
+)
 
 # Available system agents
 __all__ = [

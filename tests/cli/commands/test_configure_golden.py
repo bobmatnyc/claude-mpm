@@ -18,8 +18,7 @@ from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 import pytest
 
-from claude_mpm.cli.commands.configure import (ConfigureCommand,
-                                               SimpleAgentManager)
+from claude_mpm.cli.commands.configure import ConfigureCommand, SimpleAgentManager
 from claude_mpm.cli.shared import CommandResult
 
 

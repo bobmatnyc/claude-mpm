@@ -12,8 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from claude_mpm.utils.robust_installer import (InstallStrategy,
-                                               RobustPackageInstaller)
+from claude_mpm.utils.robust_installer import InstallStrategy, RobustPackageInstaller
 
 
 class TestPEP668Handling(unittest.TestCase):

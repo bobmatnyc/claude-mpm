@@ -8,8 +8,7 @@ Validates conventional commit format and PR body structure.
 
 import unittest
 
-from claude_mpm.services.pr.pr_template_service import (PRTemplateService,
-                                                        PRType)
+from claude_mpm.services.pr.pr_template_service import PRTemplateService, PRType
 
 
 class TestPRTemplateService(unittest.TestCase):

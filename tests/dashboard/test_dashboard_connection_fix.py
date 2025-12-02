@@ -56,8 +56,7 @@ def test_server_startup():
             logger.info("✅ Event registry initialized")
 
             # Check for specific handlers
-            from claude_mpm.services.socketio.handlers import \
-                ConnectionEventHandler
+            from claude_mpm.services.socketio.handlers import ConnectionEventHandler
 
             conn_handler = server.event_registry.get_handler(ConnectionEventHandler)
             if conn_handler:
@@ -164,8 +163,9 @@ def test_connection_resilience():
     logger.info("=" * 60)
 
     try:
-        from claude_mpm.services.socketio.server.connection_manager import \
-            ConnectionManager
+        from claude_mpm.services.socketio.server.connection_manager import (
+            ConnectionManager,
+        )
 
         # Create connection manager
         manager = ConnectionManager(max_buffer_size=100, event_ttl=60)
@@ -218,8 +218,7 @@ def test_event_relay_resilience():
     logger.info("=" * 60)
 
     try:
-        from claude_mpm.services.event_bus.direct_relay import \
-            DirectSocketIORelay
+        from claude_mpm.services.event_bus.direct_relay import DirectSocketIORelay
 
         # Create a mock server for testing
         class MockServer:

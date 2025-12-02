@@ -15,14 +15,18 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from claude_mpm.hooks.base_hook import HookContext, HookResult, HookType
-from claude_mpm.hooks.failure_learning import (FailureDetectionHook,
-                                               FixDetectionHook,
-                                               LearningExtractionHook,
-                                               get_failure_detection_hook,
-                                               get_fix_detection_hook,
-                                               get_learning_extraction_hook)
-from claude_mpm.services.memory.failure_tracker import (get_failure_tracker,
-                                                        reset_failure_tracker)
+from claude_mpm.hooks.failure_learning import (
+    FailureDetectionHook,
+    FixDetectionHook,
+    LearningExtractionHook,
+    get_failure_detection_hook,
+    get_fix_detection_hook,
+    get_learning_extraction_hook,
+)
+from claude_mpm.services.memory.failure_tracker import (
+    get_failure_tracker,
+    reset_failure_tracker,
+)
 
 
 class TestFailureDetectionHook:

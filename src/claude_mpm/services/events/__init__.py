@@ -13,8 +13,12 @@ Key Components:
 - Various consumer implementations
 """
 
-from .consumers import (DeadLetterConsumer, LoggingConsumer, MetricsConsumer,
-                        SocketIOConsumer)
+from .consumers import (
+                        DeadLetterConsumer,
+                        LoggingConsumer,
+                        MetricsConsumer,
+                        SocketIOConsumer,
+)
 from .core import Event, EventBus, EventMetadata, EventPriority
 from .interfaces import ConsumerConfig, IEventConsumer, IEventProducer
 from .producers import HookEventProducer, SystemEventProducer

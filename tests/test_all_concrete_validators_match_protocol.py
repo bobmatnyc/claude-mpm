@@ -7,9 +7,14 @@ implementation as a valid implementer of the protocol.
 """
 
 from jsonschema.protocols import Validator
-from jsonschema.validators import (Draft3Validator, Draft4Validator,
-                                   Draft6Validator, Draft7Validator,
-                                   Draft201909Validator, Draft202012Validator)
+from jsonschema.validators import (
+                                   Draft3Validator,
+                                   Draft4Validator,
+                                   Draft6Validator,
+                                   Draft7Validator,
+                                   Draft201909Validator,
+                                   Draft202012Validator,
+)
 
 my_validator: type[Validator]
 

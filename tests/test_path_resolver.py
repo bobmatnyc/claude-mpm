@@ -5,8 +5,11 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_mpm.core.unified_paths import (get_framework_root,
-                                           get_path_manager, get_project_root)
+from claude_mpm.core.unified_paths import (
+    get_framework_root,
+    get_path_manager,
+    get_project_root,
+)
 
 
 class TestUnifiedPathManager:

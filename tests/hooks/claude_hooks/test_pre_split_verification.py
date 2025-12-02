@@ -46,8 +46,7 @@ class TestPreSplitVerification:
     def test_imports_resolve(self):
         """Verify all imports in the file can be resolved."""
         try:
-            from claude_mpm.hooks.claude_hooks.hook_handler import \
-                ClaudeHookHandler
+            from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
             assert ClaudeHookHandler is not None
         except ImportError as e:

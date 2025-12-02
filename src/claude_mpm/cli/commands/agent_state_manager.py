@@ -203,8 +203,7 @@ class SimpleAgentManager:
     def _discover_remote_agents(self) -> List[AgentConfig]:
         """Discover agents from remote Git sources using GitSourceManager."""
         try:
-            from claude_mpm.services.agents.git_source_manager import \
-                GitSourceManager
+            from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
             # Initialize source manager (uses ~/.claude-mpm/cache/remote-agents by default)
             source_manager = GitSourceManager()

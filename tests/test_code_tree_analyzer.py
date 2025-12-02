@@ -22,11 +22,9 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.tools.code_tree_analyzer import (CodeTreeAnalyzer,
-                                                 PythonAnalyzer)
+from claude_mpm.tools.code_tree_analyzer import CodeTreeAnalyzer, PythonAnalyzer
 from claude_mpm.tools.code_tree_builder import CodeTreeBuilder
-from claude_mpm.tools.code_tree_events import (CodeNodeEvent,
-                                               CodeTreeEventEmitter)
+from claude_mpm.tools.code_tree_events import CodeNodeEvent, CodeTreeEventEmitter
 
 
 class TestPythonAnalyzer(unittest.TestCase):

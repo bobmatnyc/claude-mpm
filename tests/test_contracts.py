@@ -13,12 +13,21 @@ import platform
 import signal
 
 import psutil
-from psutil import (AIX, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX, SUNOS,
-                    WINDOWS)
-from psutil.tests import (GITHUB_ACTIONS, HAS_CPU_FREQ, HAS_NET_IO_COUNTERS,
-                          HAS_SENSORS_FANS, HAS_SENSORS_TEMPERATURES,
-                          SKIP_SYSCONS, PsutilTestCase, create_sockets, enum,
-                          is_namedtuple, kernel_version, pytest)
+from psutil import AIX, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX, SUNOS, WINDOWS
+from psutil.tests import (
+    GITHUB_ACTIONS,
+    HAS_CPU_FREQ,
+    HAS_NET_IO_COUNTERS,
+    HAS_SENSORS_FANS,
+    HAS_SENSORS_TEMPERATURES,
+    SKIP_SYSCONS,
+    PsutilTestCase,
+    create_sockets,
+    enum,
+    is_namedtuple,
+    kernel_version,
+    pytest,
+)
 
 # ===================================================================
 # --- APIs availability

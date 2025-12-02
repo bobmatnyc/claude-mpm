@@ -11,9 +11,11 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_mpm.services.core.models.restart import (CircuitBreakerState,
-                                                     RestartConfig,
-                                                     RestartHistory)
+from claude_mpm.services.core.models.restart import (
+    CircuitBreakerState,
+    RestartConfig,
+    RestartHistory,
+)
 from claude_mpm.services.local_ops.restart_policy import RestartPolicy
 
 

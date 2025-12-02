@@ -17,8 +17,7 @@ add actual Claude API integration.
 
 from typing import Any, Dict, List, Optional
 
-from claude_mpm.services.core.interfaces.model import (ModelCapability,
-                                                       ModelResponse)
+from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
 from claude_mpm.services.model.base_provider import BaseModelProvider
 
 

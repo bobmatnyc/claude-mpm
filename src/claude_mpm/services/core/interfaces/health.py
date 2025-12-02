@@ -29,8 +29,7 @@ USAGE:
 from abc import ABC, abstractmethod
 from typing import List
 
-from claude_mpm.services.core.models.health import (DeploymentHealth,
-                                                    HealthCheckResult)
+from claude_mpm.services.core.models.health import DeploymentHealth, HealthCheckResult
 
 
 class IHealthCheck(ABC):

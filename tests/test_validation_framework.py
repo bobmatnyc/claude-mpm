@@ -11,10 +11,12 @@ from typing import Any, Dict
 import pytest
 import yaml
 
-from claude_mpm.hooks.validation_hooks import (ValidationError,
-                                               ValidationHooks,
-                                               validate_agent_dependencies,
-                                               validate_security_constraints)
+from claude_mpm.hooks.validation_hooks import (
+    ValidationError,
+    ValidationHooks,
+    validate_agent_dependencies,
+    validate_security_constraints,
+)
 from claude_mpm.validation import AgentValidator, ValidationResult
 
 

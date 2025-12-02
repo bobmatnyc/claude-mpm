@@ -17,8 +17,7 @@ from pathlib import Path
 # Add the src directory to the path to import claude_mpm modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 class MemorySystemValidator:

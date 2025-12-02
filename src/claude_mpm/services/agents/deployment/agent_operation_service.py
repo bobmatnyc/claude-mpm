@@ -25,7 +25,10 @@ from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.services.agents.registry.modification_tracker import (
-    AgentModificationTracker, ModificationTier, ModificationType)
+    AgentModificationTracker,
+    ModificationTier,
+    ModificationType,
+)
 from claude_mpm.utils.path_operations import path_ops
 
 
@@ -501,8 +504,9 @@ class AgentOperationService(BaseService):
     ) -> AgentDefinition:
         """Create an AgentDefinition from parameters."""
         # Import here to avoid circular dependency
-        from claude_mpm.services.agents.deployment.agent_definition_factory import \
-            AgentDefinitionFactory
+        from claude_mpm.services.agents.deployment.agent_definition_factory import (
+            AgentDefinitionFactory,
+        )
 
         factory = AgentDefinitionFactory()
         return factory.create_agent_definition(

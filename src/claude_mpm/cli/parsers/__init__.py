@@ -18,8 +18,12 @@ DESIGN DECISION: Each parser module handles a specific command domain:
 - mcp_parser.py: MCP Gateway commands
 """
 
-from .base_parser import (SuggestingArgumentParser, add_common_arguments,
-                          create_parser, preprocess_args)
+from .base_parser import (
+                          SuggestingArgumentParser,
+                          add_common_arguments,
+                          create_parser,
+                          preprocess_args,
+)
 from .run_parser import add_run_arguments
 
 __all__ = [

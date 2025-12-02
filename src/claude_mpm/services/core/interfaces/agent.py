@@ -21,9 +21,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..models.agent_config import (AgentCapabilities, AgentRecommendation,
-                                   ConfigurationPreview, ConfigurationResult,
-                                   ValidationResult)
+from ..models.agent_config import (
+    AgentCapabilities,
+    AgentRecommendation,
+    ConfigurationPreview,
+    ConfigurationResult,
+    ValidationResult,
+)
 from ..models.toolchain import ToolchainAnalysis
 
 

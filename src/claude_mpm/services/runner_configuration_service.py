@@ -223,8 +223,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             return None
 
         try:
-            from claude_mpm.services.claude_session_logger import \
-                get_session_logger
+            from claude_mpm.services.claude_session_logger import get_session_logger
 
             response_logger = get_session_logger(config)
             if project_logger:
@@ -264,8 +263,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.core.interfaces import AgentDeploymentInterface
 
         if not container.is_registered(AgentDeploymentInterface):
-            from claude_mpm.services.agents.deployment import \
-                AgentDeploymentService
+            from claude_mpm.services.agents.deployment import AgentDeploymentService
 
             container.register_factory(
                 AgentDeploymentInterface,
@@ -325,12 +323,12 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         Returns:
             Initialized agent capabilities service or None if failed
         """
-        from claude_mpm.services.core.interfaces import \
-            AgentCapabilitiesInterface
+        from claude_mpm.services.core.interfaces import AgentCapabilitiesInterface
 
         if not container.is_registered(AgentCapabilitiesInterface):
-            from claude_mpm.services.agent_capabilities_service import \
-                AgentCapabilitiesService
+            from claude_mpm.services.agent_capabilities_service import (
+                AgentCapabilitiesService,
+            )
 
             container.register_singleton(
                 AgentCapabilitiesInterface, AgentCapabilitiesService
@@ -356,12 +354,12 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         Returns:
             Initialized system instructions service or None if failed
         """
-        from claude_mpm.services.core.interfaces import \
-            SystemInstructionsInterface
+        from claude_mpm.services.core.interfaces import SystemInstructionsInterface
 
         if not container.is_registered(SystemInstructionsInterface):
-            from claude_mpm.services.system_instructions_service import \
-                SystemInstructionsService
+            from claude_mpm.services.system_instructions_service import (
+                SystemInstructionsService,
+            )
 
             container.register_factory(
                 SystemInstructionsInterface,
@@ -392,12 +390,12 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         Returns:
             Initialized subprocess launcher service or None if failed
         """
-        from claude_mpm.services.core.interfaces import \
-            SubprocessLauncherInterface
+        from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
         if not container.is_registered(SubprocessLauncherInterface):
-            from claude_mpm.services.subprocess_launcher_service import \
-                SubprocessLauncherService
+            from claude_mpm.services.subprocess_launcher_service import (
+                SubprocessLauncherService,
+            )
 
             container.register_factory(
                 SubprocessLauncherInterface,
@@ -450,8 +448,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import CommandHandlerInterface
 
         if not container.is_registered(CommandHandlerInterface):
-            from claude_mpm.services.command_handler_service import \
-                CommandHandlerService
+            from claude_mpm.services.command_handler_service import (
+                CommandHandlerService,
+            )
 
             container.register_factory(
                 CommandHandlerInterface,
@@ -480,8 +479,7 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import MemoryHookInterface
 
         if not container.is_registered(MemoryHookInterface):
-            from claude_mpm.services.memory_hook_service import \
-                MemoryHookService
+            from claude_mpm.services.memory_hook_service import MemoryHookService
 
             container.register_factory(
                 MemoryHookInterface,
@@ -507,12 +505,12 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         Returns:
             Initialized session management service or None if failed
         """
-        from claude_mpm.services.core.interfaces import \
-            SessionManagementInterface
+        from claude_mpm.services.core.interfaces import SessionManagementInterface
 
         if not container.is_registered(SessionManagementInterface):
-            from claude_mpm.services.session_management_service import \
-                SessionManagementService
+            from claude_mpm.services.session_management_service import (
+                SessionManagementService,
+            )
 
             container.register_factory(
                 SessionManagementInterface,

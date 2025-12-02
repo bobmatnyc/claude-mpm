@@ -13,8 +13,7 @@ from textwrap import dedent
 from unittest import TestCase
 
 from jsonschema import Draft4Validator, Draft202012Validator
-from jsonschema.exceptions import (SchemaError, ValidationError,
-                                   _RefResolutionError)
+from jsonschema.exceptions import SchemaError, ValidationError, _RefResolutionError
 from jsonschema.validators import _LATEST_VERSION, validate
 
 with warnings.catch_warnings():

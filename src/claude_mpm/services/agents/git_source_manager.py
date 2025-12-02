@@ -6,10 +6,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.models.git_repository import GitRepository
-from claude_mpm.services.agents.deployment.remote_agent_discovery_service import \
-    RemoteAgentDiscoveryService
-from claude_mpm.services.agents.sources.git_source_sync_service import \
-    GitSourceSyncService
+from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
+    RemoteAgentDiscoveryService,
+)
+from claude_mpm.services.agents.sources.git_source_sync_service import (
+    GitSourceSyncService,
+)
 
 logger = logging.getLogger(__name__)
 

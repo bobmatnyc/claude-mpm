@@ -19,8 +19,9 @@ import pytest
 
 from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
 from src.claude_mpm.models.git_repository import GitRepository
-from src.claude_mpm.services.agents.single_tier_deployment_service import \
-    SingleTierDeploymentService
+from src.claude_mpm.services.agents.single_tier_deployment_service import (
+    SingleTierDeploymentService,
+)
 
 
 @pytest.fixture

@@ -29,9 +29,11 @@ USAGE:
 from abc import ABC, abstractmethod
 from typing import Callable, List
 
-from claude_mpm.services.core.models.stability import (LogPatternMatch,
-                                                       MemoryTrend,
-                                                       ResourceUsage)
+from claude_mpm.services.core.models.stability import (
+    LogPatternMatch,
+    MemoryTrend,
+    ResourceUsage,
+)
 
 
 class IMemoryLeakDetector(ABC):

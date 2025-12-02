@@ -20,10 +20,11 @@ from unittest.mock import patch
 import pytest
 
 from claude_mpm.hooks.base_hook import HookContext, HookType
-from claude_mpm.hooks.memory_integration_hook import (MemoryPostDelegationHook,
-                                                      MemoryPreDelegationHook)
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
+from claude_mpm.hooks.memory_integration_hook import (
+    MemoryPostDelegationHook,
+    MemoryPreDelegationHook,
+)
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 class TestMemoryFixesVerification:

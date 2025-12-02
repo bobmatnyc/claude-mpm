@@ -17,7 +17,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.tools.base_adapter import (
-    CalculatorToolAdapter, EchoToolAdapter, SystemInfoToolAdapter)
+    CalculatorToolAdapter,
+    EchoToolAdapter,
+    SystemInfoToolAdapter,
+)
 
 
 class TestEchoToolAdapter:

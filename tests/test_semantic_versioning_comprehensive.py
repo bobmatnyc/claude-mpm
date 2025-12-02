@@ -21,7 +21,11 @@ import pytest
 
 # Import the classes we're testing
 from claude_mpm.services.version_control.semantic_versioning import (
-    SemanticVersion, SemanticVersionManager, VersionBumpType, VersionMetadata)
+    SemanticVersion,
+    SemanticVersionManager,
+    VersionBumpType,
+    VersionMetadata,
+)
 
 
 class TestSemanticVersion:

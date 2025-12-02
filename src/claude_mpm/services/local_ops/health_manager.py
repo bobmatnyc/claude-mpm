@@ -43,11 +43,12 @@ from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.health import IHealthCheckManager
 from claude_mpm.services.core.interfaces.process import ILocalProcessManager
-from claude_mpm.services.core.models.health import (DeploymentHealth,
-                                                    HealthCheckResult)
-from claude_mpm.services.local_ops.health_checks import (HttpHealthCheck,
-                                                         ProcessHealthCheck,
-                                                         ResourceHealthCheck)
+from claude_mpm.services.core.models.health import DeploymentHealth, HealthCheckResult
+from claude_mpm.services.local_ops.health_checks import (
+    HttpHealthCheck,
+    ProcessHealthCheck,
+    ResourceHealthCheck,
+)
 
 
 class HealthCheckManager(SyncBaseService, IHealthCheckManager):

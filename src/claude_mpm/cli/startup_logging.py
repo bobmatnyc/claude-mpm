@@ -323,8 +323,9 @@ class StartupStatusLogger:
 
         try:
             # Check if MCP gateway startup verification is available
-            from ..services.mcp_gateway.core.startup_verification import \
-                is_mcp_gateway_configured
+            from ..services.mcp_gateway.core.startup_verification import (
+                is_mcp_gateway_configured,
+            )
 
             result["configured"] = is_mcp_gateway_configured()
         except ImportError:

@@ -14,11 +14,16 @@ from unittest.mock import Mock, patch
 import pytest
 
 from claude_mpm.services.mcp_gateway.core.singleton_manager import (
-    MCPGatewayManager, get_gateway_manager, get_gateway_status,
-    is_gateway_running)
+    MCPGatewayManager,
+    get_gateway_manager,
+    get_gateway_status,
+    is_gateway_running,
+)
 from claude_mpm.services.mcp_gateway.core.startup_verification import (
-    MCPGatewayStartupVerifier, is_mcp_gateway_configured,
-    verify_mcp_gateway_on_startup)
+    MCPGatewayStartupVerifier,
+    is_mcp_gateway_configured,
+    verify_mcp_gateway_on_startup,
+)
 
 
 class TestMCPGatewaySingleton:

@@ -13,8 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_mpm.services.project.analyzer import (ProjectAnalyzer,
-                                                  ProjectCharacteristics)
+from claude_mpm.services.project.analyzer import ProjectAnalyzer, ProjectCharacteristics
 
 
 class TestProjectCharacteristics:

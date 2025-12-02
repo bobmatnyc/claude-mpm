@@ -17,9 +17,16 @@ import time
 
 import psutil
 from psutil import BSD, FREEBSD, NETBSD, OPENBSD
-from psutil.tests import (HAS_BATTERY, TOLERANCE_SYS_MEM, PsutilTestCase,
-                          pytest, retry_on_failure, sh, spawn_testproc,
-                          terminate)
+from psutil.tests import (
+    HAS_BATTERY,
+    TOLERANCE_SYS_MEM,
+    PsutilTestCase,
+    pytest,
+    retry_on_failure,
+    sh,
+    spawn_testproc,
+    terminate,
+)
 
 if BSD:
     from psutil._psutil_posix import getpagesize

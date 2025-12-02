@@ -32,8 +32,10 @@ from .configure_navigation import ConfigNavigation
 from .configure_persistence import ConfigPersistence
 from .configure_startup_manager import StartupManager
 from .configure_template_editor import TemplateEditor
-from .configure_validators import parse_id_selection
-from .configure_validators import validate_args as validate_configure_args
+from .configure_validators import (
+    parse_id_selection,
+    validate_args as validate_configure_args,
+)
 
 
 class ConfigureCommand(BaseCommand):
@@ -845,8 +847,7 @@ class ConfigureCommand(BaseCommand):
     def _get_configured_sources(self) -> List[Dict]:
         """Get list of configured agent sources with agent counts."""
         try:
-            from claude_mpm.config.agent_sources import \
-                AgentSourceConfiguration
+            from claude_mpm.config.agent_sources import AgentSourceConfiguration
 
             config = AgentSourceConfiguration.load()
 
@@ -964,10 +965,10 @@ class ConfigureCommand(BaseCommand):
     def _deploy_agents_preset(self) -> None:
         """Deploy agents using preset configuration."""
         try:
-            from claude_mpm.services.agents.agent_preset_service import \
-                AgentPresetService
-            from claude_mpm.services.agents.git_source_manager import \
-                GitSourceManager
+            from claude_mpm.services.agents.agent_preset_service import (
+                AgentPresetService,
+            )
+            from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
             source_manager = GitSourceManager()
             preset_service = AgentPresetService(source_manager)

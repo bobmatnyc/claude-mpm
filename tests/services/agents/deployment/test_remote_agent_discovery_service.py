@@ -11,7 +11,9 @@ from pathlib import Path
 import pytest
 
 from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
-    RemoteAgentDiscoveryService, RemoteAgentMetadata)
+    RemoteAgentDiscoveryService,
+    RemoteAgentMetadata,
+)
 
 
 @pytest.fixture

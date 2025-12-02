@@ -15,8 +15,7 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from claude_mpm.agents.agent_loader import (get_agent_prompt,
-                                            list_available_agents)
+from claude_mpm.agents.agent_loader import get_agent_prompt, list_available_agents
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
 

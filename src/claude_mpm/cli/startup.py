@@ -162,8 +162,9 @@ def discover_and_link_runtime_skills():
     claude-mpm remains functional even if skills discovery fails.
     """
     try:
-        from ..cli.interactive.skills_wizard import \
-            discover_and_link_runtime_skills as discover_skills
+        from ..cli.interactive.skills_wizard import (
+            discover_and_link_runtime_skills as discover_skills,
+        )
 
         discover_skills()
         # Show simple success feedback
@@ -269,8 +270,7 @@ def sync_remote_agents_on_startup():
     3. Log deployment results
     """
     try:
-        from ..services.agents.deployment.agent_deployment import \
-            AgentDeploymentService
+        from ..services.agents.deployment.agent_deployment import AgentDeploymentService
         from ..services.agents.startup_sync import sync_agents_on_startup
         from ..utils.progress import ProgressBar
 
@@ -434,8 +434,7 @@ def sync_remote_skills_on_startup():
         from pathlib import Path
 
         from ..config.skill_sources import SkillSourceConfiguration
-        from ..services.skills.git_skill_source_manager import \
-            GitSkillSourceManager
+        from ..services.skills.git_skill_source_manager import GitSkillSourceManager
         from ..utils.progress import ProgressBar
 
         config = SkillSourceConfiguration()
@@ -694,8 +693,7 @@ def check_mcp_auto_configuration():
         return
 
     try:
-        from ..services.mcp_gateway.auto_configure import \
-            check_and_configure_mcp
+        from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
 
         # Show progress feedback - this operation can take 10+ seconds
         print("Checking MCP configuration...", end="", flush=True)
@@ -764,8 +762,7 @@ def verify_mcp_gateway_startup():
     # Quick verification of MCP services installation
     try:
         from ..core.logger import get_logger
-        from ..services.mcp_service_verifier import \
-            verify_mcp_services_on_startup
+        from ..services.mcp_service_verifier import verify_mcp_services_on_startup
 
         logger = get_logger("mcp_verify")
         all_ok, message = verify_mcp_services_on_startup()
@@ -780,7 +777,9 @@ def verify_mcp_gateway_startup():
 
         from ..core.logger import get_logger
         from ..services.mcp_gateway.core.startup_verification import (
-            is_mcp_gateway_configured, verify_mcp_gateway_on_startup)
+            is_mcp_gateway_configured,
+            verify_mcp_gateway_on_startup,
+        )
 
         logger = get_logger("mcp_prewarm")
 

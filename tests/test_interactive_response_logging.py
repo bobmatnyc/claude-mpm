@@ -196,8 +196,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
 
     def test_singleton_pattern_sharing():
         """Test that multiple ResponseTracker instances share the same session logger."""
-        from claude_mpm.services.claude_session_logger import \
-            get_session_logger
+        from claude_mpm.services.claude_session_logger import get_session_logger
         from claude_mpm.services.response_tracker import ResponseTracker
 
         # Create config

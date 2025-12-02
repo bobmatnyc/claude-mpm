@@ -12,8 +12,9 @@ from pathlib import Path
 # Add src to path for local testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.sources.git_source_sync_service import \
-    GitSourceSyncService
+from claude_mpm.services.agents.sources.git_source_sync_service import (
+    GitSourceSyncService,
+)
 
 
 def test_real_repository_discovery():

@@ -25,8 +25,9 @@ class AgentCheck(BaseDiagnosticCheck):
     def run(self) -> DiagnosticResult:
         """Run agent diagnostics."""
         try:
-            from ....services.agents.deployment.agent_discovery_service import \
-                AgentDiscoveryService
+            from ....services.agents.deployment.agent_discovery_service import (
+                AgentDiscoveryService,
+            )
 
             sub_results = []
             details = {}
@@ -187,8 +188,9 @@ class AgentCheck(BaseDiagnosticCheck):
     def _check_agent_versions(self) -> DiagnosticResult:
         """Check if deployed agents are up-to-date."""
         try:
-            from ....services.agents.deployment.agent_version_manager import \
-                AgentVersionManager
+            from ....services.agents.deployment.agent_version_manager import (
+                AgentVersionManager,
+            )
 
             version_manager = AgentVersionManager()
 
@@ -255,8 +257,7 @@ class AgentCheck(BaseDiagnosticCheck):
     def _validate_agents(self) -> DiagnosticResult:
         """Validate agent configurations."""
         try:
-            from ....services.agents.deployment.agent_validator import \
-                AgentValidator
+            from ....services.agents.deployment.agent_validator import AgentValidator
 
             AgentValidator()
 

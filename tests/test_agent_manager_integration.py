@@ -20,8 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.deployment import AgentLifecycleManager
-from claude_mpm.services.agents.registry.modification_tracker import \
-    ModificationTier
+from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
 
 # Configure logging
 logging.basicConfig(

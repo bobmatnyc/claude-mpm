@@ -10,9 +10,13 @@ from argparse import Namespace
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from claude_mpm.cli.shared.base_command import (AgentCommand, BaseCommand,
-                                                CommandResult, MemoryCommand,
-                                                ServiceCommand)
+from claude_mpm.cli.shared.base_command import (
+    AgentCommand,
+    BaseCommand,
+    CommandResult,
+    MemoryCommand,
+    ServiceCommand,
+)
 
 
 class TestCommandResult:

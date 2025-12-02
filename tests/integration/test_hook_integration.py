@@ -149,8 +149,9 @@ class TestHookToDashboard(unittest.TestCase):
     )
     def test_event_delivery_to_dashboard(self, mock_post):
         """Test that events are delivered to the dashboard."""
-        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import \
-            ConnectionManagerService
+        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import (
+            ConnectionManagerService,
+        )
 
         # Configure mock response
         mock_post.return_value.status_code = 200
@@ -186,8 +187,9 @@ class TestHookToDashboard(unittest.TestCase):
     )
     def test_dashboard_connection_failure(self, mock_post):
         """Test handling of dashboard connection failures."""
-        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import \
-            ConnectionManagerService
+        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import (
+            ConnectionManagerService,
+        )
 
         # Simulate connection failure
         mock_post.side_effect = Exception("Connection refused")
@@ -209,8 +211,9 @@ class TestHookToDashboard(unittest.TestCase):
     )
     def test_event_batching(self, mock_post):
         """Test batching of multiple events."""
-        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import \
-            ConnectionManagerService
+        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import (
+            ConnectionManagerService,
+        )
 
         mock_post.return_value.status_code = 200
 
@@ -283,8 +286,7 @@ class TestConcurrentEvents(unittest.TestCase):
 
     def test_thread_safety(self):
         """Test thread safety of shared state."""
-        from src.claude_mpm.hooks.claude_hooks.services import \
-            StateManagerService
+        from src.claude_mpm.hooks.claude_hooks.services import StateManagerService
 
         state_manager = StateManagerService()
 
@@ -349,8 +351,9 @@ class TestErrorRecovery(unittest.TestCase):
 
     def test_recovery_from_connection_error(self):
         """Test recovery from connection errors."""
-        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import \
-            ConnectionManagerService
+        from src.claude_mpm.hooks.claude_hooks.services.connection_manager_http import (
+            ConnectionManagerService,
+        )
 
         with patch(
             "src.claude_mpm.hooks.claude_hooks.services.connection_manager_http.requests.post"

@@ -256,8 +256,7 @@ def debug_services(args, logger):
 
             # Try to get monitoring service
             try:
-                from ...services.infrastructure.monitoring import \
-                    MonitoringService
+                from ...services.infrastructure.monitoring import MonitoringService
 
                 monitor = MonitoringService()
 

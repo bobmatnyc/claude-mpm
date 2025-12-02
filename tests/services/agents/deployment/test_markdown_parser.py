@@ -16,8 +16,9 @@ import yaml
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment.agent_template_builder import \
-    AgentTemplateBuilder
+from claude_mpm.services.agents.deployment.agent_template_builder import (
+    AgentTemplateBuilder,
+)
 
 
 class TestMarkdownTemplateParser:

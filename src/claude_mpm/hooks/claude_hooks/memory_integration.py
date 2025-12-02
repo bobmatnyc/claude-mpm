@@ -24,7 +24,9 @@ try:
     from claude_mpm.core.shared.config_loader import ConfigLoader
     from claude_mpm.hooks.base_hook import HookContext, HookType
     from claude_mpm.hooks.memory_integration_hook import (
-        MemoryPostDelegationHook, MemoryPreDelegationHook)
+        MemoryPostDelegationHook,
+        MemoryPreDelegationHook,
+    )
 
     MEMORY_HOOKS_AVAILABLE = True
 except Exception as e:

@@ -407,8 +407,10 @@ Available commands:
     )
 
     # Auto-configuration commands (TSK-0054 Phase 5)
-    from .auto_configure_parser import (add_agents_detect_subparser,
-                                        add_agents_recommend_subparser)
+    from .auto_configure_parser import (
+        add_agents_detect_subparser,
+        add_agents_recommend_subparser,
+    )
 
     add_agents_detect_subparser(agents_subparsers)
     add_agents_recommend_subparser(agents_subparsers)

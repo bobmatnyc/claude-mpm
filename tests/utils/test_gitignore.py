@@ -13,8 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.utils.gitignore import (GitIgnoreManager,
-                                        ensure_claude_mpm_gitignore)
+from claude_mpm.utils.gitignore import GitIgnoreManager, ensure_claude_mpm_gitignore
 
 
 class TestGitIgnoreManager:

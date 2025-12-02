@@ -18,8 +18,12 @@ from typing import Dict, List
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader
-from claude_mpm.hooks.base_hook import (HookContext, HookResult,
-                                        PostDelegationHook, PreDelegationHook)
+from claude_mpm.hooks.base_hook import (
+    HookContext,
+    HookResult,
+    PostDelegationHook,
+    PreDelegationHook,
+)
 
 logger = get_logger(__name__)
 

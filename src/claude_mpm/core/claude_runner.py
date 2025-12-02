@@ -54,8 +54,9 @@ class ClaudeRunner:
         # Initialize configuration service
         container = get_container()
         if not container.is_registered(RunnerConfigurationInterface):
-            from claude_mpm.services.runner_configuration_service import \
-                RunnerConfigurationService
+            from claude_mpm.services.runner_configuration_service import (
+                RunnerConfigurationService,
+            )
 
             container.register_singleton(
                 RunnerConfigurationInterface, RunnerConfigurationService
@@ -428,8 +429,7 @@ class ClaudeRunner:
                 base_agent_path = self.deployment_service.base_agent_path
 
             # Lazy import to avoid circular dependencies
-            from claude_mpm.services.agents.deployment import \
-                AgentDeploymentService
+            from claude_mpm.services.agents.deployment import AgentDeploymentService
 
             # Create a single deployment service instance for all agents
             project_deployment = AgentDeploymentService(

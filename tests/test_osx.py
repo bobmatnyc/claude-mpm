@@ -12,9 +12,18 @@ import time
 
 import psutil
 from psutil import MACOS, POSIX
-from psutil.tests import (CI_TESTING, HAS_BATTERY, TOLERANCE_DISK_USAGE,
-                          TOLERANCE_SYS_MEM, PsutilTestCase, pytest,
-                          retry_on_failure, sh, spawn_testproc, terminate)
+from psutil.tests import (
+    CI_TESTING,
+    HAS_BATTERY,
+    TOLERANCE_DISK_USAGE,
+    TOLERANCE_SYS_MEM,
+    PsutilTestCase,
+    pytest,
+    retry_on_failure,
+    sh,
+    spawn_testproc,
+    terminate,
+)
 
 if POSIX:
     from psutil._psutil_posix import getpagesize

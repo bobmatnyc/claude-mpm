@@ -9,11 +9,14 @@ import shutil
 from pathlib import Path
 
 from claude_mpm.core.interfaces import AgentDeploymentInterface
-from claude_mpm.services.agents.deployment.interface_adapter import \
-    AgentDeploymentInterfaceAdapter
+from claude_mpm.services.agents.deployment.interface_adapter import (
+    AgentDeploymentInterfaceAdapter,
+)
+
 # Import the refactored components
-from claude_mpm.services.agents.deployment.refactored_agent_deployment_service import \
-    RefactoredAgentDeploymentService
+from claude_mpm.services.agents.deployment.refactored_agent_deployment_service import (
+    RefactoredAgentDeploymentService,
+)
 from claude_mpm.services.agents.deployment.strategies import DeploymentContext
 
 

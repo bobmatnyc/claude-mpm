@@ -10,8 +10,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.services.subprocess_launcher_service import \
-    SubprocessLauncherService
+from claude_mpm.services.subprocess_launcher_service import SubprocessLauncherService
 
 
 class TestSubprocessLauncherService:

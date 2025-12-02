@@ -350,8 +350,9 @@ class SemanticVersionManager:
         """
         try:
             # Import here to avoid circular dependency
-            from claude_mpm.services.version_control.version_parser import \
-                get_version_parser
+            from claude_mpm.services.version_control.version_parser import (
+                get_version_parser,
+            )
 
             # Use enhanced parser for current version
             parser = get_version_parser(self.project_root)
@@ -887,8 +888,9 @@ class SemanticVersionManager:
         """
         try:
             # Import here to avoid circular dependency
-            from claude_mpm.services.version_control.version_parser import \
-                get_version_parser
+            from claude_mpm.services.version_control.version_parser import (
+                get_version_parser,
+            )
 
             # Use enhanced parser for comprehensive version history
             parser = get_version_parser(self.project_root)

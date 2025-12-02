@@ -22,12 +22,16 @@ from ...constants import LogLevel
 from ...core.logger import get_logger
 from ...core.unified_paths import get_scripts_dir
 from ...services.cli.session_manager import SessionManager
+
 # SocketIOManager functionality now provided by UnifiedDashboardManager
 from ...services.cli.startup_checker import StartupCheckerService
 from ...services.cli.unified_dashboard_manager import UnifiedDashboardManager
 from ..shared import BaseCommand, CommandResult
-from ..startup_logging import (cleanup_old_startup_logs, log_startup_status,
-                               setup_startup_logging)
+from ..startup_logging import (
+    cleanup_old_startup_logs,
+    log_startup_status,
+    setup_startup_logging,
+)
 from ..utils import get_user_input
 
 
@@ -348,11 +352,9 @@ class RunCommand(BaseCommand):
         # Smart dependency checking - only when needed
         if getattr(args, "check_dependencies", True):  # Default to checking
             try:
-                from ...utils.agent_dependency_loader import \
-                    AgentDependencyLoader
+                from ...utils.agent_dependency_loader import AgentDependencyLoader
                 from ...utils.dependency_cache import SmartDependencyChecker
-                from ...utils.environment_context import \
-                    should_prompt_for_dependencies
+                from ...utils.environment_context import should_prompt_for_dependencies
 
                 # Initialize smart checker
                 smart_checker = SmartDependencyChecker()
@@ -616,8 +618,9 @@ def _handle_reload_agents(logger):
         logger.info("Reloading system agents - cleaning existing deployments...")
 
         # Import the cleanup service
-        from ...services.agents.deployment.agent_deployment import \
-            AgentDeploymentService
+        from ...services.agents.deployment.agent_deployment import (
+            AgentDeploymentService,
+        )
         from ...services.cli.agent_cleanup_service import AgentCleanupService
 
         # Create services
@@ -749,8 +752,7 @@ def run_session_legacy(args):
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
     except ImportError:
-        from claude_mpm.core.claude_runner import (ClaudeRunner,
-                                                   create_simple_context)
+        from claude_mpm.core.claude_runner import ClaudeRunner, create_simple_context
 
     # Handle session resumption using the new SessionManager service
     session_manager = SessionManager()
@@ -796,8 +798,7 @@ def run_session_legacy(args):
 
     # Deploy MPM slash commands to user's Claude configuration
     try:
-        from ...services.command_deployment_service import \
-            deploy_commands_on_startup
+        from ...services.command_deployment_service import deploy_commands_on_startup
 
         deploy_commands_on_startup(force=False)
     except Exception as e:
@@ -816,8 +817,7 @@ def run_session_legacy(args):
         try:
             from ...utils.agent_dependency_loader import AgentDependencyLoader
             from ...utils.dependency_cache import SmartDependencyChecker
-            from ...utils.environment_context import \
-                should_prompt_for_dependencies
+            from ...utils.environment_context import should_prompt_for_dependencies
 
             # Initialize smart checker
             smart_checker = SmartDependencyChecker()

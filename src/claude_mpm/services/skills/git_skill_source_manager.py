@@ -22,13 +22,12 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
-from claude_mpm.config.skill_sources import (SkillSource,
-                                             SkillSourceConfiguration)
+from claude_mpm.config.skill_sources import SkillSource, SkillSourceConfiguration
 from claude_mpm.core.logging_config import get_logger
-from claude_mpm.services.agents.sources.git_source_sync_service import \
-    GitSourceSyncService
-from claude_mpm.services.skills.skill_discovery_service import \
-    SkillDiscoveryService
+from claude_mpm.services.agents.sources.git_source_sync_service import (
+    GitSourceSyncService,
+)
+from claude_mpm.services.skills.skill_discovery_service import SkillDiscoveryService
 
 logger = get_logger(__name__)
 

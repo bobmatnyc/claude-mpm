@@ -32,8 +32,10 @@ class UpgradeCommand(BaseCommand):
     def run(self, args) -> CommandResult:
         """Execute the upgrade command."""
         try:
-            from ...services.self_upgrade_service import (InstallationMethod,
-                                                          SelfUpgradeService)
+            from ...services.self_upgrade_service import (
+                InstallationMethod,
+                SelfUpgradeService,
+            )
 
             # Create upgrade service
             upgrade_service = SelfUpgradeService()

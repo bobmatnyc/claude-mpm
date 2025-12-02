@@ -12,7 +12,9 @@ import yaml
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.local_template_manager import (
-    LocalAgentTemplate, LocalAgentTemplateManager)
+    LocalAgentTemplate,
+    LocalAgentTemplateManager,
+)
 
 logger = get_logger(__name__)
 

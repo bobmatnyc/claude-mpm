@@ -18,8 +18,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.services.cli.unified_dashboard_manager import \
-    UnifiedDashboardManager
+from claude_mpm.services.cli.unified_dashboard_manager import UnifiedDashboardManager
 from claude_mpm.services.port_manager import PortManager
 
 

@@ -21,9 +21,14 @@ from typing import Any, List, Optional
 
 try:
     from rich.console import Console
-    from rich.progress import (BarColumn, Progress, SpinnerColumn,
-                               TaskProgressColumn, TextColumn,
-                               TimeRemainingColumn)
+    from rich.progress import (
+        BarColumn,
+        Progress,
+        SpinnerColumn,
+        TaskProgressColumn,
+        TextColumn,
+        TimeRemainingColumn,
+    )
     from rich.table import Table
     from rich.tree import Tree
 

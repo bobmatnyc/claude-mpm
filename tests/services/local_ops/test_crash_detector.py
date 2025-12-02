@@ -10,9 +10,11 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from claude_mpm.services.core.models.health import (DeploymentHealth,
-                                                    HealthCheckResult,
-                                                    HealthStatus)
+from claude_mpm.services.core.models.health import (
+    DeploymentHealth,
+    HealthCheckResult,
+    HealthStatus,
+)
 from claude_mpm.services.local_ops.crash_detector import CrashDetector
 
 

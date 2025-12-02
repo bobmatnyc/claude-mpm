@@ -19,8 +19,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
-    from claude_mpm.services.exceptions import (DaemonConflictError,
-                                                StaleProcessError)
+    from claude_mpm.services.exceptions import DaemonConflictError, StaleProcessError
     from claude_mpm.services.infrastructure.monitoring import HealthStatus
     from claude_mpm.services.recovery_manager import RecoveryAction
     from claude_mpm.services.socketio_server import SocketIOServer

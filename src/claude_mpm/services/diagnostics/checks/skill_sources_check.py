@@ -530,8 +530,9 @@ class SkillSourcesCheck(BaseDiagnosticCheck):
             config: SkillSourceConfiguration instance
         """
         try:
-            from ....services.skills.git_skill_source_manager import \
-                GitSkillSourceManager
+            from ....services.skills.git_skill_source_manager import (
+                GitSkillSourceManager,
+            )
 
             cache_dir = Path.home() / ".claude-mpm" / "cache" / "skills"
             manager = GitSkillSourceManager(config, cache_dir)

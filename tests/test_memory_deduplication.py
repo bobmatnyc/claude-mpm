@@ -12,10 +12,8 @@ This test suite verifies that the memory system correctly:
 
 from pathlib import Path
 
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
-from claude_mpm.services.agents.memory.content_manager import \
-    MemoryContentManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
 
 
 def test_exact_duplicate_prevention():

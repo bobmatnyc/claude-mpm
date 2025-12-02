@@ -10,6 +10,7 @@ This test suite validates:
 """
 
 import asyncio
+
 # Test imports
 import sys
 import time
@@ -21,18 +22,24 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
     from claude_mpm.services.infrastructure.monitoring import (
-        AdvancedHealthMonitor, HealthCheckResult, HealthMetric, HealthStatus,
-        NetworkConnectivityChecker, ProcessResourceChecker,
-        ServiceHealthChecker)
-    from claude_mpm.services.recovery_manager import (CircuitBreaker,
-                                                      CircuitState,
-                                                      GradedRecoveryStrategy,
-                                                      RecoveryAction,
-                                                      RecoveryEvent,
-                                                      RecoveryManager)
+        AdvancedHealthMonitor,
+        HealthCheckResult,
+        HealthMetric,
+        HealthStatus,
+        NetworkConnectivityChecker,
+        ProcessResourceChecker,
+        ServiceHealthChecker,
+    )
+    from claude_mpm.services.recovery_manager import (
+        CircuitBreaker,
+        CircuitState,
+        GradedRecoveryStrategy,
+        RecoveryAction,
+        RecoveryEvent,
+        RecoveryManager,
+    )
     from claude_mpm.services.socketio_server import SocketIOServer
-    from claude_mpm.utils.config_manager import \
-        ConfigurationManager as ConfigManager
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
     HEALTH_MONITORING_AVAILABLE = True
 except ImportError as e:

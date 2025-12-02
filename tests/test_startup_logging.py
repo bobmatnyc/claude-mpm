@@ -11,11 +11,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from claude_mpm.cli.startup_logging import (cleanup_old_startup_logs,
-                                            get_latest_startup_log,
-                                            setup_startup_logging)
-from claude_mpm.services.diagnostics.checks.startup_log_check import \
-    StartupLogCheck
+from claude_mpm.cli.startup_logging import (
+    cleanup_old_startup_logs,
+    get_latest_startup_log,
+    setup_startup_logging,
+)
+from claude_mpm.services.diagnostics.checks.startup_log_check import StartupLogCheck
 from claude_mpm.services.diagnostics.models import DiagnosticStatus
 
 

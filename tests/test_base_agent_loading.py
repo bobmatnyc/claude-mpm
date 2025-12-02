@@ -19,8 +19,10 @@ def test_base_agent_loader():
     print("\n=== Testing base_agent_loader module ===")
 
     from claude_mpm.services.agents.base_agent_loader import (
-        _get_base_agent_file, get_base_agent_path,
-        load_base_agent_instructions)
+        _get_base_agent_file,
+        get_base_agent_path,
+        load_base_agent_instructions,
+    )
 
     # Test getting base agent file path
     print("\n1. Testing _get_base_agent_file()...")
@@ -72,8 +74,9 @@ def test_agent_deployment_service():
     """Test the AgentDeploymentService."""
     print("\n=== Testing AgentDeploymentService ===")
 
-    from claude_mpm.services.agents.deployment.agent_deployment import \
-        AgentDeploymentService
+    from claude_mpm.services.agents.deployment.agent_deployment import (
+        AgentDeploymentService,
+    )
 
     print("\n1. Creating AgentDeploymentService instance...")
     try:
@@ -102,8 +105,9 @@ def test_async_agent_deployment():
     """Test the AsyncAgentDeploymentService."""
     print("\n=== Testing AsyncAgentDeploymentService ===")
 
-    from claude_mpm.services.agents.deployment.async_agent_deployment import \
-        AsyncAgentDeploymentService
+    from claude_mpm.services.agents.deployment.async_agent_deployment import (
+        AsyncAgentDeploymentService,
+    )
 
     print("\n1. Creating AsyncAgentDeploymentService instance...")
     try:

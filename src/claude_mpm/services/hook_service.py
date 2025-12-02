@@ -17,8 +17,13 @@ from typing import Any, Dict, List, Optional
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import HookServiceInterface
 from claude_mpm.core.logging_config import get_logger
-from claude_mpm.hooks.base_hook import (BaseHook, HookContext, HookResult,
-                                        PostDelegationHook, PreDelegationHook)
+from claude_mpm.hooks.base_hook import (
+    BaseHook,
+    HookContext,
+    HookResult,
+    PostDelegationHook,
+    PreDelegationHook,
+)
 
 
 class HookService(HookServiceInterface):

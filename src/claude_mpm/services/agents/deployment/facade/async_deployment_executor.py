@@ -127,8 +127,7 @@ class AsyncDeploymentExecutor(DeploymentExecutor):
         """
         if self._async_module is None:
             try:
-                from claude_mpm.services.agents.deployment import \
-                    async_agent_deployment
+                from claude_mpm.services.agents.deployment import async_agent_deployment
 
                 self._async_module = async_agent_deployment
             except ImportError as e:

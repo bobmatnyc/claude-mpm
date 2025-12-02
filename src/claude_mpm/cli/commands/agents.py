@@ -52,8 +52,9 @@ class AgentsCommand(AgentCommand):
         if self._deployment_service is None:
             try:
                 from ...services import AgentDeploymentService
-                from ...services.agents.deployment.deployment_wrapper import \
-                    DeploymentServiceWrapper
+                from ...services.agents.deployment.deployment_wrapper import (
+                    DeploymentServiceWrapper,
+                )
 
                 base_service = AgentDeploymentService()
                 self._deployment_service = DeploymentServiceWrapper(base_service)
@@ -618,11 +619,11 @@ class AgentsCommand(AgentCommand):
             from pathlib import Path
 
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_preset_service import \
-                AgentPresetService
+            from ...services.agents.agent_preset_service import AgentPresetService
             from ...services.agents.git_source_manager import GitSourceManager
-            from ...services.agents.single_tier_deployment_service import \
-                SingleTierDeploymentService
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
 
             preset_name = args.preset
             dry_run = getattr(args, "dry_run", False)
@@ -1283,8 +1284,7 @@ class AgentsCommand(AgentCommand):
         try:
             if getattr(args, "interactive", False):
                 # Launch interactive wizard
-                from ..interactive.agent_wizard import \
-                    run_interactive_agent_wizard
+                from ..interactive.agent_wizard import run_interactive_agent_wizard
 
                 exit_code = run_interactive_agent_wizard()
                 if exit_code == 0:
@@ -1292,8 +1292,9 @@ class AgentsCommand(AgentCommand):
                 return CommandResult.error_result("Agent creation cancelled or failed")
 
             # Non-interactive creation
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
@@ -1341,8 +1342,9 @@ class AgentsCommand(AgentCommand):
             import os
             import subprocess
 
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
             template = manager.get_local_template(agent_id)
@@ -1392,8 +1394,9 @@ class AgentsCommand(AgentCommand):
             if not agent_ids:
                 return CommandResult.error_result("No agent IDs specified")
 
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
             force = getattr(args, "force", False)
@@ -1512,8 +1515,9 @@ class AgentsCommand(AgentCommand):
 
             # Handle show command
             if getattr(args, "show", False):
-                from ...services.agents.deployment.deployment_config_loader import \
-                    DeploymentConfigLoader
+                from ...services.agents.deployment.deployment_config_loader import (
+                    DeploymentConfigLoader,
+                )
 
                 loader = DeploymentConfigLoader(self.logger)
                 settings = loader.get_deployment_settings(config)
@@ -1641,8 +1645,11 @@ class AgentsCommand(AgentCommand):
         try:
             import yaml
 
-            from ...utils.ui_helpers import (prompt_choice, prompt_multiselect,
-                                             prompt_yes_no)
+            from ...utils.ui_helpers import (
+                prompt_choice,
+                prompt_multiselect,
+                prompt_yes_no,
+            )
 
             # Load current configuration
             if config_path.exists():
@@ -1701,8 +1708,7 @@ class AgentsCommand(AgentCommand):
                 settings["disabled_agents"] = []
             elif choice == "Specify disabled agents":
                 # Get list of available agents
-                from ...services.agents.listing_service import \
-                    AgentListingService
+                from ...services.agents.listing_service import AgentListingService
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
@@ -1719,8 +1725,7 @@ class AgentsCommand(AgentCommand):
                 else:
                     print("No agents found to configure")
             else:  # Specify enabled agents only
-                from ...services.agents.listing_service import \
-                    AgentListingService
+                from ...services.agents.listing_service import AgentListingService
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
@@ -1930,10 +1935,10 @@ class AgentsCommand(AgentCommand):
         """
         try:
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_selection_service import \
-                AgentSelectionService
-            from ...services.agents.single_tier_deployment_service import \
-                SingleTierDeploymentService
+            from ...services.agents.agent_selection_service import AgentSelectionService
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
 
             # Initialize services
             config = AgentSourceConfiguration.load()
@@ -2016,10 +2021,10 @@ class AgentsCommand(AgentCommand):
         """
         try:
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_selection_service import \
-                AgentSelectionService
-            from ...services.agents.single_tier_deployment_service import \
-                SingleTierDeploymentService
+            from ...services.agents.agent_selection_service import AgentSelectionService
+            from ...services.agents.single_tier_deployment_service import (
+                SingleTierDeploymentService,
+            )
 
             # Initialize services
             config = AgentSourceConfiguration.load()

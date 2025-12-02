@@ -40,8 +40,9 @@ class ServiceRegistry:
 
     def register_core_services(self) -> None:
         """Register all core framework services."""
-        from claude_mpm.services.memory.cache.shared_prompt_cache import \
-            SharedPromptCache
+        from claude_mpm.services.memory.cache.shared_prompt_cache import (
+            SharedPromptCache,
+        )
 
         from ..services import AgentDeploymentService
         from .agent_session_manager import AgentSessionManager
@@ -100,8 +101,7 @@ class ServiceRegistry:
             working_dir = Path(config.get("project.dir", "."))
 
         # Lazy import to avoid circular dependencies
-        from claude_mpm.services.agents.deployment import \
-            AgentDeploymentService
+        from claude_mpm.services.agents.deployment import AgentDeploymentService
 
         return AgentDeploymentService(working_directory=working_dir)
 

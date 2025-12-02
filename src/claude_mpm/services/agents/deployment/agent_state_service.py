@@ -19,8 +19,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
-from claude_mpm.services.agents.registry.modification_tracker import \
-    ModificationTier
+from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
 
 
 class LifecycleState(Enum):

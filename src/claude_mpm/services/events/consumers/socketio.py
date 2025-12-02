@@ -103,8 +103,7 @@ class SocketIOConsumer(IEventConsumer):
         if self.socketio_server is None:
             try:
                 # Try to get existing server instance
-                from claude_mpm.services.socketio.server import \
-                    get_socketio_server
+                from claude_mpm.services.socketio.server import get_socketio_server
 
                 self.socketio_server = get_socketio_server()
 

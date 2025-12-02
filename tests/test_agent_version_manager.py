@@ -16,8 +16,9 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment.agent_version_manager import \
-    AgentVersionManager
+from claude_mpm.services.agents.deployment.agent_version_manager import (
+    AgentVersionManager,
+)
 
 
 class TestAgentVersionManager:

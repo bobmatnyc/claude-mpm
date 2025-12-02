@@ -54,8 +54,7 @@ async def test_gateway_creation():
     """Test that MCPGateway can be created with real MCP SDK."""
     print("\nTesting MCPGateway creation...")
     try:
-        from claude_mpm.services.mcp_gateway.server.mcp_gateway import \
-            MCPGateway
+        from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 
         gateway = MCPGateway(gateway_name="test-gateway", version="1.0.0")
 

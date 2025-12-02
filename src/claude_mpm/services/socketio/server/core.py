@@ -286,8 +286,9 @@ class SocketIOServerCore:
                 # Transform hook event format to claude_event format if needed
                 if "hook_event_name" in event_data and "event" not in event_data:
                     # This is a raw hook event, transform it
-                    from claude_mpm.services.socketio.event_normalizer import \
-                        EventNormalizer
+                    from claude_mpm.services.socketio.event_normalizer import (
+                        EventNormalizer,
+                    )
 
                     normalizer = EventNormalizer()
 
@@ -492,8 +493,7 @@ class SocketIOServerCore:
         without complex WebSocket interactions.
         """
         try:
-            from claude_mpm.dashboard.api.simple_directory import \
-                register_routes
+            from claude_mpm.dashboard.api.simple_directory import register_routes
 
             register_routes(self.app)
             self.logger.info(

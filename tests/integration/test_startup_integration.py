@@ -147,8 +147,7 @@ class TestStartupIntegration:
 
     def test_sqlite_state_tracking_persists_across_syncs(self):
         """Test that SQLite state tracking persists file metadata."""
-        from claude_mpm.services.agents.sources.agent_sync_state import \
-            AgentSyncState
+        from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
 
         config = {
             "agent_sync": {

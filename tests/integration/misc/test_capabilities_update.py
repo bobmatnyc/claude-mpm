@@ -8,10 +8,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.management.agent_capabilities_generator import \
-    AgentCapabilitiesGenerator
-from claude_mpm.services.agents.registry.deployed_agent_discovery import \
-    DeployedAgentDiscovery
+from claude_mpm.services.agents.management.agent_capabilities_generator import (
+    AgentCapabilitiesGenerator,
+)
+from claude_mpm.services.agents.registry.deployed_agent_discovery import (
+    DeployedAgentDiscovery,
+)
 
 
 def test_capabilities_generation():

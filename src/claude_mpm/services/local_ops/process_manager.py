@@ -45,10 +45,15 @@ import psutil
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.process import (
-    IDeploymentStateManager, ILocalProcessManager)
-from claude_mpm.services.core.models.process import (DeploymentState,
-                                                     ProcessInfo, StartConfig,
-                                                     is_port_protected)
+    IDeploymentStateManager,
+    ILocalProcessManager,
+)
+from claude_mpm.services.core.models.process import (
+    DeploymentState,
+    ProcessInfo,
+    StartConfig,
+    is_port_protected,
+)
 
 
 class ProcessSpawnError(Exception):

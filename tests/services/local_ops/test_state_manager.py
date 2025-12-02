@@ -29,9 +29,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.services.local_ops import (DeploymentState,
-                                           DeploymentStateManager,
-                                           ProcessStatus, StateCorruptionError)
+from claude_mpm.services.local_ops import (
+    DeploymentState,
+    DeploymentStateManager,
+    ProcessStatus,
+    StateCorruptionError,
+)
 
 
 @pytest.fixture

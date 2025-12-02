@@ -19,13 +19,19 @@ from claude_mpm.config.paths import paths
 from ..constants import CLICommands
 from ..utils.progress import ProgressBar
 from .executor import ensure_run_attributes, execute_command
-from .helpers import (handle_missing_configuration, has_configuration_file,
-                      should_skip_config_check)
+from .helpers import (
+    handle_missing_configuration,
+    has_configuration_file,
+    should_skip_config_check,
+)
 from .parser import create_parser, preprocess_args
-from .startup import (run_background_services,
-                      setup_configure_command_environment,
-                      setup_early_environment, setup_mcp_server_logging,
-                      should_skip_background_services)
+from .startup import (
+    run_background_services,
+    setup_configure_command_environment,
+    setup_early_environment,
+    setup_mcp_server_logging,
+    should_skip_background_services,
+)
 from .startup_display import display_startup_banner, should_show_banner
 from .utils import ensure_directories, setup_logging
 

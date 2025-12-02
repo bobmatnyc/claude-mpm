@@ -82,9 +82,11 @@ def main():
 
     # Test 6: Test backward compatibility functions
     print("\n6. Testing backward compatibility...")
-    from claude_mpm.agents.agent_loader import (get_engineer_agent_prompt,
-                                                get_qa_agent_prompt,
-                                                get_research_agent_prompt)
+    from claude_mpm.agents.agent_loader import (
+        get_engineer_agent_prompt,
+        get_qa_agent_prompt,
+        get_research_agent_prompt,
+    )
 
     try:
         get_engineer_agent_prompt()

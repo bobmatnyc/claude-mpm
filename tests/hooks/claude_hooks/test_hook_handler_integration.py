@@ -97,8 +97,7 @@ class TestIntegration:
 
     def test_complete_delegation_workflow(self):
         """Test complete delegation tracking workflow."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -150,8 +149,7 @@ class TestIntegration:
     def test_periodic_cleanup_trigger(self):
         """Test that periodic cleanup is triggered."""
         from src.claude_mpm.hooks.claude_hooks import hook_handler
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         # Reset recent events to avoid duplicate detection
         hook_handler._recent_events = deque(maxlen=10)
@@ -215,8 +213,7 @@ class TestMockValidation:
 
     def test_subprocess_mocking(self):
         """Test subprocess operations are properly mocked."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -235,8 +232,9 @@ class TestMockValidation:
         """Test signal operations are properly mocked."""
         with patch("signal.signal") as mock_signal:
             with patch("signal.alarm") as mock_alarm:
-                from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-                    ClaudeHookHandler
+                from src.claude_mpm.hooks.claude_hooks.hook_handler import (
+                    ClaudeHookHandler,
+                )
 
                 handler = ClaudeHookHandler()
 

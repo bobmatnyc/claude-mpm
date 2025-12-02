@@ -17,11 +17,13 @@ import pytest
 
 from claude_mpm.cli.commands.auto_configure import AutoConfigureCommand
 from claude_mpm.cli.shared import CommandResult
-from claude_mpm.services.core.models.agent_config import (AgentRecommendation,
-                                                          ConfigurationPreview,
-                                                          ConfigurationResult,
-                                                          ConfigurationStatus,
-                                                          ValidationResult)
+from claude_mpm.services.core.models.agent_config import (
+    AgentRecommendation,
+    ConfigurationPreview,
+    ConfigurationResult,
+    ConfigurationStatus,
+    ValidationResult,
+)
 from claude_mpm.services.core.models.toolchain import ToolchainAnalysis
 
 

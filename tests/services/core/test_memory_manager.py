@@ -16,8 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_mpm.services.core.memory_manager import MemoryManager
-from claude_mpm.services.core.service_interfaces import (ICacheManager,
-                                                         IPathResolver)
+from claude_mpm.services.core.service_interfaces import ICacheManager, IPathResolver
 
 
 class TestMemoryManager:

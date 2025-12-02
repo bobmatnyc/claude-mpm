@@ -10,8 +10,7 @@ from collections import deque
 from typing import Any, Callable, Dict, List, Optional
 
 from ....core.enums import HealthStatus
-from .base import (BaseMonitoringService, HealthChecker, HealthCheckResult,
-                   HealthMetric)
+from .base import BaseMonitoringService, HealthChecker, HealthCheckResult, HealthMetric
 
 
 class MonitoringAggregatorService(BaseMonitoringService):

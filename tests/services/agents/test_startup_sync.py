@@ -10,8 +10,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.services.agents.startup_sync import (get_sync_status,
-                                                     sync_agents_on_startup)
+from claude_mpm.services.agents.startup_sync import (
+    get_sync_status,
+    sync_agents_on_startup,
+)
 
 
 class TestSyncAgentsOnStartup:

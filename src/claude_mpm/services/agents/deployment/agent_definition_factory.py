@@ -5,8 +5,11 @@ from lifecycle manager parameters. Extracted to reduce complexity.
 """
 
 from claude_mpm.core.enums import AgentType, ModificationTier
-from claude_mpm.models.agent_definition import (AgentDefinition, AgentMetadata,
-                                                AgentPermissions)
+from claude_mpm.models.agent_definition import (
+    AgentDefinition,
+    AgentMetadata,
+    AgentPermissions,
+)
 
 
 class AgentDefinitionFactory:

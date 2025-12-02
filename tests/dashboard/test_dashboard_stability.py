@@ -14,8 +14,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
-from playwright.async_api import (BrowserContext, ConsoleMessage, Page,
-                                  Request, Response, async_playwright)
+from playwright.async_api import (
+    BrowserContext,
+    ConsoleMessage,
+    Page,
+    Request,
+    Response,
+    async_playwright,
+)
 
 # Test configuration
 DASHBOARD_URL = "http://localhost:8765"

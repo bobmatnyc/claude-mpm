@@ -9,8 +9,9 @@ from unittest.mock import Mock, patch
 
 from conftest import TestAgentDeploymentService
 
-from claude_mpm.services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
 
 
 class TestBaseAgentHandling(TestAgentDeploymentService):

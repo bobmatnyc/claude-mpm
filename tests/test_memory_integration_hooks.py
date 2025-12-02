@@ -8,8 +8,10 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 from claude_mpm.hooks.base_hook import HookContext, HookType
-from claude_mpm.hooks.memory_integration_hook import (MemoryPostDelegationHook,
-                                                      MemoryPreDelegationHook)
+from claude_mpm.hooks.memory_integration_hook import (
+    MemoryPostDelegationHook,
+    MemoryPreDelegationHook,
+)
 
 
 class TestMemoryPreDelegationHook:

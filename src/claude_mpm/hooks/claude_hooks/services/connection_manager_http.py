@@ -175,8 +175,7 @@ class ConnectionManagerService:
         """Async helper for event emission."""
         try:
             # Lazy load event emitter to reduce initialization overhead
-            from claude_mpm.services.monitor.event_emitter import \
-                get_event_emitter
+            from claude_mpm.services.monitor.event_emitter import get_event_emitter
 
             emitter = await get_event_emitter()
             return await emitter.emit_event(namespace, "claude_event", data)

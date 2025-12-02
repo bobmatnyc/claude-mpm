@@ -11,13 +11,27 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from types import TracebackType
-from typing import (TYPE_CHECKING, Any, Callable, Generic, Iterator, List,
-                    Optional, Type, TypeVar, cast, overload)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    cast,
+    overload,
+)
 from unittest import IsolatedAsyncioTestCase, mock
 
 import aiohttp
-from aiohttp.client import (_RequestContextManager, _RequestOptions,
-                            _WSRequestContextManager)
+from aiohttp.client import (
+    _RequestContextManager,
+    _RequestOptions,
+    _WSRequestContextManager,
+)
 from aiosignal import Signal
 from multidict import CIMultiDict, CIMultiDictProxy
 from yarl import URL
@@ -30,8 +44,17 @@ from .helpers import sentinel
 from .http import HttpVersion, RawRequestMessage
 from .streams import EMPTY_PAYLOAD, StreamReader
 from .typedefs import StrOrURL
-from .web import (Application, AppRunner, BaseRequest, BaseRunner, Request,
-                  Server, ServerRunner, SockSite, UrlMappingMatchInfo)
+from .web import (
+    Application,
+    AppRunner,
+    BaseRequest,
+    BaseRunner,
+    Request,
+    Server,
+    ServerRunner,
+    SockSite,
+    UrlMappingMatchInfo,
+)
 from .web_protocol import _RequestHandler
 
 if TYPE_CHECKING:

@@ -6,7 +6,8 @@ SQLite-based state tracking.
 """
 
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
-from claude_mpm.services.agents.sources.git_source_sync_service import \
-    GitSourceSyncService
+from claude_mpm.services.agents.sources.git_source_sync_service import (
+    GitSourceSyncService,
+)
 
 __all__ = ["AgentSyncState", "GitSourceSyncService"]

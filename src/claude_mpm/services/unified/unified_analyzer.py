@@ -25,14 +25,17 @@ Features:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from claude_mpm.core.enums import (OperationResult, ServiceState,
-                                   ValidationSeverity)
+from claude_mpm.core.enums import OperationResult, ServiceState, ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
-from .interfaces import (AnalysisResult, IAnalyzerService, IUnifiedService,
-                         ServiceCapability, ServiceMetadata)
-from .strategies import (AnalyzerStrategy, StrategyContext,
-                         get_strategy_registry)
+from .interfaces import (
+    AnalysisResult,
+    IAnalyzerService,
+    IUnifiedService,
+    ServiceCapability,
+    ServiceMetadata,
+)
+from .strategies import AnalyzerStrategy, StrategyContext, get_strategy_registry
 
 
 class UnifiedAnalyzer(IAnalyzerService, IUnifiedService):

@@ -15,15 +15,17 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.skill_source import (_generate_source_id,
-                                                  handle_add_skill_source,
-                                                  handle_disable_skill_source,
-                                                  handle_enable_skill_source,
-                                                  handle_list_skill_sources,
-                                                  handle_remove_skill_source,
-                                                  handle_show_skill_source,
-                                                  handle_update_skill_sources,
-                                                  skill_source_command)
+from claude_mpm.cli.commands.skill_source import (
+    _generate_source_id,
+    handle_add_skill_source,
+    handle_disable_skill_source,
+    handle_enable_skill_source,
+    handle_list_skill_sources,
+    handle_remove_skill_source,
+    handle_show_skill_source,
+    handle_update_skill_sources,
+    skill_source_command,
+)
 from claude_mpm.config.skill_sources import SkillSource
 
 

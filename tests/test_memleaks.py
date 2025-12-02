@@ -22,14 +22,29 @@ import platform
 import psutil
 import psutil._common
 from psutil import LINUX, MACOS, OPENBSD, POSIX, SUNOS, WINDOWS
-from psutil.tests import (HAS_CPU_AFFINITY, HAS_CPU_FREQ, HAS_ENVIRON,
-                          HAS_IONICE, HAS_MEMORY_MAPS, HAS_NET_IO_COUNTERS,
-                          HAS_PROC_CPU_NUM, HAS_PROC_IO_COUNTERS, HAS_RLIMIT,
-                          HAS_SENSORS_BATTERY, HAS_SENSORS_FANS,
-                          HAS_SENSORS_TEMPERATURES, TestMemoryLeak,
-                          create_sockets, get_testfn, process_namespace,
-                          pytest, skip_on_access_denied, spawn_testproc,
-                          system_namespace, terminate)
+from psutil.tests import (
+    HAS_CPU_AFFINITY,
+    HAS_CPU_FREQ,
+    HAS_ENVIRON,
+    HAS_IONICE,
+    HAS_MEMORY_MAPS,
+    HAS_NET_IO_COUNTERS,
+    HAS_PROC_CPU_NUM,
+    HAS_PROC_IO_COUNTERS,
+    HAS_RLIMIT,
+    HAS_SENSORS_BATTERY,
+    HAS_SENSORS_FANS,
+    HAS_SENSORS_TEMPERATURES,
+    TestMemoryLeak,
+    create_sockets,
+    get_testfn,
+    process_namespace,
+    pytest,
+    skip_on_access_denied,
+    spawn_testproc,
+    system_namespace,
+    terminate,
+)
 
 cext = psutil._psplatform.cext
 thisproc = psutil.Process()

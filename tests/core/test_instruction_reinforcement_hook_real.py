@@ -7,8 +7,10 @@ These tests verify the real functionality of the instruction reinforcement syste
 import pytest
 
 from claude_mpm.core.instruction_reinforcement_hook import (
-    InstructionReinforcementHook, get_instruction_reinforcement_hook,
-    reset_instruction_reinforcement_hook)
+    InstructionReinforcementHook,
+    get_instruction_reinforcement_hook,
+    reset_instruction_reinforcement_hook,
+)
 
 
 class TestInstructionReinforcementHookReal:

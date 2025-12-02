@@ -13,8 +13,9 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from claude_mpm.hooks.claude_hooks.services.connection_manager import \
-    ConnectionManagerService
+from claude_mpm.hooks.claude_hooks.services.connection_manager import (
+    ConnectionManagerService,
+)
 
 
 class TestSinglePathEmission:

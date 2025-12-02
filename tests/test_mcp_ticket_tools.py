@@ -15,8 +15,12 @@ import pytest
 
 from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.tools.ticket_tools import (
-    TicketCreateTool, TicketListTool, TicketSearchTool, TicketUpdateTool,
-    TicketViewTool)
+    TicketCreateTool,
+    TicketListTool,
+    TicketSearchTool,
+    TicketUpdateTool,
+    TicketViewTool,
+)
 
 
 @pytest.fixture

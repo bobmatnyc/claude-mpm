@@ -23,9 +23,11 @@ from typing import Any, Dict, Optional
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.core.base import BaseService
-from claude_mpm.services.core.interfaces.model import (IModelProvider,
-                                                       ModelCapability,
-                                                       ModelResponse)
+from claude_mpm.services.core.interfaces.model import (
+    IModelProvider,
+    ModelCapability,
+    ModelResponse,
+)
 
 
 class BaseModelProvider(BaseService, IModelProvider):

@@ -212,8 +212,7 @@ class TestPortManagement:
                             # Mock the infinite loop to exit
                             with patch("time.sleep", side_effect=KeyboardInterrupt):
                                 try:
-                                    from claude_mpm.scripts import \
-                                        socketio_daemon
+                                    from claude_mpm.scripts import socketio_daemon
 
                                     socketio_daemon.start_server()
                                 except (KeyboardInterrupt, SystemExit):
@@ -435,8 +434,7 @@ class TestSignalHandling:
                                     "claude_mpm.scripts.socketio_daemon.PortManager"
                                 ):
                                     try:
-                                        from claude_mpm.scripts import \
-                                            socketio_daemon
+                                        from claude_mpm.scripts import socketio_daemon
 
                                         # This will raise KeyboardInterrupt
                                         socketio_daemon.start_server()
@@ -523,8 +521,7 @@ class TestPythonEnvironmentDetection:
         """
         with patch.dict(os.environ, {"VIRTUAL_ENV": "/path/to/venv"}):
             with patch("pathlib.Path.exists", return_value=True):
-                from claude_mpm.scripts.socketio_daemon import \
-                    get_python_executable
+                from claude_mpm.scripts.socketio_daemon import get_python_executable
 
                 result = get_python_executable()
 
@@ -540,8 +537,7 @@ class TestPythonEnvironmentDetection:
         """
         with patch.dict(os.environ, {}, clear=True):  # No VIRTUAL_ENV
             with patch("pathlib.Path.exists", return_value=False):  # No venv dirs
-                from claude_mpm.scripts.socketio_daemon import \
-                    get_python_executable
+                from claude_mpm.scripts.socketio_daemon import get_python_executable
 
                 result = get_python_executable()
 

@@ -12,8 +12,9 @@ import pytest
 
 from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
-from claude_mpm.services.mcp_gateway.tools.document_summarizer import \
-    DocumentSummarizerTool
+from claude_mpm.services.mcp_gateway.tools.document_summarizer import (
+    DocumentSummarizerTool,
+)
 
 
 @pytest.mark.asyncio

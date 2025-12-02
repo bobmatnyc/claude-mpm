@@ -11,8 +11,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.utils.robust_installer import (InstallStrategy,
-                                               RobustPackageInstaller)
+from claude_mpm.utils.robust_installer import InstallStrategy, RobustPackageInstaller
 
 
 def test_environment_detection():

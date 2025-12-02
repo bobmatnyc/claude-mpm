@@ -27,8 +27,7 @@ class TestConnectionManagement:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EVENTBUS_AVAILABLE", True)
     def test_connection_pool_initialization(self, mock_eventbus, mock_get_pool):
         """Test SocketIO connection pool initialization."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         mock_pool = MagicMock()
         mock_get_pool.return_value = mock_pool
@@ -45,8 +44,7 @@ class TestConnectionManagement:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.get_connection_pool")
     def test_connection_pool_initialization_failure(self, mock_get_pool):
         """Test handling of connection pool initialization failure."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         mock_get_pool.side_effect = Exception("Connection failed")
 
@@ -58,8 +56,7 @@ class TestConnectionManagement:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EVENTBUS_AVAILABLE", True)
     def test_eventbus_initialization_failure(self, mock_eventbus):
         """Test handling of EventBus initialization failure."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         mock_eventbus.get_instance.side_effect = Exception("EventBus failed")
 
@@ -87,8 +84,7 @@ class TestConnectionManagement:
 
     def test_cleanup_on_destruction(self):
         """Test cleanup when handler is destroyed."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         mock_pool = MagicMock()
         handler = ClaudeHookHandler()
@@ -105,8 +101,7 @@ class TestStateManagement:
 
     def test_track_delegation(self):
         """Test tracking of agent delegations."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -123,8 +118,7 @@ class TestStateManagement:
 
     def test_track_delegation_cleanup_old(self):
         """Test cleanup of old delegations."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -148,8 +142,7 @@ class TestStateManagement:
 
     def test_get_delegation_agent_type_exact_match(self):
         """Test getting agent type with exact session match."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -161,8 +154,7 @@ class TestStateManagement:
 
     def test_get_delegation_agent_type_from_history(self):
         """Test getting agent type from delegation history."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -175,8 +167,7 @@ class TestStateManagement:
 
     def test_get_delegation_agent_type_unknown(self):
         """Test getting agent type when session not found."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -188,8 +179,7 @@ class TestStateManagement:
     @patch("os.getcwd")
     def test_git_branch_caching(self, mock_getcwd, mock_chdir, mock_run):
         """Test git branch caching with TTL."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -223,8 +213,7 @@ class TestStateManagement:
 
     def test_cleanup_old_entries(self):
         """Test cleanup of old entries from various stores."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 

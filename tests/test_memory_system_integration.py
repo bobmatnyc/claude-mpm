@@ -30,11 +30,10 @@ from unittest.mock import MagicMock, patch
 
 from claude_mpm.core.config import Config
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
 # Import the memory system components
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
-from claude_mpm.services.agents.memory.content_manager import \
-    MemoryContentManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
 
 
 class TestMemorySystemIntegration:

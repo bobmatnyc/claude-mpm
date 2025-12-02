@@ -8,7 +8,10 @@ Comprehensive test suite for the Mermaid diagram generation service.
 import pytest
 
 from claude_mpm.services.visualization.mermaid_generator import (
-    DiagramConfig, DiagramType, MermaidGeneratorService)
+    DiagramConfig,
+    DiagramType,
+    MermaidGeneratorService,
+)
 
 
 class TestMermaidGeneratorService:

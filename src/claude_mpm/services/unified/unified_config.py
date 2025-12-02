@@ -29,8 +29,13 @@ from typing import Any, Dict, List, Optional, Union
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.logging_utils import get_logger
 
-from .interfaces import (ConfigurationResult, IConfigurationService,
-                         IUnifiedService, ServiceCapability, ServiceMetadata)
+from .interfaces import (
+    ConfigurationResult,
+    IConfigurationService,
+    IUnifiedService,
+    ServiceCapability,
+    ServiceMetadata,
+)
 from .strategies import ConfigStrategy, StrategyContext, get_strategy_registry
 
 

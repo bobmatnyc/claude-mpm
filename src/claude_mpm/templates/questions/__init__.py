@@ -16,13 +16,16 @@ Example Usage:
     >>> params = question_set.to_ask_user_question_params()
 """
 
-from claude_mpm.templates.questions.base import (ConditionalTemplate,
-                                                 QuestionTemplate)
+from claude_mpm.templates.questions.base import ConditionalTemplate, QuestionTemplate
 from claude_mpm.templates.questions.pr_strategy import PRWorkflowTemplate
 from claude_mpm.templates.questions.project_init import (
-    DevelopmentWorkflowTemplate, ProjectTypeTemplate)
+                                                 DevelopmentWorkflowTemplate,
+                                                 ProjectTypeTemplate,
+)
 from claude_mpm.templates.questions.ticket_mgmt import (
-    TicketPrioritizationTemplate, TicketScopeTemplate)
+                                                 TicketPrioritizationTemplate,
+                                                 TicketScopeTemplate,
+)
 
 __all__ = [
     "ConditionalTemplate",

@@ -10,7 +10,9 @@ import pytest
 import yaml
 
 from claude_mpm.services.cli.agent_output_formatter import (
-    AgentOutputFormatter, IAgentOutputFormatter)
+    AgentOutputFormatter,
+    IAgentOutputFormatter,
+)
 
 
 class TestAgentOutputFormatter:

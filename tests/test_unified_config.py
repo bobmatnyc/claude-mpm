@@ -12,9 +12,17 @@ import pytest
 import yaml
 
 from claude_mpm.services.unified.config_strategies import (
-    ConfigContext, ConfigFormat, ContextScope, ErrorCategory, ErrorContext,
-    ErrorSeverity, SchemaBuilder, UnifiedConfigService, ValidationRule,
-    ValidationType)
+    ConfigContext,
+    ConfigFormat,
+    ContextScope,
+    ErrorCategory,
+    ErrorContext,
+    ErrorSeverity,
+    SchemaBuilder,
+    UnifiedConfigService,
+    ValidationRule,
+    ValidationType,
+)
 
 
 class TestUnifiedConfigService:
@@ -189,8 +197,7 @@ class TestFileLoaderStrategy:
 
     def test_structured_loader(self):
         """Test loading structured formats"""
-        from claude_mpm.services.unified.config_strategies import \
-            StructuredFileLoader
+        from claude_mpm.services.unified.config_strategies import StructuredFileLoader
 
         loader = StructuredFileLoader()
         assert loader.supports(ConfigFormat.JSON)
@@ -199,8 +206,7 @@ class TestFileLoaderStrategy:
 
     def test_environment_loader(self):
         """Test loading environment configurations"""
-        from claude_mpm.services.unified.config_strategies import \
-            EnvironmentFileLoader
+        from claude_mpm.services.unified.config_strategies import EnvironmentFileLoader
 
         loader = EnvironmentFileLoader()
         assert loader.supports(ConfigFormat.ENV)
@@ -224,8 +230,7 @@ class TestValidationStrategy:
 
     def test_range_validation(self):
         """Test range validator"""
-        from claude_mpm.services.unified.config_strategies import \
-            RangeValidator
+        from claude_mpm.services.unified.config_strategies import RangeValidator
 
         validator = RangeValidator()
         rule = ValidationRule(type=ValidationType.RANGE, params={"min": 1, "max": 10})
@@ -242,8 +247,7 @@ class TestErrorHandlingStrategy:
 
     def test_file_io_error_handling(self):
         """Test file I/O error handling"""
-        from claude_mpm.services.unified.config_strategies import \
-            FileIOErrorHandler
+        from claude_mpm.services.unified.config_strategies import FileIOErrorHandler
 
         handler = FileIOErrorHandler()
         context = ErrorContext(
@@ -260,8 +264,7 @@ class TestErrorHandlingStrategy:
 
     def test_parsing_error_handling(self):
         """Test parsing error handling"""
-        from claude_mpm.services.unified.config_strategies import \
-            ParsingErrorHandler
+        from claude_mpm.services.unified.config_strategies import ParsingErrorHandler
 
         handler = ParsingErrorHandler()
         context = ErrorContext(
@@ -278,8 +281,9 @@ class TestContextStrategy:
 
     def test_hierarchical_context(self):
         """Test hierarchical context management"""
-        from claude_mpm.services.unified.config_strategies import \
-            HierarchicalContextManager
+        from claude_mpm.services.unified.config_strategies import (
+            HierarchicalContextManager,
+        )
 
         manager = HierarchicalContextManager()
 
@@ -299,8 +303,7 @@ class TestContextStrategy:
 
     def test_isolated_context(self):
         """Test isolated context management"""
-        from claude_mpm.services.unified.config_strategies import \
-            IsolatedContextManager
+        from claude_mpm.services.unified.config_strategies import IsolatedContextManager
 
         manager = IsolatedContextManager()
 

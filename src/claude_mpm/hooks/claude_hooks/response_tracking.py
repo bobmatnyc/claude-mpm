@@ -59,8 +59,7 @@ class ResponseTrackingManager:
 
             # Create configuration with optional config file using ConfigLoader
             config_file = os.environ.get("CLAUDE_PM_CONFIG_FILE")
-            from claude_mpm.core.shared.config_loader import (ConfigLoader,
-                                                              ConfigPattern)
+            from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 
             config_loader = ConfigLoader()
             if config_file:

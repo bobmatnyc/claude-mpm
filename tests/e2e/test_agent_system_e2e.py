@@ -43,15 +43,18 @@ import yaml
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from claude_mpm.agents.agent_loader import (AgentLoader, clear_agent_cache,
-                                            get_agent_prompt_with_model_info,
-                                            validate_agent_files)
+from claude_mpm.agents.agent_loader import (
+    AgentLoader,
+    clear_agent_cache,
+    get_agent_prompt_with_model_info,
+    validate_agent_files,
+)
 from claude_mpm.services.agents.deployment import AgentDeploymentService
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
+
 # Skip AgentLifecycleManager due to missing dependencies
 # from claude_mpm.services.agents.deployment import AgentLifecycleManager
-from claude_mpm.services.memory.cache.shared_prompt_cache import \
-    SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.validation.agent_validator import AgentValidator
 
 # Test logger

@@ -20,8 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.agents.auto_deploy_index_parser import \
-    AutoDeployIndexParser
+from claude_mpm.services.agents.auto_deploy_index_parser import AutoDeployIndexParser
 
 
 # Find AUTO-DEPLOY-INDEX.md in test fixtures or use real file

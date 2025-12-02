@@ -23,8 +23,7 @@ Integration points:
 import logging
 from typing import Any
 
-from claude_mpm.hooks.base_hook import (BaseHook, HookContext, HookResult,
-                                        HookType)
+from claude_mpm.hooks.base_hook import BaseHook, HookContext, HookResult, HookType
 from claude_mpm.services.memory.failure_tracker import get_failure_tracker
 
 logger = logging.getLogger(__name__)
@@ -67,8 +66,9 @@ class LearningExtractionHook(BaseHook):
         """
         if self._memory_manager is None:
             try:
-                from claude_mpm.services.agents.memory.agent_memory_manager import \
-                    get_memory_manager
+                from claude_mpm.services.agents.memory.agent_memory_manager import (
+                    get_memory_manager,
+                )
 
                 self._memory_manager = get_memory_manager()
             except ImportError as e:

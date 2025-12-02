@@ -14,12 +14,15 @@ from typing import Any, Dict, List
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.services.unified.strategies import (StrategyMetadata,
-                                                    StrategyPriority)
+from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
 
 from .base import DeploymentContext, DeploymentResult, DeploymentStrategy
-from .utils import (check_docker_container, prepare_deployment_artifact,
-                    rollback_docker_deployment, verify_deployment_health)
+from .utils import (
+    check_docker_container,
+    prepare_deployment_artifact,
+    rollback_docker_deployment,
+    verify_deployment_health,
+)
 
 
 class RailwayDeploymentStrategy(DeploymentStrategy):

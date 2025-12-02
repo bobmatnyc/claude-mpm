@@ -21,9 +21,10 @@ from typing import Any, Dict, List
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.agents.deployment.agent_state_service import (
-    AgentLifecycleRecord, LifecycleState)
-from claude_mpm.services.agents.registry.modification_tracker import \
-    ModificationTier
+    AgentLifecycleRecord,
+    LifecycleState,
+)
+from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
 from claude_mpm.utils.config_manager import ConfigurationManager
 from claude_mpm.utils.path_operations import path_ops
 

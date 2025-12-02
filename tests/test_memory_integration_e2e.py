@@ -8,8 +8,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from claude_mpm.hooks.base_hook import HookContext, HookType
-from claude_mpm.hooks.memory_integration_hook import (MemoryPostDelegationHook,
-                                                      MemoryPreDelegationHook)
+from claude_mpm.hooks.memory_integration_hook import (
+    MemoryPostDelegationHook,
+    MemoryPreDelegationHook,
+)
 from claude_mpm.services.agents.memory import AgentMemoryManager
 
 

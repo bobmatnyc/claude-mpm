@@ -17,8 +17,7 @@ from typing import Any, Dict, List, Optional
 # base_agent_loader adds ~500ms to import time
 # from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
 from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.services.memory.cache.shared_prompt_cache import \
-    SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.shared import ConfigServiceBase
 
 logger = get_logger(__name__)

@@ -488,8 +488,7 @@ async def auto_initialize_vector_search():
 
             # Ensure .mcp-vector-search is in gitignore even if already initialized
             try:
-                from ....services.project.project_organizer import \
-                    ProjectOrganizer
+                from ....services.project.project_organizer import ProjectOrganizer
 
                 if (current_dir / ".claude-mpm").exists() or (
                     current_dir / ".git"
@@ -537,8 +536,7 @@ async def auto_initialize_vector_search():
 
             # Ensure .mcp-vector-search is in gitignore
             try:
-                from ....services.project.project_organizer import \
-                    ProjectOrganizer
+                from ....services.project.project_organizer import ProjectOrganizer
 
                 # Check if we're in a git repository (parent of .claude-mpm)
                 if (current_dir / ".claude-mpm").exists() or (
@@ -712,8 +710,7 @@ async def auto_initialize_kuzu_memory():
 
             # Ensure kuzu-memories is in gitignore even if already initialized
             try:
-                from ....services.project.project_organizer import \
-                    ProjectOrganizer
+                from ....services.project.project_organizer import ProjectOrganizer
 
                 if (current_dir / ".claude-mpm").exists() or (
                     current_dir / ".git"
@@ -745,8 +742,7 @@ async def auto_initialize_kuzu_memory():
 
                 # Ensure kuzu-memories is in gitignore
                 try:
-                    from ....services.project.project_organizer import \
-                        ProjectOrganizer
+                    from ....services.project.project_organizer import ProjectOrganizer
 
                     if (current_dir / ".claude-mpm").exists() or (
                         current_dir / ".git"

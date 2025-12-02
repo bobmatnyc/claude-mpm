@@ -12,8 +12,9 @@ import unittest
 from pathlib import Path
 
 from claude_mpm.services.agents.agent_builder import AgentBuilderService
-from claude_mpm.services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
 
 
 class TestAgenticCoderOptimizerAgent(unittest.TestCase):

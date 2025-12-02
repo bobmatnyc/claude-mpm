@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Test deduplication logic in isolation."""
 
-from claude_mpm.services.agents.memory.content_manager import \
-    MemoryContentManager
+from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
 
 # Create content manager
 content_manager = MemoryContentManager(

@@ -18,11 +18,13 @@ import sys
 from typing import Optional
 
 from ...constants import TicketCommands
-from ...services.ticket_services import (TicketCRUDService,
-                                         TicketFormatterService,
-                                         TicketSearchService,
-                                         TicketValidationService,
-                                         TicketWorkflowService)
+from ...services.ticket_services import (
+    TicketCRUDService,
+    TicketFormatterService,
+    TicketSearchService,
+    TicketValidationService,
+    TicketWorkflowService,
+)
 from ..shared import BaseCommand, CommandResult
 
 

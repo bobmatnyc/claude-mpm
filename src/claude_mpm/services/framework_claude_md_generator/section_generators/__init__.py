@@ -81,6 +81,7 @@ from .core_responsibilities import CoreResponsibilitiesGenerator
 from .delegation_constraints import DelegationConstraintsGenerator
 from .environment_config import EnvironmentConfigGenerator
 from .footer import FooterGenerator
+
 # Import and register all section generators
 from .header import HeaderGenerator
 from .orchestration_principles import OrchestrationPrinciplesGenerator

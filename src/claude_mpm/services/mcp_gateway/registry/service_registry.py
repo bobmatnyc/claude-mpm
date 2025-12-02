@@ -12,11 +12,13 @@ import logging
 from threading import RLock
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPCommunication,
-                                                             IMCPConfiguration,
-                                                             IMCPGateway,
-                                                             IMCPLifecycle,
-                                                             IMCPToolRegistry)
+from claude_mpm.services.mcp_gateway.core.interfaces import (
+    IMCPCommunication,
+    IMCPConfiguration,
+    IMCPGateway,
+    IMCPLifecycle,
+    IMCPToolRegistry,
+)
 from claude_mpm.services.shared import ManagerBase
 
 T = TypeVar("T")
@@ -396,12 +398,9 @@ def register_mcp_services() -> None:
 
     registry.register(IMCPGateway, MCPGateway, singleton=True)
 
-    from claude_mpm.services.mcp_gateway.config.configuration import \
-        MCPConfiguration
-    from claude_mpm.services.mcp_gateway.registry.tool_registry import \
-        ToolRegistry
-    from claude_mpm.services.mcp_gateway.server.stdio_handler import \
-        StdioHandler
+    from claude_mpm.services.mcp_gateway.config.configuration import MCPConfiguration
+    from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
+    from claude_mpm.services.mcp_gateway.server.stdio_handler import StdioHandler
 
     registry.register(IMCPCommunication, StdioHandler, singleton=True)
     registry.register(IMCPToolRegistry, ToolRegistry, singleton=True)

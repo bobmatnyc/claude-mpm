@@ -25,42 +25,94 @@ MODULES:
 
 # Agent interfaces (agent management and operations)
 from .agent import (  # Agent registry; Agent deployment; Agent capabilities; System instructions; Subprocess management; Runner configuration; Agent recommendation; Auto-configuration
-    AgentCapabilitiesInterface, AgentDeploymentInterface, AgentMetadata,
-    IAgentRecommender, IAgentRegistry, IAutoConfigManager,
-    RunnerConfigurationInterface, SubprocessLauncherInterface,
-    SystemInstructionsInterface)
+    AgentCapabilitiesInterface,
+    AgentDeploymentInterface,
+    AgentMetadata,
+    IAgentRecommender,
+    IAgentRegistry,
+    IAutoConfigManager,
+    RunnerConfigurationInterface,
+    SubprocessLauncherInterface,
+    SystemInstructionsInterface,
+)
+
 # Communication interfaces (external services)
 from .communication import (  # WebSocket/SocketIO; Project analysis; Ticket management
-    ProjectAnalyzerInterface, SocketIOServiceInterface, TicketManagerInterface)
+    ProjectAnalyzerInterface,
+    SocketIOServiceInterface,
+    TicketManagerInterface,
+)
+
 # Health interfaces (health monitoring)
-from .health import (IHealthCheck,  # Health checks; Health monitoring
-                     IHealthCheckManager)
+from .health import (  # Health checks; Health monitoring
+    IHealthCheck,
+    IHealthCheckManager,
+)
+
 # Infrastructure interfaces (core framework services)
 from .infrastructure import (  # Type variables; Core dependency injection; Configuration management; Caching; Health monitoring; Template management; Service factory; Logging; Service lifecycle; Error handling; Performance monitoring; Event system
-    CacheEntry, HealthStatus, ICacheService, IConfigurationManager,
-    IConfigurationService, IErrorHandler, IEventBus, IHealthMonitor,
-    IPerformanceMonitor, IPromptCache, IServiceContainer, IServiceFactory,
-    IServiceLifecycle, IStructuredLogger, ITemplateManager, ServiceType, T,
-    TemplateRenderContext)
+    CacheEntry,
+    HealthStatus,
+    ICacheService,
+    IConfigurationManager,
+    IConfigurationService,
+    IErrorHandler,
+    IEventBus,
+    IHealthMonitor,
+    IPerformanceMonitor,
+    IPromptCache,
+    IServiceContainer,
+    IServiceFactory,
+    IServiceLifecycle,
+    IStructuredLogger,
+    ITemplateManager,
+    ServiceType,
+    T,
+    TemplateRenderContext,
+)
+
 # Model interfaces (content processing and model providers)
-from .model import (IModelProvider, IModelRouter,  # Model providers; Routing
-                    ModelCapability, ModelProvider, ModelResponse)
+from .model import (  # Model providers; Routing
+    IModelProvider,
+    IModelRouter,
+    ModelCapability,
+    ModelProvider,
+    ModelResponse,
+)
+
 # Process interfaces (local process management)
 from .process import (  # Process lifecycle; State persistence
-    IDeploymentStateManager, ILocalProcessManager)
+    IDeploymentStateManager,
+    ILocalProcessManager,
+)
+
 # Project interfaces (project analysis and toolchain detection)
 from .project import IToolchainAnalyzer  # Toolchain analysis
+
 # Restart interfaces (auto-restart management)
 from .restart import (  # Crash detection; Restart policy; Restart orchestration
-    ICrashDetector, IRestartManager, IRestartPolicy)
+    ICrashDetector,
+    IRestartManager,
+    IRestartPolicy,
+)
+
 # Service interfaces (business services)
 from .service import (  # Version service; Command handling; Memory management; Session management; Utilities; Hook service
-    CommandHandlerInterface, HookServiceInterface, MemoryHookInterface,
-    MemoryServiceInterface, SessionManagementInterface,
-    UtilityServiceInterface, VersionServiceInterface)
+    CommandHandlerInterface,
+    HookServiceInterface,
+    MemoryHookInterface,
+    MemoryServiceInterface,
+    SessionManagementInterface,
+    UtilityServiceInterface,
+    VersionServiceInterface,
+)
+
 # Stability interfaces (proactive monitoring and crash prevention)
 from .stability import (  # Memory leak detection; Log monitoring; Resource monitoring
-    ILogMonitor, IMemoryLeakDetector, IResourceMonitor)
+    ILogMonitor,
+    IMemoryLeakDetector,
+    IResourceMonitor,
+)
 
 
 # Interface registry for dependency injection discovery

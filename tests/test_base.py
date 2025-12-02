@@ -4,8 +4,15 @@
 # the New BSD License: https://opensource.org/license/bsd-3-clause/
 """Test for object db"""
 
-from gitdb import (IStream, ODeltaPackInfo, ODeltaPackStream, OInfo, OPackInfo,
-                   OPackStream, OStream)
+from gitdb import (
+    IStream,
+    ODeltaPackInfo,
+    ODeltaPackStream,
+    OInfo,
+    OPackInfo,
+    OPackStream,
+    OStream,
+)
 from gitdb.test.lib import DeriveTest, DummyStream, TestBase
 from gitdb.typ import str_blob_type
 from gitdb.util import NULL_BIN_SHA

@@ -29,9 +29,11 @@ def test_path_detection():
     print("-" * 40)
 
     try:
-        from claude_mpm.core.unified_paths import (DeploymentContext,
-                                                   PathContext,
-                                                   get_path_manager)
+        from claude_mpm.core.unified_paths import (
+            DeploymentContext,
+            PathContext,
+            get_path_manager,
+        )
 
         # Clear cache to get fresh detection
         PathContext.detect_deployment_context.cache_clear()

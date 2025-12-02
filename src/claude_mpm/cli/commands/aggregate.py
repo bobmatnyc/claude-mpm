@@ -18,8 +18,12 @@ from typing import Optional
 
 from ...core.enums import OutputFormat
 from ...core.logger import get_logger
-from ...services.event_aggregator import (aggregator_status, get_aggregator,
-                                          start_aggregator, stop_aggregator)
+from ...services.event_aggregator import (
+    aggregator_status,
+    get_aggregator,
+    start_aggregator,
+    stop_aggregator,
+)
 from ..shared import BaseCommand, CommandResult
 
 logger = get_logger("cli.aggregate")

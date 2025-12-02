@@ -12,11 +12,22 @@ from typing import List, Type
 from claude_mpm.core.enums import ValidationSeverity
 from claude_mpm.core.logging_utils import get_logger
 
-from .checks import (AgentCheck, AgentSourcesCheck, BaseDiagnosticCheck,
-                     ClaudeCodeCheck, CommonIssuesCheck, ConfigurationCheck,
-                     FilesystemCheck, InstallationCheck, InstructionsCheck,
-                     MCPCheck, MCPServicesCheck, MonitorCheck,
-                     SkillSourcesCheck, StartupLogCheck)
+from .checks import (
+    AgentCheck,
+    AgentSourcesCheck,
+    BaseDiagnosticCheck,
+    ClaudeCodeCheck,
+    CommonIssuesCheck,
+    ConfigurationCheck,
+    FilesystemCheck,
+    InstallationCheck,
+    InstructionsCheck,
+    MCPCheck,
+    MCPServicesCheck,
+    MonitorCheck,
+    SkillSourcesCheck,
+    StartupLogCheck,
+)
 from .models import DiagnosticResult, DiagnosticSummary
 
 logger = get_logger(__name__)

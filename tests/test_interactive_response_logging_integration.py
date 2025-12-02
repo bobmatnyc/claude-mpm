@@ -44,8 +44,7 @@ def test_interactive_response_logging_integration():
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
         from claude_mpm.core.interactive_session import InteractiveSession
-        from claude_mpm.hooks.claude_hooks.hook_handler import \
-            ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 
         # Create config
         config = Config(config_file=str(config_file))

@@ -9,9 +9,11 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from claude_mpm.services.cli.startup_checker import (IStartupChecker,
-                                                     StartupCheckerService,
-                                                     StartupWarning)
+from claude_mpm.services.cli.startup_checker import (
+    IStartupChecker,
+    StartupCheckerService,
+    StartupWarning,
+)
 
 
 class MockConfigService:

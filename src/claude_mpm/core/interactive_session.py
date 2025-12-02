@@ -55,8 +55,7 @@ class InteractiveSession:
 
         if response_logging_enabled:
             try:
-                from claude_mpm.services.response_tracker import \
-                    ResponseTracker
+                from claude_mpm.services.response_tracker import ResponseTracker
 
                 self.response_tracker = ResponseTracker(self.runner.config)
                 self.logger.info(
@@ -399,8 +398,9 @@ class InteractiveSession:
 
         # Add system instructions with file-based caching
         from claude_mpm.core.claude_runner import create_simple_context
-        from claude_mpm.services.instructions.instruction_cache_service import \
-            InstructionCacheService
+        from claude_mpm.services.instructions.instruction_cache_service import (
+            InstructionCacheService,
+        )
 
         system_prompt = self.runner._create_system_prompt()
         if system_prompt and system_prompt != create_simple_context():
@@ -484,8 +484,7 @@ class InteractiveSession:
             List with ["--agents", "<json>"] or None if conversion fails
         """
         try:
-            from claude_mpm.services.native_agent_converter import \
-                NativeAgentConverter
+            from claude_mpm.services.native_agent_converter import NativeAgentConverter
 
             converter = NativeAgentConverter()
             agents = converter.load_agents_from_templates()

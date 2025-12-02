@@ -30,7 +30,9 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.claude_mpm.hooks.claude_hooks.hook_handler import (
-    ClaudeHookHandler, check_claude_version)
+    ClaudeHookHandler,
+    check_claude_version,
+)
 from src.claude_mpm.hooks.claude_hooks.services import DuplicateEventDetector
 
 

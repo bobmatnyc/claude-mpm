@@ -15,8 +15,7 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory.agent_memory_manager import \
-    AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 def test_basic_memory_operations():

@@ -3,8 +3,9 @@
 from pathlib import Path
 from unittest.mock import Mock
 
-from claude_mpm.services.framework_claude_md_generator.deployment_manager import \
-    DeploymentManager
+from claude_mpm.services.framework_claude_md_generator.deployment_manager import (
+    DeploymentManager,
+)
 
 
 class TestDeploymentManagerConfig:

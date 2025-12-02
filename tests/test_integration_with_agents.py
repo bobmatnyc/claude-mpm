@@ -13,9 +13,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.async_session_logger import (AsyncSessionLogger,
-                                                      LogFormat,
-                                                      log_response_async)
+from claude_mpm.services.async_session_logger import (
+    AsyncSessionLogger,
+    LogFormat,
+    log_response_async,
+)
 from claude_mpm.services.claude_session_logger import ClaudeSessionLogger
 
 

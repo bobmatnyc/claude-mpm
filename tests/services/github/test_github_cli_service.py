@@ -11,8 +11,11 @@ import unittest
 from unittest.mock import Mock, patch
 
 from claude_mpm.services.github.github_cli_service import (
-    GitHubAuthenticationError, GitHubCLIError, GitHubCLINotInstalledError,
-    GitHubCLIService)
+    GitHubAuthenticationError,
+    GitHubCLIError,
+    GitHubCLINotInstalledError,
+    GitHubCLIService,
+)
 
 
 class TestGitHubCLIService(unittest.TestCase):

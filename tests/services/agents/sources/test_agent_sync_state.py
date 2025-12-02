@@ -18,7 +18,10 @@ from pathlib import Path
 import pytest
 
 from claude_mpm.services.agents.sources.agent_sync_state import (
-    AgentSyncState, AgentSyncStateError, DatabaseError)
+    AgentSyncState,
+    AgentSyncStateError,
+    DatabaseError,
+)
 
 
 @pytest.fixture

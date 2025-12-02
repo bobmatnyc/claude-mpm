@@ -12,7 +12,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_mpm.services.cli.agent_cleanup_service import (
-    AgentCleanupService, IAgentCleanupService)
+    AgentCleanupService,
+    IAgentCleanupService,
+)
 
 
 class TestAgentCleanupService:

@@ -74,8 +74,9 @@ class AgentCleanupService(IAgentCleanupService):
     def _get_deployment_service(self):
         """Get or create deployment service instance."""
         if self._deployment_service is None:
-            from ...services.agents.deployment.agent_deployment import \
-                AgentDeploymentService
+            from ...services.agents.deployment.agent_deployment import (
+                AgentDeploymentService,
+            )
 
             self._deployment_service = AgentDeploymentService()
         return self._deployment_service
@@ -83,8 +84,9 @@ class AgentCleanupService(IAgentCleanupService):
     def _get_multi_source_service(self):
         """Get or create multi-source deployment service instance."""
         if self._multi_source_service is None:
-            from ...services.agents.deployment.multi_source_deployment_service import \
-                MultiSourceAgentDeploymentService
+            from ...services.agents.deployment.multi_source_deployment_service import (
+                MultiSourceAgentDeploymentService,
+            )
 
             self._multi_source_service = MultiSourceAgentDeploymentService()
         return self._multi_source_service

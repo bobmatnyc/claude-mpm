@@ -12,10 +12,12 @@ from pathlib import Path
 # Add the src directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
-from claude_mpm.services.agents.deployment.multi_source_deployment_service import \
-    MultiSourceAgentDeploymentService
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
+from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
+    MultiSourceAgentDeploymentService,
+)
 
 
 def create_test_agent(name: str, version: str, source: str) -> dict:

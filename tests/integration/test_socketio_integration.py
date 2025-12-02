@@ -25,8 +25,7 @@ import contextlib
 import socketio
 
 from claude_mpm.services.socketio.server.main import SocketIOServer
-from tests.utils.test_helpers import (wait_for_condition,
-                                      wait_for_condition_async)
+from tests.utils.test_helpers import wait_for_condition, wait_for_condition_async
 
 
 class TestEndToEndEventFlow:

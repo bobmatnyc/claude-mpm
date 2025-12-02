@@ -28,8 +28,7 @@ except ImportError:
 
 
 try:
-    from claude_mpm.services.mcp_gateway.config.configuration import \
-        MCPConfiguration
+    from claude_mpm.services.mcp_gateway.config.configuration import MCPConfiguration
 except ImportError:
     # Fallback configuration class
     class MCPConfiguration:
@@ -44,8 +43,7 @@ except ImportError:
 
 
 try:
-    from claude_mpm.services.mcp_gateway.registry.tool_registry import \
-        ToolRegistry
+    from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 except ImportError:
     # Minimal fallback registry
     class ToolRegistry:
@@ -68,8 +66,7 @@ except ImportError as e:
     raise ImportError(f"Critical: Cannot import MCPGateway server: {e}") from e
 
 try:
-    from claude_mpm.services.mcp_gateway.server.stdio_handler import \
-        StdioHandler
+    from claude_mpm.services.mcp_gateway.server.stdio_handler import StdioHandler
 except ImportError:
     # Fallback stdio handler
     class StdioHandler:
@@ -83,7 +80,10 @@ except ImportError:
 # Import tools with individual fallbacks
 try:
     from claude_mpm.services.mcp_gateway.tools.base_adapter import (
-        CalculatorToolAdapter, EchoToolAdapter, SystemInfoToolAdapter)
+        CalculatorToolAdapter,
+        EchoToolAdapter,
+        SystemInfoToolAdapter,
+    )
 except ImportError:
     # Create dummy tool adapters
     class BaseToolAdapter:
@@ -101,8 +101,9 @@ except ImportError:
     SystemInfoToolAdapter = BaseToolAdapter
 
 try:
-    from claude_mpm.services.mcp_gateway.tools.document_summarizer import \
-        DocumentSummarizerTool
+    from claude_mpm.services.mcp_gateway.tools.document_summarizer import (
+        DocumentSummarizerTool,
+    )
 except ImportError:
     DocumentSummarizerTool = None
 
@@ -110,8 +111,9 @@ except ImportError:
 UnifiedTicketTool = None
 
 try:
-    from claude_mpm.services.mcp_gateway.tools.external_mcp_services import \
-        ExternalMCPServiceManager
+    from claude_mpm.services.mcp_gateway.tools.external_mcp_services import (
+        ExternalMCPServiceManager,
+    )
 except ImportError:
     # External MCP services are optional
     ExternalMCPServiceManager = None

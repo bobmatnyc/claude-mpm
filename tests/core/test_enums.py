@@ -11,9 +11,14 @@ Tests all 6 core enums with focus on:
 
 import pytest
 
-from src.claude_mpm.core.enums import (AgentCategory, ModelTier,
-                                       OperationResult, OutputFormat,
-                                       ServiceState, ValidationSeverity)
+from src.claude_mpm.core.enums import (
+    AgentCategory,
+    ModelTier,
+    OperationResult,
+    OutputFormat,
+    ServiceState,
+    ValidationSeverity,
+)
 
 
 class TestOperationResult:

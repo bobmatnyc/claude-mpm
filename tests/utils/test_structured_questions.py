@@ -10,12 +10,15 @@ Tests cover:
 
 import pytest
 
-from claude_mpm.utils.structured_questions import (ParsedResponse,
-                                                   QuestionBuilder,
-                                                   QuestionOption, QuestionSet,
-                                                   QuestionValidationError,
-                                                   ResponseParser,
-                                                   StructuredQuestion)
+from claude_mpm.utils.structured_questions import (
+    ParsedResponse,
+    QuestionBuilder,
+    QuestionOption,
+    QuestionSet,
+    QuestionValidationError,
+    ResponseParser,
+    StructuredQuestion,
+)
 
 
 class TestQuestionOption:

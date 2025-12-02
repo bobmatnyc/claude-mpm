@@ -29,6 +29,7 @@ from claude_mpm.core.unified_paths import get_path_manager
 
 # Import the data class from original
 from .analyzer import ProjectCharacteristics
+
 # Import refactored services
 from .architecture_analyzer import ArchitectureAnalyzerService
 from .dependency_analyzer import DependencyAnalyzerService

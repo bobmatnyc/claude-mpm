@@ -16,8 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.agents.deployment.agent_template_builder import \
-    AgentTemplateBuilder
+from claude_mpm.services.agents.deployment.agent_template_builder import (
+    AgentTemplateBuilder,
+)
 
 
 @pytest.fixture

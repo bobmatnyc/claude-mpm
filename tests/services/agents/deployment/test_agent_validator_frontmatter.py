@@ -12,8 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.agents.deployment.agent_validator import \
-    AgentValidator
+from claude_mpm.services.agents.deployment.agent_validator import AgentValidator
 
 
 class TestAgentValidatorFrontmatterParsing:

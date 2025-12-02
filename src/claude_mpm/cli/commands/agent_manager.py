@@ -17,8 +17,7 @@ from typing import Any, Dict, List, Optional
 from ...core.enums import OutputFormat
 from ...core.logging_config import get_logger
 from ...services.agents.agent_builder import AgentBuilderService
-from ...services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
+from ...services.agents.deployment.agent_deployment import AgentDeploymentService
 from ..shared import AgentCommand, CommandResult
 
 
@@ -753,8 +752,9 @@ class AgentManagerCommand(AgentCommand):
         Creates a JSON template in .claude-mpm/agents/ directory.
         """
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
 
@@ -808,8 +808,9 @@ class AgentManagerCommand(AgentCommand):
     def _deploy_local_agents(self, args) -> CommandResult:
         """Deploy local JSON templates to Claude Code."""
         try:
-            from ...services.agents.deployment.local_template_deployment import \
-                LocalTemplateDeploymentService
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
 
             service = LocalTemplateDeploymentService()
 
@@ -856,8 +857,9 @@ class AgentManagerCommand(AgentCommand):
     def _list_local_agents(self, args) -> CommandResult:
         """List all local agent templates."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
 
@@ -917,8 +919,9 @@ class AgentManagerCommand(AgentCommand):
     def _sync_local_agents(self, args) -> CommandResult:
         """Synchronize local templates with deployed agents."""
         try:
-            from ...services.agents.deployment.local_template_deployment import \
-                LocalTemplateDeploymentService
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
 
             service = LocalTemplateDeploymentService()
             results = service.sync_local_templates()
@@ -948,8 +951,9 @@ class AgentManagerCommand(AgentCommand):
     def _export_local_agents(self, args) -> CommandResult:
         """Export local agent templates to a directory."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
 
@@ -969,8 +973,9 @@ class AgentManagerCommand(AgentCommand):
     def _import_local_agents(self, args) -> CommandResult:
         """Import agent templates from a directory."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
 
@@ -1000,8 +1005,7 @@ class AgentManagerCommand(AgentCommand):
     def _create_interactive(self, args) -> CommandResult:
         """Launch interactive agent creation wizard."""
         try:
-            from ...cli.interactive.agent_wizard import \
-                run_interactive_agent_wizard
+            from ...cli.interactive.agent_wizard import run_interactive_agent_wizard
 
             # Run the interactive wizard
             exit_code = run_interactive_agent_wizard()
@@ -1020,8 +1024,7 @@ class AgentManagerCommand(AgentCommand):
     def _manage_local_interactive(self, args) -> CommandResult:
         """Launch interactive agent management menu."""
         try:
-            from ...cli.interactive.agent_wizard import \
-                run_interactive_agent_manager
+            from ...cli.interactive.agent_wizard import run_interactive_agent_manager
 
             # Run the interactive management menu
             exit_code = run_interactive_agent_manager()
@@ -1040,8 +1043,9 @@ class AgentManagerCommand(AgentCommand):
     def _edit_interactive(self, args) -> CommandResult:
         """Edit agent configuration interactively."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
@@ -1086,8 +1090,9 @@ class AgentManagerCommand(AgentCommand):
     def _test_local_agent(self, args) -> CommandResult:
         """Test a local agent with sample task."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
@@ -1110,8 +1115,9 @@ class AgentManagerCommand(AgentCommand):
                 return CommandResult.error_result(error_msg)
 
             # Check if agent is deployed
-            from ...services.agents.deployment.local_template_deployment import \
-                LocalTemplateDeploymentService
+            from ...services.agents.deployment.local_template_deployment import (
+                LocalTemplateDeploymentService,
+            )
 
             deployment_service = LocalTemplateDeploymentService()
 
@@ -1154,8 +1160,9 @@ class AgentManagerCommand(AgentCommand):
     def _delete_local_agents(self, args) -> CommandResult:
         """Delete local agent templates with comprehensive options."""
         try:
-            from ...services.agents.local_template_manager import \
-                LocalAgentTemplateManager
+            from ...services.agents.local_template_manager import (
+                LocalAgentTemplateManager,
+            )
 
             manager = LocalAgentTemplateManager()
 

@@ -670,8 +670,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             target_dir.mkdir(parents=True, exist_ok=True)
 
             # Deploy using the deployer (targeting .claude/)
-            from .system_instructions_deployer import \
-                SystemInstructionsDeployer
+            from .system_instructions_deployer import SystemInstructionsDeployer
 
             deployer = SystemInstructionsDeployer(self.logger, self.working_directory)
 

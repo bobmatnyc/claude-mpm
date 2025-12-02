@@ -11,20 +11,49 @@ Part of TSK-0046: Service Layer Architecture Reorganization
 
 from .base import BaseService, SingletonService, SyncBaseService
 from .interfaces import (  # Core dependency injection; Configuration management; Agent management; Health monitoring; Caching; Template management; Factory patterns; Event system; Logging; Service lifecycle; Error handling; Performance monitoring; Cache service; Agent deployment; Memory service; Hook service; SocketIO service; Project analyzer; Ticket manager; Interface registry
-    AgentDeploymentInterface, AgentMetadata, CacheEntry, HealthStatus,
-    HookServiceInterface, IAgentRecommender, IAgentRegistry,
-    IAutoConfigManager, ICacheService, IConfigurationManager,
-    IConfigurationService, IErrorHandler, IEventBus, IHealthMonitor,
-    InterfaceRegistry, IPerformanceMonitor, IPromptCache, IServiceContainer,
-    IServiceFactory, IServiceLifecycle, IStructuredLogger, ITemplateManager,
-    IToolchainAnalyzer, MemoryServiceInterface, ProjectAnalyzerInterface,
-    ServiceType, SocketIOServiceInterface, TemplateRenderContext,
-    TicketManagerInterface)
-from .models import (AgentCapabilities,  # Data models for services
-                     AgentRecommendation, ConfidenceLevel,
-                     ConfigurationPreview, ConfigurationResult,
-                     DeploymentTarget, Framework, LanguageDetection,
-                     ToolchainAnalysis, ToolchainComponent, ValidationResult)
+    AgentDeploymentInterface,
+    AgentMetadata,
+    CacheEntry,
+    HealthStatus,
+    HookServiceInterface,
+    IAgentRecommender,
+    IAgentRegistry,
+    IAutoConfigManager,
+    ICacheService,
+    IConfigurationManager,
+    IConfigurationService,
+    IErrorHandler,
+    IEventBus,
+    IHealthMonitor,
+    InterfaceRegistry,
+    IPerformanceMonitor,
+    IPromptCache,
+    IServiceContainer,
+    IServiceFactory,
+    IServiceLifecycle,
+    IStructuredLogger,
+    ITemplateManager,
+    IToolchainAnalyzer,
+    MemoryServiceInterface,
+    ProjectAnalyzerInterface,
+    ServiceType,
+    SocketIOServiceInterface,
+    TemplateRenderContext,
+    TicketManagerInterface,
+)
+from .models import (  # Data models for services
+    AgentCapabilities,
+    AgentRecommendation,
+    ConfidenceLevel,
+    ConfigurationPreview,
+    ConfigurationResult,
+    DeploymentTarget,
+    Framework,
+    LanguageDetection,
+    ToolchainAnalysis,
+    ToolchainComponent,
+    ValidationResult,
+)
 
 __all__ = [  # noqa: RUF022 - Grouped by category with comments for clarity
     # Service interfaces

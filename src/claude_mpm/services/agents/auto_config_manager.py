@@ -25,10 +25,13 @@ import yaml
 from ...core.base_service import BaseService
 from ...core.enums import OperationResult, ValidationSeverity
 from ..core.interfaces.agent import IAgentRegistry, IAutoConfigManager
-from ..core.models.agent_config import (AgentRecommendation,
-                                        ConfigurationPreview,
-                                        ConfigurationResult, ValidationIssue,
-                                        ValidationResult)
+from ..core.models.agent_config import (
+    AgentRecommendation,
+    ConfigurationPreview,
+    ConfigurationResult,
+    ValidationIssue,
+    ValidationResult,
+)
 from ..core.models.toolchain import ToolchainAnalysis
 from .observers import IDeploymentObserver, NullObserver
 from .recommender import AgentRecommenderService
@@ -107,8 +110,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         # Lazy initialization of dependencies if needed
         if self._toolchain_analyzer is None:
             try:
-                from ..project.toolchain_analyzer import \
-                    ToolchainAnalyzerService
+                from ..project.toolchain_analyzer import ToolchainAnalyzerService
 
                 self._toolchain_analyzer = ToolchainAnalyzerService()
                 self.logger.info("Initialized ToolchainAnalyzerService")

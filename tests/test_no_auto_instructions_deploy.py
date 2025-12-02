@@ -17,10 +17,12 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.deployment.agent_deployment import \
-    AgentDeploymentService
-from claude_mpm.services.agents.deployment.system_instructions_deployer import \
-    SystemInstructionsDeployer
+from claude_mpm.services.agents.deployment.agent_deployment import (
+    AgentDeploymentService,
+)
+from claude_mpm.services.agents.deployment.system_instructions_deployer import (
+    SystemInstructionsDeployer,
+)
 
 
 class TestNoAutoInstructionsDeploy:

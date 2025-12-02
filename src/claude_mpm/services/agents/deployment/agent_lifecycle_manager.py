@@ -40,25 +40,30 @@ from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.models.agent_definition import AgentDefinition
 from claude_mpm.services.agents.management import AgentManager
-from claude_mpm.services.agents.memory import (AgentPersistenceService,
-                                               PersistenceOperation,
-                                               PersistenceRecord,
-                                               PersistenceStrategy)
+from claude_mpm.services.agents.memory import (
+    AgentPersistenceService,
+    PersistenceOperation,
+    PersistenceRecord,
+    PersistenceStrategy,
+)
 from claude_mpm.services.agents.registry import AgentRegistry
 from claude_mpm.services.agents.registry.modification_tracker import (
-    AgentModification, AgentModificationTracker, ModificationTier,
-    ModificationType)
-from claude_mpm.services.memory.cache.shared_prompt_cache import \
-    SharedPromptCache
+    AgentModification,
+    AgentModificationTracker,
+    ModificationTier,
+    ModificationType,
+)
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.utils.path_operations import path_ops
 
 # Import extracted services
-from .agent_operation_service import (AgentOperationService,
-                                      LifecycleOperation,
-                                      LifecycleOperationResult)
+from .agent_operation_service import (
+    AgentOperationService,
+    LifecycleOperation,
+    LifecycleOperationResult,
+)
 from .agent_record_service import AgentRecordService
-from .agent_state_service import (AgentLifecycleRecord, AgentStateService,
-                                  LifecycleState)
+from .agent_state_service import AgentLifecycleRecord, AgentStateService, LifecycleState
 
 # Re-export for backward compatibility
 __all__ = [

@@ -19,9 +19,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.run import (RunCommand, create_session_context,
-                                         filter_claude_mpm_args, run_session,
-                                         run_session_legacy)
+from claude_mpm.cli.commands.run import (
+    RunCommand,
+    create_session_context,
+    filter_claude_mpm_args,
+    run_session,
+    run_session_legacy,
+)
 from claude_mpm.cli.shared.base_command import CommandResult
 from claude_mpm.constants import LogLevel
 

@@ -22,10 +22,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.config.socketio_config import (CONNECTION_CONFIG,
-                                               ConfigManager, SocketIOConfig,
-                                               get_config, get_discovery_hosts,
-                                               get_server_ports)
+from claude_mpm.config.socketio_config import (
+    CONNECTION_CONFIG,
+    ConfigManager,
+    SocketIOConfig,
+    get_config,
+    get_discovery_hosts,
+    get_server_ports,
+)
 
 
 class TestSocketIOConfiguration:

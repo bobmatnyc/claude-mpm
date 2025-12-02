@@ -16,15 +16,19 @@ import pytest
 import yaml
 
 from claude_mpm.services.agents.recommender import AgentRecommenderService
-from claude_mpm.services.core.models.agent_config import (AgentCapabilities,
-                                                          AgentRecommendation,
-                                                          AgentSpecialization)
-from claude_mpm.services.core.models.toolchain import (ConfidenceLevel,
-                                                       DeploymentTarget,
-                                                       Framework,
-                                                       LanguageDetection,
-                                                       ToolchainAnalysis,
-                                                       ToolchainComponent)
+from claude_mpm.services.core.models.agent_config import (
+    AgentCapabilities,
+    AgentRecommendation,
+    AgentSpecialization,
+)
+from claude_mpm.services.core.models.toolchain import (
+    ConfidenceLevel,
+    DeploymentTarget,
+    Framework,
+    LanguageDetection,
+    ToolchainAnalysis,
+    ToolchainComponent,
+)
 
 # ===================================
 # FIXTURES
