@@ -14,12 +14,13 @@ DESIGN DECISIONS:
 import os
 from pathlib import Path
 
+import questionary
+from questionary import Style
 from rich.box import ROUNDED
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.table import Table
 from rich.text import Text
 
 
@@ -32,6 +33,16 @@ class ConfigNavigation:
     - Scope switching (project ↔ user)
     - Claude MPM launch integration
     """
+
+    # Questionary style matching Rich cyan theme
+    QUESTIONARY_STYLE = Style(
+        [
+            ("selected", "fg:cyan bold"),
+            ("pointer", "fg:cyan bold"),
+            ("highlighted", "fg:cyan"),
+            ("question", "fg:cyan bold"),
+        ]
+    )
 
     def __init__(self, console: Console, project_dir: Path):
         """Initialize navigation handler.
@@ -81,56 +92,62 @@ class ConfigNavigation:
         self.console.print()
 
     def show_main_menu(self) -> str:
-        """Show the main menu and get user choice.
+        """Show the main menu and get user choice with arrow-key navigation.
 
         Displays main configuration menu with options:
-        1. Agent Management
-        2. Skills Management
-        3. Template Editing
-        4. Behavior Files
-        5. Startup Configuration
-        6. Switch Scope
-        7. Version Info
-        l. Save & Launch
-        q. Quit
+        - Agent Management
+        - Skills Management
+        - Template Editing
+        - Behavior Files
+        - Startup Configuration
+        - Switch Scope
+        - Version Info
+        - Save & Launch
+        - Quit
 
         Returns:
-            User's menu choice (lowercase, stripped)
+            User's menu choice mapped to original key (1-7, l, q) for
+            backward compatibility with existing code
         """
-        menu_items = [
-            ("1", "Agent Management", "Enable/disable agents and customize settings"),
-            ("2", "Skills Management", "Configure skills for agents"),
-            ("3", "Template Editing", "Edit agent JSON templates"),
-            ("4", "Behavior Files", "Manage identity and workflow configurations"),
-            (
-                "5",
-                "Startup Configuration",
-                "Configure MCP services and agents to start",
-            ),
-            ("6", "Switch Scope", f"Current: {self.current_scope}"),
-            ("7", "Version Info", "Display MPM and Claude versions"),
-            ("l", "Save & Launch", "Save all changes and start Claude MPM"),
-            ("q", "Quit", "Exit without launching"),
-        ]
+        try:
+            choice = questionary.select(
+                "Main Menu:",
+                choices=[
+                    "Agent Management",
+                    "Skills Management",
+                    "Template Editing",
+                    "Behavior Files",
+                    "Startup Configuration",
+                    f"Switch Scope (Current: {self.current_scope})",
+                    "Version Info",
+                    questionary.Separator(),
+                    "Save & Launch Claude MPM",
+                    "Quit",
+                ],
+                style=self.QUESTIONARY_STYLE,
+            ).ask()
 
-        table = Table(show_header=False, box=None, padding=(0, 2))
-        table.add_column("Key", style="bold blue", width=4)  # Bolder shortcuts
-        table.add_column("Option", style="bold", width=24)  # Wider for titles
-        table.add_column("Description", style="")  # Use default terminal color
+            if choice is None:
+                return "q"
 
-        for key, option, desc in menu_items:
-            table.add_row(f"\\[{key}]", option, desc)
+            # Map natural language choices back to original key-based system
+            # for backward compatibility
+            choice_map = {
+                "Agent Management": "1",
+                "Skills Management": "2",
+                "Template Editing": "3",
+                "Behavior Files": "4",
+                "Startup Configuration": "5",
+                f"Switch Scope (Current: {self.current_scope})": "6",
+                "Version Info": "7",
+                "Save & Launch Claude MPM": "l",
+                "Quit": "q",
+            }
 
-        menu_panel = Panel(
-            table, title="[bold]Main Menu[/bold]", box=ROUNDED, style="green"
-        )
+            return choice_map.get(choice, "q")
 
-        self.console.print(menu_panel)
-        self.console.print()
-
-        choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="q")
-        # Strip whitespace to handle leading/trailing spaces
-        return choice.strip().lower()
+        except KeyboardInterrupt:
+            return "q"
 
     def switch_scope(self) -> None:
         """Switch between project and user scope.

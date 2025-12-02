@@ -15,6 +15,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import questionary
+from questionary import Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
@@ -40,6 +42,16 @@ from .configure_validators import (
 
 class ConfigureCommand(BaseCommand):
     """Interactive configuration management command."""
+
+    # Questionary style matching Rich cyan theme
+    QUESTIONARY_STYLE = Style(
+        [
+            ("selected", "fg:cyan bold"),
+            ("pointer", "fg:cyan bold"),
+            ("highlighted", "fg:cyan"),
+            ("question", "fg:cyan bold"),
+        ]
+    )
 
     def __init__(self):
         super().__init__("configure")
@@ -336,40 +348,46 @@ class ConfigureCommand(BaseCommand):
                 self.console.print(f"[red]Error discovering agents: {e}[/red]")
                 self.logger.error(f"Agent discovery failed: {e}", exc_info=True)
 
-            # Step 3: Menu options
-            self.console.print("\n[bold]Agent Management Options:[/bold]")
-            self.console.print("  [s] Manage sources (add/remove repositories)")
-            self.console.print("  [d] Deploy agents (individual selection)")
-            self.console.print("  [p] Deploy preset (predefined sets)")
-            self.console.print("  [r] Remove agents")
-            self.console.print("  [v] View agent details")
-            self.console.print("  [t] Toggle agents (legacy enable/disable)")
-            self.console.print("  [b] Back to main menu")
+            # Step 3: Menu options with arrow-key navigation
+            self.console.print()
+            try:
+                choice = questionary.select(
+                    "Agent Management:",
+                    choices=[
+                        "Manage sources (add/remove repositories)",
+                        "Deploy agents (individual selection)",
+                        "Deploy preset (predefined sets)",
+                        "Remove agents",
+                        "View agent details",
+                        "Toggle agents (legacy enable/disable)",
+                        questionary.Separator(),
+                        "← Back to main menu",
+                    ],
+                    style=self.QUESTIONARY_STYLE,
+                ).ask()
 
-            choice = Prompt.ask("\nSelect option", default="b")
+                if choice is None or choice == "← Back to main menu":
+                    break
 
-            if choice == "b":
+                agents_var = agents if "agents" in locals() else []
+
+                # Map selection to action
+                if choice == "Manage sources (add/remove repositories)":
+                    self._manage_sources()
+                elif choice == "Deploy agents (individual selection)":
+                    self._deploy_agents_individual(agents_var)
+                elif choice == "Deploy preset (predefined sets)":
+                    self._deploy_agents_preset()
+                elif choice == "Remove agents":
+                    self._remove_agents(agents_var)
+                elif choice == "View agent details":
+                    self._view_agent_details_enhanced(agents_var)
+                elif choice == "Toggle agents (legacy enable/disable)":
+                    self._toggle_agents_interactive(agents_var)
+
+            except KeyboardInterrupt:
+                self.console.print("\n[yellow]Operation cancelled[/yellow]")
                 break
-            if choice == "s":
-                self._manage_sources()
-            elif choice == "d":
-                agents_var = agents if "agents" in locals() else []
-                self._deploy_agents_individual(agents_var)
-            elif choice == "p":
-                self._deploy_agents_preset()
-            elif choice == "r":
-                agents_var = agents if "agents" in locals() else []
-                self._remove_agents(agents_var)
-            elif choice == "v":
-                agents_var = agents if "agents" in locals() else []
-                self._view_agent_details_enhanced(agents_var)
-            elif choice == "t":
-                # Legacy toggle functionality for backward compatibility
-                agents_var = agents if "agents" in locals() else []
-                self._toggle_agents_interactive(agents_var)
-            else:
-                self.console.print("[red]Invalid choice.[/red]")
-                Prompt.ask("Press Enter to continue")
 
     def _display_agents_table(self, agents: List[AgentConfig]) -> None:
         """Display a table of available agents."""
