@@ -44,13 +44,13 @@ from .configure_validators import (
 class ConfigureCommand(BaseCommand):
     """Interactive configuration management command."""
 
-    # Questionary style matching Rich cyan theme
+    # Questionary style with better contrast
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:cyan bold"),
-            ("pointer", "fg:cyan bold"),
-            ("highlighted", "fg:cyan"),
-            ("question", "fg:cyan bold"),
+            ("selected", "fg:white bold"),
+            ("pointer", "fg:yellow bold"),
+            ("highlighted", "fg:white"),
+            ("question", "fg:white bold"),
         ]
     )
 
@@ -310,10 +310,10 @@ class ConfigureCommand(BaseCommand):
             if sources:
                 from rich.table import Table
 
-                sources_table = Table(show_header=True, header_style="bold cyan")
-                sources_table.add_column("Source", style="cyan", width=40)
-                sources_table.add_column("Status", style="green", width=15)
-                sources_table.add_column("Agents", style="yellow", width=10)
+                sources_table = Table(show_header=True, header_style="bold white")
+                sources_table.add_column("Source", style="white", width=40, no_wrap=True, overflow="ellipsis")
+                sources_table.add_column("Status", style="white", width=15, no_wrap=True)
+                sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
 
                 for source in sources:
                     status = "✓ Active" if source.get("enabled", True) else "Disabled"
@@ -608,9 +608,9 @@ class ConfigureCommand(BaseCommand):
                 else:
                     from rich.table import Table
 
-                    table = Table(show_header=True, header_style="bold cyan")
-                    table.add_column("Agent", style="yellow")
-                    table.add_column("Skills", style="green")
+                    table = Table(show_header=True, header_style="bold white")
+                    table.add_column("Agent", style="white", no_wrap=True)
+                    table.add_column("Skills", style="white", no_wrap=True)
 
                     for agent_id, skills in mappings.items():
                         skills_str = (
@@ -950,29 +950,28 @@ class ConfigureCommand(BaseCommand):
         """Display agents table with source information and deployment status."""
         from rich.table import Table
 
-        agents_table = Table(show_header=True, header_style="bold cyan")
-        agents_table.add_column("#", style="dim", width=4)
-        agents_table.add_column("Agent ID", style="cyan", width=35)
-        agents_table.add_column("Name", style="green", width=25)
-        agents_table.add_column("Source", style="yellow", width=15)
-        agents_table.add_column("Status", width=12)  # No default style for status (1M-502 Fix #3)
+        agents_table = Table(show_header=True, header_style="bold white")
+        agents_table.add_column("#", style="dim", width=4, no_wrap=True)
+        agents_table.add_column("Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Name", style="white", width=25, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column("Source", style="yellow", width=15, no_wrap=True)
+        agents_table.add_column("Status", style="white", width=12, no_wrap=True)
 
         for idx, agent in enumerate(agents, 1):
             # Determine source type
             source_type = getattr(agent, "source_type", "local")
             source_label = "Remote" if source_type == "remote" else "Local"
 
-            # Determine deployment status (1M-502 Phase 1 Fix #3)
+            # Determine deployment status with better contrast
             is_deployed = getattr(agent, "is_deployed", False)
             if is_deployed:
-                status = "[green]✓ Deployed[/green]"
+                status = "[bright_green]✓ Deployed[/bright_green]"
             else:
-                status = "[dim]○ Available[/dim]"
+                status = "[bright_black]○ Available[/bright_black]"
 
             # Get display name (for remote agents, use display_name instead of agent_id)
             display_name = getattr(agent, "display_name", agent.name)
-            if len(display_name) > 23:
-                display_name = display_name[:20] + "..."
+            # Let overflow="ellipsis" handle truncation automatically
 
             agents_table.add_row(
                 str(idx), agent.name, display_name, source_label, status
@@ -994,72 +993,167 @@ class ConfigureCommand(BaseCommand):
         Prompt.ask("\nPress Enter to continue")
 
     def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
-        """Deploy agents using multi-select checkbox interface (1M-502)."""
+        """Manage agent deployment state (unified deploy/remove interface)."""
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Filter BASE_AGENT and deployed agents (1M-502)
-        deployable = self._filter_agent_configs(agents, filter_deployed=True)
+        # Get ALL agents (filter BASE_AGENT but keep deployed agents visible)
+        from claude_mpm.utils.agent_filters import (
+            filter_base_agents,
+            get_deployed_agent_ids,
+        )
 
-        if not deployable:
-            self.console.print("[yellow]All agents are already deployed[/yellow]")
+        # Filter BASE_AGENT but keep deployed agents visible
+        all_agents = filter_base_agents([
+            {
+                "agent_id": a.name,
+                "name": a.name,
+                "description": a.description,
+                "deployed": getattr(a, "is_deployed", False),
+            }
+            for a in agents
+        ])
+
+        # Get deployed agent IDs
+        deployed_ids = get_deployed_agent_ids()
+
+        if not all_agents:
+            self.console.print("[yellow]No agents available[/yellow]")
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Build checkbox choices
+        # Build checkbox choices with pre-selection
         agent_choices = []
-        for agent in deployable:
-            display_name = getattr(agent, "display_name", agent.name)
-            desc = getattr(agent, "description", "")
-            if len(desc) > 50:
-                desc = desc[:47] + "..."
+        agent_map = {}  # For lookup after selection
 
-            choice_text = f"{agent.name}"
-            if display_name != agent.name:
-                choice_text += f" - {display_name}"
-            if desc:
-                choice_text += f" ({desc})"
+        for agent in agents:
+            if agent.name in {a["agent_id"] for a in all_agents}:
+                display_name = getattr(agent, "display_name", agent.name)
 
-            agent_choices.append(
-                questionary.Choice(title=choice_text, value=agent)
-            )
+                # Simple format: "agent/path - Display Name"
+                choice_text = f"{agent.name}"
+                if display_name and display_name != agent.name:
+                    choice_text += f" - {display_name}"
 
-        # Multi-select with checkbox (1M-502 UX Fix)
-        self.console.print("\n[bold cyan]Select Agents to Deploy[/bold cyan]")
-        self.console.print("[dim]Use arrow keys to navigate, space to select/unselect, Enter to deploy[/dim]\n")
+                # Pre-check if deployed
+                is_deployed = agent.name in deployed_ids
 
-        selected_agents = questionary.checkbox(
+                agent_choices.append(
+                    questionary.Choice(
+                        title=choice_text,
+                        value=agent.name,
+                        checked=is_deployed  # PRE-SELECT deployed agents
+                    )
+                )
+                agent_map[agent.name] = agent
+
+        # Multi-select with pre-selection
+        self.console.print("\n[bold white]Manage Agent Deployment[/bold white]")
+        self.console.print(
+            "[dim]Checked = Deployed | Unchecked = Not Deployed[/dim]"
+        )
+        self.console.print(
+            "[dim]Use arrow keys to navigate, space to select/unselect, "
+            "Enter to apply changes[/dim]\n"
+        )
+
+        selected_agent_ids = questionary.checkbox(
             "Agents:",
             choices=agent_choices,
             style=self.QUESTIONARY_STYLE
         ).ask()
 
-        # Handle Esc or no selection
-        if not selected_agents:
-            self.console.print("[yellow]No agents selected[/yellow]")
+        # Handle Esc
+        if selected_agent_ids is None:
+            self.console.print("[yellow]No changes made[/yellow]")
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Deploy all selected agents
-        self.console.print(f"\n[bold]Deploying {len(selected_agents)} agent(s)...[/bold]\n")
+        # Convert to sets for comparison
+        selected_set = set(selected_agent_ids)
+        deployed_set = deployed_ids
 
-        success_count = 0
-        fail_count = 0
+        # Determine actions
+        to_deploy = selected_set - deployed_set    # Selected but not deployed
+        to_remove = deployed_set - selected_set    # Deployed but not selected
 
-        for agent in selected_agents:
-            if self._deploy_single_agent(agent, show_feedback=True):
-                success_count += 1
+        if not to_deploy and not to_remove:
+            self.console.print("[yellow]No changes made[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Show what will happen
+        self.console.print("\n[bold]Changes to apply:[/bold]")
+        if to_deploy:
+            self.console.print(f"[green]Deploy {len(to_deploy)} agent(s)[/green]")
+            for agent_id in to_deploy:
+                self.console.print(f"  + {agent_id}")
+        if to_remove:
+            self.console.print(f"[red]Remove {len(to_remove)} agent(s)[/red]")
+            for agent_id in to_remove:
+                self.console.print(f"  - {agent_id}")
+
+        if not Confirm.ask("\nApply these changes?", default=True):
+            self.console.print("[yellow]Changes cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Execute changes
+        deploy_success = 0
+        deploy_fail = 0
+        remove_success = 0
+        remove_fail = 0
+
+        # Deploy new agents
+        for agent_id in to_deploy:
+            agent = agent_map.get(agent_id)
+            if agent and self._deploy_single_agent(agent, show_feedback=False):
+                deploy_success += 1
+                self.console.print(f"[green]✓ Deployed: {agent_id}[/green]")
             else:
-                fail_count += 1
+                deploy_fail += 1
+                self.console.print(f"[red]✗ Failed to deploy: {agent_id}[/red]")
+
+        # Remove agents
+        for agent_id in to_remove:
+            try:
+                from pathlib import Path
+
+                # Remove from project, legacy, and user locations
+                project_path = (
+                    Path.cwd() / ".claude-mpm" / "agents" / f"{agent_id}.md"
+                )
+                legacy_path = Path.cwd() / ".claude" / "agents" / f"{agent_id}.md"
+                user_path = Path.home() / ".claude" / "agents" / f"{agent_id}.md"
+
+                removed = False
+                for path in [project_path, legacy_path, user_path]:
+                    if path.exists():
+                        path.unlink()
+                        removed = True
+
+                if removed:
+                    remove_success += 1
+                    self.console.print(f"[green]✓ Removed: {agent_id}[/green]")
+                else:
+                    remove_fail += 1
+                    self.console.print(f"[yellow]⚠ Not found: {agent_id}[/yellow]")
+            except Exception as e:
+                remove_fail += 1
+                self.console.print(f"[red]✗ Failed to remove {agent_id}: {e}[/red]")
 
         # Show summary
         self.console.print()
-        if success_count > 0:
-            self.console.print(f"[green]✓ Successfully deployed {success_count} agent(s)[/green]")
-        if fail_count > 0:
-            self.console.print(f"[red]✗ Failed to deploy {fail_count} agent(s)[/red]")
+        if deploy_success > 0:
+            self.console.print(f"[green]✓ Deployed {deploy_success} agent(s)[/green]")
+        if deploy_fail > 0:
+            self.console.print(f"[red]✗ Failed to deploy {deploy_fail} agent(s)[/red]")
+        if remove_success > 0:
+            self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
+        if remove_fail > 0:
+            self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
 
         Prompt.ask("\nPress Enter to continue")
 
