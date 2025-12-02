@@ -1061,7 +1061,9 @@ class ConfigureCommand(BaseCommand):
                 if display_name and display_name != agent.name:
                     choice_text += f" - {display_name}"
 
-                # Add install status indicator
+                # Add status indicator
+                # Pre-selected (checked) agents are currently installed
+                # Un-selected (unchecked) agents are available
                 if is_deployed:
                     choice_text += " [Installed]"
                 else:
@@ -1077,12 +1079,15 @@ class ConfigureCommand(BaseCommand):
                 agent_map[agent.name] = agent
 
         # Multi-select with pre-selection
-        self.console.print("\n[bold white]Manage Agent Installation[/bold white]")
+        self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
         self.console.print(
-            "[dim]Checked = Installed | Unchecked = Available[/dim]"
+            "[dim]✓ Checked = Installed (uncheck to remove)[/dim]"
         )
         self.console.print(
-            "[dim]Use arrow keys to navigate, space to select/unselect, "
+            "[dim]○ Unchecked = Available (check to install)[/dim]"
+        )
+        self.console.print(
+            "[dim]Use arrow keys to navigate, space to toggle, "
             "Enter to apply changes[/dim]\n"
         )
 
