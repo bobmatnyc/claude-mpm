@@ -11,7 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def demo_memory_system():

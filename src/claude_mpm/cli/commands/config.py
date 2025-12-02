@@ -24,10 +24,7 @@ from rich.table import Table
 from ...core.config import Config
 from ...core.enums import OutputFormat
 from ...utils.console import console
-from ..shared import (
-    BaseCommand,
-    CommandResult,
-)
+from ..shared import BaseCommand, CommandResult
 
 
 def _is_structured_output(args) -> bool:
@@ -456,6 +453,12 @@ class ConfigCommand(BaseCommand):
 
 def manage_config(args) -> int:
     """Main entry point for configuration management commands.
+
+    DEPRECATED: This function is no longer used by the CLI. The 'config' command
+    is now aliased to 'configure' and launches the interactive TUI. This function
+    is maintained for backward compatibility with MCP and other internal uses only.
+
+    Use manage_configure() instead for the interactive configuration interface.
 
     This function maintains backward compatibility while using the new BaseCommand pattern.
     """

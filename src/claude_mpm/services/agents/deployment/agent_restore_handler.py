@@ -10,10 +10,8 @@ from typing import TYPE_CHECKING, Optional
 from claude_mpm.core.path_ops import path_ops
 
 if TYPE_CHECKING:
-    from .agent_lifecycle_manager import (
-        AgentLifecycleManager,
-        LifecycleOperationResult,
-    )
+    from .agent_lifecycle_manager import (AgentLifecycleManager,
+                                          LifecycleOperationResult)
 
 
 class AgentRestoreHandler:
@@ -28,10 +26,8 @@ class AgentRestoreHandler:
         self, agent_name: str, backup_path: Optional[str] = None
     ) -> "LifecycleOperationResult":
         """Restore agent from backup."""
-        from .agent_lifecycle_manager import (
-            LifecycleOperation,
-            LifecycleOperationResult,
-        )
+        from .agent_lifecycle_manager import (LifecycleOperation,
+                                              LifecycleOperationResult)
 
         start_time = time.time()
 

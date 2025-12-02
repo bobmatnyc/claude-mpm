@@ -21,11 +21,9 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    MCPToolDefinition,
-    MCPToolInvocation,
-    MCPToolResult,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (MCPToolDefinition,
+                                                             MCPToolInvocation,
+                                                             MCPToolResult)
 from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 

@@ -16,13 +16,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.claude_mpm.config.skill_sources import (
-    SkillSource,
-    SkillSourceConfiguration,
-)
-from src.claude_mpm.services.skills.git_skill_source_manager import (
-    GitSkillSourceManager,
-)
+from src.claude_mpm.config.skill_sources import (SkillSource,
+                                                 SkillSourceConfiguration)
+from src.claude_mpm.services.skills.git_skill_source_manager import \
+    GitSkillSourceManager
 
 
 class TestPhase2CacheArchitecture:

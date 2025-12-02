@@ -259,7 +259,8 @@ class TestLegacySocketIOFunctions:
     @patch("claude_mpm.cli.commands.run.SocketIOManager")
     def test_start_standalone_socketio_server_legacy(self, mock_socketio_class):
         """Test legacy _start_standalone_socketio_server function."""
-        from claude_mpm.cli.commands.run import _start_standalone_socketio_server
+        from claude_mpm.cli.commands.run import \
+            _start_standalone_socketio_server
 
         # Setup mocks
         mock_socketio = Mock()

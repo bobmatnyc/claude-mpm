@@ -80,9 +80,8 @@ class TestAgentMemoryManager:
         mock_template_generator,
     ):
         """Create an AgentMemoryManager instance with mocked dependencies."""
-        from claude_mpm.services.agents.memory.agent_memory_manager import (
-            AgentMemoryManager,
-        )
+        from claude_mpm.services.agents.memory.agent_memory_manager import \
+            AgentMemoryManager
 
         working_dir = Path("/test/working")
         return AgentMemoryManager(config=mock_config, working_directory=working_dir)
@@ -801,9 +800,8 @@ class TestAgentMemoryManager:
                 with patch(
                     "claude_mpm.services.agents.memory.agent_memory_manager.MemoryTemplateGenerator"
                 ):
-                    from claude_mpm.services.agents.memory.agent_memory_manager import (
-                        AgentMemoryManager,
-                    )
+                    from claude_mpm.services.agents.memory.agent_memory_manager import \
+                        AgentMemoryManager
 
                     manager = AgentMemoryManager(config=mock_config)
 
@@ -892,9 +890,8 @@ class TestAgentMemoryManager:
     @staticmethod
     def test_singleton_get_memory_manager():
         """Test that get_memory_manager returns singleton."""
-        from claude_mpm.services.agents.memory.agent_memory_manager import (
-            get_memory_manager,
-        )
+        from claude_mpm.services.agents.memory.agent_memory_manager import \
+            get_memory_manager
 
         # Clear any existing instance
         if hasattr(get_memory_manager, "_instance"):

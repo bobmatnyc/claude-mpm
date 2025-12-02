@@ -75,18 +75,18 @@ def test_memory_filtering():
         # Check that Engineer memory was loaded (deployed agent)
         engineer_loaded = any("Engineer Memory" in m["content"] for m in memories)
         print(f"✓ Engineer_memories.md loaded (deployed): {engineer_loaded}")
-        assert engineer_loaded, (
-            "Engineer_memories.md should be loaded (agent is deployed)"
-        )
+        assert (
+            engineer_loaded
+        ), "Engineer_memories.md should be loaded (agent is deployed)"
 
         # Check that Research memory was NOT loaded (not deployed)
         research_loaded = any("Research Memory" in m["content"] for m in memories)
         print(
             f"✓ Research_memories.md NOT loaded (not deployed): {not research_loaded}"
         )
-        assert not research_loaded, (
-            "Research_memories.md should NOT be loaded (agent not deployed)"
-        )
+        assert (
+            not research_loaded
+        ), "Research_memories.md should NOT be loaded (agent not deployed)"
 
         # Check that README.md was NOT loaded
         readme_loaded = any("README" in m["content"] for m in memories)
@@ -105,9 +105,9 @@ def test_memory_filtering():
 
         legacy_migrated = (memories_dir / "legacy_memories.md").exists()
         print(f"✓ legacy_agent.md migrated to legacy_memories.md: {legacy_migrated}")
-        assert legacy_migrated, (
-            "legacy_agent.md should be migrated to legacy_memories.md"
-        )
+        assert (
+            legacy_migrated
+        ), "legacy_agent.md should be migrated to legacy_memories.md"
 
         print("\n" + "=" * 60)
         print(f"Total memories loaded: {len(memories)}")

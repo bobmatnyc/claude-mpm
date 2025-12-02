@@ -5,10 +5,7 @@ from pathlib import Path
 
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.services.agents.deployment.processors import (
-    AgentDeploymentContext,
-    AgentDeploymentResult,
-    AgentProcessor,
-)
+    AgentDeploymentContext, AgentDeploymentResult, AgentProcessor)
 
 from .base_step import BaseDeploymentStep, StepResult
 

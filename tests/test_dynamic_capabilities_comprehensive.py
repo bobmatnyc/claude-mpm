@@ -20,9 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 from claude_mpm.services.agents.registry import DeployedAgentDiscovery
-from claude_mpm.services.framework_claude_md_generator.content_assembler import (
-    ContentAssembler,
-)
+from claude_mpm.services.framework_claude_md_generator.content_assembler import \
+    ContentAssembler
 
 
 class TestResult:
@@ -299,7 +298,8 @@ def test_error_handling_fallback():
         def broken_init(self):
             self.template_variables = {}
             self.agent_discovery = BrokenDiscovery()
-            from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
+            from claude_mpm.services.agents.management import \
+                AgentCapabilitiesGenerator
 
             self.capabilities_generator = AgentCapabilitiesGenerator()
 

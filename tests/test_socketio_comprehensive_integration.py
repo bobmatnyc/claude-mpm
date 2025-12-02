@@ -19,7 +19,8 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
-    from claude_mpm.services.exceptions import DaemonConflictError, StaleProcessError
+    from claude_mpm.services.exceptions import (DaemonConflictError,
+                                                StaleProcessError)
     from claude_mpm.services.infrastructure.monitoring import HealthStatus
     from claude_mpm.services.recovery_manager import RecoveryAction
     from claude_mpm.services.socketio_server import SocketIOServer
@@ -89,9 +90,9 @@ class IntegrationTestSuite:
                 try:
                     pidfile_data = json.loads(content)
                     assert pidfile_data["pid"] == server.pid, "PID mismatch in file"
-                    assert pidfile_data["server_id"] == server.server_id, (
-                        "Server ID mismatch"
-                    )
+                    assert (
+                        pidfile_data["server_id"] == server.server_id
+                    ), "Server ID mismatch"
                     print("   ✓ PID file creation and content validation passed")
                 except json.JSONDecodeError:
                     # Legacy format check
@@ -113,9 +114,9 @@ class IntegrationTestSuite:
             # Should detect and clean up stale process
             is_running = stale_server.is_already_running()
             assert not is_running, "Should detect stale process as not running"
-            assert not stale_server.pidfile_path.exists(), (
-                "Stale PID file not cleaned up"
-            )
+            assert (
+                not stale_server.pidfile_path.exists()
+            ), "Stale PID file not cleaned up"
             print("   ✓ Stale process detection and cleanup passed")
 
             # Clean up
@@ -167,9 +168,9 @@ class IntegrationTestSuite:
                     raise AssertionError("Should have raised StaleProcessError")
                 except StaleProcessError as e:
                     assert e.pid == 999992, "Wrong PID in error"
-                    assert "Process 999992 does not exist" in e.validation_errors, (
-                        "Missing validation error"
-                    )
+                    assert (
+                        "Process 999992 does not exist" in e.validation_errors
+                    ), "Missing validation error"
                     print("   ✓ StaleProcessError with validation details passed")
 
             self.test_results.append(("enhanced_error_handling", True, None))
@@ -189,9 +190,9 @@ class IntegrationTestSuite:
 
             # Test 3a: Health monitoring initialization
             if hasattr(server, "health_monitor") and server.health_monitor:
-                assert server.health_monitor is not None, (
-                    "Health monitor not initialized"
-                )
+                assert (
+                    server.health_monitor is not None
+                ), "Health monitor not initialized"
                 print("   ✓ Health monitor initialization passed")
 
                 # Test 3b: Health check execution
@@ -211,12 +212,12 @@ class IntegrationTestSuite:
 
             # Test 3c: Recovery manager integration
             if hasattr(server, "recovery_manager") and server.recovery_manager:
-                assert server.recovery_manager is not None, (
-                    "Recovery manager not initialized"
-                )
-                assert server.recovery_manager.enabled is not None, (
-                    "Recovery manager config missing"
-                )
+                assert (
+                    server.recovery_manager is not None
+                ), "Recovery manager not initialized"
+                assert (
+                    server.recovery_manager.enabled is not None
+                ), "Recovery manager config missing"
                 print("   ✓ Recovery manager integration passed")
             else:
                 print("   ⚠ Recovery manager not available in this build")

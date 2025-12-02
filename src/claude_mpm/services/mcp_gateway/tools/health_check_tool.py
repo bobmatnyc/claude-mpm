@@ -28,11 +28,9 @@ import psutil
 from claude_mpm.config.paths import paths
 from claude_mpm.core.enums import HealthStatus, OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    MCPToolDefinition,
-    MCPToolInvocation,
-    MCPToolResult,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (MCPToolDefinition,
+                                                             MCPToolInvocation,
+                                                             MCPToolResult)
 from claude_mpm.services.mcp_gateway.tools.base_adapter import BaseToolAdapter
 
 
@@ -279,7 +277,8 @@ class HealthCheckTool(BaseToolAdapter):
 
         try:
             # Check singleton manager
-            from ..core.singleton_manager import get_gateway_manager, is_gateway_running
+            from ..core.singleton_manager import (get_gateway_manager,
+                                                  is_gateway_running)
 
             manager = get_gateway_manager()
             check_result["checks"]["singleton_manager"] = {

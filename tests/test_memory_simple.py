@@ -18,7 +18,8 @@ project_root = test_dir.parent
 src_dir = project_root / "src"
 sys.path.insert(0, str(src_dir))
 
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def test_memory_project_directory_only():

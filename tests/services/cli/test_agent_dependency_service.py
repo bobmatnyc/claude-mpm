@@ -17,9 +17,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from claude_mpm.services.cli.agent_dependency_service import (
-    AgentDependencyService,
-    IAgentDependencyService,
-)
+    AgentDependencyService, IAgentDependencyService)
 
 
 class TestAgentDependencyService:

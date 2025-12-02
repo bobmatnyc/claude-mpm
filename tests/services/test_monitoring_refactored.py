@@ -17,15 +17,9 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 from claude_mpm.services.infrastructure.monitoring import (
-    AdvancedHealthMonitor,
-    HealthChecker,
-    HealthCheckResult,
-    HealthMetric,
-    HealthStatus,
-    NetworkConnectivityChecker,
-    ProcessResourceChecker,
-    ServiceHealthChecker,
-)
+    AdvancedHealthMonitor, HealthChecker, HealthCheckResult, HealthMetric,
+    HealthStatus, NetworkConnectivityChecker, ProcessResourceChecker,
+    ServiceHealthChecker)
 
 
 class TestHealthMetric:

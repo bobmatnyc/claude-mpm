@@ -23,11 +23,8 @@ import pytest
 from rich.console import Console
 from rich.table import Table
 
-from claude_mpm.cli.commands.configure import (
-    AgentConfig,
-    ConfigureCommand,
-    SimpleAgentManager,
-)
+from claude_mpm.cli.commands.configure import (AgentConfig, ConfigureCommand,
+                                               SimpleAgentManager)
 from claude_mpm.cli.shared import CommandResult
 
 # ==============================================================================

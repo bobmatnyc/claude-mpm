@@ -8,7 +8,6 @@ for developers working on the claude-mpm dashboard.
 
 import argparse
 import asyncio
-
 # Try to import Rich for enhanced output
 import importlib.util
 import json

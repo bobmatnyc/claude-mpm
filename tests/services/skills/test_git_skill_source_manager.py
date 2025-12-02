@@ -14,13 +14,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.claude_mpm.config.skill_sources import (
-    SkillSource,
-    SkillSourceConfiguration,
-)
-from src.claude_mpm.services.skills.git_skill_source_manager import (
-    GitSkillSourceManager,
-)
+from src.claude_mpm.config.skill_sources import (SkillSource,
+                                                 SkillSourceConfiguration)
+from src.claude_mpm.services.skills.git_skill_source_manager import \
+    GitSkillSourceManager
 
 
 class TestGitSkillSourceManager:
@@ -460,12 +457,9 @@ Content
         assert mock_recursive_sync.called
         call_args = mock_recursive_sync.call_args
         # force parameter should be True (check both kwargs and positional args)
-        force_passed = (
-            call_args[1].get("force", False) is True  # Check kwargs
-            or (
-                len(call_args[0]) > 2 and call_args[0][2] is True
-            )  # Check 3rd positional arg
-        )
+        force_passed = call_args[1].get("force", False) is True or (  # Check kwargs
+            len(call_args[0]) > 2 and call_args[0][2] is True
+        )  # Check 3rd positional arg
         assert force_passed, f"Expected force=True, got call_args={call_args}"
 
     def test_sync_all_sources_no_enabled_sources(

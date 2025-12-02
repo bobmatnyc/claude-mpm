@@ -45,7 +45,8 @@ def test_hook_events():
     sys.path.insert(0, "src")
 
     try:
-        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         print("✅ Hook handler created")

@@ -111,13 +111,11 @@ PHASE 1 STATUS (Current):
 """
 
 # Re-export interfaces for convenience
-from claude_mpm.services.core.interfaces.model import (
-    IModelProvider,
-    IModelRouter,
-    ModelCapability,
-    ModelProvider,
-    ModelResponse,
-)
+from claude_mpm.services.core.interfaces.model import (IModelProvider,
+                                                       IModelRouter,
+                                                       ModelCapability,
+                                                       ModelProvider,
+                                                       ModelResponse)
 from claude_mpm.services.model.base_provider import BaseModelProvider
 from claude_mpm.services.model.claude_provider import ClaudeProvider
 from claude_mpm.services.model.model_router import ModelRouter, RoutingStrategy

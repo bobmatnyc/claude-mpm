@@ -164,10 +164,8 @@ class TestAgentLoaderFormats:
 
     def test_real_agent_templates_load():
         """Test that all real agent templates load successfully."""
-        from claude_mpm.agents.agent_loader import (
-            AGENT_MAPPINGS,
-            load_agent_prompt_from_md,
-        )
+        from claude_mpm.agents.agent_loader import (AGENT_MAPPINGS,
+                                                    load_agent_prompt_from_md)
 
         # Test each real agent
         for agent_name in AGENT_MAPPINGS:

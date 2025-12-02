@@ -19,9 +19,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import logging
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.deployment.agent_deployment import (
-    AgentDeploymentService,
-)
+from claude_mpm.services.agents.deployment.agent_deployment import \
+    AgentDeploymentService
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

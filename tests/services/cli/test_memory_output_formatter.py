@@ -20,9 +20,7 @@ import unittest
 import yaml
 
 from claude_mpm.services.cli.memory_output_formatter import (
-    IMemoryOutputFormatter,
-    MemoryOutputFormatter,
-)
+    IMemoryOutputFormatter, MemoryOutputFormatter)
 
 
 class TestMemoryOutputFormatter(unittest.TestCase):

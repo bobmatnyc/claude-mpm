@@ -8,7 +8,8 @@ import unittest.mock
 from pathlib import Path
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def run_final_integration_test():
@@ -39,9 +40,9 @@ def run_final_integration_test():
             )
 
             assert user_pm_file.exists(), "PM memory should be in user directory"
-            assert not project_pm_file.exists(), (
-                "PM memory should NOT be in project directory"
-            )
+            assert (
+                not project_pm_file.exists()
+            ), "PM memory should NOT be in project directory"
             print("✅ PM memory persistence verified")
 
             # Test other agent (should go to project directory)
@@ -55,12 +56,12 @@ def run_final_integration_test():
                 test_project_dir / ".claude-mpm" / "memories" / "engineer_memories.md"
             )
 
-            assert project_engineer_file.exists(), (
-                "Engineer memory should be in project directory"
-            )
-            assert not user_engineer_file.exists(), (
-                "Engineer memory should NOT be in user directory"
-            )
+            assert (
+                project_engineer_file.exists()
+            ), "Engineer memory should be in project directory"
+            assert (
+                not user_engineer_file.exists()
+            ), "Engineer memory should NOT be in user directory"
             print("✅ Other agent directory handling verified")
 
             # Test memory extraction with proper JSON

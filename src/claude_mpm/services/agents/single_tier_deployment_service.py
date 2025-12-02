@@ -32,9 +32,8 @@ from typing import Any, Dict, List, Optional
 
 from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
 from src.claude_mpm.models.git_repository import GitRepository
-from src.claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
-    RemoteAgentDiscoveryService,
-)
+from src.claude_mpm.services.agents.deployment.remote_agent_discovery_service import \
+    RemoteAgentDiscoveryService
 from src.claude_mpm.services.agents.git_source_manager import GitSourceManager
 
 logger = logging.getLogger(__name__)

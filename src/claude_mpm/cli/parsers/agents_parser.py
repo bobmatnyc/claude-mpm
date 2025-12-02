@@ -31,7 +31,22 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
     """
     # Agents command with subcommands
     agents_parser = subparsers.add_parser(
-        CLICommands.AGENTS.value, help="Manage agents and deployment"
+        CLICommands.AGENTS.value,
+        help="Manage agents and deployment",
+        description="""
+Manage Claude MPM agents.
+
+NOTE: For interactive agent management, use 'claude-mpm config' instead.
+      The 'agents manage' command has been deprecated in favor of the
+      unified configuration interface.
+
+Available commands:
+  discover    Discover available agents from configured sources
+  deploy      Deploy agents to your project
+  list        List available agents
+  manage      (Deprecated) Use 'claude-mpm config' instead
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     add_common_arguments(agents_parser)
 
@@ -121,9 +136,17 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         "--backup", action="store_true", help="Create backup before deletion"
     )
 
-    # Manage local agents (interactive menu)
-    agents_subparsers.add_parser(
-        "manage", help="Interactive menu for managing local agents"
+    # Manage local agents (interactive menu) - DEPRECATED
+    manage_parser = agents_subparsers.add_parser(
+        "manage",
+        help="(Deprecated) Manage local agents - use 'claude-mpm config' instead",
+        description="Manage locally deployed agents. Note: This command has been deprecated. "
+        "Please use 'claude-mpm config' for the enhanced configuration interface.",
+    )
+    manage_parser.epilog = (
+        "\nDEPRECATION NOTICE:\n"
+        "This command has been deprecated in favor of 'claude-mpm config' which provides\n"
+        "a unified interface for managing agents, skills, templates, and behavior settings.\n"
     )
 
     # Configure agent deployment settings
@@ -384,10 +407,8 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Auto-configuration commands (TSK-0054 Phase 5)
-    from .auto_configure_parser import (
-        add_agents_detect_subparser,
-        add_agents_recommend_subparser,
-    )
+    from .auto_configure_parser import (add_agents_detect_subparser,
+                                        add_agents_recommend_subparser)
 
     add_agents_detect_subparser(agents_subparsers)
     add_agents_recommend_subparser(agents_subparsers)

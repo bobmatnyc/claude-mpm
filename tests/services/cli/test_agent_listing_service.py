@@ -20,11 +20,7 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 
 from claude_mpm.services.cli.agent_listing_service import (
-    AgentInfo,
-    AgentListingService,
-    AgentTierInfo,
-    IAgentListingService,
-)
+    AgentInfo, AgentListingService, AgentTierInfo, IAgentListingService)
 
 
 class TestAgentListingService:

@@ -150,9 +150,9 @@ for agent in agents:
             if "opus" in agent.get("model", "").lower():
                 opus_agents.append(agent)
                 # Opus requires premium tier
-                assert agent["resource_tier"] == "premium", (
-                    f"Agent {agent['id']} uses Opus but not premium tier"
-                )
+                assert (
+                    agent["resource_tier"] == "premium"
+                ), f"Agent {agent['id']} uses Opus but not premium tier"
 
     def test_resource_tier_distribution(self):
         """Test resource tier distribution across agents."""
@@ -188,14 +188,14 @@ for agent in agents:
             instructions = agent.get("instructions", "")
 
             # Instructions should be substantial
-            assert len(instructions) >= 100, (
-                f"Agent {agent['id']} has very short instructions"
-            )
+            assert (
+                len(instructions) >= 100
+            ), f"Agent {agent['id']} has very short instructions"
 
             # Instructions should be well-formatted
-            assert instructions.strip() == instructions, (
-                f"Agent {agent['id']} has whitespace issues"
-            )
+            assert (
+                instructions.strip() == instructions
+            ), f"Agent {agent['id']} has whitespace issues"
 
             # Should not contain old format references
             assert "role:" not in instructions.lower()

@@ -22,13 +22,11 @@ Detection Strategies:
 """
 
 from .analyzer import ProjectAnalyzer
-from .detection_strategies import (
-    GoDetectionStrategy,
-    IToolchainDetectionStrategy,
-    NodeJSDetectionStrategy,
-    PythonDetectionStrategy,
-    RustDetectionStrategy,
-)
+from .detection_strategies import (GoDetectionStrategy,
+                                   IToolchainDetectionStrategy,
+                                   NodeJSDetectionStrategy,
+                                   PythonDetectionStrategy,
+                                   RustDetectionStrategy)
 from .registry import ProjectRegistry
 from .toolchain_analyzer import ToolchainAnalyzerService
 

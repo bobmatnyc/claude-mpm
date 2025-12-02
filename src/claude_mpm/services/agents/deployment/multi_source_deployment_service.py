@@ -942,7 +942,8 @@ class MultiSourceAgentDeploymentService:
         if deployed_agents_dir == user_claude_dir:
             # Check if we're in development mode
             try:
-                from ....core.unified_paths import DeploymentContext, PathContext
+                from ....core.unified_paths import (DeploymentContext,
+                                                    PathContext)
 
                 deployment_context = PathContext.detect_deployment_context()
 

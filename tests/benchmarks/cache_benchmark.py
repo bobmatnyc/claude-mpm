@@ -30,7 +30,8 @@ from typing import Any, Dict, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 try:
-    from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+    from claude_mpm.services.memory.cache.shared_prompt_cache import \
+        SharedPromptCache
 
     CLAUDE_MPM_AVAILABLE = True
 except ImportError as e:

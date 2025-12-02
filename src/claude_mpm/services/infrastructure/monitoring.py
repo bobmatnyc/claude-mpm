@@ -30,21 +30,13 @@ For backward compatibility, legacy classes are still available:
 """
 
 # Re-export all components from the modular implementation
-from .monitoring import (
-    AdvancedHealthMonitor,
-    HealthChecker,
-    HealthCheckResult,
-    HealthMetric,
-    HealthStatus,
-    MonitoringAggregatorService,
-    NetworkConnectivityChecker,
-    NetworkHealthService,
-    ProcessHealthService,
-    ProcessResourceChecker,
-    ResourceMonitorService,
-    ServiceHealthChecker,
-    ServiceHealthService,
-)
+from .monitoring import (AdvancedHealthMonitor, HealthChecker,
+                         HealthCheckResult, HealthMetric, HealthStatus,
+                         MonitoringAggregatorService,
+                         NetworkConnectivityChecker, NetworkHealthService,
+                         ProcessHealthService, ProcessResourceChecker,
+                         ResourceMonitorService, ServiceHealthChecker,
+                         ServiceHealthService)
 
 __all__ = [
     "AdvancedHealthMonitor",

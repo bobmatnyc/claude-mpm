@@ -176,9 +176,9 @@ class AgentMetricsCollector:
             agent_name: Name of the agent being validated
             validation_time_ms: Validation time in milliseconds
         """
-        self._deployment_metrics["template_validation_times"][agent_name] = (
-            validation_time_ms
-        )
+        self._deployment_metrics["template_validation_times"][
+            agent_name
+        ] = validation_time_ms
 
     def get_performance_summary(self) -> Dict[str, Any]:
         """

@@ -17,12 +17,7 @@ import pytest
 import requests
 
 from claude_mpm.services.agents.sources.git_source_sync_service import (
-    CacheError,
-    ETagCache,
-    GitSourceSyncService,
-    GitSyncError,
-    NetworkError,
-)
+    CacheError, ETagCache, GitSourceSyncService, GitSyncError, NetworkError)
 
 
 class TestETagCache:

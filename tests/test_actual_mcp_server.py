@@ -25,7 +25,8 @@ async def simulate_mcp_request():
     print(f"Initial memory: {initial_mem:.2f} MB\n")
 
     # Import and create server (this happens once per process)
-    from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
+    from claude_mpm.services.mcp_gateway.server.stdio_server import \
+        SimpleMCPServer
 
     server = SimpleMCPServer()
     print(f"After server creation: {get_memory_usage():.2f} MB")
@@ -41,9 +42,8 @@ async def simulate_mcp_request():
 
         # This is what happens when Claude invokes the tool
         try:
-            from claude_mpm.services.mcp_gateway.core.interfaces import (
-                MCPToolInvocation,
-            )
+            from claude_mpm.services.mcp_gateway.core.interfaces import \
+                MCPToolInvocation
 
             invocation = MCPToolInvocation(
                 tool_name="ticket",

@@ -545,7 +545,8 @@ def create_parser(
 
         # MCP pipx configuration command
         if hasattr(CLICommands, "MCP_PIPX_CONFIG") or True:  # Always add for now
-            from ..commands.mcp_pipx_config import add_parser as add_mcp_pipx_parser
+            from ..commands.mcp_pipx_config import \
+                add_parser as add_mcp_pipx_parser
 
             add_mcp_pipx_parser(subparsers)
 

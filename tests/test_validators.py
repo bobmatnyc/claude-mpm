@@ -15,13 +15,8 @@ from urllib.request import pathname2url
 
 import referencing.exceptions
 from attrs import define, field
-from jsonschema import (
-    FormatChecker,
-    TypeChecker,
-    exceptions,
-    protocols,
-    validators,
-)
+from jsonschema import (FormatChecker, TypeChecker, exceptions, protocols,
+                        validators)
 from referencing.jsonschema import DRAFT202012
 
 

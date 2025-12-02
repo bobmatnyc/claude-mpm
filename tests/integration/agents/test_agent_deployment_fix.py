@@ -40,9 +40,9 @@ def test_deployment_with_user_directory():
         deployment_service = AgentDeploymentService()
 
         # Check that working_directory is set correctly
-        assert deployment_service.working_directory == user_dir, (
-            f"Expected working_directory to be {user_dir}, got {deployment_service.working_directory}"
-        )
+        assert (
+            deployment_service.working_directory == user_dir
+        ), f"Expected working_directory to be {user_dir}, got {deployment_service.working_directory}"
         print(
             f"✓ AgentDeploymentService correctly using user directory: {deployment_service.working_directory}"
         )
@@ -54,9 +54,9 @@ def test_deployment_with_user_directory():
         expected_target = user_dir / ".claude" / "agents"
         actual_target = Path(results["target_dir"])
 
-        assert actual_target == expected_target, (
-            f"Expected agents to deploy to {expected_target}, got {actual_target}"
-        )
+        assert (
+            actual_target == expected_target
+        ), f"Expected agents to deploy to {expected_target}, got {actual_target}"
         print(f"✓ Agents deploying to correct location: {actual_target}")
 
         # Test 3: Verify agents were actually created
@@ -74,9 +74,9 @@ def test_deployment_with_user_directory():
         expected_custom = custom_target / "agents"
         actual_custom = Path(results["target_dir"])
 
-        assert actual_custom == expected_custom, (
-            f"Expected custom target {expected_custom}, got {actual_custom}"
-        )
+        assert (
+            actual_custom == expected_custom
+        ), f"Expected custom target {expected_custom}, got {actual_custom}"
         print(f"✓ Custom target deployment working: {actual_custom}")
 
         # Clean up environment variable
@@ -97,9 +97,9 @@ def test_deployment_without_env_var():
     deployment_service = AgentDeploymentService()
 
     # Should fall back to current directory
-    assert deployment_service.working_directory == Path.cwd(), (
-        f"Expected working_directory to be {Path.cwd()}, got {deployment_service.working_directory}"
-    )
+    assert (
+        deployment_service.working_directory == Path.cwd()
+    ), f"Expected working_directory to be {Path.cwd()}, got {deployment_service.working_directory}"
     print(
         f"✓ Without env var, correctly falls back to current directory: {deployment_service.working_directory}"
     )
@@ -120,9 +120,9 @@ def test_deployment_with_explicit_working_dir():
         deployment_service = AgentDeploymentService(working_directory=explicit_dir)
 
         # Should use explicit directory, not env var
-        assert deployment_service.working_directory == explicit_dir, (
-            f"Expected working_directory to be {explicit_dir}, got {deployment_service.working_directory}"
-        )
+        assert (
+            deployment_service.working_directory == explicit_dir
+        ), f"Expected working_directory to be {explicit_dir}, got {deployment_service.working_directory}"
         print(
             f"✓ Explicit directory parameter takes precedence: {deployment_service.working_directory}"
         )

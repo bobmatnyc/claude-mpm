@@ -8,10 +8,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from claude_mpm.core.unified_agent_registry import (
-    AgentTier,
-    UnifiedAgentRegistry,
-)
+from claude_mpm.core.unified_agent_registry import (AgentTier,
+                                                    UnifiedAgentRegistry)
 
 
 class TestUnifiedAgentRegistry(unittest.TestCase):

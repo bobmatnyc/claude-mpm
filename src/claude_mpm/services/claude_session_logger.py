@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 
 # Import configuration manager
 from claude_mpm.core.config import Config
-
 # Import centralized session manager
 from claude_mpm.services.session_manager import get_session_manager
 

@@ -14,9 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.logger import get_logger
-from claude_mpm.services.agents.deployment.agent_deployment import (
-    AgentDeploymentService,
-)
+from claude_mpm.services.agents.deployment.agent_deployment import \
+    AgentDeploymentService
 
 
 def test_agent_exclusion():

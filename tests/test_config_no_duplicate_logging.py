@@ -66,12 +66,10 @@ class TestConfigNoDuplicateLogging(TestCase):
 
     def test_singleton_with_services():
         """Test that services share the same Config singleton."""
-        from claude_mpm.services.agent_capabilities_service import (
-            AgentCapabilitiesService,
-        )
-        from claude_mpm.services.system_instructions_service import (
-            SystemInstructionsService,
-        )
+        from claude_mpm.services.agent_capabilities_service import \
+            AgentCapabilitiesService
+        from claude_mpm.services.system_instructions_service import \
+            SystemInstructionsService
 
         with self.assertLogs("claude_mpm.core.config", level=logging.INFO) as cm:
             service1 = AgentCapabilitiesService()

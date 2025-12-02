@@ -73,9 +73,9 @@ class TestHelperMethods(TestAgentDeploymentService):
         target_dir = tmp_path / ".claude" / "agents"
         expected_result = {"converted": ["agent1.yaml", "agent2.yaml"]}
 
-        mock_dependencies[
-            "format_converter"
-        ].convert_yaml_to_md.return_value = expected_result
+        mock_dependencies["format_converter"].convert_yaml_to_md.return_value = (
+            expected_result
+        )
 
         result = service._convert_yaml_to_md(target_dir)
 
@@ -86,9 +86,9 @@ class TestHelperMethods(TestAgentDeploymentService):
         config_dir = tmp_path / ".claude"
         expected_result = {"removed": ["agent1.md", "agent2.md"], "errors": []}
 
-        mock_dependencies[
-            "filesystem_manager"
-        ].clean_deployment.return_value = expected_result
+        mock_dependencies["filesystem_manager"].clean_deployment.return_value = (
+            expected_result
+        )
 
         result = service.clean_deployment(config_dir)
 

@@ -8,9 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.services.agents.deployment.agent_template_builder import (
-    AgentTemplateBuilder,
-)
+from claude_mpm.services.agents.deployment.agent_template_builder import \
+    AgentTemplateBuilder
 
 
 class TestAgentTemplateBuilderTriggers:

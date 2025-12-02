@@ -16,13 +16,11 @@ from threading import RLock
 from typing import Any, Dict, List, Optional, Set
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    IMCPToolAdapter,
-    IMCPToolRegistry,
-    MCPToolDefinition,
-    MCPToolInvocation,
-    MCPToolResult,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPToolAdapter,
+                                                             IMCPToolRegistry,
+                                                             MCPToolDefinition,
+                                                             MCPToolInvocation,
+                                                             MCPToolResult)
 
 
 class ToolRegistry(BaseMCPService, IMCPToolRegistry):

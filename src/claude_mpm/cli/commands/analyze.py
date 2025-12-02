@@ -234,9 +234,8 @@ class AnalyzeCommand(BaseCommand):
         try:
             # Import required modules
             from ...core.claude_runner import ClaudeRunner
-            from ...services.agents.deployment.agent_deployment import (
-                AgentDeploymentService,
-            )
+            from ...services.agents.deployment.agent_deployment import \
+                AgentDeploymentService
 
             # Deploy the analysis agent if not already deployed
             deployment_service = AgentDeploymentService()

@@ -25,9 +25,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.sources.git_source_sync_service import (
-    GitSourceSyncService,
-)
+from claude_mpm.services.agents.sources.git_source_sync_service import \
+    GitSourceSyncService
 
 logger = logging.getLogger(__name__)
 

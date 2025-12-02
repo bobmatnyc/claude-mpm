@@ -26,10 +26,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.claude_mpm.hooks.claude_hooks.services import (
-    DuplicateEventDetector,
-    StateManagerService,
-    SubagentResponseProcessor,
-)
+    DuplicateEventDetector, StateManagerService, SubagentResponseProcessor)
 
 
 class TestDuplicateEventDetector(unittest.TestCase):

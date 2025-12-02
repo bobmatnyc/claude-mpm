@@ -64,9 +64,9 @@ def test_run_command_with_resume():
         _ensure_run_attributes(args)
 
         # The claude_args should contain --resume
-        assert "--resume" in args.claude_args, (
-            f"Expected --resume in claude_args, got: {args.claude_args}"
-        )
+        assert (
+            "--resume" in args.claude_args
+        ), f"Expected --resume in claude_args, got: {args.claude_args}"
         print(f"✓ claude-mpm --resume: claude_args = {args.claude_args}")
 
     # Test 2: claude-mpm run --resume
@@ -85,9 +85,9 @@ def test_run_command_with_resume():
 
         claude_args = filter_claude_mpm_args(raw_claude_args)
 
-        assert "--resume" in claude_args, (
-            f"Expected --resume in filtered args, got: {claude_args}"
-        )
+        assert (
+            "--resume" in claude_args
+        ), f"Expected --resume in filtered args, got: {claude_args}"
         print(f"✓ claude-mpm run --resume: claude_args = {claude_args}")
 
     # Test 3: claude-mpm run --resume -- --model opus
@@ -103,15 +103,15 @@ def test_run_command_with_resume():
 
         claude_args = filter_claude_mpm_args(raw_claude_args)
 
-        assert "--resume" in claude_args, (
-            f"Expected --resume in filtered args, got: {claude_args}"
-        )
-        assert "--model" in claude_args, (
-            f"Expected --model in filtered args, got: {claude_args}"
-        )
-        assert "opus" in claude_args, (
-            f"Expected 'opus' in filtered args, got: {claude_args}"
-        )
+        assert (
+            "--resume" in claude_args
+        ), f"Expected --resume in filtered args, got: {claude_args}"
+        assert (
+            "--model" in claude_args
+        ), f"Expected --model in filtered args, got: {claude_args}"
+        assert (
+            "opus" in claude_args
+        ), f"Expected 'opus' in filtered args, got: {claude_args}"
         print(f"✓ claude-mpm run --resume -- --model opus: claude_args = {claude_args}")
 
     print("✅ Full command flow tests passed!\n")
@@ -146,9 +146,9 @@ def test_actual_command_execution():
         # Verify it contains expected elements
         assert "claude" in cmd, "Command should start with 'claude'"
         assert "--resume" in cmd, "Command should include --resume"
-        assert "--dangerously-skip-permissions" in cmd, (
-            "Command should include permissions flag"
-        )
+        assert (
+            "--dangerously-skip-permissions" in cmd
+        ), "Command should include permissions flag"
 
         print("✓ Command correctly includes --resume flag")
 

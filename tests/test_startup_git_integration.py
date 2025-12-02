@@ -12,7 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.cli.startup_display import _get_recent_commits, display_startup_banner
+from claude_mpm.cli.startup_display import (_get_recent_commits,
+                                            display_startup_banner)
 
 
 class TestGetRecentCommits:

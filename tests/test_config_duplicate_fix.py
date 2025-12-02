@@ -56,9 +56,9 @@ def test_single_success_message():
     print(f"Config 3 created: {config3}")
 
     # Verify they're all the same instance
-    assert config1 is config2 is config3, (
-        "Config instances should be the same (singleton)"
-    )
+    assert (
+        config1 is config2 is config3
+    ), "Config instances should be the same (singleton)"
 
     # Check how many success messages were logged
     print(f"\nSuccess messages logged: {len(success_messages)}")

@@ -20,7 +20,8 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.agents.auto_deploy_index_parser import AutoDeployIndexParser
+from claude_mpm.services.agents.auto_deploy_index_parser import \
+    AutoDeployIndexParser
 
 
 # Find AUTO-DEPLOY-INDEX.md in test fixtures or use real file
@@ -124,9 +125,9 @@ class TestAutoDeployIndexParserParse:
         ]
 
         for agent in expected_agents:
-            assert agent in universal_agents, (
-                f"Expected agent '{agent}' not found in universal agents"
-            )
+            assert (
+                agent in universal_agents
+            ), f"Expected agent '{agent}' not found in universal agents"
 
     def test_parse_language_mappings(self, parser):
         """Test parsing language-specific mappings."""
@@ -215,9 +216,9 @@ class TestAutoDeployIndexParserGetters:
         ]
 
         for category in expected_categories:
-            assert any(category in c for c in categories), (
-                f"Expected category '{category}' not found"
-            )
+            assert any(
+                category in c for c in categories
+            ), f"Expected category '{category}' not found"
 
     def test_get_agents_by_category(self, parser):
         """Test filtering agents by category."""
@@ -229,9 +230,9 @@ class TestAutoDeployIndexParserGetters:
 
         # All agents should start with 'engineer/backend/'
         for agent in agents:
-            assert agent.startswith("engineer/backend/"), (
-                f"Agent '{agent}' doesn't match category"
-            )
+            assert agent.startswith(
+                "engineer/backend/"
+            ), f"Agent '{agent}' doesn't match category"
 
     def test_get_agents_by_category_nonexistent(self, parser):
         """Test filtering by nonexistent category returns empty list."""
@@ -344,7 +345,8 @@ class TestAutoDeployIndexParserEdgeCases:
     def test_malformed_markdown(self, tmp_path):
         """Test parsing malformed markdown returns partial results."""
         malformed_file = tmp_path / "malformed.md"
-        malformed_file.write_text("""
+        malformed_file.write_text(
+            """
 # Some Header
 
 This is not a valid AUTO-DEPLOY-INDEX.md file.
@@ -354,7 +356,8 @@ This is not a valid AUTO-DEPLOY-INDEX.md file.
 - `universal/memory-manager` - Memory management
 
 Random text without proper structure.
-""")
+"""
+        )
 
         parser = AutoDeployIndexParser(malformed_file)
         result = parser.parse()

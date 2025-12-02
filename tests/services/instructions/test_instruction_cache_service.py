@@ -15,9 +15,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.services.instructions.instruction_cache_service import (
-    InstructionCacheService,
-)
+from claude_mpm.services.instructions.instruction_cache_service import \
+    InstructionCacheService
 
 
 @pytest.fixture

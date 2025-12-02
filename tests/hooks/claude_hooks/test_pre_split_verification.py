@@ -39,14 +39,15 @@ class TestPreSplitVerification:
 
     def test_no_shared_fixtures(self, test_file_content):
         """Verify no @pytest.fixture decorators exist (confirms no shared fixtures)."""
-        assert "@pytest.fixture" not in test_file_content, (
-            "File contains fixtures - split will be more complex"
-        )
+        assert (
+            "@pytest.fixture" not in test_file_content
+        ), "File contains fixtures - split will be more complex"
 
     def test_imports_resolve(self):
         """Verify all imports in the file can be resolved."""
         try:
-            from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+            from claude_mpm.hooks.claude_hooks.hook_handler import \
+                ClaudeHookHandler
 
             assert ClaudeHookHandler is not None
         except ImportError as e:
@@ -79,18 +80,18 @@ class TestPreSplitVerification:
                     if isinstance(base, ast.Name):
                         # It's okay to inherit from object or nothing
                         # But not from other test classes
-                        assert not base.id.startswith("Test"), (
-                            f"{cls.name} inherits from {base.id} - split will be complex"
-                        )
+                        assert not base.id.startswith(
+                            "Test"
+                        ), f"{cls.name} inherits from {base.id} - split will be complex"
 
     def test_no_conftest_dependencies(self):
         """Verify no conftest.py exists in the directory (confirms no shared fixtures)."""
         conftest_path = Path("tests/hooks/claude_hooks/conftest.py")
         if conftest_path.exists():
             content = conftest_path.read_text()
-            assert "@pytest.fixture" not in content, (
-                "conftest.py has fixtures - need to account for these in split"
-            )
+            assert (
+                "@pytest.fixture" not in content
+            ), "conftest.py has fixtures - need to account for these in split"
 
     def test_split_boundaries_identified(self, test_file_content):
         """Verify we can identify clear split boundaries."""
@@ -110,9 +111,9 @@ class TestPreSplitVerification:
         ]
 
         for expected_class in expected_classes:
-            assert f"class {expected_class}" in test_file_content, (
-                f"Expected test class not found: {expected_class}"
-            )
+            assert (
+                f"class {expected_class}" in test_file_content
+            ), f"Expected test class not found: {expected_class}"
 
     def test_file_size_justifies_split(self, test_file_path):
         """Verify file is large enough to justify splitting."""
@@ -124,16 +125,16 @@ class TestPreSplitVerification:
         current_lines = len(test_file_path.read_text().splitlines())
         proposed_files = 5
         average_after_split = current_lines / proposed_files
-        assert average_after_split < 300, (
-            f"Average file size after split ({average_after_split:.0f} lines) still too large"
-        )
+        assert (
+            average_after_split < 300
+        ), f"Average file size after split ({average_after_split:.0f} lines) still too large"
 
     def test_verify_line_count(self, test_file_path):
         """Verify actual line count matches expected (~1139 lines)."""
         actual_lines = len(test_file_path.read_text().splitlines())
-        assert 1130 <= actual_lines <= 1150, (
-            f"Expected ~1139 lines, found {actual_lines}"
-        )
+        assert (
+            1130 <= actual_lines <= 1150
+        ), f"Expected ~1139 lines, found {actual_lines}"
 
     def test_verify_import_structure(self, test_file_content):
         """Verify standard imports are present and can be copied."""
@@ -146,9 +147,9 @@ class TestPreSplitVerification:
         ]
 
         for import_statement in essential_imports:
-            assert import_statement in test_file_content, (
-                f"Essential import not found: {import_statement}"
-            )
+            assert (
+                import_statement in test_file_content
+            ), f"Essential import not found: {import_statement}"
 
     def test_no_global_state(self, test_file_content):
         """Verify no global state that would complicate splitting."""
@@ -162,9 +163,9 @@ class TestPreSplitVerification:
 
         # Should have minimal module-level state
         # (Some is okay like __name__ check at end)
-        assert len(module_level_assigns) == 0, (
-            "Module-level assignments found - may complicate split"
-        )
+        assert (
+            len(module_level_assigns) == 0
+        ), "Module-level assignments found - may complicate split"
 
     def test_verify_test_class_sizes(self, test_file_content):
         """Verify test classes have reasonable sizes for splitting."""
@@ -184,9 +185,9 @@ class TestPreSplitVerification:
             ]
 
             # Each test class should have 2-10 tests
-            assert 1 <= len(methods) <= 15, (
-                f"{cls.name} has {len(methods)} tests - may need further splitting"
-            )
+            assert (
+                1 <= len(methods) <= 15
+            ), f"{cls.name} has {len(methods)} tests - may need further splitting"
 
     def test_verify_no_cross_class_dependencies(self, test_file_content):
         """Verify test classes don't reference each other."""
@@ -248,9 +249,9 @@ class TestPreSplitVerification:
 
         # Check each class exists in the file
         for class_name in all_planned_classes:
-            assert f"class {class_name}" in test_file_content, (
-                f"Planned class {class_name} not found in file"
-            )
+            assert (
+                f"class {class_name}" in test_file_content
+            ), f"Planned class {class_name} not found in file"
 
         # Verify we haven't missed any classes
         tree = ast.parse(test_file_content)
@@ -296,17 +297,17 @@ class TestPreSplitVerification:
         )
 
         # Should be able to collect tests without errors
-        assert result.returncode == 0, (
-            f"Cannot collect tests from file: {result.stderr}"
-        )
+        assert (
+            result.returncode == 0
+        ), f"Cannot collect tests from file: {result.stderr}"
 
         # Verify it collected the expected number of tests
         output = result.stdout
         # pytest --co shows test names, count them
         test_count = output.count("test_")
-        assert 45 <= test_count <= 55, (
-            f"Expected ~50 collected tests, found {test_count}"
-        )
+        assert (
+            45 <= test_count <= 55
+        ), f"Expected ~50 collected tests, found {test_count}"
 
 
 if __name__ == "__main__":

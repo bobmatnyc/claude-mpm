@@ -335,7 +335,8 @@ class OneshotSession:
             List with ["--agents", "<json>"] or None if conversion fails
         """
         try:
-            from claude_mpm.services.native_agent_converter import NativeAgentConverter
+            from claude_mpm.services.native_agent_converter import \
+                NativeAgentConverter
 
             converter = NativeAgentConverter()
             agents = converter.load_agents_from_templates()

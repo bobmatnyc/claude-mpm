@@ -15,12 +15,8 @@ from typing import List
 
 import pytest
 
-from claude_mpm.core.container import (
-    CircularDependencyError,
-    DIContainer,
-    ServiceLifetime,
-    ServiceNotFoundError,
-)
+from claude_mpm.core.container import (CircularDependencyError, DIContainer,
+                                       ServiceLifetime, ServiceNotFoundError)
 
 
 # Test interfaces and implementations

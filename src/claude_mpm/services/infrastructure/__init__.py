@@ -14,14 +14,9 @@ Services:
 """
 
 from .logging import LoggingService
-from .monitoring import (
-    AdvancedHealthMonitor,
-    MonitoringAggregatorService,
-    NetworkHealthService,
-    ProcessHealthService,
-    ResourceMonitorService,
-    ServiceHealthService,
-)
+from .monitoring import (AdvancedHealthMonitor, MonitoringAggregatorService,
+                         NetworkHealthService, ProcessHealthService,
+                         ResourceMonitorService, ServiceHealthService)
 
 # Check if optional modules exist
 try:

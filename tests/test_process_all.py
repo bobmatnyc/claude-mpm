@@ -17,19 +17,12 @@ import time
 import traceback
 
 import psutil
-from psutil import AIX, BSD, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, OSX, POSIX, WINDOWS
-from psutil.tests import (
-    CI_TESTING,
-    PYTEST_PARALLEL,
-    VALID_PROC_STATUSES,
-    PsutilTestCase,
-    check_connection_ntuple,
-    create_sockets,
-    is_namedtuple,
-    is_win_secure_system_proc,
-    process_namespace,
-    pytest,
-)
+from psutil import (AIX, BSD, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, OSX,
+                    POSIX, WINDOWS)
+from psutil.tests import (CI_TESTING, PYTEST_PARALLEL, VALID_PROC_STATUSES,
+                          PsutilTestCase, check_connection_ntuple,
+                          create_sockets, is_namedtuple,
+                          is_win_secure_system_proc, process_namespace, pytest)
 
 # Cuts the time in half, but (e.g.) on macOS the process pool stays
 # alive after join() (multiprocessing bug?), messing up other tests.

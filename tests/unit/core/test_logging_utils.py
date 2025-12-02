@@ -12,18 +12,12 @@ from unittest import mock
 
 import pytest
 
-from claude_mpm.core.logging_utils import (
-    LoggerFactory,
-    LoggingConfig,
-    PerformanceLogger,
-    StructuredLogger,
-    get_component_logger,
-    get_logger,
-    get_performance_logger,
-    get_structured_logger,
-    initialize_logging,
-    set_log_level,
-)
+from claude_mpm.core.logging_utils import (LoggerFactory, LoggingConfig,
+                                           PerformanceLogger, StructuredLogger,
+                                           get_component_logger, get_logger,
+                                           get_performance_logger,
+                                           get_structured_logger,
+                                           initialize_logging, set_log_level)
 
 
 class TestLoggingConfig:

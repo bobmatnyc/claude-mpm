@@ -23,8 +23,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from claude_mpm.core.logging_config import get_logger
-from claude_mpm.dashboard.analysis_runner import AnalysisRequest, CodeAnalysisRunner
-from claude_mpm.services.socketio.handlers.code_analysis import CodeAnalysisEventHandler
+from claude_mpm.dashboard.analysis_runner import (AnalysisRequest,
+                                                  CodeAnalysisRunner)
+from claude_mpm.services.socketio.handlers.code_analysis import \
+    CodeAnalysisEventHandler
 
 
 class MockSocketIOServer:

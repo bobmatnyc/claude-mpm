@@ -20,9 +20,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from claude_mpm.services.mcp_gateway.core.process_pool import (
-    get_process_pool,
-    pre_warm_mcp_servers,
-)
+    get_process_pool, pre_warm_mcp_servers)
 
 
 def measure_cold_start():

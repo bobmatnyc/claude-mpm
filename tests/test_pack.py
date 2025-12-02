@@ -9,10 +9,7 @@ import os
 import tempfile
 
 import pytest
-from gitdb.base import (
-    OInfo,
-    OStream,
-)
+from gitdb.base import OInfo, OStream
 from gitdb.exc import UnsupportedOperation
 from gitdb.fun import delta_types
 from gitdb.pack import PackEntity, PackFile, PackIndexFile

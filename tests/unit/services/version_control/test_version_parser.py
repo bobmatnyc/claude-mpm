@@ -21,11 +21,7 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 
 from claude_mpm.services.version_control.version_parser import (
-    EnhancedVersionParser,
-    VersionMetadata,
-    VersionSource,
-    get_version_parser,
-)
+    EnhancedVersionParser, VersionMetadata, VersionSource, get_version_parser)
 
 # ============================================================================
 # TEST FIXTURES

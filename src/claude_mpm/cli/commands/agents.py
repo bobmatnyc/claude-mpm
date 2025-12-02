@@ -21,10 +21,7 @@ from ...services.cli.agent_dependency_service import AgentDependencyService
 from ...services.cli.agent_listing_service import AgentListingService
 from ...services.cli.agent_output_formatter import AgentOutputFormatter
 from ...services.cli.agent_validation_service import AgentValidationService
-from ..shared import (
-    AgentCommand,
-    CommandResult,
-)
+from ..shared import AgentCommand, CommandResult
 from ..utils import get_agent_versions_display
 from .agents_cleanup import handle_agents_cleanup
 
@@ -55,9 +52,8 @@ class AgentsCommand(AgentCommand):
         if self._deployment_service is None:
             try:
                 from ...services import AgentDeploymentService
-                from ...services.agents.deployment.deployment_wrapper import (
-                    DeploymentServiceWrapper,
-                )
+                from ...services.agents.deployment.deployment_wrapper import \
+                    DeploymentServiceWrapper
 
                 base_service = AgentDeploymentService()
                 self._deployment_service = DeploymentServiceWrapper(base_service)
@@ -622,11 +618,11 @@ class AgentsCommand(AgentCommand):
             from pathlib import Path
 
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_preset_service import AgentPresetService
+            from ...services.agents.agent_preset_service import \
+                AgentPresetService
             from ...services.agents.git_source_manager import GitSourceManager
-            from ...services.agents.single_tier_deployment_service import (
-                SingleTierDeploymentService,
-            )
+            from ...services.agents.single_tier_deployment_service import \
+                SingleTierDeploymentService
 
             preset_name = args.preset
             dry_run = getattr(args, "dry_run", False)
@@ -1237,9 +1233,9 @@ class AgentsCommand(AgentCommand):
         exit_code = handle_agents_cleanup(args)
         return CommandResult(
             success=exit_code == 0,
-            message="Agent cleanup complete"
-            if exit_code == 0
-            else "Agent cleanup failed",
+            message=(
+                "Agent cleanup complete" if exit_code == 0 else "Agent cleanup failed"
+            ),
         )
 
     def _cleanup_orphaned_agents(self, args) -> CommandResult:
@@ -1287,7 +1283,8 @@ class AgentsCommand(AgentCommand):
         try:
             if getattr(args, "interactive", False):
                 # Launch interactive wizard
-                from ..interactive.agent_wizard import run_interactive_agent_wizard
+                from ..interactive.agent_wizard import \
+                    run_interactive_agent_wizard
 
                 exit_code = run_interactive_agent_wizard()
                 if exit_code == 0:
@@ -1295,9 +1292,8 @@ class AgentsCommand(AgentCommand):
                 return CommandResult.error_result("Agent creation cancelled or failed")
 
             # Non-interactive creation
-            from ...services.agents.local_template_manager import (
-                LocalAgentTemplateManager,
-            )
+            from ...services.agents.local_template_manager import \
+                LocalAgentTemplateManager
 
             agent_id = getattr(args, "agent_id", None)
             if not agent_id:
@@ -1345,9 +1341,8 @@ class AgentsCommand(AgentCommand):
             import os
             import subprocess
 
-            from ...services.agents.local_template_manager import (
-                LocalAgentTemplateManager,
-            )
+            from ...services.agents.local_template_manager import \
+                LocalAgentTemplateManager
 
             manager = LocalAgentTemplateManager()
             template = manager.get_local_template(agent_id)
@@ -1397,9 +1392,8 @@ class AgentsCommand(AgentCommand):
             if not agent_ids:
                 return CommandResult.error_result("No agent IDs specified")
 
-            from ...services.agents.local_template_manager import (
-                LocalAgentTemplateManager,
-            )
+            from ...services.agents.local_template_manager import \
+                LocalAgentTemplateManager
 
             manager = LocalAgentTemplateManager()
             force = getattr(args, "force", False)
@@ -1463,18 +1457,46 @@ class AgentsCommand(AgentCommand):
             return CommandResult.error_result(f"Error deleting local agents: {e}")
 
     def _manage_local_agents(self, args) -> CommandResult:
-        """Launch interactive management menu for local agents."""
+        """Redirect to main configuration interface (DEPRECATED)."""
         try:
-            from ..interactive.agent_wizard import run_interactive_agent_manager
+            from rich.console import Console
+            from rich.prompt import Confirm
 
-            exit_code = run_interactive_agent_manager()
-            if exit_code == 0:
-                return CommandResult.success_result("Agent management completed")
-            return CommandResult.error_result("Agent management failed or cancelled")
+            console = Console()
+
+            console.print(
+                "\n[bold cyan]╭─────────────────────────────────────────╮[/bold cyan]"
+            )
+            console.print(
+                "[bold cyan]│  Agent Management Has Moved!            │[/bold cyan]"
+            )
+            console.print(
+                "[bold cyan]╰─────────────────────────────────────────╯[/bold cyan]\n"
+            )
+
+            console.print("For a better experience with integrated configuration:")
+            console.print("  • Agent management")
+            console.print("  • Skills management")
+            console.print("  • Template editing")
+            console.print("  • Behavior configuration")
+            console.print("  • Startup settings\n")
+
+            console.print("Please use: [bold green]claude-mpm config[/bold green]\n")
+
+            if Confirm.ask("Launch configuration interface now?", default=True):
+                # Import and run config command directly
+                from claude_mpm.cli.commands.configure import ConfigureCommand
+
+                config_cmd = ConfigureCommand()
+                return config_cmd.execute(args)
+            console.print(
+                "\n[dim]Run 'claude-mpm config' anytime to access agent management[/dim]"
+            )
+            return CommandResult.success_result("Redirected to config interface")
 
         except Exception as e:
-            self.logger.error(f"Error managing local agents: {e}", exc_info=True)
-            return CommandResult.error_result(f"Error managing local agents: {e}")
+            self.logger.error(f"Error redirecting to config: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error redirecting to config: {e}")
 
     def _configure_deployment(self, args) -> CommandResult:
         """Configure agent deployment settings."""
@@ -1490,9 +1512,8 @@ class AgentsCommand(AgentCommand):
 
             # Handle show command
             if getattr(args, "show", False):
-                from ...services.agents.deployment.deployment_config_loader import (
-                    DeploymentConfigLoader,
-                )
+                from ...services.agents.deployment.deployment_config_loader import \
+                    DeploymentConfigLoader
 
                 loader = DeploymentConfigLoader(self.logger)
                 settings = loader.get_deployment_settings(config)
@@ -1620,11 +1641,8 @@ class AgentsCommand(AgentCommand):
         try:
             import yaml
 
-            from ...utils.ui_helpers import (
-                prompt_choice,
-                prompt_multiselect,
-                prompt_yes_no,
-            )
+            from ...utils.ui_helpers import (prompt_choice, prompt_multiselect,
+                                             prompt_yes_no)
 
             # Load current configuration
             if config_path.exists():
@@ -1683,7 +1701,8 @@ class AgentsCommand(AgentCommand):
                 settings["disabled_agents"] = []
             elif choice == "Specify disabled agents":
                 # Get list of available agents
-                from ...services.agents.listing_service import AgentListingService
+                from ...services.agents.listing_service import \
+                    AgentListingService
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
@@ -1700,7 +1719,8 @@ class AgentsCommand(AgentCommand):
                 else:
                     print("No agents found to configure")
             else:  # Specify enabled agents only
-                from ...services.agents.listing_service import AgentListingService
+                from ...services.agents.listing_service import \
+                    AgentListingService
 
                 listing_service = AgentListingService()
                 agents, _ = listing_service.list_all_agents()
@@ -1910,12 +1930,10 @@ class AgentsCommand(AgentCommand):
         """
         try:
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_selection_service import (
-                AgentSelectionService,
-            )
-            from ...services.agents.single_tier_deployment_service import (
-                SingleTierDeploymentService,
-            )
+            from ...services.agents.agent_selection_service import \
+                AgentSelectionService
+            from ...services.agents.single_tier_deployment_service import \
+                SingleTierDeploymentService
 
             # Initialize services
             config = AgentSourceConfiguration.load()
@@ -1998,12 +2016,10 @@ class AgentsCommand(AgentCommand):
         """
         try:
             from ...config.agent_sources import AgentSourceConfiguration
-            from ...services.agents.agent_selection_service import (
-                AgentSelectionService,
-            )
-            from ...services.agents.single_tier_deployment_service import (
-                SingleTierDeploymentService,
-            )
+            from ...services.agents.agent_selection_service import \
+                AgentSelectionService
+            from ...services.agents.single_tier_deployment_service import \
+                SingleTierDeploymentService
 
             # Initialize services
             config = AgentSourceConfiguration.load()

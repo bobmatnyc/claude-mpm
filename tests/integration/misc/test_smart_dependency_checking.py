@@ -19,11 +19,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.utils.agent_dependency_loader import AgentDependencyLoader
-from claude_mpm.utils.dependency_cache import DependencyCache, SmartDependencyChecker
+from claude_mpm.utils.dependency_cache import (DependencyCache,
+                                               SmartDependencyChecker)
 from claude_mpm.utils.environment_context import (
-    EnvironmentContext,
-    should_prompt_for_dependencies,
-)
+    EnvironmentContext, should_prompt_for_dependencies)
 
 
 def test_environment_detection():

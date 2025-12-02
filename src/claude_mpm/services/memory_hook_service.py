@@ -54,12 +54,9 @@ class MemoryHookService(BaseService, MemoryHookInterface):
 
         try:
             # Create hook objects for the actual HookService interface
-            from claude_mpm.hooks.base_hook import (
-                HookContext,
-                HookResult,
-                PostDelegationHook,
-                PreDelegationHook,
-            )
+            from claude_mpm.hooks.base_hook import (HookContext, HookResult,
+                                                    PostDelegationHook,
+                                                    PreDelegationHook)
 
             # Create memory loading hook
             class MemoryLoadHook(PreDelegationHook):
@@ -133,10 +130,8 @@ class MemoryHookService(BaseService, MemoryHookInterface):
                 self.logger.debug("Kuzu-memory disabled in configuration")
                 return
 
-            from claude_mpm.hooks import (
-                get_kuzu_enrichment_hook,
-                get_kuzu_response_hook,
-            )
+            from claude_mpm.hooks import (get_kuzu_enrichment_hook,
+                                          get_kuzu_response_hook)
 
             # Get kuzu-memory hooks
             enrichment_hook = get_kuzu_enrichment_hook()
@@ -216,10 +211,8 @@ class MemoryHookService(BaseService, MemoryHookInterface):
 
             # Import failure-learning hooks
             from claude_mpm.hooks.failure_learning import (
-                get_failure_detection_hook,
-                get_fix_detection_hook,
-                get_learning_extraction_hook,
-            )
+                get_failure_detection_hook, get_fix_detection_hook,
+                get_learning_extraction_hook)
 
             # Get hook instances
             failure_hook = get_failure_detection_hook()
@@ -352,9 +345,8 @@ class MemoryHookService(BaseService, MemoryHookInterface):
                 self.logger.debug(f"Processing memory extraction for agent: {agent_id}")
 
                 # Import and use the memory manager
-                from claude_mpm.services.agents.memory.agent_memory_manager import (
-                    get_memory_manager,
-                )
+                from claude_mpm.services.agents.memory.agent_memory_manager import \
+                    get_memory_manager
 
                 try:
                     memory_manager = get_memory_manager()

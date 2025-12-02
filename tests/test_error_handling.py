@@ -15,7 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import contextlib
 
-from claude_mpm.services.async_session_logger import AsyncSessionLogger, LogFormat
+from claude_mpm.services.async_session_logger import (AsyncSessionLogger,
+                                                      LogFormat)
 
 
 def test_permission_errors():

@@ -17,8 +17,10 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.project.archive_manager import ArchiveManager
-from claude_mpm.services.project.documentation_manager import DocumentationManager
-from claude_mpm.services.project.enhanced_analyzer import EnhancedProjectAnalyzer
+from claude_mpm.services.project.documentation_manager import \
+    DocumentationManager
+from claude_mpm.services.project.enhanced_analyzer import \
+    EnhancedProjectAnalyzer
 from claude_mpm.services.project.project_organizer import ProjectOrganizer
 from claude_mpm.utils.display_helper import DisplayHelper
 
@@ -321,9 +323,7 @@ class MPMInitCommand:
             error_msg = (
                 result.stderr
                 if result.stderr
-                else result.stdout
-                if result.stdout
-                else "Unknown error occurred"
+                else result.stdout if result.stdout else "Unknown error occurred"
             )
 
             logger.error(f"claude-mpm run failed: {error_msg}")

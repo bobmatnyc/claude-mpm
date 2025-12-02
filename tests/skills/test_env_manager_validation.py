@@ -348,32 +348,32 @@ PORT=3000
         result = self.run_validator(script_path, env_file, "--framework", "nodejs")
 
         # Assert validation error exists
-        assert result.returncode == 1, (
-            "Should have validation error for invalid NODE_ENV"
-        )
+        assert (
+            result.returncode == 1
+        ), "Should have validation error for invalid NODE_ENV"
         assert "NODE_ENV" in result.stdout, "Error should mention NODE_ENV"
 
         # CRITICAL: Verify the secret value is NOT in error message
-        assert "sk-proj-fake-secret-key-abc123xyz789" not in result.stdout, (
-            "SECURITY VIOLATION: Secret value exposed in error message"
-        )
+        assert (
+            "sk-proj-fake-secret-key-abc123xyz789" not in result.stdout
+        ), "SECURITY VIOLATION: Secret value exposed in error message"
 
         # Verify proper error message format (explains expectation without exposing value)
-        assert "expected one of" in result.stdout.lower(), (
-            "Error message should explain expected values"
-        )
-        assert "invalid value" in result.stdout.lower(), (
-            "Error message should indicate invalid value"
-        )
+        assert (
+            "expected one of" in result.stdout.lower()
+        ), "Error message should explain expected values"
+        assert (
+            "invalid value" in result.stdout.lower()
+        ), "Error message should indicate invalid value"
 
         # Test with JSON output too
         result_json = self.run_validator(
             script_path, env_file, "--framework", "nodejs", "--json"
         )
         assert result_json.returncode == 1
-        assert "sk-proj-fake-secret-key-abc123xyz789" not in result_json.stdout, (
-            "SECURITY VIOLATION: Secret value exposed in JSON output"
-        )
+        assert (
+            "sk-proj-fake-secret-key-abc123xyz789" not in result_json.stdout
+        ), "SECURITY VIOLATION: Secret value exposed in JSON output"
 
     def test_nodejs_invalid_port(self, script_path, temp_dir):
         """Test error on invalid PORT value."""

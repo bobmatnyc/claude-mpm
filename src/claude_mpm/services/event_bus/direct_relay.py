@@ -256,9 +256,9 @@ class DirectSocketIORelay:
                                         event_type, broadcast_data
                                     )
                                     self.stats["events_relayed"] += 1
-                                    self.stats["events_failed"] -= (
-                                        1  # Undo the failure count
-                                    )
+                                    self.stats[
+                                        "events_failed"
+                                    ] -= 1  # Undo the failure count
                                     logger.info(
                                         f"[DirectRelay] Retry successful for {event_type}"
                                     )

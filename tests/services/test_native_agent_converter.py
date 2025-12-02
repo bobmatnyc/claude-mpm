@@ -274,9 +274,9 @@ class TestNativeAgentConverter:
 
         # Check JSON size is reasonable (not too large for CLI)
         # After optimization: 37 agents = ~45KB (was 448KB before optimization)
-        assert summary["json_size"] < 100000, (
-            f"JSON too large: {summary['json_size']} bytes"
-        )
+        assert (
+            summary["json_size"] < 100000
+        ), f"JSON too large: {summary['json_size']} bytes"
 
         # Log size for visibility
         print("\nAgent conversion summary:")

@@ -13,13 +13,12 @@ ARCHITECTURE:
 - ResourceHealthCheck: CPU, memory, and connection monitoring
 """
 
-from claude_mpm.services.local_ops.health_checks.http_check import HttpHealthCheck
-from claude_mpm.services.local_ops.health_checks.process_check import (
-    ProcessHealthCheck,
-)
-from claude_mpm.services.local_ops.health_checks.resource_check import (
-    ResourceHealthCheck,
-)
+from claude_mpm.services.local_ops.health_checks.http_check import \
+    HttpHealthCheck
+from claude_mpm.services.local_ops.health_checks.process_check import \
+    ProcessHealthCheck
+from claude_mpm.services.local_ops.health_checks.resource_check import \
+    ResourceHealthCheck
 
 __all__ = [
     "HttpHealthCheck",

@@ -39,9 +39,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from src.claude_mpm.services.agents.single_tier_deployment_service import (
-    SingleTierDeploymentService,
-)
+from src.claude_mpm.services.agents.single_tier_deployment_service import \
+    SingleTierDeploymentService
 from src.claude_mpm.services.agents.toolchain_detector import ToolchainDetector
 
 logger = logging.getLogger(__name__)

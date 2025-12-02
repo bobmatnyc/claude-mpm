@@ -6,7 +6,8 @@ Extracted from AgentDeploymentService to reduce complexity and improve maintaina
 
 from typing import Any, Dict, List
 
-from claude_mpm.core.constants import ResourceLimits, SystemLimits, TimeoutConfig
+from claude_mpm.core.constants import (ResourceLimits, SystemLimits,
+                                       TimeoutConfig)
 
 
 class AgentConfigProvider:

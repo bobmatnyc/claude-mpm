@@ -60,57 +60,38 @@ Note: ProcessStatus has been consolidated into ServiceState (core.enums) as of P
 
 # Re-export data models and interfaces for convenience
 from claude_mpm.core.enums import HealthStatus
-from claude_mpm.services.core.interfaces.health import (
-    IHealthCheck,
-    IHealthCheckManager,
-)
+from claude_mpm.services.core.interfaces.health import (IHealthCheck,
+                                                        IHealthCheckManager)
 from claude_mpm.services.core.interfaces.process import (
-    IDeploymentStateManager,
-    ILocalProcessManager,
-)
-from claude_mpm.services.core.interfaces.restart import (
-    ICrashDetector,
-    IRestartManager,
-    IRestartPolicy,
-)
-from claude_mpm.services.core.interfaces.stability import (
-    ILogMonitor,
-    IMemoryLeakDetector,
-    IResourceMonitor,
-)
-from claude_mpm.services.core.models.health import (
-    DeploymentHealth,
-    HealthCheckResult,
-)
-from claude_mpm.services.core.models.process import (
-    PROTECTED_PORT_RANGES,
-    DeploymentState,
-    ProcessInfo,
-    ProcessStatus,
-    StartConfig,
-    is_port_protected,
-)
-from claude_mpm.services.core.models.restart import (
-    CircuitBreakerState,
-    RestartAttempt,
-    RestartConfig,
-    RestartHistory,
-)
-from claude_mpm.services.core.models.stability import (
-    LogPatternMatch,
-    MemoryTrend,
-    ResourceUsage,
-)
+    IDeploymentStateManager, ILocalProcessManager)
+from claude_mpm.services.core.interfaces.restart import (ICrashDetector,
+                                                         IRestartManager,
+                                                         IRestartPolicy)
+from claude_mpm.services.core.interfaces.stability import (ILogMonitor,
+                                                           IMemoryLeakDetector,
+                                                           IResourceMonitor)
+from claude_mpm.services.core.models.health import (DeploymentHealth,
+                                                    HealthCheckResult)
+from claude_mpm.services.core.models.process import (PROTECTED_PORT_RANGES,
+                                                     DeploymentState,
+                                                     ProcessInfo,
+                                                     ProcessStatus,
+                                                     StartConfig,
+                                                     is_port_protected)
+from claude_mpm.services.core.models.restart import (CircuitBreakerState,
+                                                     RestartAttempt,
+                                                     RestartConfig,
+                                                     RestartHistory)
+from claude_mpm.services.core.models.stability import (LogPatternMatch,
+                                                       MemoryTrend,
+                                                       ResourceUsage)
 
 # Import service implementations
 from .health_manager import HealthCheckManager
 from .log_monitor import LogMonitor
 from .memory_leak_detector import MemoryLeakDetector
-from .process_manager import (
-    LocalProcessManager,
-    PortConflictError,
-    ProcessSpawnError,
-)
+from .process_manager import (LocalProcessManager, PortConflictError,
+                              ProcessSpawnError)
 from .resource_monitor import ResourceMonitor
 from .state_manager import DeploymentStateManager, StateCorruptionError
 from .unified_manager import UnifiedLocalOpsManager

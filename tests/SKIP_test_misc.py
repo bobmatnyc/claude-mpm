@@ -19,25 +19,12 @@ from unittest import mock
 import psutil
 import psutil.tests
 from psutil import WINDOWS
-from psutil._common import (
-    bcat,
-    cat,
-    debug,
-    isfile_strict,
-    memoize,
-    memoize_when_activated,
-    parse_environ_block,
-    supports_ipv6,
-    wrap_numbers,
-)
-from psutil.tests import (
-    HAS_NET_IO_COUNTERS,
-    PsutilTestCase,
-    process_namespace,
-    pytest,
-    reload_module,
-    system_namespace,
-)
+from psutil._common import (bcat, cat, debug, isfile_strict, memoize,
+                            memoize_when_activated, parse_environ_block,
+                            supports_ipv6, wrap_numbers)
+from psutil.tests import (HAS_NET_IO_COUNTERS, PsutilTestCase,
+                          process_namespace, pytest, reload_module,
+                          system_namespace)
 
 # ===================================================================
 # --- Test classes' repr(), str(), ...

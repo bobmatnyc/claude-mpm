@@ -35,9 +35,8 @@ def main():
         try:
             import asyncio
 
-            from claude_mpm.services.mcp_gateway.server.stdio_server import (
-                SimpleMCPServer,
-            )
+            from claude_mpm.services.mcp_gateway.server.stdio_server import \
+                SimpleMCPServer
         except ImportError as e:
             logger.error(f"Failed to import required modules: {e}")
             logger.error("Make sure claude-mpm is properly installed")

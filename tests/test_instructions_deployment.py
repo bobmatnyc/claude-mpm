@@ -10,9 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import logging
 
-from claude_mpm.services.agents.deployment.system_instructions_deployer import (
-    SystemInstructionsDeployer,
-)
+from claude_mpm.services.agents.deployment.system_instructions_deployer import \
+    SystemInstructionsDeployer
 
 
 def test_deployment():

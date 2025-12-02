@@ -14,15 +14,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from claude_mpm.services.version_control.semantic_versioning import (
-    SemanticVersionManager,
-)
+from claude_mpm.services.version_control.semantic_versioning import \
+    SemanticVersionManager
 from claude_mpm.services.version_control.version_parser import (
-    EnhancedVersionParser,
-    VersionMetadata,
-    VersionSource,
-    get_version_parser,
-)
+    EnhancedVersionParser, VersionMetadata, VersionSource, get_version_parser)
 
 
 class TestEnhancedVersionParser(unittest.TestCase):

@@ -218,7 +218,8 @@ class RobustPackageInstaller:
         return (
             (
                 # venv creates sys.base_prefix
-                hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+                hasattr(sys, "base_prefix")
+                and sys.base_prefix != sys.prefix
             )
             or (
                 # virtualenv creates sys.real_prefix
@@ -226,7 +227,8 @@ class RobustPackageInstaller:
             )
             or (
                 # VIRTUAL_ENV environment variable
-                os.environ.get("VIRTUAL_ENV") is not None
+                os.environ.get("VIRTUAL_ENV")
+                is not None
             )
         )
 

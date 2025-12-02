@@ -21,15 +21,10 @@ def get_logger_old_pattern(name):
 
 
 # Test new pattern
-from claude_mpm.core.logging_utils import (
-    LoggerFactory,
-    get_component_logger,
-    get_logger,
-    get_performance_logger,
-    get_structured_logger,
-    initialize_logging,
-    set_log_level,
-)
+from claude_mpm.core.logging_utils import (LoggerFactory, get_component_logger,
+                                           get_logger, get_performance_logger,
+                                           get_structured_logger,
+                                           initialize_logging, set_log_level)
 
 
 class TestLoggerConsolidation(unittest.TestCase):

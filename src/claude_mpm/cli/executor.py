@@ -8,22 +8,10 @@ Part of cli/__init__.py refactoring to reduce file size and improve modularity.
 """
 
 from ..constants import CLICommands
-from .commands import (
-    aggregate_command,
-    cleanup_memory,
-    manage_agent_manager,
-    manage_agents,
-    manage_config,
-    manage_configure,
-    manage_debug,
-    manage_mcp,
-    manage_memory,
-    manage_monitor,
-    manage_tickets,
-    run_doctor,
-    run_session,
-    show_info,
-)
+from .commands import (aggregate_command, cleanup_memory, manage_agent_manager,
+                       manage_agents, manage_configure, manage_debug,
+                       manage_mcp, manage_memory, manage_monitor,
+                       manage_tickets, run_doctor, run_session, show_info)
 from .commands.analyze_code import manage_analyze_code
 from .commands.dashboard import manage_dashboard
 from .commands.skills import manage_skills
@@ -165,13 +153,9 @@ def execute_command(command: str, args) -> int:
     # Handle hook-errors command with lazy import
     if command == "hook-errors":
         # Lazy import to avoid loading unless needed
-        from .commands.hook_errors import (
-            clear_errors,
-            diagnose_errors,
-            list_errors,
-            show_status,
-            show_summary,
-        )
+        from .commands.hook_errors import (clear_errors, diagnose_errors,
+                                           list_errors, show_status,
+                                           show_summary)
 
         # Get subcommand
         subcommand = getattr(args, "hook_errors_command", "status")
@@ -229,8 +213,10 @@ def execute_command(command: str, args) -> int:
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
         CLICommands.DASHBOARD.value: manage_dashboard,
-        CLICommands.CONFIG.value: manage_config,
-        CLICommands.CONFIGURE.value: manage_configure,
+        # Configuration management commands (synonymous)
+        # Both 'config' and 'configure' launch the interactive configuration TUI
+        CLICommands.CONFIG.value: manage_configure,  # Alias to configure
+        CLICommands.CONFIGURE.value: manage_configure,  # Interactive configuration TUI
         CLICommands.AGGREGATE.value: aggregate_command,
         CLICommands.ANALYZE_CODE.value: manage_analyze_code,
         CLICommands.CLEANUP.value: cleanup_memory,

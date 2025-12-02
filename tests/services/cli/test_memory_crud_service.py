@@ -21,10 +21,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.services.cli.memory_crud_service import (
-    IMemoryCRUDService,
-    MemoryCRUDService,
-)
+from claude_mpm.services.cli.memory_crud_service import (IMemoryCRUDService,
+                                                         MemoryCRUDService)
 
 
 class TestMemoryCRUDServiceInterface:

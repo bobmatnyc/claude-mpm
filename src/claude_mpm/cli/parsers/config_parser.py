@@ -1,27 +1,26 @@
-from pathlib import Path
-
 """
 Config command parser for claude-mpm CLI.
 
-WHY: This module contains all arguments specific to configuration management,
-extracted from the monolithic parser.py for better organization.
+WHY: This module provides the config command which is synonymous with configure.
+Both launch the interactive configuration TUI.
 
-DESIGN DECISION: Configuration commands handle validation and management
-of claude-mpm settings and warrant their own module.
+DESIGN DECISION: 'config' and 'configure' are aliases - both commands provide
+identical functionality through the interactive configuration interface.
 """
 
 import argparse
 
-from ...constants import CLICommands, ConfigCommands
+from ...constants import CLICommands
 from .base_parser import add_common_arguments
 
 
 def add_config_subparser(subparsers) -> argparse.ArgumentParser:
     """
-    Add the config subparser with all configuration management commands.
+    Add the config subparser (alias for configure).
 
-    WHY: Configuration management has multiple subcommands for validation,
-    viewing, and editing that need their own argument structures.
+    WHY: 'config' and 'configure' are synonymous commands that both launch
+    the interactive configuration interface. This provides a consistent
+    parser setup matching the configure command.
 
     Args:
         subparsers: The subparsers object from the main parser
@@ -29,57 +28,111 @@ def add_config_subparser(subparsers) -> argparse.ArgumentParser:
     Returns:
         The configured config subparser
     """
-    # Config command with subcommands
+    # Config command - alias for configure (interactive configuration)
     config_parser = subparsers.add_parser(
-        CLICommands.CONFIG.value, help="Validate and manage configuration"
+        CLICommands.CONFIG.value,
+        help="Interactive configuration interface for managing agents and behaviors (alias for 'configure')",
+        description="Launch an interactive Rich-based menu for configuring claude-mpm agents, templates, and behavior files",
     )
+
+    # Add common arguments
     add_common_arguments(config_parser)
 
-    config_subparsers = config_parser.add_subparsers(
-        dest="config_command", help="Config commands", metavar="SUBCOMMAND"
+    # Configuration scope options
+    scope_group = config_parser.add_argument_group("configuration scope")
+    scope_group.add_argument(
+        "--scope",
+        choices=["project", "user"],
+        default="project",
+        help="Configuration scope to manage (default: project)",
     )
 
-    # Validate config
-    validate_config_parser = config_subparsers.add_parser(
-        ConfigCommands.VALIDATE.value, help="Validate configuration files"
+    # Direct navigation options (skip main menu)
+    nav_group = config_parser.add_argument_group("direct navigation")
+    nav_group.add_argument(
+        "--agents", action="store_true", help="Jump directly to agent management"
     )
-    validate_config_parser.add_argument(
-        "--config-file",
-        type=Path,
-        help="Specific config file to validate (default: all)",
+    nav_group.add_argument(
+        "--templates", action="store_true", help="Jump directly to template editing"
     )
-    validate_config_parser.add_argument(
-        "--strict", action="store_true", help="Use strict validation rules"
-    )
-    validate_config_parser.add_argument(
-        "--fix",
+    nav_group.add_argument(
+        "--behaviors",
         action="store_true",
-        help="Attempt to fix validation errors automatically",
+        help="Jump directly to behavior file management",
+    )
+    nav_group.add_argument(
+        "--startup",
+        action="store_true",
+        help="Configure startup services and agents",
+    )
+    nav_group.add_argument(
+        "--version-info",
+        action="store_true",
+        help="Display version information and exit",
     )
 
-    # View config
-    view_config_parser = config_subparsers.add_parser(
-        ConfigCommands.VIEW.value, help="View current configuration"
+    # Non-interactive options
+    noninteractive_group = config_parser.add_argument_group("non-interactive options")
+    noninteractive_group.add_argument(
+        "--list-agents", action="store_true", help="List all available agents and exit"
     )
-    view_config_parser.add_argument(
-        "--section", help="Specific configuration section to view"
+    noninteractive_group.add_argument(
+        "--enable-agent",
+        type=str,
+        metavar="AGENT_NAME",
+        help="Enable a specific agent and exit",
     )
-    view_config_parser.add_argument(
-        "--format",
-        choices=["yaml", "json", "table"],
-        default="yaml",
-        help="Output format (default: yaml)",
+    noninteractive_group.add_argument(
+        "--disable-agent",
+        type=str,
+        metavar="AGENT_NAME",
+        help="Disable a specific agent and exit",
     )
-    view_config_parser.add_argument(
-        "--show-defaults", action="store_true", help="Include default values in output"
+    noninteractive_group.add_argument(
+        "--export-config",
+        type=str,
+        metavar="FILE",
+        help="Export current configuration to a file",
+    )
+    noninteractive_group.add_argument(
+        "--import-config",
+        type=str,
+        metavar="FILE",
+        help="Import configuration from a file",
     )
 
-    # Status config
-    status_config_parser = config_subparsers.add_parser(
-        ConfigCommands.STATUS.value, help="Show configuration status"
+    # Hook management options
+    hooks_group = config_parser.add_argument_group("hook management")
+    hooks_group.add_argument(
+        "--install-hooks",
+        action="store_true",
+        help="Install Claude MPM hooks for Claude Code integration",
     )
-    status_config_parser.add_argument(
-        "--verbose", action="store_true", help="Show detailed status information"
+    hooks_group.add_argument(
+        "--verify-hooks",
+        action="store_true",
+        help="Verify that Claude MPM hooks are properly installed",
+    )
+    hooks_group.add_argument(
+        "--uninstall-hooks",
+        action="store_true",
+        help="Uninstall Claude MPM hooks",
+    )
+    hooks_group.add_argument(
+        "--force",
+        action="store_true",
+        help="Force reinstallation of hooks even if they already exist",
+    )
+
+    # Display options
+    display_group = config_parser.add_argument_group("display options")
+    display_group.add_argument(
+        "--no-colors",
+        action="store_true",
+        help="Disable colored output in the interface",
+    )
+    display_group.add_argument(
+        "--compact", action="store_true", help="Use compact display mode"
     )
 
     return config_parser

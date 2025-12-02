@@ -15,7 +15,8 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def test_basic_memory_operations():
@@ -62,12 +63,12 @@ def test_basic_memory_operations():
         assert success, "Remember field processing should succeed"
 
         content = memory_file.read_text()
-        assert "- Remember field item 1" in content, (
-            "Remember field item 1 should be added"
-        )
-        assert "- Remember field item 2" in content, (
-            "Remember field item 2 should be added"
-        )
+        assert (
+            "- Remember field item 1" in content
+        ), "Remember field item 1 should be added"
+        assert (
+            "- Remember field item 2" in content
+        ), "Remember field item 2 should be added"
         print("✓ Remember field processing works")
 
         # Test 4: Test MEMORIES field complete replacement
@@ -141,18 +142,18 @@ def test_multiple_agents():
 
             # Check content
             content = memory_file.read_text()
-            assert f"- Memory for {agent_id} agent" in content, (
-                f"Memory should be saved for {agent_id}"
-            )
+            assert (
+                f"- Memory for {agent_id} agent" in content
+            ), f"Memory should be saved for {agent_id}"
 
             print(f"✓ {agent_id} agent memory working")
 
         # Check directory structure
         memory_files = list(memories_dir.glob("*_memories.md"))
         print(f"Memory files found: {[f.name for f in memory_files]}")
-        assert len(memory_files) == len(agents), (
-            f"Should have {len(agents)} memory files"
-        )
+        assert len(memory_files) == len(
+            agents
+        ), f"Should have {len(agents)} memory files"
 
         # Check README exists
         readme_file = memories_dir / "README.md"
@@ -203,9 +204,9 @@ def test_deduplication():
         assert len(lines) < len(similar_items), "Should have deduplicated some items"
 
         # Unique content should be preserved
-        assert "completely different" in content.lower(), (
-            "Unique content should be preserved"
-        )
+        assert (
+            "completely different" in content.lower()
+        ), "Unique content should be preserved"
 
         print("✓ Deduplication working correctly")
         return True

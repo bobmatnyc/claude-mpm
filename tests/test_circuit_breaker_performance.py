@@ -21,11 +21,8 @@ src_dir = os.path.join(os.path.dirname(script_dir), "src")
 sys.path.insert(0, src_dir)
 
 try:
-    from claude_mpm.core.socketio_pool import (
-        CircuitBreaker,
-        CircuitState,
-        SocketIOConnectionPool,
-    )
+    from claude_mpm.core.socketio_pool import (CircuitBreaker, CircuitState,
+                                               SocketIOConnectionPool)
 
     POOL_AVAILABLE = True
 except ImportError as e:

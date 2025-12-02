@@ -41,7 +41,8 @@ class AgentFrontmatterValidator:
 
         try:
             # Import frontmatter validator
-            from claude_mpm.agents.frontmatter_validator import FrontmatterValidator
+            from claude_mpm.agents.frontmatter_validator import \
+                FrontmatterValidator
 
             validator = FrontmatterValidator()
 

@@ -288,7 +288,8 @@ class ConnectionEventHandler(BaseEventHandler):
             # Get monitor build info
             monitor_build_info = {}
             try:
-                from ....services.monitor_build_service import get_monitor_build_service
+                from ....services.monitor_build_service import \
+                    get_monitor_build_service
 
                 monitor_service = get_monitor_build_service()
                 monitor_build_info = monitor_service.get_build_info_sync()

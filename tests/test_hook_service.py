@@ -6,13 +6,8 @@ executes them in priority order, and handles errors gracefully.
 
 from datetime import datetime, timezone
 
-from claude_mpm.hooks.base_hook import (
-    HookContext,
-    HookResult,
-    HookType,
-    PostDelegationHook,
-    PreDelegationHook,
-)
+from claude_mpm.hooks.base_hook import (HookContext, HookResult, HookType,
+                                        PostDelegationHook, PreDelegationHook)
 from claude_mpm.services.hook_service import HookService
 
 

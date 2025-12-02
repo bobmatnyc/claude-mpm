@@ -15,22 +15,11 @@ import subprocess
 
 import pytest
 from psutil import POSIX, WINDOWS
-from psutil.tests import (
-    CI_TESTING,
-    HAS_BATTERY,
-    HAS_MEMORY_MAPS,
-    HAS_SENSORS_BATTERY,
-    HAS_SENSORS_FANS,
-    HAS_SENSORS_TEMPERATURES,
-    PYTHON_EXE,
-    PYTHON_EXE_ENV,
-    ROOT_DIR,
-    SCRIPTS_DIR,
-    PsutilTestCase,
-    import_module_by_path,
-    psutil,
-    sh,
-)
+from psutil.tests import (CI_TESTING, HAS_BATTERY, HAS_MEMORY_MAPS,
+                          HAS_SENSORS_BATTERY, HAS_SENSORS_FANS,
+                          HAS_SENSORS_TEMPERATURES, PYTHON_EXE, PYTHON_EXE_ENV,
+                          ROOT_DIR, SCRIPTS_DIR, PsutilTestCase,
+                          import_module_by_path, psutil, sh)
 
 INTERNAL_SCRIPTS_DIR = os.path.join(SCRIPTS_DIR, "internal")
 SETUP_PY = os.path.join(ROOT_DIR, "setup.py")

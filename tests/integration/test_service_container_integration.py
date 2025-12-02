@@ -8,10 +8,8 @@ the framework loader and other core components.
 
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.core.cache_manager import CacheManager
-from claude_mpm.services.core.service_container import (
-    ServiceContainer,
-    get_global_container,
-)
+from claude_mpm.services.core.service_container import (ServiceContainer,
+                                                        get_global_container)
 from claude_mpm.services.core.service_interfaces import ICacheManager
 
 

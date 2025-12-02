@@ -34,12 +34,8 @@ try:
     from .event_handlers import EventHandlers
     from .memory_integration import MemoryHookManager
     from .response_tracking import ResponseTrackingManager
-    from .services import (
-        ConnectionManagerService,
-        DuplicateEventDetector,
-        StateManagerService,
-        SubagentResponseProcessor,
-    )
+    from .services import (ConnectionManagerService, DuplicateEventDetector,
+                           StateManagerService, SubagentResponseProcessor)
 except ImportError:
     # Fall back to absolute imports (when run directly)
     from pathlib import Path
@@ -50,12 +46,8 @@ except ImportError:
     from event_handlers import EventHandlers
     from memory_integration import MemoryHookManager
     from response_tracking import ResponseTrackingManager
-    from services import (
-        ConnectionManagerService,
-        DuplicateEventDetector,
-        StateManagerService,
-        SubagentResponseProcessor,
-    )
+    from services import (ConnectionManagerService, DuplicateEventDetector,
+                          StateManagerService, SubagentResponseProcessor)
 
 """
 Debug mode configuration for hook processing.

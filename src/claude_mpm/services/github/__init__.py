@@ -6,12 +6,8 @@ Provides GitHub CLI integration for PR workflow automation.
 Used by agent-improver and skills-manager agents.
 """
 
-from .github_cli_service import (
-    GitHubAuthenticationError,
-    GitHubCLIError,
-    GitHubCLINotInstalledError,
-    GitHubCLIService,
-)
+from .github_cli_service import (GitHubAuthenticationError, GitHubCLIError,
+                                 GitHubCLINotInstalledError, GitHubCLIService)
 
 __all__ = [
     "GitHubAuthenticationError",

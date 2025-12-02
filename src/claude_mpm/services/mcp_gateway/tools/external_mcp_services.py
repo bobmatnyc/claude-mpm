@@ -46,7 +46,8 @@ class ExternalMCPService(BaseToolAdapter):
             package_name: Python package name to install/run
         """
         # Import here to avoid circular imports
-        from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolDefinition
+        from claude_mpm.services.mcp_gateway.core.interfaces import \
+            MCPToolDefinition
 
         # Create a basic tool definition for the service
         tool_def = MCPToolDefinition(
@@ -71,7 +72,8 @@ class ExternalMCPService(BaseToolAdapter):
         This base implementation should be overridden by subclasses.
         """
         # Import here to avoid circular imports
-        from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolResult
+        from claude_mpm.services.mcp_gateway.core.interfaces import \
+            MCPToolResult
 
         return MCPToolResult(
             success=False,

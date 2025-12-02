@@ -130,7 +130,8 @@ class AgentSyncState:
         - sync_history: Audit trail of all sync operations
         - schema_metadata: Schema versioning for migrations
         """
-        conn.executescript("""
+        conn.executescript(
+            """
             -- Sources table: Track Git repositories or file sources
             CREATE TABLE sources (
                 id TEXT PRIMARY KEY,                    -- Source identifier (e.g., "github-remote", "local-project")
@@ -183,7 +184,8 @@ class AgentSyncState:
 
             INSERT INTO schema_metadata (key, value) VALUES ('version', '1');
             INSERT INTO schema_metadata (key, value) VALUES ('created_at', datetime('now'));
-        """)
+        """
+        )
 
     def _get_schema_version(self, conn: sqlite3.Connection) -> int:
         """Get current schema version.

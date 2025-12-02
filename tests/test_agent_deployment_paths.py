@@ -7,9 +7,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment.agent_deployment import (
-    AgentDeploymentService,
-)
+from claude_mpm.services.agents.deployment.agent_deployment import \
+    AgentDeploymentService
 
 
 def test_agent_deployment_paths():

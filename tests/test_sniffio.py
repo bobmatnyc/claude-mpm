@@ -2,12 +2,8 @@ import sys
 
 import pytest
 
-from .. import (
-    AsyncLibraryNotFoundError,
-    current_async_library,
-    current_async_library_cvar,
-    thread_local,
-)
+from .. import (AsyncLibraryNotFoundError, current_async_library,
+                current_async_library_cvar, thread_local)
 
 
 def test_basics_cvar():

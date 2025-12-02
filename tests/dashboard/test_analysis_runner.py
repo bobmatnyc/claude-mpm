@@ -24,7 +24,8 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from claude_mpm.dashboard.analysis_runner import AnalysisRequest, CodeAnalysisRunner
+from claude_mpm.dashboard.analysis_runner import (AnalysisRequest,
+                                                  CodeAnalysisRunner)
 
 
 class TestAnalysisRequest(unittest.TestCase):

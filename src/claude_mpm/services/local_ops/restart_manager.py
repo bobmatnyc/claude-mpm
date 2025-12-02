@@ -47,11 +47,9 @@ from claude_mpm.core.enums import HealthStatus
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.health import IHealthCheckManager
 from claude_mpm.services.core.interfaces.process import ILocalProcessManager
-from claude_mpm.services.core.interfaces.restart import (
-    ICrashDetector,
-    IRestartManager,
-    IRestartPolicy,
-)
+from claude_mpm.services.core.interfaces.restart import (ICrashDetector,
+                                                         IRestartManager,
+                                                         IRestartPolicy)
 from claude_mpm.services.core.models.restart import RestartHistory
 
 

@@ -23,7 +23,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from ...core.agent_registry import AgentRegistryAdapter
 from ...core.logger import get_logger
 from ...services.agents.deployment import AgentDeploymentService
-from ...services.agents.deployment.deployment_wrapper import DeploymentServiceWrapper
+from ...services.agents.deployment.deployment_wrapper import \
+    DeploymentServiceWrapper
 
 
 @dataclass

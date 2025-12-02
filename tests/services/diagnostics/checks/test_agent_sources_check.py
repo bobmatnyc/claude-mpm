@@ -13,9 +13,8 @@ import pytest
 import yaml
 
 from src.claude_mpm.core.enums import OperationResult, ValidationSeverity
-from src.claude_mpm.services.diagnostics.checks.agent_sources_check import (
-    AgentSourcesCheck,
-)
+from src.claude_mpm.services.diagnostics.checks.agent_sources_check import \
+    AgentSourcesCheck
 
 
 @pytest.fixture
@@ -130,7 +129,8 @@ class TestAgentSourcesCheck:
 
     def test_sources_configured_none(self):
         """Test when no sources are configured."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
 
         config = AgentSourceConfiguration(disable_system_repo=True, repositories=[])
         check = AgentSourcesCheck(verbose=False)
@@ -141,7 +141,8 @@ class TestAgentSourcesCheck:
 
     def test_sources_configured_all_disabled(self):
         """Test when sources configured but all disabled."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
         from src.claude_mpm.models.git_repository import GitRepository
 
         repo = GitRepository(
@@ -157,7 +158,8 @@ class TestAgentSourcesCheck:
 
     def test_sources_configured_some_enabled(self):
         """Test when sources are properly configured."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
         from src.claude_mpm.models.git_repository import GitRepository
 
         repo = GitRepository(
@@ -255,7 +257,8 @@ class TestAgentSourcesCheck:
 
     def test_priority_conflicts_none(self):
         """Test when there are no priority conflicts."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
         from src.claude_mpm.models.git_repository import GitRepository
 
         repo1 = GitRepository(
@@ -276,7 +279,8 @@ class TestAgentSourcesCheck:
 
     def test_priority_conflicts_detected(self):
         """Test when priority conflicts are detected."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
         from src.claude_mpm.models.git_repository import GitRepository
 
         repo1 = GitRepository(
@@ -298,7 +302,8 @@ class TestAgentSourcesCheck:
 
     def test_priority_conflicts_no_repos(self):
         """Test priority conflicts with no repos."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
 
         config = AgentSourceConfiguration(disable_system_repo=True, repositories=[])
 
@@ -313,7 +318,8 @@ class TestAgentSourcesCheck:
     )
     def test_agents_discovered_success(self, mock_service_class):
         """Test successful agent discovery."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
 
         # Mock service to return agents
         mock_service = Mock()
@@ -337,7 +343,8 @@ class TestAgentSourcesCheck:
     )
     def test_agents_discovered_none(self, mock_service_class):
         """Test when no agents are discovered."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
 
         # Mock service to return no agents
         mock_service = Mock()
@@ -358,7 +365,8 @@ class TestAgentSourcesCheck:
     )
     def test_agents_discovered_error(self, mock_service_class):
         """Test when agent discovery fails."""
-        from src.claude_mpm.config.agent_sources import AgentSourceConfiguration
+        from src.claude_mpm.config.agent_sources import \
+            AgentSourceConfiguration
 
         # Mock service to raise exception
         mock_service = Mock()

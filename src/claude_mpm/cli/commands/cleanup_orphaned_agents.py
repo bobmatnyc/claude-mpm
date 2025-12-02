@@ -10,9 +10,8 @@ from pathlib import Path
 from typing import Optional
 
 from claude_mpm.core.logging_config import get_logger
-from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
-    MultiSourceAgentDeploymentService,
-)
+from claude_mpm.services.agents.deployment.multi_source_deployment_service import \
+    MultiSourceAgentDeploymentService
 
 
 def add_parser(subparsers: argparse._SubParsersAction) -> None:

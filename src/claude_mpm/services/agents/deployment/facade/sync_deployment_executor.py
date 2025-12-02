@@ -58,7 +58,8 @@ class SyncDeploymentExecutor(DeploymentExecutor):
             pipeline = self.pipeline_builder.create_standard_pipeline()
 
             # Create pipeline context
-            from claude_mpm.services.agents.deployment.pipeline import PipelineContext
+            from claude_mpm.services.agents.deployment.pipeline import \
+                PipelineContext
 
             context = PipelineContext(
                 templates_dir=templates_dir,

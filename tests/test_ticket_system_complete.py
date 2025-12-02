@@ -115,7 +115,8 @@ def test_argument_compatibility():
 
     from argparse import Namespace
 
-    from claude_mpm.cli.commands.tickets import close_ticket_legacy as close_ticket
+    from claude_mpm.cli.commands.tickets import \
+        close_ticket_legacy as close_ticket
 
     # Test with ticket_id (parser format)
     args1 = Namespace()

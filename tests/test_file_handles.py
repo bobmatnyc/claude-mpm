@@ -37,7 +37,8 @@ gc.collect()
 print(f"Open files after clearing: {count_open_files()}")
 
 # Now test with SystemInstructionsService
-from claude_mpm.services.system_instructions_service import SystemInstructionsService
+from claude_mpm.services.system_instructions_service import \
+    SystemInstructionsService
 
 services = []
 for i in range(3):

@@ -401,7 +401,8 @@ if __name__ == "__main__":
 
                     # Create some nodes for each file
                     for i in range(5):  # 5 nodes per file
-                        from claude_mpm.tools.code_tree_events import CodeNodeEvent
+                        from claude_mpm.tools.code_tree_events import \
+                            CodeNodeEvent
 
                         node = CodeNodeEvent(
                             file_path=str(py_file),

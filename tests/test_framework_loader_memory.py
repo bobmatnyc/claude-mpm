@@ -81,37 +81,37 @@ def test_memory_loading():
             # Check that PM memory was loaded
             print(f"✓ PM_memories.md loaded: {has_pm}")
             assert has_pm, "PM_memories.md should always be loaded"
-            assert "Test PM memory" in content["actual_memories"], (
-                "PM memory content not found"
-            )
+            assert (
+                "Test PM memory" in content["actual_memories"]
+            ), "PM memory content not found"
 
             # Check that deployed agent memories were loaded
             engineer_loaded = "Engineer" in agent_memories
             print(f"✓ Engineer_memories.md loaded (deployed): {engineer_loaded}")
-            assert engineer_loaded, (
-                "Engineer_memories.md should be loaded (agent is deployed)"
-            )
+            assert (
+                engineer_loaded
+            ), "Engineer_memories.md should be loaded (agent is deployed)"
             if engineer_loaded:
-                assert "Test engineer memory" in agent_memories["Engineer"], (
-                    "Engineer memory content not found"
-                )
+                assert (
+                    "Test engineer memory" in agent_memories["Engineer"]
+                ), "Engineer memory content not found"
 
             qa_loaded = "QA" in agent_memories
             print(f"✓ QA_memories.md loaded (deployed): {qa_loaded}")
             assert qa_loaded, "QA_memories.md should be loaded (agent is deployed)"
             if qa_loaded:
-                assert "Test QA memory" in agent_memories["QA"], (
-                    "QA memory content not found"
-                )
+                assert (
+                    "Test QA memory" in agent_memories["QA"]
+                ), "QA memory content not found"
 
             # Check that non-deployed agent memory was NOT loaded
             research_loaded = "Research" in agent_memories
             print(
                 f"✓ Research_memories.md NOT loaded (not deployed): {not research_loaded}"
             )
-            assert not research_loaded, (
-                "Research_memories.md should NOT be loaded (agent not deployed)"
-            )
+            assert (
+                not research_loaded
+            ), "Research_memories.md should NOT be loaded (agent not deployed)"
 
             # Check that README and NOTES were not loaded as memories
             all_memory_content = content.get("actual_memories", "") + str(
@@ -127,9 +127,9 @@ def test_memory_loading():
             print(
                 f"\n✓ Expected {expected_count} memory sources, loaded {total_loaded}"
             )
-            assert total_loaded == expected_count, (
-                f"Expected {expected_count} memory sources, got {total_loaded}"
-            )
+            assert (
+                total_loaded == expected_count
+            ), f"Expected {expected_count} memory sources, got {total_loaded}"
 
             print("\n✅ All tests passed! Memory filtering is working correctly.")
             print("=" * 60)

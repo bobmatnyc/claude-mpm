@@ -8,7 +8,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def test_memory_system_comprehensive():
@@ -45,9 +46,9 @@ def test_memory_system_comprehensive():
             project_file = (
                 test_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
             )
-            assert project_file.exists(), (
-                f"{agent_id} memory should be in project directory"
-            )
+            assert (
+                project_file.exists()
+            ), f"{agent_id} memory should be in project directory"
             print(f"  ✅ Created in project dir: {project_file.relative_to(test_dir)}")
 
         print("\n" + "=" * 70)

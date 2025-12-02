@@ -19,21 +19,14 @@ from typing import Dict, List, Optional
 
 from ...core.base_service import BaseService
 from ..core.interfaces.project import IToolchainAnalyzer
-from ..core.models.toolchain import (
-    ConfidenceLevel,
-    DeploymentTarget,
-    Framework,
-    LanguageDetection,
-    ToolchainAnalysis,
-    ToolchainComponent,
-)
-from .detection_strategies import (
-    GoDetectionStrategy,
-    IToolchainDetectionStrategy,
-    NodeJSDetectionStrategy,
-    PythonDetectionStrategy,
-    RustDetectionStrategy,
-)
+from ..core.models.toolchain import (ConfidenceLevel, DeploymentTarget,
+                                     Framework, LanguageDetection,
+                                     ToolchainAnalysis, ToolchainComponent)
+from .detection_strategies import (GoDetectionStrategy,
+                                   IToolchainDetectionStrategy,
+                                   NodeJSDetectionStrategy,
+                                   PythonDetectionStrategy,
+                                   RustDetectionStrategy)
 
 
 class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
@@ -318,9 +311,7 @@ class ToolchainAnalyzerService(BaseService, IToolchainAnalyzer):
                     else (
                         3
                         if f.confidence == ConfidenceLevel.MEDIUM
-                        else 2
-                        if f.confidence == ConfidenceLevel.LOW
-                        else 1
+                        else 2 if f.confidence == ConfidenceLevel.LOW else 1
                     )
                 ),
                 f.popularity_score,

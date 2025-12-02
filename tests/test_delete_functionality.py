@@ -10,9 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.local_template_manager import (
-    LocalAgentTemplate,
-    LocalAgentTemplateManager,
-)
+    LocalAgentTemplate, LocalAgentTemplateManager)
 
 
 def test_delete_functionality():

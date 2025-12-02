@@ -18,9 +18,8 @@ def test_multi_source_discovery():
     print("Testing Multi-Source Agent Discovery Logging")
     print("=" * 60)
 
-    from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
-        MultiSourceAgentDeploymentService,
-    )
+    from claude_mpm.services.agents.deployment.multi_source_deployment_service import \
+        MultiSourceAgentDeploymentService
 
     # Create service and discover agents
     service = MultiSourceAgentDeploymentService()
@@ -51,9 +50,8 @@ def test_single_source_discovery():
     print("=" * 60)
 
     from claude_mpm.config.paths import paths
-    from claude_mpm.services.agents.deployment.agent_discovery_service import (
-        AgentDiscoveryService,
-    )
+    from claude_mpm.services.agents.deployment.agent_discovery_service import \
+        AgentDiscoveryService
 
     templates_dir = paths.agents_dir / "templates"
 
@@ -81,9 +79,8 @@ def test_agent_deployment_service():
     print("Testing AgentDeploymentService Initialization")
     print("=" * 60)
 
-    from claude_mpm.services.agents.deployment.agent_deployment import (
-        AgentDeploymentService,
-    )
+    from claude_mpm.services.agents.deployment.agent_deployment import \
+        AgentDeploymentService
 
     print("\n🔍 Initializing AgentDeploymentService...\n")
 

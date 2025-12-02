@@ -41,9 +41,8 @@ def test_deployed_agents():
 def test_documentation_generator():
     """Test that documentation generator uses correct names."""
     print("\n📚 Testing documentation generator...")
-    from claude_mpm.services.framework_claude_md_generator.section_generators.todo_task_tools import (
-        TodoTaskToolsGenerator,
-    )
+    from claude_mpm.services.framework_claude_md_generator.section_generators.todo_task_tools import \
+        TodoTaskToolsGenerator
 
     generator = TodoTaskToolsGenerator(framework_version="test")
     content = generator.generate({})

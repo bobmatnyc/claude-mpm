@@ -22,15 +22,10 @@ import pytest_asyncio
 
 # Import the classes we're testing
 from claude_mpm.services.agents.deployment.agent_lifecycle_manager import (
-    AgentLifecycleManager,
-    AgentLifecycleRecord,
-    LifecycleOperation,
-    LifecycleOperationResult,
-    LifecycleState,
-)
-from claude_mpm.services.agents.registry.modification_tracker import (
-    ModificationTier,
-)
+    AgentLifecycleManager, AgentLifecycleRecord, LifecycleOperation,
+    LifecycleOperationResult, LifecycleState)
+from claude_mpm.services.agents.registry.modification_tracker import \
+    ModificationTier
 
 
 class TestAgentLifecycleManagerCore:

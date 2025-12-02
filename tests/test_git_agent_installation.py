@@ -23,15 +23,9 @@ import requests
 
 from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.sources.agent_sync_state import (
-    AgentSyncState,
-    DatabaseError,
-)
+    AgentSyncState, DatabaseError)
 from claude_mpm.services.agents.sources.git_source_sync_service import (
-    ETagCache,
-    GitSourceSyncService,
-    GitSyncError,
-    NetworkError,
-)
+    ETagCache, GitSourceSyncService, GitSyncError, NetworkError)
 
 # ==============================================================================
 # FIXTURES

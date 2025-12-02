@@ -17,12 +17,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Optional
 
-from ..models.toolchain import (
-    DeploymentTarget,
-    Framework,
-    LanguageDetection,
-    ToolchainAnalysis,
-)
+from ..models.toolchain import (DeploymentTarget, Framework, LanguageDetection,
+                                ToolchainAnalysis)
 
 
 class IToolchainAnalyzer(ABC):

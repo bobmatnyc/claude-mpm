@@ -42,9 +42,7 @@ class TestDeploymentIntegration(TestAgentDeploymentService):
             True,
             "new agent",
         )
-        mock_dependencies[
-            "template_builder"
-        ].build_agent_markdown.return_value = (
+        mock_dependencies["template_builder"].build_agent_markdown.return_value = (
             "---\nname: complete_agent\nversion: 2.0.0\n---\nAgent content"
         )
         mock_dependencies["format_converter"].convert_yaml_to_md.return_value = {

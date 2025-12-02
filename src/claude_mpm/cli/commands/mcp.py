@@ -49,11 +49,9 @@ def manage_mcp(args):
     try:
         # Import MCP Gateway services with error handling
         try:
-            from ...services.mcp_gateway import (
-                MCPConfiguration,
-                MCPServiceRegistry,
-                ToolRegistry,
-            )
+            from ...services.mcp_gateway import (MCPConfiguration,
+                                                 MCPServiceRegistry,
+                                                 ToolRegistry)
             from ...services.mcp_gateway.server.mcp_gateway import MCPGateway
         except ImportError as e:
             # Provide minimal fallbacks for basic commands

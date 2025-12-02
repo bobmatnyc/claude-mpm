@@ -11,11 +11,9 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_mpm.services.core.models.restart import (
-    CircuitBreakerState,
-    RestartConfig,
-    RestartHistory,
-)
+from claude_mpm.services.core.models.restart import (CircuitBreakerState,
+                                                     RestartConfig,
+                                                     RestartHistory)
 from claude_mpm.services.local_ops.restart_policy import RestartPolicy
 
 
@@ -115,9 +113,9 @@ class TestRestartPolicy:
 
         for i, expected in enumerate(expected_backoffs):
             backoff = policy.calculate_backoff(deployment_id)
-            assert backoff == expected, (
-                f"Attempt {i + 1}: expected {expected}, got {backoff}"
-            )
+            assert (
+                backoff == expected
+            ), f"Attempt {i + 1}: expected {expected}, got {backoff}"
 
             # Record attempt to increment count
             policy.record_restart_attempt(deployment_id, success=False)

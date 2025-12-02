@@ -529,9 +529,8 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
             config: AgentSourceConfiguration instance
         """
         try:
-            from ....services.agents.single_tier_deployment_service import (
-                SingleTierDeploymentService,
-            )
+            from ....services.agents.single_tier_deployment_service import \
+                SingleTierDeploymentService
 
             deployment_dir = Path.home() / ".claude" / "agents"
             service = SingleTierDeploymentService(

@@ -21,12 +21,8 @@ Integration points:
 import logging
 from typing import Any, Dict
 
-from claude_mpm.hooks.base_hook import (
-    BaseHook,
-    HookContext,
-    HookResult,
-    HookType,
-)
+from claude_mpm.hooks.base_hook import (BaseHook, HookContext, HookResult,
+                                        HookType)
 from claude_mpm.services.memory.failure_tracker import get_failure_tracker
 
 logger = logging.getLogger(__name__)

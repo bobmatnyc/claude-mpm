@@ -64,9 +64,8 @@ def manage_mpm_init(args):
             # Handle pause subcommand
             from datetime import datetime, timezone
 
-            from claude_mpm.services.cli.session_pause_manager import (
-                SessionPauseManager,
-            )
+            from claude_mpm.services.cli.session_pause_manager import \
+                SessionPauseManager
 
             # Get project path
             project_path = (

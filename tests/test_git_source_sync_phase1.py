@@ -10,9 +10,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.services.agents.sources.git_source_sync_service import (
-    GitSourceSyncService,
-)
+from claude_mpm.services.agents.sources.git_source_sync_service import \
+    GitSourceSyncService
 
 
 class TestGitTreeAPIDiscovery:

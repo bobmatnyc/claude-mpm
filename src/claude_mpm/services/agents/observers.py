@@ -278,13 +278,8 @@ class ConsoleProgressObserver(IDeploymentObserver):
         if self.use_rich:
             try:
                 from rich.console import Console
-                from rich.progress import (
-                    BarColumn,
-                    Progress,
-                    SpinnerColumn,
-                    TextColumn,
-                    TimeRemainingColumn,
-                )
+                from rich.progress import (BarColumn, Progress, SpinnerColumn,
+                                           TextColumn, TimeRemainingColumn)
 
                 self._Console = Console
                 self._Progress = Progress

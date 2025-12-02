@@ -16,10 +16,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from claude_mpm.templates.questions.base import ConditionalTemplate
-from claude_mpm.utils.structured_questions import (
-    QuestionBuilder,
-    QuestionSet,
-)
+from claude_mpm.utils.structured_questions import QuestionBuilder, QuestionSet
 
 if TYPE_CHECKING:
     from claude_mpm.utils.structured_questions import StructuredQuestion

@@ -9,7 +9,8 @@ import json
 import subprocess
 from pathlib import Path
 
-from claude_mpm.core.enums import OperationResult, ServiceState, ValidationSeverity
+from claude_mpm.core.enums import (OperationResult, ServiceState,
+                                   ValidationSeverity)
 
 from ..models import DiagnosticResult
 from .base_check import BaseDiagnosticCheck
@@ -279,9 +280,8 @@ class MCPCheck(BaseDiagnosticCheck):
     def _check_startup_verification(self) -> DiagnosticResult:
         """Run MCP startup verification."""
         try:
-            from ....services.mcp_gateway.core.startup_verification import (
-                MCPGatewayStartupVerifier,
-            )
+            from ....services.mcp_gateway.core.startup_verification import \
+                MCPGatewayStartupVerifier
 
             verifier = MCPGatewayStartupVerifier()
             issues = verifier.verify_startup()

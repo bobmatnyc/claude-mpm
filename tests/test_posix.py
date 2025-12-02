@@ -18,18 +18,9 @@ from unittest import mock
 
 import psutil
 from psutil import AIX, BSD, LINUX, MACOS, OPENBSD, POSIX, SUNOS
-from psutil.tests import (
-    AARCH64,
-    HAS_NET_IO_COUNTERS,
-    PYTHON_EXE,
-    PsutilTestCase,
-    pytest,
-    retry_on_failure,
-    sh,
-    skip_on_access_denied,
-    spawn_testproc,
-    terminate,
-)
+from psutil.tests import (AARCH64, HAS_NET_IO_COUNTERS, PYTHON_EXE,
+                          PsutilTestCase, pytest, retry_on_failure, sh,
+                          skip_on_access_denied, spawn_testproc, terminate)
 
 if POSIX:
     import mmap

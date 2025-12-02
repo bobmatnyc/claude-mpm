@@ -26,7 +26,8 @@ def test_socket_connection():
     print("\n=== Testing Socket.IO Connection ===")
 
     try:
-        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         client = handler._get_socketio_client()
@@ -47,7 +48,8 @@ def test_agent_event_emission():
     print("\n=== Testing Agent Event Emission ===")
 
     try:
-        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -100,7 +102,8 @@ def test_multiple_agent_delegations():
     print("\n=== Testing Multiple Agent Delegations ===")
 
     try:
-        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 

@@ -13,9 +13,8 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 
-from claude_mpm.hooks.claude_hooks.services.connection_manager import (
-    ConnectionManagerService,
-)
+from claude_mpm.hooks.claude_hooks.services.connection_manager import \
+    ConnectionManagerService
 
 
 class TestSinglePathEmission:
@@ -242,9 +241,9 @@ class TestArchitectureCompliance:
                 ):
                     violations.append(f"{file_path}:{line_num} - {line.strip()}")
 
-        assert not violations, (
-            "Found EventBus references in active files:\n" + "\n".join(violations)
-        )
+        assert (
+            not violations
+        ), "Found EventBus references in active files:\n" + "\n".join(violations)
 
     def test_connection_manager_single_emission_path(self):
         """Test that connection manager implements single emission path."""
@@ -262,9 +261,9 @@ class TestArchitectureCompliance:
 
         # Verify required methods exist
         assert "def emit_event(" in content, "emit_event method not found"
-        assert "def _try_http_fallback(" in content, (
-            "_try_http_fallback method not found"
-        )
+        assert (
+            "def _try_http_fallback(" in content
+        ), "_try_http_fallback method not found"
 
         # Verify single-path pattern in emit_event method
         lines = content.split("\n")
@@ -281,9 +280,9 @@ class TestArchitectureCompliance:
             elif in_emit_method and "return  # Success" in line:
                 found_return_after_success = True
 
-        assert found_return_after_success, (
-            "Single-path pattern not found: missing 'return # Success' after primary emission"
-        )
+        assert (
+            found_return_after_success
+        ), "Single-path pattern not found: missing 'return # Success' after primary emission"
 
     def test_required_architecture_files_exist(self):
         """Test that required architecture documentation files exist."""
@@ -296,9 +295,9 @@ class TestArchitectureCompliance:
 
         for file_path in required_files:
             full_path = project_root / file_path
-            assert full_path.exists(), (
-                f"Required architecture file missing: {file_path}"
-            )
+            assert (
+                full_path.exists()
+            ), f"Required architecture file missing: {file_path}"
 
     def test_architecture_documentation_references(self):
         """Test that connection manager references architecture documentation."""
@@ -315,12 +314,12 @@ class TestArchitectureCompliance:
             content = f.read()
 
         # Verify documentation references exist
-        assert "EVENT_EMISSION_ARCHITECTURE.md" in content, (
-            "Missing reference to architecture documentation"
-        )
-        assert "SINGLE-PATH EVENT EMISSION ARCHITECTURE" in content, (
-            "Missing architecture pattern description"
-        )
+        assert (
+            "EVENT_EMISSION_ARCHITECTURE.md" in content
+        ), "Missing reference to architecture documentation"
+        assert (
+            "SINGLE-PATH EVENT EMISSION ARCHITECTURE" in content
+        ), "Missing architecture pattern description"
 
     def test_no_multiple_parallel_emissions(self):
         """Test that emit_event method doesn't have multiple parallel emission calls."""
@@ -350,9 +349,9 @@ class TestArchitectureCompliance:
                 in_emit_method = False
 
                 # Should have at most 2 emission calls: primary + fallback
-                assert len(emission_calls) <= 2, (
-                    f"Too many emission calls in emit_event: {emission_calls}"
-                )
+                assert (
+                    len(emission_calls) <= 2
+                ), f"Too many emission calls in emit_event: {emission_calls}"
 
             elif in_emit_method and re.search(r"\.(emit|publish|post)\s*\(", line):
                 emission_calls.append((line_num, line.strip()))

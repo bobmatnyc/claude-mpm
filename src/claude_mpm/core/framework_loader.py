@@ -6,18 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 # Import framework components
-from claude_mpm.core.framework import (
-    AgentLoader,
-    CapabilityGenerator,
-    ContentFormatter,
-    ContextGenerator,
-    FileLoader,
-    InstructionLoader,
-    MemoryProcessor,
-    MetadataProcessor,
-    PackagedLoader,
-    TemplateProcessor,
-)
+from claude_mpm.core.framework import (AgentLoader, CapabilityGenerator,
+                                       ContentFormatter, ContextGenerator,
+                                       FileLoader, InstructionLoader,
+                                       MemoryProcessor, MetadataProcessor,
+                                       PackagedLoader, TemplateProcessor)
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.utils.imports import safe_import
 
@@ -38,25 +31,20 @@ try:
     from claude_mpm.services.core.memory_manager import MemoryManager
     from claude_mpm.services.core.path_resolver import PathResolver
     from claude_mpm.services.core.service_container import (
-        ServiceContainer,
-        get_global_container,
-    )
-    from claude_mpm.services.core.service_interfaces import (
-        ICacheManager,
-        IMemoryManager,
-        IPathResolver,
-    )
+        ServiceContainer, get_global_container)
+    from claude_mpm.services.core.service_interfaces import (ICacheManager,
+                                                             IMemoryManager,
+                                                             IPathResolver)
 except ImportError:
     # Fallback for development environments
     from ..services.core.cache_manager import CacheManager
     from ..services.core.memory_manager import MemoryManager
     from ..services.core.path_resolver import PathResolver
-    from ..services.core.service_container import ServiceContainer, get_global_container
-    from ..services.core.service_interfaces import (
-        ICacheManager,
-        IMemoryManager,
-        IPathResolver,
-    )
+    from ..services.core.service_container import (ServiceContainer,
+                                                   get_global_container)
+    from ..services.core.service_interfaces import (ICacheManager,
+                                                    IMemoryManager,
+                                                    IPathResolver)
 
 
 class FrameworkLoader:

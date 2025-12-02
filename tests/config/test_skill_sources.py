@@ -14,10 +14,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from src.claude_mpm.config.skill_sources import (
-    SkillSource,
-    SkillSourceConfiguration,
-)
+from src.claude_mpm.config.skill_sources import (SkillSource,
+                                                 SkillSourceConfiguration)
 
 
 class TestSkillSource:

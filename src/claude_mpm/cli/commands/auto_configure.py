@@ -113,14 +113,12 @@ class AutoConfigureCommand(BaseCommand):
     def auto_config_manager(self) -> AutoConfigManagerService:
         """Get auto-configuration manager (lazy loaded)."""
         if self._auto_config_manager is None:
-            from ...services.agents.auto_config_manager import (
-                AutoConfigManagerService,
-            )
+            from ...services.agents.auto_config_manager import \
+                AutoConfigManagerService
             from ...services.agents.recommender import AgentRecommenderService
             from ...services.agents.registry import AgentRegistry
-            from ...services.project.toolchain_analyzer import (
-                ToolchainAnalyzerService,
-            )
+            from ...services.project.toolchain_analyzer import \
+                ToolchainAnalyzerService
 
             # Initialize services with dependency injection
             toolchain_analyzer = ToolchainAnalyzerService()
@@ -129,7 +127,8 @@ class AutoConfigureCommand(BaseCommand):
 
             # Get deployment service
             try:
-                from ...services.agents.deployment import AgentDeploymentService
+                from ...services.agents.deployment import \
+                    AgentDeploymentService
 
                 agent_deployment = AgentDeploymentService()
             except ImportError:

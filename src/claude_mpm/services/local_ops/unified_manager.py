@@ -48,12 +48,10 @@ import yaml
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.models.health import DeploymentHealth
-from claude_mpm.services.core.models.process import (
-    DeploymentState,
-    ProcessInfo,
-    StartConfig,
-)
-from claude_mpm.services.core.models.restart import RestartConfig, RestartHistory
+from claude_mpm.services.core.models.process import (DeploymentState,
+                                                     ProcessInfo, StartConfig)
+from claude_mpm.services.core.models.restart import (RestartConfig,
+                                                     RestartHistory)
 
 from .health_manager import HealthCheckManager
 from .log_monitor import LogMonitor

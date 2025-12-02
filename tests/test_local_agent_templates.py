@@ -7,13 +7,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.services.agents.deployment.local_template_deployment import (
-    LocalTemplateDeploymentService,
-)
+from claude_mpm.services.agents.deployment.local_template_deployment import \
+    LocalTemplateDeploymentService
 from claude_mpm.services.agents.local_template_manager import (
-    LocalAgentTemplate,
-    LocalAgentTemplateManager,
-)
+    LocalAgentTemplate, LocalAgentTemplateManager)
 
 
 class TestLocalAgentTemplate:

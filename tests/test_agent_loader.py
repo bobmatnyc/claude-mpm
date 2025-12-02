@@ -8,10 +8,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.agents.agent_loader import (
-    AgentLoader,
-    list_available_agents,
-)
+from claude_mpm.agents.agent_loader import AgentLoader, list_available_agents
 
 
 def main():
@@ -85,11 +82,9 @@ def main():
 
     # Test 6: Test backward compatibility functions
     print("\n6. Testing backward compatibility...")
-    from claude_mpm.agents.agent_loader import (
-        get_engineer_agent_prompt,
-        get_qa_agent_prompt,
-        get_research_agent_prompt,
-    )
+    from claude_mpm.agents.agent_loader import (get_engineer_agent_prompt,
+                                                get_qa_agent_prompt,
+                                                get_research_agent_prompt)
 
     try:
         get_engineer_agent_prompt()

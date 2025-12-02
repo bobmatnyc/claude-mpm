@@ -101,10 +101,8 @@ def test_connection_pool_fixes():
     print("=" * 50)
 
     try:
-        from claude_mpm.core.socketio_pool import (
-            SOCKETIO_AVAILABLE,
-            get_connection_pool,
-        )
+        from claude_mpm.core.socketio_pool import (SOCKETIO_AVAILABLE,
+                                                   get_connection_pool)
 
         if not SOCKETIO_AVAILABLE:
             print("❌ Socket.IO packages not available")

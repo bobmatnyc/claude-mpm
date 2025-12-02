@@ -94,9 +94,8 @@ class MCPServerCommands:
 
         try:
             # Import and run the server directly
-            from claude_mpm.services.mcp_gateway.server.stdio_server import (
-                SimpleMCPServer,
-            )
+            from claude_mpm.services.mcp_gateway.server.stdio_server import \
+                SimpleMCPServer
 
             # Set environment variable if in test mode
             if test_mode:

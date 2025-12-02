@@ -19,12 +19,9 @@ Usage:
     suite = await benchmarks.run_all_benchmarks()
 """
 
-from .performance_validation_suite import (
-    BenchmarkResult,
-    BenchmarkSuite,
-    PerformanceBenchmarks,
-    PerformanceTarget,
-)
+from .performance_validation_suite import (BenchmarkResult, BenchmarkSuite,
+                                           PerformanceBenchmarks,
+                                           PerformanceTarget)
 
 __all__ = [
     "BenchmarkResult",

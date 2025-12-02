@@ -18,7 +18,8 @@ from unittest.mock import patch
 import pytest
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 class TestMemorySystemQA:
@@ -63,19 +64,19 @@ class TestMemorySystemQA:
 
             # Verify the file was created with correct naming
             expected_file = self.project_memories_dir / f"{agent_id}_memories.md"
-            assert expected_file.exists(), (
-                f"Memory file should be created as {agent_id}_memories.md"
-            )
+            assert (
+                expected_file.exists()
+            ), f"Memory file should be created as {agent_id}_memories.md"
 
             # Verify no old format files were created
             old_format_file = self.project_memories_dir / f"{agent_id}_agent.md"
             intermediate_file = self.project_memories_dir / f"{agent_id}.md"
-            assert not old_format_file.exists(), (
-                f"Should not create old format {agent_id}_agent.md"
-            )
-            assert not intermediate_file.exists(), (
-                f"Should not create intermediate format {agent_id}.md"
-            )
+            assert (
+                not old_format_file.exists()
+            ), f"Should not create old format {agent_id}_agent.md"
+            assert (
+                not intermediate_file.exists()
+            ), f"Should not create intermediate format {agent_id}.md"
 
             print(f"✅ File naming test passed: {expected_file.name}")
 
@@ -99,12 +100,12 @@ class TestMemorySystemQA:
                 intermediate_file = self.project_memories_dir / f"{agent_id}.md"
 
                 assert correct_file.exists(), f"Should create {agent_id}_memories.md"
-                assert not old_format_file.exists(), (
-                    f"Should not create {agent_id}_agent.md"
-                )
-                assert not intermediate_file.exists(), (
-                    f"Should not create {agent_id}.md"
-                )
+                assert (
+                    not old_format_file.exists()
+                ), f"Should not create {agent_id}_agent.md"
+                assert (
+                    not intermediate_file.exists()
+                ), f"Should not create {agent_id}.md"
 
             print("✅ File naming consistency test passed for all agent types")
 
@@ -116,12 +117,12 @@ class TestMemorySystemQA:
             )
 
             # Verify user memories directory is created
-            assert memory_manager.user_memories_dir.exists(), (
-                "User memories directory should be created"
-            )
-            assert memory_manager.user_memories_dir == self.user_memories_dir, (
-                "User memories dir should point to correct location"
-            )
+            assert (
+                memory_manager.user_memories_dir.exists()
+            ), "User memories directory should be created"
+            assert (
+                memory_manager.user_memories_dir == self.user_memories_dir
+            ), "User memories dir should point to correct location"
 
             # Verify README is created in user directory
             user_readme = self.user_memories_dir / "README.md"
@@ -129,12 +130,12 @@ class TestMemorySystemQA:
 
             # Check README content mentions user-level memories
             readme_content = user_readme.read_text()
-            assert "User-level memories" in readme_content, (
-                "README should mention user-level memories"
-            )
-            assert "global defaults" in readme_content, (
-                "README should mention global defaults"
-            )
+            assert (
+                "User-level memories" in readme_content
+            ), "README should mention user-level memories"
+            assert (
+                "global defaults" in readme_content
+            ), "README should mention global defaults"
 
             print("✅ User-level memories directory creation test passed")
 
@@ -165,12 +166,12 @@ class TestMemorySystemQA:
             # Load memory - should get user memory since no project memory exists
             loaded_memory = memory_manager.load_agent_memory(agent_id)
 
-            assert "type hints in Python code" in loaded_memory, (
-                "Should load user memory content"
-            )
-            assert "composition over inheritance" in loaded_memory, (
-                "Should contain user guidelines"
-            )
+            assert (
+                "type hints in Python code" in loaded_memory
+            ), "Should load user memory content"
+            assert (
+                "composition over inheritance" in loaded_memory
+            ), "Should contain user guidelines"
 
             print("✅ User memory functionality test passed")
 
@@ -220,28 +221,28 @@ class TestMemorySystemQA:
             aggregated_memory = memory_manager.load_agent_memory(agent_id)
 
             # Verify user content is included
-            assert "type hints in Python code" in aggregated_memory, (
-                "Should include user guidelines"
-            )
-            assert "composition over inheritance" in aggregated_memory, (
-                "Should include user patterns"
-            )
+            assert (
+                "type hints in Python code" in aggregated_memory
+            ), "Should include user guidelines"
+            assert (
+                "composition over inheritance" in aggregated_memory
+            ), "Should include user patterns"
 
             # Verify project content is included
-            assert "FastAPI for REST APIs" in aggregated_memory, (
-                "Should include project guidelines"
-            )
-            assert "microservices architecture" in aggregated_memory, (
-                "Should include project architecture"
-            )
-            assert "PostgreSQL" in aggregated_memory, (
-                "Should include project tech stack"
-            )
+            assert (
+                "FastAPI for REST APIs" in aggregated_memory
+            ), "Should include project guidelines"
+            assert (
+                "microservices architecture" in aggregated_memory
+            ), "Should include project architecture"
+            assert (
+                "PostgreSQL" in aggregated_memory
+            ), "Should include project tech stack"
 
             # Verify project overrides user for duplicates
-            assert "Avoid hardcoded configuration" in aggregated_memory, (
-                "Should include project-specific mistakes"
-            )
+            assert (
+                "Avoid hardcoded configuration" in aggregated_memory
+            ), "Should include project-specific mistakes"
 
             # Verify both unique items in Common Mistakes are preserved
             error_handling_count = aggregated_memory.count(
@@ -280,29 +281,29 @@ class TestMemorySystemQA:
             old_format_file.write_text(old_format_content)
 
             # Verify old file exists before migration
-            assert old_format_file.exists(), (
-                "Old format file should exist before migration"
-            )
+            assert (
+                old_format_file.exists()
+            ), "Old format file should exist before migration"
 
             # Load memory - should trigger migration
             loaded_memory = memory_manager.load_agent_memory(agent_id)
 
             # Verify migration occurred
             new_format_file = self.project_memories_dir / f"{agent_id}_memories.md"
-            assert new_format_file.exists(), (
-                "New format file should exist after migration"
-            )
-            assert not old_format_file.exists(), (
-                "Old format file should be removed after migration"
-            )
+            assert (
+                new_format_file.exists()
+            ), "New format file should exist after migration"
+            assert (
+                not old_format_file.exists()
+            ), "Old format file should be removed after migration"
 
             # Verify content was preserved
-            assert "Legacy system with old naming" in loaded_memory, (
-                "Content should be preserved during migration"
-            )
-            assert "Research patterns" in loaded_memory, (
-                "All content should be migrated"
-            )
+            assert (
+                "Legacy system with old naming" in loaded_memory
+            ), "Content should be preserved during migration"
+            assert (
+                "Research patterns" in loaded_memory
+            ), "All content should be migrated"
 
             print("✅ Migration test passed")
 
@@ -332,14 +333,14 @@ class TestMemorySystemQA:
             # Verify user directory migration
             new_user_file = self.user_memories_dir / f"{agent_id}_memories.md"
             assert new_user_file.exists(), "New format file should exist in user dir"
-            assert not old_user_file.exists(), (
-                "Old format file should be removed from user dir"
-            )
+            assert (
+                not old_user_file.exists()
+            ), "Old format file should be removed from user dir"
 
             # Verify content
-            assert "Write clear documentation" in loaded_memory, (
-                "User content should be preserved"
-            )
+            assert (
+                "Write clear documentation" in loaded_memory
+            ), "User content should be preserved"
 
             print("✅ User directory migration test passed")
 
@@ -390,28 +391,28 @@ class TestMemorySystemQA:
             aggregated = memory_manager.load_agent_memory(agent_id)
 
             # Verify user content is preserved
-            assert "Unit tests for all functions" in aggregated, (
-                "User content should be preserved"
-            )
-            assert "Integration tests for workflows" in aggregated, (
-                "User strategies should be included"
-            )
+            assert (
+                "Unit tests for all functions" in aggregated
+            ), "User content should be preserved"
+            assert (
+                "Integration tests for workflows" in aggregated
+            ), "User strategies should be included"
 
             # Verify project overrides work
-            assert "pytest-django for this project" in aggregated, (
-                "Project should override user guidelines"
-            )
-            assert "Django framework" in aggregated, (
-                "Project architecture should be included"
-            )
+            assert (
+                "pytest-django for this project" in aggregated
+            ), "Project should override user guidelines"
+            assert (
+                "Django framework" in aggregated
+            ), "Project architecture should be included"
 
             # Verify project extends user content
-            assert "Load testing with Locust" in aggregated, (
-                "Project should extend testing strategies"
-            )
-            assert "E2E testing with Selenium" in aggregated, (
-                "All project strategies should be included"
-            )
+            assert (
+                "Load testing with Locust" in aggregated
+            ), "Project should extend testing strategies"
+            assert (
+                "E2E testing with Selenium" in aggregated
+            ), "All project strategies should be included"
 
             # Verify no duplicate comprehensive test cases
             comprehensive_count = aggregated.count("Write comprehensive test cases")
@@ -465,16 +466,16 @@ class TestMemorySystemQA:
 
                 # Verify PM memories are included in framework instructions
                 # The framework loader should include actual memories
-                assert "Current PM Memories" in framework_instructions, (
-                    "Should include PM memories section"
-                )
+                assert (
+                    "Current PM Memories" in framework_instructions
+                ), "Should include PM memories section"
 
                 # Check that memory content is present somewhere in the instructions
                 # Note: The exact format may vary, so we check for key content
                 instructions_lower = framework_instructions.lower()
-                assert "delegate" in instructions_lower, (
-                    "Should include delegation concepts"
-                )
+                assert (
+                    "delegate" in instructions_lower
+                ), "Should include delegation concepts"
 
                 print("✅ Framework loader memory integration test passed")
 
@@ -522,13 +523,13 @@ class TestMemorySystemQA:
             assert not old_file.exists(), "Migration should remove old format file"
 
             # 5. Verify aggregation
-            assert "Infrastructure as Code" in aggregated, (
-                "Should include migrated content"
-            )
+            assert (
+                "Infrastructure as Code" in aggregated
+            ), "Should include migrated content"
             assert "version control" in aggregated, "Should include user content"
-            assert "principle of least privilege" in aggregated, (
-                "Should include user security guidelines"
-            )
+            assert (
+                "principle of least privilege" in aggregated
+            ), "Should include user security guidelines"
 
             # 6. Test adding new learning
             success = memory_manager.add_learning(
@@ -538,9 +539,9 @@ class TestMemorySystemQA:
 
             # 7. Reload and verify learning was added
             updated_memory = memory_manager.load_agent_memory(agent_id)
-            assert "blue-green deployments" in updated_memory, (
-                "Should include new learning"
-            )
+            assert (
+                "blue-green deployments" in updated_memory
+            ), "Should include new learning"
 
             print("✅ Complete memory system integration test passed")
 
@@ -564,20 +565,20 @@ class TestMemorySystemQA:
 
                 # Verify no old format files
                 old_file = self.project_memories_dir / f"{agent_id}_agent.md"
-                assert not old_file.exists(), (
-                    f"Old format file should not exist for {agent_id}"
-                )
+                assert (
+                    not old_file.exists()
+                ), f"Old format file should not exist for {agent_id}"
 
                 # Verify content structure
-                assert f"# {agent_id.capitalize()} Agent Memory" in memory_content, (
-                    f"Should have proper header for {agent_id}"
-                )
-                assert "## Project Architecture" in memory_content, (
-                    f"Should have architecture section for {agent_id}"
-                )
-                assert "## Implementation Guidelines" in memory_content, (
-                    f"Should have guidelines section for {agent_id}"
-                )
+                assert (
+                    f"# {agent_id.capitalize()} Agent Memory" in memory_content
+                ), f"Should have proper header for {agent_id}"
+                assert (
+                    "## Project Architecture" in memory_content
+                ), f"Should have architecture section for {agent_id}"
+                assert (
+                    "## Implementation Guidelines" in memory_content
+                ), f"Should have guidelines section for {agent_id}"
 
             print("✅ Memory file format consistency test passed")
 
@@ -590,9 +591,9 @@ class TestMemorySystemQA:
 
             # Test with non-existent agent
             memory = memory_manager.load_agent_memory("nonexistent_agent")
-            assert memory is not None, (
-                "Should return default memory for non-existent agent"
-            )
+            assert (
+                memory is not None
+            ), "Should return default memory for non-existent agent"
             assert "Nonexistent Agent Memory" in memory, "Should create proper default"
 
             # Test migration with permission error (simulate)

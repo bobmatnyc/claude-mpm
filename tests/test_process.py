@@ -26,37 +26,16 @@ from unittest import mock
 import psutil
 from psutil import AIX, BSD, LINUX, MACOS, NETBSD, OPENBSD, OSX, POSIX, WINDOWS
 from psutil._common import open_text
-from psutil.tests import (
-    CI_TESTING,
-    GITHUB_ACTIONS,
-    GLOBAL_TIMEOUT,
-    HAS_CPU_AFFINITY,
-    HAS_ENVIRON,
-    HAS_IONICE,
-    HAS_MEMORY_MAPS,
-    HAS_PROC_CPU_NUM,
-    HAS_PROC_IO_COUNTERS,
-    HAS_RLIMIT,
-    HAS_THREADS,
-    MACOS_11PLUS,
-    PYPY,
-    PYTHON_EXE,
-    PYTHON_EXE_ENV,
-    PsutilTestCase,
-    ThreadTask,
-    call_until,
-    copyload_shared_lib,
-    create_c_exe,
-    create_py_exe,
-    process_namespace,
-    pytest,
-    reap_children,
-    retry_on_failure,
-    sh,
-    skip_on_access_denied,
-    skip_on_not_implemented,
-    wait_for_pid,
-)
+from psutil.tests import (CI_TESTING, GITHUB_ACTIONS, GLOBAL_TIMEOUT,
+                          HAS_CPU_AFFINITY, HAS_ENVIRON, HAS_IONICE,
+                          HAS_MEMORY_MAPS, HAS_PROC_CPU_NUM,
+                          HAS_PROC_IO_COUNTERS, HAS_RLIMIT, HAS_THREADS,
+                          MACOS_11PLUS, PYPY, PYTHON_EXE, PYTHON_EXE_ENV,
+                          PsutilTestCase, ThreadTask, call_until,
+                          copyload_shared_lib, create_c_exe, create_py_exe,
+                          process_namespace, pytest, reap_children,
+                          retry_on_failure, sh, skip_on_access_denied,
+                          skip_on_not_implemented, wait_for_pid)
 
 # ===================================================================
 # --- psutil.Process class tests
@@ -1457,9 +1436,9 @@ class TestProcess(PsutilTestCase):
             for name in exclude:
                 d.pop(name, None)
             return {
-                k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace(
-                    "\n", ""
-                )
+                k.replace("\r", "")
+                .replace("\n", ""): v.replace("\r", "")
+                .replace("\n", "")
                 for k, v in d.items()
             }
 

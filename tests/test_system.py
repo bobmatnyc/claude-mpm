@@ -20,41 +20,16 @@ import time
 from unittest import mock
 
 import psutil
-from psutil import (
-    AIX,
-    BSD,
-    FREEBSD,
-    LINUX,
-    MACOS,
-    NETBSD,
-    OPENBSD,
-    POSIX,
-    SUNOS,
-    WINDOWS,
-)
+from psutil import (AIX, BSD, FREEBSD, LINUX, MACOS, NETBSD, OPENBSD, POSIX,
+                    SUNOS, WINDOWS)
 from psutil._common import broadcast_addr
-from psutil.tests import (
-    AARCH64,
-    ASCII_FS,
-    CI_TESTING,
-    GITHUB_ACTIONS,
-    GLOBAL_TIMEOUT,
-    HAS_BATTERY,
-    HAS_CPU_FREQ,
-    HAS_GETLOADAVG,
-    HAS_NET_IO_COUNTERS,
-    HAS_SENSORS_BATTERY,
-    HAS_SENSORS_FANS,
-    HAS_SENSORS_TEMPERATURES,
-    IS_64BIT,
-    MACOS_12PLUS,
-    PYPY,
-    UNICODE_SUFFIX,
-    PsutilTestCase,
-    check_net_address,
-    pytest,
-    retry_on_failure,
-)
+from psutil.tests import (AARCH64, ASCII_FS, CI_TESTING, GITHUB_ACTIONS,
+                          GLOBAL_TIMEOUT, HAS_BATTERY, HAS_CPU_FREQ,
+                          HAS_GETLOADAVG, HAS_NET_IO_COUNTERS,
+                          HAS_SENSORS_BATTERY, HAS_SENSORS_FANS,
+                          HAS_SENSORS_TEMPERATURES, IS_64BIT, MACOS_12PLUS,
+                          PYPY, UNICODE_SUFFIX, PsutilTestCase,
+                          check_net_address, pytest, retry_on_failure)
 
 # ===================================================================
 # --- System-related API tests

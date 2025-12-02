@@ -26,15 +26,11 @@ import psutil
 import pytest
 
 from claude_mpm.services.core.models.health import HealthStatus
-from claude_mpm.services.core.models.process import (
-    DeploymentState,
-    ProcessStatus,
-)
+from claude_mpm.services.core.models.process import (DeploymentState,
+                                                     ProcessStatus)
 from claude_mpm.services.core.models.stability import ResourceUsage
-from claude_mpm.services.local_ops import (
-    DeploymentStateManager,
-    LocalProcessManager,
-)
+from claude_mpm.services.local_ops import (DeploymentStateManager,
+                                           LocalProcessManager)
 from claude_mpm.services.local_ops.health_manager import HealthCheckManager
 
 

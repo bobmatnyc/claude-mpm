@@ -10,7 +10,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.services.runner_configuration_service import RunnerConfigurationService
+from claude_mpm.services.runner_configuration_service import \
+    RunnerConfigurationService
 
 
 class TestRunnerConfigurationService:

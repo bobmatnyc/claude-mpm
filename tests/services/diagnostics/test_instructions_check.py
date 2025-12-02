@@ -4,9 +4,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from claude_mpm.services.diagnostics.checks.instructions_check import (
-    InstructionsCheck,
-)
+from claude_mpm.services.diagnostics.checks.instructions_check import \
+    InstructionsCheck
 from claude_mpm.services.diagnostics.models import DiagnosticStatus
 
 

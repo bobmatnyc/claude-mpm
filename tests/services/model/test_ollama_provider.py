@@ -19,7 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from claude_mpm.services.core.interfaces.model import ModelCapability, ModelResponse
+from claude_mpm.services.core.interfaces.model import (ModelCapability,
+                                                       ModelResponse)
 from claude_mpm.services.model.ollama_provider import OllamaProvider
 
 

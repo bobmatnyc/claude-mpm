@@ -8,7 +8,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.services.system_instructions_service import SystemInstructionsService
+from claude_mpm.services.system_instructions_service import \
+    SystemInstructionsService
 
 
 def get_size_mb(obj):

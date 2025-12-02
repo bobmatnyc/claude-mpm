@@ -14,7 +14,8 @@ that supports:
 import inspect
 import threading
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
+from typing import (Any, Callable, Dict, List, Optional, Set, Type, TypeVar,
+                    Union)
 
 from claude_mpm.services.core.interfaces import IServiceContainer
 

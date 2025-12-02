@@ -23,36 +23,16 @@ from unittest import mock
 
 import psutil
 from psutil import LINUX
-from psutil.tests import (
-    AARCH64,
-    GITHUB_ACTIONS,
-    GLOBAL_TIMEOUT,
-    HAS_BATTERY,
-    HAS_CPU_FREQ,
-    HAS_GETLOADAVG,
-    HAS_RLIMIT,
-    PYPY,
-    PYTEST_PARALLEL,
-    TOLERANCE_DISK_USAGE,
-    TOLERANCE_SYS_MEM,
-    PsutilTestCase,
-    ThreadTask,
-    call_until,
-    pytest,
-    reload_module,
-    retry_on_failure,
-    safe_rmpath,
-    sh,
-    skip_on_not_implemented,
-)
+from psutil.tests import (AARCH64, GITHUB_ACTIONS, GLOBAL_TIMEOUT, HAS_BATTERY,
+                          HAS_CPU_FREQ, HAS_GETLOADAVG, HAS_RLIMIT, PYPY,
+                          PYTEST_PARALLEL, TOLERANCE_DISK_USAGE,
+                          TOLERANCE_SYS_MEM, PsutilTestCase, ThreadTask,
+                          call_until, pytest, reload_module, retry_on_failure,
+                          safe_rmpath, sh, skip_on_not_implemented)
 
 if LINUX:
-    from psutil._pslinux import (
-        CLOCK_TICKS,
-        RootFsDeviceFinder,
-        calculate_avail_vmem,
-        open_binary,
-    )
+    from psutil._pslinux import (CLOCK_TICKS, RootFsDeviceFinder,
+                                 calculate_avail_vmem, open_binary)
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -252,9 +232,9 @@ class TestSystemVirtualMemoryAgainstFree(PsutilTestCase):
         if free_value == 0:
             raise pytest.skip("free does not support 'shared' column")
         psutil_value = psutil.virtual_memory().shared
-        assert abs(free_value - psutil_value) < TOLERANCE_SYS_MEM, (
-            f"{free_value} {psutil_value} \n{free.output}"
-        )
+        assert (
+            abs(free_value - psutil_value) < TOLERANCE_SYS_MEM
+        ), f"{free_value} {psutil_value} \n{free.output}"
 
     @retry_on_failure()
     def test_available(self):
@@ -1619,7 +1599,9 @@ class TestSensorsBattery(PsutilTestCase):
         ), mock_open_exception(
             "/sys/class/power_supply/BAT0/charge_full",
             FileNotFoundError,
-        ), mock_open_content({"/sys/class/power_supply/BAT0/capacity": b"88"}):
+        ), mock_open_content(
+            {"/sys/class/power_supply/BAT0/capacity": b"88"}
+        ):
             assert psutil.sensors_battery().percent == 88
 
     def test_emulate_no_power(self):

@@ -16,7 +16,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_mpm.services.core.memory_manager import MemoryManager
-from claude_mpm.services.core.service_interfaces import ICacheManager, IPathResolver
+from claude_mpm.services.core.service_interfaces import (ICacheManager,
+                                                         IPathResolver)
 
 
 class TestMemoryManager:
@@ -386,15 +387,15 @@ class TestMemoryManager:
             content = result["actual_memories"]
 
             # Should ONLY have project tasks (user tasks NOT loaded)
-            assert "user task 1" not in content.lower(), (
-                "User-level memories should NOT be loaded"
-            )
-            assert "project task 1" in content.lower(), (
-                "Project-level memories should be loaded"
-            )
-            assert "common task" in content.lower(), (
-                "Project-level common task should be present"
-            )
+            assert (
+                "user task 1" not in content.lower()
+            ), "User-level memories should NOT be loaded"
+            assert (
+                "project task 1" in content.lower()
+            ), "Project-level memories should be loaded"
+            assert (
+                "common task" in content.lower()
+            ), "Project-level common task should be present"
 
     def test_naming_mismatch_warning(self, memory_manager, mock_cache_manager, caplog):
         """Test warning for agent naming mismatches."""

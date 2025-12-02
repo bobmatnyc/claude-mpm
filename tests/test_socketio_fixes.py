@@ -26,9 +26,7 @@ def test_python_environment_detection():
     print("=" * 60)
 
     # Import the daemon module
-    from claude_mpm.scripts.socketio_daemon import (
-        PYTHON_EXECUTABLE,
-    )
+    from claude_mpm.scripts.socketio_daemon import PYTHON_EXECUTABLE
 
     print(f"Current Python: {sys.executable}")
     print(f"Detected Python for daemon: {PYTHON_EXECUTABLE}")

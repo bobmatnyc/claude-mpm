@@ -15,10 +15,8 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    IMCPCommunication,
-    IMCPToolRegistry,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPCommunication,
+                                                             IMCPToolRegistry)
 from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 
 

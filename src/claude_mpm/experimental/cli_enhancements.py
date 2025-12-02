@@ -31,11 +31,8 @@ import click
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.hooks.validation_hooks import ValidationHooks
-from claude_mpm.utils.error_handler import (
-    ErrorContext,
-    MPMError,
-    handle_errors,
-)
+from claude_mpm.utils.error_handler import (ErrorContext, MPMError,
+                                            handle_errors)
 from claude_mpm.validation import AgentValidator, ValidationResult
 
 logger = get_logger(__name__)

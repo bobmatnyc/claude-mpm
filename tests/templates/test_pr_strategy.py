@@ -2,11 +2,9 @@
 
 import pytest
 
-from claude_mpm.templates.questions.pr_strategy import (
-    PRReviewTemplate,
-    PRSizeTemplate,
-    PRWorkflowTemplate,
-)
+from claude_mpm.templates.questions.pr_strategy import (PRReviewTemplate,
+                                                        PRSizeTemplate,
+                                                        PRWorkflowTemplate)
 from claude_mpm.utils.structured_questions import ResponseParser
 
 

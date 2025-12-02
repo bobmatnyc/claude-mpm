@@ -11,7 +11,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.services.core.path_resolver import DeploymentContext, PathResolver
+from claude_mpm.services.core.path_resolver import (DeploymentContext,
+                                                    PathResolver)
 
 
 class TestPathResolver:

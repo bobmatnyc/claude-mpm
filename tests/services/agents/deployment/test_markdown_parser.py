@@ -16,9 +16,8 @@ import yaml
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment.agent_template_builder import (
-    AgentTemplateBuilder,
-)
+from claude_mpm.services.agents.deployment.agent_template_builder import \
+    AgentTemplateBuilder
 
 
 class TestMarkdownTemplateParser:
@@ -32,7 +31,8 @@ class TestMarkdownTemplateParser:
     @pytest.fixture
     def markdown_template_content(self):
         """Sample Markdown template with YAML frontmatter."""
-        return dedent("""
+        return dedent(
+            """
             ---
             name: engineer_agent
             description: Clean architecture specialist with code reduction
@@ -77,7 +77,8 @@ class TestMarkdownTemplateParser:
             1. Search for existing solutions
             2. Implement with minimal code
             3. Test thoroughly
-        """).strip()
+        """
+        ).strip()
 
     @pytest.fixture
     def json_template_content(self):
@@ -166,13 +167,15 @@ class TestMarkdownTemplateParser:
         """Test error handling for invalid YAML syntax."""
         template_file = tmp_path / "invalid_yaml.md"
         template_file.write_text(
-            dedent("""
+            dedent(
+                """
             ---
             name: test
             invalid: yaml: syntax: error
             ---
             # Content
-        """).strip()
+        """
+            ).strip()
         )
 
         # Should raise yaml.YAMLError
@@ -185,13 +188,15 @@ class TestMarkdownTemplateParser:
         """Test error handling for missing required fields."""
         template_file = tmp_path / "missing_fields.md"
         template_file.write_text(
-            dedent("""
+            dedent(
+                """
             ---
             name: test_agent
             # Missing description and version
             ---
             # Content
-        """).strip()
+        """
+            ).strip()
         )
 
         # Should raise ValueError with missing fields
@@ -295,7 +300,8 @@ class TestMarkdownTemplateParser:
 
     def test_markdown_template_with_minimal_fields(self, template_builder, tmp_path):
         """Test Markdown template with only required fields."""
-        minimal_template = dedent("""
+        minimal_template = dedent(
+            """
             ---
             name: minimal_agent
             description: Minimal test agent
@@ -304,7 +310,8 @@ class TestMarkdownTemplateParser:
             # Minimal Agent
 
             Basic instructions.
-        """).strip()
+        """
+        ).strip()
 
         template_file = tmp_path / "minimal.md"
         template_file.write_text(minimal_template)
@@ -321,7 +328,8 @@ class TestMarkdownTemplateParser:
         self, template_builder, tmp_path
     ):
         """Test parsing complex dependency structures."""
-        template_content = dedent("""
+        template_content = dedent(
+            """
             ---
             name: complex_agent
             description: Agent with complex dependencies
@@ -336,7 +344,8 @@ class TestMarkdownTemplateParser:
               optional: false
             ---
             # Complex Agent
-        """).strip()
+        """
+        ).strip()
 
         template_file = tmp_path / "complex.md"
         template_file.write_text(template_content)

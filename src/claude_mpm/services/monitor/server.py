@@ -447,7 +447,8 @@ class UnifiedMonitorServer:
                 """Serve version information for dashboard build tracker."""
                 try:
                     # Try to get version from version service
-                    from claude_mpm.services.version_service import VersionService
+                    from claude_mpm.services.version_service import \
+                        VersionService
 
                     version_service = VersionService()
                     version_info = version_service.get_version_info()

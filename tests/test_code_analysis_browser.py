@@ -25,9 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from selenium import webdriver
-from selenium.common.exceptions import (
-    NoSuchElementException,
-)
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options as FirefoxOptions

@@ -36,12 +36,10 @@ from typing import Dict, Optional
 
 from claude_mpm.services.core.base import SyncBaseService
 from claude_mpm.services.core.interfaces.restart import IRestartPolicy
-from claude_mpm.services.core.models.restart import (
-    CircuitBreakerState,
-    RestartAttempt,
-    RestartConfig,
-    RestartHistory,
-)
+from claude_mpm.services.core.models.restart import (CircuitBreakerState,
+                                                     RestartAttempt,
+                                                     RestartConfig,
+                                                     RestartHistory)
 
 
 class RestartPolicy(SyncBaseService, IRestartPolicy):

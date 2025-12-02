@@ -96,17 +96,45 @@ class SimpleAgentManager:
         """Check if there are unsaved changes."""
         return len(self.deferred_changes) > 0
 
-    def discover_agents(self) -> List[AgentConfig]:
-        """Discover available agents from template JSON files."""
+    def discover_agents(self, include_remote: bool = True) -> List[AgentConfig]:
+        """Discover available agents from local templates and remote sources.
+
+        Args:
+            include_remote: Whether to include agents from remote sources (default: True)
+
+        Returns:
+            List of AgentConfig objects with metadata including source information
+        """
+        agents = []
+
+        # Discover local template agents (existing logic)
+        local_agents = self._discover_local_template_agents()
+        agents.extend(local_agents)
+
+        # Discover remote agents if requested
+        if include_remote:
+            try:
+                remote_agents = self._discover_remote_agents()
+                agents.extend(remote_agents)
+                self.logger.info(f"Discovered {len(remote_agents)} remote agents")
+            except Exception as e:
+                self.logger.warning(f"Failed to discover remote agents: {e}")
+
+        # Sort agents by name for consistent display
+        agents.sort(key=lambda a: a.name)
+
+        return agents if agents else [AgentConfig("engineer", "No agents found", [])]
+
+    def _discover_local_template_agents(self) -> List[AgentConfig]:
+        """Discover agents from local JSON templates (existing logic)."""
         agents = []
 
         # Scan templates directory for JSON files
         if not self.templates_dir.exists():
-            # Fallback to a minimal set if templates dir doesn't exist
-            return [
-                AgentConfig("engineer", "Engineering agent (templates not found)", []),
-                AgentConfig("research", "Research agent (templates not found)", []),
-            ]
+            self.logger.debug(
+                f"Templates directory does not exist: {self.templates_dir}"
+            )
+            return agents
 
         try:
             # Read all JSON template files
@@ -169,18 +197,96 @@ class SimpleAgentManager:
         except Exception as e:
             # If there's a catastrophic error reading templates directory
             self.logger.error(f"Failed to read templates directory: {e}")
-            return [
-                AgentConfig("engineer", f"Error accessing templates: {e!s}", []),
-                AgentConfig("research", "Research agent", []),
-            ]
 
-        # Sort agents by name for consistent display
-        agents.sort(key=lambda a: a.name)
+        return agents
 
-        return (
-            agents
-            if agents
-            else [
-                AgentConfig("engineer", "No agents found in templates", []),
-            ]
-        )
+    def _discover_remote_agents(self) -> List[AgentConfig]:
+        """Discover agents from remote Git sources using GitSourceManager."""
+        try:
+            from claude_mpm.services.agents.git_source_manager import \
+                GitSourceManager
+
+            # Initialize source manager (uses ~/.claude-mpm/cache/remote-agents by default)
+            source_manager = GitSourceManager()
+
+            # Discover all cached agents from all repositories
+            remote_agent_dicts = source_manager.list_cached_agents()
+
+            # Convert to AgentConfig objects for UI display
+            agents = []
+            for agent_dict in remote_agent_dicts:
+                # Extract metadata
+                metadata = agent_dict.get("metadata", {})
+                agent_id = agent_dict.get("agent_id", "unknown")
+                name = metadata.get("name", agent_id)
+                description = metadata.get("description", "No description available")
+                category = agent_dict.get("category", "unknown")
+                source = agent_dict.get("source", "remote")
+
+                # Check deployment status
+                is_deployed = self._is_agent_deployed(agent_id)
+
+                # Create AgentConfig with source information
+                # Store full agent_dict for later use in deployment
+                agent_config = AgentConfig(
+                    name=agent_id,  # Use agent_id as name for uniqueness
+                    description=(
+                        f"[{category}] {description[:60]}..."
+                        if len(description) > 60
+                        else f"[{category}] {description}"
+                    ),
+                    dependencies=[f"Source: {source}"],  # Show source as dependency
+                )
+
+                # Attach additional metadata for later use
+                agent_config.source_type = "remote"
+                agent_config.is_deployed = is_deployed
+                agent_config.display_name = name
+                agent_config.full_agent_id = agent_id
+                agent_config.source_dict = agent_dict  # Store full dict for deployment
+
+                agents.append(agent_config)
+
+            return agents
+
+        except ImportError as e:
+            self.logger.debug(f"GitSourceManager not available: {e}")
+            return []
+        except Exception as e:
+            self.logger.error(f"Failed to discover remote agents: {e}")
+            return []
+
+    def _is_agent_deployed(self, agent_id: str) -> bool:
+        """Check if agent is deployed in current project or user directory.
+
+        Args:
+            agent_id: Full agent ID (may include hierarchy like engineer/backend/python-engineer)
+
+        Returns:
+            True if agent is deployed, False otherwise
+        """
+        # For hierarchical IDs, check both full ID and leaf name
+        agent_file_names = [f"{agent_id}.md"]
+
+        # Also check leaf name (last component after /)
+        if "/" in agent_id:
+            leaf_name = agent_id.split("/")[-1]
+            agent_file_names.append(f"{leaf_name}.md")
+
+        # Check .claude-mpm/agents/ directory (project level)
+        project_agents_dir = Path.cwd() / ".claude-mpm" / "agents"
+        if project_agents_dir.exists():
+            for agent_file_name in agent_file_names:
+                agent_file = project_agents_dir / agent_file_name
+                if agent_file.exists():
+                    return True
+
+        # Check ~/.claude/agents/ directory (user level)
+        user_agents_dir = Path.home() / ".claude" / "agents"
+        if user_agents_dir.exists():
+            for agent_file_name in agent_file_names:
+                agent_file = user_agents_dir / agent_file_name
+                if agent_file.exists():
+                    return True
+
+        return False

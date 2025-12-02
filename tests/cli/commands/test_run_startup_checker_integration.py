@@ -85,10 +85,8 @@ class TestRunStartupCheckerIntegration:
 
     def test_legacy_check_functions_use_new_service(self):
         """Test that legacy check functions use StartupCheckerService."""
-        from claude_mpm.cli.commands.run import (
-            _check_claude_json_memory,
-            _check_configuration_health,
-        )
+        from claude_mpm.cli.commands.run import (_check_claude_json_memory,
+                                                 _check_configuration_health)
 
         # Test _check_configuration_health
         logger = MagicMock()

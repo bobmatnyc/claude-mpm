@@ -9,17 +9,15 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 1
 
 import pytest
 
-from claude_mpm.services.core.models.agent_config import (
-    AgentCapabilities,
-    AgentRecommendation,
-    AgentSpecialization,
-    ConfigurationPreview,
-    ConfigurationResult,
-    ConfigurationStatus,
-    ValidationIssue,
-    ValidationResult,
-    ValidationSeverity,
-)
+from claude_mpm.services.core.models.agent_config import (AgentCapabilities,
+                                                          AgentRecommendation,
+                                                          AgentSpecialization,
+                                                          ConfigurationPreview,
+                                                          ConfigurationResult,
+                                                          ConfigurationStatus,
+                                                          ValidationIssue,
+                                                          ValidationResult,
+                                                          ValidationSeverity)
 
 
 class TestAgentSpecialization:

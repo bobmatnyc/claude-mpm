@@ -33,11 +33,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
 from claude_mpm.core.enums import ServiceState
-from claude_mpm.services.core.models.process import (
-    DeploymentState,
-    ProcessInfo,
-    StartConfig,
-)
+from claude_mpm.services.core.models.process import (DeploymentState,
+                                                     ProcessInfo, StartConfig)
 
 
 class IDeploymentStateManager(ABC):

@@ -68,7 +68,8 @@ class TestDuplicateDetection:
 
     def test_get_event_key_generation(self):
         """Test event key generation for duplicate detection."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -123,7 +124,8 @@ class TestErrorHandling:
     @patch("sys.stdout", new_callable=StringIO)
     def test_handle_with_timeout(self, mock_stdout, mock_stdin):
         """Test timeout handling with SIGALRM."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -152,7 +154,8 @@ class TestErrorHandling:
 
     def test_handle_json_parse_error(self):
         """Test handling of JSON parsing errors."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -165,7 +168,8 @@ class TestErrorHandling:
 
     def test_handle_exception_recovery(self):
         """Test recovery from exceptions during event handling."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -180,7 +184,8 @@ class TestErrorHandling:
     @patch("subprocess.run")
     def test_git_branch_subprocess_errors(self, mock_run):
         """Test handling of subprocess errors in git branch detection."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -204,7 +209,8 @@ class TestErrorHandling:
 
     def test_connection_failure_handling(self):
         """Test handling of connection failures."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -222,7 +228,8 @@ class TestErrorHandling:
 
     def test_continue_execution_idempotency(self):
         """Test that continue is only sent once."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 

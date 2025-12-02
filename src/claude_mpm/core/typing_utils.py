@@ -16,19 +16,8 @@ strict type safety.
 
 import logging
 from datetime import datetime
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import (Any, Awaitable, Callable, Dict, List, Literal, Optional,
+                    Protocol, Tuple, TypeVar, Union)
 
 from typing_extensions import NotRequired, TypeAlias, TypedDict
 

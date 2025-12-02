@@ -22,20 +22,10 @@ from unittest import mock
 
 import psutil
 from psutil import WINDOWS
-from psutil.tests import (
-    GITHUB_ACTIONS,
-    HAS_BATTERY,
-    IS_64BIT,
-    PYPY,
-    TOLERANCE_DISK_USAGE,
-    TOLERANCE_SYS_MEM,
-    PsutilTestCase,
-    pytest,
-    retry_on_failure,
-    sh,
-    spawn_testproc,
-    terminate,
-)
+from psutil.tests import (GITHUB_ACTIONS, HAS_BATTERY, IS_64BIT, PYPY,
+                          TOLERANCE_DISK_USAGE, TOLERANCE_SYS_MEM,
+                          PsutilTestCase, pytest, retry_on_failure, sh,
+                          spawn_testproc, terminate)
 
 if WINDOWS and not PYPY:
     with warnings.catch_warnings():

@@ -19,9 +19,9 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
             {"name": "agent1", "version": "1.0.0"},
             {"name": "agent2", "version": "2.0.0"},
         ]
-        mock_dependencies[
-            "discovery_service"
-        ].list_available_agents.return_value = expected_agents
+        mock_dependencies["discovery_service"].list_available_agents.return_value = (
+            expected_agents
+        )
 
         result = service.list_available_agents()
 
@@ -65,9 +65,9 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
             Path("/path/to/agent2.json"),
         ]
 
-        mock_dependencies[
-            "discovery_service"
-        ].get_filtered_templates.return_value = expected_templates
+        mock_dependencies["discovery_service"].get_filtered_templates.return_value = (
+            expected_templates
+        )
 
         result = service._get_filtered_templates(["excluded"], mock_config)
 

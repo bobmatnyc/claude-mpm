@@ -33,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 try:
     from claude_mpm.core.constants import NetworkConfig, TimeoutConfig
-    from claude_mpm.services.socketio_client_manager import SocketIOClientManager
+    from claude_mpm.services.socketio_client_manager import \
+        SocketIOClientManager
     from claude_mpm.services.socketio_server import SocketIOServer
 
     CLAUDE_MPM_AVAILABLE = True

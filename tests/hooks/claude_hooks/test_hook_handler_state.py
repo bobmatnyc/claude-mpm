@@ -24,7 +24,8 @@ class TestEventEmission:
 
     def test_emit_socketio_event_with_pool(self):
         """Test event emission with connection pool."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         mock_pool = MagicMock()
@@ -44,7 +45,8 @@ class TestEventEmission:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EVENTBUS_AVAILABLE", True)
     def test_emit_socketio_event_with_eventbus(self):
         """Test event emission with EventBus."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         mock_bus = MagicMock()
@@ -61,7 +63,8 @@ class TestEventEmission:
 
     def test_emit_socketio_event_dual_emission(self):
         """Test dual emission to both SocketIO and EventBus."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         mock_pool = MagicMock()
@@ -78,7 +81,8 @@ class TestEventEmission:
 
     def test_emit_socketio_event_error_handling(self):
         """Test error handling in event emission."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         mock_pool = MagicMock()
@@ -90,7 +94,8 @@ class TestEventEmission:
 
     def test_emit_socketio_event_no_connections(self):
         """Test emission when no connections available."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
         handler.connection_pool = None
@@ -106,7 +111,8 @@ class TestSubagentStopProcessing:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager")
     def test_handle_subagent_stop_with_structured_response(self, mock_rtm_class):
         """Test SubagentStop with structured JSON response."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         # Setup mocks
         mock_rtm = MagicMock()
@@ -164,7 +170,8 @@ class TestSubagentStopProcessing:
 
     def test_handle_subagent_stop_fuzzy_session_matching(self):
         """Test fuzzy session ID matching in SubagentStop."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -201,7 +208,8 @@ class TestSubagentStopProcessing:
 
     def test_handle_subagent_stop_memory_extraction(self):
         """Test memory extraction from JSON response."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -225,7 +233,8 @@ class TestSubagentStopProcessing:
 
     def test_handle_subagent_stop_various_output_formats(self):
         """Test handling various output format scenarios."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -266,7 +275,8 @@ class TestSubagentStopProcessing:
 
     def test_handle_subagent_stop_agent_type_inference(self):
         """Test inference of agent type from various sources."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 

@@ -18,25 +18,13 @@ Components:
 - Unified service implementations for major service categories
 """
 
-from .interfaces import (
-    IAnalyzerService,
-    IConfigurationService,
-    IDeploymentService,
-    ServiceCapability,
-    ServiceMetadata,
-)
-from .migration import (
-    FeatureFlag,
-    MigrationStatus,
-    ServiceMapper,
-    create_compatibility_wrapper,
-)
-from .strategies import (
-    AnalyzerStrategy,
-    ConfigStrategy,
-    DeploymentStrategy,
-    StrategyRegistry,
-)
+from .interfaces import (IAnalyzerService, IConfigurationService,
+                         IDeploymentService, ServiceCapability,
+                         ServiceMetadata)
+from .migration import (FeatureFlag, MigrationStatus, ServiceMapper,
+                        create_compatibility_wrapper)
+from .strategies import (AnalyzerStrategy, ConfigStrategy, DeploymentStrategy,
+                         StrategyRegistry)
 from .unified_analyzer import UnifiedAnalyzer
 from .unified_config import UnifiedConfigManager
 from .unified_deployment import UnifiedDeploymentService

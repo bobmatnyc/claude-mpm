@@ -15,12 +15,8 @@ from typing import List, Optional
 import pytest
 
 from claude_mpm.services.core.service_container import (
-    CircularDependencyError,
-    ServiceContainer,
-    ServiceLifetime,
-    ServiceNotFoundError,
-    get_global_container,
-)
+    CircularDependencyError, ServiceContainer, ServiceLifetime,
+    ServiceNotFoundError, get_global_container)
 
 
 # Test interfaces and implementations
@@ -450,7 +446,8 @@ class TestServiceContainer:
 
     def test_invalid_descriptor(self):
         """Test that invalid descriptors raise errors."""
-        from claude_mpm.services.core.service_container import ServiceDescriptor
+        from claude_mpm.services.core.service_container import \
+            ServiceDescriptor
 
         # Should raise ValueError without implementation, instance, or factory
         with pytest.raises(ValueError) as exc_info:

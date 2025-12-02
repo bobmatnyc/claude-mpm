@@ -21,38 +21,16 @@ import psutil
 import psutil.tests
 from psutil import FREEBSD, NETBSD, POSIX
 from psutil._common import open_binary, open_text, supports_ipv6
-from psutil.tests import (
-    CI_TESTING,
-    COVERAGE,
-    HAS_NET_CONNECTIONS_UNIX,
-    HERE,
-    PYTHON_EXE,
-    PYTHON_EXE_ENV,
-    PsutilTestCase,
-    TestMemoryLeak,
-    bind_socket,
-    bind_unix_socket,
-    call_until,
-    chdir,
-    create_sockets,
-    fake_pytest,
-    filter_proc_net_connections,
-    get_free_port,
-    is_namedtuple,
-    process_namespace,
-    pytest,
-    reap_children,
-    retry,
-    retry_on_failure,
-    safe_mkdir,
-    safe_rmpath,
-    system_namespace,
-    tcp_socketpair,
-    terminate,
-    unix_socketpair,
-    wait_for_file,
-    wait_for_pid,
-)
+from psutil.tests import (CI_TESTING, COVERAGE, HAS_NET_CONNECTIONS_UNIX, HERE,
+                          PYTHON_EXE, PYTHON_EXE_ENV, PsutilTestCase,
+                          TestMemoryLeak, bind_socket, bind_unix_socket,
+                          call_until, chdir, create_sockets, fake_pytest,
+                          filter_proc_net_connections, get_free_port,
+                          is_namedtuple, process_namespace, pytest,
+                          reap_children, retry, retry_on_failure, safe_mkdir,
+                          safe_rmpath, system_namespace, tcp_socketpair,
+                          terminate, unix_socketpair, wait_for_file,
+                          wait_for_pid)
 
 # ===================================================================
 # --- Unit tests for test utilities.

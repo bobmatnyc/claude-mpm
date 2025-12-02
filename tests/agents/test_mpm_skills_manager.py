@@ -36,9 +36,9 @@ class TestAgentDefinitionStructure:
 
     def test_json_file_exists(self):
         """Verify JSON file exists."""
-        assert SKILLS_MANAGER_JSON.exists(), (
-            f"Agent JSON not found: {SKILLS_MANAGER_JSON}"
-        )
+        assert (
+            SKILLS_MANAGER_JSON.exists()
+        ), f"Agent JSON not found: {SKILLS_MANAGER_JSON}"
 
     def test_json_is_valid(self):
         """Verify JSON is parseable."""
@@ -94,9 +94,9 @@ class TestAgentDefinitionStructure:
         version = agent["version"]
         parts = version.split(".")
         assert len(parts) == 3, f"Version must be X.Y.Z format: {version}"
-        assert all(p.isdigit() for p in parts), (
-            f"Version parts must be numeric: {version}"
-        )
+        assert all(
+            p.isdigit() for p in parts
+        ), f"Version parts must be numeric: {version}"
 
     def test_tags_present_and_valid(self):
         """Verify tags are present and relevant."""
@@ -115,9 +115,9 @@ class TestAgentDefinitionStructure:
             "manifest",
             "git-integration",
         }
-        assert set(tags) == expected_tags, (
-            f"Tags mismatch: {set(tags)} vs {expected_tags}"
-        )
+        assert (
+            set(tags) == expected_tags
+        ), f"Tags mismatch: {set(tags)} vs {expected_tags}"
 
     def test_dependencies_structure(self):
         """Verify dependencies are properly structured."""
@@ -183,9 +183,9 @@ class TestMarkdownInstructionStructure:
 
     def test_markdown_file_exists(self):
         """Verify markdown file exists."""
-        assert SKILLS_MANAGER_MD.exists(), (
-            f"Instruction file not found: {SKILLS_MANAGER_MD}"
-        )
+        assert (
+            SKILLS_MANAGER_MD.exists()
+        ), f"Instruction file not found: {SKILLS_MANAGER_MD}"
 
     def test_yaml_frontmatter_present(self):
         """Verify YAML frontmatter exists and is valid."""
@@ -875,9 +875,9 @@ class TestContentQuality:
         with open(SKILLS_MANAGER_MD) as f:
             lines = f.readlines()
 
-        assert len(lines) > 800, (
-            f"Documentation should be comprehensive (found {len(lines)} lines)"
-        )
+        assert (
+            len(lines) > 800
+        ), f"Documentation should be comprehensive (found {len(lines)} lines)"
 
 
 # ============================================================================

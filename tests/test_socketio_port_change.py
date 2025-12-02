@@ -16,22 +16,22 @@ def test_port_configuration():
     print("=" * 50)
 
     # Test DEFAULT_SOCKETIO_PORT
-    assert NetworkConfig.DEFAULT_SOCKETIO_PORT == 8765, (
-        f"DEFAULT_SOCKETIO_PORT should be 8765, got {NetworkConfig.DEFAULT_SOCKETIO_PORT}"
-    )
+    assert (
+        NetworkConfig.DEFAULT_SOCKETIO_PORT == 8765
+    ), f"DEFAULT_SOCKETIO_PORT should be 8765, got {NetworkConfig.DEFAULT_SOCKETIO_PORT}"
     print(f"✓ DEFAULT_SOCKETIO_PORT: {NetworkConfig.DEFAULT_SOCKETIO_PORT}")
 
     # Test DEFAULT_DASHBOARD_PORT
-    assert NetworkConfig.DEFAULT_DASHBOARD_PORT == 8765, (
-        f"DEFAULT_DASHBOARD_PORT should be 8765, got {NetworkConfig.DEFAULT_DASHBOARD_PORT}"
-    )
+    assert (
+        NetworkConfig.DEFAULT_DASHBOARD_PORT == 8765
+    ), f"DEFAULT_DASHBOARD_PORT should be 8765, got {NetworkConfig.DEFAULT_DASHBOARD_PORT}"
     print(f"✓ DEFAULT_DASHBOARD_PORT: {NetworkConfig.DEFAULT_DASHBOARD_PORT}")
 
     # Test SOCKETIO_PORT_RANGE
     expected_range = (8765, 8785)
-    assert expected_range == NetworkConfig.SOCKETIO_PORT_RANGE, (
-        f"SOCKETIO_PORT_RANGE should be {expected_range}, got {NetworkConfig.SOCKETIO_PORT_RANGE}"
-    )
+    assert (
+        expected_range == NetworkConfig.SOCKETIO_PORT_RANGE
+    ), f"SOCKETIO_PORT_RANGE should be {expected_range}, got {NetworkConfig.SOCKETIO_PORT_RANGE}"
     print(
         f"✓ SOCKETIO_PORT_RANGE: {NetworkConfig.SOCKETIO_PORT_RANGE[0]}-{NetworkConfig.SOCKETIO_PORT_RANGE[1]}"
     )

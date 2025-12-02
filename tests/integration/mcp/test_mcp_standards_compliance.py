@@ -231,7 +231,8 @@ def test_mcp_imports():
         from mcp.server import Server
         from mcp.types import TextContent, Tool
 
-        from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
+        from claude_mpm.services.mcp_gateway.server.mcp_gateway import \
+            MCPGateway
 
         print("   ✅ All MCP imports successful")
 

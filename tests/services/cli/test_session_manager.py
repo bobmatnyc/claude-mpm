@@ -12,13 +12,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from claude_mpm.services.cli.session_manager import (
-    ISessionManager,
-    ManagedSession,
-    SessionInfo,
-    SessionManager,
-    SessionValidation,
-)
+from claude_mpm.services.cli.session_manager import (ISessionManager,
+                                                     ManagedSession,
+                                                     SessionInfo,
+                                                     SessionManager,
+                                                     SessionValidation)
 
 
 class TestSessionInfo(unittest.TestCase):

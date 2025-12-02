@@ -20,7 +20,8 @@ DESIGN DECISIONS:
 import logging
 from typing import Any, Dict, Optional
 
-from claude_mpm.hooks.base_hook import HookContext, HookResult, PreDelegationHook
+from claude_mpm.hooks.base_hook import (HookContext, HookResult,
+                                        PreDelegationHook)
 from claude_mpm.hooks.kuzu_memory_hook import get_kuzu_memory_hook
 
 logger = logging.getLogger(__name__)

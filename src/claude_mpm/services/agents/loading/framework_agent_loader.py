@@ -15,10 +15,7 @@ markdown-based agent profiles alongside JSON-based templates.
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from claude_mpm.agents.agent_loader import (
-    AgentTier,
-    list_agents_by_tier,
-)
+from claude_mpm.agents.agent_loader import AgentTier, list_agents_by_tier
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 

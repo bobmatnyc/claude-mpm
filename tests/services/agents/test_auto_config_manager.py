@@ -20,31 +20,26 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 import yaml
 
-from claude_mpm.services.agents.auto_config_manager import AutoConfigManagerService
-from claude_mpm.services.agents.observers import (
-    CompositeObserver,
-    ConsoleProgressObserver,
-    IDeploymentObserver,
-    NullObserver,
-)
-from claude_mpm.services.core.models.agent_config import (
-    AgentCapabilities,
-    AgentRecommendation,
-    AgentSpecialization,
-    ConfigurationPreview,
-    ConfigurationResult,
-    ConfigurationStatus,
-    ValidationIssue,
-    ValidationResult,
-    ValidationSeverity,
-)
-from claude_mpm.services.core.models.toolchain import (
-    ConfidenceLevel,
-    DeploymentTarget,
-    Framework,
-    LanguageDetection,
-    ToolchainAnalysis,
-)
+from claude_mpm.services.agents.auto_config_manager import \
+    AutoConfigManagerService
+from claude_mpm.services.agents.observers import (CompositeObserver,
+                                                  ConsoleProgressObserver,
+                                                  IDeploymentObserver,
+                                                  NullObserver)
+from claude_mpm.services.core.models.agent_config import (AgentCapabilities,
+                                                          AgentRecommendation,
+                                                          AgentSpecialization,
+                                                          ConfigurationPreview,
+                                                          ConfigurationResult,
+                                                          ConfigurationStatus,
+                                                          ValidationIssue,
+                                                          ValidationResult,
+                                                          ValidationSeverity)
+from claude_mpm.services.core.models.toolchain import (ConfidenceLevel,
+                                                       DeploymentTarget,
+                                                       Framework,
+                                                       LanguageDetection,
+                                                       ToolchainAnalysis)
 
 
 @pytest.fixture

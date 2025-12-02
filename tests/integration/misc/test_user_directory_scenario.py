@@ -73,9 +73,9 @@ def test_user_directory_scenario():
         runner = ClaudeRunner(enable_tickets=False, log_level="OFF")
 
         # Verify deployment service is using correct directory
-        assert runner.deployment_service.working_directory == user_project, (
-            f"Expected deployment service to use {user_project}, got {runner.deployment_service.working_directory}"
-        )
+        assert (
+            runner.deployment_service.working_directory == user_project
+        ), f"Expected deployment service to use {user_project}, got {runner.deployment_service.working_directory}"
         print(
             f"✓ ClaudeRunner deployment service using user directory: {runner.deployment_service.working_directory}"
         )
@@ -94,9 +94,9 @@ def test_user_directory_scenario():
         print(f"  Framework .claude/agents/: {framework_claude_agents.exists()}")
 
         # Verify agents are in user directory
-        assert user_claude_agents.exists(), (
-            f"Agents should be deployed to {user_claude_agents}"
-        )
+        assert (
+            user_claude_agents.exists()
+        ), f"Agents should be deployed to {user_claude_agents}"
 
         system_agents = list(user_claude_agents.glob("*.md"))
         print(f"\n✓ Found {len(system_agents)} system agents in user directory:")
@@ -110,9 +110,9 @@ def test_user_directory_scenario():
 
         # Check for our custom test agent
         test_agent_md = user_claude_agents / "test_custom_agent.md"
-        assert test_agent_md.exists(), (
-            f"Test agent should be deployed to {test_agent_md}"
-        )
+        assert (
+            test_agent_md.exists()
+        ), f"Test agent should be deployed to {test_agent_md}"
         print(f"✓ Test project agent deployed: {test_agent_md}")
 
         # Verify content contains project marker
@@ -127,9 +127,9 @@ def test_user_directory_scenario():
             list(framework_claude_agents.glob("*.md"))
             # Check that test agent is NOT in framework directory
             framework_test_agent = framework_claude_agents / "test_custom_agent.md"
-            assert not framework_test_agent.exists(), (
-                f"Test agent should NOT be in framework directory: {framework_test_agent}"
-            )
+            assert (
+                not framework_test_agent.exists()
+            ), f"Test agent should NOT be in framework directory: {framework_test_agent}"
             print("✓ Framework directory not contaminated with user agents")
         else:
             print("✓ Framework .claude/agents/ directory not created (good)")

@@ -8,35 +8,17 @@ This package provides modular services for the Version Control Agent including:
 - Conflict resolution
 """
 
-from .branch_strategy import (
-    BranchLifecycleRule,
-    BranchNamingRule,
-    BranchStrategyManager,
-    BranchStrategyType,
-    BranchType,
-    BranchWorkflow,
-)
-from .conflict_resolution import (
-    ConflictAnalysis,
-    ConflictResolution,
-    ConflictResolutionManager,
-    ConflictType,
-    FileConflict,
-    ResolutionStrategy,
-)
-from .git_operations import (
-    GitBranchInfo,
-    GitOperationError,
-    GitOperationResult,
-    GitOperationsManager,
-)
-from .semantic_versioning import (
-    ChangeAnalysis,
-    SemanticVersion,
-    SemanticVersionManager,
-    VersionBumpType,
-    VersionMetadata,
-)
+from .branch_strategy import (BranchLifecycleRule, BranchNamingRule,
+                              BranchStrategyManager, BranchStrategyType,
+                              BranchType, BranchWorkflow)
+from .conflict_resolution import (ConflictAnalysis, ConflictResolution,
+                                  ConflictResolutionManager, ConflictType,
+                                  FileConflict, ResolutionStrategy)
+from .git_operations import (GitBranchInfo, GitOperationError,
+                             GitOperationResult, GitOperationsManager)
+from .semantic_versioning import (ChangeAnalysis, SemanticVersion,
+                                  SemanticVersionManager, VersionBumpType,
+                                  VersionMetadata)
 
 __all__ = [
     "BranchLifecycleRule",

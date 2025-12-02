@@ -6,9 +6,8 @@ This demonstrates the new content-based API for caching assembled instructions.
 import tempfile
 from pathlib import Path
 
-from claude_mpm.services.instructions.instruction_cache_service import (
-    InstructionCacheService,
-)
+from claude_mpm.services.instructions.instruction_cache_service import \
+    InstructionCacheService
 
 
 def test_cache_assembled_instruction_workflow():

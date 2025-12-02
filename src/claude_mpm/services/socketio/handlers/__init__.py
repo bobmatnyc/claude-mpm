@@ -7,7 +7,6 @@ and maintainability.
 """
 
 from .base import BaseEventHandler
-
 # DISABLED: File Tree interface removed from dashboard
 # from .code_analysis import CodeAnalysisEventHandler
 from .connection import ConnectionEventHandler

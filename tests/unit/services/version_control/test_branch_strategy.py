@@ -20,13 +20,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from claude_mpm.services.version_control.branch_strategy import (
-    BranchLifecycleRule,
-    BranchNamingRule,
-    BranchStrategyManager,
-    BranchStrategyType,
-    BranchType,
-    BranchWorkflow,
-)
+    BranchLifecycleRule, BranchNamingRule, BranchStrategyManager,
+    BranchStrategyType, BranchType, BranchWorkflow)
 
 # ============================================================================
 # TEST FIXTURES

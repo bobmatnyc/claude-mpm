@@ -4,7 +4,8 @@ from copy import copy
 from random import randint
 from time import time
 
-from smmap.mman import SlidingWindowMapManager, StaticWindowMapManager, WindowCursor
+from smmap.mman import (SlidingWindowMapManager, StaticWindowMapManager,
+                        WindowCursor)
 from smmap.util import align_to_mmap
 
 from .lib import FileCreator, TestBase

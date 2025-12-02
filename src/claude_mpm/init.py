@@ -143,9 +143,8 @@ class ProjectInitializer:
 
             # Also ensure MCP directories are in main project .gitignore
             try:
-                from claude_mpm.services.project.project_organizer import (
-                    ProjectOrganizer,
-                )
+                from claude_mpm.services.project.project_organizer import \
+                    ProjectOrganizer
 
                 # Check if we're in a git repository
                 if (project_root / ".git").exists():

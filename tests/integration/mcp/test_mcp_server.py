@@ -24,10 +24,7 @@ from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 from claude_mpm.services.mcp_gateway.tools.base_adapter import (
-    CalculatorToolAdapter,
-    EchoToolAdapter,
-    SystemInfoToolAdapter,
-)
+    CalculatorToolAdapter, EchoToolAdapter, SystemInfoToolAdapter)
 
 
 @pytest.mark.asyncio
@@ -167,13 +164,9 @@ async def test_service_registry():
     print("\n=== Testing Service Registry ===")
 
     from claude_mpm.services.mcp_gateway.core.interfaces import (
-        IMCPGateway,
-        IMCPToolRegistry,
-    )
+        IMCPGateway, IMCPToolRegistry)
     from claude_mpm.services.mcp_gateway.registry.service_registry import (
-        get_service_registry,
-        register_mcp_services,
-    )
+        get_service_registry, register_mcp_services)
 
     # Get the global registry
     registry = get_service_registry()

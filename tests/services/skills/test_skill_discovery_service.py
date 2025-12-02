@@ -14,9 +14,7 @@ from pathlib import Path
 import pytest
 
 from src.claude_mpm.services.skills.skill_discovery_service import (
-    SkillDiscoveryService,
-    SkillMetadata,
-)
+    SkillDiscoveryService, SkillMetadata)
 
 
 class TestSkillDiscoveryService:

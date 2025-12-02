@@ -9,15 +9,10 @@ import tempfile
 import zlib
 from io import BytesIO
 
-from gitdb import (
-    DecompressMemMapReader,
-    FDCompressedSha1Writer,
-    IStream,
-    LooseObjectDB,
-    MemoryDB,
-    Sha1Writer,
-)
-from gitdb.test.lib import DummyStream, TestBase, fixture_path, make_bytes, make_object
+from gitdb import (DecompressMemMapReader, FDCompressedSha1Writer, IStream,
+                   LooseObjectDB, MemoryDB, Sha1Writer)
+from gitdb.test.lib import (DummyStream, TestBase, fixture_path, make_bytes,
+                            make_object)
 from gitdb.typ import str_blob_type
 from gitdb.util import hex_to_bin
 

@@ -21,11 +21,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pytest
 
 from claude_mpm.services.version_control.git_operations import (
-    GitBranchInfo,
-    GitOperationError,
-    GitOperationResult,
-    GitOperationsManager,
-)
+    GitBranchInfo, GitOperationError, GitOperationResult, GitOperationsManager)
 
 # ============================================================================
 # TEST FIXTURES

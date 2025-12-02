@@ -15,12 +15,10 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    IMCPToolAdapter,
-    MCPToolDefinition,
-    MCPToolInvocation,
-    MCPToolResult,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPToolAdapter,
+                                                             MCPToolDefinition,
+                                                             MCPToolInvocation,
+                                                             MCPToolResult)
 from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 
 

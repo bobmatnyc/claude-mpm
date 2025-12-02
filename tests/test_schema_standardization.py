@@ -188,9 +188,9 @@ class TestSchemaStandardization:
                 agent = json.load(f)
 
             # Verify clean ID (no _agent suffix)
-            assert not agent["id"].endswith("_agent"), (
-                f"Agent {agent_file} has _agent suffix"
-            )
+            assert not agent["id"].endswith(
+                "_agent"
+            ), f"Agent {agent_file} has _agent suffix"
 
             # Verify all required fields
             required = [

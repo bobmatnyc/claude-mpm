@@ -386,7 +386,9 @@ class TestVersionService:
             "claude_mpm.skills.registry.get_registry"
         ) as mock_skill_registry, patch.object(
             service, "get_base_version", return_value="4.16.3"
-        ), patch.object(service, "get_build_number", return_value=481):
+        ), patch.object(
+            service, "get_build_number", return_value=481
+        ):
             mock_agent_registry.return_value.list_agents.return_value = [mock_agent]
             mock_skill_registry.return_value.list_skills.return_value = [mock_skill]
 
@@ -421,7 +423,9 @@ class TestVersionService:
             "claude_mpm.skills.registry.get_registry"
         ) as mock_skill_registry, patch.object(
             service, "get_base_version", return_value="4.16.3"
-        ), patch.object(service, "get_build_number", return_value=481):
+        ), patch.object(
+            service, "get_build_number", return_value=481
+        ):
             mock_agent_registry.return_value.list_agents.return_value = agents
             mock_skill_registry.return_value.list_skills.return_value = skills
 

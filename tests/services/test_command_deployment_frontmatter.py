@@ -13,7 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.command_deployment_service import CommandDeploymentService
+from claude_mpm.services.command_deployment_service import \
+    CommandDeploymentService
 
 
 class TestFrontmatterParsing:

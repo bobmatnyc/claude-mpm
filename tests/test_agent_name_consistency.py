@@ -16,9 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from datetime import datetime, timezone
 
-from claude_mpm.core.agent_name_normalizer import (
-    AgentNameNormalizer,
-)
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
 
 def print_section(title):

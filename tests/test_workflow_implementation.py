@@ -8,13 +8,10 @@ sys.path.insert(0, "/Users/masa/Projects/managed/ai-trackdown-pytools/src")
 from datetime import datetime, timezone
 
 from ai_trackdown_pytools.core.models import IssueModel, TaskModel
-from ai_trackdown_pytools.core.workflow import (
-    ResolutionType,
-    UnifiedStatus,
-    is_terminal_status,
-    requires_resolution,
-    workflow_state_machine,
-)
+from ai_trackdown_pytools.core.workflow import (ResolutionType, UnifiedStatus,
+                                                is_terminal_status,
+                                                requires_resolution,
+                                                workflow_state_machine)
 
 
 def test_state_transitions():
@@ -116,10 +113,8 @@ def test_backward_compatibility():
 
     try:
         from ai_trackdown_pytools.core.compatibility import (
-            convert_to_legacy_status,
-            convert_to_unified_status,
-            is_compatible_status,
-        )
+            convert_to_legacy_status, convert_to_unified_status,
+            is_compatible_status)
         from ai_trackdown_pytools.core.models import TaskStatus
 
         # Test conversion from legacy enum

@@ -6,15 +6,9 @@ from typing import Optional
 
 # Core imports that don't cause circular dependencies
 from claude_mpm.core.container import get_container
-from claude_mpm.core.interfaces import (
-    AgentDeploymentInterface,
-)
-from claude_mpm.core.logging_config import (
-    get_logger,
-)
-from claude_mpm.services.core.interfaces import (
-    RunnerConfigurationInterface,
-)
+from claude_mpm.core.interfaces import AgentDeploymentInterface
+from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.core.interfaces import RunnerConfigurationInterface
 
 # Type checking imports to avoid circular dependencies
 
@@ -60,9 +54,8 @@ class ClaudeRunner:
         # Initialize configuration service
         container = get_container()
         if not container.is_registered(RunnerConfigurationInterface):
-            from claude_mpm.services.runner_configuration_service import (
-                RunnerConfigurationService,
-            )
+            from claude_mpm.services.runner_configuration_service import \
+                RunnerConfigurationService
 
             container.register_singleton(
                 RunnerConfigurationInterface, RunnerConfigurationService
@@ -435,7 +428,8 @@ class ClaudeRunner:
                 base_agent_path = self.deployment_service.base_agent_path
 
             # Lazy import to avoid circular dependencies
-            from claude_mpm.services.agents.deployment import AgentDeploymentService
+            from claude_mpm.services.agents.deployment import \
+                AgentDeploymentService
 
             # Create a single deployment service instance for all agents
             project_deployment = AgentDeploymentService(

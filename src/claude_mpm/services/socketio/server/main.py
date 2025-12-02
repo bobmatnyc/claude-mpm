@@ -30,9 +30,7 @@ except ImportError:
     aiohttp = None
     web = None
 
-from ....core.constants import (
-    SystemLimits,
-)
+from ....core.constants import SystemLimits
 from ....core.logging_config import get_logger
 from ...core.interfaces.communication import SocketIOServiceInterface
 from ..handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler

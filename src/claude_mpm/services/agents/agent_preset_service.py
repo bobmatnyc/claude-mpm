@@ -15,12 +15,8 @@ Trade-offs:
 
 from typing import Any, Dict, List
 
-from ...config.agent_presets import (
-    PRESETS,
-    get_preset_agents,
-    get_preset_info,
-    get_preset_names,
-)
+from ...config.agent_presets import (PRESETS, get_preset_agents,
+                                     get_preset_info, get_preset_names)
 from ...core.logging_config import get_logger
 from .git_source_manager import GitSourceManager
 

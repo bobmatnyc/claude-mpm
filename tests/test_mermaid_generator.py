@@ -8,10 +8,7 @@ Comprehensive test suite for the Mermaid diagram generation service.
 import pytest
 
 from claude_mpm.services.visualization.mermaid_generator import (
-    DiagramConfig,
-    DiagramType,
-    MermaidGeneratorService,
-)
+    DiagramConfig, DiagramType, MermaidGeneratorService)
 
 
 class TestMermaidGeneratorService:
@@ -260,9 +257,9 @@ class TestMermaidGeneratorService:
 
         for input_id, expected in test_cases:
             result = service._sanitize_node_id(input_id)
-            assert result == expected, (
-                f"Failed for '{input_id}': got '{result}', expected '{expected}'"
-            )
+            assert (
+                result == expected
+            ), f"Failed for '{input_id}': got '{result}', expected '{expected}'"
 
     def test_label_escaping(self, service):
         """Test label escaping for special characters."""
@@ -281,9 +278,9 @@ class TestMermaidGeneratorService:
 
         for input_label, expected in test_cases:
             result = service._escape_label(input_label)
-            assert result == expected, (
-                f"Failed for '{input_label}': got '{result}', expected '{expected}'"
-            )
+            assert (
+                result == expected
+            ), f"Failed for '{input_label}': got '{result}', expected '{expected}'"
 
     def test_module_name_extraction(self, service):
         """Test module name extraction from paths."""
@@ -300,9 +297,9 @@ class TestMermaidGeneratorService:
 
         for input_path, expected in test_cases:
             result = service._extract_module_name(input_path)
-            assert result == expected, (
-                f"Failed for '{input_path}': got '{result}', expected '{expected}'"
-            )
+            assert (
+                result == expected
+            ), f"Failed for '{input_path}': got '{result}', expected '{expected}'"
 
     def test_external_module_detection(self, service):
         """Test detection of external modules."""
@@ -343,9 +340,9 @@ class TestMermaidGeneratorService:
             assert service._is_external_module(module), f"'{module}' should be external"
 
         for module in internal_modules:
-            assert not service._is_external_module(module), (
-                f"'{module}' should be internal"
-            )
+            assert not service._is_external_module(
+                module
+            ), f"'{module}' should be internal"
 
     def test_mermaid_syntax_validation(self, service):
         """Test Mermaid syntax validation."""
@@ -378,9 +375,9 @@ class TestMermaidGeneratorService:
         for diagram, expected_error in invalid_diagrams:
             is_valid, error = service.validate_mermaid_syntax(diagram)
             assert not is_valid, "Diagram should be invalid"
-            assert expected_error in error, (
-                f"Expected '{expected_error}' in error message, got '{error}'"
-            )
+            assert (
+                expected_error in error
+            ), f"Expected '{expected_error}' in error message, got '{error}'"
 
     def test_diagram_with_metadata(self, service):
         """Test formatting diagram with metadata."""
@@ -435,9 +432,9 @@ class TestMermaidGeneratorService:
 
         # Different identifiers should have unique IDs
         unique_ids = list(ids_map.values())
-        assert len(unique_ids) == len(set(unique_ids)), (
-            f"Different identifiers should have unique IDs: {ids_map}"
-        )
+        assert len(unique_ids) == len(
+            set(unique_ids)
+        ), f"Different identifiers should have unique IDs: {ids_map}"
 
     def test_diagram_config_defaults(self):
         """Test DiagramConfig default values."""
@@ -485,9 +482,9 @@ class TestMermaidGeneratorService:
 
         for input_name, expected in test_cases:
             result = service._sanitize_class_name(input_name)
-            assert result == expected, (
-                f"Failed for '{input_name}': got '{result}', expected '{expected}'"
-            )
+            assert (
+                result == expected
+            ), f"Failed for '{input_name}': got '{result}', expected '{expected}'"
 
     def test_service_not_initialized(self):
         """Test that service raises error when not initialized."""
@@ -508,8 +505,7 @@ class TestMermaidGeneratorService:
                 "A": {
                     "bases": ["B", "C"],
                     "methods": [
-                        {"name": f"method_{i}"}
-                        for i in range(20)  # Many methods
+                        {"name": f"method_{i}"} for i in range(20)  # Many methods
                     ],
                     "attributes": [
                         {"name": f"attr_{i}", "type": "Any"}

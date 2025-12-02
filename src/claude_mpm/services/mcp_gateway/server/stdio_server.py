@@ -573,9 +573,8 @@ class SimpleMCPServer:
 
                     if self.unified_ticket_tool:
                         # Handle unified ticket tool invocations
-                        from claude_mpm.services.mcp_gateway.core.interfaces import (
-                            MCPToolInvocation,
-                        )
+                        from claude_mpm.services.mcp_gateway.core.interfaces import \
+                            MCPToolInvocation
 
                         invocation = MCPToolInvocation(
                             tool_name=name,

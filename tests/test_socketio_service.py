@@ -35,9 +35,7 @@ class TestSocketIOServiceSingleton:
         with patch("claude_mpm.services.socketio_server.SocketIOServer") as mock_server:
             # Reset global state
             import claude_mpm.services.socketio_server
-            from claude_mpm.services.socketio_server import (
-                get_socketio_server,
-            )
+            from claude_mpm.services.socketio_server import get_socketio_server
 
             claude_mpm.services.socketio_server._socketio_server = None
 
@@ -71,7 +69,8 @@ class TestSocketIOServiceSingleton:
             ) as mock_proxy:
                 # Reset global state
                 import claude_mpm.services.socketio_server
-                from claude_mpm.services.socketio_server import get_socketio_server
+                from claude_mpm.services.socketio_server import \
+                    get_socketio_server
 
                 claude_mpm.services.socketio_server._socketio_server = None
 
@@ -220,9 +219,8 @@ class TestEventBroadcasting:
         server.core.loop = asyncio.new_event_loop()
 
         # Initialize broadcaster manually for testing
-        from claude_mpm.services.socketio.server.broadcaster import (
-            SocketIOEventBroadcaster,
-        )
+        from claude_mpm.services.socketio.server.broadcaster import \
+            SocketIOEventBroadcaster
 
         server.broadcaster = SocketIOEventBroadcaster(
             sio=server.core.sio,
@@ -363,9 +361,8 @@ class TestConnectionPooling:
         and managing them efficiently. The manager must track connections
         and their health status.
         """
-        from claude_mpm.services.socketio.server.connection_manager import (
-            ConnectionManager,
-        )
+        from claude_mpm.services.socketio.server.connection_manager import \
+            ConnectionManager
 
         manager = ConnectionManager(max_buffer_size=100, event_ttl=300)
 
@@ -383,9 +380,8 @@ class TestConnectionPooling:
         Health monitoring ensures these are detected and cleaned up to
         prevent resource leaks.
         """
-        from claude_mpm.services.socketio.server.connection_manager import (
-            ConnectionManager,
-        )
+        from claude_mpm.services.socketio.server.connection_manager import \
+            ConnectionManager
 
         manager = ConnectionManager(max_buffer_size=100, event_ttl=60)
 
@@ -417,9 +413,8 @@ class TestConnectionPooling:
         WHY: Too many connections can overwhelm the server. The pool
         should enforce limits and reject new connections when at capacity.
         """
-        from claude_mpm.services.socketio.server.connection_manager import (
-            ConnectionManager,
-        )
+        from claude_mpm.services.socketio.server.connection_manager import \
+            ConnectionManager
 
         manager = ConnectionManager(max_buffer_size=100, event_ttl=300)
         manager.max_connections = 5  # Set a low limit for testing
@@ -490,9 +485,8 @@ class TestErrorHandling:
         mechanism ensures events are eventually delivered when the connection
         recovers.
         """
-        from claude_mpm.services.socketio.server.broadcaster import (
-            SocketIOEventBroadcaster,
-        )
+        from claude_mpm.services.socketio.server.broadcaster import \
+            SocketIOEventBroadcaster
 
         # Create broadcaster with mock sio
         mock_sio = AsyncMock()

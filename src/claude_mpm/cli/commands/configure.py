@@ -32,10 +32,8 @@ from .configure_navigation import ConfigNavigation
 from .configure_persistence import ConfigPersistence
 from .configure_startup_manager import StartupManager
 from .configure_template_editor import TemplateEditor
-from .configure_validators import (
-    parse_id_selection,
-    validate_args as validate_configure_args,
-)
+from .configure_validators import parse_id_selection
+from .configure_validators import validate_args as validate_configure_args
 
 
 class ConfigureCommand(BaseCommand):
@@ -284,58 +282,89 @@ class ConfigureCommand(BaseCommand):
         return self.navigation.show_main_menu()
 
     def _manage_agents(self) -> None:
-        """Agent management interface."""
+        """Enhanced agent management with remote agent discovery and deployment."""
         while True:
             self.console.clear()
-            self._display_header()
+            self.navigation.display_header()
+            self.console.print("\n[bold blue]═══ Agent Management ═══[/bold blue]\n")
 
-            # Display available agents
-            agents = self.agent_manager.discover_agents()
-            self._display_agents_table(agents)
+            # Step 1: Show configured sources
+            self.console.print("[bold cyan]═══ Agent Sources ═══[/bold cyan]\n")
 
-            # Show agent menu
+            sources = self._get_configured_sources()
+            if sources:
+                from rich.table import Table
+
+                sources_table = Table(show_header=True, header_style="bold cyan")
+                sources_table.add_column("Source", style="cyan", width=40)
+                sources_table.add_column("Status", style="green", width=15)
+                sources_table.add_column("Agents", style="yellow", width=10)
+
+                for source in sources:
+                    status = "✓ Active" if source.get("enabled", True) else "Disabled"
+                    agent_count = source.get("agent_count", "?")
+                    sources_table.add_row(
+                        source["identifier"], status, str(agent_count)
+                    )
+
+                self.console.print(sources_table)
+            else:
+                self.console.print("[yellow]No agent sources configured[/yellow]")
+                self.console.print(
+                    "[dim]Default source 'bobmatnyc/claude-mpm-agents' will be used[/dim]\n"
+                )
+
+            # Step 2: Discover and display available agents
+            self.console.print("\n[bold cyan]═══ Available Agents ═══[/bold cyan]\n")
+
+            try:
+                # Discover agents (includes both local and remote)
+                agents = self.agent_manager.discover_agents(include_remote=True)
+
+                if not agents:
+                    self.console.print("[yellow]No agents found[/yellow]")
+                    self.console.print(
+                        "[dim]Configure sources with 'claude-mpm agent-source add'[/dim]\n"
+                    )
+                else:
+                    # Display agents in a table
+                    self._display_agents_with_source_info(agents)
+
+            except Exception as e:
+                self.console.print(f"[red]Error discovering agents: {e}[/red]")
+                self.logger.error(f"Agent discovery failed: {e}", exc_info=True)
+
+            # Step 3: Menu options
             self.console.print("\n[bold]Agent Management Options:[/bold]")
+            self.console.print("  [s] Manage sources (add/remove repositories)")
+            self.console.print("  [d] Deploy agents (individual selection)")
+            self.console.print("  [p] Deploy preset (predefined sets)")
+            self.console.print("  [r] Remove agents")
+            self.console.print("  [v] View agent details")
+            self.console.print("  [t] Toggle agents (legacy enable/disable)")
+            self.console.print("  [b] Back to main menu")
 
-            # Use Text objects to properly display shortcuts with styling
-            text_t = Text("  ")
-            text_t.append("[t]", style="bold blue")
-            text_t.append(" Toggle agents (enable/disable multiple)")
-            self.console.print(text_t)
-
-            text_c = Text("  ")
-            text_c.append("[c]", style="bold blue")
-            text_c.append(" Customize agent template")
-            self.console.print(text_c)
-
-            text_v = Text("  ")
-            text_v.append("[v]", style="bold blue")
-            text_v.append(" View agent details")
-            self.console.print(text_v)
-
-            text_r = Text("  ")
-            text_r.append("[r]", style="bold blue")
-            text_r.append(" Reset agent to defaults")
-            self.console.print(text_r)
-
-            text_b = Text("  ")
-            text_b.append("[b]", style="bold blue")
-            text_b.append(" Back to main menu")
-            self.console.print(text_b)
-
-            self.console.print()
-
-            choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
+            choice = Prompt.ask("\nSelect option", default="b")
 
             if choice == "b":
                 break
-            if choice == "t":
-                self._toggle_agents_interactive(agents)
-            elif choice == "c":
-                self._customize_agent_template(agents)
-            elif choice == "v":
-                self._view_agent_details(agents)
+            if choice == "s":
+                self._manage_sources()
+            elif choice == "d":
+                agents_var = agents if "agents" in locals() else []
+                self._deploy_agents_individual(agents_var)
+            elif choice == "p":
+                self._deploy_agents_preset()
             elif choice == "r":
-                self._reset_agent_defaults(agents)
+                agents_var = agents if "agents" in locals() else []
+                self._remove_agents(agents_var)
+            elif choice == "v":
+                agents_var = agents if "agents" in locals() else []
+                self._view_agent_details_enhanced(agents_var)
+            elif choice == "t":
+                # Legacy toggle functionality for backward compatibility
+                agents_var = agents if "agents" in locals() else []
+                self._toggle_agents_interactive(agents_var)
             else:
                 self.console.print("[red]Invalid choice.[/red]")
                 Prompt.ask("Press Enter to continue")
@@ -808,6 +837,392 @@ class ConfigureCommand(BaseCommand):
             return CommandResult.success_result("Startup configuration cancelled")
         except Exception as e:
             return CommandResult.error_result(f"Startup configuration failed: {e}")
+
+    # ========================================================================
+    # Enhanced Agent Management Methods (Remote Agent Discovery Integration)
+    # ========================================================================
+
+    def _get_configured_sources(self) -> List[Dict]:
+        """Get list of configured agent sources with agent counts."""
+        try:
+            from claude_mpm.config.agent_sources import \
+                AgentSourceConfiguration
+
+            config = AgentSourceConfiguration.load()
+
+            # Convert repositories to source dictionaries
+            sources = []
+            for repo in config.repositories:
+                # Extract identifier from repository
+                identifier = repo.identifier
+
+                # Count agents in cache
+                cache_dir = (
+                    Path.home() / ".claude-mpm" / "cache" / "remote-agents" / identifier
+                )
+                agent_count = 0
+                if cache_dir.exists():
+                    agents_dir = cache_dir / "agents"
+                    if agents_dir.exists():
+                        agent_count = len(list(agents_dir.rglob("*.md")))
+
+                sources.append(
+                    {
+                        "identifier": identifier,
+                        "url": repo.url,
+                        "enabled": repo.enabled,
+                        "priority": repo.priority,
+                        "agent_count": agent_count,
+                    }
+                )
+
+            return sources
+        except Exception as e:
+            self.logger.warning(f"Failed to get configured sources: {e}")
+            return []
+
+    def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
+        """Display agents table with source information and deployment status."""
+        from rich.table import Table
+
+        agents_table = Table(show_header=True, header_style="bold cyan")
+        agents_table.add_column("#", style="dim", width=4)
+        agents_table.add_column("Agent ID", style="cyan", width=35)
+        agents_table.add_column("Name", style="green", width=25)
+        agents_table.add_column("Source", style="yellow", width=15)
+        agents_table.add_column("Status", style="magenta", width=12)
+
+        for idx, agent in enumerate(agents, 1):
+            # Determine source type
+            source_type = getattr(agent, "source_type", "local")
+            source_label = "Remote" if source_type == "remote" else "Local"
+
+            # Determine deployment status
+            is_deployed = getattr(agent, "is_deployed", False)
+            status = "✓ Deployed" if is_deployed else "Available"
+
+            # Get display name (for remote agents, use display_name instead of agent_id)
+            display_name = getattr(agent, "display_name", agent.name)
+            if len(display_name) > 23:
+                display_name = display_name[:20] + "..."
+
+            agents_table.add_row(
+                str(idx), agent.name, display_name, source_label, status
+            )
+
+        self.console.print(agents_table)
+        self.console.print(f"\n[dim]Total: {len(agents)} agents available[/dim]")
+
+    def _manage_sources(self) -> None:
+        """Interactive source management."""
+        self.console.print("\n[bold cyan]═══ Manage Agent Sources ═══[/bold cyan]\n")
+        self.console.print(
+            "[dim]Use 'claude-mpm agent-source' command to add/remove sources[/dim]"
+        )
+        self.console.print("\nExamples:")
+        self.console.print("  claude-mpm agent-source add <git-url>")
+        self.console.print("  claude-mpm agent-source remove <identifier>")
+        self.console.print("  claude-mpm agent-source list")
+        Prompt.ask("\nPress Enter to continue")
+
+    def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
+        """Deploy agents individually with selection interface."""
+        if not agents:
+            self.console.print("[yellow]No agents available for deployment[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Filter to non-deployed agents
+        deployable = [a for a in agents if not getattr(a, "is_deployed", False)]
+
+        if not deployable:
+            self.console.print("[yellow]All agents are already deployed[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        self.console.print(f"\n[bold]Deployable agents ({len(deployable)}):[/bold]")
+        for idx, agent in enumerate(deployable, 1):
+            display_name = getattr(agent, "display_name", agent.name)
+            self.console.print(f"  {idx}. {agent.name} - {display_name}")
+
+        selection = Prompt.ask("\nEnter agent number to deploy (or 'c' to cancel)")
+        if selection.lower() == "c":
+            return
+
+        try:
+            idx = int(selection) - 1
+            if 0 <= idx < len(deployable):
+                agent = deployable[idx]
+                self._deploy_single_agent(agent)
+            else:
+                self.console.print("[red]Invalid selection[/red]")
+                Prompt.ask("\nPress Enter to continue")
+        except (ValueError, IndexError):
+            self.console.print("[red]Invalid selection[/red]")
+            Prompt.ask("\nPress Enter to continue")
+
+    def _deploy_agents_preset(self) -> None:
+        """Deploy agents using preset configuration."""
+        try:
+            from claude_mpm.services.agents.agent_preset_service import \
+                AgentPresetService
+            from claude_mpm.services.agents.git_source_manager import \
+                GitSourceManager
+
+            source_manager = GitSourceManager()
+            preset_service = AgentPresetService(source_manager)
+
+            presets = preset_service.list_presets()
+
+            if not presets:
+                self.console.print("[yellow]No presets available[/yellow]")
+                Prompt.ask("\nPress Enter to continue")
+                return
+
+            self.console.print("\n[bold cyan]═══ Available Presets ═══[/bold cyan]\n")
+            for idx, preset in enumerate(presets, 1):
+                self.console.print(f"  {idx}. [cyan]{preset['name']}[/cyan]")
+                self.console.print(f"     {preset['description']}")
+                self.console.print(f"     [dim]Agents: {len(preset['agents'])}[/dim]\n")
+
+            selection = Prompt.ask("\nEnter preset number (or 'c' to cancel)")
+            if selection.lower() == "c":
+                return
+
+            idx = int(selection) - 1
+            if 0 <= idx < len(presets):
+                preset_name = presets[idx]["name"]
+
+                # Resolve and deploy preset
+                resolution = preset_service.resolve_agents(preset_name)
+
+                if resolution.get("missing_agents"):
+                    self.console.print(
+                        f"[red]Missing agents: {len(resolution['missing_agents'])}[/red]"
+                    )
+                    for agent_id in resolution["missing_agents"]:
+                        self.console.print(f"  • {agent_id}")
+                    Prompt.ask("\nPress Enter to continue")
+                    return
+
+                # Confirm deployment
+                self.console.print(
+                    f"\n[bold]Preset '{preset_name}' includes {len(resolution['agents'])} agents[/bold]"
+                )
+                if Confirm.ask("Deploy all agents?", default=True):
+                    deployed = 0
+                    for agent in resolution["agents"]:
+                        # Convert dict to AgentConfig-like object for deployment
+                        agent_config = AgentConfig(
+                            name=agent.get("agent_id", "unknown"),
+                            description=agent.get("metadata", {}).get(
+                                "description", ""
+                            ),
+                            dependencies=[],
+                        )
+                        agent_config.source_dict = agent
+                        agent_config.full_agent_id = agent.get("agent_id", "unknown")
+
+                        if self._deploy_single_agent(agent_config, show_feedback=False):
+                            deployed += 1
+
+                    self.console.print(
+                        f"\n[green]✓ Deployed {deployed}/{len(resolution['agents'])} agents[/green]"
+                    )
+
+                Prompt.ask("\nPress Enter to continue")
+            else:
+                self.console.print("[red]Invalid selection[/red]")
+                Prompt.ask("\nPress Enter to continue")
+
+        except Exception as e:
+            self.console.print(f"[red]Error deploying preset: {e}[/red]")
+            self.logger.error(f"Preset deployment failed: {e}", exc_info=True)
+            Prompt.ask("\nPress Enter to continue")
+
+    def _deploy_single_agent(
+        self, agent: AgentConfig, show_feedback: bool = True
+    ) -> bool:
+        """Deploy a single agent to the appropriate location."""
+        try:
+            # Check if this is a remote agent with source_dict
+            source_dict = getattr(agent, "source_dict", None)
+            full_agent_id = getattr(agent, "full_agent_id", agent.name)
+
+            if source_dict:
+                # Deploy remote agent using its source file
+                source_file = Path(source_dict.get("source_file", ""))
+                if not source_file.exists():
+                    if show_feedback:
+                        self.console.print(
+                            f"[red]✗ Source file not found: {source_file}[/red]"
+                        )
+                    return False
+
+                # Determine target file name (use leaf name from hierarchical ID)
+                if "/" in full_agent_id:
+                    target_name = full_agent_id.split("/")[-1] + ".md"
+                else:
+                    target_name = full_agent_id + ".md"
+
+                # Deploy to user-level agents directory
+                target_dir = Path.home() / ".claude" / "agents"
+                target_dir.mkdir(parents=True, exist_ok=True)
+                target_file = target_dir / target_name
+
+                if show_feedback:
+                    self.console.print(f"\n[cyan]Deploying {full_agent_id}...[/cyan]")
+
+                # Copy the agent file
+                import shutil
+
+                shutil.copy2(source_file, target_file)
+
+                if show_feedback:
+                    self.console.print(
+                        f"[green]✓ Successfully deployed {full_agent_id} to {target_file}[/green]"
+                    )
+                    Prompt.ask("\nPress Enter to continue")
+
+                return True
+            # Legacy local template deployment (not implemented here)
+            if show_feedback:
+                self.console.print(
+                    "[yellow]Local template deployment not yet implemented[/yellow]"
+                )
+                Prompt.ask("\nPress Enter to continue")
+            return False
+
+        except Exception as e:
+            if show_feedback:
+                self.console.print(f"[red]Error deploying agent: {e}[/red]")
+                self.logger.error(f"Agent deployment failed: {e}", exc_info=True)
+                Prompt.ask("\nPress Enter to continue")
+            return False
+
+    def _remove_agents(self, agents: List[AgentConfig]) -> None:
+        """Remove deployed agents."""
+        # Filter to deployed agents only
+        deployed = [a for a in agents if getattr(a, "is_deployed", False)]
+
+        if not deployed:
+            self.console.print("[yellow]No agents are currently deployed[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        self.console.print(f"\n[bold]Deployed agents ({len(deployed)}):[/bold]")
+        for idx, agent in enumerate(deployed, 1):
+            display_name = getattr(agent, "display_name", agent.name)
+            self.console.print(f"  {idx}. {agent.name} - {display_name}")
+
+        selection = Prompt.ask("\nEnter agent number to remove (or 'c' to cancel)")
+        if selection.lower() == "c":
+            return
+
+        try:
+            idx = int(selection) - 1
+            if 0 <= idx < len(deployed):
+                agent = deployed[idx]
+                full_agent_id = getattr(agent, "full_agent_id", agent.name)
+
+                # Determine possible file names (hierarchical and leaf)
+                file_names = [f"{full_agent_id}.md"]
+                if "/" in full_agent_id:
+                    leaf_name = full_agent_id.split("/")[-1]
+                    file_names.append(f"{leaf_name}.md")
+
+                # Remove from both project and user directories
+                removed = False
+                project_agent_dir = Path.cwd() / ".claude-mpm" / "agents"
+                user_agent_dir = Path.home() / ".claude" / "agents"
+
+                for file_name in file_names:
+                    project_file = project_agent_dir / file_name
+                    user_file = user_agent_dir / file_name
+
+                    if project_file.exists():
+                        project_file.unlink()
+                        removed = True
+                        self.console.print(f"[green]✓ Removed {project_file}[/green]")
+
+                    if user_file.exists():
+                        user_file.unlink()
+                        removed = True
+                        self.console.print(f"[green]✓ Removed {user_file}[/green]")
+
+                if removed:
+                    self.console.print(
+                        f"[green]✓ Successfully removed {full_agent_id}[/green]"
+                    )
+                else:
+                    self.console.print("[yellow]Agent files not found[/yellow]")
+
+                Prompt.ask("\nPress Enter to continue")
+            else:
+                self.console.print("[red]Invalid selection[/red]")
+                Prompt.ask("\nPress Enter to continue")
+
+        except (ValueError, IndexError):
+            self.console.print("[red]Invalid selection[/red]")
+            Prompt.ask("\nPress Enter to continue")
+
+    def _view_agent_details_enhanced(self, agents: List[AgentConfig]) -> None:
+        """View detailed agent information with enhanced remote agent details."""
+        if not agents:
+            self.console.print("[yellow]No agents available[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        self.console.print(f"\n[bold]Available agents ({len(agents)}):[/bold]")
+        for idx, agent in enumerate(agents, 1):
+            display_name = getattr(agent, "display_name", agent.name)
+            self.console.print(f"  {idx}. {agent.name} - {display_name}")
+
+        selection = Prompt.ask("\nEnter agent number to view (or 'c' to cancel)")
+        if selection.lower() == "c":
+            return
+
+        try:
+            idx = int(selection) - 1
+            if 0 <= idx < len(agents):
+                agent = agents[idx]
+
+                self.console.clear()
+                self.console.print("\n[bold cyan]═══ Agent Details ═══[/bold cyan]\n")
+
+                # Basic info
+                self.console.print(f"[bold]ID:[/bold] {agent.name}")
+                display_name = getattr(agent, "display_name", "N/A")
+                self.console.print(f"[bold]Name:[/bold] {display_name}")
+                self.console.print(f"[bold]Description:[/bold] {agent.description}")
+
+                # Source info
+                source_type = getattr(agent, "source_type", "local")
+                self.console.print(f"[bold]Source Type:[/bold] {source_type}")
+
+                if source_type == "remote":
+                    source_dict = getattr(agent, "source_dict", {})
+                    category = source_dict.get("category", "N/A")
+                    source = source_dict.get("source", "N/A")
+                    version = source_dict.get("version", "N/A")
+
+                    self.console.print(f"[bold]Category:[/bold] {category}")
+                    self.console.print(f"[bold]Source:[/bold] {source}")
+                    self.console.print(f"[bold]Version:[/bold] {version[:16]}...")
+
+                # Deployment status
+                is_deployed = getattr(agent, "is_deployed", False)
+                status = "✓ Deployed" if is_deployed else "Available"
+                self.console.print(f"[bold]Status:[/bold] {status}")
+
+                Prompt.ask("\nPress Enter to continue")
+            else:
+                self.console.print("[red]Invalid selection[/red]")
+                Prompt.ask("\nPress Enter to continue")
+
+        except (ValueError, IndexError):
+            self.console.print("[red]Invalid selection[/red]")
+            Prompt.ask("\nPress Enter to continue")
 
 
 def manage_configure(args) -> int:

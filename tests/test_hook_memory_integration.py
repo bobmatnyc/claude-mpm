@@ -15,7 +15,8 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import \
+    AgentMemoryManager
 
 
 def test_hook_memory_extraction():
@@ -116,13 +117,13 @@ These are incremental updates to existing memories.
         print(f"\nFresh agent memory after remember field:\n{fresh_content}")
 
         # Should have both initial and remember field items
-        assert "- Initial memory item" in fresh_content, (
-            "Initial memory should be preserved"
-        )
+        assert (
+            "- Initial memory item" in fresh_content
+        ), "Initial memory should be preserved"
         for memory in remember_data:
-            assert f"- {memory}" in fresh_content, (
-                f"Remember field memory should be added: {memory}"
-            )
+            assert (
+                f"- {memory}" in fresh_content
+            ), f"Remember field memory should be added: {memory}"
 
         print("✓ remember field extraction working")
 
@@ -148,9 +149,9 @@ And some additional text.
         )
         mixed_content = mixed_memory_file.read_text()
 
-        assert "- Inline JSON memory" in mixed_content, (
-            "Inline JSON memory should be extracted"
-        )
+        assert (
+            "- Inline JSON memory" in mixed_content
+        ), "Inline JSON memory should be extracted"
         print("✓ Mixed JSON format extraction working")
 
         print("\n4. Testing timestamp updates...")
@@ -268,9 +269,9 @@ Second block:
             content = memory_file.read_text()
 
             for expected_memory in expected:
-                assert f"- {expected_memory}" in content, (
-                    f"Should find expected memory: {expected_memory}"
-                )
+                assert (
+                    f"- {expected_memory}" in content
+                ), f"Should find expected memory: {expected_memory}"
 
             print(f"✓ {test_case['name']} working")
 

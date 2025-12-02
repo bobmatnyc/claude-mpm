@@ -13,11 +13,8 @@ from textwrap import dedent
 from unittest import TestCase
 
 from jsonschema import Draft4Validator, Draft202012Validator
-from jsonschema.exceptions import (
-    SchemaError,
-    ValidationError,
-    _RefResolutionError,
-)
+from jsonschema.exceptions import (SchemaError, ValidationError,
+                                   _RefResolutionError)
 from jsonschema.validators import _LATEST_VERSION, validate
 
 with warnings.catch_warnings():
@@ -411,7 +408,9 @@ class TestCLI(TestCase):
             stderr="""\
                 Failed to parse 'first_instance': {}
                 12: 12 is less than the minimum of 30
-            """.format(_message_for("not valid JSON!")),
+            """.format(
+                _message_for("not valid JSON!")
+            ),
         )
 
     def test_custom_error_format_applies_to_schema_errors(self):

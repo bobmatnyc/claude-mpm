@@ -16,13 +16,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.memory import (
-    MemoryManagementCommand,
-    _build_memory,
-    _cross_reference_memory,
-    _route_memory_command,
-    manage_memory,
-)
+from claude_mpm.cli.commands.memory import (MemoryManagementCommand,
+                                            _build_memory,
+                                            _cross_reference_memory,
+                                            _route_memory_command,
+                                            manage_memory)
 from claude_mpm.cli.shared.base_command import CommandResult
 
 

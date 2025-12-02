@@ -19,9 +19,7 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, "/Users/masa/Projects/claude-mpm/src")
 
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    MCPToolInvocation,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.tools.hello_world import HelloWorldTool
 
 

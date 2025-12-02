@@ -132,9 +132,9 @@ class TestAgentDiscoveryAndDisplay:
 
         for agent in agents:
             for field in required_fields:
-                assert field in agent, (
-                    f"Agent {agent['agent_id']} missing field: {field}"
-                )
+                assert (
+                    field in agent
+                ), f"Agent {agent['agent_id']} missing field: {field}"
 
 
 class TestDiscoveryBrowsing:
@@ -364,9 +364,9 @@ class TestPresetDeployment:
             resolution = service.resolve_agents("minimal", validate_availability=True)
 
             agents = resolution.get("agents", [])
-            assert len(agents) == 6, (
-                f"Expected 6 agents in minimal preset, got {len(agents)}"
-            )
+            assert (
+                len(agents) == 6
+            ), f"Expected 6 agents in minimal preset, got {len(agents)}"
 
             # Verify expected agents
             expected_ids = [

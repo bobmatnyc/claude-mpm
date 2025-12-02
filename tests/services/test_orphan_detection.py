@@ -16,12 +16,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import psutil
 
-from claude_mpm.services.orphan_detection import (
-    OrphanDetectionService,
-    OrphanInfo,
-    OrphanSeverity,
-    OrphanType,
-)
+from claude_mpm.services.orphan_detection import (OrphanDetectionService,
+                                                  OrphanInfo, OrphanSeverity,
+                                                  OrphanType)
 
 
 class TestOrphanInfo(unittest.TestCase):

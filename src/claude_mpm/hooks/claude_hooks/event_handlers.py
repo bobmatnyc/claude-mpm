@@ -16,22 +16,14 @@ from typing import Optional
 # Import tool analysis with fallback for direct execution
 try:
     # Try relative import first (when imported as module)
-    from .tool_analysis import (
-        assess_security_risk,
-        calculate_duration,
-        classify_tool_operation,
-        extract_tool_parameters,
-        extract_tool_results,
-    )
+    from .tool_analysis import (assess_security_risk, calculate_duration,
+                                classify_tool_operation,
+                                extract_tool_parameters, extract_tool_results)
 except ImportError:
     # Fall back to direct import (when parent script is run directly)
-    from tool_analysis import (
-        assess_security_risk,
-        calculate_duration,
-        classify_tool_operation,
-        extract_tool_parameters,
-        extract_tool_results,
-    )
+    from tool_analysis import (assess_security_risk, calculate_duration,
+                               classify_tool_operation,
+                               extract_tool_parameters, extract_tool_results)
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -175,7 +167,8 @@ class EventHandlers:
 
         # Use AgentNameNormalizer if available, otherwise simple lowercase normalization
         try:
-            from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
+            from claude_mpm.core.agent_name_normalizer import \
+                AgentNameNormalizer
 
             normalizer = AgentNameNormalizer()
             # Convert to Task format (lowercase with hyphens)
@@ -393,9 +386,7 @@ class EventHandlers:
             "status": (
                 "success"
                 if exit_code == 0
-                else "blocked"
-                if exit_code == 2
-                else "error"
+                else "blocked" if exit_code == 2 else "error"
             ),
             "duration_ms": duration,
             "result_summary": result_data,

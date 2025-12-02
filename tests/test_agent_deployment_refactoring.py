@@ -8,49 +8,26 @@ import pytest
 
 from claude_mpm.core.interfaces import AgentDeploymentInterface
 from claude_mpm.services.agents.deployment.config import (
-    DeploymentConfig,
-    DeploymentConfigManager,
-)
+    DeploymentConfig, DeploymentConfigManager)
 from claude_mpm.services.agents.deployment.facade import (
-    AsyncDeploymentExecutor,
-    DeploymentFacade,
-    SyncDeploymentExecutor,
-)
-from claude_mpm.services.agents.deployment.interface_adapter import (
-    AgentDeploymentInterfaceAdapter,
-)
+    AsyncDeploymentExecutor, DeploymentFacade, SyncDeploymentExecutor)
+from claude_mpm.services.agents.deployment.interface_adapter import \
+    AgentDeploymentInterfaceAdapter
 from claude_mpm.services.agents.deployment.pipeline import (
-    ConfigurationLoadStep,
-    DeploymentPipelineBuilder,
-    DeploymentPipelineExecutor,
-    PipelineContext,
-    TargetDirectorySetupStep,
-)
+    ConfigurationLoadStep, DeploymentPipelineBuilder,
+    DeploymentPipelineExecutor, PipelineContext, TargetDirectorySetupStep)
 from claude_mpm.services.agents.deployment.processors import (
-    AgentDeploymentContext,
-    AgentDeploymentResult,
-    AgentProcessor,
-)
-from claude_mpm.services.agents.deployment.refactored_agent_deployment_service import (
-    RefactoredAgentDeploymentService,
-)
+    AgentDeploymentContext, AgentDeploymentResult, AgentProcessor)
+from claude_mpm.services.agents.deployment.refactored_agent_deployment_service import \
+    RefactoredAgentDeploymentService
 from claude_mpm.services.agents.deployment.results import (
-    DeploymentMetrics,
-    DeploymentResultBuilder,
-)
+    DeploymentMetrics, DeploymentResultBuilder)
 from claude_mpm.services.agents.deployment.strategies import (
-    DeploymentContext,
-    DeploymentStrategySelector,
-    ProjectAgentDeploymentStrategy,
-    SystemAgentDeploymentStrategy,
-    UserAgentDeploymentStrategy,
-)
+    DeploymentContext, DeploymentStrategySelector,
+    ProjectAgentDeploymentStrategy, SystemAgentDeploymentStrategy,
+    UserAgentDeploymentStrategy)
 from claude_mpm.services.agents.deployment.validation import (
-    AgentValidator,
-    DeploymentValidator,
-    TemplateValidator,
-    ValidationResult,
-)
+    AgentValidator, DeploymentValidator, TemplateValidator, ValidationResult)
 
 
 class TestDeploymentStrategies:

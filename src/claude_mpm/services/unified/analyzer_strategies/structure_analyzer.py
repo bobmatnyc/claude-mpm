@@ -16,12 +16,8 @@ from typing import Any, ClassVar, Dict, List, Optional, Tuple
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.logging_utils import get_logger
 
-from ..strategies import (
-    AnalyzerStrategy,
-    StrategyContext,
-    StrategyMetadata,
-    StrategyPriority,
-)
+from ..strategies import (AnalyzerStrategy, StrategyContext, StrategyMetadata,
+                          StrategyPriority)
 
 logger = get_logger(__name__)
 

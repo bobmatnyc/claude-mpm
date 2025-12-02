@@ -17,10 +17,10 @@ import pytest
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
-from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
-    UnifiedTicketTool,
-)
+from src.claude_mpm.services.mcp_gateway.core.interfaces import \
+    MCPToolInvocation
+from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import \
+    UnifiedTicketTool
 
 
 @pytest.mark.asyncio

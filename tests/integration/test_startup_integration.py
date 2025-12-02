@@ -76,9 +76,9 @@ class TestStartupIntegration:
         # Verify at least one expected agent exists
         expected_agents = ["research.md", "engineer.md", "qa.md"]
         found_agents = [f.name for f in agent_files]
-        assert any(agent in found_agents for agent in expected_agents), (
-            f"Should have at least one of {expected_agents}, found: {found_agents}"
-        )
+        assert any(
+            agent in found_agents for agent in expected_agents
+        ), f"Should have at least one of {expected_agents}, found: {found_agents}"
 
     def test_startup_sync_respects_disabled_config(self):
         """Test that sync is skipped when disabled in config."""
@@ -138,16 +138,17 @@ class TestStartupIntegration:
 
         # Total downloaded on second sync should be 0 or minimal
         # (only if files were actually updated on GitHub between syncs)
-        assert result2["total_downloaded"] <= first_sync_downloaded, (
-            "Second sync should not download more than first"
-        )
+        assert (
+            result2["total_downloaded"] <= first_sync_downloaded
+        ), "Second sync should not download more than first"
 
         # Ideally, second sync downloads nothing
         # But we can't guarantee this in integration test (files might have updated)
 
     def test_sqlite_state_tracking_persists_across_syncs(self):
         """Test that SQLite state tracking persists file metadata."""
-        from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
+        from claude_mpm.services.agents.sources.agent_sync_state import \
+            AgentSyncState
 
         config = {
             "agent_sync": {

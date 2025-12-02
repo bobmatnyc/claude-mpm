@@ -5,7 +5,8 @@ to reduce complexity in the main CLI function.
 """
 
 from .args import ArgumentRegistry
-from .commands import CommandDefinition, CommandRegistry, register_standard_commands
+from .commands import (CommandDefinition, CommandRegistry,
+                       register_standard_commands)
 
 __all__ = [
     "ArgumentRegistry",

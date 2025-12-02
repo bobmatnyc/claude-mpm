@@ -12,12 +12,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
-from claude_mpm.services.mcp_gateway.core.interfaces import (
-    IMCPToolAdapter,
-    MCPToolDefinition,
-    MCPToolInvocation,
-    MCPToolResult,
-)
+from claude_mpm.services.mcp_gateway.core.interfaces import (IMCPToolAdapter,
+                                                             MCPToolDefinition,
+                                                             MCPToolInvocation,
+                                                             MCPToolResult)
 
 
 class BaseToolAdapter(BaseMCPService, IMCPToolAdapter, ABC):

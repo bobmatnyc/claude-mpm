@@ -22,7 +22,6 @@ Legacy System (maintained for compatibility):
 
 # New Skills Integration System
 from .agent_skills_injector import AgentSkillsInjector
-
 # Legacy System (maintained for compatibility)
 from .registry import Skill, SkillsRegistry, get_registry
 from .skill_manager import SkillManager

@@ -29,7 +29,8 @@ from typing import Dict, Optional
 
 # Module-level logger
 from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import \
+    SharedPromptCache
 
 logger = get_logger(__name__)
 

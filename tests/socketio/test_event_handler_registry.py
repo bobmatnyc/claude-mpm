@@ -81,7 +81,8 @@ class TestEventHandlerRegistry:
 
     def test_default_handlers_list(self):
         """Test that default handlers list contains expected handlers."""
-        from claude_mpm.services.socketio.handlers.registry import EventHandlerRegistry
+        from claude_mpm.services.socketio.handlers.registry import \
+            EventHandlerRegistry
 
         # Check that default handlers are defined
         assert hasattr(EventHandlerRegistry, "DEFAULT_HANDLERS")

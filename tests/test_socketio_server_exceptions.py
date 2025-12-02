@@ -8,7 +8,6 @@ standalone Socket.IO server, ensuring proper error reporting and troubleshooting
 
 import json
 import os
-
 # Add the source directory to the Python path for testing
 import sys
 import time
@@ -20,14 +19,12 @@ from unittest.mock import MagicMock, Mock, patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 try:
-    from claude_mpm.services.exceptions import (
-        DaemonConflictError,
-        HealthCheckError,
-        PortConflictError,
-        RecoveryFailedError,
-        StaleProcessError,
-        format_troubleshooting_guide,
-    )
+    from claude_mpm.services.exceptions import (DaemonConflictError,
+                                                HealthCheckError,
+                                                PortConflictError,
+                                                RecoveryFailedError,
+                                                StaleProcessError,
+                                                format_troubleshooting_guide)
     from claude_mpm.services.socketio_server import SocketIOServer
 
     IMPORTS_AVAILABLE = True

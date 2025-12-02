@@ -12,19 +12,13 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.services.core.models.health import (
-    DeploymentHealth,
-    HealthStatus,
-)
-from claude_mpm.services.core.models.process import (
-    DeploymentState,
-    ProcessInfo,
-    ProcessStatus,
-)
-from claude_mpm.services.core.models.restart import (
-    CircuitBreakerState,
-    RestartConfig,
-)
+from claude_mpm.services.core.models.health import (DeploymentHealth,
+                                                    HealthStatus)
+from claude_mpm.services.core.models.process import (DeploymentState,
+                                                     ProcessInfo,
+                                                     ProcessStatus)
+from claude_mpm.services.core.models.restart import (CircuitBreakerState,
+                                                     RestartConfig)
 from claude_mpm.services.local_ops.crash_detector import CrashDetector
 from claude_mpm.services.local_ops.restart_manager import RestartManager
 from claude_mpm.services.local_ops.restart_policy import RestartPolicy

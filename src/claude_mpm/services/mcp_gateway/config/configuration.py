@@ -15,7 +15,8 @@ from typing import Any, Dict, Optional
 import yaml
 
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
-from claude_mpm.services.mcp_gateway.core.exceptions import MCPConfigurationError
+from claude_mpm.services.mcp_gateway.core.exceptions import \
+    MCPConfigurationError
 from claude_mpm.services.mcp_gateway.core.interfaces import IMCPConfiguration
 from claude_mpm.services.shared import ConfigServiceBase
 

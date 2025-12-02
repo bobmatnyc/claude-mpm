@@ -20,11 +20,9 @@ import yaml
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces.agent import IAgentRecommender
-from claude_mpm.services.core.models.agent_config import (
-    AgentCapabilities,
-    AgentRecommendation,
-    AgentSpecialization,
-)
+from claude_mpm.services.core.models.agent_config import (AgentCapabilities,
+                                                          AgentRecommendation,
+                                                          AgentSpecialization)
 from claude_mpm.services.core.models.toolchain import ToolchainAnalysis
 
 

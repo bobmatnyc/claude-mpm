@@ -44,7 +44,8 @@ def test_interactive_response_logging_integration():
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
         from claude_mpm.core.interactive_session import InteractiveSession
-        from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         # Create config
         config = Config(config_file=str(config_file))
@@ -100,9 +101,9 @@ def test_interactive_response_logging_integration():
                     print("✓ Async response logging initiated")
                 else:
                     # Synchronous logging - file should exist immediately
-                    assert file_path.exists(), (
-                        f"Response file not created at {file_path}"
-                    )
+                    assert (
+                        file_path.exists()
+                    ), f"Response file not created at {file_path}"
 
                     # Verify content
                     with file_path.open() as f:
@@ -116,9 +117,9 @@ def test_interactive_response_logging_integration():
         session.cleanup_interactive_session()
 
         # Verify session ID was cleared
-        assert session.response_tracker.session_logger.session_id is None, (
-            "Session ID not cleared after cleanup"
-        )
+        assert (
+            session.response_tracker.session_logger.session_id is None
+        ), "Session ID not cleared after cleanup"
 
         print("✅ Interactive response logging integration test passed!")
 
@@ -164,9 +165,9 @@ def test_response_logging_disabled():
 
         # Verify response tracker was not enabled
         if session.response_tracker:
-            assert not session.response_tracker.enabled, (
-                "Response tracker should be disabled"
-            )
+            assert (
+                not session.response_tracker.enabled
+            ), "Response tracker should be disabled"
 
         # Clean up session - should not raise any errors
         session.cleanup_interactive_session()

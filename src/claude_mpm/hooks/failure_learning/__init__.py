@@ -35,18 +35,11 @@ Usage:
     hook_service.register_hook(get_learning_extraction_hook())
 """
 
-from .failure_detection_hook import (
-    FailureDetectionHook,
-    get_failure_detection_hook,
-)
-from .fix_detection_hook import (
-    FixDetectionHook,
-    get_fix_detection_hook,
-)
-from .learning_extraction_hook import (
-    LearningExtractionHook,
-    get_learning_extraction_hook,
-)
+from .failure_detection_hook import (FailureDetectionHook,
+                                     get_failure_detection_hook)
+from .fix_detection_hook import FixDetectionHook, get_fix_detection_hook
+from .learning_extraction_hook import (LearningExtractionHook,
+                                       get_learning_extraction_hook)
 
 __all__ = [
     # Hooks

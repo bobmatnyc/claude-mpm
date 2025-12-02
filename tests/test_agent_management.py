@@ -210,9 +210,9 @@ def test_agent_import_functionality():
             with open(imported_files[0]) as f:
                 imported_agent = yaml.safe_load(f)
 
-            assert imported_agent["name"] == "test-agent", (
-                "Agent content should be preserved"
-            )
+            assert (
+                imported_agent["name"] == "test-agent"
+            ), "Agent content should be preserved"
             print("✓ Agent content preserved during import")
 
     finally:

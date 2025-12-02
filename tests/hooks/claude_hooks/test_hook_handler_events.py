@@ -24,7 +24,8 @@ class TestEventReadingAndParsing:
 
     def test_read_hook_event_valid_json(self):
         """Test reading valid JSON from stdin."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -44,7 +45,8 @@ class TestEventReadingAndParsing:
 
     def test_read_hook_event_malformed_json(self):
         """Test handling of malformed JSON."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -58,7 +60,8 @@ class TestEventReadingAndParsing:
 
     def test_read_hook_event_timeout(self):
         """Test timeout when no data available."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -72,7 +75,8 @@ class TestEventReadingAndParsing:
 
     def test_read_hook_event_empty_input(self):
         """Test handling of empty input."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -86,7 +90,8 @@ class TestEventReadingAndParsing:
 
     def test_read_hook_event_interactive_terminal(self):
         """Test behavior when stdin is a terminal."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         handler = ClaudeHookHandler()
 
@@ -105,7 +110,8 @@ class TestEventRouting:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers")
     def test_route_event_user_prompt(self, mock_event_handlers_class):
         """Test routing UserPromptSubmit events."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         mock_handlers = MagicMock()
         mock_event_handlers_class.return_value = mock_handlers
@@ -121,7 +127,8 @@ class TestEventRouting:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers")
     def test_route_event_pre_tool(self, mock_event_handlers_class):
         """Test routing PreToolUse events."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         mock_handlers = MagicMock()
         mock_event_handlers_class.return_value = mock_handlers
@@ -137,7 +144,8 @@ class TestEventRouting:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers")
     def test_route_event_subagent_stop(self, mock_event_handlers_class):
         """Test routing SubagentStop events."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         mock_handlers = MagicMock()
         mock_event_handlers_class.return_value = mock_handlers
@@ -153,7 +161,8 @@ class TestEventRouting:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers")
     def test_route_event_unknown_type(self, mock_event_handlers_class):
         """Test handling of unknown event types."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         mock_handlers = MagicMock()
         mock_event_handlers_class.return_value = mock_handlers
@@ -172,7 +181,8 @@ class TestEventRouting:
     @patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers")
     def test_route_event_handler_exception(self, mock_event_handlers_class):
         """Test exception handling in event routing."""
-        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import \
+            ClaudeHookHandler
 
         mock_handlers = MagicMock()
         mock_handlers.handle_stop_fast.side_effect = Exception("Handler error")

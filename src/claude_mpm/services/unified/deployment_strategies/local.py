@@ -21,14 +21,11 @@ import yaml
 
 from claude_mpm.core.enums import HealthStatus, OperationResult
 from claude_mpm.core.logging_utils import get_logger
-from claude_mpm.services.unified.strategies import StrategyMetadata, StrategyPriority
+from claude_mpm.services.unified.strategies import (StrategyMetadata,
+                                                    StrategyPriority)
 
-from .base import (
-    DeploymentContext,
-    DeploymentResult,
-    DeploymentStrategy,
-    DeploymentType,
-)
+from .base import (DeploymentContext, DeploymentResult, DeploymentStrategy,
+                   DeploymentType)
 
 
 class LocalDeploymentStrategy(DeploymentStrategy):

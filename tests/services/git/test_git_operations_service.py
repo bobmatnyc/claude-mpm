@@ -12,11 +12,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 from claude_mpm.services.git.git_operations_service import (
-    GitAuthenticationError,
-    GitConflictError,
-    GitOperationError,
-    GitOperationsService,
-)
+    GitAuthenticationError, GitConflictError, GitOperationError,
+    GitOperationsService)
 
 
 class TestGitOperationsService(unittest.TestCase):

@@ -10,7 +10,8 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import pytest
 
 from claude_mpm.services.socketio.handlers.base import BaseEventHandler
-from claude_mpm.services.socketio.handlers.connection import ConnectionEventHandler
+from claude_mpm.services.socketio.handlers.connection import \
+    ConnectionEventHandler
 from claude_mpm.services.socketio.handlers.file import FileEventHandler
 from claude_mpm.services.socketio.handlers.git import GitEventHandler
 from claude_mpm.services.socketio.handlers.registry import EventHandlerRegistry

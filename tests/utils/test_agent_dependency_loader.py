@@ -165,7 +165,8 @@ class TestLoadAgentDependencies:
 
         # Create markdown file with frontmatter
         md_file = config_dir / "test_agent.md"
-        md_file.write_text("""---
+        md_file.write_text(
+            """---
 name: test_agent
 dependencies:
   python:
@@ -173,7 +174,8 @@ dependencies:
     - black>=23.0.0
 ---
 # Agent Content
-""")
+"""
+        )
 
         # Mock the config paths to use temp directory
         with patch.object(loader, "load_agent_dependencies") as mock_load:
@@ -272,13 +274,15 @@ dependencies:
 
         # Create both files for same agent
         md_file = config_dir / "test_agent.md"
-        md_file.write_text("""---
+        md_file.write_text(
+            """---
 name: test_agent
 dependencies:
   python:
     - pytest>=7.0.0
 ---
-""")
+"""
+        )
 
         json_file = config_dir / "test_agent.json"
         json_file.write_text(
@@ -319,12 +323,14 @@ dependencies:
         loader, config_dir = loader_with_agents
 
         md_file = config_dir / "test_agent.md"
-        md_file.write_text("""---
+        md_file.write_text(
+            """---
 name: test_agent
 version: 1.0.0
 ---
 # No dependencies
-""")
+"""
+        )
 
         result = self._load_deps_with_custom_path(loader, [config_dir])
 
@@ -337,11 +343,13 @@ version: 1.0.0
 
         # Create malformed markdown
         md_file = config_dir / "test_agent.md"
-        md_file.write_text("""---
+        md_file.write_text(
+            """---
 name: test_agent
   invalid: yaml
 ---
-""")
+"""
+        )
 
         # Create valid JSON
         json_file = config_dir / "test_agent.json"
@@ -413,8 +421,7 @@ class TestIntegrationWithRealTemplates:
 
         # Mock deployed agents for found templates
         loader.deployed_agents = {
-            template.stem: template
-            for template in md_templates[:5]  # Test first 5
+            template.stem: template for template in md_templates[:5]  # Test first 5
         }
 
         # Load dependencies

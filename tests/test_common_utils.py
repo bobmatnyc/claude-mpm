@@ -13,25 +13,14 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 
-from claude_mpm.utils.common import (
-    check_command_exists,
-    deprecated,
-    ensure_path_exists,
-    find_files,
-    get_env_bool,
-    get_env_int,
-    get_env_list,
-    get_file_size,
-    import_from_string,
-    load_json_safe,
-    load_yaml_safe,
-    read_file_if_exists,
-    run_command_safe,
-    safe_import,
-    save_json_safe,
-    save_yaml_safe,
-    write_file_safe,
-)
+from claude_mpm.utils.common import (check_command_exists, deprecated,
+                                     ensure_path_exists, find_files,
+                                     get_env_bool, get_env_int, get_env_list,
+                                     get_file_size, import_from_string,
+                                     load_json_safe, load_yaml_safe,
+                                     read_file_if_exists, run_command_safe,
+                                     safe_import, save_json_safe,
+                                     save_yaml_safe, write_file_safe)
 
 
 class TestJSONUtilities(unittest.TestCase):

@@ -66,9 +66,8 @@ def test_basic_exclusion() -> Dict[str, any]:
         # Test without exclusions
         create_test_config(config_dir / "configuration.yaml", [])
 
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            AgentDeploymentService,
-        )
+        from claude_mpm.services.agents.deployment.agent_deployment import \
+            AgentDeploymentService
 
         original_cwd = os.getcwd()
         os.chdir(temp_path)
@@ -133,9 +132,8 @@ def test_case_sensitivity() -> Dict[str, any]:
         config_dir.mkdir()
         target_dir = temp_path / ".claude" / "agents"
 
-        from claude_mpm.services.agents.deployment.agent_deployment import (
-            AgentDeploymentService,
-        )
+        from claude_mpm.services.agents.deployment.agent_deployment import \
+            AgentDeploymentService
 
         original_cwd = os.getcwd()
         os.chdir(temp_path)

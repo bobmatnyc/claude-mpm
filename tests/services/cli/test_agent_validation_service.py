@@ -19,9 +19,7 @@ import pytest
 
 from claude_mpm.agents.frontmatter_validator import ValidationResult
 from claude_mpm.services.cli.agent_validation_service import (
-    AgentValidationService,
-    IAgentValidationService,
-)
+    AgentValidationService, IAgentValidationService)
 
 
 class TestAgentValidationService:

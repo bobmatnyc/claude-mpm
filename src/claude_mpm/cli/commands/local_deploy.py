@@ -25,10 +25,7 @@ from rich.text import Text
 
 from claude_mpm.core.enums import ServiceState
 
-from ...services.local_ops import (
-    StartConfig,
-    UnifiedLocalOpsManager,
-)
+from ...services.local_ops import StartConfig, UnifiedLocalOpsManager
 from ..shared import BaseCommand, CommandResult
 
 

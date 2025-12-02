@@ -89,9 +89,9 @@ class DeploymentFacade:
 
             results["metadata"]["facade_version"] = "1.0.0"
             results["metadata"]["selected_executor"] = executor.get_executor_name()
-            results["metadata"]["executor_characteristics"] = (
-                executor.get_performance_characteristics()
-            )
+            results["metadata"][
+                "executor_characteristics"
+            ] = executor.get_performance_characteristics()
 
             return results
 

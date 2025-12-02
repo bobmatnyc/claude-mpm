@@ -73,29 +73,13 @@ from contextlib import closing
 
 import psutil
 from psutil import BSD, POSIX, WINDOWS
-from psutil.tests import (
-    ASCII_FS,
-    CI_TESTING,
-    HAS_ENVIRON,
-    HAS_MEMORY_MAPS,
-    HAS_NET_CONNECTIONS_UNIX,
-    INVALID_UNICODE_SUFFIX,
-    PYPY,
-    TESTFN_PREFIX,
-    UNICODE_SUFFIX,
-    PsutilTestCase,
-    bind_unix_socket,
-    chdir,
-    copyload_shared_lib,
-    create_py_exe,
-    get_testfn,
-    pytest,
-    safe_mkdir,
-    safe_rmpath,
-    skip_on_access_denied,
-    spawn_testproc,
-    terminate,
-)
+from psutil.tests import (ASCII_FS, CI_TESTING, HAS_ENVIRON, HAS_MEMORY_MAPS,
+                          HAS_NET_CONNECTIONS_UNIX, INVALID_UNICODE_SUFFIX,
+                          PYPY, TESTFN_PREFIX, UNICODE_SUFFIX, PsutilTestCase,
+                          bind_unix_socket, chdir, copyload_shared_lib,
+                          create_py_exe, get_testfn, pytest, safe_mkdir,
+                          safe_rmpath, skip_on_access_denied, spawn_testproc,
+                          terminate)
 
 
 def try_unicode(suffix):

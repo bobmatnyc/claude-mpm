@@ -15,10 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.hook_manager import get_hook_manager
 from claude_mpm.core.hook_performance_config import (
-    ENVIRONMENT_VARIABLES,
-    get_hook_performance_config,
-    set_performance_mode,
-)
+    ENVIRONMENT_VARIABLES, get_hook_performance_config, set_performance_mode)
 
 
 def test_hook_performance():

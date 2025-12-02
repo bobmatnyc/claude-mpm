@@ -51,9 +51,9 @@ class TestErrorHandling(TestAgentDeploymentService):
         mock_dependencies["discovery_service"].get_filtered_templates.return_value = [
             tmp_path / "agent.json"
         ]
-        mock_dependencies[
-            "template_builder"
-        ].build_agent_markdown.side_effect = Exception("Template build failed")
+        mock_dependencies["template_builder"].build_agent_markdown.side_effect = (
+            Exception("Template build failed")
+        )
 
         with patch.object(service, "_load_deployment_config") as mock_load_config:
             mock_load_config.return_value = (Mock(), [])
@@ -96,10 +96,10 @@ class TestErrorHandling(TestAgentDeploymentService):
         """Test handling AgentDeploymentError in single agent deployment."""
         target_dir = tmp_path / ".claude" / "agents"
 
-        mock_dependencies[
-            "template_builder"
-        ].build_agent_markdown.side_effect = AgentDeploymentError(
-            "Custom deployment error", context={"agent": "test_agent"}
+        mock_dependencies["template_builder"].build_agent_markdown.side_effect = (
+            AgentDeploymentError(
+                "Custom deployment error", context={"agent": "test_agent"}
+            )
         )
 
         with pytest.raises(AgentDeploymentError) as exc_info:

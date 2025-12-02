@@ -17,17 +17,12 @@ import yaml
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.migrate_json_to_markdown import (
-    ConversionResult,
-    JSONParseError,
-    MigrationReport,
-    ValidationError,
-    build_markdown,
-    convert_json_to_markdown,
-    extract_frontmatter_fields,
-    migrate_templates,
-    safe_convert,
-)
+from scripts.migrate_json_to_markdown import (ConversionResult, JSONParseError,
+                                              MigrationReport, ValidationError,
+                                              build_markdown,
+                                              convert_json_to_markdown,
+                                              extract_frontmatter_fields,
+                                              migrate_templates, safe_convert)
 
 # Fixtures
 

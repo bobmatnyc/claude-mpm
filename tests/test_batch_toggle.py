@@ -19,11 +19,8 @@ from unittest.mock import MagicMock, Mock, patch
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.cli.commands.configure import (
-    AgentConfig,
-    ConfigureCommand,
-    SimpleAgentManager,
-)
+from claude_mpm.cli.commands.configure import (AgentConfig, ConfigureCommand,
+                                               SimpleAgentManager)
 
 
 class TestResults:
@@ -405,9 +402,9 @@ def test_display_agents_with_pending_states():
                     output = " ".join(call_args)
 
                     # Should show pending count in title
-                    assert "pending" in output.lower() or "change" in output.lower(), (
-                        "Output should contain 'pending' or 'change'"
-                    )
+                    assert (
+                        "pending" in output.lower() or "change" in output.lower()
+                    ), "Output should contain 'pending' or 'change'"
 
                 except AssertionError as ae:
                     # If assertion fails, that's fine - we still call the method successfully

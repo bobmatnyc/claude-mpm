@@ -8,7 +8,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.services.system_instructions_service import SystemInstructionsService
+from claude_mpm.services.system_instructions_service import \
+    SystemInstructionsService
 
 
 class TestSystemInstructionsService:

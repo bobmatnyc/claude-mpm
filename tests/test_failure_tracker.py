@@ -14,14 +14,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from claude_mpm.services.memory.failure_tracker import (
-    FailureEvent,
-    FailureTracker,
-    FixEvent,
-    Learning,
-    get_failure_tracker,
-    reset_failure_tracker,
-)
+from claude_mpm.services.memory.failure_tracker import (FailureEvent,
+                                                        FailureTracker,
+                                                        FixEvent, Learning,
+                                                        get_failure_tracker,
+                                                        reset_failure_tracker)
 
 
 class TestFailureDetection:

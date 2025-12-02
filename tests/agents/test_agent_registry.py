@@ -15,10 +15,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.core.unified_agent_registry import (
-    AgentTier,
-    get_agent_registry,
-)
+from claude_mpm.core.unified_agent_registry import (AgentTier,
+                                                    get_agent_registry)
 
 
 # Skip these tests until agent registry API is stabilized

@@ -14,12 +14,8 @@ The pipeline pattern allows for:
 from .pipeline_builder import DeploymentPipelineBuilder
 from .pipeline_context import PipelineContext
 from .pipeline_executor import DeploymentPipelineExecutor
-from .steps import (
-    BaseDeploymentStep,
-    ConfigurationLoadStep,
-    StepResult,
-    TargetDirectorySetupStep,
-)
+from .steps import (BaseDeploymentStep, ConfigurationLoadStep, StepResult,
+                    TargetDirectorySetupStep)
 
 __all__ = [
     "BaseDeploymentStep",

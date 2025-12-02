@@ -20,14 +20,10 @@ from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 
-from ..config.default_model_config import (
-    DefaultModelConfigManager,
-    get_default_model_for_agent_type,
-)
-from ..config.model_env_defaults import (
-    ModelEnvironmentLoader,
-    get_model_for_agent_from_env,
-)
+from ..config.default_model_config import (DefaultModelConfigManager,
+                                           get_default_model_for_agent_type)
+from ..config.model_env_defaults import (ModelEnvironmentLoader,
+                                         get_model_for_agent_from_env)
 from ..services.model_selector import ModelSelector, ModelType
 
 logger = get_logger(__name__)

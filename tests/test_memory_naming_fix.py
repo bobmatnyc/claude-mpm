@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from claude_mpm.services.agents.memory.memory_file_service import MemoryFileService
+from claude_mpm.services.agents.memory.memory_file_service import \
+    MemoryFileService
 
 
 class TestMemoryFileNaming:

@@ -21,7 +21,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from claude_mpm.core.constants import NetworkConfig, PerformanceConfig, TimeoutConfig
+from claude_mpm.core.constants import (NetworkConfig, PerformanceConfig,
+                                       TimeoutConfig)
 
 try:
     import requests

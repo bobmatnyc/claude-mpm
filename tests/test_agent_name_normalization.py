@@ -8,13 +8,9 @@ lowercase names, aliases, and space-separated names.
 import logging
 import unittest
 
-from claude_mpm.agents.agent_loader import (
-    get_agent_prompt,
-    get_agent_prompt_with_model_info,
-)
-from claude_mpm.core.agent_name_normalizer import (
-    AgentNameNormalizer,
-)
+from claude_mpm.agents.agent_loader import (get_agent_prompt,
+                                            get_agent_prompt_with_model_info)
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
 # Configure logging for tests
 logging.basicConfig(level=logging.DEBUG)

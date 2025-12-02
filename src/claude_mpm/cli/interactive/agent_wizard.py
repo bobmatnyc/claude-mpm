@@ -12,15 +12,21 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.local_template_manager import (
-    LocalAgentTemplate,
-    LocalAgentTemplateManager,
-)
+    LocalAgentTemplate, LocalAgentTemplateManager)
 
 logger = get_logger(__name__)
 
 
 class AgentWizard:
-    """Interactive wizard for agent creation and management."""
+    """
+    Interactive wizard for agent creation and management.
+
+    DEPRECATED: This interface has been superseded by the unified
+    configuration interface. Please use 'claude-mpm config' instead.
+
+    This class is retained for backward compatibility but will be
+    removed in a future version.
+    """
 
     def __init__(self):
         """Initialize the agent wizard."""
@@ -29,7 +35,8 @@ class AgentWizard:
 
         # Initialize remote discovery services
         try:
-            from claude_mpm.services.agents.git_source_manager import GitSourceManager
+            from claude_mpm.services.agents.git_source_manager import \
+                GitSourceManager
 
             self.source_manager = GitSourceManager()
             self.discovery_enabled = True
@@ -474,7 +481,8 @@ class AgentWizard:
         """Let user select a system agent to inherit from."""
         try:
             # Get available system agents
-            from claude_mpm.services.agents.agent_builder import AgentBuilderService
+            from claude_mpm.services.agents.agent_builder import \
+                AgentBuilderService
 
             builder = AgentBuilderService()
             templates = builder.list_available_templates()
@@ -803,9 +811,8 @@ class AgentWizard:
     def _deploy_single_agent(self, template: LocalAgentTemplate) -> Tuple[bool, str]:
         """Deploy a single agent."""
         try:
-            from claude_mpm.services.agents.deployment.local_template_deployment import (
-                LocalTemplateDeploymentService,
-            )
+            from claude_mpm.services.agents.deployment.local_template_deployment import \
+                LocalTemplateDeploymentService
 
             service = LocalTemplateDeploymentService()
             success = service.deploy_single_local_template(
@@ -1102,18 +1109,14 @@ class AgentWizard:
 
             try:
                 # Use SingleAgentDeployer for deployment
-                from claude_mpm.services.agents.deployment.agent_template_builder import (
-                    AgentTemplateBuilder,
-                )
-                from claude_mpm.services.agents.deployment.agent_version_manager import (
-                    AgentVersionManager,
-                )
-                from claude_mpm.services.agents.deployment.deployment_results_manager import (
-                    DeploymentResultsManager,
-                )
-                from claude_mpm.services.agents.deployment.single_agent_deployer import (
-                    SingleAgentDeployer,
-                )
+                from claude_mpm.services.agents.deployment.agent_template_builder import \
+                    AgentTemplateBuilder
+                from claude_mpm.services.agents.deployment.agent_version_manager import \
+                    AgentVersionManager
+                from claude_mpm.services.agents.deployment.deployment_results_manager import \
+                    DeploymentResultsManager
+                from claude_mpm.services.agents.deployment.single_agent_deployer import \
+                    SingleAgentDeployer
 
                 # Initialize deployment services
                 template_builder = AgentTemplateBuilder()
@@ -1248,9 +1251,8 @@ class AgentWizard:
 
                 try:
                     # Find AUTO-DEPLOY-INDEX.md in agent repository
-                    from claude_mpm.services.agents.auto_deploy_index_parser import (
-                        AutoDeployIndexParser,
-                    )
+                    from claude_mpm.services.agents.auto_deploy_index_parser import \
+                        AutoDeployIndexParser
 
                     index_path = (
                         Path.home()
@@ -1293,9 +1295,8 @@ class AgentWizard:
                 ).strip()
 
                 try:
-                    from claude_mpm.services.agents.auto_deploy_index_parser import (
-                        AutoDeployIndexParser,
-                    )
+                    from claude_mpm.services.agents.auto_deploy_index_parser import \
+                        AutoDeployIndexParser
 
                     index_path = (
                         Path.home()
@@ -1419,18 +1420,14 @@ class AgentWizard:
             else:
                 print(f"\n🚀 Deploying {agent['agent_id']}...")
 
-                from claude_mpm.services.agents.deployment.agent_template_builder import (
-                    AgentTemplateBuilder,
-                )
-                from claude_mpm.services.agents.deployment.agent_version_manager import (
-                    AgentVersionManager,
-                )
-                from claude_mpm.services.agents.deployment.deployment_results_manager import (
-                    DeploymentResultsManager,
-                )
-                from claude_mpm.services.agents.deployment.single_agent_deployer import (
-                    SingleAgentDeployer,
-                )
+                from claude_mpm.services.agents.deployment.agent_template_builder import \
+                    AgentTemplateBuilder
+                from claude_mpm.services.agents.deployment.agent_version_manager import \
+                    AgentVersionManager
+                from claude_mpm.services.agents.deployment.deployment_results_manager import \
+                    DeploymentResultsManager
+                from claude_mpm.services.agents.deployment.single_agent_deployer import \
+                    SingleAgentDeployer
 
                 # Initialize deployment services
                 template_builder = AgentTemplateBuilder()
@@ -1527,7 +1524,8 @@ class AgentWizard:
 
     def _deploy_preset_interactive(self):
         """Interactive preset deployment with preview and confirmation."""
-        from claude_mpm.services.agents.agent_preset_service import AgentPresetService
+        from claude_mpm.services.agents.agent_preset_service import \
+            AgentPresetService
 
         if not self.source_manager:
             print("\n❌ Source manager not available")
@@ -1636,18 +1634,14 @@ class AgentWizard:
                 if confirm.lower() == "y":
                     print(f"\n🚀 Deploying preset '{preset_name}'...\n")
 
-                    from claude_mpm.services.agents.deployment.agent_template_builder import (
-                        AgentTemplateBuilder,
-                    )
-                    from claude_mpm.services.agents.deployment.agent_version_manager import (
-                        AgentVersionManager,
-                    )
-                    from claude_mpm.services.agents.deployment.deployment_results_manager import (
-                        DeploymentResultsManager,
-                    )
-                    from claude_mpm.services.agents.deployment.single_agent_deployer import (
-                        SingleAgentDeployer,
-                    )
+                    from claude_mpm.services.agents.deployment.agent_template_builder import \
+                        AgentTemplateBuilder
+                    from claude_mpm.services.agents.deployment.agent_version_manager import \
+                        AgentVersionManager
+                    from claude_mpm.services.agents.deployment.deployment_results_manager import \
+                        DeploymentResultsManager
+                    from claude_mpm.services.agents.deployment.single_agent_deployer import \
+                        SingleAgentDeployer
 
                     # Initialize deployment services once for all agents
                     template_builder = AgentTemplateBuilder()
@@ -1762,7 +1756,8 @@ class AgentWizard:
         print("=" * 60)
 
         try:
-            from claude_mpm.config.agent_sources import AgentSourceConfiguration
+            from claude_mpm.config.agent_sources import \
+                AgentSourceConfiguration
 
             config = AgentSourceConfiguration()
             sources = config.list_sources()

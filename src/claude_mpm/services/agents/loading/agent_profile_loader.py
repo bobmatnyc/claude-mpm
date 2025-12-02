@@ -34,7 +34,8 @@ from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.agents.registry import AgentRegistry
-from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import \
+    SharedPromptCache
 
 logger = get_logger(__name__)
 

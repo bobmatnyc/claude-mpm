@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import List
 
 from ...config.agent_sources import AgentSourceConfiguration
-from ...services.agents.sources.git_source_sync_service import GitSourceSyncService
+from ...services.agents.sources.git_source_sync_service import \
+    GitSourceSyncService
 
 logger = logging.getLogger(__name__)
 

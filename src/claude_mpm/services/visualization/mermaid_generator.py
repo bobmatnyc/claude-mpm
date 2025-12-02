@@ -307,8 +307,9 @@ class MermaidGeneratorService(SyncBaseService):
                         import_from = imp.get("from", imp.get("module", ""))
                         if import_from:
                             import_name = self._extract_module_name(import_from)
-                            if not config.include_external and self._is_external_module(
-                                import_name
+                            if (
+                                not config.include_external
+                                and self._is_external_module(import_name)
                             ):
                                 continue
                             modules.add(import_name)
