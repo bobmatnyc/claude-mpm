@@ -51,6 +51,8 @@ class ConfigureCommand(BaseCommand):
             ("pointer", "fg:#ffd700 bold"),            # Gold/yellow - highly visible pointer
             ("highlighted", "fg:#e0e0e0"),             # Light gray - clear hover state
             ("question", "fg:#e0e0e0 bold"),           # Light gray bold - prominent questions
+            ("checkbox", "fg:#00ff00"),                # Green - for checked boxes
+            ("checkbox-selected", "fg:#00ff00 bold"),  # Green bold - for checked selected boxes
         ]
     )
 
@@ -1055,6 +1057,12 @@ class ConfigureCommand(BaseCommand):
                 # Extract leaf name from full path for comparison with deployed_ids
                 agent_leaf_name = agent.name.split("/")[-1]
                 is_deployed = agent_leaf_name in deployed_ids
+
+                # Debug: log deployment check
+                self.logger.debug(
+                    f"Agent {agent.name} → leaf={agent_leaf_name} → "
+                    f"deployed={is_deployed}"
+                )
 
                 # Simple format: "agent/path - Display Name [Status]"
                 choice_text = f"{agent.name}"
