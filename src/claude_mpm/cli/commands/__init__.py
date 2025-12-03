@@ -19,6 +19,7 @@ from .info import show_info
 from .mcp import manage_mcp
 from .memory import manage_memory
 from .monitor import manage_monitor
+from .postmortem import run_postmortem
 from .run import run_session
 from .skills import manage_skills
 from .tickets import list_tickets, manage_tickets
@@ -41,6 +42,7 @@ __all__ = [
     # 'run_guarded_session',  # Excluded from default exports (experimental)
     "manage_tickets",
     "run_doctor",
+    "run_postmortem",
     "run_session",
     "show_info",
 ]

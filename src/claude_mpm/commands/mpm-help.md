@@ -72,6 +72,9 @@ Available Commands:
 /mpm-doctor [--fix] [--verbose]
   Diagnose and fix common issues
 
+/mpm-postmortem [--auto-fix] [--create-prs]
+  Analyze session errors and suggest improvements
+
 /mpm-agents [list|deploy|remove] [name]
   Manage agent deployment
 
