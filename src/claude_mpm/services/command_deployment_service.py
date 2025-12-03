@@ -20,6 +20,16 @@ from claude_mpm.core.logger import get_logger
 class CommandDeploymentService(BaseService):
     """Service for deploying MPM slash commands."""
 
+    # Deprecated commands that have been replaced (cleanup on startup)
+    DEPRECATED_COMMANDS = [
+        "mpm-agents.md",  # Replaced by mpm-agents-list.md
+        "mpm-auto-configure.md",  # Replaced by mpm-agents-auto-configure.md
+        "mpm-config.md",  # Replaced by mpm-config-view.md
+        "mpm-organize.md",  # Replaced by mpm-ticket-organize.md
+        "mpm-resume.md",  # Replaced by mpm-session-resume.md
+        "mpm-ticket.md",  # Replaced by mpm-ticket-view.md
+    ]
+
     def __init__(self):
         """Initialize the command deployment service."""
         super().__init__(name="command_deployment")
@@ -252,21 +262,84 @@ class CommandDeploymentService(BaseService):
 
         return removed
 
+    def remove_deprecated_commands(self) -> int:
+        """Remove deprecated MPM commands that have been replaced.
+
+        This method cleans up old command files that have been superseded by
+        new hierarchical command names. It's called automatically on startup
+        to ensure users don't have both old and new versions.
+
+        Returns:
+            Number of deprecated files removed
+        """
+        if not self.target_dir.exists():
+            self.logger.debug(
+                f"Target directory does not exist: {self.target_dir}, skipping deprecated command cleanup"
+            )
+            return 0
+
+        removed = 0
+        self.logger.info("Cleaning up deprecated commands...")
+
+        # Mapping of deprecated commands to their replacements for informative logging
+        replacement_map = {
+            "mpm-agents.md": "mpm-agents-list.md",
+            "mpm-auto-configure.md": "mpm-agents-auto-configure.md",
+            "mpm-config.md": "mpm-config-view.md",
+            "mpm-organize.md": "mpm-ticket-organize.md",
+            "mpm-resume.md": "mpm-session-resume.md",
+            "mpm-ticket.md": "mpm-ticket-view.md",
+        }
+
+        for deprecated_cmd in self.DEPRECATED_COMMANDS:
+            deprecated_file = self.target_dir / deprecated_cmd
+            replacement = replacement_map.get(deprecated_cmd, "a newer command")
+
+            if deprecated_file.exists():
+                try:
+                    deprecated_file.unlink()
+                    self.logger.debug(
+                        f"Removed deprecated command: {deprecated_cmd} (replaced by {replacement})"
+                    )
+                    removed += 1
+                except Exception as e:
+                    # Log error but don't fail startup - this is non-critical
+                    self.logger.warning(
+                        f"Failed to remove deprecated command {deprecated_cmd}: {e}"
+                    )
+
+        if removed > 0:
+            self.logger.info(f"Removed {removed} deprecated command(s)")
+        else:
+            self.logger.debug("No deprecated commands found to remove")
+
+        return removed
+
 
 def deploy_commands_on_startup(force: bool = False) -> None:
     """Convenience function to deploy commands during startup.
+
+    This function:
+    1. Removes deprecated commands that have been replaced
+    2. Deploys current command files
 
     Args:
         force: Force deployment even if files exist
     """
     service = CommandDeploymentService()
+    logger = get_logger("startup")
+
+    # Clean up deprecated commands BEFORE deploying new ones
+    removed_count = service.remove_deprecated_commands()
+    if removed_count > 0:
+        logger.info(f"Cleaned up {removed_count} deprecated command(s)")
+
+    # Deploy current commands
     result = service.deploy_commands(force=force)
 
     if result["deployed"]:
-        logger = get_logger("startup")
         logger.info(f"MPM commands deployed: {', '.join(result['deployed'])}")
 
     if result["errors"]:
-        logger = get_logger("startup")
         for error in result["errors"]:
             logger.warning(f"Command deployment issue: {error}")
