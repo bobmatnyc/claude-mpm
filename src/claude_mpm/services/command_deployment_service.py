@@ -7,7 +7,6 @@ This service handles:
 4. Parsing and validating YAML frontmatter for namespace metadata (Phase 1 - 1M-400)
 """
 
-import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
