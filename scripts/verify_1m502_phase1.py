@@ -44,7 +44,9 @@ def test_base_agent_filtering():
     for agent_id, expected in test_cases:
         result = is_base_agent(agent_id)
         status = "✅" if result == expected else "❌"
-        print(f"  {status} is_base_agent('{agent_id}') = {result} (expected {expected})")
+        print(
+            f"  {status} is_base_agent('{agent_id}') = {result} (expected {expected})"
+        )
         if result == expected:
             passed += 1
 
@@ -65,14 +67,14 @@ def test_agent_list_filtering():
 
     filtered = filter_base_agents(agents)
 
-    base_agent_found = any(
-        is_base_agent(a.get("agent_id", "")) for a in filtered
-    )
+    base_agent_found = any(is_base_agent(a.get("agent_id", "")) for a in filtered)
 
     if base_agent_found:
         print("  ❌ BASE_AGENT found in filtered list!")
         return False
-    print(f"  ✅ BASE_AGENT successfully filtered ({len(agents)} → {len(filtered)} agents)")
+    print(
+        f"  ✅ BASE_AGENT successfully filtered ({len(agents)} → {len(filtered)} agents)"
+    )
     return True
 
 
@@ -111,10 +113,12 @@ def test_integration_imports():
     try:
         # Test agent_wizard import
         from claude_mpm.cli.interactive.agent_wizard import AgentWizard
+
         print("  ✅ agent_wizard.py imports successful")
 
         # Test configure import
         from claude_mpm.cli.commands.configure import ConfigureCommand
+
         print("  ✅ configure.py imports successful")
 
         return True

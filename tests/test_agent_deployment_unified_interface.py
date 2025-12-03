@@ -40,37 +40,42 @@ class TestUnifiedAgentDeploymentInterface:
         """Create sample agent configurations."""
         return [
             AgentConfig(
-                name="engineer",
-                description="Engineering agent",
-                dependencies=[]
+                name="engineer", description="Engineering agent", dependencies=[]
             ),
+            AgentConfig(name="qa", description="QA agent", dependencies=[]),
             AgentConfig(
-                name="qa",
-                description="QA agent",
-                dependencies=[]
-            ),
-            AgentConfig(
-                name="pm",
-                description="Project Manager agent",
-                dependencies=[]
+                name="pm", description="Project Manager agent", dependencies=[]
             ),
             AgentConfig(
                 name="BASE_AGENT",
                 description="Build tool (should be filtered)",
-                dependencies=[]
+                dependencies=[],
             ),
         ]
 
     def test_filters_base_agent(self, configure_command, sample_agents):
         """Test that BASE_AGENT is filtered from display."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             # Mock filter_base_agents to remove BASE_AGENT
             mock_filter.return_value = [
-                {"agent_id": "engineer", "name": "engineer", "description": "Engineering agent", "deployed": False},
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
-                {"agent_id": "pm", "name": "pm", "description": "Project Manager agent", "deployed": False},
+                {
+                    "agent_id": "engineer",
+                    "name": "engineer",
+                    "description": "Engineering agent",
+                    "deployed": False,
+                },
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
+                {
+                    "agent_id": "pm",
+                    "name": "pm",
+                    "description": "Project Manager agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -91,13 +96,26 @@ class TestUnifiedAgentDeploymentInterface:
         self, configure_command, sample_agents
     ):
         """Test that deployed agents are shown and pre-selected."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "engineer", "name": "engineer", "description": "Engineering agent", "deployed": True},
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
-                {"agent_id": "pm", "name": "pm", "description": "Project Manager agent", "deployed": False},
+                {
+                    "agent_id": "engineer",
+                    "name": "engineer",
+                    "description": "Engineering agent",
+                    "deployed": True,
+                },
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
+                {
+                    "agent_id": "pm",
+                    "name": "pm",
+                    "description": "Project Manager agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -138,15 +156,16 @@ class TestUnifiedAgentDeploymentInterface:
         assert to_deploy == {"qa", "pm"}
         assert to_remove == {"engineer"}
 
-    def test_deploys_selected_undeployed_agents(
-        self, configure_command, sample_agents
-    ):
+    def test_deploys_selected_undeployed_agents(self, configure_command, sample_agents):
         """Test that newly selected agents are deployed."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -157,27 +176,32 @@ class TestUnifiedAgentDeploymentInterface:
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
                     mock_q.checkbox.return_value.ask.return_value = ["qa"]
 
-                    with patch("claude_mpm.cli.commands.configure.Confirm") as mock_confirm:
+                    with patch(
+                        "claude_mpm.cli.commands.configure.Confirm"
+                    ) as mock_confirm:
                         mock_confirm.ask.return_value = True
 
                         with patch.object(
                             configure_command, "_deploy_single_agent", return_value=True
                         ) as mock_deploy:
                             with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(sample_agents)
+                                configure_command._deploy_agents_individual(
+                                    sample_agents
+                                )
 
                             # Verify deploy was called for qa
                             assert mock_deploy.call_count >= 1
 
-    def test_removes_unselected_deployed_agents(
-        self, configure_command, sample_agents
-    ):
+    def test_removes_unselected_deployed_agents(self, configure_command, sample_agents):
         """Test that unselected deployed agents are removed."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "engineer", "name": "engineer", "description": "Engineering agent", "deployed": True},
+                {
+                    "agent_id": "engineer",
+                    "name": "engineer",
+                    "description": "Engineering agent",
+                    "deployed": True,
+                },
             ]
 
             with patch(
@@ -186,12 +210,18 @@ class TestUnifiedAgentDeploymentInterface:
                 mock_deployed.return_value = {"engineer"}  # Engineer deployed
 
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = []  # User deselects all
+                    mock_q.checkbox.return_value.ask.return_value = (
+                        []
+                    )  # User deselects all
 
-                    with patch("claude_mpm.cli.commands.configure.Confirm") as mock_confirm:
+                    with patch(
+                        "claude_mpm.cli.commands.configure.Confirm"
+                    ) as mock_confirm:
                         mock_confirm.ask.return_value = True
 
-                        with patch("claude_mpm.cli.commands.configure.Path") as mock_path_cls:
+                        with patch(
+                            "claude_mpm.cli.commands.configure.Path"
+                        ) as mock_path_cls:
                             mock_file = Mock()
                             mock_file.exists.return_value = True
                             mock_file.unlink = Mock()
@@ -200,18 +230,23 @@ class TestUnifiedAgentDeploymentInterface:
                             mock_path_cls.home.return_value = Mock()
 
                             with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(sample_agents)
+                                configure_command._deploy_agents_individual(
+                                    sample_agents
+                                )
 
     def test_simple_text_format(self, configure_command, sample_agents):
         """Test that agent choices use simple 'agent/path - Display Name' format."""
         # Add display name to test agent
         sample_agents[0].display_name = "Backend Engineer"
 
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "engineer", "name": "engineer", "description": "Engineering agent", "deployed": False},
+                {
+                    "agent_id": "engineer",
+                    "name": "engineer",
+                    "description": "Engineering agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -237,11 +272,14 @@ class TestUnifiedAgentDeploymentInterface:
 
     def test_confirmation_before_changes(self, configure_command, sample_agents):
         """Test that user is asked to confirm changes."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -252,7 +290,9 @@ class TestUnifiedAgentDeploymentInterface:
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
                     mock_q.checkbox.return_value.ask.return_value = ["qa"]
 
-                    with patch("claude_mpm.cli.commands.configure.Confirm") as mock_confirm:
+                    with patch(
+                        "claude_mpm.cli.commands.configure.Confirm"
+                    ) as mock_confirm:
                         mock_confirm.ask.return_value = False  # User cancels
 
                         with patch("claude_mpm.cli.commands.configure.Prompt"):
@@ -263,11 +303,14 @@ class TestUnifiedAgentDeploymentInterface:
 
     def test_handles_esc_gracefully(self, configure_command, sample_agents):
         """Test that Esc (None return) is handled gracefully."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -276,7 +319,9 @@ class TestUnifiedAgentDeploymentInterface:
                 mock_deployed.return_value = set()
 
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = None  # User pressed Esc
+                    mock_q.checkbox.return_value.ask.return_value = (
+                        None  # User pressed Esc
+                    )
 
                     with patch("claude_mpm.cli.commands.configure.Prompt"):
                         # Should not raise exception
@@ -289,11 +334,14 @@ class TestUnifiedAgentDeploymentInterface:
 
     def test_shows_summary_after_changes(self, configure_command, sample_agents):
         """Test that summary is shown after deploy/remove operations."""
-        with patch(
-            "claude_mpm.utils.agent_filters.filter_base_agents"
-        ) as mock_filter:
+        with patch("claude_mpm.utils.agent_filters.filter_base_agents") as mock_filter:
             mock_filter.return_value = [
-                {"agent_id": "qa", "name": "qa", "description": "QA agent", "deployed": False},
+                {
+                    "agent_id": "qa",
+                    "name": "qa",
+                    "description": "QA agent",
+                    "deployed": False,
+                },
             ]
 
             with patch(
@@ -304,20 +352,27 @@ class TestUnifiedAgentDeploymentInterface:
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
                     mock_q.checkbox.return_value.ask.return_value = ["qa"]
 
-                    with patch("claude_mpm.cli.commands.configure.Confirm") as mock_confirm:
+                    with patch(
+                        "claude_mpm.cli.commands.configure.Confirm"
+                    ) as mock_confirm:
                         mock_confirm.ask.return_value = True
 
                         with patch.object(
                             configure_command, "_deploy_single_agent", return_value=True
                         ):
                             with patch("claude_mpm.cli.commands.configure.Prompt"):
-                                configure_command._deploy_agents_individual(sample_agents)
+                                configure_command._deploy_agents_individual(
+                                    sample_agents
+                                )
 
                             # Check that summary was printed
                             calls = [
-                                str(call) for call in configure_command.console.print.call_args_list
+                                str(call)
+                                for call in configure_command.console.print.call_args_list
                             ]
-                            summary_calls = [c for c in calls if "Deployed" in c or "✓" in c]
+                            summary_calls = [
+                                c for c in calls if "Deployed" in c or "✓" in c
+                            ]
                             assert len(summary_calls) > 0
 
 

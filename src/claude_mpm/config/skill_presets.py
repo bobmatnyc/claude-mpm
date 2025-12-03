@@ -37,22 +37,27 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "skills": CORE_SKILLS,
         "use_cases": ["Any project type", "Quick start", "Learning"],
     },
-
     # ========================================
     # Python Toolchain Presets
     # ========================================
     "python-min": {
         "description": "Python essentials (4 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-python-testing-pytest",
             "toolchains-python-async-asyncio",
             "toolchains-python-tooling-mypy",
         ],
-        "use_cases": ["Python scripts", "Small Python projects", "FastAPI microservices"],
+        "use_cases": [
+            "Python scripts",
+            "Small Python projects",
+            "FastAPI microservices",
+        ],
     },
     "python-max": {
         "description": "Full Python skill stack (8+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-python-frameworks-flask",
             "toolchains-python-testing-pytest",
             "toolchains-python-async-asyncio",
@@ -63,13 +68,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["FastAPI production", "Django projects", "Python APIs at scale"],
     },
-
     # ========================================
     # JavaScript/TypeScript Toolchain Presets
     # ========================================
     "javascript-min": {
         "description": "Node.js essentials (3 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-react",
             "toolchains-javascript-tooling-biome",
         ],
@@ -77,7 +82,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "javascript-max": {
         "description": "Full Node.js skill stack (7+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-react",
             "toolchains-javascript-frameworks-vue",
             "toolchains-javascript-tooling-biome",
@@ -87,13 +93,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Express.js production", "Fastify", "Koa", "Enterprise Node.js"],
     },
-
     # ========================================
     # React Toolchain Presets
     # ========================================
     "react-min": {
         "description": "React essentials (3 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-react",
             "toolchains-typescript-core",
         ],
@@ -101,7 +107,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "react-max": {
         "description": "Full React skill stack (8+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-react",
             "toolchains-javascript-frameworks-react-state-machine",
             "toolchains-typescript-core",
@@ -110,15 +117,19 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "universal-testing-testing-anti-patterns",
             "universal-architecture-software-patterns",
         ],
-        "use_cases": ["React production apps", "Component systems", "Frontend at scale"],
+        "use_cases": [
+            "React production apps",
+            "Component systems",
+            "Frontend at scale",
+        ],
     },
-
     # ========================================
     # Next.js Toolchain Presets
     # ========================================
     "nextjs-min": {
         "description": "Next.js essentials (4 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-nextjs-core",
             "toolchains-javascript-frameworks-react",
             "toolchains-typescript-core",
@@ -127,7 +138,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "nextjs-max": {
         "description": "Full Next.js skill stack (10+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-nextjs-core",
             "toolchains-nextjs-v16",
             "toolchains-javascript-frameworks-react",
@@ -140,13 +152,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Next.js production", "Enterprise apps", "Full-stack at scale"],
     },
-
     # ========================================
     # TypeScript/Data Toolchain Presets
     # ========================================
     "typescript-min": {
         "description": "TypeScript essentials (3 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-typescript-core",
             "toolchains-typescript-testing-vitest",
         ],
@@ -154,7 +166,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "typescript-max": {
         "description": "Full TypeScript skill stack (8+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-typescript-core",
             "toolchains-typescript-testing-vitest",
             "toolchains-typescript-testing-jest",
@@ -165,93 +178,105 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Enterprise TypeScript", "Full-stack apps", "Type-safe APIs"],
     },
-
     # ========================================
     # Rust Toolchain Presets
     # ========================================
     "rust-min": {
         "description": "Rust essentials (2 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-rust-desktop-applications",
         ],
         "use_cases": ["Rust CLI tools", "Systems programming", "WebAssembly"],
     },
     "rust-max": {
         "description": "Full Rust skill stack (4+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-rust-desktop-applications",
             "toolchains-rust-frameworks-tauri",
             "universal-architecture-software-patterns",
         ],
-        "use_cases": ["Rust production systems", "Performance-critical apps", "Safe systems"],
+        "use_cases": [
+            "Rust production systems",
+            "Performance-critical apps",
+            "Safe systems",
+        ],
     },
-
     # ========================================
     # WordPress Toolchain Presets
     # ========================================
     "wordpress-min": {
         "description": "WordPress essentials (2 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-php-frameworks-wordpress-plugin-fundamentals",
         ],
-        "use_cases": ["WordPress plugins", "Theme customization", "Quick WordPress dev"],
+        "use_cases": [
+            "WordPress plugins",
+            "Theme customization",
+            "Quick WordPress dev",
+        ],
     },
     "wordpress-max": {
         "description": "Full WordPress skill stack (3+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-php-frameworks-wordpress-plugin-fundamentals",
             "toolchains-php-frameworks-wordpress-block-editor",
             "toolchains-php-frameworks-espocrm",
         ],
         "use_cases": ["WordPress production", "Block themes", "Custom blocks", "FSE"],
     },
-
     # ========================================
     # AI/MCP Toolchain Presets
     # ========================================
     "ai-min": {
         "description": "AI essentials (2 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-ai-protocols-mcp",
         ],
         "use_cases": ["MCP servers", "Claude integrations", "AI tools"],
     },
     "ai-max": {
         "description": "Full AI skill stack (3+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-ai-protocols-mcp",
             "toolchains-ai-services-openrouter",
             "universal-main-artifacts-builder",
         ],
         "use_cases": ["Multi-model AI apps", "Claude Desktop extensions", "AI tooling"],
     },
-
     # ========================================
     # Svelte Toolchain Presets
     # ========================================
     "svelte-min": {
         "description": "Svelte essentials (2 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-svelte",
         ],
         "use_cases": ["Svelte apps", "Reactive UIs", "Minimal JavaScript"],
     },
     "svelte-max": {
         "description": "Full Svelte skill stack (3+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "toolchains-javascript-frameworks-svelte",
             "toolchains-javascript-frameworks-sveltekit",
             "toolchains-typescript-core",
         ],
         "use_cases": ["SvelteKit production", "Full-stack Svelte", "SSR/SSG apps"],
     },
-
     # ========================================
     # Universal/Testing Toolchain Presets
     # ========================================
     "testing-min": {
         "description": "Testing essentials (3 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "universal-testing-testing-anti-patterns",
             "universal-testing-condition-based-waiting",
         ],
@@ -259,7 +284,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "testing-max": {
         "description": "Full testing skill stack (6+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "universal-testing-testing-anti-patterns",
             "universal-testing-condition-based-waiting",
             "universal-debugging-verification-before-completion",
@@ -269,20 +295,21 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Comprehensive testing", "Test automation", "Quality assurance"],
     },
-
     # ========================================
     # Collaboration Toolchain Presets
     # ========================================
     "collaboration-min": {
         "description": "Collaboration essentials (2 skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "universal-collaboration-brainstorming",
         ],
         "use_cases": ["Idea refinement", "Design thinking", "Feature planning"],
     },
     "collaboration-max": {
         "description": "Full collaboration skill stack (4+ skills)",
-        "skills": CORE_SKILLS + [
+        "skills": CORE_SKILLS
+        + [
             "universal-collaboration-brainstorming",
             "universal-collaboration-writing-plans",
             "universal-collaboration-requesting-code-review",

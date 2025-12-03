@@ -26,11 +26,11 @@ PresetResolver = Union[List[str], Callable[[], List[str]]]
 
 # Core agents included in ALL presets (MIN and MAX)
 CORE_AGENTS = [
-    "claude-mpm/mpm-agent-manager",    # Agent lifecycle management
-    "claude-mpm/mpm-skills-manager",   # Skills management
-    "universal/research",               # Codebase investigation
-    "documentation/documentation",      # Documentation generation
-    "engineer/core/engineer",           # General-purpose engineering
+    "claude-mpm/mpm-agent-manager",  # Agent lifecycle management
+    "claude-mpm/mpm-skills-manager",  # Skills management
+    "universal/research",  # Codebase investigation
+    "documentation/documentation",  # Documentation generation
+    "engineer/core/engineer",  # General-purpose engineering
 ]
 
 PRESETS: Dict[str, Dict[str, Any]] = {
@@ -39,28 +39,34 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     # ========================================
     "minimal": {
         "description": "Core agents only - universal starter kit",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "qa/qa",
             "ops/core/ops",
         ],
         "use_cases": ["Any project type", "Quick start", "Learning"],
     },
-
     # ========================================
     # Python Toolchain Presets
     # ========================================
     "python-min": {
         "description": "Python essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/python-engineer",
             "qa/qa",
             "ops/core/ops",
         ],
-        "use_cases": ["Python scripts", "Small Python projects", "FastAPI microservices"],
+        "use_cases": [
+            "Python scripts",
+            "Small Python projects",
+            "FastAPI microservices",
+        ],
     },
     "python-max": {
         "description": "Full Python development stack (14+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/python-engineer",
             "universal/code-analyzer",
             "universal/memory-manager",
@@ -73,13 +79,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["FastAPI production", "Django projects", "Python APIs at scale"],
     },
-
     # ========================================
     # JavaScript/TypeScript Toolchain Presets
     # ========================================
     "javascript-min": {
         "description": "Node.js essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/javascript-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -88,7 +94,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "javascript-max": {
         "description": "Full Node.js development stack (13+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/javascript-engineer",
             "engineer/data/typescript-engineer",
             "universal/code-analyzer",
@@ -100,13 +107,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Express.js production", "Fastify", "Koa", "Enterprise Node.js"],
     },
-
     # ========================================
     # React Toolchain Presets
     # ========================================
     "react-min": {
         "description": "React essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/react-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -115,7 +122,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "react-max": {
         "description": "Full React development stack (12+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
             "universal/code-analyzer",
@@ -124,15 +132,19 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["React production apps", "Component systems", "Frontend at scale"],
+        "use_cases": [
+            "React production apps",
+            "Component systems",
+            "Frontend at scale",
+        ],
     },
-
     # ========================================
     # Next.js Toolchain Presets
     # ========================================
     "nextjs-min": {
         "description": "Next.js essentials (9 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/nextjs-engineer",
             "engineer/frontend/react-engineer",
             "qa/qa",
@@ -142,7 +154,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "nextjs-max": {
         "description": "Full Next.js development stack (15+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/nextjs-engineer",
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
@@ -158,13 +171,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Next.js production", "Enterprise apps", "Full-stack at scale"],
     },
-
     # ========================================
     # Go Toolchain Presets
     # ========================================
     "golang-min": {
         "description": "Go essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/golang-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -173,7 +186,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "golang-max": {
         "description": "Full Go development stack (12+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/golang-engineer",
             "universal/code-analyzer",
             "qa/qa",
@@ -182,15 +196,19 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "security/security",
             "documentation/ticketing",
         ],
-        "use_cases": ["Go production APIs", "Cloud-native apps", "Microservices at scale"],
+        "use_cases": [
+            "Go production APIs",
+            "Cloud-native apps",
+            "Microservices at scale",
+        ],
     },
-
     # ========================================
     # Rust Toolchain Presets
     # ========================================
     "rust-min": {
         "description": "Rust essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/rust-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -199,7 +217,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "rust-max": {
         "description": "Full Rust development stack (11+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/rust-engineer",
             "universal/code-analyzer",
             "qa/qa",
@@ -207,24 +226,33 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "security/security",
             "documentation/ticketing",
         ],
-        "use_cases": ["Rust production systems", "Performance-critical apps", "Safe systems"],
+        "use_cases": [
+            "Rust production systems",
+            "Performance-critical apps",
+            "Safe systems",
+        ],
     },
-
     # ========================================
     # Java Toolchain Presets
     # ========================================
     "java-min": {
         "description": "Java essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/java-engineer",
             "qa/qa",
             "ops/core/ops",
         ],
-        "use_cases": ["Spring Boot basics", "Java microservices", "Small Java projects"],
+        "use_cases": [
+            "Spring Boot basics",
+            "Java microservices",
+            "Small Java projects",
+        ],
     },
     "java-max": {
         "description": "Full Java development stack (13+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/java-engineer",
             "universal/code-analyzer",
             "qa/qa",
@@ -234,15 +262,19 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "documentation/ticketing",
             "refactoring/refactoring-engineer",
         ],
-        "use_cases": ["Spring Boot production", "Enterprise Java", "Microservices at scale"],
+        "use_cases": [
+            "Spring Boot production",
+            "Enterprise Java",
+            "Microservices at scale",
+        ],
     },
-
     # ========================================
     # Mobile/Flutter Toolchain Presets
     # ========================================
     "flutter-min": {
         "description": "Flutter essentials (8 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/mobile/dart-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -251,7 +283,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "flutter-max": {
         "description": "Full Flutter development stack (12+ agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/mobile/dart-engineer",
             "universal/code-analyzer",
             "qa/qa",
@@ -262,13 +295,13 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         ],
         "use_cases": ["Flutter production", "iOS/Android apps", "Enterprise mobile"],
     },
-
     # ========================================
     # Legacy Presets (kept for backward compatibility)
     # ========================================
     "python-dev": {
         "description": "Python backend (LEGACY - use python-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/python-engineer",
             "qa/qa",
             "qa/api-qa",
@@ -279,7 +312,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "javascript-backend": {
         "description": "Node.js backend (LEGACY - use javascript-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/javascript-engineer",
             "qa/qa",
             "qa/api-qa",
@@ -290,7 +324,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "react-dev": {
         "description": "React development (LEGACY - use react-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
             "qa/qa",
@@ -302,7 +337,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "nextjs-fullstack": {
         "description": "Next.js full-stack (LEGACY - use nextjs-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/frontend/nextjs-engineer",
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
@@ -317,7 +353,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "rust-dev": {
         "description": "Rust development (LEGACY - use rust-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/rust-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -327,7 +364,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "golang-dev": {
         "description": "Go development (LEGACY - use golang-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/golang-engineer",
             "qa/qa",
             "qa/api-qa",
@@ -338,7 +376,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "java-dev": {
         "description": "Java/Spring Boot (LEGACY - use java-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/java-engineer",
             "qa/qa",
             "qa/api-qa",
@@ -350,7 +389,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "mobile-flutter": {
         "description": "Flutter mobile (LEGACY - use flutter-max)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/mobile/dart-engineer",
             "qa/qa",
             "ops/core/ops",
@@ -361,7 +401,8 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     },
     "data-eng": {
         "description": "Data engineering stack (12 agents)",
-        "agents": CORE_AGENTS + [
+        "agents": CORE_AGENTS
+        + [
             "engineer/backend/python-engineer",
             "engineer/data/data-engineer",
             "universal/code-analyzer",

@@ -47,12 +47,15 @@ class ConfigureCommand(BaseCommand):
     # Questionary style optimized for dark terminals (WCAG AAA compliant)
     QUESTIONARY_STYLE = Style(
         [
-            ("selected", "fg:#e0e0e0 bold"),           # Light gray - excellent readability
-            ("pointer", "fg:#ffd700 bold"),            # Gold/yellow - highly visible pointer
-            ("highlighted", "fg:#e0e0e0"),             # Light gray - clear hover state
-            ("question", "fg:#e0e0e0 bold"),           # Light gray bold - prominent questions
-            ("checkbox", "fg:#00ff00"),                # Green - for checked boxes
-            ("checkbox-selected", "fg:#00ff00 bold"),  # Green bold - for checked selected boxes
+            ("selected", "fg:#e0e0e0 bold"),  # Light gray - excellent readability
+            ("pointer", "fg:#ffd700 bold"),  # Gold/yellow - highly visible pointer
+            ("highlighted", "fg:#e0e0e0"),  # Light gray - clear hover state
+            ("question", "fg:#e0e0e0 bold"),  # Light gray bold - prominent questions
+            ("checkbox", "fg:#00ff00"),  # Green - for checked boxes
+            (
+                "checkbox-selected",
+                "fg:#00ff00 bold",
+            ),  # Green bold - for checked selected boxes
         ]
     )
 
@@ -313,9 +316,19 @@ class ConfigureCommand(BaseCommand):
                 from rich.table import Table
 
                 sources_table = Table(show_header=True, header_style="bold white")
-                sources_table.add_column("Source", style="bright_yellow", width=40, no_wrap=True, overflow="ellipsis")
-                sources_table.add_column("Status", style="green", width=15, no_wrap=True)
-                sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
+                sources_table.add_column(
+                    "Source",
+                    style="bright_yellow",
+                    width=40,
+                    no_wrap=True,
+                    overflow="ellipsis",
+                )
+                sources_table.add_column(
+                    "Status", style="green", width=15, no_wrap=True
+                )
+                sources_table.add_column(
+                    "Agents", style="yellow", width=10, no_wrap=True
+                )
 
                 for source in sources:
                     status = "✓ Active" if source.get("enabled", True) else "Disabled"
@@ -962,8 +975,12 @@ class ConfigureCommand(BaseCommand):
 
         agents_table = Table(show_header=True, header_style="bold white")
         agents_table.add_column("#", style="dim", width=4, no_wrap=True)
-        agents_table.add_column("Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis")
-        agents_table.add_column("Name", style="white", width=25, no_wrap=True, overflow="ellipsis")
+        agents_table.add_column(
+            "Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis"
+        )
+        agents_table.add_column(
+            "Name", style="white", width=25, no_wrap=True, overflow="ellipsis"
+        )
         agents_table.add_column("Source", style="bright_yellow", width=20, no_wrap=True)
         agents_table.add_column("Status", style="white", width=12, no_wrap=True)
 
@@ -977,7 +994,10 @@ class ConfigureCommand(BaseCommand):
                 repo_url = source_dict.get("source", "")
 
                 # Extract repo name from URL
-                if "bobmatnyc/claude-mpm" in repo_url or "claude-mpm" in repo_url.lower():
+                if (
+                    "bobmatnyc/claude-mpm" in repo_url
+                    or "claude-mpm" in repo_url.lower()
+                ):
                     source_label = "MPM Agents"
                 elif "/" in repo_url:
                     # Extract last part of org/repo
@@ -1035,15 +1055,17 @@ class ConfigureCommand(BaseCommand):
         )
 
         # Filter BASE_AGENT but keep deployed agents visible
-        all_agents = filter_base_agents([
-            {
-                "agent_id": a.name,
-                "name": a.name,
-                "description": a.description,
-                "deployed": getattr(a, "is_deployed", False),
-            }
-            for a in agents
-        ])
+        all_agents = filter_base_agents(
+            [
+                {
+                    "agent_id": a.name,
+                    "name": a.name,
+                    "description": a.description,
+                    "deployed": getattr(a, "is_deployed", False),
+                }
+                for a in agents
+            ]
+        )
 
         # Get deployed agent IDs
         deployed_ids = get_deployed_agent_ids()
@@ -1078,9 +1100,7 @@ class ConfigureCommand(BaseCommand):
                     # Note: questionary's default param is for single-select only
                     # For multi-select, must use checked=True on Choice objects
                     choice = questionary.Choice(
-                        title=choice_text,
-                        value=agent.name,
-                        checked=is_deployed
+                        title=choice_text, value=agent.name, checked=is_deployed
                     )
 
                     agent_choices.append(choice)
@@ -1088,12 +1108,8 @@ class ConfigureCommand(BaseCommand):
 
             # Multi-select with pre-selection
             self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
-            self.console.print(
-                "[dim]✓ Checked = Installed (uncheck to remove)[/dim]"
-            )
-            self.console.print(
-                "[dim]○ Unchecked = Available (check to install)[/dim]"
-            )
+            self.console.print("[dim]✓ Checked = Installed (uncheck to remove)[/dim]")
+            self.console.print("[dim]○ Unchecked = Available (check to install)[/dim]")
             self.console.print(
                 "[dim]Use arrow keys to navigate, space to toggle, "
                 "Enter to apply changes[/dim]\n"
@@ -1102,9 +1118,7 @@ class ConfigureCommand(BaseCommand):
             # Pre-selection via checked=True on Choice objects
             # (questionary's default param is for single-select only)
             selected_agent_ids = questionary.checkbox(
-                "Agents:",
-                choices=agent_choices,
-                style=self.QUESTIONARY_STYLE
+                "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
             ).ask()
 
             # Handle Esc
@@ -1118,8 +1132,8 @@ class ConfigureCommand(BaseCommand):
             deployed_set = deployed_ids
 
             # Determine actions
-            to_deploy = selected_set - deployed_set    # Selected but not deployed
-            to_remove = deployed_set - selected_set    # Deployed but not selected
+            to_deploy = selected_set - deployed_set  # Selected but not deployed
+            to_remove = deployed_set - selected_set  # Deployed but not selected
 
             if not to_deploy and not to_remove:
                 self.console.print("[yellow]No changes made[/yellow]")
@@ -1146,7 +1160,7 @@ class ConfigureCommand(BaseCommand):
                     questionary.Choice("Cancel", value="cancel"),
                 ],
                 default="apply",
-                style=self.QUESTIONARY_STYLE
+                style=self.QUESTIONARY_STYLE,
             ).ask()
 
             if action == "cancel":
@@ -1234,13 +1248,21 @@ class ConfigureCommand(BaseCommand):
             # Show summary
             self.console.print()
             if deploy_success > 0:
-                self.console.print(f"[green]✓ Installed {deploy_success} agent(s)[/green]")
+                self.console.print(
+                    f"[green]✓ Installed {deploy_success} agent(s)[/green]"
+                )
             if deploy_fail > 0:
-                self.console.print(f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]")
+                self.console.print(
+                    f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]"
+                )
             if remove_success > 0:
-                self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
+                self.console.print(
+                    f"[green]✓ Removed {remove_success} agent(s)[/green]"
+                )
             if remove_fail > 0:
-                self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
+                self.console.print(
+                    f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]"
+                )
 
             Prompt.ask("\nPress Enter to continue")
             # Exit the loop after successful execution
@@ -1356,7 +1378,9 @@ class ConfigureCommand(BaseCommand):
                 target_file = target_dir / target_name
 
                 if show_feedback:
-                    self.console.print(f"\n[white]Installing {full_agent_id}...[/white]")
+                    self.console.print(
+                        f"\n[white]Installing {full_agent_id}...[/white]"
+                    )
 
                 # Copy the agent file
                 import shutil

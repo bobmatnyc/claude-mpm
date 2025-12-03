@@ -180,7 +180,12 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     templates_dir = project_dir / ".claude" / "templates"
     if templates_dir.exists():
         for file in templates_dir.glob("*.md"):
-            if file.stem not in {"BASE-AGENT", ".DS_Store", "README", "circuit-breakers"}:
+            if file.stem not in {
+                "BASE-AGENT",
+                ".DS_Store",
+                "README",
+                "circuit-breakers",
+            }:
                 # Skip template/example files
                 if not any(x in file.stem for x in ["example", "template", "pm-"]):
                     deployed.add(file.stem)

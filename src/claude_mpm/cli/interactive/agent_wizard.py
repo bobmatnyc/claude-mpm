@@ -295,7 +295,9 @@ class AgentWizard:
                 menu_choices.append(f"{len(all_agents) + 5}. Export all agents")
 
                 if self.discovery_enabled:
-                    menu_choices.append(f"{len(all_agents) + 6}. Browse & filter agents")
+                    menu_choices.append(
+                        f"{len(all_agents) + 6}. Browse & filter agents"
+                    )
                     menu_choices.append(f"{len(all_agents) + 7}. Deploy preset")
                     menu_choices.append(f"{len(all_agents) + 8}. Manage agent sources")
                     menu_choices.append(f"{len(all_agents) + 9}. Exit")
@@ -307,7 +309,7 @@ class AgentWizard:
                 choice = questionary.select(
                     "Agent Management Menu:",
                     choices=menu_choices,
-                    style=QUESTIONARY_STYLE
+                    style=QUESTIONARY_STYLE,
                 ).ask()
 
                 if not choice:  # User pressed Esc
@@ -1123,9 +1125,7 @@ class AgentWizard:
         ]
 
         choice = questionary.select(
-            "Select agent to deploy:",
-            choices=agent_choices,
-            style=QUESTIONARY_STYLE
+            "Select agent to deploy:", choices=agent_choices, style=QUESTIONARY_STYLE
         ).ask()
 
         if not choice:  # User pressed Esc
@@ -1233,13 +1233,13 @@ class AgentWizard:
                 "2. Language (python, typescript, rust, etc.)",
                 "3. Framework (react, nextjs, flask, etc.)",
                 "4. Show all agents",
-                "← Back to main menu"
+                "← Back to main menu",
             ]
 
             choice = questionary.select(
                 "Browse & Filter Agents:",
                 choices=filter_choices,
-                style=QUESTIONARY_STYLE
+                style=QUESTIONARY_STYLE,
             ).ask()
 
             if not choice or "Back" in choice:
@@ -1268,9 +1268,7 @@ class AgentWizard:
                 cat_choices = [f"{idx}. {cat}" for idx, cat in enumerate(categories, 1)]
 
                 cat_choice = questionary.select(
-                    "Select category:",
-                    choices=cat_choices,
-                    style=QUESTIONARY_STYLE
+                    "Select category:", choices=cat_choices, style=QUESTIONARY_STYLE
                 ).ask()
 
                 if not cat_choice:  # User pressed Esc
@@ -1281,9 +1279,7 @@ class AgentWizard:
                 category = categories[cat_idx]
                 all_agents = self._merge_agent_sources()
                 filtered_agents = [
-                    a
-                    for a in all_agents
-                    if a.get("category", "").startswith(category)
+                    a for a in all_agents if a.get("category", "").startswith(category)
                 ]
                 filter_description = f"Category: {category}"
 
@@ -1448,14 +1444,11 @@ class AgentWizard:
 
         # Build agent selection choices
         agent_choices = [
-            f"{i}. {agent['agent_id']}"
-            for i, agent in enumerate(agents, 1)
+            f"{i}. {agent['agent_id']}" for i, agent in enumerate(agents, 1)
         ]
 
         agent_choice = questionary.select(
-            "Select agent to deploy:",
-            choices=agent_choices,
-            style=QUESTIONARY_STYLE
+            "Select agent to deploy:", choices=agent_choices, style=QUESTIONARY_STYLE
         ).ask()
 
         if not agent_choice:  # User pressed Esc
@@ -1557,14 +1550,11 @@ class AgentWizard:
 
         # Build agent selection choices
         agent_choices = [
-            f"{i}. {agent['agent_id']}"
-            for i, agent in enumerate(agents, 1)
+            f"{i}. {agent['agent_id']}" for i, agent in enumerate(agents, 1)
         ]
 
         agent_choice = questionary.select(
-            "Select agent to view:",
-            choices=agent_choices,
-            style=QUESTIONARY_STYLE
+            "Select agent to view:", choices=agent_choices, style=QUESTIONARY_STYLE
         ).ask()
 
         if not agent_choice:  # User pressed Esc

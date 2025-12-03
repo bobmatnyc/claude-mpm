@@ -79,9 +79,7 @@ class TestPhase3AgentDeployment:
         assert (deployment_dir / "research.md").exists()
         assert (deployment_dir / "qa.md").exists()
 
-    def test_multi_project_isolation(
-        self, git_sync_service, temp_cache_dir, tmp_path
-    ):
+    def test_multi_project_isolation(self, git_sync_service, temp_cache_dir, tmp_path):
         """Test that multiple projects can deploy from same cache independently."""
         # Setup: Create cached agents
         (temp_cache_dir / "engineer.md").write_text("# Engineer Agent v1")
@@ -119,9 +117,7 @@ class TestPhase3AgentDeployment:
 
         # Verify: Projects are isolated (modify one doesn't affect other)
         (project1_agents / "engineer.md").write_text("# Modified in project1")
-        assert (
-            project2_agents / "engineer.md"
-        ).read_text() != "# Modified in project1"
+        assert (project2_agents / "engineer.md").read_text() != "# Modified in project1"
 
     def test_force_flag_redeployment(
         self, git_sync_service, temp_cache_dir, temp_project_dir
@@ -195,9 +191,7 @@ class TestPhase3SkillDeployment:
     @pytest.fixture
     def git_skill_manager(self, skill_config, temp_cache_dir):
         """Create GitSkillSourceManager with temp cache."""
-        with patch.object(
-            GitSkillSourceManager, "__init__", lambda self, config: None
-        ):
+        with patch.object(GitSkillSourceManager, "__init__", lambda self, config: None):
             manager = GitSkillSourceManager(skill_config)
             manager.cache_dir = temp_cache_dir
             manager.logger = MagicMock()

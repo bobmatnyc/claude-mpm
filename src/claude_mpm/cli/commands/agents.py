@@ -583,7 +583,9 @@ class AgentsCommand(AgentCommand):
                 self.logger.error(f"Sync failed: {error_msg}")
                 return CommandResult.error_result(f"Sync failed: {error_msg}")
 
-            self.logger.info(f"Phase 1 complete: {sync_result.get('agent_count', 0)} agents in cache")
+            self.logger.info(
+                f"Phase 1 complete: {sync_result.get('agent_count', 0)} agents in cache"
+            )
             self.logger.info(f"Phase 2: Deploying agents to {project_dir}...")
 
             # Deploy from cache to project directory
@@ -595,7 +597,8 @@ class AgentsCommand(AgentCommand):
 
             # Format combined results for output
             combined_result = {
-                "deployed_count": len(deploy_result.get("deployed", [])) + len(deploy_result.get("updated", [])),
+                "deployed_count": len(deploy_result.get("deployed", []))
+                + len(deploy_result.get("updated", [])),
                 "deployed": deploy_result.get("deployed", []),
                 "updated": deploy_result.get("updated", []),
                 "skipped": deploy_result.get("skipped", []),
@@ -615,7 +618,9 @@ class AgentsCommand(AgentCommand):
             )
             print(formatted)
 
-            success_count = len(deploy_result["deployed"]) + len(deploy_result["updated"])
+            success_count = len(deploy_result["deployed"]) + len(
+                deploy_result["updated"]
+            )
             return CommandResult.success_result(
                 f"Deployed {success_count} agents from cache",
                 data={

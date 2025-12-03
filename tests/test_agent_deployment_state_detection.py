@@ -5,6 +5,7 @@ This test suite verifies that the _is_agent_deployed() method correctly
 detects agents from virtual deployment state files (.mpm_deployment_state)
 as well as physical agent files.
 """
+
 import json
 import tempfile
 from pathlib import Path
@@ -188,9 +189,7 @@ class TestAgentDeploymentStateDetection:
         # and sets the is_deployed attribute on agents
         project_root = Path(__file__).parent.parent
         config_dir = project_root / ".claude-mpm"
-        deployment_state = (
-            project_root / ".claude" / "agents" / ".mpm_deployment_state"
-        )
+        deployment_state = project_root / ".claude" / "agents" / ".mpm_deployment_state"
 
         if not deployment_state.exists():
             pytest.skip("Real deployment state file not found")
@@ -232,9 +231,7 @@ class TestRealProjectDeploymentState:
         """Test detection using real project deployment state file."""
         # This test uses the actual project's deployment state
         project_root = Path(__file__).parent.parent
-        deployment_state = (
-            project_root / ".claude" / "agents" / ".mpm_deployment_state"
-        )
+        deployment_state = project_root / ".claude" / "agents" / ".mpm_deployment_state"
 
         if not deployment_state.exists():
             pytest.skip("Real deployment state file not found")
@@ -258,9 +255,7 @@ class TestRealProjectDeploymentState:
     def test_real_agent_count(self):
         """Test that all agents in deployment state are detected."""
         project_root = Path(__file__).parent.parent
-        deployment_state = (
-            project_root / ".claude" / "agents" / ".mpm_deployment_state"
-        )
+        deployment_state = project_root / ".claude" / "agents" / ".mpm_deployment_state"
 
         if not deployment_state.exists():
             pytest.skip("Real deployment state file not found")

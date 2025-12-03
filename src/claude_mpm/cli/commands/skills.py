@@ -230,9 +230,7 @@ class SkillsManagementCommand(BaseCommand):
             synced_count = sum(
                 1 for result in sync_results.values() if result.get("synced")
             )
-            console.print(
-                f"[dim]Synced {synced_count} skill source(s)[/dim]\n"
-            )
+            console.print(f"[dim]Synced {synced_count} skill source(s)[/dim]\n")
 
             # Phase 2: Deploy from cache to project
             console.print("[dim]Phase 2: Deploying from cache to project...[/dim]\n")
@@ -276,7 +274,9 @@ class SkillsManagementCommand(BaseCommand):
                 console.print()
 
             # Summary
-            success_count = len(deploy_result["deployed"]) + len(deploy_result["updated"])
+            success_count = len(deploy_result["deployed"]) + len(
+                deploy_result["updated"]
+            )
             total = (
                 success_count
                 + len(deploy_result["skipped"])
@@ -972,22 +972,40 @@ class SkillsManagementCommand(BaseCommand):
             from rich.prompt import Prompt
 
             # Questionary style (matching agents configure)
-            QUESTIONARY_STYLE = Style([
-                ("selected", "fg:#e0e0e0 bold"),           # Light gray - excellent readability
-                ("pointer", "fg:#ffd700 bold"),            # Gold/yellow - highly visible pointer
-                ("highlighted", "fg:#e0e0e0"),             # Light gray - clear hover state
-                ("question", "fg:#e0e0e0 bold"),           # Light gray bold - prominent questions
-                ("checkbox", "fg:#00ff00"),                # Green - for checked boxes
-                ("checkbox-selected", "fg:#00ff00 bold"),  # Green bold - for checked selected boxes
-            ])
+            QUESTIONARY_STYLE = Style(
+                [
+                    (
+                        "selected",
+                        "fg:#e0e0e0 bold",
+                    ),  # Light gray - excellent readability
+                    (
+                        "pointer",
+                        "fg:#ffd700 bold",
+                    ),  # Gold/yellow - highly visible pointer
+                    ("highlighted", "fg:#e0e0e0"),  # Light gray - clear hover state
+                    (
+                        "question",
+                        "fg:#e0e0e0 bold",
+                    ),  # Light gray bold - prominent questions
+                    ("checkbox", "fg:#00ff00"),  # Green - for checked boxes
+                    (
+                        "checkbox-selected",
+                        "fg:#00ff00 bold",
+                    ),  # Green bold - for checked selected boxes
+                ]
+            )
 
             console.print("\n[bold cyan]Interactive Skills Configuration[/bold cyan]\n")
-            console.print("[dim]Select skills to install/uninstall using checkboxes[/dim]")
+            console.print(
+                "[dim]Select skills to install/uninstall using checkboxes[/dim]"
+            )
             console.print("[dim]● = Installed, ○ = Available[/dim]\n")
 
             # Get deployed skills for status detection
             deployed_result = self.skills_deployer.check_deployed_skills()
-            deployed_skills = {skill["name"] for skill in deployed_result.get("skills", [])}
+            deployed_skills = {
+                skill["name"] for skill in deployed_result.get("skills", [])
+            }
 
             # Get available skills from GitHub
             console.print("[dim]Fetching available skills from GitHub...[/dim]\n")
@@ -995,7 +1013,9 @@ class SkillsManagementCommand(BaseCommand):
 
             if available_result.get("error"):
                 console.print(f"[red]Error: {available_result['error']}[/red]")
-                return CommandResult(success=False, message=available_result["error"], exit_code=1)
+                return CommandResult(
+                    success=False, message=available_result["error"], exit_code=1
+                )
 
             # Flatten skills by category
             all_skills = []
@@ -1004,7 +1024,7 @@ class SkillsManagementCommand(BaseCommand):
                     skill_info = {
                         "name": skill.get("name", "unknown"),
                         "category": category,
-                        "is_deployed": skill.get("name", "unknown") in deployed_skills
+                        "is_deployed": skill.get("name", "unknown") in deployed_skills,
                     }
                     all_skills.append(skill_info)
 
@@ -1028,9 +1048,7 @@ class SkillsManagementCommand(BaseCommand):
 
                     # Pre-select if deployed
                     choice = Choice(
-                        title=choice_text,
-                        value=skill_name,
-                        checked=is_deployed
+                        title=choice_text, value=skill_name, checked=is_deployed
                     )
 
                     skill_choices.append(choice)
@@ -1040,7 +1058,7 @@ class SkillsManagementCommand(BaseCommand):
                 selected_skills = questionary.checkbox(
                     "Select skills (Space to toggle, Enter to confirm):",
                     choices=skill_choices,
-                    style=QUESTIONARY_STYLE
+                    style=QUESTIONARY_STYLE,
                 ).ask()
 
                 if selected_skills is None:
@@ -1065,17 +1083,23 @@ class SkillsManagementCommand(BaseCommand):
                 # Show summary of changes
                 console.print("\n[bold]Changes to apply:[/bold]")
                 if to_install:
-                    console.print(f"\n[green]✓ Install ({len(to_install)} skills):[/green]")
+                    console.print(
+                        f"\n[green]✓ Install ({len(to_install)} skills):[/green]"
+                    )
                     for skill in to_install:
                         console.print(f"  • {skill}")
 
                 if to_remove:
-                    console.print(f"\n[yellow]✗ Remove ({len(to_remove)} skills):[/yellow]")
+                    console.print(
+                        f"\n[yellow]✗ Remove ({len(to_remove)} skills):[/yellow]"
+                    )
                     for skill in to_remove:
                         console.print(f"  • {skill}")
 
                 if not to_install and not to_remove:
-                    console.print("\n[dim]No changes (selection matches current deployment)[/dim]")
+                    console.print(
+                        "\n[dim]No changes (selection matches current deployment)[/dim]"
+                    )
 
                 console.print()
 
@@ -1088,7 +1112,7 @@ class SkillsManagementCommand(BaseCommand):
                         Choice("Cancel", value="cancel"),
                     ],
                     default="apply",
-                    style=QUESTIONARY_STYLE
+                    style=QUESTIONARY_STYLE,
                 ).ask()
 
                 if action == "cancel":
@@ -1111,15 +1135,16 @@ class SkillsManagementCommand(BaseCommand):
                         try:
                             # Deploy single skill
                             result = self.skills_deployer.deploy_skills(
-                                skill_names=[skill_name],
-                                force=False
+                                skill_names=[skill_name], force=False
                             )
 
                             if result.get("errors"):
                                 errors.extend(result["errors"])
                                 success = False
                             else:
-                                console.print(f"[green]✓ Installed: {skill_name}[/green]")
+                                console.print(
+                                    f"[green]✓ Installed: {skill_name}[/green]"
+                                )
                         except Exception as e:
                             errors.append(f"Failed to install {skill_name}: {e}")
                             success = False
@@ -1138,7 +1163,9 @@ class SkillsManagementCommand(BaseCommand):
                                 errors.extend(result["errors"])
                                 success = False
                             else:
-                                console.print(f"[yellow]✗ Removed: {skill_name}[/yellow]")
+                                console.print(
+                                    f"[yellow]✗ Removed: {skill_name}[/yellow]"
+                                )
                         except Exception as e:
                             errors.append(f"Failed to remove {skill_name}: {e}")
                             success = False
@@ -1151,7 +1178,9 @@ class SkillsManagementCommand(BaseCommand):
 
                 # Show restart instructions
                 if success and (to_install or to_remove):
-                    console.print("\n[bold green]✓ Changes applied successfully![/bold green]")
+                    console.print(
+                        "\n[bold green]✓ Changes applied successfully![/bold green]"
+                    )
                     console.print("\n[yellow]⚠️  Important:[/yellow]")
                     console.print("  Restart Claude Code for changes to take effect")
 
@@ -1167,6 +1196,7 @@ class SkillsManagementCommand(BaseCommand):
         except Exception as e:
             console.print(f"[red]Error in skills configuration: {e}[/red]")
             import traceback
+
             console.print(f"[dim]{traceback.format_exc()}[/dim]")
             return CommandResult(success=False, message=str(e), exit_code=1)
 

@@ -52,7 +52,9 @@ class TestMainMenuNavigation:
     """Test main menu arrow-key navigation."""
 
     @patch("src.claude_mpm.cli.interactive.agent_wizard.questionary.select")
-    def test_main_menu_view_agent_selection(self, mock_select, agent_wizard, sample_agents):
+    def test_main_menu_view_agent_selection(
+        self, mock_select, agent_wizard, sample_agents
+    ):
         """Test selecting an agent to view from main menu."""
         # Mock questionary to return first agent selection
         mock_select.return_value = MockQuestionarySelect("1. View agent: engineer")
