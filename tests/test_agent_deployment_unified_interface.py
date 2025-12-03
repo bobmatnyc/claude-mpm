@@ -210,9 +210,7 @@ class TestUnifiedAgentDeploymentInterface:
                 mock_deployed.return_value = {"engineer"}  # Engineer deployed
 
                 with patch("claude_mpm.cli.commands.configure.questionary") as mock_q:
-                    mock_q.checkbox.return_value.ask.return_value = (
-                        []
-                    )  # User deselects all
+                    mock_q.checkbox.return_value.ask.return_value = []  # User deselects all
 
                     with patch(
                         "claude_mpm.cli.commands.configure.Confirm"

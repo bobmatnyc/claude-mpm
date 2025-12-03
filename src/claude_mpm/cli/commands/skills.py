@@ -966,7 +966,6 @@ class SkillsManagementCommand(BaseCommand):
         while keeping deploy-github for CLI automation.
         """
         try:
-
             import questionary
             from questionary import Choice, Style
             from rich.prompt import Prompt

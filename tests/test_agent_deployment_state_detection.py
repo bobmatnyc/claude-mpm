@@ -205,12 +205,12 @@ class TestAgentDeploymentStateDetection:
         # Verify that is_deployed attribute exists on all agents
         # This confirms the integration between discover_agents() and _is_agent_deployed()
         for agent in agents:
-            assert hasattr(
-                agent, "is_deployed"
-            ), f"Agent {agent.name} missing is_deployed attribute"
-            assert isinstance(
-                agent.is_deployed, bool
-            ), f"Agent {agent.name}.is_deployed should be boolean"
+            assert hasattr(agent, "is_deployed"), (
+                f"Agent {agent.name} missing is_deployed attribute"
+            )
+            assert isinstance(agent.is_deployed, bool), (
+                f"Agent {agent.name}.is_deployed should be boolean"
+            )
 
         # Count deployed vs not deployed
         deployed_count = sum(1 for a in agents if a.is_deployed)
@@ -275,6 +275,6 @@ class TestRealProjectDeploymentState:
             1 for agent_id in agents if manager._is_agent_deployed(agent_id)
         )
 
-        assert (
-            detected_count == total_agents
-        ), f"Expected {total_agents} agents detected, got {detected_count}"
+        assert detected_count == total_agents, (
+            f"Expected {total_agents} agents detected, got {detected_count}"
+        )
