@@ -112,6 +112,19 @@ When interacting with Claude Desktop, the following MCP tools are available:
 3. **Cache verification**: Check `~/.claude-mpm/cache/remote-agents/`
 4. **Startup sync**: Test with fresh cache (delete and re-sync)
 
+### Contributing to Framework Agents
+
+**See detailed guide**: [docs/developer/agent-modification-workflow.md](docs/developer/agent-modification-workflow.md)
+
+The agent cache at `~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/` is a full git repository. To contribute:
+
+1. Edit agents in the cache directory
+2. Commit with conventional commit messages
+3. Test locally with `claude-mpm run`
+4. Push to GitHub or create PR
+
+This workflow enables contributions to the official Claude MPM agent repository.
+
 ### Memory Storage (Framework Development)
 
 - Store framework architecture decisions
