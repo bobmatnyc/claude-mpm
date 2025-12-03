@@ -12,6 +12,37 @@
 
 ### Security
 
+## [5.0.4] - 2025-12-03
+
+### Added
+- **/mpm-postmortem Command**: Automated error analysis and troubleshooting recommendations
+  - Analyzes recent errors from monitor server logs
+  - Provides actionable recommendations for resolution
+  - Context-aware troubleshooting with error pattern detection
+- **Claude MPM Teach Mode**: Interactive tutorial for framework beginners
+  - Guided walkthrough of multi-agent orchestration concepts
+  - Hands-on exercises with real ticket creation
+  - Best practices for agent delegation and workflow management
+- **Agent Modification Workflow**: Documentation for contributing to framework agents
+  - Complete guide for editing agents in cache repository
+  - Git workflow for pushing changes to official repository
+  - Testing and validation procedures
+
+### Changed
+- **PM Instructions Optimized**: Enhanced for Claude 4.5 Sonnet best practices
+  - Improved prompt structure and clarity
+  - Better context management and delegation patterns
+  - Enhanced error handling and recovery guidance
+- **Deprecated Commands Auto-Cleanup**: Framework automatically removes deprecated /mpm commands on startup
+  - Prevents clutter in slash command list
+  - Provides informative messages about command consolidation
+  - Maintains backward compatibility with redirects
+
+### Fixed
+- **Agent Count Display**: Corrected deployment progress indicator to show accurate agent counts
+- **Nested Repository Discovery**: CacheGitManager now properly finds git repos in nested subdirectories
+- **Skills Deployment Verification**: Completed comprehensive testing and validation of skills deployment system
+
 ## [5.0.3] - 2025-12-03
 
 ### Added
