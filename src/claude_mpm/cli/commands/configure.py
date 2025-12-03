@@ -1077,13 +1077,20 @@ class ConfigureCommand(BaseCommand):
                 else:
                     choice_text += " [Available]"
 
-                agent_choices.append(
-                    questionary.Choice(
-                        title=choice_text,
-                        value=agent.name,
-                        checked=is_deployed  # PRE-SELECT deployed agents
-                    )
+                # Create choice with explicit checked parameter
+                choice = questionary.Choice(
+                    title=choice_text,
+                    value=agent.name,
+                    checked=is_deployed  # PRE-SELECT deployed agents
                 )
+
+                # Debug: verify choice was created with correct checked state
+                self.logger.debug(
+                    f"Created choice for {agent.name}: "
+                    f"checked={choice.checked}, value={choice.value}"
+                )
+
+                agent_choices.append(choice)
                 agent_map[agent.name] = agent
 
         # Multi-select with pre-selection
@@ -1097,6 +1104,13 @@ class ConfigureCommand(BaseCommand):
         self.console.print(
             "[dim]Use arrow keys to navigate, space to toggle, "
             "Enter to apply changes[/dim]\n"
+        )
+
+        # Debug: show checkbox state summary before questionary
+        checked_count = sum(1 for c in agent_choices if hasattr(c, 'checked') and c.checked)
+        self.logger.debug(
+            f"Passing {len(agent_choices)} choices to questionary, "
+            f"{checked_count} are pre-checked"
         )
 
         selected_agent_ids = questionary.checkbox(
