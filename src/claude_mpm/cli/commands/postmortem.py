@@ -313,9 +313,6 @@ def _create_prs(report, verbose: bool) -> int:
     print(f"\n🤖 Creating {len(pr_actions)} PR(s) for agent improvements...")
 
     # Check if we're in the agent cache git repo
-    from claude_mpm.core.config import Config
-
-    config = Config()
     agent_cache_path = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
 
     if not agent_cache_path.exists():

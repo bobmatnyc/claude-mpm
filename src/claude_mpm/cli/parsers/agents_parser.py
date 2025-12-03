@@ -453,7 +453,7 @@ Available commands:
     # ============================================================================
 
     # cache-status: Show git status of agent cache
-    cache_status_parser = agents_subparsers.add_parser(
+    agents_subparsers.add_parser(
         "cache-status",
         help="Show git status of agent cache directory",
         description="Display git status including branch, uncommitted changes, and unpushed commits",
