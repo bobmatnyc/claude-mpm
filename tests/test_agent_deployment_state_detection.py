@@ -272,7 +272,7 @@ class TestRealProjectDeploymentState:
 
         # All agents should be detected
         detected_count = sum(
-            1 for agent_id in agents.keys() if manager._is_agent_deployed(agent_id)
+            1 for agent_id in agents if manager._is_agent_deployed(agent_id)
         )
 
         assert (
