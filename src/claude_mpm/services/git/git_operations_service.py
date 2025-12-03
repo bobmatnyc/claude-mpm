@@ -12,10 +12,10 @@ Design Decisions:
 
 Example:
     >>> service = GitOperationsService()
-    >>> success = service.create_branch(Path("~/.claude-mpm/cache/agents"), "improve/research-memory")
+    >>> success = service.create_branch(Path("~/.claude-mpm/cache/remote-agents"), "improve/research-memory")
     >>> if success:
-    ...     service.stage_files(Path("~/.claude-mpm/cache/agents"), ["agents/research.md"])
-    ...     service.commit(Path("~/.claude-mpm/cache/agents"), "feat: improve research agent memory handling")
+    ...     service.stage_files(Path("~/.claude-mpm/cache/remote-agents"), ["agents/research.md"])
+    ...     service.commit(Path("~/.claude-mpm/cache/remote-agents"), "feat: improve research agent memory handling")
 """
 
 import subprocess
@@ -65,7 +65,7 @@ class GitOperationsService:
 
         Example:
             >>> service = GitOperationsService()
-            >>> service.is_git_repo(Path("~/.claude-mpm/cache/agents"))
+            >>> service.is_git_repo(Path("~/.claude-mpm/cache/remote-agents"))
             True
         """
         try:
@@ -147,7 +147,7 @@ class GitOperationsService:
         Example:
             >>> service = GitOperationsService()
             >>> service.create_and_checkout_branch(
-            ...     Path("~/.claude-mpm/cache/agents"),
+            ...     Path("~/.claude-mpm/cache/remote-agents"),
             ...     "improve/research-memory",
             ...     "main"
             ... )
@@ -242,7 +242,7 @@ class GitOperationsService:
         Example:
             >>> service = GitOperationsService()
             >>> service.commit(
-            ...     Path("~/.claude-mpm/cache/agents"),
+            ...     Path("~/.claude-mpm/cache/remote-agents"),
             ...     "feat(agent): improve research agent memory handling\\n\\n- Add hard limit of 5 files"
             ... )
             True
@@ -286,7 +286,7 @@ class GitOperationsService:
 
         Example:
             >>> service = GitOperationsService()
-            >>> service.push(Path("~/.claude-mpm/cache/agents"), "improve/research-memory")
+            >>> service.push(Path("~/.claude-mpm/cache/remote-agents"), "improve/research-memory")
             True
         """
         self._validate_repo(repo_path)
@@ -404,7 +404,7 @@ class GitOperationsService:
 
         Example:
             >>> service = GitOperationsService()
-            >>> valid, msg = service.validate_repo(Path("~/.claude-mpm/cache/agents"))
+            >>> valid, msg = service.validate_repo(Path("~/.claude-mpm/cache/remote-agents"))
             >>> if not valid:
             ...     print(f"Repository invalid: {msg}")
         """

@@ -188,10 +188,10 @@ class GitSourceSyncService:
 
         Args:
             source_url: Base URL for raw files (without trailing slash)
-            cache_dir: Local cache directory (defaults to ~/.claude-mpm/cache/agents/)
+            cache_dir: Local cache directory (defaults to ~/.claude-mpm/cache/remote-agents/)
             source_id: Unique identifier for this source (for multi-source support)
 
-        Design Decision: Cache to ~/.claude-mpm/cache/agents/ (Phase 1 of refactoring)
+        Design Decision: Cache to ~/.claude-mpm/cache/remote-agents/ (canonical location)
 
         Rationale: Separates cached repository structure from deployed agents.
         This allows preserving nested directory structure in cache while
@@ -207,13 +207,13 @@ class GitSourceSyncService:
         self.source_url = source_url.rstrip("/")
         self.source_id = source_id
 
-        # Setup cache directory (Phase 1: Changed to ~/.claude-mpm/cache/agents/)
+        # Setup cache directory (canonical: ~/.claude-mpm/cache/remote-agents/)
         if cache_dir:
             self.cache_dir = Path(cache_dir)
         else:
-            # Default to ~/.claude-mpm/cache/agents/ (shared cache for nested structure)
+            # Default to ~/.claude-mpm/cache/remote-agents/ (canonical cache location)
             home = Path.home()
-            self.cache_dir = home / ".claude-mpm" / "cache" / "agents"
+            self.cache_dir = home / ".claude-mpm" / "cache" / "remote-agents"
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -236,6 +236,11 @@ class GitSourceSyncService:
         # Migrate old ETag cache to SQLite if it exists
         if etag_cache_file.exists():
             self._migrate_etag_cache(etag_cache_file)
+
+        # NEW: Initialize git manager for cache (Phase 1 integration)
+        from claude_mpm.services.agents.cache_git_manager import CacheGitManager
+
+        self.git_manager = CacheGitManager(self.cache_dir)
 
     def sync_agents(
         self,
@@ -272,6 +277,31 @@ class GitSourceSyncService:
         logger.debug(f"Force refresh: {force_refresh}")
 
         start_time = time.time()
+
+        # NEW: Pre-sync git operations (Phase 1 integration)
+        if self.git_manager.is_git_repo():
+            logger.debug("Cache is a git repository, checking for updates...")
+
+            # Warn about uncommitted changes
+            if self.git_manager.has_uncommitted_changes():
+                uncommitted_count = len(self.git_manager.get_status().get("uncommitted", []))
+                logger.warning(
+                    f"Cache has {uncommitted_count} uncommitted change(s). "
+                    "These will be preserved, but consider committing them."
+                )
+
+            # Pull latest if online (non-blocking)
+            try:
+                success, msg = self.git_manager.pull_latest()
+                if success:
+                    logger.info(f"✅ Git pull: {msg}")
+                else:
+                    logger.warning(f"⚠️  Git pull failed: {msg}")
+                    logger.info("Continuing with HTTP sync as fallback")
+            except Exception as e:
+                logger.warning(f"Git pull error (continuing with HTTP sync): {e}")
+        else:
+            logger.debug("Cache is not a git repository, skipping git operations")
 
         results = {
             "synced": [],

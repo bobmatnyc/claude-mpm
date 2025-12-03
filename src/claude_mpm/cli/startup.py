@@ -10,6 +10,47 @@ Part of cli/__init__.py refactoring to reduce file size and improve modularity.
 
 import os
 import sys
+import warnings
+from pathlib import Path
+
+
+def check_legacy_cache() -> None:
+    """Check for legacy cache/agents/ directory and warn user.
+
+    WHY: cache/agents/ is deprecated in favor of cache/remote-agents/.
+    Research confirmed that cache/remote-agents/ is the canonical location
+    with 26 active code references, while cache/agents/ has only 7 legacy references.
+
+    DESIGN DECISIONS:
+    - Non-blocking warning: Doesn't stop execution, just informs user
+    - Migration guidance: Provides clear path to migrate
+    - One-time check: Only warns if legacy cache contains files
+    """
+    home = Path.home()
+    legacy_cache = home / ".claude-mpm" / "cache" / "agents"
+    canonical_cache = home / ".claude-mpm" / "cache" / "remote-agents"
+    migration_marker = home / ".claude-mpm" / "cache" / ".migrated_to_remote_agents"
+
+    # Skip if already migrated or no legacy cache
+    if migration_marker.exists() or not legacy_cache.exists():
+        return
+
+    # Check if legacy cache has actual agent files
+    legacy_files = list(legacy_cache.glob("*.md")) + list(legacy_cache.glob("*.json"))
+    if not legacy_files:
+        return
+
+    # Only warn if canonical cache doesn't exist (indicating unmigrated system)
+    if not canonical_cache.exists():
+        warnings.warn(
+            f"\n⚠️  DEPRECATION: Legacy cache directory detected\n"
+            f"   Location: {legacy_cache}\n"
+            f"   Files found: {len(legacy_files)}\n\n"
+            f"The 'cache/agents/' directory is deprecated. Please migrate to 'cache/remote-agents/'.\n"
+            f"Run: python scripts/migrate_cache_to_remote_agents.py\n",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
 
 def setup_early_environment(argv):
@@ -269,6 +310,9 @@ def sync_remote_agents_on_startup():
     2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
     3. Log deployment results
     """
+    # Check for legacy cache and warn user if found
+    check_legacy_cache()
+
     try:
         from ..services.agents.deployment.agent_deployment import AgentDeploymentService
         from ..services.agents.startup_sync import sync_agents_on_startup
@@ -311,7 +355,8 @@ def sync_remote_agents_on_startup():
 
                 if cache_dir.exists():
                     # Count MD files in cache (agent markdown files from Git)
-                    # Only check root directory (avoid counting subdirectory duplicates)
+                    # BUGFIX: Use rglob to support nested directory structure
+                    # (bobmatnyc/claude-mpm-agents/agents/*.md)
                     # Exclude PM templates and BASE-AGENT - only count deployable agents
                     pm_templates = {
                         "base-agent.md",
@@ -323,10 +368,13 @@ def sync_remote_agents_on_startup():
                         "ticket_completeness_examples.md",
                         "validation_templates.md",
                         "git_file_tracking.md",
+                        "readme.md",  # Exclude READMEs from nested directories
+                        "auto-deploy-index.md",  # Exclude index files
                     }
+                    # Use rglob("**/*.md") to find agents in nested structure
                     agent_files = [
                         f
-                        for f in cache_dir.glob("*.md")
+                        for f in cache_dir.rglob("*.md")
                         if f.name.lower() not in pm_templates
                     ]
                     agent_count = len(agent_files)

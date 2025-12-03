@@ -1,0 +1,175 @@
+Claude MPM Cache Directory Architecture
+========================================
+
+Current State (Dual Cache)
+---------------------------
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        GitHub Repository                                 │
+│          https://github.com/bobmatnyc/claude-mpm-agents                 │
+└────────────────────────────┬────────────────────────────────────────────┘
+                             │
+                             │ git sync / ETag-based HTTP fetch
+                             │
+                             ▼
+       ┌─────────────────────────────────────────────────────┐
+       │        ~/.claude-mpm/cache/                         │
+       │                                                     │
+       │  ┌─────────────────┐      ┌──────────────────────┐│
+       │  │ agents/         │      │ remote-agents/       ││
+       │  │ (44 files)      │      │ (45 files + Git)     ││
+       │  │                 │      │                      ││
+       │  │ Flat structure: │      │ Hierarchical:        ││
+       │  │ ├─ documentation/│     │ ├─ bobmatnyc/        ││
+       │  │ ├─ universal/   │      │ │  └─ claude-mpm-   ││
+       │  │ ├─ security/    │      │ │     agents/        ││
+       │  │ └─ claude-mpm/  │      │ │     ├─ agents/     ││
+       │  │                 │      │ │     │  (45 .md)    ││
+       │  │ Purpose:        │      │ │     ├─ .git/       ││
+       │  │ Legacy flat     │      │ │     └─ docs/       ││
+       │  │ cache           │      │ └─ documentation/    ││
+       │  │                 │      │    universal/        ││
+       │  │ Status:         │      │    security/         ││
+       │  │ DEPRECATED      │      │    (flat copies)     ││
+       │  │                 │      │                      ││
+       │  │ Used by:        │      │ Purpose:             ││
+       │  │ 7 code refs     │      │ Canonical Git cache  ││
+       │  │                 │      │                      ││
+       │  │                 │      │ Status:              ││
+       │  │                 │      │ ACTIVE (default)     ││
+       │  │                 │      │                      ││
+       │  │                 │      │ Used by:             ││
+       │  │                 │      │ 26 code refs         ││
+       │  │                 │      │ + startup.py         ││
+       │  └─────────────────┘      └──────────────────────┘│
+       └─────────────────────────────────────────────────────┘
+                             │
+                             │ deployment process
+                             │ (version-aware copy)
+                             │
+                             ▼
+               ┌──────────────────────────────┐
+               │    Project Directory         │
+               │                              │
+               │  .claude/agents/             │
+               │  ├─ research.json            │
+               │  ├─ backend-engineer.json    │
+               │  ├─ security-scanner.json    │
+               │  └─ ... (deployed agents)    │
+               │                              │
+               │  Purpose:                    │
+               │  Runtime agent discovery     │
+               │  (Claude Code reads here)    │
+               └──────────────────────────────┘
+
+
+Code References by Directory
+-----------------------------
+
+cache/agents/ (7 references):
+  1. cli/commands/agents.py:557
+  2. utils/migration.py (3 refs)
+  3. services/git/git_operations_service.py (examples)
+  4. services/agents/sources/git_source_sync_service.py (default param)
+
+cache/remote-agents/ (26 references):
+  1. core/config.py:607 (configuration default) ⭐
+  2. cli/startup.py:309 (startup sync) ⭐
+  3. services/agents/git_source_manager.py:56 (service default) ⭐
+  4. models/git_repository.py (cache path construction)
+  5. services/agents/deployment/* (8 files)
+  6. cli/commands/* (4 files)
+  7. services/diagnostics/* (health checks)
+  8. utils/migration.py (migration paths)
+
+⭐ = Critical path (used during normal operation)
+
+
+Startup Flow (Current Implementation)
+--------------------------------------
+
+┌─────────────────────────────────────────────────────────────┐
+│ 1. User runs: claude mpm                                    │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. Load config: ~/.claude-mpm/configuration.yaml            │
+│    agent_sync.cache_dir = "~/.claude-mpm/cache/remote-agents"│
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. Check agent_sync.enabled (default: true)                 │
+│    If true, proceed to sync                                 │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 4. GitSourceManager.sync_repository()                       │
+│    - URL: raw.githubusercontent.com/.../agents              │
+│    - Target: ~/.claude-mpm/cache/remote-agents/bobmatnyc/   │
+│    - Method: ETag-based HTTP fetch                          │
+│    - Result: 45 .md files in cache                          │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. RemoteAgentDiscoveryService.discover_remote_agents()     │
+│    - Scan: cache/remote-agents/bobmatnyc/.../agents/        │
+│    - Parse: Markdown → JSON format                          │
+│    - Result: 45 agent dictionaries                          │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 6. AgentDeploymentService.deploy_agents()                   │
+│    - Source: cache/remote-agents/...                        │
+│    - Target: <cwd>/.claude/agents/                          │
+│    - Method: Version-aware copy (SHA-256 hash check)        │
+│    - Result: Agents available to Claude Code                │
+└─────────────────────────────────────────────────────────────┘
+
+
+Recommended Architecture (Consolidated)
+----------------------------------------
+
+┌──────────────────────────────────────────┐
+│         GitHub Repository                │
+│  github.com/bobmatnyc/claude-mpm-agents  │
+└─────────────────┬────────────────────────┘
+                  │
+                  │ ETag-based sync
+                  │
+                  ▼
+┌──────────────────────────────────────────┐
+│  ~/.claude-mpm/cache/remote-agents/      │  ← SINGLE CACHE
+│  (Canonical source)                      │
+│                                          │
+│  bobmatnyc/claude-mpm-agents/            │
+│  ├─ agents/                              │
+│  │  ├─ research.md                       │
+│  │  ├─ backend-engineer.md               │
+│  │  └─ ... (45 .md files)                │
+│  ├─ .git/                                │
+│  └─ docs/                                │
+└─────────────────┬────────────────────────┘
+                  │
+                  │ deployment
+                  │
+                  ▼
+┌──────────────────────────────────────────┐
+│  <project>/.claude/agents/               │
+│  (Runtime discovery)                     │
+│                                          │
+│  ├─ research.json                        │
+│  ├─ backend-engineer.json                │
+│  └─ ... (deployed agents)                │
+└──────────────────────────────────────────┘
+
+Benefits:
+✓ Single source of truth
+✓ Preserves Git hierarchy
+✓ Supports multi-repository sync
+✓ Clearer code paths
+✓ Easier maintenance

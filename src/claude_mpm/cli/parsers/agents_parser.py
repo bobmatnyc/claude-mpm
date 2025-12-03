@@ -444,4 +444,87 @@ Available commands:
         help="Show what would be deployed without actually deploying",
     )
 
+    # ============================================================================
+    # Cache Git Management Commands (claude-mpm Issue 1M-442 Phase 2)
+    # ============================================================================
+    # Purpose: Enable git workflow for agent cache management
+    # Commands: cache-status, cache-pull, cache-commit, cache-push, cache-sync
+    # Documentation: See docs/research/cache-update-workflow-analysis-2025-12-03.md
+    # ============================================================================
+
+    # cache-status: Show git status of agent cache
+    cache_status_parser = agents_subparsers.add_parser(
+        "cache-status",
+        help="Show git status of agent cache directory",
+        description="Display git status including branch, uncommitted changes, and unpushed commits",
+    )
+
+    # cache-pull: Pull latest agents from remote
+    cache_pull_parser = agents_subparsers.add_parser(
+        "cache-pull",
+        help="Pull latest agents from remote repository",
+        description="Fetch and merge latest agent changes from GitHub remote repository",
+    )
+    cache_pull_parser.add_argument(
+        "--branch",
+        default="main",
+        help="Branch to pull from (default: main)",
+    )
+
+    # cache-commit: Commit changes to agent cache
+    cache_commit_parser = agents_subparsers.add_parser(
+        "cache-commit",
+        help="Commit changes to agent cache",
+        description="Stage and commit changes to local agent cache git repository",
+    )
+    cache_commit_parser.add_argument(
+        "--message",
+        "-m",
+        help="Commit message (default: 'feat: update agents from local development')",
+    )
+    cache_commit_parser.add_argument(
+        "--files",
+        nargs="+",
+        help="Specific files to commit (default: all modified files)",
+    )
+
+    # cache-push: Push agent changes to remote
+    cache_push_parser = agents_subparsers.add_parser(
+        "cache-push",
+        help="Push agent changes to remote repository",
+        description="Push committed changes from local cache to GitHub remote repository",
+    )
+    cache_push_parser.add_argument(
+        "--branch",
+        default="main",
+        help="Branch to push to (default: main)",
+    )
+    cache_push_parser.add_argument(
+        "--auto-commit",
+        action="store_true",
+        help="Automatically commit uncommitted changes before pushing",
+    )
+
+    # cache-sync: Full cache sync workflow
+    cache_sync_parser = agents_subparsers.add_parser(
+        "cache-sync",
+        help="Full agent cache sync with remote",
+        description="Complete sync workflow: pull latest, commit local changes, push to remote",
+    )
+    cache_sync_parser.add_argument(
+        "--message",
+        "-m",
+        help="Commit message for any uncommitted changes",
+    )
+    cache_sync_parser.add_argument(
+        "--skip-pull",
+        action="store_true",
+        help="Skip pulling from remote before sync",
+    )
+    cache_sync_parser.add_argument(
+        "--skip-push",
+        action="store_true",
+        help="Skip pushing to remote after sync",
+    )
+
     return agents_parser

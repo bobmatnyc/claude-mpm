@@ -22,6 +22,7 @@
 .PHONY: quality-ci build-metadata build-info-json
 .PHONY: env-info env-set-dev env-set-staging env-set-prod
 .PHONY: migrate-agents-v5 migrate-agents-v5-dry-run
+.PHONY: agents-cache-status agents-cache-pull agents-cache-commit agents-cache-push agents-cache-sync deploy-agents
 
 # ============================================================================
 # Shell Configuration (Strict Mode)
@@ -1220,4 +1221,46 @@ migrate-agents-v5-dry-run: ## Preview agent migration without making changes
 	@echo "$(BLUE)🔍 Previewing v5.0 agent migration (dry run)...$(NC)"
 	python scripts/migrate_agents_v5.py --dry-run
 	@echo "$(GREEN)✓ Dry run completed$(NC)"
+
+# ============================================================================
+# Agent Cache Git Management
+# ============================================================================
+# Git workflow integration for managing agent cache at ~/.claude-mpm/cache/remote-agents/
+
+.PHONY: agents-cache-status agents-cache-pull agents-cache-commit agents-cache-push agents-cache-sync
+
+# Check git status of agent cache
+agents-cache-status: ## Show git status of agent cache
+	@echo "$(BLUE)📊 Agent cache git status:$(NC)"
+	@claude-mpm agents cache-status
+
+# Pull latest agents from remote
+agents-cache-pull: ## Pull latest agents from remote repository
+	@echo "$(YELLOW)🔄 Pulling latest agents from remote...$(NC)"
+	@claude-mpm agents cache-pull
+	@echo "$(GREEN)✓ Pull complete$(NC)"
+
+# Commit local agent changes
+agents-cache-commit: ## Commit changes to agent cache
+	@echo "$(YELLOW)💾 Committing agent cache changes...$(NC)"
+	@claude-mpm agents cache-commit --message "feat: update agents from local development"
+	@echo "$(GREEN)✓ Changes committed$(NC)"
+
+# Push agent changes to remote
+agents-cache-push: ## Push agent changes to remote repository
+	@echo "$(YELLOW)📤 Pushing agent changes to remote...$(NC)"
+	@claude-mpm agents cache-push
+	@echo "$(GREEN)✓ Changes pushed$(NC)"
+
+# Full cache sync (pull, commit, push)
+agents-cache-sync: ## Full agent cache sync with remote
+	@echo "$(YELLOW)🔄 Syncing agent cache with remote...$(NC)"
+	@claude-mpm agents cache-sync
+	@echo "$(GREEN)✓ Sync complete$(NC)"
+
+# Deploy agents with latest cache (integrates git pull)
+deploy-agents: agents-cache-pull ## Deploy agents with latest changes from remote
+	@echo "$(YELLOW)🚀 Deploying agents...$(NC)"
+	@claude-mpm agents deploy
+	@echo "$(GREEN)✓ Agents deployed$(NC)"
 
