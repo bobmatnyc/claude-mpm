@@ -1153,7 +1153,7 @@ class ConfigureCommand(BaseCommand):
                 self.console.print("[yellow]Changes cancelled[/yellow]")
                 Prompt.ask("\nPress Enter to continue")
                 return
-            elif action == "adjust":
+            if action == "adjust":
                 # Loop back to agent selection
                 continue
 
@@ -1176,8 +1176,8 @@ class ConfigureCommand(BaseCommand):
             # Remove agents
             for agent_id in to_remove:
                 try:
-                    from pathlib import Path
                     import json
+                    from pathlib import Path
 
                     # Remove from project, legacy, and user locations
                     project_path = (

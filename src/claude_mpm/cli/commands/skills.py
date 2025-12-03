@@ -954,23 +954,23 @@ class SkillsManagementCommand(BaseCommand):
 
     def _configure_skills(self, args) -> CommandResult:
         """Interactive skills configuration with checkbox selection.
-        
+
         Provides checkbox-based selection interface matching agents configure UX:
         - Status column showing Installed/Available
         - Pre-selection for installed skills
         - Apply/Adjust/Cancel menu
         - While loop for adjustment
         - Simplified labels (checkbox state only)
-        
+
         This is Option 3 (Hybrid approach): Separate command for interactive mode
         while keeping deploy-github for CLI automation.
         """
         try:
+
             import questionary
-            from questionary import Style, Choice, prompt
+            from questionary import Choice, Style
             from rich.prompt import Prompt
-            from pathlib import Path
-            
+
             # Questionary style (matching agents configure)
             QUESTIONARY_STYLE = Style([
                 ("selected", "fg:#e0e0e0 bold"),           # Light gray - excellent readability
@@ -980,23 +980,23 @@ class SkillsManagementCommand(BaseCommand):
                 ("checkbox", "fg:#00ff00"),                # Green - for checked boxes
                 ("checkbox-selected", "fg:#00ff00 bold"),  # Green bold - for checked selected boxes
             ])
-            
+
             console.print("\n[bold cyan]Interactive Skills Configuration[/bold cyan]\n")
             console.print("[dim]Select skills to install/uninstall using checkboxes[/dim]")
             console.print("[dim]● = Installed, ○ = Available[/dim]\n")
-            
+
             # Get deployed skills for status detection
             deployed_result = self.skills_deployer.check_deployed_skills()
             deployed_skills = {skill["name"] for skill in deployed_result.get("skills", [])}
-            
+
             # Get available skills from GitHub
             console.print("[dim]Fetching available skills from GitHub...[/dim]\n")
             available_result = self.skills_deployer.list_available_skills()
-            
+
             if available_result.get("error"):
                 console.print(f"[red]Error: {available_result['error']}[/red]")
                 return CommandResult(success=False, message=available_result["error"], exit_code=1)
-            
+
             # Flatten skills by category
             all_skills = []
             for category, skills in available_result.get("by_category", {}).items():
@@ -1007,78 +1007,78 @@ class SkillsManagementCommand(BaseCommand):
                         "is_deployed": skill.get("name", "unknown") in deployed_skills
                     }
                     all_skills.append(skill_info)
-            
+
             # Sort by deployed status (deployed first), then by name
             all_skills.sort(key=lambda s: (not s["is_deployed"], s["name"]))
-            
+
             # Build checkbox choices with pre-selection
             # Loop to allow adjusting selection
             while True:
                 skill_choices = []
                 skill_map = {}  # For lookup after selection
-                
+
                 for skill in all_skills:
                     skill_name = skill["name"]
                     category = skill["category"]
                     is_deployed = skill["is_deployed"]
-                    
+
                     # Simple format: "skill-name (category)"
                     # Checkbox state (checked/unchecked) indicates installed status
                     choice_text = f"{skill_name} ({category})"
-                    
+
                     # Pre-select if deployed
                     choice = Choice(
                         title=choice_text,
                         value=skill_name,
                         checked=is_deployed
                     )
-                    
+
                     skill_choices.append(choice)
                     skill_map[skill_name] = skill
-                
+
                 # Display checkbox selection
                 selected_skills = questionary.checkbox(
                     "Select skills (Space to toggle, Enter to confirm):",
                     choices=skill_choices,
                     style=QUESTIONARY_STYLE
                 ).ask()
-                
+
                 if selected_skills is None:
                     # User cancelled (Ctrl+C)
                     console.print("[yellow]Skills configuration cancelled[/yellow]")
                     return CommandResult(success=True, exit_code=0)
-                
+
                 # Determine changes
                 to_install = []
                 to_remove = []
-                
+
                 for skill in all_skills:
                     skill_name = skill["name"]
                     is_deployed = skill["is_deployed"]
                     is_selected = skill_name in selected_skills
-                    
+
                     if is_selected and not is_deployed:
                         to_install.append(skill_name)
                     elif not is_selected and is_deployed:
                         to_remove.append(skill_name)
-                
+
                 # Show summary of changes
                 console.print("\n[bold]Changes to apply:[/bold]")
                 if to_install:
                     console.print(f"\n[green]✓ Install ({len(to_install)} skills):[/green]")
                     for skill in to_install:
                         console.print(f"  • {skill}")
-                
+
                 if to_remove:
                     console.print(f"\n[yellow]✗ Remove ({len(to_remove)} skills):[/yellow]")
                     for skill in to_remove:
                         console.print(f"  • {skill}")
-                
+
                 if not to_install and not to_remove:
                     console.print("\n[dim]No changes (selection matches current deployment)[/dim]")
-                
+
                 console.print()
-                
+
                 # Ask user to confirm, adjust, or cancel
                 action = questionary.select(
                     "\nWhat would you like to do?",
@@ -1090,20 +1090,20 @@ class SkillsManagementCommand(BaseCommand):
                     default="apply",
                     style=QUESTIONARY_STYLE
                 ).ask()
-                
+
                 if action == "cancel":
                     console.print("[yellow]Changes cancelled[/yellow]")
                     Prompt.ask("\nPress Enter to continue")
                     return CommandResult(success=True, exit_code=0)
-                elif action == "adjust":
+                if action == "adjust":
                     # Loop back to skill selection
                     console.print("\n[dim]Adjusting selection...[/dim]\n")
                     continue
-                
+
                 # Apply changes
                 success = True
                 errors = []
-                
+
                 # Install skills
                 if to_install:
                     console.print("\n[bold cyan]Installing skills...[/bold cyan]\n")
@@ -1114,7 +1114,7 @@ class SkillsManagementCommand(BaseCommand):
                                 skill_names=[skill_name],
                                 force=False
                             )
-                            
+
                             if result.get("errors"):
                                 errors.extend(result["errors"])
                                 success = False
@@ -1123,7 +1123,7 @@ class SkillsManagementCommand(BaseCommand):
                         except Exception as e:
                             errors.append(f"Failed to install {skill_name}: {e}")
                             success = False
-                
+
                 # Remove skills
                 if to_remove:
                     console.print("\n[bold yellow]Removing skills...[/bold yellow]\n")
@@ -1133,7 +1133,7 @@ class SkillsManagementCommand(BaseCommand):
                             result = self.skills_deployer.remove_skills(
                                 skill_names=[skill_name]
                             )
-                            
+
                             if result.get("errors"):
                                 errors.extend(result["errors"])
                                 success = False
@@ -1142,28 +1142,28 @@ class SkillsManagementCommand(BaseCommand):
                         except Exception as e:
                             errors.append(f"Failed to remove {skill_name}: {e}")
                             success = False
-                
+
                 # Show errors if any
                 if errors:
                     console.print(f"\n[red]✗ {len(errors)} error(s):[/red]")
                     for error in errors:
                         console.print(f"  • {error}")
-                
+
                 # Show restart instructions
                 if success and (to_install or to_remove):
                     console.print("\n[bold green]✓ Changes applied successfully![/bold green]")
                     console.print("\n[yellow]⚠️  Important:[/yellow]")
                     console.print("  Restart Claude Code for changes to take effect")
-                
+
                 console.print()
                 Prompt.ask("\nPress Enter to continue")
-                
+
                 # Exit the loop after successful execution
                 break
-            
+
             exit_code = 0 if success else 1
             return CommandResult(success=success, exit_code=exit_code)
-            
+
         except Exception as e:
             console.print(f"[red]Error in skills configuration: {e}[/red]")
             import traceback

@@ -1,8 +1,9 @@
 """Unit tests for questionary navigation in agent_wizard.py (1M-502 Phase 2)."""
 
-import pytest
-from unittest.mock import MagicMock, patch
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.claude_mpm.cli.interactive.agent_wizard import AgentWizard
 

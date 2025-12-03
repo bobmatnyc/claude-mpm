@@ -19,11 +19,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from claude_mpm.config.skill_sources import SkillSourceConfiguration
 from claude_mpm.services.agents.sources.git_source_sync_service import (
     GitSourceSyncService,
 )
 from claude_mpm.services.skills.git_skill_source_manager import GitSkillSourceManager
-from claude_mpm.config.skill_sources import SkillSourceConfiguration
 from claude_mpm.utils.migration import MigrationUtility
 
 

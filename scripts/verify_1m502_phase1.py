@@ -72,9 +72,8 @@ def test_agent_list_filtering():
     if base_agent_found:
         print("  ❌ BASE_AGENT found in filtered list!")
         return False
-    else:
-        print(f"  ✅ BASE_AGENT successfully filtered ({len(agents)} → {len(filtered)} agents)")
-        return True
+    print(f"  ✅ BASE_AGENT successfully filtered ({len(agents)} → {len(filtered)} agents)")
+    return True
 
 
 def test_deployed_agent_detection():
@@ -141,16 +140,14 @@ def test_combined_filtering():
     if any(is_base_agent(a.get("agent_id", "")) for a in filtered_base):
         print("  ❌ BASE_AGENT filter failed")
         return False
-    else:
-        print(f"  ✅ BASE_AGENT filter works ({len(agents)} → {len(filtered_base)} agents)")
+    print(f"  ✅ BASE_AGENT filter works ({len(agents)} → {len(filtered_base)} agents)")
 
     # Test no filtering
     no_filter = apply_all_filters(agents, filter_base=False, filter_deployed=False)
     if len(no_filter) != len(agents):
         print("  ❌ No filter mode failed")
         return False
-    else:
-        print(f"  ✅ No filter mode works (preserved all {len(agents)} agents)")
+    print(f"  ✅ No filter mode works (preserved all {len(agents)} agents)")
 
     return True
 
@@ -198,11 +195,10 @@ def main():
         print("\n  Implementation verified successfully!")
         print("  Ready for manual testing and code review.")
         return 0
-    else:
-        print(f"  ❌ SOME TESTS FAILED ({passed_count}/{total_count})")
-        print("=" * 70)
-        print("\n  Please review failures above.")
-        return 1
+    print(f"  ❌ SOME TESTS FAILED ({passed_count}/{total_count})")
+    print("=" * 70)
+    print("\n  Please review failures above.")
+    return 1
 
 
 if __name__ == "__main__":

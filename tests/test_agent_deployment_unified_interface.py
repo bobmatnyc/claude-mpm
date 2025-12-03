@@ -9,9 +9,11 @@ Design: Agent selection shows ALL agents with pre-selected deployed agents.
         Selecting = Deploy, Unselecting = Remove.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
 from claude_mpm.cli.commands.configure import ConfigureCommand
 from claude_mpm.cli.commands.configure_models import AgentConfig
 

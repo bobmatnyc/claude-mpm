@@ -135,7 +135,7 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Configure command (interactive skills selection)
-    configure_parser = skills_subparsers.add_parser(
+    skills_subparsers.add_parser(
         SkillsCommands.CONFIGURE.value,
         help="Interactive skills configuration with checkbox selection (like agents configure)",
     )
