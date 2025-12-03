@@ -12,6 +12,19 @@
 
 ### Security
 
+## [5.0.5] - 2025-12-03
+
+### Fixed
+- Deprecated command aliases no longer shown in UI listings
+  - Moved deprecated aliases to `deprecated_aliases` field in YAML frontmatter
+  - Updated command deployment service to filter deprecated aliases
+  - Prevents confusion from outdated command names appearing in help text
+
+### Changed
+- Improved slash command organization and discoverability
+  - Cleaner command lists without deprecated entries
+  - Better user experience for command discovery
+
 ## [5.0.4] - 2025-12-03
 
 ### Added
