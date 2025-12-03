@@ -102,7 +102,7 @@ def create_backup(old_cache: Path, backup_dir: Path) -> bool:
         if old_cache.exists():
             print(f"📦 Creating backup: {backup_dir}")
             shutil.copytree(old_cache, backup_dir, dirs_exist_ok=True)
-            print(f"✅ Backup created successfully")
+            print("✅ Backup created successfully")
             return True
         return True
     except Exception as e:
@@ -202,7 +202,7 @@ def move_cache(old_cache: Path, new_cache: Path, dry_run: bool = False) -> bool:
         True if move successful
     """
     try:
-        print(f"\n📦 Moving cache from:")
+        print("\n📦 Moving cache from:")
         print(f"   {old_cache}")
         print(f"   → {new_cache}")
 
@@ -297,9 +297,9 @@ def main():
 
     # Check if already migrated
     if migration_marker.exists():
-        print(f"\n✅ Migration already completed:")
+        print("\n✅ Migration already completed:")
         print(f"   Marker file: {migration_marker}")
-        print(f"\n💡 If you want to re-migrate, delete the marker file and run again:")
+        print("\n💡 If you want to re-migrate, delete the marker file and run again:")
         print(f"   rm {migration_marker}")
         return 0
 
@@ -319,7 +319,7 @@ def main():
         return 0
 
     # Show what will be migrated
-    print(f"\n📊 Migration Summary:")
+    print("\n📊 Migration Summary:")
     print(f"   Files to migrate: {len(old_files)}")
     print(f"   New cache exists: {new_cache.exists()}")
 
@@ -344,14 +344,14 @@ def main():
         print("\n📦 Both caches exist - merging with conflict resolution...")
         results = merge_caches(old_cache, new_cache, dry_run=args.dry_run)
 
-        print(f"\n📊 Migration Results:")
+        print("\n📊 Migration Results:")
         print(f"   Copied: {len(results['copied'])}")
         print(f"   Skipped (identical): {len(results['skipped'])}")
         print(f"   Conflicts resolved: {len(results['conflicts'])}")
         print(f"   Errors: {len(results['errors'])}")
 
         if results["errors"]:
-            print(f"\n❌ Migration completed with errors:")
+            print("\n❌ Migration completed with errors:")
             for error in results["errors"]:
                 print(f"   - {error}")
             return 1
@@ -386,16 +386,16 @@ def main():
         print("=" * 70)
         print(f"\nNew cache location: {new_cache}")
         print(f"Backup location: {backup_dir}")
-        print(f"\n💡 Next steps:")
-        print(f"   1. Verify agents work correctly")
-        print(f"   2. Run: claude-mpm agents list --system")
-        print(f"   3. If everything works, you can safely remove:")
+        print("\n💡 Next steps:")
+        print("   1. Verify agents work correctly")
+        print("   2. Run: claude-mpm agents list --system")
+        print("   3. If everything works, you can safely remove:")
         print(f"      rm -rf {old_cache}")
         print(f"      rm -rf {backup_dir}")
 
     else:
         print("\n🔍 DRY RUN COMPLETE - No changes were made")
-        print(f"\n💡 Run without --dry-run to perform the migration:")
+        print("\n💡 Run without --dry-run to perform the migration:")
         print(f"   python {sys.argv[0]}")
 
     return 0

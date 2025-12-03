@@ -6,10 +6,11 @@ WHY: Ensure postmortem analysis correctly categorizes errors and generates
 appropriate improvement actions based on error source.
 """
 
-import pytest
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from claude_mpm.services.analysis.postmortem_service import (
     ActionType,
@@ -17,10 +18,7 @@ from claude_mpm.services.analysis.postmortem_service import (
     PostmortemService,
     get_postmortem_service,
 )
-from claude_mpm.services.memory.failure_tracker import (
-    FailureEvent,
-    FailureTracker,
-)
+from claude_mpm.services.memory.failure_tracker import FailureEvent, FailureTracker
 
 
 class TestPostmortemService:

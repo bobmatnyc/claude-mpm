@@ -2275,7 +2275,7 @@ class AgentsCommand(AgentCommand):
                 # Default message
                 message = "feat: update agents from local development"
 
-            print(f"💾 Committing changes...")
+            print("💾 Committing changes...")
             success, msg = manager.commit_changes(message)
 
             if success:

@@ -248,7 +248,7 @@ def _apply_auto_fixes(report, verbose: bool) -> int:
             try:
                 result = subprocess.run(
                     cmd,
-                    shell=True,
+                    check=False, shell=True,
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -285,7 +285,7 @@ def _apply_auto_fixes(report, verbose: bool) -> int:
             success_count += 1
 
     # Summary
-    print(f"\n📊 Auto-fix Results:")
+    print("\n📊 Auto-fix Results:")
     print(f"  ✅ Successful: {success_count}")
     print(f"  ❌ Failed: {fail_count}")
 
@@ -313,7 +313,6 @@ def _create_prs(report, verbose: bool) -> int:
     print(f"\n🤖 Creating {len(pr_actions)} PR(s) for agent improvements...")
 
     # Check if we're in the agent cache git repo
-    import subprocess
     from claude_mpm.core.config import Config
 
     config = Config()
@@ -342,16 +341,16 @@ def _create_prs(report, verbose: bool) -> int:
 
             # For MVP, print PR template instead of actually creating
             # Full implementation would use GitHub CLI or API
-            print(f"  📝 PR Template Generated:")
+            print("  📝 PR Template Generated:")
             print(f"     Branch: {action.pr_branch}")
             print(f"     Title: {action.pr_title}")
 
             if verbose:
-                print(f"\n--- PR Body ---")
+                print("\n--- PR Body ---")
                 print(action.pr_body)
                 print("--- End PR Body ---\n")
 
-            print(f"\n  ℹ️  To create PR manually:")
+            print("\n  ℹ️  To create PR manually:")
             print(f"     cd {agent_cache_path}")
             print(f"     git checkout -b {action.pr_branch}")
             print(f"     # Make your changes to {analysis.affected_file}")
@@ -371,7 +370,7 @@ def _create_prs(report, verbose: bool) -> int:
             fail_count += 1
 
     # Summary
-    print(f"\n📊 PR Creation Results:")
+    print("\n📊 PR Creation Results:")
     print(f"  ✅ Templates generated: {success_count}")
     print(f"  ❌ Failed: {fail_count}")
 

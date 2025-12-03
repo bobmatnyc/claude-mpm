@@ -236,7 +236,6 @@ class CacheGitManager:
             except (GitOperationError, Exception) as e:
                 # No remote tracking branch configured or other error
                 logger.debug(f"Could not get ahead/behind count: {e}")
-                pass
 
             # Get remote URL
             remote_url = self.git_ops.get_remote_url(self.repo_path)
@@ -306,7 +305,7 @@ class CacheGitManager:
             logger.info(f"Successfully pulled latest changes from {branch}")
             return True, f"Successfully pulled latest changes from {branch}"
 
-        except GitConflictError as e:
+        except GitConflictError:
             # Parse conflict details from error message
             conflict_msg = (
                 f"Merge conflicts detected when pulling {branch}. "
@@ -322,7 +321,7 @@ class CacheGitManager:
             return False, conflict_msg
 
         except GitOperationError as e:
-            error_msg = f"Failed to pull {branch}: {str(e)}"
+            error_msg = f"Failed to pull {branch}: {e!s}"
             logger.error(error_msg)
             return False, error_msg
 
@@ -369,10 +368,10 @@ class CacheGitManager:
             self.git_ops.commit(self.repo_path, message)
 
             logger.info(f"Committed changes: {message[:50]}")
-            return True, f"Successfully committed changes"
+            return True, "Successfully committed changes"
 
         except GitOperationError as e:
-            error_msg = f"Failed to commit: {str(e)}"
+            error_msg = f"Failed to commit: {e!s}"
             logger.error(error_msg)
             return False, error_msg
 
@@ -408,7 +407,7 @@ class CacheGitManager:
 
         except GitAuthenticationError as e:
             error_msg = (
-                f"Authentication failed: {str(e)}\n\n"
+                f"Authentication failed: {e!s}\n\n"
                 "To fix:\n"
                 "  1. Configure SSH keys: ssh-keygen -t ed25519\n"
                 "  2. Add to GitHub: https://github.com/settings/keys\n"
@@ -422,14 +421,14 @@ class CacheGitManager:
             # Check if push was rejected due to remote changes
             if "rejected" in str(e).lower() or "non-fast-forward" in str(e).lower():
                 error_msg = (
-                    f"Push rejected: Remote has changes you don't have locally.\n\n"
+                    "Push rejected: Remote has changes you don't have locally.\n\n"
                     "To fix:\n"
                     "  1. Pull latest changes: git pull origin main\n"
                     "  2. Resolve any conflicts\n"
                     "  3. Push again"
                 )
             else:
-                error_msg = f"Failed to push: {str(e)}"
+                error_msg = f"Failed to push: {e!s}"
 
             logger.error(error_msg)
             return False, error_msg

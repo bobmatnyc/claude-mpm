@@ -379,7 +379,9 @@ class TestPushChanges:
 
     def test_push_authentication_error(self, git_repo_path, mock_git_ops):
         """Test push with authentication failure."""
-        from claude_mpm.services.git.git_operations_service import GitAuthenticationError
+        from claude_mpm.services.git.git_operations_service import (
+            GitAuthenticationError,
+        )
 
         mock_git_ops.is_git_repo.return_value = True
         mock_git_ops.push.side_effect = GitAuthenticationError("Authentication failed")

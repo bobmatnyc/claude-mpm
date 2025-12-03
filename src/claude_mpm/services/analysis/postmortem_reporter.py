@@ -14,7 +14,7 @@ DESIGN DECISION: Follows the same pattern as DoctorReporter for consistency.
 
 import json
 import sys
-from typing import Dict, List, Optional, TextIO
+from typing import Optional, TextIO
 
 from claude_mpm.core.logging_utils import get_logger
 
@@ -63,7 +63,10 @@ class PostmortemReporter:
     }
 
     def __init__(
-        self, use_color: bool = True, verbose: bool = False, output: TextIO = None
+        self,
+        use_color: bool = True,
+        verbose: bool = False,
+        output: Optional[TextIO] = None,
     ):
         """Initialize reporter.
 
@@ -203,15 +206,15 @@ class PostmortemReporter:
 
         # Status
         if analysis.failure_event.fixed:
-            self._print_colored(
-                f"   Status: Fixed {self.SYMBOLS['success']}", "green"
-            )
+            self._print_colored(f"   Status: Fixed {self.SYMBOLS['success']}", "green")
         else:
             self._print("   Status: Unfixed")
 
         # Verbose details
         if self.verbose:
-            self._print(f"   Error Type: {analysis.metadata.get('error_type', 'unknown')}")
+            self._print(
+                f"   Error Type: {analysis.metadata.get('error_type', 'unknown')}"
+            )
             self._print(f"   Tool: {analysis.metadata.get('tool', 'unknown')}")
 
         self._print()
@@ -309,12 +312,8 @@ class PostmortemReporter:
 
         # Priority breakdown
         self._print("Priority Breakdown:")
-        self._print_colored(
-            f"  • Critical: {stats['critical_priority']}", "red"
-        )
-        self._print_colored(
-            f"  • High: {stats['high_priority']}", "yellow"
-        )
+        self._print_colored(f"  • Critical: {stats['critical_priority']}", "red")
+        self._print_colored(f"  • High: {stats['high_priority']}", "yellow")
         self._print()
 
         # Actions

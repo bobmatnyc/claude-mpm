@@ -24,13 +24,12 @@ Integration points:
 - SessionManager: Session identification and context
 """
 
-import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.failure_tracker import FailureEvent, get_failure_tracker
@@ -191,9 +190,7 @@ class PostmortemService:
         self.tracker = get_failure_tracker()
         self.logger = logger
 
-    def analyze_session(
-        self, session_id: Optional[str] = None
-    ) -> PostmortemReport:
+    def analyze_session(self, session_id: Optional[str] = None) -> PostmortemReport:
         """Analyze errors from current or specified session.
 
         WHY: Main entry point for postmortem analysis. Collects failures from
@@ -460,9 +457,7 @@ class PostmortemService:
             "syntax-error": "Correct syntax error in Python code",
             "file-not-found": "Verify file paths and add existence checks",
         }
-        return suggestions.get(
-            error_type, "Test script in isolation and apply fix"
-        )
+        return suggestions.get(error_type, "Test script in isolation and apply fix")
 
     def _generate_skill_fix_suggestion(
         self, failure: FailureEvent, error_type: str
@@ -518,9 +513,7 @@ class PostmortemService:
         # Medium priority (default)
         return "medium"
 
-    def _is_auto_fixable(
-        self, failure: FailureEvent, category: ErrorCategory
-    ) -> bool:
+    def _is_auto_fixable(self, failure: FailureEvent, category: ErrorCategory) -> bool:
         """Determine if error can be automatically fixed.
 
         Args:
@@ -590,9 +583,7 @@ class PostmortemService:
 
         return None
 
-    def _create_auto_fix_action(
-        self, analysis: ErrorAnalysis
-    ) -> ImprovementAction:
+    def _create_auto_fix_action(self, analysis: ErrorAnalysis) -> ImprovementAction:
         """Create auto-fix action for script errors.
 
         Args:
@@ -619,9 +610,7 @@ class PostmortemService:
             commands=commands,
         )
 
-    def _create_update_file_action(
-        self, analysis: ErrorAnalysis
-    ) -> ImprovementAction:
+    def _create_update_file_action(self, analysis: ErrorAnalysis) -> ImprovementAction:
         """Create update file action for skills.
 
         Args:
@@ -648,7 +637,9 @@ class PostmortemService:
             ImprovementAction for PR creation
         """
         # Generate PR details
-        agent_name = analysis.affected_file.stem if analysis.affected_file else "unknown"
+        agent_name = (
+            analysis.affected_file.stem if analysis.affected_file else "unknown"
+        )
         branch_name = f"fix/{agent_name}-{datetime.now(timezone.utc):%Y%m%d}"
 
         pr_title = f"Fix: {agent_name} - {analysis.failure_event.task_type} error"
@@ -671,7 +662,7 @@ class PostmortemService:
 
 - Task Type: {analysis.failure_event.task_type}
 - Tool: {analysis.failure_event.tool_name}
-- Error Type: {analysis.metadata.get('error_type', 'unknown')}
+- Error Type: {analysis.metadata.get("error_type", "unknown")}
 
 ## Testing
 
@@ -691,9 +682,7 @@ class PostmortemService:
             pr_body=pr_body,
         )
 
-    def _create_suggestion_action(
-        self, analysis: ErrorAnalysis
-    ) -> ImprovementAction:
+    def _create_suggestion_action(self, analysis: ErrorAnalysis) -> ImprovementAction:
         """Create suggestion action for user code.
 
         Args:
@@ -702,7 +691,9 @@ class PostmortemService:
         Returns:
             ImprovementAction with suggestion
         """
-        description = f"Suggestion for {analysis.affected_file}: {analysis.fix_suggestion}"
+        description = (
+            f"Suggestion for {analysis.affected_file}: {analysis.fix_suggestion}"
+        )
 
         return ImprovementAction(
             action_type=ActionType.SUGGEST,
@@ -748,7 +739,14 @@ class PostmortemService:
             ),
         }
 
-        return stats
+        return {
+            "total_errors": stats["total_errors"],
+            "by_category": stats["by_category"],
+            "high_priority": stats["high_priority"],
+            "total_actions": stats["total_actions"],
+            "auto_fix_actions": stats["auto_fix_actions"],
+            "pr_actions": stats["pr_actions"],
+        }
 
 
 # Singleton instance
