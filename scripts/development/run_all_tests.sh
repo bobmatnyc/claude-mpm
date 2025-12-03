@@ -16,7 +16,7 @@ cd "$PROJECT_ROOT"
 
 echo "1. Running core functionality tests..."
 if python3 -c "import pytest" >/dev/null 2>&1; then
-    python3 -m pytest tests/core/ -v --tb=short
+    python3 -m pytest tests/core/ -v --tb=short --timeout=30 --timeout-method=thread
     PYTEST_EXIT_CODE=$?
 else
     echo "pytest not found, skipping unit tests"
@@ -26,7 +26,7 @@ fi
 echo
 echo "2. Running CLI tests..."
 if [ -f "tests/cli/test_cli_basic.py" ]; then
-    python3 -m pytest tests/cli/test_cli_basic.py -v
+    python3 -m pytest tests/cli/test_cli_basic.py -v --timeout=30 --timeout-method=thread
     CLI_EXIT_CODE=$?
 else
     echo "CLI tests not found, skipping"
