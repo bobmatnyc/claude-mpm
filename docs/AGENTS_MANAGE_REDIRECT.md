@@ -2,7 +2,9 @@
 
 ## Overview
 
-The `claude-mpm agents manage` command has been deprecated and redirected to the unified `claude-mpm config` interface. This provides users with a better experience by consolidating all configuration options in one place.
+The `claude-mpm agents manage` command now redirects to the unified `claude-mpm config` interface. This provides users with a better experience by consolidating all configuration options in one place.
+
+**Note**: This is a **redirect**, not a deprecation. The command still works and provides helpful guidance to users, making the transition to the new unified interface smooth and user-friendly.
 
 ## Changes Made
 
@@ -12,7 +14,7 @@ The `claude-mpm agents manage` command has been deprecated and redirected to the
 
 **Before**: Launched the AgentWizard interactive menu directly.
 
-**After**: Shows a deprecation notice and offers to launch `claude-mpm config` instead.
+**After**: Shows a friendly redirect message and offers to launch `claude-mpm config` instead.
 
 ```python
 def _manage_local_agents(self, args) -> CommandResult:
@@ -24,7 +26,7 @@ def _manage_local_agents(self, args) -> CommandResult:
 ```
 
 **Features**:
-- ✅ Friendly deprecation message in a styled box
+- ✅ Friendly redirect message in a styled box
 - ✅ Lists benefits of unified config interface
 - ✅ Interactive prompt to launch config immediately
 - ✅ Graceful fallback if user declines
