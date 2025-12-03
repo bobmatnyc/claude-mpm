@@ -2,7 +2,7 @@
 set -e  # Exit on error
 
 # Script: Automated PyPI Publishing
-# Description: Publishes Claude MPM to PyPI using API key from .env.local
+# Description: Publishes Claude MPM to PyPI using credentials from ~/.pypirc
 
 # Colors for output
 RED='\033[0;31m'
@@ -31,31 +31,15 @@ if [ ! -f "pyproject.toml" ]; then
 fi
 print_message "$GREEN" "✓ Running from project root"
 
-# 2. Load environment variables from .env.local
-if [ ! -f ".env.local" ]; then
-    print_message "$RED" "Error: .env.local file not found"
-    print_message "$YELLOW" "Expected location: $(pwd)/.env.local"
-    print_message "$YELLOW" "Please create .env.local with: PYPI_API_KEY=pypi-..."
+# 2. Verify ~/.pypirc exists
+if [ ! -f "$HOME/.pypirc" ]; then
+    print_message "$RED" "Error: ~/.pypirc file not found"
+    print_message "$YELLOW" "Please create ~/.pypirc with PyPI credentials"
+    print_message "$YELLOW" "See: https://packaging.python.org/en/latest/specifications/pypirc/"
     exit 1
 fi
 
-source .env.local
-print_message "$GREEN" "✓ Loaded .env.local"
-
-# 3. Verify PYPI_API_KEY is set
-if [ -z "$PYPI_API_KEY" ]; then
-    print_message "$RED" "Error: PYPI_API_KEY not found in .env.local"
-    print_message "$YELLOW" "Please add: PYPI_API_KEY=pypi-your-token-here"
-    exit 1
-fi
-
-# Verify key format (should start with pypi-)
-if [[ ! "$PYPI_API_KEY" =~ ^pypi- ]]; then
-    print_message "$YELLOW" "Warning: PYPI_API_KEY doesn't start with 'pypi-'"
-    print_message "$YELLOW" "This might not be a valid PyPI API token"
-fi
-
-print_message "$GREEN" "✓ PYPI_API_KEY found (${#PYPI_API_KEY} characters)"
+print_message "$GREEN" "✓ Found ~/.pypirc configuration"
 
 # 4. Get version from VERSION file
 if [ ! -f "VERSION" ]; then
@@ -121,14 +105,9 @@ print_message "$YELLOW" "Uploading to PyPI..."
 print_message "$BLUE" "This may take a moment..."
 echo ""
 
-# Use twine with API token authentication
-# Note: We use --username __token__ for API token auth
-# The password is read from the environment variable
-if twine upload \
-    --username __token__ \
-    --password "$PYPI_API_KEY" \
-    "$WHEEL_FILE" \
-    "$TAR_FILE"; then
+# Use twine with credentials from ~/.pypirc
+# Twine will automatically read the [pypi] section from ~/.pypirc
+if twine upload "$WHEEL_FILE" "$TAR_FILE"; then
 
     echo ""
     print_message "$GREEN" "========================================"

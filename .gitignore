@@ -295,6 +295,7 @@ $RECYCLE.BIN/
 .pydevproject
 .pytype/
 .secrets/
+.pypirc
 .settings/
 .tox/
 .venv
