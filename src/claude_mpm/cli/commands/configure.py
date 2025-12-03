@@ -1048,6 +1048,7 @@ class ConfigureCommand(BaseCommand):
         # Build checkbox choices with pre-selection
         agent_choices = []
         agent_map = {}  # For lookup after selection
+        default_selected = []  # List of values to pre-select (deployed agents)
 
         for agent in agents:
             if agent.name in {a["agent_id"] for a in all_agents}:
@@ -1074,24 +1075,25 @@ class ConfigureCommand(BaseCommand):
                 # Un-selected (unchecked) agents are available
                 if is_deployed:
                     choice_text += " [Installed]"
+                    default_selected.append(agent.name)  # Add to pre-selection list
                 else:
                     choice_text += " [Available]"
 
-                # Create choice with explicit checked parameter
+                # Create choice WITHOUT checked parameter
+                # We'll use the default parameter on questionary.checkbox instead
                 choice = questionary.Choice(
                     title=choice_text,
-                    value=agent.name,
-                    checked=is_deployed  # PRE-SELECT deployed agents
-                )
-
-                # Debug: verify choice was created with correct checked state
-                self.logger.debug(
-                    f"Created choice for {agent.name}: "
-                    f"checked={choice.checked}, value={choice.value}"
+                    value=agent.name
                 )
 
                 agent_choices.append(choice)
                 agent_map[agent.name] = agent
+
+        # Debug: show pre-selection summary
+        self.logger.debug(
+            f"Built {len(agent_choices)} choices, "
+            f"{len(default_selected)} will be pre-selected via default parameter"
+        )
 
         # Multi-select with pre-selection
         self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
@@ -1106,16 +1108,12 @@ class ConfigureCommand(BaseCommand):
             "Enter to apply changes[/dim]\n"
         )
 
-        # Debug: show checkbox state summary before questionary
-        checked_count = sum(1 for c in agent_choices if hasattr(c, 'checked') and c.checked)
-        self.logger.debug(
-            f"Passing {len(agent_choices)} choices to questionary, "
-            f"{checked_count} are pre-checked"
-        )
-
+        # Use questionary's default parameter for pre-selection
+        # This is more reliable than using checked=True on Choice objects
         selected_agent_ids = questionary.checkbox(
             "Agents:",
             choices=agent_choices,
+            default=default_selected,  # Pre-select deployed agents
             style=self.QUESTIONARY_STYLE
         ).ask()
 
