@@ -1048,7 +1048,6 @@ class ConfigureCommand(BaseCommand):
         # Build checkbox choices with pre-selection
         agent_choices = []
         agent_map = {}  # For lookup after selection
-        default_selected = []  # List of values to pre-select (deployed agents)
 
         for agent in agents:
             if agent.name in {a["agent_id"] for a in all_agents}:
@@ -1058,12 +1057,6 @@ class ConfigureCommand(BaseCommand):
                 # Extract leaf name from full path for comparison with deployed_ids
                 agent_leaf_name = agent.name.split("/")[-1]
                 is_deployed = agent_leaf_name in deployed_ids
-
-                # Debug: log deployment check
-                self.logger.debug(
-                    f"Agent {agent.name} → leaf={agent_leaf_name} → "
-                    f"deployed={is_deployed}"
-                )
 
                 # Simple format: "agent/path - Display Name [Status]"
                 choice_text = f"{agent.name}"
@@ -1075,25 +1068,20 @@ class ConfigureCommand(BaseCommand):
                 # Un-selected (unchecked) agents are available
                 if is_deployed:
                     choice_text += " [Installed]"
-                    default_selected.append(agent.name)  # Add to pre-selection list
                 else:
                     choice_text += " [Available]"
 
-                # Create choice WITHOUT checked parameter
-                # We'll use the default parameter on questionary.checkbox instead
+                # Create choice with checked=True for deployed agents
+                # Note: questionary's default param is for single-select only
+                # For multi-select, must use checked=True on Choice objects
                 choice = questionary.Choice(
                     title=choice_text,
-                    value=agent.name
+                    value=agent.name,
+                    checked=is_deployed
                 )
 
                 agent_choices.append(choice)
                 agent_map[agent.name] = agent
-
-        # Debug: show pre-selection summary
-        self.logger.debug(
-            f"Built {len(agent_choices)} choices, "
-            f"{len(default_selected)} will be pre-selected via default parameter"
-        )
 
         # Multi-select with pre-selection
         self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
@@ -1108,12 +1096,11 @@ class ConfigureCommand(BaseCommand):
             "Enter to apply changes[/dim]\n"
         )
 
-        # Use questionary's default parameter for pre-selection
-        # This is more reliable than using checked=True on Choice objects
+        # Pre-selection via checked=True on Choice objects
+        # (questionary's default param is for single-select only)
         selected_agent_ids = questionary.checkbox(
             "Agents:",
             choices=agent_choices,
-            default=default_selected,  # Pre-select deployed agents
             style=self.QUESTIONARY_STYLE
         ).ask()
 
