@@ -125,6 +125,33 @@ class CommandDeploymentService(BaseService):
 
         return errors
 
+    def _strip_deprecated_aliases(self, content: str) -> str:
+        """Strip deprecated_aliases from frontmatter to hide them from Claude Code UI.
+
+        This prevents deprecated aliases from appearing in the command list while
+        maintaining backward compatibility through command routing.
+
+        Args:
+            content: Command file content with frontmatter
+
+        Returns:
+            Content with deprecated_aliases removed from frontmatter
+        """
+        frontmatter, body = self._parse_frontmatter(content)
+
+        if not frontmatter or "deprecated_aliases" not in frontmatter:
+            return content
+
+        # Remove deprecated_aliases from frontmatter
+        frontmatter_copy = frontmatter.copy()
+        del frontmatter_copy["deprecated_aliases"]
+
+        # Reconstruct the file with modified frontmatter
+        frontmatter_yaml = yaml.dump(
+            frontmatter_copy, default_flow_style=False, sort_keys=False
+        )
+        return f"---\n{frontmatter_yaml}---\n{body}"
+
     def deploy_commands(self, force: bool = False) -> Dict[str, Any]:
         """Deploy MPM slash commands to user's Claude configuration.
 
@@ -195,8 +222,12 @@ class CommandDeploymentService(BaseService):
                         )
                         continue
 
-                    # Copy the file
-                    shutil.copy2(source_file, target_file)
+                    # Strip deprecated_aliases from content before deployment
+                    # This prevents them from appearing in Claude Code's command list UI
+                    cleaned_content = self._strip_deprecated_aliases(content)
+
+                    # Write the cleaned content to target
+                    target_file.write_text(cleaned_content)
                     self.logger.info(f"Deployed command: {source_file.name}")
                     result["deployed"].append(source_file.name)
 

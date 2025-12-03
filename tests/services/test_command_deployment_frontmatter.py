@@ -268,7 +268,24 @@ Command content.
         # Verify file was deployed
         target_file = service.target_dir / "test-command.md"
         assert target_file.exists()
-        assert target_file.read_text() == command_content
+
+        # Verify content semantically (YAML formatting may differ after stripping)
+        deployed_content = target_file.read_text()
+        frontmatter, body = service._parse_frontmatter(deployed_content)
+
+        # Verify frontmatter fields
+        assert frontmatter is not None
+        assert frontmatter["namespace"] == "mpm/agents"
+        assert frontmatter["command"] == "list"
+        assert frontmatter["category"] == "agents"
+        assert frontmatter["description"] == "List agents"
+        assert frontmatter["aliases"] == ["mpm-agents"]
+        # deprecated_aliases should be stripped
+        assert "deprecated_aliases" not in frontmatter
+
+        # Verify body content
+        assert "# Test Command" in body
+        assert "Command content." in body
 
     def test_deploy_command_with_invalid_frontmatter(self, service):
         """Test deploying command with invalid frontmatter logs warnings."""
@@ -522,3 +539,211 @@ class TestDeprecatedCommandCleanup:
         assert len(CommandDeploymentService.DEPRECATED_COMMANDS) == 6
         assert "mpm-agents.md" in CommandDeploymentService.DEPRECATED_COMMANDS
         assert "mpm-ticket.md" in CommandDeploymentService.DEPRECATED_COMMANDS
+
+
+class TestDeprecatedAliasStripping:
+    """Test stripping of deprecated_aliases from deployed command files."""
+
+    @pytest.fixture
+    def service(self):
+        """Create CommandDeploymentService instance."""
+        return CommandDeploymentService()
+
+    def test_strip_deprecated_aliases_removes_field(self, service):
+        """Test that deprecated_aliases field is removed from frontmatter."""
+        content = """---
+namespace: mpm/agents
+command: auto-configure
+aliases: [mpm-agents-auto-configure]
+category: agents
+deprecated_aliases: [mpm-auto-configure]
+description: Automatically configure agents
+---
+# Command Content
+
+Body goes here.
+"""
+        result = service._strip_deprecated_aliases(content)
+
+        # Parse the result to verify deprecated_aliases is gone
+        frontmatter, body = service._parse_frontmatter(result)
+        assert frontmatter is not None
+        assert "deprecated_aliases" not in frontmatter
+        assert "aliases" in frontmatter
+        assert frontmatter["aliases"] == ["mpm-agents-auto-configure"]
+        assert "# Command Content" in body
+
+    def test_strip_deprecated_aliases_preserves_other_fields(self, service):
+        """Test that other fields are preserved when stripping deprecated_aliases."""
+        content = """---
+namespace: mpm/agents
+command: list
+aliases: [mpm-agents, mpm-agents-list]
+migration_target: /mpm/agents:list
+category: agents
+deprecated_aliases: [mpm-old-agents]
+description: List all available agents
+extra_field: extra_value
+---
+# Command Content
+"""
+        result = service._strip_deprecated_aliases(content)
+
+        frontmatter, _ = service._parse_frontmatter(result)
+        assert frontmatter is not None
+        assert frontmatter["namespace"] == "mpm/agents"
+        assert frontmatter["command"] == "list"
+        assert frontmatter["aliases"] == ["mpm-agents", "mpm-agents-list"]
+        assert frontmatter["migration_target"] == "/mpm/agents:list"
+        assert frontmatter["category"] == "agents"
+        assert frontmatter["description"] == "List all available agents"
+        assert frontmatter["extra_field"] == "extra_value"
+        assert "deprecated_aliases" not in frontmatter
+
+    def test_strip_deprecated_aliases_empty_list(self, service):
+        """Test stripping when deprecated_aliases is an empty list."""
+        content = """---
+namespace: mpm/system
+command: help
+aliases: [mpm-help]
+category: system
+deprecated_aliases: []
+description: Show help
+---
+# Content
+"""
+        result = service._strip_deprecated_aliases(content)
+
+        frontmatter, _ = service._parse_frontmatter(result)
+        assert frontmatter is not None
+        assert "deprecated_aliases" not in frontmatter
+
+    def test_strip_deprecated_aliases_no_frontmatter(self, service):
+        """Test stripping when content has no frontmatter."""
+        content = """# Regular Markdown
+
+No frontmatter here.
+"""
+        result = service._strip_deprecated_aliases(content)
+
+        # Should return content unchanged
+        assert result == content
+
+    def test_strip_deprecated_aliases_field_not_present(self, service):
+        """Test stripping when deprecated_aliases field doesn't exist."""
+        content = """---
+namespace: mpm/system
+command: help
+aliases: [mpm-help]
+category: system
+description: Show help
+---
+# Content
+"""
+        result = service._strip_deprecated_aliases(content)
+
+        # Should return content unchanged (or with frontmatter preserved)
+        frontmatter, body = service._parse_frontmatter(result)
+        assert frontmatter is not None
+        assert "deprecated_aliases" not in frontmatter
+        assert frontmatter["aliases"] == ["mpm-help"]
+        assert "# Content" in body
+
+    def test_deploy_command_strips_deprecated_aliases(self, service, tmp_path):
+        """Test that deploy_commands strips deprecated_aliases from deployed files."""
+        # Setup temporary directories
+        service.source_dir = tmp_path / "source"
+        service.target_dir = tmp_path / "target"
+        service.source_dir.mkdir()
+        service.target_dir.mkdir()
+
+        # Create source command with deprecated_aliases
+        source_content = """---
+namespace: mpm/agents
+command: auto-configure
+aliases: [mpm-agents-auto-configure]
+category: agents
+deprecated_aliases: [mpm-auto-configure, mpm-configure]
+description: Auto-configure agents
+---
+# Auto Configure Command
+
+This command automatically configures agents.
+"""
+        source_file = service.source_dir / "mpm-agents-auto-configure.md"
+        source_file.write_text(source_content)
+
+        # Deploy the command
+        result = service.deploy_commands(force=True)
+
+        assert result["success"]
+        assert "mpm-agents-auto-configure.md" in result["deployed"]
+
+        # Verify deployed file has deprecated_aliases stripped
+        target_file = service.target_dir / "mpm-agents-auto-configure.md"
+        assert target_file.exists()
+
+        deployed_content = target_file.read_text()
+        frontmatter, body = service._parse_frontmatter(deployed_content)
+
+        # Verify deprecated_aliases is NOT in deployed file
+        assert frontmatter is not None
+        assert "deprecated_aliases" not in frontmatter
+
+        # Verify other fields are preserved
+        assert frontmatter["namespace"] == "mpm/agents"
+        assert frontmatter["command"] == "auto-configure"
+        assert frontmatter["aliases"] == ["mpm-agents-auto-configure"]
+        assert frontmatter["category"] == "agents"
+        assert frontmatter["description"] == "Auto-configure agents"
+
+        # Verify body is preserved
+        assert "# Auto Configure Command" in body
+        assert "automatically configures agents" in body
+
+    def test_deploy_multiple_commands_all_stripped(self, service, tmp_path):
+        """Test that multiple commands all have deprecated_aliases stripped."""
+        service.source_dir = tmp_path / "source"
+        service.target_dir = tmp_path / "target"
+        service.source_dir.mkdir()
+        service.target_dir.mkdir()
+
+        # Create multiple source commands
+        commands = [
+            ("mpm-agents-list.md", ["mpm-agents"]),
+            ("mpm-config-view.md", ["mpm-config"]),
+            ("mpm-ticket-view.md", ["mpm-ticket"]),
+        ]
+
+        for filename, deprecated_aliases in commands:
+            content = f"""---
+namespace: mpm/test
+command: test
+aliases: [{filename.replace(".md", "")}]
+category: system
+deprecated_aliases: {deprecated_aliases}
+description: Test command
+---
+# Content
+"""
+            source_file = service.source_dir / filename
+            source_file.write_text(content)
+
+        # Deploy all commands
+        result = service.deploy_commands(force=True)
+
+        assert result["success"]
+        assert len(result["deployed"]) == 3
+
+        # Verify all deployed files have deprecated_aliases stripped
+        for filename, _ in commands:
+            target_file = service.target_dir / filename
+            assert target_file.exists()
+
+            deployed_content = target_file.read_text()
+            frontmatter, _ = service._parse_frontmatter(deployed_content)
+
+            assert frontmatter is not None
+            assert "deprecated_aliases" not in frontmatter, (
+                f"{filename} should not have deprecated_aliases"
+            )
