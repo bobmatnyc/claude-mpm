@@ -2,10 +2,16 @@
 
 This module defines preset bundles of agents for typical development workflows.
 Presets enable users to deploy entire agent stacks with a single command like:
-    claude-mpm agents deploy --preset python-dev
+    claude-mpm agents deploy --preset python-min
+    claude-mpm agents deploy --preset python-max
 
 Design Decision: Presets use agent IDs from AUTO-DEPLOY-INDEX.md format
 (e.g., "universal/memory-manager", "engineer/backend/python-engineer").
+
+Architecture:
+- MIN presets: Essential agents only (faster startup, lower resource usage)
+- MAX presets: Full toolchain with specialized agents (comprehensive coverage)
+- All presets include: mpm-agent-manager, mpm-skills-manager, engineer, research, documentation
 
 Trade-offs:
 - Simplicity: Static lists are easy to maintain
@@ -18,71 +24,273 @@ from typing import Any, Callable, Dict, List, Union
 # Type for preset resolver (can be static list or dynamic function)
 PresetResolver = Union[List[str], Callable[[], List[str]]]
 
+# Core agents included in ALL presets (MIN and MAX)
+CORE_AGENTS = [
+    "claude-mpm/mpm-agent-manager",    # Agent lifecycle management
+    "claude-mpm/mpm-skills-manager",   # Skills management
+    "universal/research",               # Codebase investigation
+    "documentation/documentation",      # Documentation generation
+    "engineer/core/engineer",           # General-purpose engineering
+]
+
 PRESETS: Dict[str, Dict[str, Any]] = {
+    # ========================================
+    # Universal Minimal Preset
+    # ========================================
     "minimal": {
-        "description": "6 core agents for any project",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
-            "engineer/backend/python-engineer",  # Will be language-specific in future
+        "description": "Core agents only - universal starter kit",
+        "agents": CORE_AGENTS + [
             "qa/qa",
             "ops/core/ops",
         ],
-        "use_cases": ["Micro projects", "Quick prototypes", "Learning"],
+        "use_cases": ["Any project type", "Quick start", "Learning"],
     },
-    "python-dev": {
-        "description": "Python backend development stack (8 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+
+    # ========================================
+    # Python Toolchain Presets
+    # ========================================
+    "python-min": {
+        "description": "Python essentials (8 agents)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/python-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Python scripts", "Small Python projects", "FastAPI microservices"],
+    },
+    "python-max": {
+        "description": "Full Python development stack (14+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/python-engineer",
+            "universal/code-analyzer",
+            "universal/memory-manager",
             "qa/qa",
             "qa/api-qa",
             "ops/core/ops",
             "security/security",
-        ],
-        "use_cases": ["FastAPI projects", "Django projects", "Python APIs"],
-    },
-    "python-fullstack": {
-        "description": "Python backend + React frontend (12 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "universal/code-analyzer",
-            "documentation/documentation",
             "documentation/ticketing",
-            "engineer/backend/python-engineer",
-            "engineer/frontend/react-engineer",
+            "refactoring/refactoring-engineer",
+        ],
+        "use_cases": ["FastAPI production", "Django projects", "Python APIs at scale"],
+    },
+
+    # ========================================
+    # JavaScript/TypeScript Toolchain Presets
+    # ========================================
+    "javascript-min": {
+        "description": "Node.js essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/javascript-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Express.js", "Node.js scripts", "Backend microservices"],
+    },
+    "javascript-max": {
+        "description": "Full Node.js development stack (13+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/javascript-engineer",
+            "engineer/data/typescript-engineer",
+            "universal/code-analyzer",
             "qa/qa",
             "qa/api-qa",
+            "ops/core/ops",
+            "security/security",
+            "documentation/ticketing",
+        ],
+        "use_cases": ["Express.js production", "Fastify", "Koa", "Enterprise Node.js"],
+    },
+
+    # ========================================
+    # React Toolchain Presets
+    # ========================================
+    "react-min": {
+        "description": "React essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/frontend/react-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["React SPAs", "Component libraries", "Quick prototypes"],
+    },
+    "react-max": {
+        "description": "Full React development stack (12+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/frontend/react-engineer",
+            "engineer/data/typescript-engineer",
+            "universal/code-analyzer",
+            "qa/qa",
             "qa/web-qa",
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["FastAPI + React", "Django + React", "Full-stack Python"],
+        "use_cases": ["React production apps", "Component systems", "Frontend at scale"],
+    },
+
+    # ========================================
+    # Next.js Toolchain Presets
+    # ========================================
+    "nextjs-min": {
+        "description": "Next.js essentials (9 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/frontend/nextjs-engineer",
+            "engineer/frontend/react-engineer",
+            "qa/qa",
+            "ops/platform/vercel-ops",
+        ],
+        "use_cases": ["Next.js apps", "Vercel deployment", "Full-stack TypeScript"],
+    },
+    "nextjs-max": {
+        "description": "Full Next.js development stack (15+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/frontend/nextjs-engineer",
+            "engineer/frontend/react-engineer",
+            "engineer/data/typescript-engineer",
+            "universal/code-analyzer",
+            "universal/memory-manager",
+            "qa/qa",
+            "qa/web-qa",
+            "qa/api-qa",
+            "ops/core/ops",
+            "ops/platform/vercel-ops",
+            "security/security",
+            "documentation/ticketing",
+        ],
+        "use_cases": ["Next.js production", "Enterprise apps", "Full-stack at scale"],
+    },
+
+    # ========================================
+    # Go Toolchain Presets
+    # ========================================
+    "golang-min": {
+        "description": "Go essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/golang-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Go microservices", "CLI tools", "Small Go projects"],
+    },
+    "golang-max": {
+        "description": "Full Go development stack (12+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/golang-engineer",
+            "universal/code-analyzer",
+            "qa/qa",
+            "qa/api-qa",
+            "ops/core/ops",
+            "security/security",
+            "documentation/ticketing",
+        ],
+        "use_cases": ["Go production APIs", "Cloud-native apps", "Microservices at scale"],
+    },
+
+    # ========================================
+    # Rust Toolchain Presets
+    # ========================================
+    "rust-min": {
+        "description": "Rust essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/rust-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Rust CLI tools", "Systems programming", "WebAssembly"],
+    },
+    "rust-max": {
+        "description": "Full Rust development stack (11+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/rust-engineer",
+            "universal/code-analyzer",
+            "qa/qa",
+            "ops/core/ops",
+            "security/security",
+            "documentation/ticketing",
+        ],
+        "use_cases": ["Rust production systems", "Performance-critical apps", "Safe systems"],
+    },
+
+    # ========================================
+    # Java Toolchain Presets
+    # ========================================
+    "java-min": {
+        "description": "Java essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/java-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Spring Boot basics", "Java microservices", "Small Java projects"],
+    },
+    "java-max": {
+        "description": "Full Java development stack (13+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/java-engineer",
+            "universal/code-analyzer",
+            "qa/qa",
+            "qa/api-qa",
+            "ops/core/ops",
+            "security/security",
+            "documentation/ticketing",
+            "refactoring/refactoring-engineer",
+        ],
+        "use_cases": ["Spring Boot production", "Enterprise Java", "Microservices at scale"],
+    },
+
+    # ========================================
+    # Mobile/Flutter Toolchain Presets
+    # ========================================
+    "flutter-min": {
+        "description": "Flutter essentials (8 agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/mobile/dart-engineer",
+            "qa/qa",
+            "ops/core/ops",
+        ],
+        "use_cases": ["Flutter apps", "Mobile prototypes", "Cross-platform basics"],
+    },
+    "flutter-max": {
+        "description": "Full Flutter development stack (12+ agents)",
+        "agents": CORE_AGENTS + [
+            "engineer/mobile/dart-engineer",
+            "universal/code-analyzer",
+            "qa/qa",
+            "ops/core/ops",
+            "security/security",
+            "documentation/ticketing",
+            "universal/memory-manager",
+        ],
+        "use_cases": ["Flutter production", "iOS/Android apps", "Enterprise mobile"],
+    },
+
+    # ========================================
+    # Legacy Presets (kept for backward compatibility)
+    # ========================================
+    "python-dev": {
+        "description": "Python backend (LEGACY - use python-max)",
+        "agents": CORE_AGENTS + [
+            "engineer/backend/python-engineer",
+            "qa/qa",
+            "qa/api-qa",
+            "ops/core/ops",
+            "security/security",
+        ],
+        "use_cases": ["Legacy preset - migrate to python-max"],
     },
     "javascript-backend": {
-        "description": "Node.js backend development (8 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Node.js backend (LEGACY - use javascript-max)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/javascript-engineer",
             "qa/qa",
             "qa/api-qa",
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["Express.js", "Fastify", "Koa", "Node.js APIs"],
+        "use_cases": ["Legacy preset - migrate to javascript-max"],
     },
     "react-dev": {
-        "description": "React frontend development (9 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "React development (LEGACY - use react-max)",
+        "agents": CORE_AGENTS + [
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
             "qa/qa",
@@ -90,15 +298,11 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["React SPAs", "Component libraries", "Frontend projects"],
+        "use_cases": ["Legacy preset - migrate to react-max"],
     },
     "nextjs-fullstack": {
-        "description": "Next.js full-stack development (13 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "universal/code-analyzer",
-            "documentation/documentation",
+        "description": "Next.js full-stack (LEGACY - use nextjs-max)",
+        "agents": CORE_AGENTS + [
             "engineer/frontend/nextjs-engineer",
             "engineer/frontend/react-engineer",
             "engineer/data/typescript-engineer",
@@ -109,41 +313,32 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "security/security",
             "documentation/ticketing",
         ],
-        "use_cases": ["Next.js apps", "Vercel deployments", "Full-stack TypeScript"],
+        "use_cases": ["Legacy preset - migrate to nextjs-max"],
     },
     "rust-dev": {
-        "description": "Rust systems development (7 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Rust development (LEGACY - use rust-max)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/rust-engineer",
             "qa/qa",
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["Rust systems", "CLI tools", "WebAssembly"],
+        "use_cases": ["Legacy preset - migrate to rust-max"],
     },
     "golang-dev": {
-        "description": "Go backend development (8 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Go development (LEGACY - use golang-max)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/golang-engineer",
             "qa/qa",
             "qa/api-qa",
             "ops/core/ops",
             "security/security",
         ],
-        "use_cases": ["Go APIs", "Microservices", "Cloud-native apps"],
+        "use_cases": ["Legacy preset - migrate to golang-max"],
     },
     "java-dev": {
-        "description": "Java/Spring Boot development (9 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Java/Spring Boot (LEGACY - use java-max)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/java-engineer",
             "qa/qa",
             "qa/api-qa",
@@ -151,35 +346,29 @@ PRESETS: Dict[str, Dict[str, Any]] = {
             "security/security",
             "documentation/ticketing",
         ],
-        "use_cases": ["Spring Boot", "Java EE", "Enterprise applications"],
+        "use_cases": ["Legacy preset - migrate to java-max"],
     },
     "mobile-flutter": {
-        "description": "Flutter mobile development (8 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Flutter mobile (LEGACY - use flutter-max)",
+        "agents": CORE_AGENTS + [
             "engineer/mobile/dart-engineer",
             "qa/qa",
             "ops/core/ops",
             "security/security",
             "documentation/ticketing",
         ],
-        "use_cases": ["Flutter apps", "Cross-platform mobile", "iOS/Android"],
+        "use_cases": ["Legacy preset - migrate to flutter-max"],
     },
     "data-eng": {
-        "description": "Data engineering stack (10 agents)",
-        "agents": [
-            "universal/memory-manager",
-            "universal/research",
-            "documentation/documentation",
+        "description": "Data engineering stack (12 agents)",
+        "agents": CORE_AGENTS + [
             "engineer/backend/python-engineer",
             "engineer/data/data-engineer",
+            "universal/code-analyzer",
             "qa/qa",
             "ops/core/ops",
             "security/security",
             "documentation/ticketing",
-            "universal/code-analyzer",
         ],
         "use_cases": ["dbt projects", "Airflow", "Data pipelines", "ETL"],
     },
@@ -190,11 +379,11 @@ def get_preset_names() -> List[str]:
     """Get list of all available preset names.
 
     Returns:
-        List of preset names (e.g., ['minimal', 'python-dev', ...])
+        List of preset names (e.g., ['minimal', 'python-min', 'python-max', ...])
 
     Example:
         >>> names = get_preset_names()
-        >>> 'minimal' in names
+        >>> 'python-min' in names
         True
     """
     return list(PRESETS.keys())
@@ -204,7 +393,7 @@ def get_preset_info(preset_name: str) -> Dict[str, Any]:
     """Get preset metadata (description, use cases, agent count).
 
     Args:
-        preset_name: Name of preset (e.g., 'python-dev')
+        preset_name: Name of preset (e.g., 'python-min')
 
     Returns:
         Dict with keys:
@@ -217,9 +406,9 @@ def get_preset_info(preset_name: str) -> Dict[str, Any]:
         ValueError: If preset name is invalid
 
     Example:
-        >>> info = get_preset_info('minimal')
+        >>> info = get_preset_info('python-min')
         >>> info['agent_count']
-        6
+        8
     """
     if preset_name not in PRESETS:
         raise ValueError(f"Unknown preset: {preset_name}")
@@ -237,19 +426,19 @@ def get_preset_agents(preset_name: str) -> List[str]:
     """Get agent list for preset.
 
     Args:
-        preset_name: Name of preset (e.g., 'python-dev')
+        preset_name: Name of preset (e.g., 'python-min')
 
     Returns:
-        List of agent IDs (e.g., ["universal/memory-manager", ...])
+        List of agent IDs (e.g., ["claude-mpm/mpm-agent-manager", ...])
 
     Raises:
         ValueError: If preset name is invalid
 
     Example:
-        >>> agents = get_preset_agents('minimal')
+        >>> agents = get_preset_agents('python-min')
         >>> len(agents)
-        6
-        >>> 'universal/memory-manager' in agents
+        8
+        >>> 'claude-mpm/mpm-agent-manager' in agents
         True
     """
     if preset_name not in PRESETS:

@@ -168,6 +168,7 @@ class SkillsCommands(str, Enum):
     UPDATE = "update"
     INFO = "info"
     CONFIG = "config"
+    CONFIGURE = "configure"  # Interactive skills selection (like agents configure)
     # GitHub deployment commands
     DEPLOY_FROM_GITHUB = "deploy-github"
     LIST_AVAILABLE = "list-available"

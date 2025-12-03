@@ -134,6 +134,13 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         help="Show configuration file path",
     )
 
+    # Configure command (interactive skills selection)
+    configure_parser = skills_subparsers.add_parser(
+        SkillsCommands.CONFIGURE.value,
+        help="Interactive skills configuration with checkbox selection (like agents configure)",
+    )
+    # No additional arguments needed - purely interactive
+
     # GitHub deployment commands
     # Deploy from GitHub command
     deploy_github_parser = skills_subparsers.add_parser(
