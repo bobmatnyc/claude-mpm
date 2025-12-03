@@ -355,9 +355,9 @@ def sync_remote_agents_on_startup():
 
                 if cache_dir.exists():
                     # Count MD files in cache (agent markdown files from Git)
-                    # BUGFIX: Use rglob to support nested directory structure
-                    # (bobmatnyc/claude-mpm-agents/agents/*.md)
-                    # Exclude PM templates and BASE-AGENT - only count deployable agents
+                    # BUGFIX: Only count files in agent directories, not docs/templates/READMEs
+                    # Valid agent paths must contain "/agents/" or be in root-level category dirs
+                    # Exclude PM templates, BASE-AGENT, and documentation files
                     pm_templates = {
                         "base-agent.md",
                         "circuit_breakers.md",
@@ -368,14 +368,34 @@ def sync_remote_agents_on_startup():
                         "ticket_completeness_examples.md",
                         "validation_templates.md",
                         "git_file_tracking.md",
-                        "readme.md",  # Exclude READMEs from nested directories
-                        "auto-deploy-index.md",  # Exclude index files
                     }
-                    # Use rglob("**/*.md") to find agents in nested structure
+                    # Documentation files to exclude (by filename)
+                    doc_files = {
+                        "readme.md",
+                        "changelog.md",
+                        "contributing.md",
+                        "implementation-summary.md",
+                        "reorganization-plan.md",
+                        "auto-deploy-index.md",
+                    }
+
+                    # Find all markdown files
+                    all_md_files = list(cache_dir.rglob("*.md"))
+
+                    # Filter to only agent files:
+                    # 1. Must have "/agents/" in path (from git repos)
+                    # 2. Must not be in PM templates or doc files
+                    # 3. Exclude BASE-AGENT.md which is not a deployable agent
                     agent_files = [
-                        f
-                        for f in cache_dir.rglob("*.md")
-                        if f.name.lower() not in pm_templates
+                        f for f in all_md_files
+                        if (
+                            # Must be in an agent directory (from git repos like bobmatnyc/claude-mpm-agents/agents/)
+                            "/agents/" in str(f)
+                            # Exclude PM templates, doc files, and BASE-AGENT
+                            and f.name.lower() not in pm_templates
+                            and f.name.lower() not in doc_files
+                            and f.name.lower() != "base-agent.md"
+                        )
                     ]
                     agent_count = len(agent_files)
 
