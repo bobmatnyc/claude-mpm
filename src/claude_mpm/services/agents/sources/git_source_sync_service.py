@@ -284,7 +284,9 @@ class GitSourceSyncService:
 
             # Warn about uncommitted changes
             if self.git_manager.has_uncommitted_changes():
-                uncommitted_count = len(self.git_manager.get_status().get("uncommitted", []))
+                uncommitted_count = len(
+                    self.git_manager.get_status().get("uncommitted", [])
+                )
                 logger.warning(
                     f"Cache has {uncommitted_count} uncommitted change(s). "
                     "These will be preserved, but consider committing them."

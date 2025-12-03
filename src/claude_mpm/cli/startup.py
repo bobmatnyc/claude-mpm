@@ -49,7 +49,7 @@ def check_legacy_cache() -> None:
             f"The 'cache/agents/' directory is deprecated. Please migrate to 'cache/remote-agents/'.\n"
             f"Run: python scripts/migrate_cache_to_remote_agents.py\n",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
 
@@ -387,7 +387,8 @@ def sync_remote_agents_on_startup():
                     # 2. Must not be in PM templates or doc files
                     # 3. Exclude BASE-AGENT.md which is not a deployable agent
                     agent_files = [
-                        f for f in all_md_files
+                        f
+                        for f in all_md_files
                         if (
                             # Must be in an agent directory (from git repos like bobmatnyc/claude-mpm-agents/agents/)
                             "/agents/" in str(f)

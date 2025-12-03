@@ -137,7 +137,9 @@ class CacheGitManager:
                         # Check one level deeper (handle org/repo structure)
                         try:
                             for nested_dir in subdir.iterdir():
-                                if nested_dir.is_dir() and self.git_ops.is_git_repo(nested_dir):
+                                if nested_dir.is_dir() and self.git_ops.is_git_repo(
+                                    nested_dir
+                                ):
                                     return nested_dir
                         except (OSError, PermissionError):
                             # Skip subdirectories we can't read
@@ -213,7 +215,9 @@ class CacheGitManager:
                         if line.strip():
                             # Extract filename from git status output (format: "XY filename")
                             # Skip first 3 characters (2 status + 1 space)
-                            filename = line[3:].strip() if len(line) > 3 else line.strip()
+                            filename = (
+                                line[3:].strip() if len(line) > 3 else line.strip()
+                            )
                             if filename:
                                 uncommitted_files.append(filename)
 
@@ -222,7 +226,13 @@ class CacheGitManager:
             behind = 0
             try:
                 returncode, stdout, stderr = self.git_ops._run_git_command(
-                    ["git", "rev-list", "--left-right", "--count", f"origin/{branch}...HEAD"],
+                    [
+                        "git",
+                        "rev-list",
+                        "--left-right",
+                        "--count",
+                        f"origin/{branch}...HEAD",
+                    ],
                     cwd=self.repo_path,
                 )
                 if returncode == 0 and stdout.strip():
@@ -232,7 +242,9 @@ class CacheGitManager:
                             behind, ahead = map(int, parts)
                         except ValueError:
                             # Parsing error, skip ahead/behind count
-                            logger.debug(f"Could not parse rev-list output: {stdout.strip()}")
+                            logger.debug(
+                                f"Could not parse rev-list output: {stdout.strip()}"
+                            )
             except (GitOperationError, Exception) as e:
                 # No remote tracking branch configured or other error
                 logger.debug(f"Could not get ahead/behind count: {e}")

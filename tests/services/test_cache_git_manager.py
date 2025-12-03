@@ -35,7 +35,9 @@ from claude_mpm.services.git.git_operations_service import (
 @pytest.fixture
 def mock_git_ops():
     """Mock GitOperationsService for testing."""
-    with patch("claude_mpm.services.agents.cache_git_manager.GitOperationsService") as mock:
+    with patch(
+        "claude_mpm.services.agents.cache_git_manager.GitOperationsService"
+    ) as mock:
         yield mock.return_value
 
 
@@ -80,7 +82,9 @@ class TestCacheGitManagerInitialization:
     def test_find_git_root_in_parent(self, tmp_path, mock_git_ops):
         """Test finding git root in parent directory (upward search)."""
         # Setup: cache/remote-agents/bobmatnyc/claude-mpm-agents/agents
-        cache_root = tmp_path / "cache" / "remote-agents" / "bobmatnyc" / "claude-mpm-agents"
+        cache_root = (
+            tmp_path / "cache" / "remote-agents" / "bobmatnyc" / "claude-mpm-agents"
+        )
         agents_dir = cache_root / "agents"
         agents_dir.mkdir(parents=True)
 
@@ -331,7 +335,9 @@ class TestCommitChanges:
 
         manager = CacheGitManager(git_repo_path)
         files = [git_repo_path / "agents" / "engineer.md"]
-        success, msg = manager.commit_changes("feat: update engineer agent", files=files)
+        success, msg = manager.commit_changes(
+            "feat: update engineer agent", files=files
+        )
 
         assert success is True
         # Verify files were staged
@@ -363,7 +369,9 @@ class TestPushChanges:
 
         assert success is True
         assert "Successfully pushed" in msg
-        mock_git_ops.push.assert_called_once_with(git_repo_path, "main", set_upstream=True)
+        mock_git_ops.push.assert_called_once_with(
+            git_repo_path, "main", set_upstream=True
+        )
 
     def test_push_rejected_non_fast_forward(self, git_repo_path, mock_git_ops):
         """Test push rejected due to remote changes."""
@@ -593,7 +601,9 @@ class TestEdgeCases:
 
         assert manager.repo_path == tmp_path / "a" / "b"
 
-    def test_operations_on_non_git_repo_graceful_failure(self, cache_path, mock_git_ops):
+    def test_operations_on_non_git_repo_graceful_failure(
+        self, cache_path, mock_git_ops
+    ):
         """Test all operations fail gracefully on non-git repository."""
         mock_git_ops.is_git_repo.return_value = False
 

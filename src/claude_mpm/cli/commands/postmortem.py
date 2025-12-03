@@ -160,7 +160,9 @@ def postmortem_command(args):
                 # Print brief summary to terminal
                 if report.total_errors > 0:
                     print(f"\n{report.total_errors} error(s) analyzed")
-                    print(f"{report.stats['total_actions']} improvement action(s) generated")
+                    print(
+                        f"{report.stats['total_actions']} improvement action(s) generated"
+                    )
                 else:
                     print("\n✅ No errors detected in session!")
 
@@ -208,6 +210,7 @@ def postmortem_command(args):
         print(f"\n❌ Postmortem analysis failed: {e!s}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 2
 
@@ -248,7 +251,8 @@ def _apply_auto_fixes(report, verbose: bool) -> int:
             try:
                 result = subprocess.run(
                     cmd,
-                    check=False, shell=True,
+                    check=False,
+                    shell=True,
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -352,9 +356,11 @@ def _create_prs(report, verbose: bool) -> int:
             print(f"     git checkout -b {action.pr_branch}")
             print(f"     # Make your changes to {analysis.affected_file}")
             print(f"     git add {analysis.affected_file}")
-            print(f"     git commit -m \"{action.pr_title}\"")
+            print(f'     git commit -m "{action.pr_title}"')
             print(f"     git push origin {action.pr_branch}")
-            print(f"     gh pr create --title \"{action.pr_title}\" --body-file pr_body.md")
+            print(
+                f'     gh pr create --title "{action.pr_title}" --body-file pr_body.md'
+            )
 
             action.status = "completed"
             success_count += 1
@@ -383,7 +389,9 @@ if __name__ == "__main__":
     parser.add_argument("--auto-fix", action="store_true")
     parser.add_argument("--create-prs", action="store_true")
     parser.add_argument("--session-id", type=str)
-    parser.add_argument("--format", choices=["terminal", "json", "markdown"], default="terminal")
+    parser.add_argument(
+        "--format", choices=["terminal", "json", "markdown"], default="terminal"
+    )
     parser.add_argument("--output", "-o", type=Path)
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--no-color", action="store_true")

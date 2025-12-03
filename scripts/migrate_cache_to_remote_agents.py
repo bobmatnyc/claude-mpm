@@ -176,11 +176,15 @@ def merge_caches(
                     if not dry_run:
                         shutil.copy2(old_file, new_file)
                     results["conflicts"].append(str(relative_path))
-                    print(f"  ⚠️  {relative_path} (conflict - using newer version from old cache)")
+                    print(
+                        f"  ⚠️  {relative_path} (conflict - using newer version from old cache)"
+                    )
                 else:
                     # New file is newer - keep existing
                     results["conflicts"].append(str(relative_path))
-                    print(f"  ⚠️  {relative_path} (conflict - keeping newer version in new cache)")
+                    print(
+                        f"  ⚠️  {relative_path} (conflict - keeping newer version in new cache)"
+                    )
 
         except Exception as e:
             error_msg = f"{relative_path}: {e}"
@@ -218,7 +222,9 @@ def move_cache(old_cache: Path, new_cache: Path, dry_run: bool = False) -> bool:
         return False
 
 
-def verify_migration(new_cache: Path, expected_files: List[str]) -> Tuple[bool, List[str]]:
+def verify_migration(
+    new_cache: Path, expected_files: List[str]
+) -> Tuple[bool, List[str]]:
     """Verify migration success by checking files in new cache.
 
     Args:
@@ -283,7 +289,9 @@ def main():
     old_cache = home / ".claude-mpm" / "cache" / "agents"
     new_cache = home / ".claude-mpm" / "cache" / "remote-agents"
     cache_root = home / ".claude-mpm" / "cache"
-    backup_dir = cache_root / f"agents.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    backup_dir = (
+        cache_root / f"agents.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    )
     migration_marker = cache_root / ".migrated_to_remote_agents"
 
     print("=" * 70)

@@ -2172,7 +2172,9 @@ class AgentsCommand(AgentCommand):
             if not manager.is_git_repo():
                 print("❌ Cache is not a git repository")
                 print(f"\nCache location: {cache_dir}")
-                print("\n💡 This is expected if you haven't cloned the agents repository.")
+                print(
+                    "\n💡 This is expected if you haven't cloned the agents repository."
+                )
                 print("   The cache will be managed via HTTP sync instead.")
                 return CommandResult.error_result("Cache is not a git repository")
 
@@ -2186,7 +2188,9 @@ class AgentsCommand(AgentCommand):
                     else self._formatter.format_as_yaml(status)
                 )
                 print(formatted)
-                return CommandResult.success_result("Cache status retrieved", data=status)
+                return CommandResult.success_result(
+                    "Cache status retrieved", data=status
+                )
 
             # Text output
             print(f"\n📁 Cache: {manager.repo_path}")
