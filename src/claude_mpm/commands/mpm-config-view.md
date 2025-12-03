@@ -1,10 +1,10 @@
 ---
 namespace: mpm/config
 command: view
-aliases: [mpm-config-view, mpm-config]
+aliases: [mpm-config-view]
 migration_target: /mpm/config:view
 category: config
-deprecated_aliases: []
+deprecated_aliases: [mpm-config]
 description: View and validate Claude MPM configuration settings
 ---
 # View and validate claude-mpm configuration

@@ -1,10 +1,10 @@
 ---
 namespace: mpm/ticket
 command: organize
-aliases: [mpm-ticket-organize, mpm-organize]
+aliases: [mpm-ticket-organize]
 migration_target: /mpm/ticket:organize
 category: tickets
-deprecated_aliases: []
+deprecated_aliases: [mpm-organize]
 description: Organize project files into proper directories with intelligent pattern detection
 ---
 # /mpm-organize

@@ -1,10 +1,10 @@
 ---
 namespace: mpm/agents
 command: auto-configure
-aliases: [mpm-agents-auto-configure, mpm-auto-configure]
+aliases: [mpm-agents-auto-configure]
 migration_target: /mpm/agents:auto-configure
 category: agents
-deprecated_aliases: []
+deprecated_aliases: [mpm-auto-configure]
 description: Automatically detect project toolchain and configure appropriate agents
 ---
 # Automatically configure agents based on project detection

@@ -1,10 +1,10 @@
 ---
 namespace: mpm/agents
 command: list
-aliases: [mpm-agents, mpm-agents-list]
+aliases: [mpm-agents-list]
 migration_target: /mpm/agents:list
 category: agents
-deprecated_aliases: []
+deprecated_aliases: [mpm-agents]
 description: List all available Claude MPM agents with versions and deployment status
 ---
 # Show available agents and their versions

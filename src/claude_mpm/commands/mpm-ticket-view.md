@@ -1,10 +1,10 @@
 ---
 namespace: mpm/ticket
 command: view
-aliases: [mpm-ticket-view, mpm-ticket]
+aliases: [mpm-ticket-view]
 migration_target: /mpm/ticket:view
 category: tickets
-deprecated_aliases: []
+deprecated_aliases: [mpm-ticket]
 description: Orchestrate ticketing agent for comprehensive project management workflows
 ---
 # /mpm-ticket - Ticketing Workflow Management

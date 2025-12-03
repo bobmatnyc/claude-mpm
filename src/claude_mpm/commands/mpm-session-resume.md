@@ -1,10 +1,10 @@
 ---
 namespace: mpm/session
 command: resume
-aliases: [mpm-session-resume, mpm-resume]
+aliases: [mpm-session-resume]
 migration_target: /mpm/session:resume
 category: session
-deprecated_aliases: []
+deprecated_aliases: [mpm-resume]
 description: Load and display context from most recent paused session to continue work
 ---
 # /mpm-resume - Load Previous Session
