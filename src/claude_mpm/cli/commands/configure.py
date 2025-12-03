@@ -1066,18 +1066,11 @@ class ConfigureCommand(BaseCommand):
                 agent_leaf_name = agent.name.split("/")[-1]
                 is_deployed = agent_leaf_name in deployed_ids
 
-                # Simple format: "agent/path - Display Name [Status]"
+                # Simple format: "agent/path - Display Name"
+                # Checkbox state (checked/unchecked) indicates installed status
                 choice_text = f"{agent.name}"
                 if display_name and display_name != agent.name:
                     choice_text += f" - {display_name}"
-
-                # Add status indicator
-                # Pre-selected (checked) agents are currently installed
-                # Un-selected (unchecked) agents are available
-                if is_deployed:
-                    choice_text += " [Installed]"
-                else:
-                    choice_text += " [Available]"
 
                 # Create choice with checked=True for deployed agents
                 # Note: questionary's default param is for single-select only
