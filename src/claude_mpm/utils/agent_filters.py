@@ -176,6 +176,15 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
             if file.stem not in {"BASE-AGENT", ".DS_Store"}:
                 deployed.add(file.stem)
 
+    # Check .claude/templates/ directory (where agents are actually deployed)
+    templates_dir = project_dir / ".claude" / "templates"
+    if templates_dir.exists():
+        for file in templates_dir.glob("*.md"):
+            if file.stem not in {"BASE-AGENT", ".DS_Store", "README", "circuit-breakers"}:
+                # Skip template/example files
+                if not any(x in file.stem for x in ["example", "template", "pm-"]):
+                    deployed.add(file.stem)
+
     # Check user-level directory only if using default project directory
     # This prevents test isolation issues when explicit project_dir is provided
     if not explicit_project_dir:
