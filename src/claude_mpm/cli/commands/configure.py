@@ -23,7 +23,7 @@ from rich.text import Text
 
 from ...core.config import Config
 from ...services.version_service import VersionService
-from ...utils.agent_filters import apply_all_filters
+from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
@@ -337,6 +337,14 @@ class ConfigureCommand(BaseCommand):
             try:
                 # Discover agents (includes both local and remote)
                 agents = self.agent_manager.discover_agents(include_remote=True)
+
+                # Set deployment status on each agent for display
+                deployed_ids = get_deployed_agent_ids()
+                for agent in agents:
+                    # Extract leaf name for comparison
+                    agent_leaf_name = agent.name.split("/")[-1]
+                    agent.is_deployed = agent_leaf_name in deployed_ids
+
                 # Filter BASE_AGENT from display (1M-502 Phase 1)
                 agents = self._filter_agent_configs(agents, filter_deployed=False)
 
