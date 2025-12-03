@@ -12,6 +12,32 @@
 
 ### Security
 
+## [5.0.3] - 2025-12-03
+
+### Added
+- **Toolchain-based Agent Presets**: MIN/MAX presets for 8 toolchains (Python, JavaScript, React, Next.js, Go, Rust, Java, Flutter)
+  - MIN presets: Essential agents only (8 agents per toolchain)
+  - MAX presets: Full toolchain with specialized agents (11-15+ agents)
+  - 28 total presets including CORE_AGENTS and legacy compatibility
+- **Toolchain-based Skill Presets**: MIN/MAX presets for 11 domains
+  - MIN presets: Essential skills (2-4 skills per toolchain)
+  - MAX presets: Full skill stack (3-10+ skills per toolchain)
+  - 24 total presets covering Python, JavaScript, React, Next.js, TypeScript, Rust, WordPress, AI/MCP, Svelte, Testing, and Collaboration
+- **Interactive Skills Configure Command**: `claude-mpm skills configure`
+  - Checkbox-based selection matching agents configure UX
+  - Pre-selection for installed skills
+  - Apply/Adjust/Cancel workflow
+  - Install and remove operations in one session
+  - Status detection (deployed vs available)
+  - Automatic restart instructions
+- Comprehensive user guide for toolchain presets (docs/TOOLCHAIN_PRESETS_GUIDE.md)
+- Testing report for preset validation (QA_TOOLCHAIN_PRESETS_TESTING.md)
+
+### Changed
+- Enhanced UX consistency between agents and skills configuration
+- Improved preset organization with toolchain-specific groupings
+- Better status detection for deployed vs available skills
+
 ## [5.0.2] - 2025-12-02
 
 ### Added
