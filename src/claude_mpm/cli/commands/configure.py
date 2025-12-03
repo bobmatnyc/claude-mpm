@@ -1053,179 +1053,198 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Build checkbox choices with pre-selection
-        agent_choices = []
-        agent_map = {}  # For lookup after selection
+        # Loop to allow adjusting selection
+        while True:
+            # Build checkbox choices with pre-selection
+            agent_choices = []
+            agent_map = {}  # For lookup after selection
 
-        for agent in agents:
-            if agent.name in {a["agent_id"] for a in all_agents}:
-                display_name = getattr(agent, "display_name", agent.name)
+            for agent in agents:
+                if agent.name in {a["agent_id"] for a in all_agents}:
+                    display_name = getattr(agent, "display_name", agent.name)
 
-                # Pre-check if deployed
-                # Extract leaf name from full path for comparison with deployed_ids
-                agent_leaf_name = agent.name.split("/")[-1]
-                is_deployed = agent_leaf_name in deployed_ids
+                    # Pre-check if deployed
+                    # Extract leaf name from full path for comparison with deployed_ids
+                    agent_leaf_name = agent.name.split("/")[-1]
+                    is_deployed = agent_leaf_name in deployed_ids
 
-                # Simple format: "agent/path - Display Name"
-                # Checkbox state (checked/unchecked) indicates installed status
-                choice_text = f"{agent.name}"
-                if display_name and display_name != agent.name:
-                    choice_text += f" - {display_name}"
+                    # Simple format: "agent/path - Display Name"
+                    # Checkbox state (checked/unchecked) indicates installed status
+                    choice_text = f"{agent.name}"
+                    if display_name and display_name != agent.name:
+                        choice_text += f" - {display_name}"
 
-                # Create choice with checked=True for deployed agents
-                # Note: questionary's default param is for single-select only
-                # For multi-select, must use checked=True on Choice objects
-                choice = questionary.Choice(
-                    title=choice_text,
-                    value=agent.name,
-                    checked=is_deployed
-                )
+                    # Create choice with checked=True for deployed agents
+                    # Note: questionary's default param is for single-select only
+                    # For multi-select, must use checked=True on Choice objects
+                    choice = questionary.Choice(
+                        title=choice_text,
+                        value=agent.name,
+                        checked=is_deployed
+                    )
 
-                agent_choices.append(choice)
-                agent_map[agent.name] = agent
+                    agent_choices.append(choice)
+                    agent_map[agent.name] = agent
 
-        # Multi-select with pre-selection
-        self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
-        self.console.print(
-            "[dim]✓ Checked = Installed (uncheck to remove)[/dim]"
-        )
-        self.console.print(
-            "[dim]○ Unchecked = Available (check to install)[/dim]"
-        )
-        self.console.print(
-            "[dim]Use arrow keys to navigate, space to toggle, "
-            "Enter to apply changes[/dim]\n"
-        )
+            # Multi-select with pre-selection
+            self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
+            self.console.print(
+                "[dim]✓ Checked = Installed (uncheck to remove)[/dim]"
+            )
+            self.console.print(
+                "[dim]○ Unchecked = Available (check to install)[/dim]"
+            )
+            self.console.print(
+                "[dim]Use arrow keys to navigate, space to toggle, "
+                "Enter to apply changes[/dim]\n"
+            )
 
-        # Pre-selection via checked=True on Choice objects
-        # (questionary's default param is for single-select only)
-        selected_agent_ids = questionary.checkbox(
-            "Agents:",
-            choices=agent_choices,
-            style=self.QUESTIONARY_STYLE
-        ).ask()
+            # Pre-selection via checked=True on Choice objects
+            # (questionary's default param is for single-select only)
+            selected_agent_ids = questionary.checkbox(
+                "Agents:",
+                choices=agent_choices,
+                style=self.QUESTIONARY_STYLE
+            ).ask()
 
-        # Handle Esc
-        if selected_agent_ids is None:
-            self.console.print("[yellow]No changes made[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
+            # Handle Esc
+            if selected_agent_ids is None:
+                self.console.print("[yellow]No changes made[/yellow]")
+                Prompt.ask("\nPress Enter to continue")
+                return
 
-        # Convert to sets for comparison
-        selected_set = set(selected_agent_ids)
-        deployed_set = deployed_ids
+            # Convert to sets for comparison
+            selected_set = set(selected_agent_ids)
+            deployed_set = deployed_ids
 
-        # Determine actions
-        to_deploy = selected_set - deployed_set    # Selected but not deployed
-        to_remove = deployed_set - selected_set    # Deployed but not selected
+            # Determine actions
+            to_deploy = selected_set - deployed_set    # Selected but not deployed
+            to_remove = deployed_set - selected_set    # Deployed but not selected
 
-        if not to_deploy and not to_remove:
-            self.console.print("[yellow]No changes made[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
+            if not to_deploy and not to_remove:
+                self.console.print("[yellow]No changes made[/yellow]")
+                Prompt.ask("\nPress Enter to continue")
+                return
 
-        # Show what will happen
-        self.console.print("\n[bold]Changes to apply:[/bold]")
-        if to_deploy:
-            self.console.print(f"[green]Install {len(to_deploy)} agent(s)[/green]")
+            # Show what will happen
+            self.console.print("\n[bold]Changes to apply:[/bold]")
+            if to_deploy:
+                self.console.print(f"[green]Install {len(to_deploy)} agent(s)[/green]")
+                for agent_id in to_deploy:
+                    self.console.print(f"  + {agent_id}")
+            if to_remove:
+                self.console.print(f"[red]Remove {len(to_remove)} agent(s)[/red]")
+                for agent_id in to_remove:
+                    self.console.print(f"  - {agent_id}")
+
+            # Ask user to confirm, adjust, or cancel
+            action = questionary.select(
+                "\nWhat would you like to do?",
+                choices=[
+                    questionary.Choice("Apply these changes", value="apply"),
+                    questionary.Choice("Adjust selection", value="adjust"),
+                    questionary.Choice("Cancel", value="cancel"),
+                ],
+                default="apply",
+                style=self.QUESTIONARY_STYLE
+            ).ask()
+
+            if action == "cancel":
+                self.console.print("[yellow]Changes cancelled[/yellow]")
+                Prompt.ask("\nPress Enter to continue")
+                return
+            elif action == "adjust":
+                # Loop back to agent selection
+                continue
+
+            # Execute changes
+            deploy_success = 0
+            deploy_fail = 0
+            remove_success = 0
+            remove_fail = 0
+
+            # Install new agents
             for agent_id in to_deploy:
-                self.console.print(f"  + {agent_id}")
-        if to_remove:
-            self.console.print(f"[red]Remove {len(to_remove)} agent(s)[/red]")
-            for agent_id in to_remove:
-                self.console.print(f"  - {agent_id}")
-
-        if not Confirm.ask("\nApply these changes?", default=True):
-            self.console.print("[yellow]Changes cancelled[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
-
-        # Execute changes
-        deploy_success = 0
-        deploy_fail = 0
-        remove_success = 0
-        remove_fail = 0
-
-        # Install new agents
-        for agent_id in to_deploy:
-            agent = agent_map.get(agent_id)
-            if agent and self._deploy_single_agent(agent, show_feedback=False):
-                deploy_success += 1
-                self.console.print(f"[green]✓ Installed: {agent_id}[/green]")
-            else:
-                deploy_fail += 1
-                self.console.print(f"[red]✗ Failed to install: {agent_id}[/red]")
-
-        # Remove agents
-        for agent_id in to_remove:
-            try:
-                from pathlib import Path
-                import json
-
-                # Remove from project, legacy, and user locations
-                project_path = (
-                    Path.cwd() / ".claude-mpm" / "agents" / f"{agent_id}.md"
-                )
-                legacy_path = Path.cwd() / ".claude" / "agents" / f"{agent_id}.md"
-                user_path = Path.home() / ".claude" / "agents" / f"{agent_id}.md"
-
-                removed = False
-                for path in [project_path, legacy_path, user_path]:
-                    if path.exists():
-                        path.unlink()
-                        removed = True
-
-                # Also remove from virtual deployment state
-                deployment_state_paths = [
-                    Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
-                    Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
-                ]
-
-                for state_path in deployment_state_paths:
-                    if state_path.exists():
-                        try:
-                            with state_path.open() as f:
-                                state = json.load(f)
-
-                            # Remove agent from deployment state
-                            agents = state.get("last_check_results", {}).get(
-                                "agents", {}
-                            )
-                            if agent_id in agents:
-                                del agents[agent_id]
-                                removed = True
-
-                                # Save updated state
-                                with state_path.open("w") as f:
-                                    json.dump(state, f, indent=2)
-                        except (json.JSONDecodeError, KeyError) as e:
-                            # Log but don't fail - physical removal still counts
-                            self.logger.debug(
-                                f"Failed to update deployment state at {state_path}: {e}"
-                            )
-
-                if removed:
-                    remove_success += 1
-                    self.console.print(f"[green]✓ Removed: {agent_id}[/green]")
+                agent = agent_map.get(agent_id)
+                if agent and self._deploy_single_agent(agent, show_feedback=False):
+                    deploy_success += 1
+                    self.console.print(f"[green]✓ Installed: {agent_id}[/green]")
                 else:
+                    deploy_fail += 1
+                    self.console.print(f"[red]✗ Failed to install: {agent_id}[/red]")
+
+            # Remove agents
+            for agent_id in to_remove:
+                try:
+                    from pathlib import Path
+                    import json
+
+                    # Remove from project, legacy, and user locations
+                    project_path = (
+                        Path.cwd() / ".claude-mpm" / "agents" / f"{agent_id}.md"
+                    )
+                    legacy_path = Path.cwd() / ".claude" / "agents" / f"{agent_id}.md"
+                    user_path = Path.home() / ".claude" / "agents" / f"{agent_id}.md"
+
+                    removed = False
+                    for path in [project_path, legacy_path, user_path]:
+                        if path.exists():
+                            path.unlink()
+                            removed = True
+
+                    # Also remove from virtual deployment state
+                    deployment_state_paths = [
+                        Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
+                        Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
+                    ]
+
+                    for state_path in deployment_state_paths:
+                        if state_path.exists():
+                            try:
+                                with state_path.open() as f:
+                                    state = json.load(f)
+
+                                # Remove agent from deployment state
+                                agents = state.get("last_check_results", {}).get(
+                                    "agents", {}
+                                )
+                                if agent_id in agents:
+                                    del agents[agent_id]
+                                    removed = True
+
+                                    # Save updated state
+                                    with state_path.open("w") as f:
+                                        json.dump(state, f, indent=2)
+                            except (json.JSONDecodeError, KeyError) as e:
+                                # Log but don't fail - physical removal still counts
+                                self.logger.debug(
+                                    f"Failed to update deployment state at {state_path}: {e}"
+                                )
+
+                    if removed:
+                        remove_success += 1
+                        self.console.print(f"[green]✓ Removed: {agent_id}[/green]")
+                    else:
+                        remove_fail += 1
+                        self.console.print(f"[yellow]⚠ Not found: {agent_id}[/yellow]")
+                except Exception as e:
                     remove_fail += 1
-                    self.console.print(f"[yellow]⚠ Not found: {agent_id}[/yellow]")
-            except Exception as e:
-                remove_fail += 1
-                self.console.print(f"[red]✗ Failed to remove {agent_id}: {e}[/red]")
+                    self.console.print(f"[red]✗ Failed to remove {agent_id}: {e}[/red]")
 
-        # Show summary
-        self.console.print()
-        if deploy_success > 0:
-            self.console.print(f"[green]✓ Installed {deploy_success} agent(s)[/green]")
-        if deploy_fail > 0:
-            self.console.print(f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]")
-        if remove_success > 0:
-            self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
-        if remove_fail > 0:
-            self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
+            # Show summary
+            self.console.print()
+            if deploy_success > 0:
+                self.console.print(f"[green]✓ Installed {deploy_success} agent(s)[/green]")
+            if deploy_fail > 0:
+                self.console.print(f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]")
+            if remove_success > 0:
+                self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
+            if remove_fail > 0:
+                self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
 
-        Prompt.ask("\nPress Enter to continue")
+            Prompt.ask("\nPress Enter to continue")
+            # Exit the loop after successful execution
+            break
 
     def _deploy_agents_preset(self) -> None:
         """Install agents using preset configuration."""
