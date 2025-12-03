@@ -78,7 +78,7 @@ class TestCacheGitManagerInitialization:
         assert manager.repo_path is None
 
     def test_find_git_root_in_parent(self, tmp_path, mock_git_ops):
-        """Test finding git root in parent directory."""
+        """Test finding git root in parent directory (upward search)."""
         # Setup: cache/remote-agents/bobmatnyc/claude-mpm-agents/agents
         cache_root = tmp_path / "cache" / "remote-agents" / "bobmatnyc" / "claude-mpm-agents"
         agents_dir = cache_root / "agents"
@@ -93,6 +93,59 @@ class TestCacheGitManagerInitialization:
         manager = CacheGitManager(agents_dir)
 
         assert manager.repo_path == cache_root
+
+    def test_find_git_root_in_subdirectory(self, tmp_path, mock_git_ops):
+        """Test finding git root in subdirectory (downward search)."""
+        # Setup: cache_path points to parent, but git repo is nested
+        # cache/remote-agents (cache_path - no .git here)
+        # cache/remote-agents/bobmatnyc/claude-mpm-agents (.git here)
+        cache_path = tmp_path / "cache" / "remote-agents"
+        cache_path.mkdir(parents=True)
+
+        git_repo_path = cache_path / "bobmatnyc" / "claude-mpm-agents"
+        git_repo_path.mkdir(parents=True)
+
+        # Mock git repo ONLY at nested path (not at cache_path or parents)
+        def is_git_repo_side_effect(path):
+            return path == git_repo_path
+
+        mock_git_ops.is_git_repo.side_effect = is_git_repo_side_effect
+
+        manager = CacheGitManager(cache_path)
+
+        # Should find git repo by searching downward
+        assert manager.repo_path == git_repo_path
+
+    def test_find_git_root_one_level_down(self, tmp_path, mock_git_ops):
+        """Test finding git root one level down (immediate subdirectory)."""
+        # Setup: cache_path has immediate subdir with .git
+        cache_path = tmp_path / "cache"
+        cache_path.mkdir(parents=True)
+
+        git_repo_path = cache_path / "my-agents"
+        git_repo_path.mkdir()
+
+        def is_git_repo_side_effect(path):
+            return path == git_repo_path
+
+        mock_git_ops.is_git_repo.side_effect = is_git_repo_side_effect
+
+        manager = CacheGitManager(cache_path)
+
+        assert manager.repo_path == git_repo_path
+
+    def test_no_git_root_found(self, tmp_path, mock_git_ops):
+        """Test when no git repository is found (upward or downward)."""
+        cache_path = tmp_path / "cache" / "no-git"
+        cache_path.mkdir(parents=True)
+
+        # Mock: no git repo anywhere
+        mock_git_ops.is_git_repo.return_value = False
+
+        manager = CacheGitManager(cache_path)
+
+        assert manager.repo_path is None
+        assert manager.is_git_repo() is False
 
 
 class TestGitRepositoryDetection:

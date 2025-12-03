@@ -95,17 +95,24 @@ class CacheGitManager:
         Find git repository root starting from cache_path.
 
         Searches cache_path and up to 3 parent directories for .git directory.
-        This handles cases where cache_path is a subdirectory within the repo.
+        If not found upward, searches one level down into subdirectories.
+        This handles both cases:
+        - cache_path is inside repo (search upward)
+        - repo is nested in cache_path (search downward)
 
         Returns:
             Path to repository root, or None if not a git repo
 
         Example:
+            >>> # Case 1: cache_path inside repo (searches upward)
             >>> # cache_path: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents
-            >>> # repo_root: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
-            >>> manager._find_git_root()
-            Path('/Users/user/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents')
+            >>> # Found at: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+
+            >>> # Case 2: repo nested in cache_path (searches downward)
+            >>> # cache_path: ~/.claude-mpm/cache/remote-agents
+            >>> # Found at: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
         """
+        # Strategy 1: Search upward (cache_path is inside repo)
         current = self.cache_path
         max_depth = 3
 
@@ -116,6 +123,27 @@ class CacheGitManager:
             if parent == current:  # Reached filesystem root
                 break
             current = parent
+
+        # Strategy 2: Search downward one level (repo nested in cache_path)
+        # Check immediate subdirectories for git repos
+        if self.cache_path.is_dir():
+            try:
+                for subdir in self.cache_path.iterdir():
+                    if subdir.is_dir():
+                        # Check if subdir itself is a git repo
+                        if self.git_ops.is_git_repo(subdir):
+                            return subdir
+
+                        # Check one level deeper (handle org/repo structure)
+                        try:
+                            for nested_dir in subdir.iterdir():
+                                if nested_dir.is_dir() and self.git_ops.is_git_repo(nested_dir):
+                                    return nested_dir
+                        except (OSError, PermissionError):
+                            # Skip subdirectories we can't read
+                            continue
+            except (OSError, PermissionError) as e:
+                logger.debug(f"Could not scan cache directory for git repos: {e}")
 
         return None
 

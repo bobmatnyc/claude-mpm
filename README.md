@@ -261,6 +261,65 @@ claude-mpm verify
 
 **That's it!** See [docs/user/getting-started.md](docs/user/getting-started.md) for immediate usage.
 
+## Cache Management
+
+Claude MPM maintains a local cache of agent templates at `~/.claude-mpm/cache/remote-agents/`.
+
+### Cache Structure
+
+```
+~/.claude-mpm/cache/remote-agents/
+└── bobmatnyc/
+    └── claude-mpm-agents/
+        ├── .git/              # Git repository
+        ├── agents/            # 45+ agent templates
+        └── docs/
+```
+
+### Git Workflow (Optional)
+
+If your cache is a git repository, you can manage agents with git operations:
+
+```bash
+# Check cache status
+claude-mpm agents cache-status
+
+# Pull latest agents
+claude-mpm agents cache-pull
+
+# Commit local changes
+claude-mpm agents cache-commit --message "feat: update agents"
+
+# Push changes
+claude-mpm agents cache-push
+
+# Full sync workflow
+claude-mpm agents cache-sync
+```
+
+**Or use Makefile targets:**
+
+```bash
+make agents-cache-status   # Show git status
+make agents-cache-pull     # Pull latest
+make agents-cache-sync     # Full sync (pull + commit + push)
+make deploy-agents         # Deploy with auto-pull
+```
+
+### HTTP Sync Fallback
+
+If cache is not a git repository, Claude MPM automatically falls back to HTTP sync with GitHub API.
+
+### Migration from Legacy Cache
+
+If you have an old `cache/agents/` directory, run the migration script:
+
+```bash
+python scripts/migrate_cache_to_remote_agents.py
+```
+
+**See also:** [docs/CACHE_MANAGEMENT.md](docs/CACHE_MANAGEMENT.md) for comprehensive cache management guide.
+
 ## Quick Usage
 
 ```bash
