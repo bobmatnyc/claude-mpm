@@ -202,7 +202,7 @@ Common issues:
 1. **Claude Code not installed**: Install from https://docs.anthropic.com/en/docs/claude-code
 2. **Wrong version**: Upgrade to v1.0.92+ with `claude upgrade`
 3. **PATH issues**: Ensure `claude` command is accessible
-4. **Python version**: Requires Python 3.8+
+4. **Python version**: Requires Python 3.11+ (kuzu-memory dependency)
 
 See [Troubleshooting Guide](../user/troubleshooting.md) for solutions.
 

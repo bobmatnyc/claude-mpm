@@ -86,7 +86,7 @@ make lint-fix
 
 **Code Standards:**
 
-- Python 3.8+ compatibility
+- Python 3.11+ compatibility
 - Type hints required
 - Docstrings for public APIs
 - Tests for new features

@@ -23,7 +23,7 @@ Get Claude MPM running in under 5 minutes.
 **Required:**
 
 ### 1. Python Environment
-- **Python 3.8 or higher** (3.11+ recommended)
+- **Python 3.11 or higher** (required for kuzu-memory dependency)
 - Check version: `python --version`
 
 ### 2. Claude Code (CLI)

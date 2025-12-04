@@ -45,7 +45,7 @@ claude --version
 
 #### Wrong Python Version
 
-**Symptom**: Error: "Python 3.8+ required"
+**Symptom**: Error: "Python 3.11+ required"
 
 **Solution**:
 ```bash

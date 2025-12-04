@@ -153,7 +153,7 @@ claude-mpm doctor --checks monitor
 # Check version
 python --version
 
-# Install Python 3.8+
+# Install Python 3.11+
 # On macOS with Homebrew:
 brew install python@3.11
 

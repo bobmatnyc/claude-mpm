@@ -273,7 +273,7 @@ claude-mpm agents deploy --preset python-dev
 ### Auto-Configuration Detects:
 
 **Languages:**
-- Python 3.8+
+- Python 3.11+
 - JavaScript/TypeScript
 - Go
 - Rust

@@ -15,7 +15,7 @@ Complete installation guide for Claude MPM across all supported platforms and me
    # https://docs.anthropic.com/en/docs/claude-code
    ```
 
-2. **Python 3.8+** (3.11+ recommended)
+2. **Python 3.11+** (required for kuzu-memory dependency)
    ```bash
    # Check version
    python --version
