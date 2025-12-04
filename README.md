@@ -124,7 +124,7 @@ See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-
 
 **Before installing Claude MPM**, ensure you have:
 
-1. **Python 3.8+** (3.11+ recommended)
+1. **Python 3.11+** (required for kuzu-memory dependency)
 2. **Claude Code CLI v1.0.92+** (required!)
 
 ```bash
