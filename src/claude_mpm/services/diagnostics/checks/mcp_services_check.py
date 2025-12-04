@@ -126,22 +126,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 )
                 sub_results.append(fix_result)
 
-            # Also ensure configurations are updated for all projects
-            config_success, config_message = (
-                mcp_manager.ensure_mcp_services_configured()
-            )
-            if (
-                config_message
-                and config_message != "All MCP services already configured correctly"
-            ):
+            # Check if MCP services are available (read-only check)
+            available, availability_message = mcp_manager.check_mcp_services_available()
+            if not available:
+                # Services not configured - provide installation instructions
                 config_result = DiagnosticResult(
-                    category="MCP Configuration Update",
-                    status=(
-                        OperationResult.SUCCESS
-                        if config_success
-                        else ValidationSeverity.WARNING
-                    ),
-                    message=config_message,
+                    category="MCP Service Availability",
+                    status=ValidationSeverity.WARNING,
+                    message=availability_message,
                     details={"auto_config_applied": True},
                 )
                 sub_results.append(config_result)

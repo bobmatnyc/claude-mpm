@@ -698,175 +698,100 @@ class MCPConfigManager:
 
         return config
 
+    def check_mcp_services_available(self) -> Tuple[bool, str]:
+        """
+        Check if required MCP services are available in ~/.claude.json (READ-ONLY).
+
+        This method performs a READ-ONLY check of MCP service availability.
+        It does NOT modify ~/.claude.json. Users should install and configure
+        MCP services themselves via pip, npx, or Claude Desktop.
+
+        Returns:
+            Tuple of (all_available: bool, message: str)
+        """
+        # Get services Claude MPM expects to use (from ~/.claude-mpm/config/)
+        expected_services = self.get_filtered_services()
+
+        if not expected_services:
+            return True, "No MCP services configured in Claude MPM"
+
+        # Load Claude config (read-only)
+        if not self.claude_config_path.exists():
+            return False, f"Claude config not found at {self.claude_config_path}"
+
+        try:
+            with self.claude_config_path.open() as f:
+                claude_config = json.load(f)
+        except Exception as e:
+            return False, f"Failed to read Claude config: {e}"
+
+        # Check current project
+        current_project_key = str(self.project_root)
+        project_config = claude_config.get("projects", {}).get(current_project_key)
+
+        if not project_config:
+            missing = list(expected_services.keys())
+            return False, f"Current project not configured in Claude. Missing services: {', '.join(missing)}"
+
+        # Check which services are missing
+        mcp_servers = project_config.get("mcpServers", {})
+        missing_services = [
+            name for name in expected_services.keys()
+            if name not in mcp_servers
+        ]
+
+        if missing_services:
+            msg = (
+                f"Missing MCP services: {', '.join(missing_services)}. "
+                f"Install via: pip install {' '.join(missing_services)} "
+                f"or configure in Claude Desktop"
+            )
+            return False, msg
+
+        return True, f"All required MCP services available ({len(expected_services)} services)"
+
     def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
         """
-        Ensure MCP services are configured correctly in ~/.claude.json on startup.
+        DEPRECATED: Auto-configuring ~/.claude.json is no longer supported.
 
-        This method checks ALL projects in ~/.claude.json and ensures each has
-        the correct, static MCP service configurations. It will:
-        1. Add missing services
-        2. Fix incorrect configurations
-        3. Update all projects, not just the current one
+        As of v4.15.0+, MCP services are user-controlled. Users should install
+        and configure MCP services themselves via:
+        - pip install <service-name>
+        - npx @modelcontextprotocol/...
+        - Claude Desktop UI
+
+        This method now only performs a read-only check and logs a deprecation warning.
+        Use check_mcp_services_available() for read-only checks.
 
         Returns:
             Tuple of (success, message)
         """
-        updated = False
-        fixed_services = []
-        added_services = []
+        import warnings
+        warnings.warn(
+            "ensure_mcp_services_configured() is deprecated and will be removed in v6.0.0. "
+            "MCP services are now user-controlled. Use check_mcp_services_available() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
-        # Load existing Claude config or create minimal structure
-        claude_config = {}
-        if self.claude_config_path.exists():
-            try:
-                with self.claude_config_path.open() as f:
-                    claude_config = json.load(f)
-            except Exception as e:
-                self.logger.error(f"Error reading {self.claude_config_path}: {e}")
-                return False, f"Failed to read Claude config: {e}"
-
-        # Ensure projects structure exists
-        if "projects" not in claude_config:
-            claude_config["projects"] = {}
-            updated = True
-
-        # Note: fix_mcp_service_issues() is already called during CLI initialization
-        # Calling it here would duplicate the service health checks
-
-        # Process ALL projects in the config, not just current one
-        projects_to_update = list(claude_config.get("projects", {}).keys())
-
-        # Also add the current project if not in list
-        current_project_key = str(self.project_root)
-        if current_project_key not in projects_to_update:
-            projects_to_update.append(current_project_key)
-            # Initialize new project structure
-            claude_config["projects"][current_project_key] = {
-                "allowedTools": [],
-                "history": [],
-                "mcpContextUris": [],
-                "mcpServers": {},
-                "enabledMcpjsonServers": [],
-                "disabledMcpjsonServers": [],
-                "hasTrustDialogAccepted": False,
-                "projectOnboardingSeenCount": 0,
-                "hasClaudeMdExternalIncludesApproved": False,
-                "hasClaudeMdExternalIncludesWarningShown": False,
-            }
-            updated = True
-
-        # Update each project's MCP configurations
-        for project_key in projects_to_update:
-            project_config = claude_config["projects"][project_key]
-
-            # Ensure mcpServers section exists
-            if "mcpServers" not in project_config:
-                project_config["mcpServers"] = {}
-                updated = True
-
-            # Check and fix each service configuration - now filtered by startup config
-            services_to_configure = self.get_filtered_services()
-
-            for service_name, correct_config in services_to_configure.items():
-                # Check if service exists and has correct configuration
-                existing_config = project_config["mcpServers"].get(service_name)
-
-                # Determine if we need to update
-                needs_update = False
-                if not existing_config:
-                    # Service is missing
-                    needs_update = True
-                    added_services.append(f"{service_name} in {Path(project_key).name}")
-                # Service exists, check if configuration is correct
-                # Compare command and args (the most critical parts)
-                elif existing_config.get("command") != correct_config.get(
-                    "command"
-                ) or existing_config.get("args") != correct_config.get("args"):
-                    needs_update = True
-                    fixed_services.append(f"{service_name} in {Path(project_key).name}")
-
-                # Update configuration if needed
-                if needs_update:
-                    project_config["mcpServers"][service_name] = correct_config
-                    updated = True
-                    self.logger.debug(
-                        f"Updated MCP service config for {service_name} in project {Path(project_key).name}"
-                    )
-
-            # Remove disabled services from configuration
-            if self.config is not None:
-                # Import Config here to avoid circular import
-                from ..core.config import Config
-
-                if isinstance(self.config, Config):
-                    enabled_services = self.config.get(
-                        "startup.enabled_mcp_services", None
-                    )
-                    if enabled_services is not None:
-                        # Remove services that are not in the enabled list
-                        services_to_remove = []
-                        for service_name in project_config["mcpServers"]:
-                            if service_name not in enabled_services:
-                                services_to_remove.append(service_name)
-
-                        for service_name in services_to_remove:
-                            del project_config["mcpServers"][service_name]
-                            updated = True
-                            self.logger.debug(
-                                f"Removed disabled service {service_name} from project {Path(project_key).name}"
-                            )
-
-        # Write updated config if changes were made
-        if updated:
-            try:
-                # Create backup if file exists and is large (> 100KB)
-                if self.claude_config_path.exists():
-                    file_size = self.claude_config_path.stat().st_size
-                    if file_size > 100000:  # 100KB
-                        backup_path = self.claude_config_path.with_suffix(
-                            f".backup.{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
-                        )
-                        import shutil
-
-                        shutil.copy2(self.claude_config_path, backup_path)
-                        self.logger.debug(f"Created backup: {backup_path}")
-
-                # Write updated config
-                with self.claude_config_path.open("w") as f:
-                    json.dump(claude_config, f, indent=2)
-
-                messages = []
-                if added_services:
-                    messages.append(
-                        f"Added MCP services: {', '.join(added_services[:3])}"
-                    )
-                if fixed_services:
-                    messages.append(
-                        f"Fixed MCP services: {', '.join(fixed_services[:3])}"
-                    )
-
-                if messages:
-                    return True, "; ".join(messages)
-                return True, "All MCP services already configured correctly"
-            except Exception as e:
-                self.logger.error(f"Failed to write Claude config: {e}")
-                return False, f"Failed to write configuration: {e}"
-
-        return True, "All MCP services already configured correctly"
+        # Delegate to read-only check
+        return self.check_mcp_services_available()
 
     def update_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
         """
-        Update the MCP configuration in ~/.claude.json.
+        DEPRECATED: Check MCP configuration in ~/.claude.json (READ-ONLY).
+
+        This method no longer modifies ~/.claude.json. Users should install
+        and configure MCP services themselves.
 
         Args:
-            force_pipx: If True, only use pipx installations
+            force_pipx: Ignored (kept for backward compatibility)
 
         Returns:
-            Tuple of (success, message)
+            Tuple of (success, message) from read-only check
         """
-        # This method now delegates to ensure_mcp_services_configured
-        # since we're updating the Claude config directly
-        return self.ensure_mcp_services_configured()
+        # Delegate to read-only check
+        return self.check_mcp_services_available()
 
     def update_project_mcp_config(self, force_pipx: bool = True) -> Tuple[bool, str]:
         """

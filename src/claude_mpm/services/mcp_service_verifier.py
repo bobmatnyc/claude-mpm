@@ -620,12 +620,15 @@ class MCPServiceVerifier:
                 return True
 
             if "claude-mpm configure" in diagnostic.fix_command:
-                # Trigger configuration update
+                # Check if services are available (read-only)
                 from .mcp_config_manager import MCPConfigManager
 
                 manager = MCPConfigManager()
-                success, _ = manager.ensure_mcp_services_configured()
-                return success
+                available, message = manager.check_mcp_services_available()
+                if not available:
+                    # Cannot auto-fix - user must install services manually
+                    self.logger.warning(f"Cannot auto-fix: {message}")
+                return available
 
         except Exception as e:
             self.logger.error(f"Auto-fix failed for {service_name}: {e}")

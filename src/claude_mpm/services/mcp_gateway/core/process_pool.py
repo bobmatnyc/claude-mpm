@@ -440,15 +440,18 @@ async def auto_initialize_vector_search():
                         )
                         return
 
-                    # Update the Claude configuration to include the newly installed service
-                    logger.info("📝 Updating Claude configuration...")
-                    config_success, config_msg = (
-                        config_manager.ensure_mcp_services_configured()
-                    )
-                    if config_success:
-                        logger.info(f"✅ {config_msg}")
+                    # Verify the newly installed service is available
+                    logger.info("📝 Verifying installation...")
+                    available, msg = config_manager.check_mcp_services_available()
+                    if available:
+                        logger.info(f"✅ {msg}")
                     else:
-                        logger.warning(f"⚠️ Configuration update issue: {config_msg}")
+                        logger.warning(
+                            f"⚠️ Service installed but not configured in Claude: {msg}"
+                        )
+                        logger.info(
+                            "💡 Configure via: Claude Desktop > Settings > Developer > Model Context Protocol"
+                        )
                 else:
                     logger.warning(
                         f"Failed to install mcp-vector-search: {result.stderr}"
@@ -658,15 +661,18 @@ async def auto_initialize_kuzu_memory():
                         )
                         return
 
-                    # Update the Claude configuration to include the newly installed service
-                    logger.info("📝 Updating Claude configuration...")
-                    config_success, config_msg = (
-                        config_manager.ensure_mcp_services_configured()
-                    )
-                    if config_success:
-                        logger.info(f"✅ {config_msg}")
+                    # Verify the newly installed service is available
+                    logger.info("📝 Verifying installation...")
+                    available, msg = config_manager.check_mcp_services_available()
+                    if available:
+                        logger.info(f"✅ {msg}")
                     else:
-                        logger.warning(f"⚠️ Configuration update issue: {config_msg}")
+                        logger.warning(
+                            f"⚠️ Service installed but not configured in Claude: {msg}"
+                        )
+                        logger.info(
+                            "💡 Configure via: Claude Desktop > Settings > Developer > Model Context Protocol"
+                        )
                 else:
                     logger.warning(f"Failed to install kuzu-memory: {result.stderr}")
                     return
