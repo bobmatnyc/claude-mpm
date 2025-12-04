@@ -335,7 +335,7 @@ class TestCommitChanges:
 
         manager = CacheGitManager(git_repo_path)
         files = [git_repo_path / "agents" / "engineer.md"]
-        success, msg = manager.commit_changes(
+        success, _msg = manager.commit_changes(
             "feat: update engineer agent", files=files
         )
 
@@ -612,16 +612,16 @@ class TestEdgeCases:
         # All operations should return False/error without crashing
         assert manager.is_git_repo() is False
 
-        success, msg = manager.pull_latest()
+        success, _msg = manager.pull_latest()
         assert success is False
 
-        success, msg = manager.commit_changes("test")
+        success, _msg = manager.commit_changes("test")
         assert success is False
 
-        success, msg = manager.push_changes()
+        success, _msg = manager.push_changes()
         assert success is False
 
-        success, msg = manager.sync_with_remote()
+        success, _msg = manager.sync_with_remote()
         assert success is False
 
         assert manager.has_uncommitted_changes() is False

@@ -16,8 +16,8 @@ from claude_mpm.core.protocols.session_protocol import (
 
 __all__ = [
     "ClaudeRunnerProtocol",
-    "SystemPromptProvider",
     "InteractiveSessionProtocol",
     "OneshotSessionProtocol",
     "SessionManagementProtocol",
+    "SystemPromptProvider",
 ]

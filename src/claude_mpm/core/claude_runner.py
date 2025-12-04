@@ -805,7 +805,6 @@ Use these agents to delegate specialized work via the Task tool.
 # Moved to claude_mpm.core.system_context to avoid circular imports
 from claude_mpm.core.system_context import create_simple_context
 
-
 # Backward compatibility alias
 SimpleClaudeRunner = ClaudeRunner
 

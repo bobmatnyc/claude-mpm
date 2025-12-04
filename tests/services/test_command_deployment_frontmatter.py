@@ -113,7 +113,7 @@ aliases: [mpm-agents]
 ---
 # Content
 """
-        frontmatter, body = service._parse_frontmatter(content)
+        frontmatter, _body = service._parse_frontmatter(content)
 
         assert frontmatter is not None
         assert "multiline" in frontmatter["description"]

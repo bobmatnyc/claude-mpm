@@ -5,7 +5,7 @@ allowing dependency injection without circular imports.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Optional, Protocol
 
 
 class SystemPromptProvider(Protocol):

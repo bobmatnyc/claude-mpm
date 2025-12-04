@@ -206,7 +206,7 @@ class CacheGitManager:
 
             if has_changes:
                 # Parse git status --porcelain for file list
-                returncode, stdout, stderr = self.git_ops._run_git_command(
+                returncode, stdout, _stderr = self.git_ops._run_git_command(
                     ["git", "status", "--porcelain"], cwd=self.repo_path
                 )
                 if returncode == 0:
@@ -225,7 +225,7 @@ class CacheGitManager:
             ahead = 0
             behind = 0
             try:
-                returncode, stdout, stderr = self.git_ops._run_git_command(
+                returncode, stdout, _stderr = self.git_ops._run_git_command(
                     [
                         "git",
                         "rev-list",
@@ -505,7 +505,7 @@ class CacheGitManager:
             return []
 
         try:
-            returncode, stdout, stderr = self.git_ops._run_git_command(
+            returncode, stdout, _stderr = self.git_ops._run_git_command(
                 ["git", "status", "--porcelain"], cwd=self.repo_path
             )
 

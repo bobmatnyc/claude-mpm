@@ -5,12 +5,13 @@ Analyzes imports, complexity, duplication, and structural issues.
 """
 
 import ast
+import json
 import os
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
-import json
+
 
 class CodeAnalyzer:
     def __init__(self, root_path: str):
@@ -32,7 +33,7 @@ class CodeAnalyzer:
     def analyze_file(self, filepath: Path) -> Dict:
         """Analyze a single Python file."""
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
+            with open(filepath, encoding='utf-8') as f:
                 content = f.read()
                 tree = ast.parse(content, filename=str(filepath))
 
@@ -149,7 +150,7 @@ class CodeAnalyzer:
                     visit(potential_file / "__init__.py", path + [node], visited)
 
         visited = set()
-        for node in self.import_graph.keys():
+        for node in self.import_graph:
             if node not in visited:
                 visit(node, [], visited)
 
