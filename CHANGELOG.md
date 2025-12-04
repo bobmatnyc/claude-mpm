@@ -12,6 +12,24 @@
 
 ### Security
 
+## [5.0.9] - 2025-12-04
+
+### Breaking Changes
+- **Python 3.11+ Required**: Bumped minimum Python version from 3.10 to 3.11 for kuzu-memory compatibility
+  - Ensures compatibility with kuzu-memory>=1.1.5 dependency
+  - Updates all project metadata and type checking configuration
+
+### Fixed
+- **Dependency Conflicts**: Removed unused pydoc-markdown dependency causing version conflicts
+- **Code Quality**: Resolved all ruff linting violations for cleaner codebase
+- **Code Formatting**: Applied black formatting across all Python files
+- **Test Execution**: Fixed test runner to use UV virtual environment correctly
+- **Test Configuration**: Removed pytest-timeout flags not available in UV environment
+
+### Documentation
+- Added comprehensive analysis of dependency conflict resolution
+- Added MCP slash command ownership investigation
+
 ## [5.0.8] - 2025-12-04
 
 ### Changed
