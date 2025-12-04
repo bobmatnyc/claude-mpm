@@ -66,6 +66,51 @@ class FileLoader:
             if "INSTRUCTIONS.md" in str(file_path):
                 self.framework_last_modified = timestamp
 
+    def _load_tier_file(
+        self,
+        filename: str,
+        current_dir: Path,
+        framework_path: Optional[Path] = None,
+        include_system: bool = False,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Load file with tier precedence: project → user → system.
+
+        Args:
+            filename: Name of file to load (e.g., "INSTRUCTIONS.md")
+            current_dir: Current working directory for project-level
+            framework_path: Path to framework installation for system-level
+            include_system: Whether to check system-level path
+
+        Returns:
+            Tuple of (content, level) where level is 'project', 'user', 'system', or None
+        """
+        # Check project-level (highest priority)
+        project_path = current_dir / ".claude-mpm" / filename
+        if project_path.exists():
+            loaded_content = self.try_load_file(project_path, f"project-specific {filename}")
+            if loaded_content:
+                self.logger.info(f"Using project-specific {filename} from .claude-mpm/")
+                return loaded_content, "project"
+
+        # Check user-level (medium priority)
+        user_path = Path.home() / ".claude-mpm" / filename
+        if user_path.exists():
+            loaded_content = self.try_load_file(user_path, f"user-specific {filename}")
+            if loaded_content:
+                self.logger.info(f"Using user-specific {filename} from ~/.claude-mpm/")
+                return loaded_content, "user"
+
+        # Check system-level (lowest priority)
+        if include_system and framework_path and framework_path != Path("__PACKAGED__"):
+            system_path = framework_path / "src" / "claude_mpm" / "agents" / filename
+            if system_path.exists():
+                loaded_content = self.try_load_file(system_path, f"system {filename}")
+                if loaded_content:
+                    self.logger.info(f"Using system {filename}")
+                    return loaded_content, "system"
+
+        return None, None
+
     def load_instructions_file(
         self, current_dir: Path
     ) -> tuple[Optional[str], Optional[str]]:
@@ -82,31 +127,7 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', or None
         """
-        # Check for project-specific INSTRUCTIONS.md first
-        project_instructions_path = current_dir / ".claude-mpm" / "INSTRUCTIONS.md"
-        if project_instructions_path.exists():
-            loaded_content = self.try_load_file(
-                project_instructions_path, "project-specific INSTRUCTIONS.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using project-specific PM instructions from .claude-mpm/INSTRUCTIONS.md"
-                )
-                return loaded_content, "project"
-
-        # Check for user-specific INSTRUCTIONS.md
-        user_instructions_path = Path.home() / ".claude-mpm" / "INSTRUCTIONS.md"
-        if user_instructions_path.exists():
-            loaded_content = self.try_load_file(
-                user_instructions_path, "user-specific INSTRUCTIONS.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using user-specific PM instructions from ~/.claude-mpm/INSTRUCTIONS.md"
-                )
-                return loaded_content, "user"
-
-        return None, None
+        return self._load_tier_file("INSTRUCTIONS.md", current_dir)
 
     def load_workflow_file(
         self, current_dir: Path, framework_path: Path
@@ -126,44 +147,9 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', 'system', or None
         """
-        # Check for project-specific WORKFLOW.md first (highest priority)
-        project_workflow_path = current_dir / ".claude-mpm" / "WORKFLOW.md"
-        if project_workflow_path.exists():
-            loaded_content = self.try_load_file(
-                project_workflow_path, "project-specific WORKFLOW.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using project-specific workflow instructions from .claude-mpm/WORKFLOW.md"
-                )
-                return loaded_content, "project"
-
-        # Check for user-specific WORKFLOW.md (medium priority)
-        user_workflow_path = Path.home() / ".claude-mpm" / "WORKFLOW.md"
-        if user_workflow_path.exists():
-            loaded_content = self.try_load_file(
-                user_workflow_path, "user-specific WORKFLOW.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using user-specific workflow instructions from ~/.claude-mpm/WORKFLOW.md"
-                )
-                return loaded_content, "user"
-
-        # Fall back to system workflow (lowest priority)
-        if framework_path and framework_path != Path("__PACKAGED__"):
-            system_workflow_path = (
-                framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
-            )
-            if system_workflow_path.exists():
-                loaded_content = self.try_load_file(
-                    system_workflow_path, "system WORKFLOW.md"
-                )
-                if loaded_content:
-                    self.logger.info("Using system workflow instructions")
-                    return loaded_content, "system"
-
-        return None, None
+        return self._load_tier_file(
+            "WORKFLOW.md", current_dir, framework_path, include_system=True
+        )
 
     def load_memory_file(
         self, current_dir: Path, framework_path: Path
@@ -183,41 +169,6 @@ class FileLoader:
         Returns:
             Tuple of (content, level) where level is 'project', 'user', 'system', or None
         """
-        # Check for project-specific MEMORY.md first (highest priority)
-        project_memory_path = current_dir / ".claude-mpm" / "MEMORY.md"
-        if project_memory_path.exists():
-            loaded_content = self.try_load_file(
-                project_memory_path, "project-specific MEMORY.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using project-specific memory instructions from .claude-mpm/MEMORY.md"
-                )
-                return loaded_content, "project"
-
-        # Check for user-specific MEMORY.md (medium priority)
-        user_memory_path = Path.home() / ".claude-mpm" / "MEMORY.md"
-        if user_memory_path.exists():
-            loaded_content = self.try_load_file(
-                user_memory_path, "user-specific MEMORY.md"
-            )
-            if loaded_content:
-                self.logger.info(
-                    "Using user-specific memory instructions from ~/.claude-mpm/MEMORY.md"
-                )
-                return loaded_content, "user"
-
-        # Fall back to system memory instructions (lowest priority)
-        if framework_path and framework_path != Path("__PACKAGED__"):
-            system_memory_path = (
-                framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
-            )
-            if system_memory_path.exists():
-                loaded_content = self.try_load_file(
-                    system_memory_path, "system MEMORY.md"
-                )
-                if loaded_content:
-                    self.logger.info("Using system memory instructions")
-                    return loaded_content, "system"
-
-        return None, None
+        return self._load_tier_file(
+            "MEMORY.md", current_dir, framework_path, include_system=True
+        )
