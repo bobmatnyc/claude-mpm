@@ -88,11 +88,12 @@ class UnifiedMonitorDaemon:
         self.shutdown_event = threading.Event()
 
     def _get_default_pid_file(self) -> str:
-        """Get default PID file path."""
+        """Get default PID file path with port number to support multiple daemons."""
         project_root = Path.cwd()
         claude_mpm_dir = project_root / ".claude-mpm"
         claude_mpm_dir.mkdir(exist_ok=True)
-        return str(claude_mpm_dir / "monitor-daemon.pid")
+        # Include port in filename to support multiple daemon instances
+        return str(claude_mpm_dir / f"monitor-daemon-{self.port}.pid")
 
     def start(self, force_restart: bool = False) -> bool:
         """Start the unified monitor daemon.
@@ -145,16 +146,22 @@ class UnifiedMonitorDaemon:
         if self.daemon_manager.is_running():
             existing_pid = self.daemon_manager.get_pid()
             if not force_restart:
-                self.logger.warning(f"Daemon already running with PID {existing_pid}")
+                msg = f"Daemon already running on port {self.port} with PID {existing_pid}"
+                self.logger.warning(msg)
+                # If we're in subprocess mode, this is an error - we should have cleaned up
+                if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
+                    self.logger.error(f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!")
                 return False
             # Force restart was already handled above
 
         # Check for our service on the port
         is_ours, pid = self.daemon_manager.is_our_service()
         if is_ours and pid and not force_restart:
-            self.logger.warning(
-                f"Our service already running on port {self.port} (PID: {pid})"
-            )
+            msg = f"Our service already running on port {self.port} (PID: {pid})"
+            self.logger.warning(msg)
+            # If we're in subprocess mode, this is an error - we should have cleaned up
+            if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
+                self.logger.error(f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!")
             return False
 
         # Use subprocess approach for clean daemon startup (v4.2.40)
@@ -169,20 +176,27 @@ class UnifiedMonitorDaemon:
         if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
             # We're in a subprocess started by start_daemon_subprocess
             # We need to write the PID file ourselves since parent didn't
-            self.logger.info("Running in subprocess daemon mode, writing PID file")
+            self.logger.info(f"Running in subprocess daemon mode on port {self.port}")
+            self.logger.info(f"Subprocess PID: {os.getpid()}")
+            self.logger.info(f"PID file path: {self.daemon_manager.pid_file}")
             self.daemon_manager.write_pid_file()
+            self.logger.info("PID file written successfully")
 
             # Setup signal handlers for graceful shutdown
             self._setup_signal_handlers()
+            self.logger.info("Signal handlers configured")
 
             # Start the server (this will run until shutdown)
+            self.logger.info("Starting server in subprocess mode...")
             try:
                 result = self._run_server()
                 if not result:
                     self.logger.error("Failed to start server in subprocess mode")
+                    return result
+                self.logger.info("Server started successfully in subprocess mode")
                 return result
             except Exception as e:
-                self.logger.error(f"Server startup exception in subprocess: {e}")
+                self.logger.error(f"Server startup exception in subprocess: {e}", exc_info=True)
                 raise
         else:
             # Legacy fork approach (kept for compatibility but not used by default)

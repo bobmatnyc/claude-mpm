@@ -80,18 +80,20 @@ class DaemonManager:
         self.startup_status_file = None
 
     def _get_default_pid_file(self) -> Path:
-        """Get default PID file path."""
+        """Get default PID file path with port number to support multiple daemons."""
         project_root = Path.cwd()
         claude_mpm_dir = project_root / ".claude-mpm"
         claude_mpm_dir.mkdir(exist_ok=True)
-        return claude_mpm_dir / "monitor-daemon.pid"
+        # Include port in filename to support multiple daemon instances
+        return claude_mpm_dir / f"monitor-daemon-{self.port}.pid"
 
     def _get_default_log_file(self) -> Path:
-        """Get default log file path."""
+        """Get default log file path with port number to support multiple daemons."""
         project_root = Path.cwd()
         claude_mpm_dir = project_root / ".claude-mpm"
         claude_mpm_dir.mkdir(exist_ok=True)
-        return claude_mpm_dir / "monitor-daemon.log"
+        # Include port in filename to support multiple daemon instances
+        return claude_mpm_dir / f"monitor-daemon-{self.port}.log"
 
     def cleanup_port_conflicts(self, max_retries: int = 3) -> bool:
         """Clean up any processes using the daemon port.
@@ -471,6 +473,57 @@ class DaemonManager:
 
         return None
 
+    def _verify_daemon_health(self, max_attempts: int = 3) -> bool:
+        """Verify daemon is healthy by checking HTTP health endpoint.
+
+        Args:
+            max_attempts: Maximum number of connection attempts
+
+        Returns:
+            True if health check passes, False otherwise
+        """
+        try:
+            import requests
+
+            for attempt in range(max_attempts):
+                try:
+                    # Try to connect to health endpoint
+                    response = requests.get(
+                        f"http://{self.host}:{self.port}/health", timeout=2
+                    )
+
+                    if response.status_code == 200:
+                        self.logger.debug(
+                            f"Health check passed on attempt {attempt + 1}/{max_attempts}"
+                        )
+                        return True
+
+                    self.logger.debug(
+                        f"Health check returned status {response.status_code} on attempt {attempt + 1}/{max_attempts}"
+                    )
+
+                except requests.exceptions.RequestException as e:
+                    self.logger.debug(
+                        f"Health check attempt {attempt + 1}/{max_attempts} failed: {e}"
+                    )
+
+                # Wait before retry (except on last attempt)
+                if attempt < max_attempts - 1:
+                    time.sleep(1)
+
+            self.logger.debug(
+                f"Health check failed after {max_attempts} attempts"
+            )
+            return False
+
+        except ImportError:
+            # requests not available, skip health check
+            self.logger.debug("requests library not available, skipping health check")
+            return True
+        except Exception as e:
+            self.logger.debug(f"Health check error: {e}")
+            return False
+
     def start_daemon(self, force_restart: bool = False) -> bool:
         """Start the daemon with automatic cleanup and retry.
 
@@ -588,36 +641,60 @@ class DaemonManager:
                 pid = process.pid
                 self.logger.info(f"Monitor subprocess started with PID {pid}")
 
-                # Wait for the subprocess to write its PID file
+                # Wait for the subprocess to write its PID file and bind to port
                 # The subprocess will write the PID file after it starts successfully
                 max_wait = 10  # seconds
                 start_time = time.time()
+                pid_file_found = False
+                port_bound = False
+
+                self.logger.debug(f"Waiting up to {max_wait}s for daemon to start...")
 
                 while time.time() - start_time < max_wait:
                     # Check if process is still running
-                    if process.poll() is not None:
-                        # Process exited
+                    returncode = process.poll()
+                    if returncode is not None:
+                        # Process exited - this is the bug we're fixing!
                         self.logger.error(
-                            f"Monitor daemon exited with code {process.returncode}"
+                            f"Monitor daemon subprocess exited prematurely with code {returncode}"
+                        )
+                        self.logger.error(
+                            f"Port {self.port} daemon failed to start. Check {self.log_file} for details."
                         )
                         return False
 
                     # Check if PID file was written
-                    if self.pid_file.exists():
+                    if not pid_file_found and self.pid_file.exists():
                         try:
                             with self.pid_file.open() as f:
                                 written_pid = int(f.read().strip())
                             if written_pid == pid:
-                                # PID file written correctly, check port
-                                if (
-                                    not self._is_port_available()
-                                ):  # Port NOT available means it's in use (good!)
-                                    self.logger.info(
-                                        f"Monitor daemon successfully started on port {self.port}"
-                                    )
-                                    return True
-                        except Exception:
-                            pass  # PID file not ready yet
+                                pid_file_found = True
+                                self.logger.debug(
+                                    f"PID file found with correct PID {pid}"
+                                )
+                        except Exception as e:
+                            self.logger.debug(f"Error reading PID file: {e}")
+
+                    # Check if port is bound (health check)
+                    if not port_bound and not self._is_port_available():
+                        # Port NOT available means it's in use (good!)
+                        port_bound = True
+                        self.logger.debug(f"Port {self.port} is now bound")
+
+                    # Success criteria: both PID file exists and port is bound
+                    if pid_file_found and port_bound:
+                        self.logger.info(
+                            f"Monitor daemon successfully started on port {self.port} (PID: {pid})"
+                        )
+                        # Additional health check: verify we can connect
+                        if self._verify_daemon_health(max_attempts=3):
+                            self.logger.info("Daemon health check passed")
+                            return True
+                        self.logger.warning(
+                            "Daemon started but health check failed - may still be initializing"
+                        )
+                        return True  # Return success anyway if PID file and port are good
 
                     time.sleep(0.5)
 

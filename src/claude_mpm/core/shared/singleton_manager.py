@@ -16,11 +16,14 @@ class SingletonManager:
 
     Reduces duplication by providing thread-safe singleton patterns
     that can be used across different classes.
+
+    Uses RLock (reentrant locks) to support recursive calls from
+    SingletonMixin.__new__ and @singleton decorator patterns.
     """
 
     _instances: Dict[Type, Any] = {}
-    _locks: Dict[Type, threading.Lock] = {}
-    _global_lock = threading.Lock()
+    _locks: Dict[Type, threading.RLock] = {}
+    _global_lock = threading.RLock()
 
     @classmethod
     def get_instance(
@@ -42,7 +45,7 @@ class SingletonManager:
         if singleton_class not in cls._locks:
             with cls._global_lock:
                 if singleton_class not in cls._locks:
-                    cls._locks[singleton_class] = threading.Lock()
+                    cls._locks[singleton_class] = threading.RLock()
 
         # Get instance with class-specific lock
         with cls._locks[singleton_class]:
@@ -50,8 +53,12 @@ class SingletonManager:
                 logger = get_logger("singleton_manager")
                 logger.debug(f"Creating singleton instance: {singleton_class.__name__}")
 
-                instance = singleton_class(*args, **kwargs)
+                # Use object.__new__ to bypass SingletonMixin.__new__ and avoid recursion
+                instance = object.__new__(singleton_class)
                 cls._instances[singleton_class] = instance
+
+                # Now call __init__ explicitly with the stored instance
+                instance.__init__(*args, **kwargs)
 
                 return instance
 

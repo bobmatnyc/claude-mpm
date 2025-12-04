@@ -145,9 +145,6 @@ class TestSingletonManagerThreadSafety:
 class TestSingletonMixinThreadSafety:
     """Test thread safety of SingletonMixin."""
 
-    @pytest.mark.skip(
-        reason="Test timing out intermittently - needs investigation (tracked separately)"
-    )
     def test_mixin_concurrent_instantiation(self):
         """Test that mixin-based singletons are thread-safe."""
 
@@ -189,9 +186,6 @@ class TestSingletonMixinThreadSafety:
 class TestDecoratorThreadSafety:
     """Test thread safety of @singleton decorator."""
 
-    @pytest.mark.skip(
-        reason="Test timing out intermittently - needs investigation (tracked separately)"
-    )
     def test_decorator_concurrent_instantiation(self):
         """Test that decorator-based singletons are thread-safe."""
 
@@ -332,7 +326,7 @@ class TestSessionManagerThreadSafety:
         assert len(unique_ids) == 1
 
         # All should have the same session ID
-        session_ids = {sm.session_id for sm in instances}
+        session_ids = {sm.get_session_id() for sm in instances}
         assert len(session_ids) == 1
 
 
@@ -497,6 +491,12 @@ class TestSingletonServiceThreadSafety:
                 time.sleep(0.01)
                 self.value = 100
 
+            def initialize(self) -> bool:
+                return True
+
+            def shutdown(self) -> None:
+                pass
+
         instances: List[TestService] = []
         lock = threading.Lock()
 
@@ -532,6 +532,12 @@ class TestSingletonServiceThreadSafety:
             def __init__(self):
                 super().__init__("another_service")
                 time.sleep(0.01)
+
+            def initialize(self) -> bool:
+                return True
+
+            def shutdown(self) -> None:
+                pass
 
         instances: List[AnotherService] = []
         lock = threading.Lock()

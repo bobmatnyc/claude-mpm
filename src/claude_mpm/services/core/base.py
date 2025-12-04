@@ -224,10 +224,11 @@ class SingletonService(SyncBaseService):
 
     Ensures only one instance of the service exists with thread-safe initialization.
     Uses double-checked locking pattern to prevent race conditions.
+    Uses RLock (reentrant lock) to support recursive instantiation patterns.
     """
 
     _instances: Dict[type, "SingletonService"] = {}
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __new__(cls, *args, **kwargs):
         """Ensure only one instance exists with thread-safe initialization."""
@@ -247,7 +248,11 @@ class SingletonService(SyncBaseService):
             # Slow path - acquire lock and double-check
             with cls._lock:
                 if cls not in cls._instances:
-                    cls._instances[cls] = cls()
+                    # Use object.__new__ to bypass __new__ recursion
+                    instance = object.__new__(cls)
+                    cls._instances[cls] = instance
+                    # Call __init__ explicitly after storing instance
+                    instance.__init__()
         return cls._instances[cls]
 
     @classmethod
