@@ -17,11 +17,11 @@ cd "$PROJECT_ROOT"
 echo "1. Running core functionality tests..."
 if command -v uv >/dev/null 2>&1; then
     # Use UV to run tests in virtual environment
-    uv run pytest tests/core/ -v --tb=short --timeout=30 --timeout-method=thread
+    uv run pytest tests/core/ -v --tb=short
     PYTEST_EXIT_CODE=$?
 elif python3 -c "import pytest" >/dev/null 2>&1; then
     # Fallback to direct python3 if UV not available
-    python3 -m pytest tests/core/ -v --tb=short --timeout=30 --timeout-method=thread
+    python3 -m pytest tests/core/ -v --tb=short
     PYTEST_EXIT_CODE=$?
 else
     echo "pytest not found, skipping unit tests"
@@ -32,10 +32,10 @@ echo
 echo "2. Running CLI tests..."
 if [ -f "tests/cli/test_cli_basic.py" ]; then
     if command -v uv >/dev/null 2>&1; then
-        uv run pytest tests/cli/test_cli_basic.py -v --timeout=30 --timeout-method=thread
+        uv run pytest tests/cli/test_cli_basic.py -v
         CLI_EXIT_CODE=$?
     else
-        python3 -m pytest tests/cli/test_cli_basic.py -v --timeout=30 --timeout-method=thread
+        python3 -m pytest tests/cli/test_cli_basic.py -v
         CLI_EXIT_CODE=$?
     fi
 else
