@@ -730,13 +730,15 @@ class MCPConfigManager:
 
         if not project_config:
             missing = list(expected_services.keys())
-            return False, f"Current project not configured in Claude. Missing services: {', '.join(missing)}"
+            return (
+                False,
+                f"Current project not configured in Claude. Missing services: {', '.join(missing)}",
+            )
 
         # Check which services are missing
         mcp_servers = project_config.get("mcpServers", {})
         missing_services = [
-            name for name in expected_services
-            if name not in mcp_servers
+            name for name in expected_services if name not in mcp_servers
         ]
 
         if missing_services:
@@ -747,7 +749,10 @@ class MCPConfigManager:
             )
             return False, msg
 
-        return True, f"All required MCP services available ({len(expected_services)} services)"
+        return (
+            True,
+            f"All required MCP services available ({len(expected_services)} services)",
+        )
 
     def ensure_mcp_services_configured(self) -> Tuple[bool, str]:
         """
@@ -766,11 +771,12 @@ class MCPConfigManager:
             Tuple of (success, message)
         """
         import warnings
+
         warnings.warn(
             "ensure_mcp_services_configured() is deprecated and will be removed in v6.0.0. "
             "MCP services are now user-controlled. Use check_mcp_services_available() instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         # Delegate to read-only check

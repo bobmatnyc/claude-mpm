@@ -87,7 +87,9 @@ class FileLoader:
         # Check project-level (highest priority)
         project_path = current_dir / ".claude-mpm" / filename
         if project_path.exists():
-            loaded_content = self.try_load_file(project_path, f"project-specific {filename}")
+            loaded_content = self.try_load_file(
+                project_path, f"project-specific {filename}"
+            )
             if loaded_content:
                 self.logger.info(f"Using project-specific {filename} from .claude-mpm/")
                 return loaded_content, "project"

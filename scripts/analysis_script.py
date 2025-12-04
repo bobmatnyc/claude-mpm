@@ -23,7 +23,7 @@ class CodeAnalyzer:
             "complex_functions": [],
             "long_files": [],
             "duplications": [],
-            "import_organization": []
+            "import_organization": [],
         }
         self.import_graph = defaultdict(set)
         self.all_imports = defaultdict(set)
@@ -33,7 +33,7 @@ class CodeAnalyzer:
     def analyze_file(self, filepath: Path) -> Dict:
         """Analyze a single Python file."""
         try:
-            with open(filepath, encoding='utf-8') as f:
+            with open(filepath, encoding="utf-8") as f:
                 content = f.read()
                 tree = ast.parse(content, filename=str(filepath))
 
@@ -43,7 +43,7 @@ class CodeAnalyzer:
                 "imports": [],
                 "functions": [],
                 "classes": [],
-                "complexity": 0
+                "complexity": 0,
             }
 
             # Analyze imports
@@ -65,36 +65,46 @@ class CodeAnalyzer:
 
                 # Track function definitions and usage
                 elif isinstance(node, ast.FunctionDef):
-                    func_lines = node.end_lineno - node.lineno if hasattr(node, 'end_lineno') else 0
+                    func_lines = (
+                        node.end_lineno - node.lineno
+                        if hasattr(node, "end_lineno")
+                        else 0
+                    )
                     complexity = self._calculate_complexity(node)
 
-                    file_info["functions"].append({
-                        "name": node.name,
-                        "line": node.lineno,
-                        "lines": func_lines,
-                        "complexity": complexity
-                    })
+                    file_info["functions"].append(
+                        {
+                            "name": node.name,
+                            "line": node.lineno,
+                            "lines": func_lines,
+                            "complexity": complexity,
+                        }
+                    )
 
                     self.defined_symbols[filepath].add(node.name)
 
                     # Check for high complexity
                     if complexity > 10:
-                        self.issues["complex_functions"].append({
-                            "file": str(filepath.relative_to(self.root_path)),
-                            "function": node.name,
-                            "line": node.lineno,
-                            "complexity": complexity,
-                            "lines": func_lines
-                        })
+                        self.issues["complex_functions"].append(
+                            {
+                                "file": str(filepath.relative_to(self.root_path)),
+                                "function": node.name,
+                                "line": node.lineno,
+                                "complexity": complexity,
+                                "lines": func_lines,
+                            }
+                        )
 
                 # Track class definitions
                 elif isinstance(node, ast.ClassDef):
-                    class_lines = node.end_lineno - node.lineno if hasattr(node, 'end_lineno') else 0
-                    file_info["classes"].append({
-                        "name": node.name,
-                        "line": node.lineno,
-                        "lines": class_lines
-                    })
+                    class_lines = (
+                        node.end_lineno - node.lineno
+                        if hasattr(node, "end_lineno")
+                        else 0
+                    )
+                    file_info["classes"].append(
+                        {"name": node.name, "line": node.lineno, "lines": class_lines}
+                    )
                     self.defined_symbols[filepath].add(node.name)
 
                 # Track name usage
@@ -103,12 +113,14 @@ class CodeAnalyzer:
 
             # Check for long files
             if file_info["lines"] > 500:
-                self.issues["long_files"].append({
-                    "file": str(filepath.relative_to(self.root_path)),
-                    "lines": file_info["lines"],
-                    "functions": len(file_info["functions"]),
-                    "classes": len(file_info["classes"])
-                })
+                self.issues["long_files"].append(
+                    {
+                        "file": str(filepath.relative_to(self.root_path)),
+                        "lines": file_info["lines"],
+                        "functions": len(file_info["functions"]),
+                        "classes": len(file_info["classes"]),
+                    }
+                )
 
             return file_info
 
@@ -128,10 +140,13 @@ class CodeAnalyzer:
 
     def detect_circular_imports(self):
         """Detect circular import dependencies."""
+
         def visit(node, path, visited):
             if node in path:
-                cycle = path[path.index(node):] + [node]
-                cycle_str = " -> ".join([str(p.relative_to(self.root_path)) for p in cycle])
+                cycle = path[path.index(node) :] + [node]
+                cycle_str = " -> ".join(
+                    [str(p.relative_to(self.root_path)) for p in cycle]
+                )
                 self.issues["circular_imports"].append(cycle_str)
                 return
 
@@ -185,20 +200,21 @@ class CodeAnalyzer:
         for stat in file_stats:
             for func in stat["functions"]:
                 name_normalized = func["name"].lower().replace("_", "")
-                function_names[name_normalized].append({
-                    "file": stat["path"],
-                    "name": func["name"],
-                    "line": func["line"],
-                    "lines": func["lines"]
-                })
+                function_names[name_normalized].append(
+                    {
+                        "file": stat["path"],
+                        "name": func["name"],
+                        "line": func["line"],
+                        "lines": func["lines"],
+                    }
+                )
 
         # Report potential duplicates
         for name, occurrences in function_names.items():
             if len(occurrences) > 1 and len(name) > 5:  # Meaningful names only
-                self.issues["duplications"].append({
-                    "pattern": name,
-                    "occurrences": occurrences
-                })
+                self.issues["duplications"].append(
+                    {"pattern": name, "occurrences": occurrences}
+                )
 
     def generate_report(self) -> Dict:
         """Generate comprehensive analysis report."""
@@ -208,10 +224,11 @@ class CodeAnalyzer:
                 "circular_imports": len(self.issues["circular_imports"]),
                 "complex_functions": len(self.issues["complex_functions"]),
                 "long_files": len(self.issues["long_files"]),
-                "potential_duplications": len(self.issues["duplications"])
+                "potential_duplications": len(self.issues["duplications"]),
             },
-            "issues": self.issues
+            "issues": self.issues,
         }
+
 
 def main():
     root_path = "/Users/masa/Projects/claude-mpm"
@@ -224,6 +241,7 @@ def main():
 
     # Output as JSON
     print(json.dumps(report, indent=2))
+
 
 if __name__ == "__main__":
     main()
