@@ -54,7 +54,7 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 
 ## Key Features
 
-**Auto-Configuration (v4.10.0+)**: Automatic stack detection and agent deployment
+**Auto-Configuration**: Automatic stack detection and agent deployment (since v4.10.0)
 - Detects Python, Node.js, Rust, Go, and more
 - Identifies frameworks (FastAPI, Next.js, React, etc.)
 - Recommends agents with confidence scores (80%+ default)
@@ -69,13 +69,13 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - Cross-session learning and context
 - Automatic context enrichment
 
-**Local Process Management (v4.13.0+)**: Professional-grade local deployment
+**Local Process Management**: Professional-grade local deployment (since v4.13.0)
 - Three-tier health checks (HTTP, process, resource)
 - Auto-restart with exponential backoff
 - Memory leak detection and circuit breaker
 - Configuration-driven via YAML
 
-**Resume Log System (v4.17.2)**: Proactive context management
+**Resume Log System**: Proactive context management (since v4.17.2)
 - Graduated thresholds at 70%/85%/95% (60k token buffer)
 - Automatic 10k-token structured logs for session continuity
 - Seamless resumption with full context preservation
@@ -93,7 +93,7 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - Agent activity tracking
 - Performance metrics
 
-**Performance (v4.8.2+)**: 91% latency reduction in hook system
+**Performance**: 91% latency reduction in hook system (since v4.8.2)
 - Git branch caching with 5-minute TTL
 - Non-blocking HTTP fallback
 - 50-80% overall improvement
