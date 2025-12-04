@@ -12,6 +12,46 @@
 
 ### Security
 
+## [5.0.8] - 2025-12-04
+
+### Changed
+- **Documentation Consolidation**: Completed 3-phase documentation reorganization
+  - Consolidated testing/QA docs (3 directories → 1 unified structure)
+  - Merged developer documentation (2 directories → 1)
+  - Archived 34 completed research files with preservation strategy
+  - Created 10+ comprehensive README indexes for navigation
+  - Root directory cleanup (13 → 5 files, 61% reduction)
+
+### Fixed
+- **Circular Import Resolution**: Eliminated 2 critical circular import chains
+  - Implemented protocol-based dependency injection pattern
+  - Created 4 new protocol files for clean architecture
+  - Zero breaking changes, 100% backward compatible
+- **Code Complexity Reduction**: Refactored top 4 high-complexity functions
+  - Overall 71% complexity reduction (84 → 24)
+  - `_is_editable_install`: 26 → 6 (77% reduction)
+  - `validate_configuration`: 25 → 8 (68% reduction)
+  - `detect_deployment_context`: 18 → 5 (72% reduction)
+  - `framework_root`: 15 → 5 (67% reduction)
+
+### Documentation
+- **Link Audit**: Comprehensive scan of 1,004 internal links
+  - Fixed 4 critical user-facing broken links
+  - Categorized remaining 179 for incremental fixing
+- **Version References**: Strategic update of critical v4.x references
+  - Updated main README for clarity
+  - Preserved 193 historical references for context accuracy
+- **Migration Guides**: Complete 3-phase migration documentation
+  - Phase 1: Foundation cleanup and circular import fixes
+  - Phase 2: Documentation organization and archival
+  - Phase 3: Link audit and polish
+
+### Added
+- New protocol-based architecture in `core/protocols/`
+- Comprehensive complexity reduction report
+- 476-line Phase 3 link audit report
+- Cleanup scripts: `cleanup-safe.sh` and `cleanup-review.sh`
+
 ## [5.0.7] - 2025-12-04
 
 ### Fixed
