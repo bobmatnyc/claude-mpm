@@ -12,6 +12,25 @@
 
 ### Security
 
+## [5.0.6] - 2025-12-03
+
+### Fixed
+- **Thread Safety**: Resolved deadlock in SingletonManager from recursive __new__ calls
+  - Fixed race condition causing test timeouts
+  - Re-enabled all 17 thread safety tests (100% pass rate)
+  - Tests now complete in < 0.5s (was 10+ second timeout)
+- **Daemon Reliability**: Fixed intermittent monitor daemon startup failures
+  - Implemented port-specific PID files to prevent conflicts
+  - Added comprehensive health checks (PID + port + HTTP)
+  - Achieved 100% startup success rate
+- **Code Quality**: Applied black formatting to daemon management files
+
+### Technical Details
+- Core test suite: 290/290 passing (was 273/280)
+- Thread safety: object.__new__() bypass eliminates recursion
+- Daemon: Port-specific PID files (monitor-daemon-{port}.pid)
+- Zero critical blocking issues remaining
+
 ## [5.0.5] - 2025-12-03
 
 ### Fixed
