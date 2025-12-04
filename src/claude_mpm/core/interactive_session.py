@@ -2,6 +2,12 @@
 
 This module provides the InteractiveSession class that manages Claude's interactive mode
 with proper separation of concerns and reduced complexity.
+
+DEPENDENCY INJECTION:
+This module uses protocol-based dependency injection to break circular imports.
+Instead of importing ClaudeRunner directly, it uses ClaudeRunnerProtocol which
+defines the interface it needs. This allows ClaudeRunner to create instances
+of InteractiveSession without circular dependency issues.
 """
 
 import contextlib
@@ -9,10 +15,17 @@ import os
 import subprocess
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from claude_mpm.core.enums import ServiceState
 from claude_mpm.core.logger import get_logger
+
+# Protocol imports for type checking without circular dependencies
+if TYPE_CHECKING:
+    from claude_mpm.core.protocols import ClaudeRunnerProtocol
+else:
+    # At runtime, accept any object with matching interface
+    ClaudeRunnerProtocol = Any
 
 
 class InteractiveSession:
@@ -28,13 +41,14 @@ class InteractiveSession:
     and makes testing easier while preserving all original functionality.
     """
 
-    def __init__(self, runner):
+    def __init__(self, runner: "ClaudeRunnerProtocol"):
         """Initialize interactive session handler.
 
         Args:
-            runner: ClaudeRunner instance with all necessary services
+            runner: ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
+                    with all necessary services
         """
-        self.runner = runner
+        self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("interactive_session")
         self.session_id = None
         self.original_cwd = Path.cwd()
@@ -397,7 +411,7 @@ class InteractiveSession:
                 self.logger.info("✓ Native agents mode: Using --agents CLI flag")
 
         # Add system instructions with file-based caching
-        from claude_mpm.core.claude_runner import create_simple_context
+        from claude_mpm.core.system_context import create_simple_context
         from claude_mpm.services.instructions.instruction_cache_service import (
             InstructionCacheService,
         )

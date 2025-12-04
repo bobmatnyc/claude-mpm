@@ -9,29 +9,41 @@ This service handles:
 4. Session logging and cleanup
 
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
+
+DEPENDENCY INJECTION:
+This service uses protocol-based dependency injection to avoid circular imports.
+It accepts a ClaudeRunnerProtocol instead of importing ClaudeRunner directly.
 """
 
 import time
 import uuid
 from datetime import timezone
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.services.core.interfaces import SessionManagementInterface
 
+# Protocol imports for type checking without circular dependencies
+if TYPE_CHECKING:
+    from claude_mpm.core.protocols import ClaudeRunnerProtocol
+else:
+    # At runtime, accept any object with matching interface
+    ClaudeRunnerProtocol = Any
+
 
 class SessionManagementService(BaseService, SessionManagementInterface):
     """Service for managing Claude session orchestration."""
 
-    def __init__(self, runner=None):
+    def __init__(self, runner: Optional["ClaudeRunnerProtocol"] = None):
         """Initialize the session management service.
 
         Args:
-            runner: ClaudeRunner instance for delegation
+            runner: ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
+                    for delegation
         """
         super().__init__(name="session_management_service")
-        self.runner = runner
+        self.runner: Optional[ClaudeRunnerProtocol] = runner
         self.active_sessions = {}  # Track active sessions
 
     async def _initialize(self) -> None:

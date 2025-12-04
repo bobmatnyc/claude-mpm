@@ -10,10 +10,14 @@ This service handles:
 5. Hook service registration
 
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
+
+DEPENDENCY INJECTION:
+This service uses protocol-based dependency injection to avoid circular imports
+when registering the SessionManagementService.
 """
 
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.config import Config
@@ -21,6 +25,13 @@ from claude_mpm.core.container import ServiceLifetime
 from claude_mpm.core.logger import get_project_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.services.core.interfaces import RunnerConfigurationInterface
+
+# Protocol imports for type checking without circular dependencies
+if TYPE_CHECKING:
+    from claude_mpm.core.protocols import ClaudeRunnerProtocol
+else:
+    # At runtime, accept any object with matching interface
+    ClaudeRunnerProtocol = Any
 
 
 class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
@@ -495,12 +506,14 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             )
             return None
 
-    def register_session_management_service(self, container, runner):
+    def register_session_management_service(
+        self, container, runner: "ClaudeRunnerProtocol"
+    ):
         """Register session management service in the DI container.
 
         Args:
             container: DI container instance
-            runner: ClaudeRunner instance dependency
+            runner: ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
 
         Returns:
             Initialized session management service or None if failed

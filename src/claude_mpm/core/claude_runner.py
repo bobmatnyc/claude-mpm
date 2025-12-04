@@ -802,30 +802,8 @@ Use these agents to delegate specialized work via the Task tool.
             raise RuntimeError("Subprocess launcher service not available")
 
 
-def create_simple_context() -> str:
-    """Create basic context for Claude."""
-    return """You are Claude Code running in Claude MPM (Multi-Agent Project Manager).
-
-You have access to native subagents via the Task tool with subagent_type parameter:
-- engineer: For coding, implementation, and technical tasks
-- qa: For testing, validation, and quality assurance
-- documentation: For docs, guides, and explanations
-- research: For investigation and analysis
-- security: For security-related tasks
-- ops: For deployment and infrastructure
-- version-control: For git and version management
-- data-engineer: For data processing and APIs
-
-Use these agents by calling: Task(description="task description", subagent_type="agent_name")
-
-IMPORTANT: The Task tool accepts both naming formats:
-- Capitalized format: "Research", "Engineer", "QA", "Version Control", "Data Engineer"
-- Lowercase format: "research", "engineer", "qa", "version-control", "data-engineer"
-
-Both formats work correctly. When you see capitalized names (matching TodoWrite prefixes),
-automatically normalize them to lowercase-hyphenated format for the Task tool.
-
-Work efficiently and delegate appropriately to subagents when needed."""
+# Moved to claude_mpm.core.system_context to avoid circular imports
+from claude_mpm.core.system_context import create_simple_context
 
 
 # Backward compatibility alias

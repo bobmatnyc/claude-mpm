@@ -2,6 +2,11 @@
 
 This module encapsulates the logic for running one-time Claude commands,
 breaking down the monolithic run_oneshot method into focused, testable components.
+
+DEPENDENCY INJECTION:
+This module uses protocol-based dependency injection to break circular imports.
+Instead of importing ClaudeRunner directly, it uses ClaudeRunnerProtocol which
+defines the interface it needs.
 """
 
 import contextlib
@@ -11,10 +16,17 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from claude_mpm.core.enums import OperationResult, ServiceState
 from claude_mpm.core.logger import get_logger
+
+# Protocol imports for type checking without circular dependencies
+if TYPE_CHECKING:
+    from claude_mpm.core.protocols import ClaudeRunnerProtocol
+else:
+    # At runtime, accept any object with matching interface
+    ClaudeRunnerProtocol = Any
 
 
 class OneshotSession:
@@ -27,13 +39,13 @@ class OneshotSession:
     complexity < 10 and lines < 80, making the code easier to test and modify.
     """
 
-    def __init__(self, runner):
+    def __init__(self, runner: "ClaudeRunnerProtocol"):
         """Initialize the oneshot session with a reference to the runner.
 
         Args:
-            runner: The ClaudeRunner instance that owns this session
+            runner: The ClaudeRunner instance (or any object matching ClaudeRunnerProtocol)
         """
-        self.runner = runner
+        self.runner: ClaudeRunnerProtocol = runner
         self.logger = get_logger("oneshot_session")
         self.start_time = None
         self.session_id = None
