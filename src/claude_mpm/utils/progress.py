@@ -270,8 +270,12 @@ class ProgressBar:
             truncate_at = max_width - 3  # Leave room for "..."
             output = output[:truncate_at] + "..."
 
+        # Pad output to terminal width to clear previous longer text
+        # This prevents text artifacts when current message is shorter than previous
+        padded_output = output.ljust(max_width)
+
         # Write to stdout with carriage return (overwrite current line)
-        sys.stdout.write(f"\r{output}")
+        sys.stdout.write(f"\r{padded_output}")
         sys.stdout.flush()
 
     def finish(self, message: str = "Complete") -> None:
