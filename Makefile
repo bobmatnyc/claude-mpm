@@ -23,6 +23,7 @@
 .PHONY: env-info env-set-dev env-set-staging env-set-prod
 .PHONY: migrate-agents-v5 migrate-agents-v5-dry-run
 .PHONY: agents-cache-status agents-cache-pull agents-cache-commit agents-cache-push agents-cache-sync deploy-agents
+.PHONY: sync-repos sync-repos-dry-run
 
 # ============================================================================
 # Shell Configuration (Strict Mode)
@@ -981,6 +982,21 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 		echo "$(RED)Publishing aborted$(NC)"; \
 		exit 1; \
 	fi
+	@echo ""
+	@echo "$(YELLOW)🔄 Syncing agent and skills repositories...$(NC)"
+	@if [ -f "scripts/sync_agent_skills_repos.sh" ]; then \
+		./scripts/sync_agent_skills_repos.sh || { \
+			echo "$(RED)✗ Repository sync failed$(NC)"; \
+			read -p "Continue with publishing anyway? [y/N]: " continue_confirm; \
+			if [ "$$continue_confirm" != "y" ] && [ "$$continue_confirm" != "Y" ]; then \
+				echo "$(RED)Publishing aborted$(NC)"; \
+				exit 1; \
+			fi; \
+		}; \
+	else \
+		echo "$(YELLOW)⚠️  Sync script not found, skipping repository sync$(NC)"; \
+	fi
+	@echo ""
 	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
 	@if command -v twine >/dev/null 2>&1; then \
 		python -m twine upload dist/*; \
@@ -1263,4 +1279,27 @@ deploy-agents: agents-cache-pull ## Deploy agents with latest changes from remot
 	@echo "$(YELLOW)🚀 Deploying agents...$(NC)"
 	@claude-mpm agents deploy
 	@echo "$(GREEN)✓ Agents deployed$(NC)"
+
+# ============================================================================
+# Agent & Skills Repository Sync
+# ============================================================================
+# Comprehensive sync workflow for both agent and skills repositories
+
+sync-repos: ## Sync agent and skills repositories (pull, merge, commit, push)
+	@echo "$(YELLOW)🔄 Syncing agent and skills repositories...$(NC)"
+	@if [ -f "scripts/sync_agent_skills_repos.sh" ]; then \
+		./scripts/sync_agent_skills_repos.sh; \
+	else \
+		echo "$(RED)✗ Sync script not found: scripts/sync_agent_skills_repos.sh$(NC)"; \
+		exit 1; \
+	fi
+
+sync-repos-dry-run: ## Preview repository sync without making changes
+	@echo "$(BLUE)🔍 Previewing repository sync (dry run)...$(NC)"
+	@if [ -f "scripts/sync_agent_skills_repos.sh" ]; then \
+		./scripts/sync_agent_skills_repos.sh --dry-run; \
+	else \
+		echo "$(RED)✗ Sync script not found: scripts/sync_agent_skills_repos.sh$(NC)"; \
+		exit 1; \
+	fi
 
