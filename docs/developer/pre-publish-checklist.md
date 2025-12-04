@@ -411,7 +411,8 @@ claude-mpm --version      # Verify version
 
 - [Publishing Guide](./publishing-guide.md) - Comprehensive publishing documentation
 - [Release Process](../RELEASE_PROCESS.md) - Complete release workflow
-- [Version Management](../VERSION_MANAGEMENT.md) - Version numbering scheme
+- [VERSION File](../../VERSION) - Current version number
+- [CHANGELOG](../../CHANGELOG.md) - Release history and versioning
 - [Quality Gates](../QUALITY_GATES.md) - Pre-release checks
 
 ## Support

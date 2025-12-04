@@ -263,7 +263,7 @@ This directory contains comprehensive planning documents for v5.0 documentation 
 ### Planning Resources
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 - [CHANGELOG.md](../CHANGELOG.md) - Release history
-- [UPGRADING_TO_V5.md](../UPGRADING_TO_V5.md) - Migration guide
+- [UPGRADING_TO_V5.md](migration/UPGRADING_TO_V5.md) - Migration guide
 
 ---
 

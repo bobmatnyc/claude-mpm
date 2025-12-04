@@ -459,7 +459,7 @@ Use this checklist for manual releases:
 - **Workflow Details**: [src/claude_mpm/agents/WORKFLOW.md](../../src/claude_mpm/agents/WORKFLOW.md)
 - **Homebrew Troubleshooting**: [HOMEBREW_UPDATE_TROUBLESHOOTING.md](HOMEBREW_UPDATE_TROUBLESHOOTING.md)
 - **Development Guidelines**: [../../CLAUDE.md](../../CLAUDE.md)
-- **Version Management**: [VERSIONING.md](VERSIONING.md)
+- **Version Management**: See [Version Management](#version-management) section above
 
 ---
 
