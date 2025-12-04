@@ -2,13 +2,28 @@
 
 Technical documentation for Claude MPM contributors and extenders.
 
-## Documentation Files
+## Documentation Structure
 
-- **[Architecture](architecture.md)** - System design, core concepts, and service architecture
+### Core Documentation
+
+- **[Architecture](ARCHITECTURE.md)** - System design, core concepts, and service architecture
 - **[Extending](extending.md)** - Build custom agents, hooks, services, and MCP tools
 - **[Skills Versioning System](skills-versioning.md)** - Technical implementation details
 - **[API Reference](api-reference.md)** - Complete API documentation for all services
 - **[Integrating Structured Questions](integrating-structured-questions.md)** - Add structured questions to custom agents
+
+### Development Guides
+
+- **[Agent Modification Workflow](agent-modification-workflow.md)** - How to modify and contribute agents
+- **[Code Formatting](CODE_FORMATTING.md)** - Code style and formatting standards
+- **[Publishing Guide](publishing-guide.md)** - Release and publishing procedures
+- **[Pre-publish Checklist](pre-publish-checklist.md)** - Pre-release verification checklist
+
+### Technical Deep Dives
+
+- **[Code Navigation](code-navigation/)** - Detailed codebase navigation guides
+- **[Internals](internals/)** - Internal implementation details and mechanisms
+- **[Troubleshooting](troubleshooting/)** - Development troubleshooting guides
 
 ## Quick Links
 
