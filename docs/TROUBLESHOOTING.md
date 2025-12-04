@@ -367,7 +367,7 @@ grep monitoring ~/.claude-mpm/configuration.yaml
 **Solution**:
 1. Update to v4.8.2+ (91% latency reduction)
 2. Disable unused agents in configuration
-3. Clear agent cache: `rm -rf ~/.claude-mpm/cache/agents/`
+3. Clear agent cache: `rm -rf ~/.claude-mpm/cache/remote-agents/`
 4. Check network connectivity (MCP gateway)
 
 #### High Latency

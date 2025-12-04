@@ -1,7 +1,7 @@
 ---
 title: Architecture
-version: 4.21.1
-last_updated: 2025-11-09
+version: 5.0.7
+last_updated: 2025-12-04
 status: current
 ---
 
@@ -310,7 +310,7 @@ hooks:
 
 ### Performance
 
-**v4.8.2+ Improvements:**
+**v5.0+ Performance Improvements:**
 - 91% latency reduction (108ms → 10ms)
 - Non-blocking execution
 - Thread pool for HTTP calls
@@ -478,7 +478,7 @@ safe_path = sanitize_path(user_provided_path)
 
 ## Performance Optimizations
 
-**v4.8.2+ Improvements:**
+**v5.0+ Performance Enhancements:**
 
 ### Git Branch Caching
 
