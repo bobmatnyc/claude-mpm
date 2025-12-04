@@ -311,42 +311,17 @@ def _remove_test_mode_instructions(content: str) -> str:
     Returns:
         str: Content with test-mode instructions removed
     """
-    lines = content.split("\n")
-    filtered_lines = []
-    skip_section = False
+    import re
 
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    # Pattern matches from "## Standard Test Response Protocol"
+    # until the next "##" (but not "###") or end of string
+    # Uses negative lookahead to stop at ## but not ###
+    pattern = r"## Standard Test Response Protocol\n.*?(?=\n##(?!#)|\Z)"
 
-        # Check if we're entering the test response protocol section
-        if line.strip() == "## Standard Test Response Protocol":
-            skip_section = True
-            i += 1
-            continue
+    # Remove the test section (DOTALL allows . to match newlines)
+    result = re.sub(pattern, "", content, flags=re.DOTALL)
 
-        # Check if we're in the test section and need to continue skipping
-        if skip_section:
-            # Check if we've reached a new top-level section (## but not ###)
-            # Only stop skipping when we hit another ## section (same level as test section)
-            if line.startswith("##") and not line.startswith("###"):
-                skip_section = False
-                # Don't skip this line - it's the start of a new section
-                filtered_lines.append(line)
-                i += 1
-                continue
-            # Skip this line as we're still in test section (includes ### subsections)
-            i += 1
-            continue
-
-        # Not in test section, keep the line
-        filtered_lines.append(line)
-        i += 1
-
-    # Join back and clean up extra blank lines
-    result = "\n".join(filtered_lines)
-
-    # Replace multiple consecutive newlines with double newlines
+    # Clean up multiple consecutive newlines
     while "\n\n\n" in result:
         result = result.replace("\n\n\n", "\n\n")
 
