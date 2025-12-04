@@ -150,7 +150,9 @@ class UnifiedMonitorDaemon:
                 self.logger.warning(msg)
                 # If we're in subprocess mode, this is an error - we should have cleaned up
                 if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
-                    self.logger.error(f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!")
+                    self.logger.error(
+                        f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!"
+                    )
                 return False
             # Force restart was already handled above
 
@@ -161,7 +163,9 @@ class UnifiedMonitorDaemon:
             self.logger.warning(msg)
             # If we're in subprocess mode, this is an error - we should have cleaned up
             if os.environ.get("CLAUDE_MPM_SUBPROCESS_DAEMON") == "1":
-                self.logger.error(f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!")
+                self.logger.error(
+                    f"SUBPROCESS ERROR: {msg} - This should not happen in subprocess mode!"
+                )
             return False
 
         # Use subprocess approach for clean daemon startup (v4.2.40)
@@ -196,7 +200,9 @@ class UnifiedMonitorDaemon:
                 self.logger.info("Server started successfully in subprocess mode")
                 return result
             except Exception as e:
-                self.logger.error(f"Server startup exception in subprocess: {e}", exc_info=True)
+                self.logger.error(
+                    f"Server startup exception in subprocess: {e}", exc_info=True
+                )
                 raise
         else:
             # Legacy fork approach (kept for compatibility but not used by default)

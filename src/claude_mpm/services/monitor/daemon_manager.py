@@ -511,9 +511,7 @@ class DaemonManager:
                 if attempt < max_attempts - 1:
                     time.sleep(1)
 
-            self.logger.debug(
-                f"Health check failed after {max_attempts} attempts"
-            )
+            self.logger.debug(f"Health check failed after {max_attempts} attempts")
             return False
 
         except ImportError:
@@ -694,7 +692,9 @@ class DaemonManager:
                         self.logger.warning(
                             "Daemon started but health check failed - may still be initializing"
                         )
-                        return True  # Return success anyway if PID file and port are good
+                        return (
+                            True  # Return success anyway if PID file and port are good
+                        )
 
                     time.sleep(0.5)
 
