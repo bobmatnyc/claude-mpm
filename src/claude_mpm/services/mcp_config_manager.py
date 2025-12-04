@@ -12,7 +12,6 @@ MCP service installations.
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -736,7 +735,7 @@ class MCPConfigManager:
         # Check which services are missing
         mcp_servers = project_config.get("mcpServers", {})
         missing_services = [
-            name for name in expected_services.keys()
+            name for name in expected_services
             if name not in mcp_servers
         ]
 
