@@ -12,6 +12,35 @@
 
 ### Security
 
+## [5.0.7] - 2025-12-04
+
+### Fixed
+- **MCP Auto-Configuration Removal**: Removed obsolete MCP service auto-configuration code
+  - Claude MPM no longer auto-modifies `~/.claude.json` to add/fix MCP service configurations
+  - Users must now manually install and configure MCP services via pip, npx, or Claude Desktop
+  - Deprecated `MCPConfigManager.ensure_mcp_services_configured()` method
+  - Added new read-only check method: `check_mcp_services_available()`
+  - Updated all callers to use read-only checks instead of auto-modifications
+
+### Changed
+- **MCP Service Management**: MCP services are now fully user-controlled (as intended since v4.15.0)
+  - Removed 28 lines from `startup.py` auto-configuration
+  - Removed 40 lines from `run.py` including auto-config function
+  - Refactored `MCPConfigManager` with 140+ lines of auto-modification logic removed
+  - Net reduction: 140 lines of code (-245 removed, +105 added)
+
+### Documentation
+- Added comprehensive guide: `docs/developer/mcp-auto-config-removal.md`
+  - Migration guide for code using deprecated methods
+  - Testing checklist for MCP service availability
+  - Timeline for complete removal (v6.0.0)
+
+### Breaking Changes
+- Users must now install MCP services themselves:
+  - `pip install mcp-ticketer mcp-browser mcp-vector-search kuzu-memory`
+  - Configure via Claude Desktop UI or manually edit `~/.claude.json`
+  - Claude MPM will only check availability (read-only)
+
 ## [5.0.6] - 2025-12-03
 
 ### Fixed
