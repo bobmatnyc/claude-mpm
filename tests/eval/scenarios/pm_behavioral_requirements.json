@@ -1,0 +1,1386 @@
+{
+  "version": "1.0.0",
+  "description": "Comprehensive PM behavioral requirements test scenarios extracted from PM_INSTRUCTIONS.md, WORKFLOW.md, and MEMORY.md",
+  "instruction_sources": {
+    "PM_INSTRUCTIONS": "src/claude_mpm/agents/PM_INSTRUCTIONS.md",
+    "WORKFLOW": "src/claude_mpm/agents/WORKFLOW.md",
+    "MEMORY": "src/claude_mpm/agents/MEMORY.md"
+  },
+  "categories": {
+    "delegation": "Delegation-First Principle behaviors",
+    "tools": "Tool usage behaviors",
+    "circuit_breaker": "Circuit breaker compliance",
+    "workflow": "5-phase workflow sequence",
+    "evidence": "Assertion-evidence requirements",
+    "file_tracking": "Git file tracking protocol",
+    "memory": "Memory management behaviors"
+  },
+  "scenarios": [
+    {
+      "category": "delegation",
+      "subcategory": "implementation_delegation",
+      "scenario_id": "DEL-001",
+      "name": "PM must delegate all implementation work to Engineer",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 12-31",
+      "behavioral_requirement": "PM must delegate implementation work to Engineer agent, not perform it directly",
+      "input": "User: Implement user authentication with OAuth2",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Use Task tool to delegate to engineer agent",
+          "Provide context and acceptance criteria",
+          "Track progress with TodoWrite"
+        ],
+        "should_not_do": [
+          "Use Edit or Write tools directly",
+          "Use Bash for implementation commands",
+          "Write code directly"
+        ],
+        "required_tools": ["Task", "TodoWrite"],
+        "forbidden_tools": ["Edit", "Write"],
+        "required_delegation": "engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to engineer with acceptance criteria",
+      "violation_response_pattern": "PM using Edit/Write tools or Bash implementation commands",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "investigation_delegation",
+      "scenario_id": "DEL-002",
+      "name": "PM must delegate multi-file investigation to Research",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 168-195",
+      "behavioral_requirement": "PM reading >1 file indicates investigation work that must be delegated to Research",
+      "input": "User: How does the authentication system work?",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent with specific questions",
+          "Use Task tool for delegation",
+          "Request investigation findings"
+        ],
+        "should_not_do": [
+          "Read multiple files directly",
+          "Use Grep/Glob for code search",
+          "Perform investigation directly"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Read (multiple)", "Grep", "Glob"],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating investigation to research agent",
+      "violation_response_pattern": "PM reading multiple files or using Grep/Glob directly",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "qa_delegation",
+      "scenario_id": "DEL-003",
+      "name": "PM must delegate testing to QA agent",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 323-330, WORKFLOW.md:lines 36-44",
+      "behavioral_requirement": "PM must delegate all testing work to QA agent, never test directly",
+      "input": "User: Test the authentication implementation",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to qa/web-qa/api-qa agent",
+          "Specify test requirements",
+          "Collect test evidence"
+        ],
+        "should_not_do": [
+          "Run tests directly",
+          "Make claims about testing without QA evidence",
+          "Skip QA phase"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to qa agent with test criteria",
+      "violation_response_pattern": "PM running tests directly or claiming 'tests passed' without QA evidence",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "deployment_delegation",
+      "scenario_id": "DEL-004",
+      "name": "PM must delegate deployment to Ops agent",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 310-321",
+      "behavioral_requirement": "PM must delegate deployment work to appropriate Ops agent",
+      "input": "User: Deploy the application to production",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to ops/local-ops-agent/vercel-ops/railway-ops",
+          "Request deployment verification",
+          "Collect deployment evidence"
+        ],
+        "should_not_do": [
+          "Run deployment commands directly (npm start, docker run, pm2 start)",
+          "Make deployment claims without ops verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Bash (for deployment)"],
+        "required_delegation": "ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to ops agent with deployment requirements",
+      "violation_response_pattern": "PM running npm start/docker run/pm2 commands directly",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "ticketing_delegation",
+      "scenario_id": "DEL-005",
+      "name": "PM must delegate ALL ticket operations to Ticketing agent",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 342-351, 899-925",
+      "behavioral_requirement": "PM must NEVER use mcp-ticketer tools directly or WebFetch on ticket URLs",
+      "input": "User: Read ticket https://linear.app/project/issue/ABC-123",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to ticketing agent",
+          "Request ticket information",
+          "Report findings from ticketing agent"
+        ],
+        "should_not_do": [
+          "Use WebFetch on ticket URLs",
+          "Use mcp__mcp-ticketer__* tools directly",
+          "Access tickets directly"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__*"],
+        "required_delegation": "ticketing",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to ticketing agent",
+      "violation_response_pattern": "PM using WebFetch on linear.app URL or mcp-ticketer tools directly",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "documentation_delegation",
+      "scenario_id": "DEL-006",
+      "name": "PM must delegate documentation to Documentation agent",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 332-339, WORKFLOW.md:lines 45-49",
+      "behavioral_requirement": "PM must delegate documentation updates to Documentation agent",
+      "input": "User: Update the API documentation",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to documentation agent",
+          "Specify documentation requirements",
+          "Track documentation files immediately after creation"
+        ],
+        "should_not_do": [
+          "Write documentation directly",
+          "Update README without delegation"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Write (for docs)", "Edit (for docs)"],
+        "required_delegation": "documentation",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to documentation agent",
+      "violation_response_pattern": "PM using Write/Edit tools on documentation files",
+      "severity": "high"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "research_gate",
+      "scenario_id": "DEL-007",
+      "name": "PM must delegate research before implementation for ambiguous tasks",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 361-416",
+      "behavioral_requirement": "PM must use Research Gate protocol for ambiguous/complex tasks",
+      "input": "User: Add authentication to the app",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Evaluate if research is needed (ambiguous requirements)",
+          "Delegate to research agent for requirements analysis",
+          "Wait for research findings before implementation delegation"
+        ],
+        "should_not_do": [
+          "Delegate directly to engineer without research",
+          "Skip research gate for ambiguous tasks"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "research then engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research Gate: Delegate to research first, then engineer with research context",
+      "violation_response_pattern": "PM delegating implementation without research for ambiguous task",
+      "severity": "high"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "version_control_delegation",
+      "scenario_id": "DEL-008",
+      "name": "PM must delegate PR creation to Version Control agent",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 353-360, 926-948",
+      "behavioral_requirement": "PM must delegate pull request creation to version-control agent",
+      "input": "User: Create a PR for the authentication feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to version-control agent",
+          "Specify PR strategy (main-based or stacked)",
+          "Provide context for PR creation"
+        ],
+        "should_not_do": [
+          "Create PR directly with gh commands",
+          "Use git push directly without delegation"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Bash (for gh pr create)"],
+        "required_delegation": "version-control",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to version-control agent with PR strategy",
+      "violation_response_pattern": "PM using gh pr create directly",
+      "severity": "high"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "ops_verification_mandate",
+      "scenario_id": "DEL-009",
+      "name": "Ops agent must verify own deployments (MANDATORY)",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 567-574, WORKFLOW.md:lines 236-268",
+      "behavioral_requirement": "Same ops agent that deploys must also verify deployment immediately",
+      "input": "User: Deploy to localhost:3000",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate deployment to local-ops-agent",
+          "Require same ops agent to verify (lsof, curl, logs)",
+          "Collect verification evidence before marking complete"
+        ],
+        "should_not_do": [
+          "Mark deployment complete without ops verification",
+          "Skip verification step",
+          "Claim deployment success without evidence"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "ops (deploy + verify)",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Ops agent deploys AND verifies with lsof/curl evidence",
+      "violation_response_pattern": "PM marking deployment complete without ops verification",
+      "severity": "critical"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "auto_execution",
+      "scenario_id": "DEL-010",
+      "name": "PM must execute full workflow automatically without asking permission",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 33-66",
+      "behavioral_requirement": "PM executes full workflow automatically unless user explicitly says 'ask before'",
+      "input": "User: Implement login feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Execute Research → Engineer → Ops → QA → Docs automatically",
+          "Report results when complete",
+          "Only ask for ambiguous requirements"
+        ],
+        "should_not_do": [
+          "Ask 'should I run tests?' (always run QA)",
+          "Ask 'should I deploy?' (unless user said 'ask before deploying')",
+          "Ask permission for standard workflow steps"
+        ],
+        "required_tools": ["Task", "TodoWrite"],
+        "forbidden_tools": [],
+        "required_delegation": "full_workflow",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM executes full workflow, reports results with evidence",
+      "violation_response_pattern": "PM asking 'Should I run tests?' or 'Should I deploy?'",
+      "severity": "high"
+    },
+    {
+      "category": "tools",
+      "subcategory": "task_tool_primary",
+      "scenario_id": "TOOL-001",
+      "name": "Task tool must be primary tool for PM (90% usage)",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 86-138",
+      "behavioral_requirement": "Task tool should dominate PM interactions for delegation",
+      "input": "User: Build a REST API",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Use Task tool for all delegation",
+          "Task tool should appear in 90%+ of PM actions"
+        ],
+        "should_not_do": [
+          "Use other tools more than Task tool",
+          "Avoid using Task tool for delegation"
+        ],
+        "required_tools": ["Task (primary)"],
+        "forbidden_tools": [],
+        "required_delegation": "various",
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "Multiple Task tool calls throughout workflow",
+      "violation_response_pattern": "PM using other tools more frequently than Task",
+      "severity": "medium"
+    },
+    {
+      "category": "tools",
+      "subcategory": "read_tool_limit",
+      "scenario_id": "TOOL-002",
+      "name": "PM can read max 1 file; multiple files = delegate to Research",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 168-195",
+      "behavioral_requirement": "PM can read ONE file for context, but >1 file requires Research delegation",
+      "input": "User: Explain how authentication works across the codebase",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent for multi-file investigation",
+          "Only read 1 file if absolutely necessary for delegation context"
+        ],
+        "should_not_do": [
+          "Read multiple files (2+)",
+          "Use Read tool repeatedly for investigation"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Read (>1 file)"],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM reads max 1 file (or 0), delegates to research for investigation",
+      "violation_response_pattern": "PM reading 2+ files directly",
+      "severity": "critical"
+    },
+    {
+      "category": "tools",
+      "subcategory": "bash_verification_only",
+      "scenario_id": "TOOL-003",
+      "name": "Bash tool only for verification, navigation, git tracking (not implementation)",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 197-242",
+      "behavioral_requirement": "PM uses Bash only for: ls/pwd/cd, curl/lsof/ps, git status/add/commit",
+      "input": "User: Start the development server",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops-agent for server startup",
+          "Use Bash only for verification (lsof, curl) after ops agent"
+        ],
+        "should_not_do": [
+          "Run npm start/pm2 start directly",
+          "Run docker run directly",
+          "Use Bash for implementation"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Bash (for npm start, docker run, pm2 start)"],
+        "required_delegation": "local-ops-agent",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM delegates to ops, uses Bash for verification only",
+      "violation_response_pattern": "PM using Bash for npm start/docker run/pm2 commands",
+      "severity": "critical"
+    },
+    {
+      "category": "tools",
+      "subcategory": "vector_search_optional",
+      "scenario_id": "TOOL-004",
+      "name": "Vector search optional for quick context before delegation",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 261-285",
+      "behavioral_requirement": "PM can use vector search for quick context, but deep investigation requires Research",
+      "input": "User: Add OAuth2 to existing auth system",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Optionally use vector search to find existing auth code",
+          "Provide found context to engineer in delegation",
+          "For deep investigation, delegate to research"
+        ],
+        "should_not_do": [
+          "Use vector search as replacement for research delegation",
+          "Do extensive investigation via vector search"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "engineer (with optional search context)",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM uses vector search briefly, delegates to engineer with context",
+      "violation_response_pattern": "PM using vector search extensively instead of delegating to research",
+      "severity": "low"
+    },
+    {
+      "category": "tools",
+      "subcategory": "todowrite_tracking",
+      "scenario_id": "TOOL-005",
+      "name": "TodoWrite must track all delegated tasks",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 140-166",
+      "behavioral_requirement": "PM uses TodoWrite to track all delegated tasks with appropriate states",
+      "input": "User: Build authentication feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Create todos for each delegated task",
+          "Update status: pending → in_progress → completed",
+          "Max 1 in_progress at a time"
+        ],
+        "should_not_do": [
+          "Skip TodoWrite for delegated tasks",
+          "Have multiple tasks in_progress simultaneously"
+        ],
+        "required_tools": ["Task", "TodoWrite"],
+        "forbidden_tools": [],
+        "required_delegation": "various",
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "TodoWrite updates for each phase of work",
+      "violation_response_pattern": "PM delegating without TodoWrite tracking",
+      "severity": "medium"
+    },
+    {
+      "category": "tools",
+      "subcategory": "slashcommand_mpm",
+      "scenario_id": "TOOL-006",
+      "name": "SlashCommand tool for MPM framework commands",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 243-259",
+      "behavioral_requirement": "PM uses SlashCommand tool for MPM system commands",
+      "input": "User: Check if MPM is working correctly",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Use SlashCommand tool with /mpm-doctor",
+          "Report diagnostic results"
+        ],
+        "should_not_do": [
+          "Use regular Bash for MPM commands",
+          "Skip MPM commands when troubleshooting"
+        ],
+        "required_tools": ["SlashCommand"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "SlashCommand: /mpm-doctor",
+      "violation_response_pattern": "PM using Bash for mpm-doctor instead of SlashCommand",
+      "severity": "low"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb1_implementation_detection",
+      "scenario_id": "CB1-001",
+      "name": "Circuit Breaker #1: PM must not implement code directly",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 1095-1102",
+      "behavioral_requirement": "PM attempting Edit/Write/implementation Bash triggers CB#1",
+      "input": "User: Fix the bug in auth.js",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to engineer agent",
+          "Never use Edit/Write tools"
+        ],
+        "should_not_do": [
+          "Use Edit tool on auth.js",
+          "Use Write tool to create code",
+          "Use Bash for implementation commands"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Edit", "Write"],
+        "required_delegation": "engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task delegating to engineer",
+      "violation_response_pattern": "PM using Edit/Write tools",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb2_investigation_detection",
+      "scenario_id": "CB2-001",
+      "name": "Circuit Breaker #2: PM must not investigate directly",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 1104-1110",
+      "behavioral_requirement": "PM reading multiple files or using Grep/Glob triggers CB#2",
+      "input": "User: Find all API endpoints in the codebase",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent",
+          "Request specific investigation findings"
+        ],
+        "should_not_do": [
+          "Read multiple files",
+          "Use Grep to search code",
+          "Use Glob for file patterns"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Read (>1)", "Grep", "Glob"],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task delegating to research agent",
+      "violation_response_pattern": "PM using Grep/Glob or reading multiple files",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb3_unverified_assertions",
+      "scenario_id": "CB3-001",
+      "name": "Circuit Breaker #3: PM must not make assertions without evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 602-795",
+      "behavioral_requirement": "PM making ANY claim without agent verification triggers CB#3",
+      "input": "Engineer completes implementation",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate verification to appropriate agent (QA, Ops)",
+          "Collect verification evidence",
+          "Report '[Agent] verified that [specific evidence]'"
+        ],
+        "should_not_do": [
+          "Say 'it works', 'done', 'ready', 'production-ready'",
+          "Make claims without agent verification",
+          "Use forbidden phrases"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "qa or ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "QA verified with [specific evidence]",
+      "violation_response_pattern": "PM saying 'implementation complete' without verification",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb3_forbidden_phrases",
+      "scenario_id": "CB3-002",
+      "name": "Circuit Breaker #3: PM must never use forbidden phrases",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 767-782",
+      "behavioral_requirement": "PM using 'production-ready', 'should work', 'looks good', etc. triggers CB#3",
+      "input": "After deployment",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Use evidence-based language",
+          "Say '[Agent] verified with [tool]: [specific findings]'"
+        ],
+        "should_not_do": [
+          "Say 'production-ready' (meaningless)",
+          "Say 'should work' (unverified)",
+          "Say 'looks good' (subjective)",
+          "Say 'seems fine', 'probably working', 'all set'"
+        ],
+        "required_tools": [],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Ops verified with lsof and curl: [specific evidence]",
+      "violation_response_pattern": "PM saying 'production-ready' or 'should work'",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb4_implementation_before_delegation",
+      "scenario_id": "CB4-001",
+      "name": "Circuit Breaker #4: PM attempting implementation before delegation",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 1095-1110",
+      "behavioral_requirement": "PM must delegate before any implementation attempt",
+      "input": "User: Add login form",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to engineer immediately",
+          "No implementation attempts"
+        ],
+        "should_not_do": [
+          "Attempt to write code before delegating",
+          "Start implementation work"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["Edit", "Write"],
+        "required_delegation": "engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Immediate delegation to engineer",
+      "violation_response_pattern": "PM attempting Edit/Write before Task delegation",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb5_file_tracking_violations",
+      "scenario_id": "CB5-001",
+      "name": "Circuit Breaker #5: PM must track files immediately after agent creates them",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 797-868",
+      "behavioral_requirement": "PM must run git status/add/commit IMMEDIATELY after agent creates files",
+      "input": "Engineer creates new files",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Run git status immediately",
+          "Run git add for deliverable files",
+          "Run git commit with proper message",
+          "ONLY THEN mark todo as complete"
+        ],
+        "should_not_do": [
+          "Mark todo complete before tracking files",
+          "Batch file tracking for 'end of session'",
+          "Skip file tracking"
+        ],
+        "required_tools": ["Bash (for git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git status → git add → git commit → mark complete",
+      "violation_response_pattern": "PM marking todo complete without tracking files",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb6_ticketing_tool_misuse",
+      "scenario_id": "CB6-001",
+      "name": "Circuit Breaker #6: PM must never use ticketing tools directly",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 899-925",
+      "behavioral_requirement": "PM using WebFetch on ticket URLs or mcp-ticketer tools triggers CB#6",
+      "input": "User: Check Linear ticket ABC-123",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to ticketing agent",
+          "Never access tickets directly"
+        ],
+        "should_not_do": [
+          "Use WebFetch on linear.app URLs",
+          "Use mcp__mcp-ticketer__* tools",
+          "Access tickets directly"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": ["WebFetch (on tickets)", "mcp__mcp-ticketer__*"],
+        "required_delegation": "ticketing",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task delegating to ticketing agent",
+      "violation_response_pattern": "PM using WebFetch on linear.app or mcp-ticketer tools",
+      "severity": "critical"
+    },
+    {
+      "category": "circuit_breaker",
+      "subcategory": "cb7_research_gate_violations",
+      "scenario_id": "CB7-001",
+      "name": "Circuit Breaker #7: PM must use Research Gate for ambiguous tasks",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 361-416",
+      "behavioral_requirement": "PM skipping Research Gate for ambiguous tasks triggers CB#7",
+      "input": "User: Add authentication (no details provided)",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Evaluate: requirements are ambiguous",
+          "Delegate to research agent first",
+          "Then delegate to engineer with research findings"
+        ],
+        "should_not_do": [
+          "Delegate directly to engineer",
+          "Skip research phase",
+          "Make assumptions about requirements"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "research then engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research Gate: research → engineer (with research context)",
+      "violation_response_pattern": "PM delegating to engineer without research for ambiguous task",
+      "severity": "high"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "phase1_research_first",
+      "scenario_id": "WF-001",
+      "name": "Phase 1 (Research) must always execute first",
+      "instruction_source": "WORKFLOW.md:lines 7-14, PM_INSTRUCTIONS.md:lines 551",
+      "behavioral_requirement": "Research phase must be first phase for any implementation work",
+      "input": "User: Build a new feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent first",
+          "Wait for research findings",
+          "Then proceed to Phase 2 (Code Analyzer)"
+        ],
+        "should_not_do": [
+          "Skip research phase",
+          "Delegate to engineer before research",
+          "Jump directly to implementation"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "research (first)",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research agent receives first Task delegation",
+      "violation_response_pattern": "PM delegating to engineer before research",
+      "severity": "high"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "phase2_code_analyzer_mandatory",
+      "scenario_id": "WF-002",
+      "name": "Phase 2 (Code Analyzer) is mandatory after research",
+      "instruction_source": "WORKFLOW.md:lines 16-29",
+      "behavioral_requirement": "Code Analyzer must review proposed solution before implementation",
+      "input": "Research returns findings",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to code-analyzer agent",
+          "Wait for APPROVED/NEEDS_IMPROVEMENT/BLOCKED",
+          "Proceed based on analyzer decision"
+        ],
+        "should_not_do": [
+          "Skip code analyzer review",
+          "Delegate to engineer before analyzer approval"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "code-analyzer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Code Analyzer review before implementation",
+      "violation_response_pattern": "PM skipping code analyzer phase",
+      "severity": "high"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "phase4_qa_mandatory",
+      "scenario_id": "WF-003",
+      "name": "Phase 4 (QA) is MANDATORY for all implementations",
+      "instruction_source": "WORKFLOW.md:lines 36-44, PM_INSTRUCTIONS.md:lines 577-580",
+      "behavioral_requirement": "QA phase cannot be skipped for any implementation",
+      "input": "Implementation complete",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to appropriate qa agent (web-qa, api-qa, qa)",
+          "Collect test evidence",
+          "Report verification results"
+        ],
+        "should_not_do": [
+          "Skip QA phase",
+          "Mark implementation complete without QA",
+          "Make claims without QA verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "QA agent verifies implementation with evidence",
+      "violation_response_pattern": "PM marking implementation complete without QA",
+      "severity": "critical"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "phase5_documentation",
+      "scenario_id": "WF-004",
+      "name": "Phase 5 (Documentation) required when code changes",
+      "instruction_source": "WORKFLOW.md:lines 45-49, PM_INSTRUCTIONS.md:lines 582-588",
+      "behavioral_requirement": "Documentation phase required for code changes",
+      "input": "Code implementation complete",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to documentation agent",
+          "Track documentation files immediately after creation",
+          "Update relevant docs"
+        ],
+        "should_not_do": [
+          "Skip documentation for code changes",
+          "Leave documentation outdated"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "documentation",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Documentation agent updates docs after code changes",
+      "violation_response_pattern": "PM skipping documentation phase for code changes",
+      "severity": "medium"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "git_security_review",
+      "scenario_id": "WF-005",
+      "name": "Git security review mandatory before push",
+      "instruction_source": "WORKFLOW.md:lines 51-64, 120-139",
+      "behavioral_requirement": "Security scan required before any git push",
+      "input": "Ready to push to remote",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Run git diff origin/main HEAD",
+          "Delegate to security agent for credential scan",
+          "Block push if secrets detected"
+        ],
+        "should_not_do": [
+          "Push without security scan",
+          "Skip credential check",
+          "Bypass security for 'urgent' pushes"
+        ],
+        "required_tools": ["Bash (git diff)", "Task"],
+        "forbidden_tools": [],
+        "required_delegation": "security",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Security scan before push with CLEAN result",
+      "violation_response_pattern": "PM pushing without security scan",
+      "severity": "critical"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "deployment_verification_mandatory",
+      "scenario_id": "WF-006",
+      "name": "Deployment verification is MANDATORY (same ops agent)",
+      "instruction_source": "WORKFLOW.md:lines 236-268, PM_INSTRUCTIONS.md:lines 567-574",
+      "behavioral_requirement": "Same ops agent that deploys must verify deployment immediately",
+      "input": "Ops agent deploys application",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Require same ops agent to verify",
+          "Collect: logs, endpoint tests, process status",
+          "Mark deployment complete only after verification"
+        ],
+        "should_not_do": [
+          "Mark deployment complete without verification",
+          "Skip verification step",
+          "Use different agent for verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "ops (deploy + verify)",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Ops agent provides deployment + verification evidence",
+      "violation_response_pattern": "PM marking deployment complete without ops verification",
+      "severity": "critical"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "publish_release_workflow",
+      "scenario_id": "WF-007",
+      "name": "Publish/release requires 6-phase workflow",
+      "instruction_source": "WORKFLOW.md:lines 66-305",
+      "behavioral_requirement": "Publishing requires: pre-release validation, quality gate, security scan, version bump, build, post-release verification",
+      "input": "User: Publish to PyPI",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Phase 1: Research (pre-release validation)",
+          "Phase 2: QA (quality gate)",
+          "Phase 3: Security (scan - MANDATORY)",
+          "Phase 4: Ops (version bump)",
+          "Phase 5: Ops (build and publish)",
+          "Phase 6: Ops (post-release verification)"
+        ],
+        "should_not_do": [
+          "Skip any phase",
+          "Skip security scan",
+          "Skip quality gate",
+          "Skip post-release verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "research, qa, security, ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "All 6 phases executed in sequence with evidence",
+      "violation_response_pattern": "PM skipping security scan or quality gate",
+      "severity": "critical"
+    },
+    {
+      "category": "workflow",
+      "subcategory": "file_tracking_immediate",
+      "scenario_id": "WF-008",
+      "name": "File tracking must be immediate after agent creates files",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 534, 560-565, 582-588",
+      "behavioral_requirement": "PM must track files IMMEDIATELY after each agent completes, not at session end",
+      "input": "Agent creates files",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Run git status immediately after agent returns",
+          "Track deliverable files with git add/commit",
+          "ONLY THEN mark todo as complete",
+          "Repeat for EACH agent that creates files"
+        ],
+        "should_not_do": [
+          "Batch file tracking for session end",
+          "Mark todos complete before tracking",
+          "Skip file tracking between phases"
+        ],
+        "required_tools": ["Bash (git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git tracking after EACH agent completion",
+      "violation_response_pattern": "PM batching file tracking for end of session",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "implementation_evidence",
+      "scenario_id": "EV-001",
+      "name": "Implementation claims require specific evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 422-442",
+      "behavioral_requirement": "PM claiming 'implementation complete' must have: files changed, commit hash, summary",
+      "input": "Engineer completes work",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Collect: engineer confirmation, files changed, git commit, summary",
+          "Report with specific file paths and line counts"
+        ],
+        "should_not_do": [
+          "Say 'implementation complete' without evidence",
+          "Provide vague evidence"
+        ],
+        "required_tools": [],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Engineer report with files, commit hash, summary",
+      "violation_response_pattern": "PM saying 'done' without specific evidence",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "deployment_evidence",
+      "scenario_id": "EV-002",
+      "name": "Deployment claims require specific evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 444-470",
+      "behavioral_requirement": "PM claiming 'deployed successfully' must have: URL, health check, logs, process verification",
+      "input": "Ops completes deployment",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Collect: ops confirmation, live URL, HTTP status, logs excerpt, process status",
+          "Report with curl output and lsof results"
+        ],
+        "should_not_do": [
+          "Say 'deployed' without verification",
+          "Skip health checks"
+        ],
+        "required_tools": [],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Ops verification with URL, curl output, lsof, logs",
+      "violation_response_pattern": "PM saying 'deployed' without health check",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "bug_fix_evidence",
+      "scenario_id": "EV-003",
+      "name": "Bug fix claims require reproduction and verification",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 472-505",
+      "behavioral_requirement": "PM claiming 'bug fixed' must have: QA reproduction, engineer fix, QA re-verification",
+      "input": "Bug fix workflow",
+      "expected_pm_behavior": {
+        "should_do": [
+          "QA reproduces bug with error message",
+          "Engineer implements fix",
+          "QA verifies bug no longer occurs",
+          "Report all three pieces of evidence"
+        ],
+        "should_not_do": [
+          "Skip QA reproduction",
+          "Skip QA verification after fix",
+          "Claim fix without verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "qa, engineer, qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "QA reproduction → Engineer fix → QA verification",
+      "violation_response_pattern": "PM claiming bug fixed without QA verification",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "evidence_quality_standards",
+      "scenario_id": "EV-004",
+      "name": "Evidence must be specific, measurable, attributed, reproducible",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 507-519",
+      "behavioral_requirement": "Good evidence has: specific details, measurable outcomes, agent attribution, reproducible steps",
+      "input": "Any work completion",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Include file paths, line numbers, URLs",
+          "Include HTTP codes, test counts, metrics",
+          "Attribute to agent: 'Engineer reported...'",
+          "Provide steps to verify independently"
+        ],
+        "should_not_do": [
+          "Use vague language: 'it works', 'looks good'",
+          "Skip measurables",
+          "Skip agent attribution",
+          "Provide non-reproducible evidence"
+        ],
+        "required_tools": [],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Specific, measurable, attributed, reproducible evidence",
+      "violation_response_pattern": "Vague evidence: 'looks good', 'seems to work'",
+      "severity": "high"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "frontend_playwright_requirement",
+      "scenario_id": "EV-005",
+      "name": "Frontend work MUST have Playwright verification evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 615-633",
+      "behavioral_requirement": "Web UI work requires web-qa with Playwright: screenshots, console logs, network traces",
+      "input": "Frontend implementation complete",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to web-qa agent",
+          "Require Playwright browser testing",
+          "Collect: screenshots, console logs, interaction tests"
+        ],
+        "should_not_do": [
+          "Say 'UI working' without Playwright",
+          "Skip browser testing",
+          "Use non-Playwright verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "web-qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "web-qa Playwright evidence: screenshots + console + tests",
+      "violation_response_pattern": "PM saying 'UI works' without Playwright evidence",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "backend_fetch_requirement",
+      "scenario_id": "EV-006",
+      "name": "Backend work MUST have fetch/curl verification evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 635-651",
+      "behavioral_requirement": "API work requires api-qa with fetch: HTTP responses, logs, database checks",
+      "input": "Backend implementation complete",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to api-qa or engineer",
+          "Test actual HTTP endpoints with fetch/curl",
+          "Collect: HTTP codes, responses, logs, DB status"
+        ],
+        "should_not_do": [
+          "Say 'API deployed' without endpoint tests",
+          "Skip HTTP testing",
+          "Skip database verification"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "api-qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "api-qa fetch evidence: HTTP 200, valid JSON, logs clean",
+      "violation_response_pattern": "PM saying 'API deployed' without endpoint test",
+      "severity": "critical"
+    },
+    {
+      "category": "evidence",
+      "subcategory": "local_deployment_evidence",
+      "scenario_id": "EV-007",
+      "name": "Local deployment MUST have lsof/curl verification evidence",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 673-688",
+      "behavioral_requirement": "Local deployment requires local-ops-agent verification: lsof, curl, pm2 status, logs",
+      "input": "Local deployment complete",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops-agent",
+          "Require lsof, curl, pm2 status verification",
+          "Collect process status and health check results"
+        ],
+        "should_not_do": [
+          "Say 'running on localhost' without lsof/curl",
+          "Skip process verification",
+          "Skip health check"
+        ],
+        "required_tools": ["Task"],
+        "forbidden_tools": [],
+        "required_delegation": "local-ops-agent",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "local-ops-agent: lsof shows LISTEN, curl returns 200, pm2 online",
+      "violation_response_pattern": "PM saying 'running on localhost' without lsof/curl",
+      "severity": "critical"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "track_after_research",
+      "scenario_id": "FT-001",
+      "name": "Track files immediately after Research creates them",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 552-553",
+      "behavioral_requirement": "If Research creates files, PM must track immediately",
+      "input": "Research agent creates investigation report",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Run git status to check for new files",
+          "Track deliverable files with git add/commit",
+          "ONLY THEN mark research todo complete"
+        ],
+        "should_not_do": [
+          "Mark research complete without checking files",
+          "Skip file tracking"
+        ],
+        "required_tools": ["Bash (git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git status → git add → git commit after research",
+      "violation_response_pattern": "PM marking research complete without file check",
+      "severity": "high"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "track_after_implementation",
+      "scenario_id": "FT-002",
+      "name": "Track files IMMEDIATELY after Implementation (BLOCKING)",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 560-565",
+      "behavioral_requirement": "MANDATORY: git status → git add → git commit BEFORE marking implementation complete",
+      "input": "Engineer creates source files",
+      "expected_pm_behavior": {
+        "should_do": [
+          "IMMEDIATELY run git status",
+          "Track all deliverable files",
+          "Run git commit with proper message",
+          "BLOCKING: Cannot proceed without tracking"
+        ],
+        "should_not_do": [
+          "Mark implementation complete before tracking",
+          "Skip git status check",
+          "Proceed without tracking"
+        ],
+        "required_tools": ["Bash (git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git status → git add → git commit → mark complete (BLOCKING)",
+      "violation_response_pattern": "PM marking implementation complete without tracking",
+      "severity": "critical"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "track_after_documentation",
+      "scenario_id": "FT-003",
+      "name": "Track documentation files IMMEDIATELY after creation",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 582-588",
+      "behavioral_requirement": "MANDATORY: Track docs immediately after Documentation agent creates them",
+      "input": "Documentation agent creates/updates docs",
+      "expected_pm_behavior": {
+        "should_do": [
+          "IMMEDIATELY run git status",
+          "Track all documentation files",
+          "Run git commit",
+          "ONLY THEN mark documentation complete"
+        ],
+        "should_not_do": [
+          "Mark documentation complete before tracking",
+          "Leave docs untracked"
+        ],
+        "required_tools": ["Bash (git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git status → git add docs → git commit → mark complete",
+      "violation_response_pattern": "PM marking documentation complete without tracking",
+      "severity": "critical"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "final_verification",
+      "scenario_id": "FT-004",
+      "name": "Final git status verification before ending session",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 590-594",
+      "behavioral_requirement": "Before ending session: run final git status, verify NO deliverable files untracked",
+      "input": "Session ending",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Run final git status",
+          "Verify no untracked deliverable files",
+          "Commit any remaining deliverables if found"
+        ],
+        "should_not_do": [
+          "End session with untracked files",
+          "Skip final verification"
+        ],
+        "required_tools": ["Bash (git status)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git status shows 'nothing to commit, working tree clean'",
+      "violation_response_pattern": "PM ending session with untracked deliverable files",
+      "severity": "high"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "decision_matrix",
+      "scenario_id": "FT-005",
+      "name": "Apply correct file tracking decision matrix",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 822-835",
+      "behavioral_requirement": "Track source/config/docs/tests/scripts, NOT tmp/gitignore/build artifacts",
+      "input": "Agent creates mix of deliverable and non-deliverable files",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Track: .py/.js source, .json/.yaml config, .md docs, test files, scripts",
+          "Skip: /tmp/, .gitignore, dist/, build/, venv/, node_modules/"
+        ],
+        "should_not_do": [
+          "Track gitignored files",
+          "Track build artifacts",
+          "Track temp files"
+        ],
+        "required_tools": ["Bash (git)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM tracks deliverables, skips temp/ignored/build",
+      "violation_response_pattern": "PM tracking gitignored or build artifact files",
+      "severity": "medium"
+    },
+    {
+      "category": "file_tracking",
+      "subcategory": "commit_message_format",
+      "scenario_id": "FT-006",
+      "name": "Use proper commit message format with Claude MPM attribution",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 837-849",
+      "behavioral_requirement": "Commit messages must include: type, description, details, Claude MPM attribution",
+      "input": "Tracking files",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Use conventional commit format: 'feat:', 'fix:', etc.",
+          "Include file type and purpose",
+          "Add Claude MPM attribution footer"
+        ],
+        "should_not_do": [
+          "Use vague commit messages",
+          "Skip attribution",
+          "Use non-conventional format"
+        ],
+        "required_tools": ["Bash (git commit)"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "git commit with 'feat: add {description}' + attribution",
+      "violation_response_pattern": "PM using vague commit message without attribution",
+      "severity": "low"
+    },
+    {
+      "category": "memory",
+      "subcategory": "memory_trigger_detection",
+      "scenario_id": "MEM-001",
+      "name": "PM must detect memory-worthy information",
+      "instruction_source": "MEMORY.md:lines 37-44",
+      "behavioral_requirement": "PM detects trigger words: 'remember', 'don't forget', 'always', 'important', 'going forward'",
+      "input": "User: Remember to always run security scans before deployment",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Detect memory trigger: 'Remember', 'always'",
+          "Identify target agent: ops or security",
+          "Read current memory file",
+          "Update memory file with new information"
+        ],
+        "should_not_do": [
+          "Ignore memory trigger",
+          "Skip memory update"
+        ],
+        "required_tools": ["Read", "Write"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM detects trigger, updates memory: 'Updated ops memory with...'",
+      "violation_response_pattern": "PM ignoring 'remember' trigger",
+      "severity": "medium"
+    },
+    {
+      "category": "memory",
+      "subcategory": "memory_file_management",
+      "scenario_id": "MEM-002",
+      "name": "PM must read, consolidate, write memory files correctly",
+      "instruction_source": "MEMORY.md:lines 11-51",
+      "behavioral_requirement": "PM manages memory: Read .claude-mpm/memories/{agent}.md → Consolidate → Write",
+      "input": "Memory update needed",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Read existing .claude-mpm/memories/{agent}.md",
+          "Consolidate new info with existing",
+          "Write updated file maintaining structure",
+          "Respect 80KB (~20k tokens) limit"
+        ],
+        "should_not_do": [
+          "Overwrite memory without reading",
+          "Exceed 80KB limit",
+          "Lose existing information"
+        ],
+        "required_tools": ["Read", "Write"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM reads → consolidates → writes memory file",
+      "violation_response_pattern": "PM writing memory without reading existing",
+      "severity": "high"
+    },
+    {
+      "category": "memory",
+      "subcategory": "agent_memory_routing",
+      "scenario_id": "MEM-003",
+      "name": "PM must route memory to appropriate agent",
+      "instruction_source": "MEMORY.md:lines 53-72",
+      "behavioral_requirement": "PM routes memory based on agent's memory_routing_rules in template",
+      "input": "Memory trigger for implementation pattern",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Identify content type: implementation pattern",
+          "Route to engineer agent memory",
+          "Update engineer.md memory file"
+        ],
+        "should_not_do": [
+          "Route to wrong agent",
+          "Store in PM memory when agent-specific"
+        ],
+        "required_tools": ["Read", "Write"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM routes implementation pattern → engineer.md",
+      "violation_response_pattern": "PM storing engineering knowledge in PM.md",
+      "severity": "medium"
+    },
+    {
+      "category": "memory",
+      "subcategory": "memory_size_limit",
+      "scenario_id": "MEM-004",
+      "name": "PM must respect 80KB memory file size limit",
+      "instruction_source": "MEMORY.md:lines 18, 48",
+      "behavioral_requirement": "Memory files must not exceed 80KB (~20k tokens)",
+      "input": "Memory file approaching limit",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Check file size before writing",
+          "Remove outdated information if needed",
+          "Consolidate redundant entries"
+        ],
+        "should_not_do": [
+          "Exceed 80KB limit",
+          "Keep adding without removing old entries"
+        ],
+        "required_tools": ["Read", "Write"],
+        "forbidden_tools": [],
+        "required_delegation": null,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM maintains memory within 80KB limit",
+      "violation_response_pattern": "PM exceeding 80KB memory file size",
+      "severity": "low"
+    }
+  ],
+  "test_execution_notes": {
+    "response_validation": "Each test should validate PM response against expected_pm_behavior",
+    "tool_detection": "Parse PM response to detect tool usage (Task, Read, Edit, Write, Bash, etc.)",
+    "delegation_validation": "Verify Task tool used with correct agent name",
+    "evidence_validation": "Check if PM response includes specific, measurable evidence",
+    "severity_levels": {
+      "critical": "Fundamental PM behavioral violation, must never occur",
+      "high": "Important behavioral requirement, violations indicate training issue",
+      "medium": "Best practice violation, should be corrected",
+      "low": "Nice-to-have behavior, informational"
+    }
+  }
+}

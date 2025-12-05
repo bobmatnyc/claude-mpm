@@ -111,7 +111,8 @@ help: ## Show this help message
 	@echo "$(BLUE)Quick Commands:$(NC)"
 	@echo "  $(GREEN)make quality$(NC)        - Run all quality checks"
 	@echo "  $(GREEN)make lint-fix$(NC)       - Auto-fix code issues"
-	@echo "  $(GREEN)make pre-publish$(NC)    - Pre-release quality gate"
+	@echo "  $(GREEN)make pre-publish$(NC)    - Pre-release quality gate (includes PM behavioral tests)"
+	@echo "  $(GREEN)make check-pm-behavioral-compliance$(NC) - Test PM instruction compliance"
 	@echo "  $(GREEN)make safe-release-build$(NC) - Build with quality checks"
 	@echo ""
 	@echo "$(BLUE)All Available Targets:$(NC)"
@@ -569,7 +570,7 @@ quick-dev: setup-dev ## Alias for complete development setup
 # Quality Gates and Linting Targets
 
 .PHONY: lint-all lint-ruff lint-black lint-isort lint-flake8 lint-mypy lint-structure
-.PHONY: lint-fix quality pre-publish safe-release-build
+.PHONY: lint-fix quality pre-publish safe-release-build check-pm-behavioral-compliance
 .PHONY: clean-system-files clean-test-artifacts clean-debug clean-deprecated clean-pre-publish
 
 # Individual linters
@@ -717,14 +718,23 @@ pre-publish: clean-pre-publish ## Run cleanup and all quality checks before publ
 		echo "$(YELLOW)⚠ Found TODO/FIXME comments (non-blocking)$(NC)"
 	@echo "$(GREEN)✓ Common issues check complete$(NC)"
 	@echo ""
-	@echo "$(YELLOW)Step 5/5: Validating version consistency...$(NC)"
+	@echo "$(YELLOW)Step 5/6: Validating version consistency...$(NC)"
 	@python scripts/check_version_consistency.py || \
 		echo "$(YELLOW)⚠ Version consistency check failed (non-blocking)$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Step 6/6: Checking PM behavioral compliance...$(NC)"
+	@$(MAKE) check-pm-behavioral-compliance
 	@echo ""
 	@echo "$(GREEN)════════════════════════════════════════$(NC)"
 	@echo "$(GREEN)✅ Pre-publish checks PASSED!$(NC)"
 	@echo "$(GREEN)Ready for release.$(NC)"
 	@echo "$(GREEN)════════════════════════════════════════$(NC)"
+
+check-pm-behavioral-compliance: ## Check PM behavioral compliance if PM instructions changed
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)🧪 PM Behavioral Compliance Check$(NC)"
+	@echo "$(BLUE)════════════════════════════════════════$(NC)"
+	@bash scripts/check_pm_instructions_changed.sh
 
 # Structure linting targets (kept for compatibility)
 structure-lint: lint-structure ## Check project structure compliance
