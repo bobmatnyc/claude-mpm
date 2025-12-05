@@ -73,6 +73,12 @@ def pytest_addoption(parser):
         default=os.getenv("PM_AGENT_API_KEY", ""),
         help="PM agent API key",
     )
+    parser.addoption(
+        "--use-violation-responses",
+        action="store_true",
+        default=False,
+        help="Use violation responses to test detection (should fail)",
+    )
 
 
 @pytest.fixture

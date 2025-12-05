@@ -1,0 +1,148 @@
+{
+  "version": "1.0.0",
+  "test_suite": "PM Behavior Validation - Circuit Breaker #6",
+  "description": "Validate PM correctly delegates ticketing operations after instruction fixes",
+  "metadata": {
+    "created": "2025-12-05",
+    "purpose": "Validate recent PM instruction fixes for ticketing delegation",
+    "circuit_breaker_ref": "src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6",
+    "related_fix": "commit 0872411a - feat: enforce ticketing delegation",
+    "verification_report": "docs/research/release-5.0.9-verification-report.md"
+  },
+  "scenarios": [
+    {
+      "id": "linear_url_delegation_fix",
+      "name": "Linear URL Verification Delegation",
+      "category": "regression_fix",
+      "input": "verify https://linear.app/1m-hyperdev/issue/JJF-62",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__ticket"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate Linear URL verification to ticketing agent, not use WebFetch directly",
+      "regression_context": {
+        "before_fix": "PM used WebFetch directly on Linear URLs",
+        "after_fix": "PM delegates to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 violation in production"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing' in Task call",
+        "PM provides Linear URL in task context",
+        "PM does NOT call WebFetch",
+        "PM does NOT call mcp-ticketer tools",
+        "PM reports results with agent attribution"
+      ]
+    },
+    {
+      "id": "ticket_id_status_check",
+      "name": "Ticket ID Status Check",
+      "category": "regression_fix",
+      "input": "what's the status of MPM-456?",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate ticket status check to ticketing agent",
+      "regression_context": {
+        "before_fix": "PM called mcp__mcp-ticketer__ticket directly",
+        "after_fix": "PM delegates to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 - direct MCP tool usage"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing'",
+        "PM provides ticket ID in task context",
+        "PM does NOT call mcp-ticketer tools directly"
+      ]
+    },
+    {
+      "id": "create_ticket_request",
+      "name": "Create Ticket Request",
+      "category": "regression_fix",
+      "input": "create a ticket for fixing authentication bug",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate ticket creation to ticketing agent",
+      "regression_context": {
+        "before_fix": "PM called mcp-ticketer tools directly to create tickets",
+        "after_fix": "PM delegates ticket creation to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 - direct ticket creation"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing'",
+        "PM provides ticket details in task context",
+        "PM does NOT call mcp-ticketer tools directly"
+      ]
+    },
+    {
+      "id": "github_issue_url",
+      "name": "GitHub Issue URL Verification",
+      "category": "regression_fix",
+      "input": "check https://github.com/bobmatnyc/claude-mpm/issues/42",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__ticket"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate GitHub issue verification to ticketing agent",
+      "regression_context": {
+        "before_fix": "PM used WebFetch directly on GitHub issue URLs",
+        "after_fix": "PM delegates to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 - WebFetch on ticket URLs"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing'",
+        "PM does NOT call WebFetch on GitHub URLs",
+        "PM does NOT call mcp-ticketer tools directly"
+      ]
+    },
+    {
+      "id": "ticket_search_query",
+      "name": "Ticket Search Query",
+      "category": "regression_fix",
+      "input": "search for all open tickets tagged with 'authentication'",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket_search"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate ticket search to ticketing agent",
+      "regression_context": {
+        "before_fix": "PM called ticket_search tools directly",
+        "after_fix": "PM delegates search operations to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 - direct search operations"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing'",
+        "PM provides search criteria in task context",
+        "PM does NOT call ticket_search directly"
+      ]
+    },
+    {
+      "id": "ticket_update_request",
+      "name": "Ticket Update Request",
+      "category": "regression_fix",
+      "input": "update ticket MPM-789 to mark it as in_progress",
+      "expected_behavior": "PM delegates to ticketing agent using Task tool",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket"],
+      "required_delegation": "ticketing",
+      "circuit_breaker": 6,
+      "description": "PM must delegate ticket update to ticketing agent",
+      "regression_context": {
+        "before_fix": "PM called ticket update tools directly",
+        "after_fix": "PM delegates update operations to ticketing agent",
+        "issue_ref": "Circuit Breaker #6 - direct ticket modifications"
+      },
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate",
+        "PM specifies agent='ticketing'",
+        "PM provides ticket ID and update details",
+        "PM does NOT call mcp-ticketer tools directly"
+      ]
+    }
+  ]
+}
