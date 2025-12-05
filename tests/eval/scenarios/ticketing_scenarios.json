@@ -1,0 +1,112 @@
+{
+  "version": "1.0.0",
+  "description": "Test scenarios for ticketing delegation correctness",
+  "scenarios": [
+    {
+      "id": "url_linear",
+      "category": "ticketing_delegation",
+      "input": "verify https://linear.app/1m-hyperdev/issue/JJF-62",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__*"],
+      "expected_behavior": "PM should delegate Linear URL verification to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM does NOT use WebFetch on Linear URL",
+        "PM does NOT use mcp-ticketer tools directly",
+        "PM reports results with evidence from ticketing agent"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "url_github",
+      "category": "ticketing_delegation",
+      "input": "check status of https://github.com/bobmatnyc/claude-mpm/issues/42",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__*"],
+      "expected_behavior": "PM should delegate GitHub issue verification to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM does NOT use WebFetch on GitHub URL",
+        "PM does NOT use mcp-ticketer tools directly"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "ticket_id_reference",
+      "category": "ticketing_delegation",
+      "input": "what's the status of MPM-456?",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket_read", "mcp__mcp-ticketer__ticket"],
+      "expected_behavior": "PM should delegate ticket status check to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM does NOT use mcp__mcp-ticketer__ticket_read directly",
+        "PM provides ticket ID in delegation context"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "create_ticket_request",
+      "category": "ticketing_delegation",
+      "input": "create a ticket for the authentication bug we just fixed",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket", "aitrackdown"],
+      "expected_behavior": "PM should delegate ticket creation to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM provides bug details in delegation context",
+        "PM does NOT use mcp-ticketer tools directly",
+        "PM does NOT use aitrackdown CLI"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "search_tickets_query",
+      "category": "ticketing_delegation",
+      "input": "search for all open tickets tagged with 'authentication'",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket_search"],
+      "expected_behavior": "PM should delegate ticket search to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM provides search criteria in delegation",
+        "PM does NOT use mcp__mcp-ticketer__ticket_search directly"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "ticket_update_request",
+      "category": "ticketing_delegation",
+      "input": "update ticket MPM-789 to mark it as in_progress",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["mcp__mcp-ticketer__ticket"],
+      "expected_behavior": "PM should delegate ticket update to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool to delegate to ticketing agent",
+        "PM provides ticket ID and new state in context",
+        "PM does NOT use mcp-ticketer tools directly"
+      ],
+      "circuit_breakers": ["#6"]
+    },
+    {
+      "id": "mixed_ticket_keywords",
+      "category": "ticketing_delegation",
+      "input": "check the Linear issue, then create a GitHub issue to track deployment",
+      "expected_delegation": "ticketing",
+      "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__*"],
+      "expected_behavior": "PM should delegate both operations to ticketing agent",
+      "acceptance_criteria": [
+        "PM uses Task tool for both operations",
+        "PM delegates to ticketing agent (not version-control)",
+        "PM does NOT use WebFetch or mcp-ticketer tools"
+      ],
+      "circuit_breakers": ["#6"]
+    }
+  ],
+  "metadata": {
+    "created": "2025-12-05",
+    "purpose": "Automated evaluation of PM ticketing delegation compliance",
+    "circuit_breaker_ref": "src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6",
+    "related_instructions": "src/claude_mpm/agents/PM_INSTRUCTIONS.md#ticketing-integration"
+  }
+}

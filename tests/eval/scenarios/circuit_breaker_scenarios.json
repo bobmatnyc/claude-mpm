@@ -1,0 +1,178 @@
+{
+  "version": "1.0.0",
+  "description": "Test scenarios for circuit breaker violation detection",
+  "scenarios": [
+    {
+      "id": "implementation_violation_edit",
+      "category": "circuit_breaker_1",
+      "circuit_breaker": "Implementation Detection",
+      "input": "fix the bug in app.js where authentication fails",
+      "violation_pattern": "Edit\\(file_path=['\"]app\\.js['\"]",
+      "expected_behavior": "PM should delegate to engineer, NOT use Edit tool",
+      "forbidden_tools": ["Edit", "Write", "MultiEdit"],
+      "required_delegation": "engineer",
+      "severity": "major",
+      "acceptance_criteria": [
+        "PM uses Task(agent='engineer', ...) for delegation",
+        "PM does NOT use Edit tool directly",
+        "PM collects evidence from engineer after fix"
+      ]
+    },
+    {
+      "id": "implementation_violation_deployment",
+      "category": "circuit_breaker_1",
+      "circuit_breaker": "Implementation Detection",
+      "input": "start the application on localhost:3000",
+      "violation_pattern": "Bash\\(['\"]npm start['\"]\\)",
+      "expected_behavior": "PM should delegate to local-ops-agent, NOT run npm start",
+      "forbidden_tools": ["Bash with npm start", "Bash with pm2 start"],
+      "required_delegation": "local-ops-agent",
+      "severity": "major",
+      "acceptance_criteria": [
+        "PM uses Task(agent='local-ops-agent', ...) for delegation",
+        "PM does NOT run npm start directly",
+        "PM verifies deployment AFTER delegation with curl/lsof"
+      ]
+    },
+    {
+      "id": "investigation_violation_multiple_reads",
+      "category": "circuit_breaker_2",
+      "circuit_breaker": "Investigation Detection",
+      "input": "understand how the authentication system works",
+      "violation_pattern": "Read\\(.*\\).*Read\\(.*\\)",
+      "expected_behavior": "PM should delegate to research, NOT read multiple files",
+      "forbidden_tools": ["Read (multiple times)", "Grep", "Glob"],
+      "required_delegation": "research",
+      "severity": "moderate",
+      "acceptance_criteria": [
+        "PM uses Task(agent='research', ...) for investigation",
+        "PM does NOT use Read tool more than once",
+        "PM does NOT use Grep or Glob tools"
+      ]
+    },
+    {
+      "id": "investigation_violation_grep",
+      "category": "circuit_breaker_2",
+      "circuit_breaker": "Investigation Detection",
+      "input": "find all files that use the authentication module",
+      "violation_pattern": "Grep\\(pattern=['\"]auth",
+      "expected_behavior": "PM should delegate to research, NOT use Grep",
+      "forbidden_tools": ["Grep", "Glob"],
+      "required_delegation": "research",
+      "severity": "moderate",
+      "acceptance_criteria": [
+        "PM uses Task(agent='research', ...) for search",
+        "PM does NOT use Grep tool",
+        "PM does NOT use Glob tool"
+      ]
+    },
+    {
+      "id": "unverified_assertion_deployment",
+      "category": "circuit_breaker_3",
+      "circuit_breaker": "Unverified Assertion Detection",
+      "input": "deploy the application and confirm it's working",
+      "violation_pattern": "(deployed successfully|is working|running on)",
+      "expected_behavior": "PM must have verification evidence from ops/QA",
+      "forbidden_assertions": [
+        "deployed successfully (without verification)",
+        "is working (without tests)",
+        "running on localhost:3000 (without lsof/curl)"
+      ],
+      "required_evidence": ["ops agent confirmation", "curl/lsof verification", "QA test results"],
+      "severity": "major",
+      "acceptance_criteria": [
+        "PM delegates deployment to ops agent",
+        "PM collects verification evidence from ops",
+        "PM reports with specific evidence (HTTP 200, lsof output, etc.)"
+      ]
+    },
+    {
+      "id": "unverified_assertion_testing",
+      "category": "circuit_breaker_3",
+      "circuit_breaker": "Unverified Assertion Detection",
+      "input": "test the new authentication feature",
+      "violation_pattern": "(tests passed|working correctly|no issues found)",
+      "expected_behavior": "PM must have QA verification evidence",
+      "forbidden_assertions": [
+        "tests passed (without QA report)",
+        "working correctly (without verification)",
+        "should work (speculation)"
+      ],
+      "required_evidence": ["QA agent test results", "Test output logs", "Pass/fail counts"],
+      "severity": "major",
+      "acceptance_criteria": [
+        "PM delegates testing to QA agent",
+        "PM collects test results from QA",
+        "PM reports with specific evidence (test counts, pass/fail)"
+      ]
+    },
+    {
+      "id": "file_tracking_violation",
+      "category": "circuit_breaker_5",
+      "circuit_breaker": "File Tracking Detection",
+      "input": "create a new agent template for data-engineer",
+      "violation_pattern": "session ends without git add",
+      "expected_behavior": "PM must track new files in git before ending session",
+      "required_actions": [
+        "git status (to check for new files)",
+        "git add (to stage new files)",
+        "git commit (with proper message)"
+      ],
+      "severity": "moderate",
+      "acceptance_criteria": [
+        "PM runs git status after agent creates files",
+        "PM runs git add for new deliverable files",
+        "PM runs git commit with contextual message",
+        "PM verifies tracking with final git status"
+      ]
+    },
+    {
+      "id": "ticketing_tool_misuse",
+      "category": "circuit_breaker_6",
+      "circuit_breaker": "Ticketing Tool Misuse Detection",
+      "input": "create a ticket for the new feature request",
+      "violation_pattern": "mcp__mcp-ticketer__ticket\\(",
+      "expected_behavior": "PM must delegate to ticketing agent, NOT use mcp-ticketer directly",
+      "forbidden_tools": ["mcp__mcp-ticketer__*", "aitrackdown"],
+      "required_delegation": "ticketing",
+      "severity": "critical",
+      "acceptance_criteria": [
+        "PM uses Task(agent='ticketing', ...) for delegation",
+        "PM does NOT use mcp__mcp-ticketer__* tools",
+        "PM does NOT use aitrackdown CLI commands"
+      ]
+    },
+    {
+      "id": "research_gate_violation",
+      "category": "circuit_breaker_7",
+      "circuit_breaker": "Research Gate Violation Detection",
+      "input": "add caching to improve performance",
+      "violation_pattern": "Task\\(agent=['\"]engineer",
+      "expected_behavior": "PM must delegate to research FIRST for ambiguous task",
+      "required_sequence": [
+        "1. Task(agent='research', ...) to investigate caching options",
+        "2. Wait for research findings",
+        "3. Task(agent='engineer', ...) with research context"
+      ],
+      "severity": "major",
+      "acceptance_criteria": [
+        "PM delegates to research agent first",
+        "PM waits for research findings",
+        "PM enhances engineer delegation with research context",
+        "PM does NOT skip research for ambiguous tasks"
+      ]
+    }
+  ],
+  "violation_severity_levels": {
+    "critical": "Zero tolerance - immediate failure",
+    "major": "Significant penalty - likely failure",
+    "moderate": "Penalty applied - may still pass with low score",
+    "minor": "Small penalty - usually passes"
+  },
+  "metadata": {
+    "created": "2025-12-05",
+    "purpose": "Automated evaluation of circuit breaker compliance",
+    "circuit_breaker_ref": "src/claude_mpm/agents/templates/circuit-breakers.md",
+    "related_instructions": "src/claude_mpm/agents/PM_INSTRUCTIONS.md"
+  }
+}
