@@ -105,6 +105,118 @@ When interacting with Claude Desktop, the following MCP tools are available:
 4. **Testing**: Run `make test` before commits
 5. **Documentation**: Update docs when adding features
 
+### 🚨 CRITICAL: SOURCE vs DEPLOYMENT ARTIFACTS
+
+**ALWAYS modify SOURCE files, NEVER edit deployment artifacts directly**
+
+#### Source File Locations
+
+**PM Instructions Sources** (framework repository):
+- `src/claude_mpm/agents/PM_INSTRUCTIONS.md` - Main PM instructions
+- `src/claude_mpm/agents/WORKFLOW.md` - Workflow configuration
+- `src/claude_mpm/agents/MEMORY.md` - Memory management
+- `src/claude_mpm/agents/templates/circuit-breakers.md` - Circuit breaker definitions
+- `src/claude_mpm/agents/templates/*.md` - All PM instruction templates
+
+**Deployment Artifacts** (generated, DO NOT EDIT):
+- `.claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md` - Merged PM instructions (auto-generated)
+- `.claude-mpm/templates/*.md` - Template copies (auto-generated)
+
+#### Build and Deployment Process
+
+**Framework Build Path**:
+```python
+# SystemInstructionsDeployer handles build/deployment
+# Located: src/claude_mpm/services/agents/deployment/system_instructions_deployer.py
+
+1. Read source files:
+   - src/claude_mpm/agents/PM_INSTRUCTIONS.md
+   - src/claude_mpm/agents/WORKFLOW.md
+   - src/claude_mpm/agents/MEMORY.md
+
+2. Merge into single file:
+   - .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md
+
+3. Copy templates:
+   - src/claude_mpm/agents/templates/*.md
+   → .claude-mpm/templates/*.md
+```
+
+**When to Rebuild**:
+- After modifying any SOURCE file in `src/claude_mpm/agents/`
+- Run `mpm-agents-deploy --force-rebuild` OR restart `claude-mpm run`
+- Framework auto-detects file changes and rebuilds when needed
+
+#### Development Workflow (CORRECT)
+
+✅ **CORRECT Pattern**:
+```bash
+# 1. Edit SOURCE files
+vim src/claude_mpm/agents/PM_INSTRUCTIONS.md
+vim src/claude_mpm/agents/templates/circuit-breakers.md
+
+# 2. Test changes with rebuild
+mpm-agents-deploy --force-rebuild
+
+# 3. Verify deployment artifacts updated
+ls -l .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md
+ls -l .claude-mpm/templates/circuit-breakers.md
+
+# 4. Test with one-shot requests
+# (Create test cases, run Claude Code with new instructions)
+
+# 5. Commit SOURCE changes
+git add src/claude_mpm/agents/PM_INSTRUCTIONS.md
+git add src/claude_mpm/agents/templates/circuit-breakers.md
+git commit -m "feat: add mandatory verification protocol"
+```
+
+❌ **WRONG Pattern** (editing deployment artifacts):
+```bash
+# DO NOT DO THIS:
+vim .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md  # ❌ Will be overwritten
+vim .claude-mpm/templates/circuit-breakers.md  # ❌ Will be overwritten
+```
+
+#### Why This Matters
+
+**Deployment artifacts are GENERATED files**:
+- `.claude-mpm/` directory is gitignored (project-specific)
+- Rebuilds overwrite all `.claude-mpm/` files
+- Changes to deployment artifacts are LOST on rebuild
+- SOURCE files in `src/` are version controlled
+
+**Analogy**: Like editing compiled JavaScript instead of TypeScript source
+
+#### One-Shot Testing Protocol
+
+**After modifying PM instruction sources**:
+
+1. **Rebuild deployment artifacts**:
+   ```bash
+   mpm-agents-deploy --force-rebuild
+   ```
+
+2. **Create one-shot test cases**:
+   ```markdown
+   # tests/one-shot/test_ticketing_delegation.md
+
+   User: "verify https://linear.app/1m-hyperdev/issue/JJF-62"
+   Expected: PM delegates to ticketing agent
+   Failure: PM uses WebFetch or mcp-ticketer tools directly
+   ```
+
+3. **Run one-shot tests**:
+   ```bash
+   # Manual testing in Claude Code
+   # Or automated eval framework (future)
+   ```
+
+4. **Verify behavior matches expectations**:
+   - PM delegates correctly
+   - No Circuit Breaker violations
+   - Evidence-based reporting
+
 ### When Testing Framework Changes
 
 1. **Test in isolated project**: Create test directory, run `mpm-init`

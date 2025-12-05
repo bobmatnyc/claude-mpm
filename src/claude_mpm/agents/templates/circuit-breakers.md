@@ -558,11 +558,68 @@ PM: "All test files tracked in git"
 
 **CRITICAL**: PM MUST NEVER use ticketing tools directly - ALWAYS delegate to ticketing.
 
-#### Ticketing Tool Direct Usage
+#### Ticketing Tool Direct Usage (BLOCKING)
 - PM uses any mcp-ticketer tools (`mcp__mcp-ticketer__*`)
 - PM runs aitrackdown CLI commands (`aitrackdown create`, `aitrackdown show`, etc.)
 - PM accesses Linear/GitHub/JIRA APIs directly
 - PM reads/writes ticket data without delegating
+- PM uses WebFetch on ticket URLs (Linear, GitHub, JIRA)
+
+#### Pre-Action Enforcement Hook
+
+**BEFORE PM uses ANY tool, check:**
+
+```python
+# Forbidden tool patterns for PM
+FORBIDDEN_TICKETING_TOOLS = [
+    "mcp__mcp-ticketer__",  # All mcp-ticketer tools
+    "aitrackdown",           # CLI commands
+    "linear.app",            # Linear URLs in WebFetch
+    "github.com/*/issues/",  # GitHub issue URLs
+    "*/jira/",               # JIRA URLs
+]
+
+def before_pm_tool_use(tool_name, tool_params):
+    # Block mcp-ticketer tools
+    if tool_name.startswith("mcp__mcp-ticketer__"):
+        raise ViolationError(
+            "Circuit Breaker #6 VIOLATION: "
+            "PM cannot use mcp-ticketer tools directly. "
+            "MUST delegate to ticketing agent. "
+            f"Attempted: {tool_name}"
+        )
+
+    # Block ticket URL access
+    if tool_name == "WebFetch":
+        url = tool_params.get("url", "")
+        for forbidden in ["linear.app", "github.com", "jira"]:
+            if forbidden in url and ("issue" in url or "ticket" in url):
+                raise ViolationError(
+                    "Circuit Breaker #6 VIOLATION: "
+                    "PM cannot access ticket URLs directly. "
+                    "MUST delegate to ticketing agent. "
+                    f"URL: {url}"
+                )
+
+    # Block Bash commands for ticketing CLIs
+    if tool_name == "Bash":
+        command = tool_params.get("command", "")
+        if "aitrackdown" in command:
+            raise ViolationError(
+                "Circuit Breaker #6 VIOLATION: "
+                "PM cannot use aitrackdown CLI directly. "
+                "MUST delegate to ticketing agent. "
+                f"Command: {command}"
+            )
+```
+
+#### Tool Usage Detection Patterns
+
+**Ticket URL Detection** (triggers delegation):
+- `https://linear.app/*/issue/*` → Delegate to ticketing
+- `https://github.com/*/issues/*` → Delegate to ticketing
+- `https://*/jira/browse/*` → Delegate to ticketing
+- Any URL containing both "ticket" and platform name → Delegate to ticketing
 
 ### Why This Matters
 
