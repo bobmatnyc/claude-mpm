@@ -10,16 +10,15 @@ Provides common fixtures for:
 - Response capture and replay
 """
 
+import json
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-import os
 
 import pytest
-import json
 
-from .utils.pm_response_capture import PMResponseCapture, AsyncPMResponseCapture
+from .utils.pm_response_capture import AsyncPMResponseCapture, PMResponseCapture
 from .utils.response_replay import ResponseReplay
-
 
 # ============================================================================
 # PYTEST CONFIGURATION
@@ -139,10 +138,10 @@ def mock_pm_response():
         )
     """
     def _create_response(
-        used_tools: List[str] = None,
-        delegated_to: str = None,
-        assertions: List[str] = None,
-        evidence: Dict[str, Any] = None,
+        used_tools: Optional[List[str]] = None,
+        delegated_to: Optional[str] = None,
+        assertions: Optional[List[str]] = None,
+        evidence: Optional[Dict[str, Any]] = None,
         response_text: str = ""
     ) -> Dict[str, Any]:
         return {
@@ -242,7 +241,7 @@ async def async_pm_response_generator():
 
     Useful for testing real-time PM behavior simulation.
     """
-    async def _generate(prompt: str, context: Dict[str, Any] = None):
+    async def _generate(prompt: str, context: Optional[Dict[str, Any]] = None):
         # This would integrate with actual PM agent in future
         # For now, return mock response structure
         return {
@@ -586,7 +585,7 @@ def pm_test_helper(
                 result["response"] = None
 
             # Compare with golden if available
-            if "response" in result and result["response"]:
+            if result.get("response"):
                 comparison = self.replay.compare_response(
                     scenario_id=scenario_id,
                     current_response=result["response"],
