@@ -50,7 +50,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         self,
         threshold: float = 0.9,
         expected_agent: Optional[str] = None,
-        require_context: bool = True
+        require_context: bool = True,
     ):
         """
         Initialize DelegationCorrectnessMetric.
@@ -100,7 +100,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         delegation_score = self._score_delegations(
             delegations=analysis.delegations,
             input_text=test_case.input,
-            tools_used=analysis.tools_used
+            tools_used=analysis.tools_used,
         )
 
         # Check for expected agent constraint
@@ -128,10 +128,7 @@ class DelegationCorrectnessMetric(BaseMetric):
         return any(t.tool_name in forbidden_tools for t in analysis.tools_used)
 
     def _score_delegations(
-        self,
-        delegations: List[DelegationEvent],
-        input_text: str,
-        tools_used: List
+        self, delegations: List[DelegationEvent], input_text: str, tools_used: List
     ) -> float:
         """
         Score delegation quality.
@@ -155,16 +152,10 @@ class DelegationCorrectnessMetric(BaseMetric):
         task_tool_score = 1.0 if has_task_tool else 0.5
 
         # Weighted average
-        return (
-            agent_score * 0.5 +
-            context_score * 0.3 +
-            task_tool_score * 0.2
-        )
+        return agent_score * 0.5 + context_score * 0.3 + task_tool_score * 0.2
 
     def _score_agent_selection(
-        self,
-        delegations: List[DelegationEvent],
-        input_text: str
+        self, delegations: List[DelegationEvent], input_text: str
     ) -> float:
         """
         Score whether correct agent was selected for task.
@@ -235,7 +226,8 @@ class DelegationCorrectnessMetric(BaseMetric):
 
         if self._pm_did_work_directly(analysis):
             forbidden_tools = [
-                t.tool_name for t in analysis.tools_used
+                t.tool_name
+                for t in analysis.tools_used
                 if t.tool_name in {"Edit", "Write", "mcp_ticketer"}
             ]
             reasons.append(f"PM used forbidden tools: {', '.join(forbidden_tools)}")
@@ -273,9 +265,7 @@ class TicketingDelegationMetric(DelegationCorrectnessMetric):
 
     def __init__(self, threshold: float = 1.0):
         super().__init__(
-            threshold=threshold,
-            expected_agent="ticketing",
-            require_context=True
+            threshold=threshold, expected_agent="ticketing", require_context=True
         )
 
     def measure(self, test_case: LLMTestCase) -> float:
@@ -322,7 +312,7 @@ class TicketingDelegationMetric(DelegationCorrectnessMetric):
 def create_delegation_correctness_metric(
     threshold: float = 0.9,
     expected_agent: Optional[str] = None,
-    strict_ticketing: bool = False
+    strict_ticketing: bool = False,
 ) -> DelegationCorrectnessMetric:
     """
     Factory function to create delegation correctness metric.
@@ -339,6 +329,5 @@ def create_delegation_correctness_metric(
         return TicketingDelegationMetric(threshold=threshold)
 
     return DelegationCorrectnessMetric(
-        threshold=threshold,
-        expected_agent=expected_agent
+        threshold=threshold, expected_agent=expected_agent
     )

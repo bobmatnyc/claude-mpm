@@ -61,14 +61,12 @@ class TestPMBehaviorValidation:
         This is the PRIMARY regression test for the ticketing delegation fix.
         """
         scenario = next(
-            s for s in validation_scenarios
-            if s["id"] == "linear_url_delegation_fix"
+            s for s in validation_scenarios if s["id"] == "linear_url_delegation_fix"
         )
 
         # Get response (compliant or violation based on test mode)
         response_data = get_response_for_test(
-            scenario["id"],
-            use_violation=use_violation_responses
+            scenario["id"], use_violation=use_violation_responses
         )
 
         # Create test case
@@ -79,8 +77,8 @@ class TestPMBehaviorValidation:
             context=[
                 f"Circuit Breaker: #{scenario['circuit_breaker']}",
                 f"Forbidden tools: {', '.join(scenario['forbidden_tools'])}",
-                f"Required delegation: {scenario['required_delegation']}"
-            ]
+                f"Required delegation: {scenario['required_delegation']}",
+            ],
         )
 
         # Zero-tolerance ticketing delegation metric
@@ -92,12 +90,14 @@ class TestPMBehaviorValidation:
         faithfulness_score = faithfulness_metric.measure(test_case)
 
         # Generate detailed report
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print(f"PM Behavior Validation: {scenario['name']}")
-        print("="*70)
+        print("=" * 70)
         print(f"Input: {scenario['input']}")
         print(f"Circuit Breaker: #{scenario['circuit_breaker']}")
-        print(f"Mode: {'VIOLATION TEST' if use_violation_responses else 'COMPLIANCE TEST'}")
+        print(
+            f"Mode: {'VIOLATION TEST' if use_violation_responses else 'COMPLIANCE TEST'}"
+        )
         print(f"\nTicketing Delegation Score: {ticketing_score:.2f}")
         print(f"Reason: {ticketing_metric.reason}")
         print(f"\nInstruction Faithfulness Score: {faithfulness_score:.2f}")
@@ -105,9 +105,11 @@ class TestPMBehaviorValidation:
 
         if use_violation_responses:
             print(f"\nViolation Type: {response_data.get('violation_type', 'unknown')}")
-            print(f"Forbidden Tools Used: {', '.join(response_data.get('forbidden_tools_used', []))}")
+            print(
+                f"Forbidden Tools Used: {', '.join(response_data.get('forbidden_tools_used', []))}"
+            )
 
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
         # Assert based on test mode
         if use_violation_responses:
@@ -115,9 +117,10 @@ class TestPMBehaviorValidation:
             assert ticketing_score < 1.0, (
                 "Violation detection FAILED: Metric should detect forbidden tool usage"
             )
-            assert "VIOLATION" in ticketing_metric.reason or "forbidden" in ticketing_metric.reason.lower(), (
-                "Violation detection should provide clear reason"
-            )
+            assert (
+                "VIOLATION" in ticketing_metric.reason
+                or "forbidden" in ticketing_metric.reason.lower()
+            ), "Violation detection should provide clear reason"
         else:
             # When testing compliance, we EXPECT success
             assert ticketing_score == 1.0, (
@@ -143,28 +146,26 @@ class TestPMBehaviorValidation:
         After Fix: PM delegates to ticketing agent
         """
         scenario = next(
-            s for s in validation_scenarios
-            if s["id"] == "ticket_id_status_check"
+            s for s in validation_scenarios if s["id"] == "ticket_id_status_check"
         )
 
         response_data = get_response_for_test(
-            scenario["id"],
-            use_violation=use_violation_responses
+            scenario["id"], use_violation=use_violation_responses
         )
 
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=response_data["content"],
-            expected_output=scenario["expected_behavior"]
+            expected_output=scenario["expected_behavior"],
         )
 
         ticketing_metric = TicketingDelegationMetric(threshold=1.0)
         ticketing_score = ticketing_metric.measure(test_case)
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Test: {scenario['name']}")
         print(f"Score: {ticketing_score:.2f} - {ticketing_metric.reason}")
-        print(f"{'='*70}\n")
+        print(f"{'=' * 70}\n")
 
         if use_violation_responses:
             assert ticketing_score < 1.0, "Should detect violation"
@@ -184,28 +185,26 @@ class TestPMBehaviorValidation:
         After Fix: PM delegates to ticketing agent
         """
         scenario = next(
-            s for s in validation_scenarios
-            if s["id"] == "create_ticket_request"
+            s for s in validation_scenarios if s["id"] == "create_ticket_request"
         )
 
         response_data = get_response_for_test(
-            scenario["id"],
-            use_violation=use_violation_responses
+            scenario["id"], use_violation=use_violation_responses
         )
 
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=response_data["content"],
-            expected_output=scenario["expected_behavior"]
+            expected_output=scenario["expected_behavior"],
         )
 
         ticketing_metric = TicketingDelegationMetric(threshold=1.0)
         ticketing_score = ticketing_metric.measure(test_case)
 
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"Test: {scenario['name']}")
         print(f"Score: {ticketing_score:.2f} - {ticketing_metric.reason}")
-        print(f"{'='*70}\n")
+        print(f"{'=' * 70}\n")
 
         if use_violation_responses:
             assert ticketing_score < 1.0, "Should detect violation"
@@ -231,15 +230,14 @@ class TestPMBehaviorValidation:
         for scenario in validation_scenarios:
             # Get response based on test mode
             response_data = get_response_for_test(
-                scenario["id"],
-                use_violation=use_violation_responses
+                scenario["id"], use_violation=use_violation_responses
             )
 
             # Create test case
             test_case = LLMTestCase(
                 input=scenario["input"],
                 actual_output=response_data["content"],
-                expected_output=scenario["expected_behavior"]
+                expected_output=scenario["expected_behavior"],
             )
 
             # Evaluate with ticketing delegation metric
@@ -256,32 +254,38 @@ class TestPMBehaviorValidation:
                 passed = score == 1.0
                 status = "PASS" if passed else "FAIL"
 
-            results.append({
-                "scenario": scenario["name"],
-                "scenario_id": scenario["id"],
-                "score": score,
-                "reason": ticketing_metric.reason,
-                "passed": passed,
-                "status": status,
-                "circuit_breaker": scenario["circuit_breaker"],
-                "forbidden_tools": scenario["forbidden_tools"]
-            })
+            results.append(
+                {
+                    "scenario": scenario["name"],
+                    "scenario_id": scenario["id"],
+                    "score": score,
+                    "reason": ticketing_metric.reason,
+                    "passed": passed,
+                    "status": status,
+                    "circuit_breaker": scenario["circuit_breaker"],
+                    "forbidden_tools": scenario["forbidden_tools"],
+                }
+            )
 
         # Generate summary report
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("PM Behavior Validation Summary")
-        print("="*70)
-        print(f"Mode: {'VIOLATION DETECTION' if use_violation_responses else 'COMPLIANCE TESTING'}")
+        print("=" * 70)
+        print(
+            f"Mode: {'VIOLATION DETECTION' if use_violation_responses else 'COMPLIANCE TESTING'}"
+        )
         print(f"Total Scenarios: {len(results)}")
-        print("-"*70)
+        print("-" * 70)
 
         for result in results:
             icon = "✅" if result["passed"] else "❌"
-            print(f"{icon} {result['status']:10s} {result['scenario']:40s} {result['score']:.2f}")
+            print(
+                f"{icon} {result['status']:10s} {result['scenario']:40s} {result['score']:.2f}"
+            )
             if not result["passed"]:
                 print(f"   Reason: {result['reason']}")
 
-        print("="*70)
+        print("=" * 70)
 
         # Calculate statistics
         passed_count = sum(1 for r in results if r["passed"])
@@ -294,7 +298,7 @@ class TestPMBehaviorValidation:
         else:
             print(f"Compliance Rate: {pass_rate:.1f}% (should be 100%)")
 
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
         # Assert all scenarios pass
         failed_scenarios = [r for r in results if not r["passed"]]
@@ -302,19 +306,17 @@ class TestPMBehaviorValidation:
         if use_violation_responses:
             # In violation mode, failures mean we missed violations
             assert len(failed_scenarios) == 0, (
-                f"Missed {len(failed_scenarios)} violation(s):\n" +
-                "\n".join(
-                    f"  - {r['scenario']}: {r['reason']}"
-                    for r in failed_scenarios
+                f"Missed {len(failed_scenarios)} violation(s):\n"
+                + "\n".join(
+                    f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
                 )
             )
         else:
             # In compliance mode, failures mean PM is still violating
             assert len(failed_scenarios) == 0, (
-                f"{len(failed_scenarios)} scenario(s) failed:\n" +
-                "\n".join(
-                    f"  - {r['scenario']}: {r['reason']}"
-                    for r in failed_scenarios
+                f"{len(failed_scenarios)} scenario(s) failed:\n"
+                + "\n".join(
+                    f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
                 )
             )
 
@@ -347,7 +349,9 @@ class TestPMBehaviorValidation:
                 f"Scenario {scenario['id']} missing issue_ref"
             )
 
-        print(f"\n✅ All {len(validation_scenarios)} scenarios have proper regression documentation")
+        print(
+            f"\n✅ All {len(validation_scenarios)} scenarios have proper regression documentation"
+        )
 
 
 class TestViolationDetection:
@@ -367,8 +371,7 @@ class TestViolationDetection:
         that was occurring before the fix.
         """
         scenario = next(
-            s for s in validation_scenarios
-            if s["id"] == "linear_url_delegation_fix"
+            s for s in validation_scenarios if s["id"] == "linear_url_delegation_fix"
         )
 
         # Use violation response
@@ -377,7 +380,7 @@ class TestViolationDetection:
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=response_data["content"],
-            expected_output=scenario["expected_behavior"]
+            expected_output=scenario["expected_behavior"],
         )
 
         metric = TicketingDelegationMetric(threshold=1.0)
@@ -395,8 +398,7 @@ class TestViolationDetection:
         Validates detection of PM calling mcp-ticketer tools without delegation.
         """
         scenario = next(
-            s for s in validation_scenarios
-            if s["id"] == "ticket_id_status_check"
+            s for s in validation_scenarios if s["id"] == "ticket_id_status_check"
         )
 
         # Use violation response
@@ -405,7 +407,7 @@ class TestViolationDetection:
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=response_data["content"],
-            expected_output=scenario["expected_behavior"]
+            expected_output=scenario["expected_behavior"],
         )
 
         metric = TicketingDelegationMetric(threshold=1.0)
@@ -439,5 +441,5 @@ def pytest_addoption_local(parser):
         "--use-violation-responses",
         action="store_true",
         default=False,
-        help="Use violation responses to test detection (should fail)"
+        help="Use violation responses to test detection (should fail)",
     )

@@ -29,7 +29,9 @@ from typing import Any, Dict, List, Union
 import pytest
 
 # Load behavioral scenarios
-SCENARIOS_FILE = Path(__file__).parent.parent / "scenarios" / "pm_behavioral_requirements.json"
+SCENARIOS_FILE = (
+    Path(__file__).parent.parent / "scenarios" / "pm_behavioral_requirements.json"
+)
 
 with open(SCENARIOS_FILE) as f:
     BEHAVIORAL_DATA = json.load(f)
@@ -47,8 +49,7 @@ def get_scenarios_by_severity(severity: str) -> List[Dict[str, Any]]:
 
 
 def validate_pm_response(
-    response: Union[str, Dict[str, Any]],
-    expected_behavior: Dict[str, Any]
+    response: Union[str, Dict[str, Any]], expected_behavior: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Validate PM response against expected behavior.
@@ -112,14 +113,15 @@ def validate_pm_response(
             "delegate to",
             "Task: agent:",
             "delegating to",
-            "assigned to"
+            "assigned to",
         ]
         for pattern in delegation_patterns:
             if pattern in response_text.lower():
                 # Extract agent name after the pattern
                 # Look for pattern like "delegate to <agent>" or "delegating to <agent>"
                 import re
-                match = re.search(rf'{pattern}\s+(\w+-?\w+)', response_text.lower())
+
+                match = re.search(rf"{pattern}\s+(\w+-?\w+)", response_text.lower())
                 if match:
                     delegated_to = match.group(1)
                     break
@@ -135,7 +137,7 @@ def validate_pm_response(
         "commit:",
         "lsof",
         "curl",
-        "playwright"
+        "playwright",
     ]
     has_evidence = any(pattern in response.lower() for pattern in evidence_patterns)
 
@@ -163,9 +165,18 @@ def validate_pm_response(
                 if agent not in response.lower():
                     violations.append(f"Missing delegation to: {agent}")
         elif delegated_to is None:
-            violations.append(f"No delegation detected (required: {required_delegation})")
-        elif required_delegation not in ["various", "full_workflow", "ops (deploy + verify)"]:
-            if delegated_to != required_delegation and required_delegation not in delegated_to:
+            violations.append(
+                f"No delegation detected (required: {required_delegation})"
+            )
+        elif required_delegation not in [
+            "various",
+            "full_workflow",
+            "ops (deploy + verify)",
+        ]:
+            if (
+                delegated_to != required_delegation
+                and required_delegation not in delegated_to
+            ):
                 violations.append(
                     f"Wrong delegation target: got {delegated_to}, expected {required_delegation}"
                 )
@@ -183,7 +194,7 @@ def validate_pm_response(
         "seems fine",
         "probably working",
         "all set",
-        "ready to go"
+        "ready to go",
     ]
     for phrase in forbidden_phrases:
         if phrase in response.lower():
@@ -196,13 +207,14 @@ def validate_pm_response(
         "violations": violations,
         "used_tools": used_tools,
         "delegated_to": delegated_to,
-        "has_evidence": has_evidence
+        "has_evidence": has_evidence,
     }
 
 
 # ============================================================================
 # DELEGATION BEHAVIOR TESTS
 # ============================================================================
+
 
 class TestPMDelegationBehaviors:
     """Test PM delegation-first principle compliance."""
@@ -220,10 +232,7 @@ class TestPMDelegationBehaviors:
         pm_response = mock_pm_agent.process_request(user_input)
 
         # Validate response against expected behavior
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         # Assert compliance
         assert validation["compliant"], (
@@ -241,12 +250,15 @@ class TestPMDelegationBehaviors:
         user_input = "Implement user authentication with OAuth2"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Edit", "Write"],
-            "required_delegation": "engineer",
-            "evidence_required": False
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Edit", "Write"],
+                "required_delegation": "engineer",
+                "evidence_required": False,
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
         assert "Task" in validation["used_tools"]
@@ -260,12 +272,15 @@ class TestPMDelegationBehaviors:
         user_input = "How does the authentication system work across the codebase?"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Read (>1)", "Grep", "Glob"],
-            "required_delegation": "research",
-            "evidence_required": False
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Read (>1)", "Grep", "Glob"],
+                "required_delegation": "research",
+                "evidence_required": False,
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
         assert validation["delegated_to"] == "research"
@@ -278,11 +293,14 @@ class TestPMDelegationBehaviors:
         user_input = "Test the authentication implementation"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "required_delegation": "qa",
-            "evidence_required": True
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "required_delegation": "qa",
+                "evidence_required": True,
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
         assert validation["delegated_to"] in ["qa", "web-qa", "api-qa"]
@@ -295,12 +313,15 @@ class TestPMDelegationBehaviors:
         user_input = "Deploy the application to production"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Bash (for deployment)"],
-            "required_delegation": "ops",
-            "evidence_required": True
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Bash (for deployment)"],
+                "required_delegation": "ops",
+                "evidence_required": True,
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
         assert "ops" in (validation["delegated_to"] or "")
@@ -313,12 +334,15 @@ class TestPMDelegationBehaviors:
         user_input = "Read ticket https://linear.app/project/issue/ABC-123"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["WebFetch", "mcp-ticketer"],
-            "required_delegation": "ticketing",
-            "evidence_required": False
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["WebFetch", "mcp-ticketer"],
+                "required_delegation": "ticketing",
+                "evidence_required": False,
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
         assert "WebFetch" not in validation["used_tools"]
@@ -357,8 +381,10 @@ class TestPMDelegationBehaviors:
 
             # Validate response
             validation = validate_pm_response(
-                pm_response["content"] if isinstance(pm_response, dict) else pm_response,
-                del_011["expected_pm_behavior"]
+                pm_response["content"]
+                if isinstance(pm_response, dict)
+                else pm_response,
+                del_011["expected_pm_behavior"],
             )
 
             # Check delegation target
@@ -382,14 +408,16 @@ class TestPMDelegationBehaviors:
                     f"{sub_id}: Expected {expected} or {fallback}, got {delegated_to}"
                 )
 
-            results.append({
-                "sub_id": sub_id,
-                "work_type": work_type,
-                "expected": expected,
-                "actual": delegated_to,
-                "score": score,
-                "result": result
-            })
+            results.append(
+                {
+                    "sub_id": sub_id,
+                    "work_type": work_type,
+                    "expected": expected,
+                    "actual": delegated_to,
+                    "score": score,
+                    "result": result,
+                }
+            )
 
         # Calculate overall score
         total_score = sum(r["score"] for r in results) / len(results)
@@ -398,9 +426,10 @@ class TestPMDelegationBehaviors:
         assert total_score >= 0.80, (
             f"DEL-011 Delegation Authority Test FAILED\n"
             f"Overall Score: {total_score:.2f} (threshold: 0.80)\n"
-            f"Failures ({len(failures)}):\n" + "\n".join(f"  - {f}" for f in failures) +
-            "\n\nResults:\n" +
-            "\n".join(
+            f"Failures ({len(failures)}):\n"
+            + "\n".join(f"  - {f}" for f in failures)
+            + "\n\nResults:\n"
+            + "\n".join(
                 f"  {r['sub_id']}: {r['result']} (expected: {r['expected']}, got: {r['actual']})"
                 for r in results
             )
@@ -410,6 +439,7 @@ class TestPMDelegationBehaviors:
 # ============================================================================
 # TOOL USAGE TESTS
 # ============================================================================
+
 
 class TestPMToolUsageBehaviors:
     """Test PM correct tool usage compliance."""
@@ -423,10 +453,7 @@ class TestPMToolUsageBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"Scenario {scenario['scenario_id']} FAILED\n"
@@ -442,11 +469,14 @@ class TestPMToolUsageBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM should delegate to research, not read multiple files
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Read (>1)"],
-            "required_delegation": "research"
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Read (>1)"],
+                "required_delegation": "research",
+            },
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
 
@@ -462,10 +492,10 @@ class TestPMToolUsageBehaviors:
         user_input = "Start the development server on port 3000"
         response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "required_delegation": "local-ops-agent"
-        })
+        validation = validate_pm_response(
+            response,
+            {"required_tools": ["Task"], "required_delegation": "local-ops-agent"},
+        )
 
         assert validation["compliant"], f"Violations: {validation['violations']}"
 
@@ -479,6 +509,7 @@ class TestPMToolUsageBehaviors:
 # CIRCUIT BREAKER TESTS
 # ============================================================================
 
+
 class TestPMCircuitBreakerBehaviors:
     """Test all 7 circuit breaker compliance."""
 
@@ -491,10 +522,7 @@ class TestPMCircuitBreakerBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"CIRCUIT BREAKER VIOLATION: {scenario['scenario_id']}\n"
@@ -515,11 +543,14 @@ class TestPMCircuitBreakerBehaviors:
         assert "Edit:" not in response, "CB#1 VIOLATION: PM used Edit tool"
         assert "Write:" not in response, "CB#1 VIOLATION: PM used Write tool"
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Edit", "Write"],
-            "required_delegation": "engineer"
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Edit", "Write"],
+                "required_delegation": "engineer",
+            },
+        )
 
         assert validation["compliant"], f"CB#1 Violations: {validation['violations']}"
 
@@ -535,11 +566,14 @@ class TestPMCircuitBreakerBehaviors:
         assert "Grep:" not in response, "CB#2 VIOLATION: PM used Grep tool"
         assert "Glob:" not in response, "CB#2 VIOLATION: PM used Glob tool"
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["Grep", "Glob", "Read (>1)"],
-            "required_delegation": "research"
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["Grep", "Glob", "Read (>1)"],
+                "required_delegation": "research",
+            },
+        )
 
         assert validation["compliant"], f"CB#2 Violations: {validation['violations']}"
 
@@ -555,14 +589,15 @@ class TestPMCircuitBreakerBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM must have evidence from QA or ops
-        validation = validate_pm_response(response, {
-            "evidence_required": True
-        })
+        validation = validate_pm_response(response, {"evidence_required": True})
 
         # Check for forbidden phrases
         forbidden_phrases = [
-            "production-ready", "should work", "looks good",
-            "seems fine", "probably working"
+            "production-ready",
+            "should work",
+            "looks good",
+            "seems fine",
+            "probably working",
         ]
 
         for phrase in forbidden_phrases:
@@ -581,14 +616,21 @@ class TestPMCircuitBreakerBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM must delegate to ticketing, NOT use WebFetch or mcp-ticketer
-        assert "WebFetch:" not in response, "CB#6 VIOLATION: PM used WebFetch on ticket URL"
-        assert "mcp__mcp-ticketer" not in response, "CB#6 VIOLATION: PM used mcp-ticketer tools"
+        assert "WebFetch:" not in response, (
+            "CB#6 VIOLATION: PM used WebFetch on ticket URL"
+        )
+        assert "mcp__mcp-ticketer" not in response, (
+            "CB#6 VIOLATION: PM used mcp-ticketer tools"
+        )
 
-        validation = validate_pm_response(response, {
-            "required_tools": ["Task"],
-            "forbidden_tools": ["WebFetch", "mcp-ticketer"],
-            "required_delegation": "ticketing"
-        })
+        validation = validate_pm_response(
+            response,
+            {
+                "required_tools": ["Task"],
+                "forbidden_tools": ["WebFetch", "mcp-ticketer"],
+                "required_delegation": "ticketing",
+            },
+        )
 
         assert validation["compliant"], f"CB#6 Violations: {validation['violations']}"
 
@@ -596,6 +638,7 @@ class TestPMCircuitBreakerBehaviors:
 # ============================================================================
 # WORKFLOW TESTS
 # ============================================================================
+
 
 class TestPMWorkflowBehaviors:
     """Test 5-phase workflow compliance."""
@@ -609,10 +652,7 @@ class TestPMWorkflowBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"Scenario {scenario['scenario_id']} FAILED\n"
@@ -631,7 +671,7 @@ class TestPMWorkflowBehaviors:
         # Extract first Task delegation
         task_start = response.find("Task:")
         if task_start != -1:
-            task_section = response[task_start:task_start + 200].lower()
+            task_section = response[task_start : task_start + 200].lower()
             assert "research" in task_section, (
                 "Phase 1 violation: First delegation must be to research agent"
             )
@@ -648,10 +688,9 @@ class TestPMWorkflowBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM must delegate to QA before claiming done
-        validation = validate_pm_response(response, {
-            "required_delegation": "qa",
-            "evidence_required": True
-        })
+        validation = validate_pm_response(
+            response, {"required_delegation": "qa", "evidence_required": True}
+        )
 
         assert validation["compliant"], "QA phase is MANDATORY but was skipped"
         assert validation["has_evidence"], "QA phase requires verification evidence"
@@ -682,6 +721,7 @@ class TestPMWorkflowBehaviors:
 # EVIDENCE TESTS
 # ============================================================================
 
+
 class TestPMEvidenceBehaviors:
     """Test assertion-evidence requirement compliance."""
 
@@ -694,10 +734,7 @@ class TestPMEvidenceBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"Scenario {scenario['scenario_id']} FAILED\n"
@@ -717,16 +754,19 @@ class TestPMEvidenceBehaviors:
 
         # If PM makes completion claim, must have evidence
         completion_claims = [
-            "complete", "done", "finished", "ready",
-            "deployed", "working", "fixed"
+            "complete",
+            "done",
+            "finished",
+            "ready",
+            "deployed",
+            "working",
+            "fixed",
         ]
 
         makes_claim = any(claim in response.lower() for claim in completion_claims)
 
         if makes_claim:
-            validation = validate_pm_response(response, {
-                "evidence_required": True
-            })
+            validation = validate_pm_response(response, {"evidence_required": True})
             assert validation["has_evidence"], (
                 "PM made completion claim without evidence"
             )
@@ -756,6 +796,7 @@ class TestPMEvidenceBehaviors:
 # FILE TRACKING TESTS
 # ============================================================================
 
+
 class TestPMFileTrackingBehaviors:
     """Test git file tracking protocol compliance."""
 
@@ -768,10 +809,7 @@ class TestPMFileTrackingBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"Scenario {scenario['scenario_id']} FAILED\n"
@@ -799,7 +837,8 @@ class TestPMFileTrackingBehaviors:
 
         # git commands should appear BEFORE "complete" or "done"
         git_pos = min(
-            response.lower().find(cmd) for cmd in git_commands
+            response.lower().find(cmd)
+            for cmd in git_commands
             if cmd in response.lower()
         )
         complete_pos = response.lower().find("complete")
@@ -814,6 +853,7 @@ class TestPMFileTrackingBehaviors:
 # MEMORY TESTS
 # ============================================================================
 
+
 class TestPMMemoryBehaviors:
     """Test memory management compliance."""
 
@@ -826,10 +866,7 @@ class TestPMMemoryBehaviors:
         user_input = scenario["input"]
         pm_response = mock_pm_agent.process_request(user_input)
 
-        validation = validate_pm_response(
-            pm_response,
-            scenario["expected_pm_behavior"]
-        )
+        validation = validate_pm_response(pm_response, scenario["expected_pm_behavior"])
 
         assert validation["compliant"], (
             f"Scenario {scenario['scenario_id']} FAILED\n"
@@ -845,12 +882,7 @@ class TestPMMemoryBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM should detect "remember" and "always" triggers
-        memory_indicators = [
-            "memory",
-            "updated memory",
-            "storing",
-            "remembered"
-        ]
+        memory_indicators = ["memory", "updated memory", "storing", "remembered"]
 
         detects_memory = any(ind in response.lower() for ind in memory_indicators)
 
@@ -861,6 +893,7 @@ class TestPMMemoryBehaviors:
 # FIXTURES
 # ============================================================================
 
+
 @pytest.fixture
 def mock_pm_agent():
     """
@@ -869,6 +902,7 @@ def mock_pm_agent():
     TODO: Replace with actual PM agent integration.
     For now, returns mock responses for testing framework.
     """
+
     class MockPMAgent:
         def __init__(self):
             self.context = {}
@@ -930,8 +964,10 @@ def mock_pm_agent():
                             return agent
 
             # Default fallback to engineer if available
-            return "engineer" if "engineer" in self.available_agents else (
-                self.available_agents[0] if self.available_agents else "engineer"
+            return (
+                "engineer"
+                if "engineer" in self.available_agents
+                else (self.available_agents[0] if self.available_agents else "engineer")
             )
 
         def process_request(self, user_input: str) -> str:
@@ -947,7 +983,7 @@ def mock_pm_agent():
                 return f"""Task: delegate to {selected_agent} agent
 Agent: {selected_agent}
 Task: {user_input}
-Available agents: {', '.join(self.available_agents)}
+Available agents: {", ".join(self.available_agents)}
 Delegation reasoning: Selected {selected_agent} as most specialized for this work"""
 
             # Default behavior for backward compatibility
@@ -993,6 +1029,7 @@ Task: Handle user request"""
 # TEST UTILITIES
 # ============================================================================
 
+
 def test_scenarios_loaded():
     """Verify behavioral scenarios file loaded correctly."""
     assert len(SCENARIOS) > 0, "No scenarios loaded"
@@ -1001,8 +1038,13 @@ def test_scenarios_loaded():
     # Verify categories present
     categories = set(s["category"] for s in SCENARIOS)
     expected_categories = {
-        "delegation", "tools", "circuit_breaker", "workflow",
-        "evidence", "file_tracking", "memory"
+        "delegation",
+        "tools",
+        "circuit_breaker",
+        "workflow",
+        "evidence",
+        "file_tracking",
+        "memory",
     }
     assert expected_categories.issubset(categories), (
         f"Missing categories: {expected_categories - categories}"

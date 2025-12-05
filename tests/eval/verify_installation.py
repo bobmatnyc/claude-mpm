@@ -23,6 +23,7 @@ def check_json_valid(file_path: Path, description: str) -> bool:
     """Check if JSON file is valid."""
     try:
         import json
+
         with open(file_path) as f:
             data = json.load(f)
         print(f"✅ {description}: {len(data.get('scenarios', []))} scenarios")
@@ -68,7 +69,10 @@ def main():
         (eval_dir / "metrics" / "delegation_correctness.py", "Delegation metric"),
         (eval_dir / "scenarios" / "__init__.py", "Scenarios package"),
         (eval_dir / "scenarios" / "ticketing_scenarios.json", "Ticketing scenarios"),
-        (eval_dir / "scenarios" / "circuit_breaker_scenarios.json", "Circuit breaker scenarios"),
+        (
+            eval_dir / "scenarios" / "circuit_breaker_scenarios.json",
+            "Circuit breaker scenarios",
+        ),
         (eval_dir / "utils" / "__init__.py", "Utils package"),
         (eval_dir / "utils" / "pm_response_parser.py", "PM parser"),
     ]
@@ -80,7 +84,10 @@ def main():
     print("\n📄 JSON Scenario Files:")
     json_checks = [
         (eval_dir / "scenarios" / "ticketing_scenarios.json", "Ticketing scenarios"),
-        (eval_dir / "scenarios" / "circuit_breaker_scenarios.json", "Circuit breaker scenarios"),
+        (
+            eval_dir / "scenarios" / "circuit_breaker_scenarios.json",
+            "Circuit breaker scenarios",
+        ),
     ]
 
     for file_path, description in json_checks:
@@ -111,7 +118,9 @@ def main():
             print(f"✅ {description}: Installed")
         except ImportError:
             if is_eval_only:
-                print(f"⚠️  {description}: Not installed (run: pip install -e '.[eval]')")
+                print(
+                    f"⚠️  {description}: Not installed (run: pip install -e '.[eval]')"
+                )
                 # Don't fail if eval dependencies not installed yet
             else:
                 print(f"❌ {description}: Not installed")

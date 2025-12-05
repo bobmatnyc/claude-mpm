@@ -77,10 +77,7 @@ class TestRealPMTicketingDelegation:
             instruction_metric = InstructionFaithfulnessMetric(threshold=0.85)
 
             # Run evaluation
-            assert_test(
-                test_case,
-                metrics=[delegation_metric, instruction_metric]
-            )
+            assert_test(test_case, metrics=[delegation_metric, instruction_metric])
 
             # Check for regression
             if "comparison" in result:
@@ -184,8 +181,7 @@ class TestRealPMTicketingDelegation:
         - Evidence from ticketing agent for all operations
         """
         scenario = next(
-            s for s in ticketing_scenarios
-            if s["id"] == "mixed_ticket_keywords"
+            s for s in ticketing_scenarios if s["id"] == "mixed_ticket_keywords"
         )
 
         result = await pm_test_helper.run_test(
@@ -228,8 +224,7 @@ class TestTicketingRegressionTests:
 
         # Load captured response
         response = response_replay.capture.load_response(
-            "url_linear",
-            category="ticketing"
+            "url_linear", category="ticketing"
         )
 
         if response is None:
@@ -255,8 +250,7 @@ class TestTicketingRegressionTests:
     ):
         """Test ticket creation hasn't regressed."""
         response = response_replay.capture.load_response(
-            "create_ticket_request",
-            category="ticketing"
+            "create_ticket_request", category="ticketing"
         )
 
         if response is None:
@@ -281,9 +275,9 @@ class TestTicketingRegressionTests:
         report = response_replay.run_regression_suite(category="ticketing")
 
         # Report results
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Regression Test Report")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Total Scenarios: {report.total_scenarios}")
         print(f"Passed: {report.passed}")
         print(f"Failed: {report.failed}")
@@ -297,8 +291,7 @@ class TestTicketingRegressionTests:
 
         # Assert no regressions
         assert report.failed == 0, (
-            f"{report.failed} regression(s) detected. "
-            f"See report above for details."
+            f"{report.failed} regression(s) detected. See report above for details."
         )
 
 
@@ -445,9 +438,9 @@ class TestTicketingEdgeCases:
             # 1. Ask for clarification, OR
             # 2. Delegate to ticketing with context about ambiguity
             assert (
-                "which ticket" in response_text.lower() or
-                "clarify" in response_text.lower() or
-                "Task(" in response_text
+                "which ticket" in response_text.lower()
+                or "clarify" in response_text.lower()
+                or "Task(" in response_text
             ), "PM should handle ambiguous reference appropriately"
 
     async def test_url_variation_github_issues(

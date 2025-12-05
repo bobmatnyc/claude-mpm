@@ -29,6 +29,7 @@ from .pm_response_capture import PMResponse, PMResponseCapture, get_golden_respo
 @dataclass
 class ResponseComparison:
     """Results of comparing two PM responses."""
+
     scenario_id: str
     current_response: PMResponse
     baseline_response: PMResponse
@@ -42,6 +43,7 @@ class ResponseComparison:
 @dataclass
 class RegressionReport:
     """Report of regression test results."""
+
     total_scenarios: int
     passed: int
     failed: int
@@ -139,20 +141,17 @@ class ResponseReplay:
 
         # Compare responses
         exact_match = self._exact_match(
-            current_response.response,
-            baseline_response.response
+            current_response.response, baseline_response.response
         )
 
         match_score = self._calculate_similarity(
-            current_response.response,
-            baseline_response.response
+            current_response.response, baseline_response.response
         )
 
         semantic_match = match_score >= self.similarity_threshold
 
         differences = self._find_differences(
-            current_response.response,
-            baseline_response.response
+            current_response.response, baseline_response.response
         )
 
         # Regression detected if semantic match fails
@@ -193,8 +192,7 @@ class ResponseReplay:
         # Filter by scenario IDs if provided
         if scenario_ids:
             current_responses = [
-                r for r in current_responses
-                if r.scenario_id in scenario_ids
+                r for r in current_responses if r.scenario_id in scenario_ids
             ]
 
         # Compare each response with golden
@@ -315,9 +313,7 @@ class ResponseReplay:
         return current == baseline
 
     def _calculate_similarity(
-        self,
-        current: Dict[str, Any],
-        baseline: Dict[str, Any]
+        self, current: Dict[str, Any], baseline: Dict[str, Any]
     ) -> float:
         """
         Calculate similarity score between responses.
@@ -337,9 +333,7 @@ class ResponseReplay:
         return matcher.ratio()
 
     def _find_differences(
-        self,
-        current: Dict[str, Any],
-        baseline: Dict[str, Any]
+        self, current: Dict[str, Any], baseline: Dict[str, Any]
     ) -> List[str]:
         """
         Find specific differences between responses.
@@ -401,7 +395,9 @@ class ResponseReplay:
 
             if response_time < cutoff_date:
                 # Find and remove file
-                category_dir = self.capture.responses_dir / response.metadata.test_category
+                category_dir = (
+                    self.capture.responses_dir / response.metadata.test_category
+                )
                 filename = f"{response.scenario_id}_{response.metadata.input_hash}.json"
                 filepath = category_dir / filename
 
@@ -525,10 +521,7 @@ class GoldenResponseManager:
 
 # Convenience functions
 def compare_with_golden(
-    scenario_id: str,
-    current_response: PMResponse,
-    category: str = "general",
-    **kwargs
+    scenario_id: str, current_response: PMResponse, category: str = "general", **kwargs
 ) -> ResponseComparison:
     """
     Convenience function to compare response with golden.
@@ -545,10 +538,7 @@ def compare_with_golden(
     return replay.compare_response(scenario_id, current_response, category)
 
 
-def run_regression_tests(
-    category: str = "ticketing",
-    **kwargs
-) -> RegressionReport:
+def run_regression_tests(category: str = "ticketing", **kwargs) -> RegressionReport:
     """
     Convenience function to run regression test suite.
 

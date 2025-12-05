@@ -28,7 +28,8 @@ class TestCircuitBreaker1Implementation:
     def test_edit_tool_violation(self, circuit_breaker_scenarios):
         """PM using Edit tool should fail."""
         scenario = next(
-            s for s in circuit_breaker_scenarios
+            s
+            for s in circuit_breaker_scenarios
             if s["id"] == "implementation_violation_edit"
         )
 
@@ -54,7 +55,8 @@ class TestCircuitBreaker1Implementation:
     def test_correct_delegation_to_engineer(self, circuit_breaker_scenarios):
         """PM delegating to engineer should pass."""
         scenario = next(
-            s for s in circuit_breaker_scenarios
+            s
+            for s in circuit_breaker_scenarios
             if s["id"] == "implementation_violation_edit"
         )
 
@@ -85,7 +87,8 @@ class TestCircuitBreaker2Investigation:
     def test_grep_tool_violation(self, circuit_breaker_scenarios):
         """PM using Grep tool should fail."""
         scenario = next(
-            s for s in circuit_breaker_scenarios
+            s
+            for s in circuit_breaker_scenarios
             if s["id"] == "investigation_violation_grep"
         )
 
@@ -115,7 +118,8 @@ class TestCircuitBreaker3UnverifiedAssertions:
     def test_unverified_deployment_claim(self, circuit_breaker_scenarios):
         """PM claiming deployment success without evidence should fail."""
         scenario = next(
-            s for s in circuit_breaker_scenarios
+            s
+            for s in circuit_breaker_scenarios
             if s["id"] == "unverified_assertion_deployment"
         )
 
@@ -137,7 +141,8 @@ class TestCircuitBreaker3UnverifiedAssertions:
     def test_verified_deployment_with_evidence(self, circuit_breaker_scenarios):
         """PM with proper evidence should pass."""
         scenario = next(
-            s for s in circuit_breaker_scenarios
+            s
+            for s in circuit_breaker_scenarios
             if s["id"] == "unverified_assertion_deployment"
         )
 
@@ -166,13 +171,13 @@ class TestCircuitBreaker3UnverifiedAssertions:
         assert score >= 0.85, f"Should pass with evidence: {metric.reason}"
 
 
-@pytest.mark.parametrize("scenario", [
-    pytest.param(
-        s,
-        id=s["id"]
-    )
-    for s in pytest.lazy_fixture("circuit_breaker_scenarios")
-])
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        pytest.param(s, id=s["id"])
+        for s in pytest.lazy_fixture("circuit_breaker_scenarios")
+    ],
+)
 def test_all_circuit_breaker_scenarios(scenario, save_evaluation_result):
     """
     Parametrized test for all circuit breaker scenarios.
@@ -202,7 +207,8 @@ def test_all_circuit_breaker_scenarios(scenario, save_evaluation_result):
         "delegation_score": delegation_score,
         "instruction_reason": instruction_metric.reason,
         "delegation_reason": delegation_metric.reason,
-        "passed": instruction_metric.is_successful() and delegation_metric.is_successful(),
+        "passed": instruction_metric.is_successful()
+        and delegation_metric.is_successful(),
     }
     save_evaluation_result(f"cb_{scenario['id']}", result)
 
@@ -214,7 +220,7 @@ def _create_mock_response_for_scenario(scenario: dict) -> str:
         return f"""
         I'll delegate to {agent} agent.
 
-        Task(agent="{agent}", task="{scenario['expected_behavior']}")
+        Task(agent="{agent}", task="{scenario["expected_behavior"]}")
 
         [{agent} agent completes task...]
 

@@ -42,14 +42,15 @@ The Linear issue JJF-62 has been verified:
 
 The issue is actively being worked on and is on track for completion.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Verify Linear issue JJF-62",
-                "context": "https://linear.app/1m-hyperdev/issue/JJF-62"
-            }],
-            "forbidden_tools_used": []
+            "delegations": [
+                {
+                    "agent": "ticketing",
+                    "task": "Verify Linear issue JJF-62",
+                    "context": "https://linear.app/1m-hyperdev/issue/JJF-62",
+                }
+            ],
+            "forbidden_tools_used": [],
         },
-
         "ticket_id_status_check": {
             "content": """I'll have the ticketing agent check the status of MPM-456.
 
@@ -68,13 +69,11 @@ Ticket MPM-456 status:
 
 The ticket has been successfully completed.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Check status of ticket MPM-456"
-            }],
-            "forbidden_tools_used": []
+            "delegations": [
+                {"agent": "ticketing", "task": "Check status of ticket MPM-456"}
+            ],
+            "forbidden_tools_used": [],
         },
-
         "create_ticket_request": {
             "content": """I'll delegate ticket creation to the ticketing agent.
 
@@ -94,18 +93,19 @@ Ticket created successfully:
 
 The ticket is now in the backlog and ready for assignment.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Create ticket for authentication bug fix",
-                "context": {
-                    "title": "Fix authentication bug",
-                    "type": "bug",
-                    "priority": "high"
+            "delegations": [
+                {
+                    "agent": "ticketing",
+                    "task": "Create ticket for authentication bug fix",
+                    "context": {
+                        "title": "Fix authentication bug",
+                        "type": "bug",
+                        "priority": "high",
+                    },
                 }
-            }],
-            "forbidden_tools_used": []
+            ],
+            "forbidden_tools_used": [],
         },
-
         "github_issue_url": {
             "content": """I'll delegate verification of this GitHub issue to the ticketing agent.
 
@@ -126,14 +126,15 @@ GitHub issue #42 details:
 
 The issue is being actively discussed and awaiting implementation.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Verify GitHub issue #42",
-                "context": "https://github.com/bobmatnyc/claude-mpm/issues/42"
-            }],
-            "forbidden_tools_used": []
+            "delegations": [
+                {
+                    "agent": "ticketing",
+                    "task": "Verify GitHub issue #42",
+                    "context": "https://github.com/bobmatnyc/claude-mpm/issues/42",
+                }
+            ],
+            "forbidden_tools_used": [],
         },
-
         "ticket_search_query": {
             "content": """I'll have the ticketing agent search for authentication tickets.
 
@@ -152,13 +153,14 @@ Search results for authentication tickets:
 
 Total: 3 open tickets with 'authentication' tag.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Search for open tickets tagged with 'authentication'"
-            }],
-            "forbidden_tools_used": []
+            "delegations": [
+                {
+                    "agent": "ticketing",
+                    "task": "Search for open tickets tagged with 'authentication'",
+                }
+            ],
+            "forbidden_tools_used": [],
         },
-
         "ticket_update_request": {
             "content": """I'll delegate the ticket update to the ticketing agent.
 
@@ -177,24 +179,26 @@ Ticket MPM-789 updated successfully:
 
 The ticket state transition has been recorded.""",
             "tools_used": ["Task"],
-            "delegations": [{
-                "agent": "ticketing",
-                "task": "Update ticket MPM-789 to in_progress",
-                "context": {
-                    "ticket_id": "MPM-789",
-                    "new_state": "in_progress"
+            "delegations": [
+                {
+                    "agent": "ticketing",
+                    "task": "Update ticket MPM-789 to in_progress",
+                    "context": {"ticket_id": "MPM-789", "new_state": "in_progress"},
                 }
-            }],
-            "forbidden_tools_used": []
-        }
+            ],
+            "forbidden_tools_used": [],
+        },
     }
 
-    return responses.get(scenario_id, {
-        "content": "Unknown scenario",
-        "tools_used": [],
-        "delegations": [],
-        "forbidden_tools_used": []
-    })
+    return responses.get(
+        scenario_id,
+        {
+            "content": "Unknown scenario",
+            "tools_used": [],
+            "delegations": [],
+            "forbidden_tools_used": [],
+        },
+    )
 
 
 def simulate_violation_response(scenario_id: str) -> Dict[str, Any]:
@@ -230,9 +234,8 @@ The issue is being actively worked on.""",
             "tools_used": ["WebFetch"],
             "delegations": [],
             "forbidden_tools_used": ["WebFetch"],
-            "violation_type": "direct_webfetch_on_ticket_url"
+            "violation_type": "direct_webfetch_on_ticket_url",
         },
-
         "ticket_id_status_check": {
             "content": """I'll check the ticket status using the mcp-ticketer tool.
 
@@ -246,9 +249,8 @@ The ticket has been successfully completed.""",
             "tools_used": ["mcp__mcp-ticketer__ticket"],
             "delegations": [],
             "forbidden_tools_used": ["mcp__mcp-ticketer__ticket"],
-            "violation_type": "direct_mcp_tool_usage"
+            "violation_type": "direct_mcp_tool_usage",
         },
-
         "create_ticket_request": {
             "content": """I'll create the ticket directly using mcp-ticketer.
 
@@ -263,9 +265,8 @@ Ticket AUTH-892 created successfully with high priority.""",
             "tools_used": ["mcp__mcp-ticketer__ticket"],
             "delegations": [],
             "forbidden_tools_used": ["mcp__mcp-ticketer__ticket"],
-            "violation_type": "direct_ticket_creation"
+            "violation_type": "direct_ticket_creation",
         },
-
         "github_issue_url": {
             "content": """Let me check this GitHub issue URL directly.
 
@@ -280,9 +281,8 @@ The issue is open and being discussed.""",
             "tools_used": ["WebFetch"],
             "delegations": [],
             "forbidden_tools_used": ["WebFetch"],
-            "violation_type": "direct_webfetch_on_github_issue"
+            "violation_type": "direct_webfetch_on_github_issue",
         },
-
         "ticket_search_query": {
             "content": """I'll search for tickets using mcp-ticketer directly.
 
@@ -298,9 +298,8 @@ Found 3 tickets:
             "tools_used": ["mcp__mcp-ticketer__ticket_search"],
             "delegations": [],
             "forbidden_tools_used": ["mcp__mcp-ticketer__ticket_search"],
-            "violation_type": "direct_ticket_search"
+            "violation_type": "direct_ticket_search",
         },
-
         "ticket_update_request": {
             "content": """I'll update the ticket using mcp-ticketer.
 
@@ -314,22 +313,24 @@ Ticket MPM-789 updated to In Progress state successfully.""",
             "tools_used": ["mcp__mcp-ticketer__ticket"],
             "delegations": [],
             "forbidden_tools_used": ["mcp__mcp-ticketer__ticket"],
-            "violation_type": "direct_ticket_update"
-        }
+            "violation_type": "direct_ticket_update",
+        },
     }
 
-    return violations.get(scenario_id, {
-        "content": "Unknown scenario",
-        "tools_used": [],
-        "delegations": [],
-        "forbidden_tools_used": [],
-        "violation_type": "unknown"
-    })
+    return violations.get(
+        scenario_id,
+        {
+            "content": "Unknown scenario",
+            "tools_used": [],
+            "delegations": [],
+            "forbidden_tools_used": [],
+            "violation_type": "unknown",
+        },
+    )
 
 
 def get_response_for_test(
-    scenario_id: str,
-    use_violation: bool = False
+    scenario_id: str, use_violation: bool = False
 ) -> Dict[str, Any]:
     """
     Get appropriate response for test scenario.
@@ -359,5 +360,5 @@ def list_available_scenarios() -> List[str]:
         "create_ticket_request",
         "github_issue_url",
         "ticket_search_query",
-        "ticket_update_request"
+        "ticket_update_request",
     ]

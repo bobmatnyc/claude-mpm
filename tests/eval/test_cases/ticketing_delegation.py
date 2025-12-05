@@ -21,18 +21,14 @@ from ..metrics.instruction_faithfulness import InstructionFaithfulnessMetric
 class TestTicketingDelegation:
     """Test suite for ticketing delegation correctness."""
 
-    @pytest.mark.parametrize("scenario", [
-        pytest.param(
-            s,
-            id=s["id"]
-        )
-        for s in pytest.lazy_fixture("ticketing_scenarios")
-    ])
-    def test_ticketing_delegation_scenario(
-        self,
-        scenario,
-        save_evaluation_result
-    ):
+    @pytest.mark.parametrize(
+        "scenario",
+        [
+            pytest.param(s, id=s["id"])
+            for s in pytest.lazy_fixture("ticketing_scenarios")
+        ],
+    )
+    def test_ticketing_delegation_scenario(self, scenario, save_evaluation_result):
         """
         Test ticketing delegation for each scenario.
 
@@ -55,10 +51,7 @@ class TestTicketingDelegation:
         instruction_metric = InstructionFaithfulnessMetric(threshold=0.85)
 
         # Run evaluation
-        assert_test(
-            test_case,
-            metrics=[delegation_metric, instruction_metric]
-        )
+        assert_test(test_case, metrics=[delegation_metric, instruction_metric])
 
         # Save results for debugging
         result = {
@@ -68,7 +61,8 @@ class TestTicketingDelegation:
             "instruction_score": instruction_metric.score,
             "delegation_reason": delegation_metric.reason,
             "instruction_reason": instruction_metric.reason,
-            "passed": delegation_metric.is_successful() and instruction_metric.is_successful(),
+            "passed": delegation_metric.is_successful()
+            and instruction_metric.is_successful(),
         }
         save_evaluation_result(f"ticketing_{scenario['id']}", result)
 
@@ -265,9 +259,7 @@ class TestTicketingDelegationAsync:
     """Async test cases for ticketing delegation."""
 
     async def test_async_ticketing_delegation(
-        self,
-        async_pm_response_generator,
-        ticketing_scenarios
+        self, async_pm_response_generator, ticketing_scenarios
     ):
         """
         Test async PM response generation and evaluation.
@@ -278,8 +270,7 @@ class TestTicketingDelegationAsync:
 
         # Generate PM response (this would call actual PM agent)
         response = await async_pm_response_generator(
-            prompt=scenario["input"],
-            context={"expected_agent": "ticketing"}
+            prompt=scenario["input"], context={"expected_agent": "ticketing"}
         )
 
         # Create test case
@@ -305,8 +296,7 @@ class TestTicketingDelegationEdgeCases:
         PM should delegate ALL operations to ticketing agent.
         """
         scenario = next(
-            s for s in ticketing_scenarios
-            if s["id"] == "mixed_ticket_keywords"
+            s for s in ticketing_scenarios if s["id"] == "mixed_ticket_keywords"
         )
 
         # Correct: Multiple delegations to ticketing

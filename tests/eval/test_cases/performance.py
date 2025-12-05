@@ -89,7 +89,8 @@ class PerformanceTracker:
         # Keep only last 30 days
         cutoff = datetime.now().timestamp() - (30 * 24 * 60 * 60)
         history = [
-            run for run in history
+            run
+            for run in history
             if datetime.fromisoformat(run["timestamp"]).timestamp() > cutoff
         ]
 
@@ -240,10 +241,7 @@ class TestPMAgentPerformance:
         start_time = time.perf_counter()
 
         # Execute requests concurrently
-        tasks = [
-            pm_agent.process_request(req)
-            for req in requests
-        ]
+        tasks = [pm_agent.process_request(req) for req in requests]
         responses = await asyncio.gather(*tasks)
 
         end_time = time.perf_counter()
@@ -369,9 +367,7 @@ class TestEvaluationMetricPerformance:
             metadata={"std_dev": std_dev_ms},
         )
 
-        assert avg_time_ms < 200, (
-            f"Metric evaluation too slow: {avg_time_ms:.2f}ms"
-        )
+        assert avg_time_ms < 200, f"Metric evaluation too slow: {avg_time_ms:.2f}ms"
 
         print(f"\nInstruction Faithfulness: {avg_time_ms:.2f}ms ± {std_dev_ms:.2f}ms")
 
@@ -477,9 +473,7 @@ class TestMemoryUsage:
             metadata={"response_size_bytes": initial_size},
         )
 
-        assert overhead_ratio < 3.0, (
-            f"Memory overhead too high: {overhead_ratio:.2f}x"
-        )
+        assert overhead_ratio < 3.0, f"Memory overhead too high: {overhead_ratio:.2f}x"
 
         print(f"\nCapture Memory Overhead: {overhead_ratio:.2f}x")
 
@@ -537,7 +531,9 @@ def test_generate_performance_report(performance_tracker):
     # Save report to file
     report_file = Path("tests/eval/performance_report.txt")
     with open(report_file, "w") as f:
-        f.write(f"Performance Report - {performance_tracker.current_run['timestamp']}\n")
+        f.write(
+            f"Performance Report - {performance_tracker.current_run['timestamp']}\n"
+        )
         f.write("=" * 70 + "\n\n")
         for category, cat_metrics in by_category.items():
             f.write(f"{category.upper()}\n")

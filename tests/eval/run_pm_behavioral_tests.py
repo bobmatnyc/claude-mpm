@@ -69,47 +69,46 @@ Severity Levels:
   high     - Important requirements (indicates training issue)
   medium   - Best practice violations (should be corrected)
   low      - Nice-to-have behaviors (informational)
-        """
+        """,
     )
 
     parser.add_argument(
         "--category",
-        choices=["delegation", "tools", "circuit_breaker", "workflow",
-                 "evidence", "file_tracking", "memory", "all"],
+        choices=[
+            "delegation",
+            "tools",
+            "circuit_breaker",
+            "workflow",
+            "evidence",
+            "file_tracking",
+            "memory",
+            "all",
+        ],
         default="all",
-        help="Test category to run (default: all)"
+        help="Test category to run (default: all)",
     )
 
     parser.add_argument(
         "--severity",
         choices=["critical", "high", "medium", "low", "all"],
         default="all",
-        help="Test severity filter (default: all)"
+        help="Test severity filter (default: all)",
     )
 
     parser.add_argument(
-        "--report",
-        action="store_true",
-        help="Generate HTML compliance report"
+        "--report", action="store_true", help="Generate HTML compliance report"
     )
 
     parser.add_argument(
         "--release-check",
         action="store_true",
-        help="Run as part of release process (exit non-zero on any failure)"
+        help="Run as part of release process (exit non-zero on any failure)",
     )
 
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output"
-    )
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     parser.add_argument(
-        "--list-tests",
-        action="store_true",
-        help="List all available tests and exit"
+        "--list-tests", action="store_true", help="List all available tests and exit"
     )
 
     args = parser.parse_args()
@@ -130,7 +129,9 @@ Severity Levels:
     print("=" * 70 + "\n")
 
     # Build pytest command
-    test_file = Path(__file__).parent / "test_cases" / "test_pm_behavioral_compliance.py"
+    test_file = (
+        Path(__file__).parent / "test_cases" / "test_pm_behavioral_compliance.py"
+    )
 
     cmd = [
         "pytest",
@@ -197,7 +198,9 @@ Severity Levels:
 
 def list_available_tests():
     """List all available test scenarios."""
-    scenarios_file = Path(__file__).parent / "scenarios" / "pm_behavioral_requirements.json"
+    scenarios_file = (
+        Path(__file__).parent / "scenarios" / "pm_behavioral_requirements.json"
+    )
 
     with open(scenarios_file) as f:
         data = json.load(f)
@@ -267,8 +270,12 @@ def generate_compliance_report(exit_code: int, args: argparse.Namespace):
             f.write("**WARNING:** PM behavioral compliance violations detected.\n\n")
             f.write("Review the detailed HTML report for specific violations.\n\n")
             f.write("Common violation categories:\n")
-            f.write("- **Circuit Breaker Violations:** PM performing work directly instead of delegating\n")
-            f.write("- **Evidence Violations:** Making claims without verification evidence\n")
+            f.write(
+                "- **Circuit Breaker Violations:** PM performing work directly instead of delegating\n"
+            )
+            f.write(
+                "- **Evidence Violations:** Making claims without verification evidence\n"
+            )
             f.write("- **Tool Misuse:** Using incorrect tools for tasks\n")
             f.write("- **Workflow Violations:** Skipping mandatory phases\n\n")
 
@@ -291,17 +298,15 @@ def generate_compliance_report(exit_code: int, args: argparse.Namespace):
 
 def load_test_stats() -> Dict[str, Any]:
     """Load test statistics from scenarios file."""
-    scenarios_file = Path(__file__).parent / "scenarios" / "pm_behavioral_requirements.json"
+    scenarios_file = (
+        Path(__file__).parent / "scenarios" / "pm_behavioral_requirements.json"
+    )
 
     with open(scenarios_file) as f:
         data = json.load(f)
         scenarios = data["scenarios"]
 
-    stats = {
-        "total": len(scenarios),
-        "by_category": {},
-        "by_severity": {}
-    }
+    stats = {"total": len(scenarios), "by_category": {}, "by_severity": {}}
 
     for scenario in scenarios:
         category = scenario["category"]

@@ -29,6 +29,7 @@ from typing import Any, Callable, Dict, List, Optional
 @dataclass
 class PMResponseMetadata:
     """Metadata for captured PM response."""
+
     scenario_id: str
     timestamp: str
     pm_version: str
@@ -40,6 +41,7 @@ class PMResponseMetadata:
 @dataclass
 class PMResponse:
     """Captured PM agent response with full context."""
+
     scenario_id: str
     input: str
     response: Dict[str, Any]
@@ -147,10 +149,7 @@ class PMResponseCapture:
                 pm_response = self._redact_dict(pm_response, redact_fn)
             else:
                 input_text = self._default_redact(input_text)
-                pm_response = self._redact_dict(
-                    pm_response,
-                    self._default_redact
-                )
+                pm_response = self._redact_dict(pm_response, self._default_redact)
 
         # Generate input hash for change detection
         input_hash = hashlib.sha256(input_text.encode()).hexdigest()[:16]
@@ -260,9 +259,7 @@ class PMResponseCapture:
                 search_dirs.append(category_dir)
         else:
             # Search all category directories
-            search_dirs = [
-                d for d in self.responses_dir.iterdir() if d.is_dir()
-            ]
+            search_dirs = [d for d in self.responses_dir.iterdir() if d.is_dir()]
 
         for directory in search_dirs:
             pattern = f"{scenario_id}_*.json" if scenario_id else "*.json"
@@ -274,10 +271,7 @@ class PMResponseCapture:
                     print(f"Warning: Failed to load {filepath}: {e}")
 
         # Sort by timestamp, newest first
-        responses.sort(
-            key=lambda r: r.metadata.timestamp,
-            reverse=True
-        )
+        responses.sort(key=lambda r: r.metadata.timestamp, reverse=True)
 
         return responses
 
@@ -295,32 +289,30 @@ class PMResponseCapture:
 
         # Redact email addresses
         text = re.sub(
-            r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            '[REDACTED_EMAIL]',
-            text
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+            "[REDACTED_EMAIL]",
+            text,
         )
 
         # Redact API keys (common patterns)
         text = re.sub(
             r'(?:api[_-]?key|token|secret)[\s:=]+[\'"]?([A-Za-z0-9_\-]{20,})[\'"]?',
-            r'\1=[REDACTED_KEY]',
+            r"\1=[REDACTED_KEY]",
             text,
-            flags=re.IGNORECASE
+            flags=re.IGNORECASE,
         )
 
         # Redact URLs with potential secrets
         text = re.sub(
-            r'https?://[^\s]+\?[^\s]*(?:token|key|secret)=[^\s&]+',
-            '[REDACTED_URL]',
-            text
+            r"https?://[^\s]+\?[^\s]*(?:token|key|secret)=[^\s&]+",
+            "[REDACTED_URL]",
+            text,
         )
 
         return text
 
     def _redact_dict(
-        self,
-        data: Dict[str, Any],
-        redact_fn: Callable[[str], str]
+        self, data: Dict[str, Any], redact_fn: Callable[[str], str]
     ) -> Dict[str, Any]:
         """Recursively redact strings in dictionary."""
         result = {}
@@ -332,8 +324,10 @@ class PMResponseCapture:
                 result[key] = self._redact_dict(value, redact_fn)
             elif isinstance(value, list):
                 result[key] = [
-                    self._redact_dict(item, redact_fn) if isinstance(item, dict)
-                    else redact_fn(item) if isinstance(item, str)
+                    self._redact_dict(item, redact_fn)
+                    if isinstance(item, dict)
+                    else redact_fn(item)
+                    if isinstance(item, str)
                     else item
                     for item in value
                 ]
@@ -407,7 +401,7 @@ def capture_pm_response(
     input_text: str,
     pm_response: Dict[str, Any],
     category: str = "general",
-    **kwargs
+    **kwargs,
 ) -> PMResponse:
     """
     Convenience function to capture PM response.
@@ -430,9 +424,7 @@ def capture_pm_response(
 
 
 def load_pm_response(
-    scenario_id: str,
-    category: str = "general",
-    **kwargs
+    scenario_id: str, category: str = "general", **kwargs
 ) -> Optional[PMResponse]:
     """
     Convenience function to load captured PM response.

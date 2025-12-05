@@ -171,8 +171,12 @@ def test_quickstart_multiple_metrics():
     delegation_score = delegation_metric.measure(test_case)
 
     print("\n📈 Multi-Metric Evaluation:")
-    print(f"   Instruction Faithfulness: {instruction_score:.2f} - {instruction_metric.reason}")
-    print(f"   Delegation Correctness: {delegation_score:.2f} - {delegation_metric.reason}")
+    print(
+        f"   Instruction Faithfulness: {instruction_score:.2f} - {instruction_metric.reason}"
+    )
+    print(
+        f"   Delegation Correctness: {delegation_score:.2f} - {delegation_metric.reason}"
+    )
 
     assert instruction_score >= 0.85, "Should pass instruction faithfulness"
     assert delegation_score >= 0.9, "Should pass delegation correctness"
@@ -181,9 +185,9 @@ def test_quickstart_multiple_metrics():
 
 if __name__ == "__main__":
     """Run quick demos directly."""
-    print("="*60)
+    print("=" * 60)
     print("DeepEval Framework Quick-Start Demo")
-    print("="*60)
+    print("=" * 60)
 
     print("\n1. Testing Correct Delegation...")
     test_quickstart_correct_delegation()
@@ -197,6 +201,6 @@ if __name__ == "__main__":
     print("\n4. Testing Multiple Metrics...")
     test_quickstart_multiple_metrics()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("✅ All demos completed successfully!")
-    print("="*60)
+    print("=" * 60)

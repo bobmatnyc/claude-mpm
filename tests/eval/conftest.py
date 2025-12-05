@@ -24,6 +24,7 @@ from .utils.response_replay import ResponseReplay
 # PYTEST CONFIGURATION
 # ============================================================================
 
+
 def pytest_configure(config):
     """Register custom markers for integration tests."""
     config.addinivalue_line(
@@ -100,6 +101,7 @@ def load_scenario_file(scenarios_dir: Path):
     Usage:
         scenarios = load_scenario_file("ticketing_scenarios.json")
     """
+
     def _load(filename: str) -> Dict[str, Any]:
         file_path = scenarios_dir / filename
         if not file_path.exists():
@@ -137,12 +139,13 @@ def mock_pm_response():
             assertions=["Ticket created successfully"]
         )
     """
+
     def _create_response(
         used_tools: Optional[List[str]] = None,
         delegated_to: Optional[str] = None,
         assertions: Optional[List[str]] = None,
         evidence: Optional[Dict[str, Any]] = None,
-        response_text: str = ""
+        response_text: str = "",
     ) -> Dict[str, Any]:
         return {
             "used_tools": used_tools or [],
@@ -163,18 +166,18 @@ def pm_correct_delegation_response(mock_pm_response):
         delegated_to="ticketing",
         assertions=[
             "ticketing agent verified ticket creation",
-            "Ticket ID: MPM-123 created successfully"
+            "Ticket ID: MPM-123 created successfully",
         ],
         evidence={
             "agent": "ticketing",
             "tool_used": "mcp__mcp-ticketer__ticket",
-            "result": {"status": "success", "ticket_id": "MPM-123"}
+            "result": {"status": "success", "ticket_id": "MPM-123"},
         },
         response_text=(
             "I've delegated ticket creation to the ticketing agent. "
             "ticketing agent verified: Ticket MPM-123 created successfully "
             "with high priority and authentication tag."
-        )
+        ),
     )
 
 
@@ -189,7 +192,7 @@ def pm_violation_response(mock_pm_response):
         response_text=(
             "I checked the ticket directly using mcp-ticketer. "
             "The ticket looks good and the issue is complete."
-        )
+        ),
     )
 
 
@@ -241,6 +244,7 @@ async def async_pm_response_generator():
 
     Useful for testing real-time PM behavior simulation.
     """
+
     async def _generate(prompt: str, context: Optional[Dict[str, Any]] = None):
         # This would integrate with actual PM agent in future
         # For now, return mock response structure
@@ -251,7 +255,7 @@ async def async_pm_response_generator():
             "metadata": {
                 "tools_called": [],
                 "delegation_occurred": False,
-            }
+            },
         }
 
     return _generate
@@ -271,6 +275,7 @@ def save_evaluation_result(evaluation_results_dir):
     Usage:
         save_evaluation_result("test_name", result_dict)
     """
+
     def _save(test_name: str, result: Dict[str, Any]):
         output_file = evaluation_results_dir / f"{test_name}.json"
         with open(output_file, "w") as f:
@@ -283,6 +288,7 @@ def save_evaluation_result(evaluation_results_dir):
 # ============================================================================
 # INTEGRATION TEST FIXTURES
 # ============================================================================
+
 
 @pytest.fixture
 def pm_endpoint(request):
@@ -369,6 +375,7 @@ async def pm_agent(pm_endpoint, pm_api_key):
     Usage:
         response = await pm_agent.process_request("create ticket for bug")
     """
+
     class MockPMAgent:
         """Mock PM agent for testing with delegation authority."""
 
@@ -433,14 +440,16 @@ async def pm_agent(pm_endpoint, pm_api_key):
                             return agent
 
             # Default fallback to engineer if available
-            return "engineer" if "engineer" in self.available_agents else (
-                self.available_agents[0] if self.available_agents else "ticketing"
+            return (
+                "engineer"
+                if "engineer" in self.available_agents
+                else (
+                    self.available_agents[0] if self.available_agents else "ticketing"
+                )
             )
 
         async def process_request(
-            self,
-            input_text: str,
-            context: Optional[Dict[str, Any]] = None
+            self, input_text: str, context: Optional[Dict[str, Any]] = None
         ) -> Dict[str, Any]:
             """Process request through PM agent with intelligent delegation."""
             # Select appropriate agent
@@ -449,25 +458,26 @@ async def pm_agent(pm_endpoint, pm_api_key):
             return {
                 "content": f"I'll delegate this to {selected_agent} agent: {input_text}",
                 "tools_used": ["Task"],
-                "delegations": [{
-                    "agent": selected_agent,
-                    "task": input_text,
-                    "available_agents": self.available_agents,
-                }],
+                "delegations": [
+                    {
+                        "agent": selected_agent,
+                        "task": input_text,
+                        "available_agents": self.available_agents,
+                    }
+                ],
                 "metadata": {
                     "endpoint": self.endpoint,
                     "timestamp": "2025-12-05T17:30:00Z",
-                    "delegation_reasoning": f"Selected {selected_agent} as most specialized for this work"
-                }
+                    "delegation_reasoning": f"Selected {selected_agent} as most specialized for this work",
+                },
             }
 
         def process_request_sync(
-            self,
-            input_text: str,
-            context: Optional[Dict[str, Any]] = None
+            self, input_text: str, context: Optional[Dict[str, Any]] = None
         ) -> Dict[str, Any]:
             """Synchronous version for non-async tests."""
             import asyncio
+
             loop = asyncio.get_event_loop()
             return loop.run_until_complete(self.process_request(input_text, context))
 
@@ -525,6 +535,7 @@ def pm_test_helper(
         )
         assert not result.regression_detected
     """
+
     class PMTestHelper:
         def __init__(self):
             self.agent = pm_agent

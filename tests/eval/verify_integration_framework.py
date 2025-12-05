@@ -14,9 +14,9 @@ from pathlib import Path
 
 def print_section(title: str):
     """Print section header."""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"  {title}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
 
 def check_imports():
@@ -30,6 +30,7 @@ def check_imports():
             PMResponseCapture,
             PMResponseMetadata,
         )
+
         print("✓ pm_response_capture imports successful")
     except ImportError as e:
         print(f"✗ pm_response_capture import failed: {e}")
@@ -42,6 +43,7 @@ def check_imports():
             ResponseComparison,
             ResponseReplay,
         )
+
         print("✓ response_replay imports successful")
     except ImportError as e:
         print(f"✗ response_replay import failed: {e}")
@@ -49,6 +51,7 @@ def check_imports():
 
     try:
         from tests.eval.test_cases import integration_ticketing
+
         print("✓ integration_ticketing imports successful")
     except ImportError as e:
         print(f"✗ integration_ticketing import failed: {e}")
@@ -56,6 +59,7 @@ def check_imports():
 
     try:
         from tests.eval.test_cases import performance
+
         print("✓ performance imports successful")
     except ImportError as e:
         print(f"✗ performance import failed: {e}")
@@ -99,6 +103,7 @@ def test_response_capture():
         import tempfile
 
         from tests.eval.utils.pm_response_capture import PMResponseCapture
+
         with tempfile.TemporaryDirectory() as tmpdir:
             capture = PMResponseCapture(responses_dir=tmpdir)
 
@@ -134,6 +139,7 @@ def test_response_capture():
     except Exception as e:
         print(f"✗ Response capture test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -152,6 +158,7 @@ def test_response_replay():
             PMResponseMetadata,
         )
         from tests.eval.utils.response_replay import ResponseReplay
+
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create responses directory
             responses_dir = Path(tmpdir) / "responses"
@@ -215,6 +222,7 @@ def test_response_replay():
     except Exception as e:
         print(f"✗ Response replay test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -292,9 +300,9 @@ def count_tests():
 
 def main():
     """Run all verification checks."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("  Integration Testing Framework Verification")
-    print("="*70)
+    print("=" * 70)
 
     checks = [
         ("Import Check", check_imports),
@@ -313,6 +321,7 @@ def main():
         except Exception as e:
             print(f"\n✗ {name} failed with exception: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((name, False))
 
@@ -326,17 +335,21 @@ def main():
         status = "✓ PASS" if success else "✗ FAIL"
         print(f"{status}: {name}")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"  Results: {passed}/{total} checks passed")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
     if passed == total:
         print("✓ All verification checks passed!")
         print("\nIntegration testing framework is ready to use.")
         print("\nNext steps:")
         print("1. Review README_INTEGRATION.md for usage guide")
-        print("2. Run unit tests: pytest tests/eval/test_cases/ -m 'not integration' -v")
-        print("3. Test with mock PM: pytest tests/eval/test_cases/integration_ticketing.py -m integration -v")
+        print(
+            "2. Run unit tests: pytest tests/eval/test_cases/ -m 'not integration' -v"
+        )
+        print(
+            "3. Test with mock PM: pytest tests/eval/test_cases/integration_ticketing.py -m integration -v"
+        )
         print("4. Configure real PM agent and run integration tests")
         return 0
     print(f"✗ {total - passed} check(s) failed.")

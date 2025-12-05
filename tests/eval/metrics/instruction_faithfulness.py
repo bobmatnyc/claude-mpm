@@ -38,7 +38,7 @@ class InstructionFaithfulnessMetric(BaseMetric):
         self,
         threshold: float = 0.85,
         strict_mode: bool = False,
-        include_async: bool = True
+        include_async: bool = True,
     ):
         """
         Initialize InstructionFaithfulnessMetric.
@@ -78,9 +78,7 @@ class InstructionFaithfulnessMetric(BaseMetric):
 
         # Weighted average
         base_score = (
-            tool_usage_score * 0.3 +
-            evidence_score * 0.3 +
-            delegation_score * 0.4
+            tool_usage_score * 0.3 + evidence_score * 0.3 + delegation_score * 0.4
         )
 
         # Apply violation penalty
@@ -155,22 +153,19 @@ class InstructionFaithfulnessMetric(BaseMetric):
 
         if analysis.evidence_quality_score < 1.0:
             unverified = sum(1 for a in analysis.assertions if not a.has_evidence)
-            reasons.append(
-                f"{unverified} unverified assertions found"
-            )
+            reasons.append(f"{unverified} unverified assertions found")
 
         if analysis.delegation_correctness_score < 1.0:
             reasons.append("Delegation issues detected")
 
         tool_violations = [
-            t for t in analysis.tools_used
+            t
+            for t in analysis.tools_used
             if t.tool_name in ["Edit", "Write", "mcp_ticketer"]
         ]
         if tool_violations:
             tool_names = [t.tool_name for t in tool_violations]
-            reasons.append(
-                f"Forbidden tools used: {', '.join(set(tool_names))}"
-            )
+            reasons.append(f"Forbidden tools used: {', '.join(set(tool_names))}")
 
         if not reasons:
             return "Perfect instruction compliance - no violations found"
@@ -217,8 +212,7 @@ class StrictInstructionFaithfulnessMetric(InstructionFaithfulnessMetric):
 
 
 def create_instruction_faithfulness_metric(
-    threshold: float = 0.85,
-    strict: bool = False
+    threshold: float = 0.85, strict: bool = False
 ) -> InstructionFaithfulnessMetric:
     """
     Factory function to create instruction faithfulness metric.

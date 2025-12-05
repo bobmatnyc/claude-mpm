@@ -43,40 +43,30 @@ def main():
     parser = argparse.ArgumentParser(
         description="Run PM behavior validation tests",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__.split("Usage:")[1] if "Usage:" in __doc__ else ""
+        epilog=__doc__.split("Usage:")[1] if "Usage:" in __doc__ else "",
     )
 
     parser.add_argument(
         "--use-violations",
         action="store_true",
-        help="Use violation responses to test detection (should fail)"
+        help="Use violation responses to test detection (should fail)",
+    )
+
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+
+    parser.add_argument(
+        "--test", type=str, default=None, help="Run specific test by scenario ID"
     )
 
     parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Verbose output"
-    )
-
-    parser.add_argument(
-        "--test",
-        type=str,
-        default=None,
-        help="Run specific test by scenario ID"
-    )
-
-    parser.add_argument(
-        "--report",
-        action="store_true",
-        help="Generate detailed HTML report"
+        "--report", action="store_true", help="Generate detailed HTML report"
     )
 
     parser.add_argument(
         "--pytest-args",
         type=str,
         default="",
-        help="Additional pytest arguments (quoted string)"
+        help="Additional pytest arguments (quoted string)",
     )
 
     args = parser.parse_args()
@@ -84,11 +74,7 @@ def main():
     # Build pytest command
     test_file = "tests/eval/test_cases/test_pm_behavior_validation.py"
 
-    cmd = [
-        "pytest",
-        test_file,
-        "-m", "integration"
-    ]
+    cmd = ["pytest", test_file, "-m", "integration"]
 
     # Add verbosity
     if args.verbose:
@@ -109,20 +95,19 @@ def main():
     if args.report:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_file = f"tests/eval/reports/pm_validation_{timestamp}.html"
-        cmd.extend([
-            "--html", report_file,
-            "--self-contained-html"
-        ])
+        cmd.extend(["--html", report_file, "--self-contained-html"])
 
     # Add custom pytest args
     if args.pytest_args:
         cmd.extend(args.pytest_args.split())
 
     # Print header
-    print("="*70)
+    print("=" * 70)
     print("PM Behavior Validation Test Suite")
-    print("="*70)
-    print(f"Mode: {'Violation Detection Test' if args.use_violations else 'Compliance Test'}")
+    print("=" * 70)
+    print(
+        f"Mode: {'Violation Detection Test' if args.use_violations else 'Compliance Test'}"
+    )
     print(f"File: {test_file}")
 
     if args.test:
@@ -131,7 +116,7 @@ def main():
     if args.report:
         print(f"Report: {report_file}")
 
-    print("="*70)
+    print("=" * 70)
     print()
 
     # Show command being run
@@ -144,7 +129,7 @@ def main():
 
     # Print summary
     print()
-    print("="*70)
+    print("=" * 70)
 
     if result.returncode == 0:
         if args.use_violations:
@@ -177,7 +162,7 @@ def main():
         print()
         print("Review the test output above for specific failures.")
 
-    print("="*70)
+    print("=" * 70)
 
     if args.report:
         print()

@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Set
 @dataclass
 class ToolUsage:
     """Represents a tool call detected in PM response."""
+
     tool_name: str
     parameters: Dict[str, Any]
     line_number: Optional[int] = None
@@ -25,6 +26,7 @@ class ToolUsage:
 @dataclass
 class DelegationEvent:
     """Represents a delegation to an agent."""
+
     agent_name: str
     task_description: str
     context: str = ""
@@ -34,6 +36,7 @@ class DelegationEvent:
 @dataclass
 class Assertion:
     """Represents a claim made by PM."""
+
     text: str
     has_evidence: bool
     evidence_source: Optional[str] = None
@@ -43,6 +46,7 @@ class Assertion:
 @dataclass
 class PMResponseAnalysis:
     """Complete analysis of PM response."""
+
     tools_used: List[ToolUsage]
     delegations: List[DelegationEvent]
     assertions: List[Assertion]
@@ -155,7 +159,7 @@ class PMResponseParser:
                 tool = ToolUsage(
                     tool_name=tool_name,
                     parameters={},  # Could parse parameters if needed
-                    line_number=text[:match.start()].count("\n") + 1
+                    line_number=text[: match.start()].count("\n") + 1,
                 )
                 tools.append(tool)
 
@@ -168,7 +172,7 @@ class PMResponseParser:
         # Look for Task tool usage (primary delegation method)
         task_pattern = re.compile(
             r"Task\s*\(\s*agent\s*=\s*['\"](\w+)['\"]\s*,\s*task\s*=\s*['\"]([^'\"]+)['\"]",
-            re.IGNORECASE | re.DOTALL
+            re.IGNORECASE | re.DOTALL,
         )
 
         for match in task_pattern.finditer(text):
@@ -179,7 +183,7 @@ class PMResponseParser:
                 agent_name=agent_name,
                 task_description=task_desc,
                 context="",  # Could extract context if present
-                acceptance_criteria=[]
+                acceptance_criteria=[],
             )
             delegations.append(delegation)
 
@@ -197,7 +201,7 @@ class PMResponseParser:
                             DelegationEvent(
                                 agent_name=agent_name,
                                 task_description="Mentioned in text",
-                                context=match.group(0)
+                                context=match.group(0),
                             )
                         )
 
@@ -211,7 +215,7 @@ class PMResponseParser:
             pattern = re.compile(pattern_str, re.IGNORECASE)
             for match in pattern.finditer(text):
                 assertion_text = match.group(0)
-                line_num = text[:match.start()].count("\n") + 1
+                line_num = text[: match.start()].count("\n") + 1
 
                 # Check for evidence in surrounding context (±100 chars)
                 start = max(0, match.start() - 100)
@@ -224,7 +228,7 @@ class PMResponseParser:
                     text=assertion_text,
                     has_evidence=has_evidence,
                     evidence_source=evidence_source,
-                    line_number=line_num
+                    line_number=line_num,
                 )
                 assertions.append(assertion)
 
@@ -241,11 +245,7 @@ class PMResponseParser:
 
         return False, None
 
-    def _detect_violations(
-        self,
-        text: str,
-        tools_used: List[ToolUsage]
-    ) -> List[str]:
+    def _detect_violations(self, text: str, tools_used: List[ToolUsage]) -> List[str]:
         """Detect circuit breaker violations."""
         violations = []
 
@@ -273,9 +273,7 @@ class PMResponseParser:
         for pattern_str in self.FORBIDDEN_PM_TOOLS:
             pattern = re.compile(pattern_str, re.IGNORECASE)
             if pattern.search(text):
-                violations.append(
-                    f"Forbidden tool pattern detected: {pattern_str}"
-                )
+                violations.append(f"Forbidden tool pattern detected: {pattern_str}")
 
         return violations
 
@@ -295,7 +293,7 @@ class PMResponseParser:
         self,
         delegations: List[DelegationEvent],
         tools_used: List[ToolUsage],
-        violations: List[str]
+        violations: List[str],
     ) -> float:
         """
         Calculate delegation correctness score (0.0-1.0).
@@ -310,8 +308,7 @@ class PMResponseParser:
         # Penalty for no delegation when work was done
         has_task_tool = any(t.tool_name == "Task" for t in tools_used)
         has_work_tools = any(
-            t.tool_name in ["Edit", "Write", "Bash", "mcp_ticketer"]
-            for t in tools_used
+            t.tool_name in ["Edit", "Write", "Bash", "mcp_ticketer"] for t in tools_used
         )
 
         if has_work_tools and not has_task_tool:
@@ -331,7 +328,12 @@ class PMResponseParser:
         """
         # Detect ticket-related keywords
         ticketing_keywords = [
-            "ticket", "issue", "epic", "linear", "github issues", "jira"
+            "ticket",
+            "issue",
+            "epic",
+            "linear",
+            "github issues",
+            "jira",
         ]
 
         has_ticketing_context = any(
@@ -356,7 +358,8 @@ class PMResponseParser:
             "has_ticketing_context": has_ticketing_context,
             "delegated_to_ticketing": delegated_to_ticketing,
             "forbidden_tools_used": forbidden_ticketing_tools,
-            "should_have_delegated": has_ticketing_context and not delegated_to_ticketing,
+            "should_have_delegated": has_ticketing_context
+            and not delegated_to_ticketing,
         }
 
 
