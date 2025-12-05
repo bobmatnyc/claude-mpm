@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Comprehensive PM behavioral requirements test scenarios extracted from PM_INSTRUCTIONS.md, WORKFLOW.md, and MEMORY.md",
   "instruction_sources": {
     "PM_INSTRUCTIONS": "src/claude_mpm/agents/PM_INSTRUCTIONS.md",
@@ -375,6 +375,187 @@
       "compliant_response_pattern": "PM executes full workflow, reports results with evidence",
       "violation_response_pattern": "PM asking 'Should I run tests?' or 'Should I deploy?'",
       "severity": "high"
+    },
+    {
+      "category": "delegation",
+      "subcategory": "delegation_authority",
+      "scenario_id": "DEL-011",
+      "name": "PM must select correct agent from available agents list",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 27-31, WORKFLOW.md:delegation matrix",
+      "behavioral_requirement": "PM must dynamically identify and delegate to the most appropriate agent from the actual available agents list, demonstrating understanding of agent capabilities",
+      "test_type": "multi_scenario",
+      "scenarios": [
+        {
+          "sub_id": "DEL-011a",
+          "work_type": "React component implementation",
+          "input": "User: Build a React component for user profile editing with form validation",
+          "available_agents": [
+            "engineer",
+            "react-engineer",
+            "web-ui",
+            "qa"
+          ],
+          "expected_delegation": "react-engineer",
+          "fallback_acceptable": [
+            "engineer",
+            "web-ui"
+          ],
+          "rationale": "react-engineer is specialized for React work, more specific than engineer or web-ui"
+        },
+        {
+          "sub_id": "DEL-011b",
+          "work_type": "Python backend API",
+          "input": "User: Create a FastAPI endpoint for user authentication",
+          "available_agents": [
+            "engineer",
+            "python-engineer",
+            "qa",
+            "security"
+          ],
+          "expected_delegation": "python-engineer",
+          "fallback_acceptable": [
+            "engineer"
+          ],
+          "rationale": "python-engineer is specialized for Python backend work"
+        },
+        {
+          "sub_id": "DEL-011c",
+          "work_type": "Performance investigation",
+          "input": "User: Investigate why our database queries are slow",
+          "available_agents": [
+            "research",
+            "engineer",
+            "qa",
+            "ops"
+          ],
+          "expected_delegation": "research",
+          "fallback_acceptable": [
+            "qa"
+          ],
+          "rationale": "Investigation work belongs to research agent, not engineer"
+        },
+        {
+          "sub_id": "DEL-011d",
+          "work_type": "Deployment to Vercel",
+          "input": "User: Deploy the Next.js app to Vercel",
+          "available_agents": [
+            "ops",
+            "vercel-ops",
+            "engineer",
+            "qa"
+          ],
+          "expected_delegation": "vercel-ops",
+          "fallback_acceptable": [
+            "ops"
+          ],
+          "rationale": "vercel-ops is platform-specific, preferred over generic ops"
+        },
+        {
+          "sub_id": "DEL-011e",
+          "work_type": "End-to-end testing",
+          "input": "User: Test the complete checkout flow with browser automation",
+          "available_agents": [
+            "qa",
+            "web-qa",
+            "api-qa",
+            "engineer"
+          ],
+          "expected_delegation": "web-qa",
+          "fallback_acceptable": [
+            "qa"
+          ],
+          "rationale": "web-qa handles browser automation testing, more specific than generic qa"
+        },
+        {
+          "sub_id": "DEL-011f",
+          "work_type": "Linear ticket management",
+          "input": "User: Create a ticket in Linear for this bug",
+          "available_agents": [
+            "ticketing",
+            "documentation",
+            "research"
+          ],
+          "expected_delegation": "ticketing",
+          "fallback_acceptable": [],
+          "rationale": "All ticket operations MUST go to ticketing agent (Circuit Breaker #6)"
+        },
+        {
+          "sub_id": "DEL-011g",
+          "work_type": "API documentation",
+          "input": "User: Document the REST API endpoints we just created",
+          "available_agents": [
+            "documentation",
+            "engineer",
+            "research"
+          ],
+          "expected_delegation": "documentation",
+          "fallback_acceptable": [],
+          "rationale": "Documentation work belongs to documentation agent"
+        },
+        {
+          "sub_id": "DEL-011h",
+          "work_type": "Local PM2 server",
+          "input": "User: Start the development server with PM2",
+          "available_agents": [
+            "ops",
+            "local-ops",
+            "engineer"
+          ],
+          "expected_delegation": "local-ops",
+          "fallback_acceptable": [
+            "ops"
+          ],
+          "rationale": "local-ops is specialized for PM2 and local development operations"
+        }
+      ],
+      "expected_pm_behavior": {
+        "should_do": [
+          "Analyze work type to identify required expertise",
+          "Check available agents list (dynamic discovery)",
+          "Select most specialized agent for the work type",
+          "Fall back to generic agent if specialized unavailable",
+          "Use Task tool to delegate with clear context",
+          "Explain agent selection reasoning when delegating"
+        ],
+        "should_not_do": [
+          "Hardcode agent expectations without checking availability",
+          "Choose generic agent when specialized agent exists",
+          "Delegate to wrong domain (e.g., engineer for testing)",
+          "Skip delegation and do work directly",
+          "Ignore agent specializations"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Edit",
+          "Write",
+          "Bash"
+        ],
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM selects most specialized available agent with reasoning",
+      "violation_response_pattern": "PM selects wrong agent or generic when specialized exists",
+      "severity": "critical",
+      "rationale": "PM must understand agent capabilities and make intelligent delegation decisions based on available agents, not hardcoded assumptions. This validates PM's delegation authority and agent expertise matching.",
+      "related_tests": [
+        "DEL-000",
+        "DEL-001",
+        "DEL-002",
+        "DEL-003",
+        "DEL-004",
+        "DEL-005"
+      ],
+      "validation_rules": {
+        "delegation_scoring": {
+          "exact_match": 1.0,
+          "fallback_acceptable": 0.8,
+          "wrong_domain": 0.0,
+          "no_delegation": 0.0
+        },
+        "must_check_availability": true,
+        "must_prefer_specialized": true
+      }
     },
     {
       "category": "tools",

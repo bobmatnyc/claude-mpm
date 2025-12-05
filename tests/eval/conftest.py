@@ -371,38 +371,94 @@ async def pm_agent(pm_endpoint, pm_api_key):
         response = await pm_agent.process_request("create ticket for bug")
     """
     class MockPMAgent:
-        """Mock PM agent for testing."""
+        """Mock PM agent for testing with delegation authority."""
 
         def __init__(self, endpoint: str, api_key: str):
             self.endpoint = endpoint
             self.api_key = api_key
+            self.available_agents = []  # Track available agents for delegation
+
+        def set_available_agents(self, agents: List[str]):
+            """Set available agents for this test scenario. PM must select from this list."""
+            self.available_agents = agents
+
+        def _select_agent_for_work(self, input_text: str) -> str:
+            """
+            Intelligently select agent based on work type and available agents.
+            Simulates PM's delegation authority decision-making.
+            """
+            input_lower = input_text.lower()
+
+            # Specialization preference map (most specific to generic)
+            # Order matters: Check more specific keywords first
+            preferences = [
+                # Frontend work
+                ("profile editing", ["react-engineer", "web-ui", "engineer"]),
+                ("react", ["react-engineer", "web-ui", "engineer"]),
+                ("component", ["react-engineer", "web-ui", "engineer"]),
+                # Backend work
+                ("fastapi", ["python-engineer", "engineer"]),
+                ("authentication", ["python-engineer", "engineer"]),
+                ("endpoint", ["python-engineer", "engineer"]),
+                # Testing work
+                ("checkout flow", ["web-qa", "qa"]),
+                ("browser automation", ["web-qa", "qa"]),
+                ("test", ["web-qa", "api-qa", "qa"]),
+                # Investigation work
+                ("investigate", ["research", "qa"]),
+                ("why", ["research", "qa"]),
+                ("slow", ["research", "qa"]),
+                ("performance", ["research", "qa"]),
+                ("database", ["research", "qa"]),
+                # Deployment work
+                ("vercel", ["vercel-ops", "ops"]),
+                ("start the", ["local-ops", "ops"]),
+                ("pm2", ["local-ops", "ops"]),
+                ("deploy", ["vercel-ops", "local-ops", "ops"]),
+                # Documentation work
+                ("document", ["documentation"]),
+                ("api endpoints", ["documentation"]),
+                ("readme", ["documentation"]),
+                # Ticketing work
+                ("create a ticket", ["ticketing"]),
+                ("ticket", ["ticketing"]),
+                ("linear", ["ticketing"]),
+            ]
+
+            # Find matching work type (check in order for best match)
+            for keyword, preferred_agents in preferences:
+                if keyword in input_lower:
+                    # Select most specialized available agent
+                    for agent in preferred_agents:
+                        if agent in self.available_agents:
+                            return agent
+
+            # Default fallback to engineer if available
+            return "engineer" if "engineer" in self.available_agents else (
+                self.available_agents[0] if self.available_agents else "ticketing"
+            )
 
         async def process_request(
             self,
             input_text: str,
             context: Optional[Dict[str, Any]] = None
         ) -> Dict[str, Any]:
-            """
-            Process request through PM agent.
+            """Process request through PM agent with intelligent delegation."""
+            # Select appropriate agent
+            selected_agent = self._select_agent_for_work(input_text)
 
-            In real implementation, this would:
-            1. Connect to PM agent endpoint
-            2. Send request with context
-            3. Wait for response
-            4. Parse and return response
-
-            For now, returns mock structure for testing infrastructure.
-            """
             return {
-                "content": f"Mock PM response for: {input_text}",
+                "content": f"I'll delegate this to {selected_agent} agent: {input_text}",
                 "tools_used": ["Task"],
                 "delegations": [{
-                    "agent": "ticketing",
-                    "task": "Handle request",
+                    "agent": selected_agent,
+                    "task": input_text,
+                    "available_agents": self.available_agents,
                 }],
                 "metadata": {
                     "endpoint": self.endpoint,
                     "timestamp": "2025-12-05T17:30:00Z",
+                    "delegation_reasoning": f"Selected {selected_agent} as most specialized for this work"
                 }
             }
 

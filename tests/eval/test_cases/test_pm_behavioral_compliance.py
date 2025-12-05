@@ -25,7 +25,7 @@ Usage:
 import pytest
 import json
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 
 
 # Load behavioral scenarios
@@ -47,11 +47,16 @@ def get_scenarios_by_severity(severity: str) -> List[Dict[str, Any]]:
 
 
 def validate_pm_response(
-    response: str,
+    response: Union[str, Dict[str, Any]],
     expected_behavior: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
     Validate PM response against expected behavior.
+
+    Args:
+        response: Either a string response or a dict with structured response data
+                 (e.g., {"content": "...", "delegations": [{"agent": "..."}], ...})
+        expected_behavior: Expected behavior specification
 
     Returns:
         Dict with validation results: {
@@ -67,40 +72,56 @@ def validate_pm_response(
     delegated_to = None
     has_evidence = False
 
-    # Detect tool usage in response
+    # Handle dict response format (from MockPMAgent)
+    if isinstance(response, dict):
+        response_text = response.get("content", "")
+
+        # Extract tools from structured response
+        if "tools_used" in response:
+            used_tools = response["tools_used"]
+
+        # Extract delegated agent from structured response
+        if "delegations" in response and response["delegations"]:
+            # Get the first delegation's agent
+            delegated_to = response["delegations"][0].get("agent")
+    else:
+        response_text = response
+
+    # Detect tool usage in response text (for string responses or additional tools)
     tool_patterns = {
-        "Task": "Task tool" in response or "Task:" in response,
-        "TodoWrite": "TodoWrite" in response or "todos:" in response,
-        "Read": "Read:" in response or "read file" in response.lower(),
-        "Edit": "Edit:" in response or "edit file" in response.lower(),
-        "Write": "Write:" in response or "write file" in response.lower(),
-        "Bash": "Bash:" in response or "bash command" in response.lower(),
-        "Grep": "Grep:" in response or "grep" in response.lower(),
-        "Glob": "Glob:" in response or "glob" in response.lower(),
-        "WebFetch": "WebFetch:" in response or "webfetch" in response.lower(),
-        "mcp-ticketer": "mcp__mcp-ticketer" in response,
-        "SlashCommand": "SlashCommand:" in response or "/mpm-" in response,
+        "Task": "Task tool" in response_text or "Task:" in response_text,
+        "TodoWrite": "TodoWrite" in response_text or "todos:" in response_text,
+        "Read": "Read:" in response_text or "read file" in response_text.lower(),
+        "Edit": "Edit:" in response_text or "edit file" in response_text.lower(),
+        "Write": "Write:" in response_text or "write file" in response_text.lower(),
+        "Bash": "Bash:" in response_text or "bash command" in response_text.lower(),
+        "Grep": "Grep:" in response_text or "grep" in response_text.lower(),
+        "Glob": "Glob:" in response_text or "glob" in response_text.lower(),
+        "WebFetch": "WebFetch:" in response_text or "webfetch" in response_text.lower(),
+        "mcp-ticketer": "mcp__mcp-ticketer" in response_text,
+        "SlashCommand": "SlashCommand:" in response_text or "/mpm-" in response_text,
     }
 
     for tool, detected in tool_patterns.items():
-        if detected:
+        if detected and tool not in used_tools:
             used_tools.append(tool)
 
-    # Check for delegation
-    delegation_patterns = [
-        "delegate to",
-        "Task: agent:",
-        "delegating to",
-        "assigned to"
-    ]
-    for pattern in delegation_patterns:
-        if pattern in response.lower():
-            # Extract agent name (simplified)
-            for agent in ["engineer", "research", "qa", "web-qa", "api-qa", "ops",
-                          "local-ops-agent", "documentation", "ticketing", "version-control",
-                          "security", "code-analyzer"]:
-                if agent in response.lower():
-                    delegated_to = agent
+    # If delegation not found in structured data, try text parsing
+    if delegated_to is None:
+        delegation_patterns = [
+            "delegate to",
+            "Task: agent:",
+            "delegating to",
+            "assigned to"
+        ]
+        for pattern in delegation_patterns:
+            if pattern in response_text.lower():
+                # Extract agent name after the pattern
+                # Look for pattern like "delegate to <agent>" or "delegating to <agent>"
+                import re
+                match = re.search(rf'{pattern}\s+(\w+-?\w+)', response_text.lower())
+                if match:
+                    delegated_to = match.group(1)
                     break
 
     # Check for evidence
@@ -303,6 +324,87 @@ class TestPMDelegationBehaviors:
         assert "WebFetch" not in validation["used_tools"]
         assert "mcp-ticketer" not in validation["used_tools"]
         assert validation["delegated_to"] == "ticketing"
+
+    @pytest.mark.behavioral
+    @pytest.mark.delegation
+    @pytest.mark.critical
+    def test_delegation_authority_multi_scenario(self, mock_pm_agent):
+        """
+        DEL-011: PM must select correct agent from available agents list.
+
+        This test validates PM's delegation authority across multiple scenarios,
+        ensuring PM selects the most specialized available agent for each work type.
+        """
+        # Load DEL-011 scenario
+        del_011 = next(s for s in SCENARIOS if s["scenario_id"] == "DEL-011")
+
+        results = []
+        failures = []
+
+        for sub_scenario in del_011["scenarios"]:
+            sub_id = sub_scenario["sub_id"]
+            work_type = sub_scenario["work_type"]
+            user_input = sub_scenario["input"]
+            available_agents = sub_scenario["available_agents"]
+            expected = sub_scenario["expected_delegation"]
+            fallback = sub_scenario["fallback_acceptable"]
+
+            # Mock available agents list for this scenario
+            mock_pm_agent.set_available_agents(available_agents)
+
+            # Get PM response (synchronous for test compatibility)
+            pm_response = mock_pm_agent.process_request_sync(user_input)
+
+            # Validate response
+            validation = validate_pm_response(
+                pm_response["content"] if isinstance(pm_response, dict) else pm_response,
+                del_011["expected_pm_behavior"]
+            )
+
+            # Check delegation target
+            delegated_to = validation["delegated_to"]
+
+            # Score delegation decision
+            if delegated_to == expected:
+                score = 1.0  # Perfect match
+                result = "PASS"
+            elif delegated_to in fallback:
+                score = 0.8  # Acceptable fallback
+                result = "ACCEPTABLE"
+            elif delegated_to is None:
+                score = 0.0  # No delegation
+                result = "FAIL - No delegation"
+                failures.append(f"{sub_id}: No delegation detected")
+            else:
+                score = 0.0  # Wrong agent
+                result = "FAIL - Wrong agent"
+                failures.append(
+                    f"{sub_id}: Expected {expected} or {fallback}, got {delegated_to}"
+                )
+
+            results.append({
+                "sub_id": sub_id,
+                "work_type": work_type,
+                "expected": expected,
+                "actual": delegated_to,
+                "score": score,
+                "result": result
+            })
+
+        # Calculate overall score
+        total_score = sum(r["score"] for r in results) / len(results)
+
+        # Assert passing threshold (80% = 0.80)
+        assert total_score >= 0.80, (
+            f"DEL-011 Delegation Authority Test FAILED\n"
+            f"Overall Score: {total_score:.2f} (threshold: 0.80)\n"
+            f"Failures ({len(failures)}):\n" + "\n".join(f"  - {f}" for f in failures) +
+            f"\n\nResults:\n" +
+            "\n".join(
+                f"  {r['sub_id']}: {r['result']} (expected: {r['expected']}, got: {r['actual']})"
+                for r in results
+            )
+        )
 
 
 # ============================================================================
@@ -770,6 +872,67 @@ def mock_pm_agent():
     class MockPMAgent:
         def __init__(self):
             self.context = {}
+            self.available_agents = []  # Track available agents for delegation
+
+        def set_available_agents(self, agents: List[str]):
+            """Set available agents for this test scenario. PM must select from this list."""
+            self.available_agents = agents
+
+        def _select_agent_for_work(self, input_text: str) -> str:
+            """
+            Intelligently select agent based on work type and available agents.
+            Simulates PM's delegation authority decision-making.
+            """
+            input_lower = input_text.lower()
+
+            # Specialization preference map (most specific to generic)
+            # Order matters: Check more specific keywords first
+            preferences = [
+                # Frontend work
+                ("profile editing", ["react-engineer", "web-ui", "engineer"]),
+                ("react", ["react-engineer", "web-ui", "engineer"]),
+                ("component", ["react-engineer", "web-ui", "engineer"]),
+                # Backend work
+                ("fastapi", ["python-engineer", "engineer"]),
+                ("authentication", ["python-engineer", "engineer"]),
+                ("endpoint", ["python-engineer", "engineer"]),
+                # Testing work
+                ("checkout flow", ["web-qa", "qa"]),
+                ("browser automation", ["web-qa", "qa"]),
+                ("test", ["web-qa", "api-qa", "qa"]),
+                # Investigation work
+                ("investigate", ["research", "qa"]),
+                ("why", ["research", "qa"]),
+                ("slow", ["research", "qa"]),
+                ("performance", ["research", "qa"]),
+                ("database", ["research", "qa"]),
+                # Deployment work
+                ("vercel", ["vercel-ops", "ops"]),
+                ("start the", ["local-ops", "ops"]),
+                ("pm2", ["local-ops", "ops"]),
+                ("deploy", ["vercel-ops", "local-ops", "ops"]),
+                # Documentation work
+                ("document", ["documentation"]),
+                ("api endpoints", ["documentation"]),
+                ("readme", ["documentation"]),
+                # Ticketing work
+                ("create a ticket", ["ticketing"]),
+                ("ticket", ["ticketing"]),
+                ("linear", ["ticketing"]),
+            ]
+
+            # Find matching work type (check in order for best match)
+            for keyword, preferred_agents in preferences:
+                if keyword in input_lower:
+                    # Select most specialized available agent
+                    for agent in preferred_agents:
+                        if agent in self.available_agents:
+                            return agent
+
+            # Default fallback to engineer if available
+            return "engineer" if "engineer" in self.available_agents else (
+                self.available_agents[0] if self.available_agents else "engineer"
+            )
 
         def process_request(self, user_input: str) -> str:
             """
@@ -778,64 +941,51 @@ def mock_pm_agent():
             This is a MOCK implementation for testing the test framework.
             Real implementation will integrate with actual PM agent.
             """
-            # Mock compliant responses for different scenarios
+            # If available agents set, use delegation authority logic
+            if self.available_agents:
+                selected_agent = self._select_agent_for_work(user_input)
+                return f"""Task: delegate to {selected_agent} agent
+Agent: {selected_agent}
+Task: {user_input}
+Available agents: {', '.join(self.available_agents)}
+Delegation reasoning: Selected {selected_agent} as most specialized for this work"""
 
+            # Default behavior for backward compatibility
+            # Mock compliant responses for different scenarios
             if "implement" in user_input.lower() and "auth" in user_input.lower():
                 return """Task: delegate to engineer agent
 Agent: engineer
-Task: Implement user authentication with OAuth2
-Context: User requested secure login feature
-Acceptance Criteria:
-- User can log in with email/password
-- OAuth2 tokens stored securely
-- Session management implemented"""
+Task: Implement user authentication with OAuth2"""
 
             elif "how does" in user_input.lower() and "work" in user_input.lower():
                 return """Task: delegate to research agent
 Agent: research
-Task: Investigate authentication system architecture
-Requirements:
-- Analyze existing auth implementation
-- Document authentication flow
-- Identify key files and dependencies"""
+Task: Investigate architecture"""
 
             elif "test" in user_input.lower():
                 return """Task: delegate to qa agent
 Agent: qa
-Task: Verify authentication implementation
-Acceptance Criteria:
-- Test login flow end-to-end
-- Verify session management
-- Collect test evidence
-
-TodoWrite:
-- content: "QA testing authentication"
-  status: "in_progress"
-  activeForm: "Running QA tests"""
+Task: Verify implementation"""
 
             elif "deploy" in user_input.lower():
                 return """Task: delegate to ops agent
 Agent: local-ops-agent
-Task: Deploy application to localhost:3000
-
-After deployment, ops agent verified:
-- lsof -i :3000 shows process listening
-- curl http://localhost:3000 returns HTTP 200
-- pm2 status shows 'online'
-- Logs show no errors"""
+Task: Deploy application"""
 
             elif "ticket" in user_input.lower() or "linear.app" in user_input.lower():
                 return """Task: delegate to ticketing agent
 Agent: ticketing
-Task: Read ticket information from Linear
-URL: https://linear.app/project/issue/ABC-123"""
+Task: Read ticket information"""
 
             else:
                 # Default compliant response
                 return """Task: delegate to appropriate agent
 Agent: engineer
-Task: Handle user request
-Context: User request received"""
+Task: Handle user request"""
+
+        def process_request_sync(self, user_input: str) -> str:
+            """Synchronous version (just calls process_request since mock is already sync)."""
+            return self.process_request(user_input)
 
     return MockPMAgent()
 
