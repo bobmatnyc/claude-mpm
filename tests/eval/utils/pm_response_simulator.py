@@ -5,7 +5,7 @@ Provides both compliant and non-compliant responses to validate
 detection capabilities.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 def simulate_compliant_response(scenario_id: str) -> Dict[str, Any]:
@@ -343,8 +343,7 @@ def get_response_for_test(
     """
     if use_violation:
         return simulate_violation_response(scenario_id)
-    else:
-        return simulate_compliant_response(scenario_id)
+    return simulate_compliant_response(scenario_id)
 
 
 def list_available_scenarios() -> List[str]:

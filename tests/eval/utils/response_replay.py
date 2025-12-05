@@ -16,12 +16,12 @@ Trade-offs:
 - Performance: In-memory cache vs. lazy loading (chose lazy)
 """
 
+import difflib
 import json
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import difflib
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 from .pm_response_capture import PMResponse, PMResponseCapture, get_golden_responses_dir
 

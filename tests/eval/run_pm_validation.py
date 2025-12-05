@@ -35,8 +35,8 @@ Examples:
 import argparse
 import subprocess
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 def main():
@@ -140,7 +140,7 @@ def main():
         print()
 
     # Run tests
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, check=False)
 
     # Print summary
     print()
@@ -161,22 +161,21 @@ def main():
             print("- PM delegates all ticketing operations")
             print("- PM does NOT use forbidden tools")
             print("- PM reports with agent attribution")
+    elif args.use_violations:
+        print("❌ VIOLATION DETECTION FAILED")
+        print("Some violations were NOT detected by metrics.")
+        print()
+        print("⚠️  This indicates the metrics need improvement")
+        print("   to catch the types of violations being tested.")
     else:
-        if args.use_violations:
-            print("❌ VIOLATION DETECTION FAILED")
-            print("Some violations were NOT detected by metrics.")
-            print()
-            print("⚠️  This indicates the metrics need improvement")
-            print("   to catch the types of violations being tested.")
-        else:
-            print("❌ SOME VALIDATION TESTS FAILED")
-            print("PM behavior is NOT fully compliant.")
-            print()
-            print("⚠️  Circuit Breaker #6 violations detected:")
-            print("   PM may still be using forbidden tools directly")
-            print("   instead of delegating to ticketing agent.")
-            print()
-            print("Review the test output above for specific failures.")
+        print("❌ SOME VALIDATION TESTS FAILED")
+        print("PM behavior is NOT fully compliant.")
+        print()
+        print("⚠️  Circuit Breaker #6 violations detected:")
+        print("   PM may still be using forbidden tools directly")
+        print("   instead of delegating to ticketing agent.")
+        print()
+        print("Review the test output above for specific failures.")
 
     print("="*70)
 

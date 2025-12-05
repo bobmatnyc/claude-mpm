@@ -25,9 +25,9 @@ def check_imports():
 
     try:
         from tests.eval.utils.pm_response_capture import (
-            PMResponseCapture,
             AsyncPMResponseCapture,
             PMResponse,
+            PMResponseCapture,
             PMResponseMetadata,
         )
         print("✓ pm_response_capture imports successful")
@@ -37,10 +37,10 @@ def check_imports():
 
     try:
         from tests.eval.utils.response_replay import (
-            ResponseReplay,
-            ResponseComparison,
-            RegressionReport,
             GoldenResponseManager,
+            RegressionReport,
+            ResponseComparison,
+            ResponseReplay,
         )
         print("✓ response_replay imports successful")
     except ImportError as e:
@@ -95,10 +95,10 @@ def test_response_capture():
     print_section("Testing Response Capture")
 
     try:
-        from tests.eval.utils.pm_response_capture import PMResponseCapture
-
         # Create capture with temp directory
         import tempfile
+
+        from tests.eval.utils.pm_response_capture import PMResponseCapture
         with tempfile.TemporaryDirectory() as tmpdir:
             capture = PMResponseCapture(responses_dir=tmpdir)
 
@@ -120,7 +120,7 @@ def test_response_capture():
             # Test load
             loaded = capture.load_response("test_scenario", "test")
             if loaded:
-                print(f"✓ Loaded response successfully")
+                print("✓ Loaded response successfully")
             else:
                 print("✗ Failed to load response")
                 return False
@@ -143,15 +143,15 @@ def test_response_replay():
     print_section("Testing Response Replay")
 
     try:
+        import tempfile
+        from datetime import datetime
+
         from tests.eval.utils.pm_response_capture import (
-            PMResponseCapture,
             PMResponse,
+            PMResponseCapture,
             PMResponseMetadata,
         )
         from tests.eval.utils.response_replay import ResponseReplay
-        from datetime import datetime
-
-        import tempfile
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create responses directory
             responses_dir = Path(tmpdir) / "responses"
@@ -225,6 +225,7 @@ def test_fixtures():
 
     try:
         import pytest
+
         from tests.eval import conftest
 
         fixtures = [
@@ -338,10 +339,9 @@ def main():
         print("3. Test with mock PM: pytest tests/eval/test_cases/integration_ticketing.py -m integration -v")
         print("4. Configure real PM agent and run integration tests")
         return 0
-    else:
-        print(f"✗ {total - passed} check(s) failed.")
-        print("\nPlease review the errors above and fix any issues.")
-        return 1
+    print(f"✗ {total - passed} check(s) failed.")
+    print("\nPlease review the errors above and fix any issues.")
+    return 1
 
 
 if __name__ == "__main__":

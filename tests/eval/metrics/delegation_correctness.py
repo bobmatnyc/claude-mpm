@@ -11,11 +11,12 @@ Key checks:
 - Proper delegation context and acceptance criteria
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
 
-from ..utils.pm_response_parser import PMResponseParser, DelegationEvent
+from ..utils.pm_response_parser import DelegationEvent, PMResponseParser
 
 
 class DelegationCorrectnessMetric(BaseMetric):
@@ -89,12 +90,11 @@ class DelegationCorrectnessMetric(BaseMetric):
                 self.reason = "PM performed work directly without delegation"
                 self.success = False
                 return 0.0
-            else:
-                # No work needed, no delegation needed
-                self.score = 1.0
-                self.reason = "No delegation required for this task"
-                self.success = True
-                return 1.0
+            # No work needed, no delegation needed
+            self.score = 1.0
+            self.reason = "No delegation required for this task"
+            self.success = True
+            return 1.0
 
         # Delegation occurred - evaluate quality
         delegation_score = self._score_delegations(

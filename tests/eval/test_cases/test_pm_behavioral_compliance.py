@@ -22,11 +22,11 @@ Usage:
     pytest tests/eval/test_cases/test_pm_behavioral_compliance.py -v -m circuit_breaker
 """
 
-import pytest
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Union
+from typing import Any, Dict, List, Union
 
+import pytest
 
 # Load behavioral scenarios
 SCENARIOS_FILE = Path(__file__).parent.parent / "scenarios" / "pm_behavioral_requirements.json"
@@ -81,7 +81,7 @@ def validate_pm_response(
             used_tools = response["tools_used"]
 
         # Extract delegated agent from structured response
-        if "delegations" in response and response["delegations"]:
+        if response.get("delegations"):
             # Get the first delegation's agent
             delegated_to = response["delegations"][0].get("agent")
     else:
@@ -399,7 +399,7 @@ class TestPMDelegationBehaviors:
             f"DEL-011 Delegation Authority Test FAILED\n"
             f"Overall Score: {total_score:.2f} (threshold: 0.80)\n"
             f"Failures ({len(failures)}):\n" + "\n".join(f"  - {f}" for f in failures) +
-            f"\n\nResults:\n" +
+            "\n\nResults:\n" +
             "\n".join(
                 f"  {r['sub_id']}: {r['result']} (expected: {r['expected']}, got: {r['actual']})"
                 for r in results
@@ -957,29 +957,28 @@ Delegation reasoning: Selected {selected_agent} as most specialized for this wor
 Agent: engineer
 Task: Implement user authentication with OAuth2"""
 
-            elif "how does" in user_input.lower() and "work" in user_input.lower():
+            if "how does" in user_input.lower() and "work" in user_input.lower():
                 return """Task: delegate to research agent
 Agent: research
 Task: Investigate architecture"""
 
-            elif "test" in user_input.lower():
+            if "test" in user_input.lower():
                 return """Task: delegate to qa agent
 Agent: qa
 Task: Verify implementation"""
 
-            elif "deploy" in user_input.lower():
+            if "deploy" in user_input.lower():
                 return """Task: delegate to ops agent
 Agent: local-ops-agent
 Task: Deploy application"""
 
-            elif "ticket" in user_input.lower() or "linear.app" in user_input.lower():
+            if "ticket" in user_input.lower() or "linear.app" in user_input.lower():
                 return """Task: delegate to ticketing agent
 Agent: ticketing
 Task: Read ticket information"""
 
-            else:
-                # Default compliant response
-                return """Task: delegate to appropriate agent
+            # Default compliant response
+            return """Task: delegate to appropriate agent
 Agent: engineer
 Task: Handle user request"""
 

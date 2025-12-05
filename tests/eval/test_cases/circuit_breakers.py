@@ -15,11 +15,11 @@ import pytest
 from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
 
+from ..metrics.delegation_correctness import DelegationCorrectnessMetric
 from ..metrics.instruction_faithfulness import (
     InstructionFaithfulnessMetric,
     StrictInstructionFaithfulnessMetric,
 )
-from ..metrics.delegation_correctness import DelegationCorrectnessMetric
 
 
 class TestCircuitBreaker1Implementation:

@@ -7,11 +7,11 @@ Run with: pytest tests/eval/test_quickstart_demo.py -v -s
 import pytest
 from deepeval.test_case import LLMTestCase
 
-from .metrics.instruction_faithfulness import InstructionFaithfulnessMetric
 from .metrics.delegation_correctness import (
     DelegationCorrectnessMetric,
     TicketingDelegationMetric,
 )
+from .metrics.instruction_faithfulness import InstructionFaithfulnessMetric
 from .utils.pm_response_parser import PMResponseParser
 
 
@@ -87,7 +87,7 @@ def test_quickstart_violation_detection():
     ticketing_metric = TicketingDelegationMetric(threshold=1.0)
     score = ticketing_metric.measure(test_case)
 
-    print(f"\n❌ Violation Detected")
+    print("\n❌ Violation Detected")
     print(f"   Score: {score}")
     print(f"   Reason: {ticketing_metric.reason}")
     assert score == 0.0, "Should fail with forbidden tool usage"
@@ -114,7 +114,7 @@ def test_quickstart_parser_demo():
     parser = PMResponseParser()
     analysis = parser.parse(pm_response)
 
-    print(f"\n📊 Parser Analysis:")
+    print("\n📊 Parser Analysis:")
     print(f"   Tools used: {[t.tool_name for t in analysis.tools_used]}")
     print(f"   Delegations: {[d.agent_name for d in analysis.delegations]}")
     print(f"   Assertions: {len(analysis.assertions)}")
@@ -170,7 +170,7 @@ def test_quickstart_multiple_metrics():
     instruction_score = instruction_metric.measure(test_case)
     delegation_score = delegation_metric.measure(test_case)
 
-    print(f"\n📈 Multi-Metric Evaluation:")
+    print("\n📈 Multi-Metric Evaluation:")
     print(f"   Instruction Faithfulness: {instruction_score:.2f} - {instruction_metric.reason}")
     print(f"   Delegation Correctness: {delegation_score:.2f} - {delegation_metric.reason}")
 

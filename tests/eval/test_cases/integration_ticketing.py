@@ -282,7 +282,7 @@ class TestTicketingRegressionTests:
 
         # Report results
         print(f"\n{'='*60}")
-        print(f"Regression Test Report")
+        print("Regression Test Report")
         print(f"{'='*60}")
         print(f"Total Scenarios: {report.total_scenarios}")
         print(f"Passed: {report.passed}")
@@ -291,7 +291,7 @@ class TestTicketingRegressionTests:
         print(f"Current Version: {report.current_version}")
 
         if report.regressions:
-            print(f"\nRegressions Detected:")
+            print("\nRegressions Detected:")
             for reg in report.regressions:
                 print(f"  - {reg.scenario_id}: {reg.differences[:100]}")
 

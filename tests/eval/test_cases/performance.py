@@ -27,13 +27,13 @@ Trade-offs:
 - Precision: Measure in milliseconds, report in ms
 """
 
-import time
 import asyncio
 import json
+import statistics
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
-import statistics
+from typing import Any, Dict, List, Optional
 
 import pytest
 from deepeval.test_case import LLMTestCase
@@ -64,7 +64,7 @@ class PerformanceTracker:
         value: float,
         unit: str = "ms",
         category: str = "general",
-        metadata: Dict[str, Any] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """Record a performance metric."""
         metric = {

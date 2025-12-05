@@ -12,8 +12,8 @@ from deepeval import assert_test
 from deepeval.test_case import LLMTestCase
 
 from ..metrics.delegation_correctness import (
-    create_delegation_correctness_metric,
     TicketingDelegationMetric,
+    create_delegation_correctness_metric,
 )
 from ..metrics.instruction_faithfulness import InstructionFaithfulnessMetric
 

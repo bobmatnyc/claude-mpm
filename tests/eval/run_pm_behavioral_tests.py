@@ -26,12 +26,12 @@ Usage:
 """
 
 import argparse
+import json
 import subprocess
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
+from pathlib import Path
+from typing import Any, Dict, List
 
 
 def main():
@@ -161,7 +161,7 @@ Severity Levels:
     print("Running tests...")
     print(f"Command: {' '.join(cmd)}\n")
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
 
     # Print output
     print(result.stdout)

@@ -9,7 +9,8 @@ defined in PM_INSTRUCTIONS.md, specifically:
 - Circuit breaker compliance
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase
 
