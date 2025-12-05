@@ -12,6 +12,40 @@ This directory contains all testing-related documentation including:
 
 ## Directory Structure
 
+### `/eval-system/` - PM/Agent Behavioral Evaluation System ⭐ NEW
+
+Comprehensive testing framework for PM behavioral compliance. Contains:
+
+- **[README.md](./eval-system/README.md)** - Eval system overview and architecture
+- **[quickstart.md](./eval-system/quickstart.md)** - 5-minute quick start guide
+- **[test-cases.md](./eval-system/test-cases.md)** - Detailed test case documentation
+
+**What It Tests**:
+- PM delegation compliance (DEL-* tests)
+- Circuit breaker enforcement (CB-* tests)
+- Tool usage patterns (TOOLS-* tests)
+- Workflow adherence (WF-* tests)
+- Evidence-based verification (EV-* tests)
+- File tracking behavior (FT-* tests)
+
+**Current Coverage**: 51 test scenarios (as of v1.2.0)
+
+**Quick Start**:
+```bash
+# Run all behavioral tests
+pytest tests/eval/test_cases/test_pm_behavioral_compliance.py -v
+
+# Run critical tests only
+pytest tests/eval/ -v -m critical
+
+# Run delegation tests
+pytest tests/eval/ -v -m delegation
+```
+
+See [eval-system/README.md](./eval-system/README.md) for complete documentation.
+
+---
+
 ### `/reports/` - Test Reports & QA Documentation
 
 Test execution reports, QA reports, and certification documents. Contains:
@@ -59,9 +93,11 @@ Testing standards, conventions, and requirements (to be populated).
 
 ### Most Important Documents
 
-1. **[QA_TEST_INDEX.md](./QA_TEST_INDEX.md)** - Start here: master index of all tests
-2. **[QA_CERTIFICATION_REPORT.md](./reports/QA_CERTIFICATION_REPORT.md)** - Overall certification status
-3. **[QA_EXECUTIVE_SUMMARY.md](./reports/QA_EXECUTIVE_SUMMARY.md)** - High-level QA summary
+1. **[Eval System Overview](./eval-system/README.md)** ⭐ NEW - PM/Agent behavioral evaluation system
+2. **[Eval System Quick Start](./eval-system/quickstart.md)** ⭐ NEW - 5-minute guide to running tests
+3. **[QA_TEST_INDEX.md](./QA_TEST_INDEX.md)** - Master index of all QA tests
+4. **[QA_CERTIFICATION_REPORT.md](./reports/QA_CERTIFICATION_REPORT.md)** - Overall certification status
+5. **[QA_EXECUTIVE_SUMMARY.md](./reports/QA_EXECUTIVE_SUMMARY.md)** - High-level QA summary
 
 ### By Testing Phase
 
@@ -93,4 +129,4 @@ See [MIGRATION_LOG.md](../MIGRATION_LOG.md) for consolidation details.
 
 ---
 
-**Last Updated**: 2025-12-04 (Phase 2 Consolidation)
+**Last Updated**: 2025-12-05 (Added PM/Agent Eval System documentation)
