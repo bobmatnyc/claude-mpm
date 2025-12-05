@@ -1,8 +1,25 @@
 ## [Unreleased]
 
 ### Added
+- **PM/Agent Behavioral Evaluation System**: Comprehensive testing framework for PM behavioral compliance
+  - 51 test scenarios across 6 categories (delegation, circuit breakers, tools, workflow, evidence, file tracking)
+  - DEL-000: Universal delegation pattern meta-test for novel work types
+  - DEL-011: Delegation authority test with dynamic agent selection (8 sub-scenarios)
+  - MockPMAgent with intelligent agent selection logic
+  - Validation framework for PM response compliance
+  - Scoring system: 1.0 exact match, 0.8 acceptable fallback, 0.0 failure
+  - Integrated with release process for PM instruction validation
+- **Eval System Documentation**: Dedicated documentation path in `docs/testing/eval-system/`
+  - README.md: System overview and architecture
+  - quickstart.md: 5-minute quick start guide
+  - test-cases.md: Detailed test case documentation with examples
+  - Integration with main testing documentation
 
 ### Changed
+- **PM Instruction Enforcement**: Enhanced ticketing delegation and mandatory verification
+  - Circuit Breaker #6: PM must NEVER use mcp-ticketer tools directly (always delegate to ticketing)
+  - All ticket operations require delegation to ticketing agent
+  - Improved assertion verification requirements with evidence templates
 
 ### Fixed
 
