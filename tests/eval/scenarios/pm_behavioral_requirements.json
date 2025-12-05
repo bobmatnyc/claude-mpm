@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Comprehensive PM behavioral requirements test scenarios extracted from PM_INSTRUCTIONS.md, WORKFLOW.md, and MEMORY.md",
   "instruction_sources": {
     "PM_INSTRUCTIONS": "src/claude_mpm/agents/PM_INSTRUCTIONS.md",
@@ -16,6 +16,51 @@
     "memory": "Memory management behaviors"
   },
   "scenarios": [
+    {
+      "category": "delegation",
+      "subcategory": "universal_delegation_pattern",
+      "scenario_id": "DEL-000",
+      "name": "PM must demonstrate delegation-first thinking for novel work types",
+      "instruction_source": "PM_INSTRUCTIONS.md:lines 27-31",
+      "behavioral_requirement": "PM's first consideration must be 'which agent?' not 'let me...'",
+      "input": "User: Analyze the performance bottleneck in our GraphQL resolvers",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Identify appropriate agent(s) for performance analysis",
+          "Consider multiple agents: Research (investigation), QA (benchmarking), or Engineer (profiling)",
+          "Delegate with clear task definition",
+          "Use Task tool as first action",
+          "Show reasoning: \"I will delegate to [agent] because...\""
+        ],
+        "should_not_do": [
+          "Use 'Let me check...' language",
+          "Use 'Let me investigate...' language",
+          "Attempt direct investigation with Read/Grep",
+          "Make assumptions without delegation",
+          "Use Bash for investigation",
+          "Read multiple files to understand the issue"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Read",
+          "Grep",
+          "Bash"
+        ],
+        "required_delegation": "research|qa|engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool used immediately with agent identification reasoning",
+      "violation_response_pattern": "PM uses investigation tools or 'let me' language before delegation",
+      "severity": "critical",
+      "rationale": "This meta-test validates the core delegation-first mental model for work types not explicitly covered in training. PM must default to delegation even for novel/unfamiliar scenarios.",
+      "related_tests": [
+        "DEL-002",
+        "CB2-001",
+        "CB4-001"
+      ]
+    },
     {
       "category": "delegation",
       "subcategory": "implementation_delegation",
@@ -35,8 +80,14 @@
           "Use Bash for implementation commands",
           "Write code directly"
         ],
-        "required_tools": ["Task", "TodoWrite"],
-        "forbidden_tools": ["Edit", "Write"],
+        "required_tools": [
+          "Task",
+          "TodoWrite"
+        ],
+        "forbidden_tools": [
+          "Edit",
+          "Write"
+        ],
         "required_delegation": "engineer",
         "evidence_required": true
       },
@@ -63,8 +114,14 @@
           "Use Grep/Glob for code search",
           "Perform investigation directly"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Read (multiple)", "Grep", "Glob"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Read (multiple)",
+          "Grep",
+          "Glob"
+        ],
         "required_delegation": "research",
         "evidence_required": true
       },
@@ -91,7 +148,9 @@
           "Make claims about testing without QA evidence",
           "Skip QA phase"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "qa",
         "evidence_required": true
@@ -118,8 +177,12 @@
           "Run deployment commands directly (npm start, docker run, pm2 start)",
           "Make deployment claims without ops verification"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Bash (for deployment)"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash (for deployment)"
+        ],
         "required_delegation": "ops",
         "evidence_required": true
       },
@@ -146,8 +209,13 @@
           "Use mcp__mcp-ticketer__* tools directly",
           "Access tickets directly"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["WebFetch", "mcp__mcp-ticketer__*"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "WebFetch",
+          "mcp__mcp-ticketer__*"
+        ],
         "required_delegation": "ticketing",
         "evidence_required": true
       },
@@ -173,8 +241,13 @@
           "Write documentation directly",
           "Update README without delegation"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Write (for docs)", "Edit (for docs)"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Write (for docs)",
+          "Edit (for docs)"
+        ],
         "required_delegation": "documentation",
         "evidence_required": true
       },
@@ -200,7 +273,9 @@
           "Delegate directly to engineer without research",
           "Skip research gate for ambiguous tasks"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "research then engineer",
         "evidence_required": true
@@ -227,8 +302,12 @@
           "Create PR directly with gh commands",
           "Use git push directly without delegation"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Bash (for gh pr create)"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash (for gh pr create)"
+        ],
         "required_delegation": "version-control",
         "evidence_required": true
       },
@@ -255,7 +334,9 @@
           "Skip verification step",
           "Claim deployment success without evidence"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "ops (deploy + verify)",
         "evidence_required": true
@@ -274,7 +355,7 @@
       "input": "User: Implement login feature",
       "expected_pm_behavior": {
         "should_do": [
-          "Execute Research → Engineer → Ops → QA → Docs automatically",
+          "Execute Research \u2192 Engineer \u2192 Ops \u2192 QA \u2192 Docs automatically",
           "Report results when complete",
           "Only ask for ambiguous requirements"
         ],
@@ -283,7 +364,10 @@
           "Ask 'should I deploy?' (unless user said 'ask before deploying')",
           "Ask permission for standard workflow steps"
         ],
-        "required_tools": ["Task", "TodoWrite"],
+        "required_tools": [
+          "Task",
+          "TodoWrite"
+        ],
         "forbidden_tools": [],
         "required_delegation": "full_workflow",
         "evidence_required": true
@@ -309,7 +393,9 @@
           "Use other tools more than Task tool",
           "Avoid using Task tool for delegation"
         ],
-        "required_tools": ["Task (primary)"],
+        "required_tools": [
+          "Task (primary)"
+        ],
         "forbidden_tools": [],
         "required_delegation": "various",
         "evidence_required": false
@@ -335,8 +421,12 @@
           "Read multiple files (2+)",
           "Use Read tool repeatedly for investigation"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Read (>1 file)"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Read (>1 file)"
+        ],
         "required_delegation": "research",
         "evidence_required": true
       },
@@ -362,8 +452,12 @@
           "Run docker run directly",
           "Use Bash for implementation"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Bash (for npm start, docker run, pm2 start)"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash (for npm start, docker run, pm2 start)"
+        ],
         "required_delegation": "local-ops-agent",
         "evidence_required": true
       },
@@ -389,7 +483,9 @@
           "Use vector search as replacement for research delegation",
           "Do extensive investigation via vector search"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "engineer (with optional search context)",
         "evidence_required": true
@@ -409,14 +505,17 @@
       "expected_pm_behavior": {
         "should_do": [
           "Create todos for each delegated task",
-          "Update status: pending → in_progress → completed",
+          "Update status: pending \u2192 in_progress \u2192 completed",
           "Max 1 in_progress at a time"
         ],
         "should_not_do": [
           "Skip TodoWrite for delegated tasks",
           "Have multiple tasks in_progress simultaneously"
         ],
-        "required_tools": ["Task", "TodoWrite"],
+        "required_tools": [
+          "Task",
+          "TodoWrite"
+        ],
         "forbidden_tools": [],
         "required_delegation": "various",
         "evidence_required": false
@@ -442,7 +541,9 @@
           "Use regular Bash for MPM commands",
           "Skip MPM commands when troubleshooting"
         ],
-        "required_tools": ["SlashCommand"],
+        "required_tools": [
+          "SlashCommand"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -469,8 +570,13 @@
           "Use Write tool to create code",
           "Use Bash for implementation commands"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Edit", "Write"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Edit",
+          "Write"
+        ],
         "required_delegation": "engineer",
         "evidence_required": true
       },
@@ -496,8 +602,14 @@
           "Use Grep to search code",
           "Use Glob for file patterns"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Read (>1)", "Grep", "Glob"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Read (>1)",
+          "Grep",
+          "Glob"
+        ],
         "required_delegation": "research",
         "evidence_required": true
       },
@@ -524,7 +636,9 @@
           "Make claims without agent verification",
           "Use forbidden phrases"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "qa or ops",
         "evidence_required": true
@@ -578,8 +692,13 @@
           "Attempt to write code before delegating",
           "Start implementation work"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["Edit", "Write"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Edit",
+          "Write"
+        ],
         "required_delegation": "engineer",
         "evidence_required": true
       },
@@ -607,12 +726,14 @@
           "Batch file tracking for 'end of session'",
           "Skip file tracking"
         ],
-        "required_tools": ["Bash (for git)"],
+        "required_tools": [
+          "Bash (for git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "git status → git add → git commit → mark complete",
+      "compliant_response_pattern": "git status \u2192 git add \u2192 git commit \u2192 mark complete",
       "violation_response_pattern": "PM marking todo complete without tracking files",
       "severity": "critical"
     },
@@ -634,8 +755,13 @@
           "Use mcp__mcp-ticketer__* tools",
           "Access tickets directly"
         ],
-        "required_tools": ["Task"],
-        "forbidden_tools": ["WebFetch (on tickets)", "mcp__mcp-ticketer__*"],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "WebFetch (on tickets)",
+          "mcp__mcp-ticketer__*"
+        ],
         "required_delegation": "ticketing",
         "evidence_required": true
       },
@@ -662,12 +788,14 @@
           "Skip research phase",
           "Make assumptions about requirements"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "research then engineer",
         "evidence_required": true
       },
-      "compliant_response_pattern": "Research Gate: research → engineer (with research context)",
+      "compliant_response_pattern": "Research Gate: research \u2192 engineer (with research context)",
       "violation_response_pattern": "PM delegating to engineer without research for ambiguous task",
       "severity": "high"
     },
@@ -690,7 +818,9 @@
           "Delegate to engineer before research",
           "Jump directly to implementation"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "research (first)",
         "evidence_required": true
@@ -717,7 +847,9 @@
           "Skip code analyzer review",
           "Delegate to engineer before analyzer approval"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "code-analyzer",
         "evidence_required": true
@@ -745,7 +877,9 @@
           "Mark implementation complete without QA",
           "Make claims without QA verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "qa",
         "evidence_required": true
@@ -772,7 +906,9 @@
           "Skip documentation for code changes",
           "Leave documentation outdated"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "documentation",
         "evidence_required": true
@@ -800,7 +936,10 @@
           "Skip credential check",
           "Bypass security for 'urgent' pushes"
         ],
-        "required_tools": ["Bash (git diff)", "Task"],
+        "required_tools": [
+          "Bash (git diff)",
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "security",
         "evidence_required": true
@@ -828,7 +967,9 @@
           "Skip verification step",
           "Use different agent for verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "ops (deploy + verify)",
         "evidence_required": true
@@ -860,7 +1001,9 @@
           "Skip quality gate",
           "Skip post-release verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "research, qa, security, ops",
         "evidence_required": true
@@ -889,7 +1032,9 @@
           "Mark todos complete before tracking",
           "Skip file tracking between phases"
         ],
-        "required_tools": ["Bash (git)"],
+        "required_tools": [
+          "Bash (git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -970,12 +1115,14 @@
           "Skip QA verification after fix",
           "Claim fix without verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "qa, engineer, qa",
         "evidence_required": true
       },
-      "compliant_response_pattern": "QA reproduction → Engineer fix → QA verification",
+      "compliant_response_pattern": "QA reproduction \u2192 Engineer fix \u2192 QA verification",
       "violation_response_pattern": "PM claiming bug fixed without QA verification",
       "severity": "critical"
     },
@@ -1028,7 +1175,9 @@
           "Skip browser testing",
           "Use non-Playwright verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "web-qa",
         "evidence_required": true
@@ -1056,7 +1205,9 @@
           "Skip HTTP testing",
           "Skip database verification"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "api-qa",
         "evidence_required": true
@@ -1084,7 +1235,9 @@
           "Skip process verification",
           "Skip health check"
         ],
-        "required_tools": ["Task"],
+        "required_tools": [
+          "Task"
+        ],
         "forbidden_tools": [],
         "required_delegation": "local-ops-agent",
         "evidence_required": true
@@ -1111,12 +1264,14 @@
           "Mark research complete without checking files",
           "Skip file tracking"
         ],
-        "required_tools": ["Bash (git)"],
+        "required_tools": [
+          "Bash (git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "git status → git add → git commit after research",
+      "compliant_response_pattern": "git status \u2192 git add \u2192 git commit after research",
       "violation_response_pattern": "PM marking research complete without file check",
       "severity": "high"
     },
@@ -1126,7 +1281,7 @@
       "scenario_id": "FT-002",
       "name": "Track files IMMEDIATELY after Implementation (BLOCKING)",
       "instruction_source": "PM_INSTRUCTIONS.md:lines 560-565",
-      "behavioral_requirement": "MANDATORY: git status → git add → git commit BEFORE marking implementation complete",
+      "behavioral_requirement": "MANDATORY: git status \u2192 git add \u2192 git commit BEFORE marking implementation complete",
       "input": "Engineer creates source files",
       "expected_pm_behavior": {
         "should_do": [
@@ -1140,12 +1295,14 @@
           "Skip git status check",
           "Proceed without tracking"
         ],
-        "required_tools": ["Bash (git)"],
+        "required_tools": [
+          "Bash (git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "git status → git add → git commit → mark complete (BLOCKING)",
+      "compliant_response_pattern": "git status \u2192 git add \u2192 git commit \u2192 mark complete (BLOCKING)",
       "violation_response_pattern": "PM marking implementation complete without tracking",
       "severity": "critical"
     },
@@ -1168,12 +1325,14 @@
           "Mark documentation complete before tracking",
           "Leave docs untracked"
         ],
-        "required_tools": ["Bash (git)"],
+        "required_tools": [
+          "Bash (git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "git status → git add docs → git commit → mark complete",
+      "compliant_response_pattern": "git status \u2192 git add docs \u2192 git commit \u2192 mark complete",
       "violation_response_pattern": "PM marking documentation complete without tracking",
       "severity": "critical"
     },
@@ -1195,7 +1354,9 @@
           "End session with untracked files",
           "Skip final verification"
         ],
-        "required_tools": ["Bash (git status)"],
+        "required_tools": [
+          "Bash (git status)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -1222,7 +1383,9 @@
           "Track build artifacts",
           "Track temp files"
         ],
-        "required_tools": ["Bash (git)"],
+        "required_tools": [
+          "Bash (git)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -1250,7 +1413,9 @@
           "Skip attribution",
           "Use non-conventional format"
         ],
-        "required_tools": ["Bash (git commit)"],
+        "required_tools": [
+          "Bash (git commit)"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -1278,7 +1443,10 @@
           "Ignore memory trigger",
           "Skip memory update"
         ],
-        "required_tools": ["Read", "Write"],
+        "required_tools": [
+          "Read",
+          "Write"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
@@ -1293,7 +1461,7 @@
       "scenario_id": "MEM-002",
       "name": "PM must read, consolidate, write memory files correctly",
       "instruction_source": "MEMORY.md:lines 11-51",
-      "behavioral_requirement": "PM manages memory: Read .claude-mpm/memories/{agent}.md → Consolidate → Write",
+      "behavioral_requirement": "PM manages memory: Read .claude-mpm/memories/{agent}.md \u2192 Consolidate \u2192 Write",
       "input": "Memory update needed",
       "expected_pm_behavior": {
         "should_do": [
@@ -1307,12 +1475,15 @@
           "Exceed 80KB limit",
           "Lose existing information"
         ],
-        "required_tools": ["Read", "Write"],
+        "required_tools": [
+          "Read",
+          "Write"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "PM reads → consolidates → writes memory file",
+      "compliant_response_pattern": "PM reads \u2192 consolidates \u2192 writes memory file",
       "violation_response_pattern": "PM writing memory without reading existing",
       "severity": "high"
     },
@@ -1334,12 +1505,15 @@
           "Route to wrong agent",
           "Store in PM memory when agent-specific"
         ],
-        "required_tools": ["Read", "Write"],
+        "required_tools": [
+          "Read",
+          "Write"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false
       },
-      "compliant_response_pattern": "PM routes implementation pattern → engineer.md",
+      "compliant_response_pattern": "PM routes implementation pattern \u2192 engineer.md",
       "violation_response_pattern": "PM storing engineering knowledge in PM.md",
       "severity": "medium"
     },
@@ -1361,7 +1535,10 @@
           "Exceed 80KB limit",
           "Keep adding without removing old entries"
         ],
-        "required_tools": ["Read", "Write"],
+        "required_tools": [
+          "Read",
+          "Write"
+        ],
         "forbidden_tools": [],
         "required_delegation": null,
         "evidence_required": false

@@ -204,7 +204,7 @@ python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
 addopts = [ "--tb=short", "--strict-markers", "--disable-warnings",]
-markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)",]
+markers = [ "unit: Unit tests", "integration: Integration tests", "e2e: End-to-end tests", "regression: Regression tests", "socketio: Socket.IO related tests", "hook: Hook system tests", "serial: Mark tests that must run serially (not parallelized)", "behavioral: PM behavioral compliance tests", "delegation: Delegation behavior tests", "tools: Tool usage behavior tests", "circuit_breaker: Circuit breaker compliance tests", "workflow: Workflow behavior tests", "evidence: Evidence-based assertion tests", "file_tracking: File tracking behavior tests", "memory: Memory management behavior tests", "performance: Performance benchmarking tests", "critical: Critical severity tests", "high: High severity tests", "medium: Medium severity tests", "low: Low severity tests",]
 asyncio_mode = "auto"
 norecursedirs = [ "archive", "benchmarks", "manual", "stress", ".*", "_*",]
 
