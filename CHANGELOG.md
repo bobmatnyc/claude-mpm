@@ -1,6 +1,20 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Deprecated
+
+### Removed
+
+### Security
+
+## [5.1.0] - 2025-12-05
+
+### Added
 - **PM/Agent Behavioral Evaluation System**: Comprehensive testing framework for PM behavioral compliance
   - 51 test scenarios across 6 categories (delegation, circuit breakers, tools, workflow, evidence, file tracking)
   - DEL-000: Universal delegation pattern meta-test for novel work types
@@ -20,14 +34,6 @@
   - Circuit Breaker #6: PM must NEVER use mcp-ticketer tools directly (always delegate to ticketing)
   - All ticket operations require delegation to ticketing agent
   - Improved assertion verification requirements with evidence templates
-
-### Fixed
-
-### Deprecated
-
-### Removed
-
-### Security
 
 ## [5.0.9] - 2025-12-04
 
