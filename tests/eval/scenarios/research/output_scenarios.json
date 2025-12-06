@@ -1,0 +1,219 @@
+{
+  "category": "output",
+  "description": "Output Requirements scenarios for Research Agent",
+  "total_scenarios": 4,
+  "scenarios": [
+    {
+      "scenario_id": "OUT-R-001",
+      "name": "Include File List in Output",
+      "category": "output",
+      "priority": "high",
+      "description": "Research must include complete list of files analyzed in research output",
+      "input": {
+        "user_request": "Research API security implementations",
+        "context": "Security-related files scattered across multiple directories",
+        "files": ["src/security/**/*.py", "src/middleware/auth*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep/Glob to discover security-related files",
+          "Maintain list of files analyzed",
+          "Include complete file list in output",
+          "Organize files by category or module"
+        ],
+        "should_not_do": [
+          "Omit file list from output",
+          "Reference files without listing them",
+          "Provide incomplete file inventory"
+        ],
+        "required_tools": ["Grep", "Glob", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Complete file list included in output",
+        "Files organized by category or purpose",
+        "Clear mapping of files to findings",
+        "All analyzed files documented"
+      ],
+      "failure_indicators": [
+        "Missing file list",
+        "Incomplete file inventory",
+        "Unclear which files were analyzed",
+        "No file organization"
+      ],
+      "metrics": {
+        "CompletenessMetric": {
+          "threshold": 0.9,
+          "description": "File list must be complete"
+        },
+        "OrganizationMetric": {
+          "threshold": 0.8,
+          "description": "Files should be organized"
+        }
+      },
+      "mock_response": {
+        "compliant": "**API SECURITY RESEARCH**\n\n**FILES ANALYZED:**\n\n**Authentication (5 files):**\n1. src/security/authenticator.py - JWT authentication logic\n2. src/security/oauth_handler.py - OAuth2 provider integration\n3. src/security/session_manager.py - Session management\n4. src/middleware/auth_middleware.py - Request authentication\n5. src/middleware/auth_validator.py - Token validation\n\n**Authorization (3 files):**\n1. src/security/permissions.py - Permission system\n2. src/security/rbac.py - Role-based access control\n3. src/security/policy_engine.py - Authorization policies\n\n**Security Utilities (4 files):**\n1. src/security/crypto.py - Encryption/hashing utilities\n2. src/security/rate_limiter.py - Rate limiting\n3. src/security/cors_config.py - CORS configuration\n4. src/security/headers.py - Security headers middleware\n\n---\n\n**SECURITY FINDINGS:**\n\n**Authentication:**\n- JWT tokens with RS256 signing (src/security/authenticator.py)\n- OAuth2 integration with Google, GitHub (src/security/oauth_handler.py)\n- Session management with Redis backend (src/security/session_manager.py)\n\n**Authorization:**\n- RBAC with roles: Admin, User, Guest (src/security/rbac.py)\n- Permission-based access control (src/security/permissions.py)\n- Policy engine for complex rules (src/security/policy_engine.py)\n\n**Security Hardening:**\n- Bcrypt for password hashing (src/security/crypto.py)\n- Rate limiting: 100 req/min per IP (src/security/rate_limiter.py)\n- CORS: Strict origin whitelist (src/security/cors_config.py)\n- Security headers: CSP, HSTS, X-Frame-Options (src/security/headers.py)\n\n**RECOMMENDATIONS:**\n- Well-structured security implementation\n- Consider adding MFA support\n- Implement audit logging for security events",
+        "non_compliant": "**API SECURITY RESEARCH**\n\nFound JWT authentication with RS256 signing. OAuth2 integration with Google and GitHub. RBAC system with Admin, User, Guest roles. Rate limiting at 100 requests per minute. Security headers configured.\n\n[No file list]\n[Unclear which files were analyzed]\n[Missing file organization]"
+      }
+    },
+    {
+      "scenario_id": "OUT-R-002",
+      "name": "Provide Pattern Analysis",
+      "category": "output",
+      "priority": "high",
+      "description": "Research must analyze and document patterns found across the codebase",
+      "input": {
+        "user_request": "Research error handling strategies in this project",
+        "context": "Multiple modules with different error handling approaches",
+        "files": ["src/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to discover error handling patterns",
+          "Sample representative files",
+          "Identify common patterns and anti-patterns",
+          "Document pattern analysis in output"
+        ],
+        "should_not_do": [
+          "List errors without pattern analysis",
+          "Provide raw observations without insights",
+          "Skip pattern categorization"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Patterns identified and categorized",
+        "Pattern frequency documented",
+        "Best practices highlighted",
+        "Anti-patterns flagged"
+      ],
+      "failure_indicators": [
+        "No pattern analysis",
+        "Raw enumeration without insights",
+        "Missing pattern categorization",
+        "Incomplete analysis"
+      ],
+      "metrics": {
+        "PatternAnalysisDepthMetric": {
+          "threshold": 0.85,
+          "description": "Deep pattern analysis required"
+        },
+        "InsightQualityMetric": {
+          "threshold": 0.8,
+          "description": "Insights beyond observations"
+        }
+      },
+      "mock_response": {
+        "compliant": "**ERROR HANDLING PATTERN ANALYSIS**\n\n**PATTERNS DISCOVERED:**\n\nUsing Grep to identify error handling approaches:\n- try/except blocks: 234 occurrences\n- Custom exceptions: 45 classes\n- Error logging: 189 instances\n- raise from: 67 occurrences (exception chaining)\n\n**PATTERN 1: Custom Exception Hierarchy (45 classes)**\n\n```python\nclass AppError(Exception):\n    \"\"\"Base exception for application errors\"\"\"\n    pass\n\nclass ValidationError(AppError):\n    \"\"\"Invalid input data\"\"\"\n    pass\n\nclass DatabaseError(AppError):\n    \"\"\"Database operation failed\"\"\"\n    pass\n\nclass ExternalServiceError(AppError):\n    \"\"\"External API call failed\"\"\"\n    pass\n```\n\n**Frequency:** 45 custom exception classes across 12 modules\n**Assessment:** ✅ BEST PRACTICE - Clear exception hierarchy\n\n---\n\n**PATTERN 2: Exception Chaining with 'raise from' (67 occurrences)**\n\n```python\ntry:\n    result = await external_api.call()\nexcept httpx.HTTPError as e:\n    logger.error(f\"API call failed: {e}\")\n    raise ExternalServiceError(\"Failed to fetch data\") from e\n```\n\n**Frequency:** 67 instances, primarily in service layer\n**Assessment:** ✅ BEST PRACTICE - Preserves error context\n\n---\n\n**PATTERN 3: Structured Error Logging (189 instances)**\n\n```python\nexcept ValidationError as e:\n    logger.error(\n        \"Validation failed\",\n        extra={\n            \"user_id\": user_id,\n            \"error\": str(e),\n            \"input_data\": sanitize(data)\n        }\n    )\n    raise\n```\n\n**Frequency:** 189 instances across all modules\n**Assessment:** ✅ BEST PRACTICE - Context-rich logging\n\n---\n\n**PATTERN 4: Retry with Exponential Backoff (23 instances)**\n\n```python\nfor attempt in range(max_retries):\n    try:\n        return await risky_operation()\n    except TransientError as e:\n        if attempt == max_retries - 1:\n            raise\n        delay = backoff_factor ** attempt\n        await asyncio.sleep(delay)\n```\n\n**Frequency:** 23 instances in external service integrations\n**Assessment:** ✅ BEST PRACTICE - Resilient error handling\n\n---\n\n**ANTI-PATTERN 1: Bare Except (5 instances) ⚠️**\n\n```python\ntry:\n    risky_operation()\nexcept:\n    pass  # ANTI-PATTERN: Silently swallows all errors\n```\n\n**Frequency:** 5 instances (legacy code)\n**Assessment:** ❌ ANTI-PATTERN - Fix required\n**Location:** src/legacy/old_module.py (lines 45, 67, 89, 102, 134)\n\n---\n\n**ANTI-PATTERN 2: Generic Exception Messages (12 instances) ⚠️**\n\n```python\nraise ValueError(\"Invalid input\")  # Not actionable\n```\n\n**Frequency:** 12 instances\n**Assessment:** ⚠️ IMPROVEMENT NEEDED - Add specific error messages\n\n---\n\n**PATTERN SUMMARY:**\n\n**✅ Best Practices (91% compliance):**\n- Custom exception hierarchy (45 classes)\n- Exception chaining (67 instances)\n- Structured logging (189 instances)\n- Retry logic (23 instances)\n\n**❌ Anti-Patterns (9% of codebase):**\n- Bare except clauses (5 instances)\n- Generic error messages (12 instances)\n\n**RECOMMENDATIONS:**\n1. Fix 5 bare except clauses in legacy code\n2. Add specific error messages to 12 generic exceptions\n3. Consider adding error monitoring (Sentry, Rollbar)\n4. Document exception hierarchy in developer guide",
+        "non_compliant": "**ERROR HANDLING RESEARCH**\n\nFound custom exceptions in the codebase. Some files use try/except blocks. Logging is present. Some error chaining found. A few bare except clauses exist in legacy code.\n\n[No pattern categorization]\n[Missing frequency analysis]\n[No best practice identification]\n[No actionable recommendations]"
+      }
+    },
+    {
+      "scenario_id": "OUT-R-003",
+      "name": "Include Representative Samples",
+      "category": "output",
+      "priority": "medium",
+      "description": "Research must include representative code samples to illustrate findings",
+      "input": {
+        "user_request": "Research caching strategies used in this application",
+        "context": "Multiple caching layers across different modules",
+        "files": ["src/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to find caching patterns",
+          "Extract representative code samples",
+          "Include samples in research output",
+          "Explain what each sample demonstrates"
+        ],
+        "should_not_do": [
+          "Describe patterns without code samples",
+          "Provide vague explanations",
+          "Skip code illustration"
+        ],
+        "required_tools": ["Grep", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Representative samples included",
+        "Samples illustrate key patterns",
+        "Each sample explained clearly",
+        "Complete pattern documentation"
+      ],
+      "failure_indicators": [
+        "No code samples",
+        "Vague descriptions only",
+        "Missing pattern illustration",
+        "Incomplete documentation"
+      ],
+      "metrics": {
+        "SampleQualityMetric": {
+          "threshold": 0.8,
+          "description": "Representative samples required"
+        },
+        "IllustrationCompletenessMetric": {
+          "threshold": 0.85,
+          "description": "Patterns must be illustrated"
+        }
+      },
+      "mock_response": {
+        "compliant": "**CACHING STRATEGIES RESEARCH**\n\n**CACHING PATTERNS DISCOVERED:**\n\nUsing Grep to find caching implementations:\n- @lru_cache: 34 occurrences\n- Redis cache: 56 operations\n- In-memory cache: 23 instances\n- Cache invalidation: 45 occurrences\n\n---\n\n**STRATEGY 1: Function-Level LRU Cache (34 instances)**\n\n```python\nfrom functools import lru_cache\n\n@lru_cache(maxsize=128)\ndef get_user_permissions(user_id: int) -> list[str]:\n    \"\"\"Cache user permissions in memory.\n\n    LRU cache with 128 entries - permissions rarely change,\n    so caching reduces database queries significantly.\n    \"\"\"\n    return db.query(\n        \"SELECT permission FROM user_permissions WHERE user_id = ?\",\n        user_id\n    )\n```\n\n**Use Case:** Frequently accessed, rarely changing data\n**Frequency:** 34 functions across utils and services\n**TTL:** Automatic LRU eviction (maxsize=128 typical)\n\n---\n\n**STRATEGY 2: Redis Distributed Cache (56 operations)**\n\n```python\nimport redis\nfrom typing import Any\n\nclass CacheService:\n    def __init__(self, redis_client: redis.Redis):\n        self._redis = redis_client\n\n    async def get_or_set(\n        self,\n        key: str,\n        factory: Callable[[], Awaitable[Any]],\n        ttl: int = 300\n    ) -> Any:\n        \"\"\"Get from cache or compute and store.\n\n        Args:\n            key: Cache key\n            factory: Function to compute value if cache miss\n            ttl: Time-to-live in seconds (default: 5 minutes)\n        \"\"\"\n        # Try cache first\n        cached = await self._redis.get(key)\n        if cached:\n            return json.loads(cached)\n\n        # Cache miss - compute value\n        value = await factory()\n\n        # Store in cache with TTL\n        await self._redis.setex(\n            key,\n            ttl,\n            json.dumps(value)\n        )\n\n        return value\n\n# Usage example\ncache = CacheService(redis_client)\nuser = await cache.get_or_set(\n    f\"user:{user_id}\",\n    lambda: db.get_user(user_id),\n    ttl=300  # 5 minutes\n)\n```\n\n**Use Case:** Shared cache across multiple app instances\n**Frequency:** 56 cache operations (get, set, delete, expire)\n**TTL:** Variable (60s - 3600s depending on data volatility)\n\n---\n\n**STRATEGY 3: Request-Scoped In-Memory Cache (23 instances)**\n\n```python\nfrom collections import defaultdict\nfrom typing import TypeVar, Callable\n\nT = TypeVar('T')\n\nclass RequestCache:\n    \"\"\"Per-request cache to avoid duplicate work.\n\n    Caches data for the lifetime of a single request,\n    preventing duplicate database queries or API calls\n    within the same request context.\n    \"\"\"\n\n    def __init__(self):\n        self._cache: dict[str, Any] = {}\n\n    def get_or_compute(\n        self,\n        key: str,\n        factory: Callable[[], T]\n    ) -> T:\n        if key not in self._cache:\n            self._cache[key] = factory()\n        return self._cache[key]\n\n# Dependency injection in FastAPI\ndef get_request_cache() -> RequestCache:\n    return RequestCache()\n\n@app.get(\"/dashboard\")\nasync def dashboard(\n    cache: RequestCache = Depends(get_request_cache)\n):\n    # Multiple calls within request don't hit database twice\n    user = cache.get_or_compute(\n        \"current_user\",\n        lambda: db.get_user(user_id)\n    )\n\n    projects = cache.get_or_compute(\n        \"user_projects\",\n        lambda: db.get_projects(user.id)\n    )\n```\n\n**Use Case:** Avoid duplicate work within single request\n**Frequency:** 23 instances in API endpoints\n**Scope:** Request-scoped (automatic cleanup)\n\n---\n\n**STRATEGY 4: Cache Invalidation Patterns (45 instances)**\n\n```python\nclass UserService:\n    async def update_user(\n        self,\n        user_id: int,\n        updates: dict\n    ) -> User:\n        # Update database\n        user = await self._repository.update(user_id, updates)\n\n        # Invalidate related caches\n        await self._cache.delete(f\"user:{user_id}\")\n        await self._cache.delete(f\"user_permissions:{user_id}\")\n        await self._cache.delete(f\"user_projects:{user_id}\")\n\n        # Clear LRU cache\n        get_user_permissions.cache_clear()\n\n        return user\n```\n\n**Pattern:** Write-through with explicit invalidation\n**Frequency:** 45 cache invalidation points\n**Strategy:** Invalidate on write, lazy refresh on read\n\n---\n\n**CACHING STRATEGY SUMMARY:**\n\n**Multi-Level Caching:**\n1. **L1: Function-level LRU** (in-process, 34 uses)\n   - Fast: O(1) access\n   - Limited: Single process only\n   - Best for: Pure functions, config data\n\n2. **L2: Redis distributed cache** (shared, 56 uses)\n   - Shared: Across all app instances\n   - Flexible: TTL-based expiration\n   - Best for: User sessions, API responses\n\n3. **L3: Request-scoped cache** (per-request, 23 uses)\n   - Prevents: Duplicate work in single request\n   - Automatic: Cleanup after request\n   - Best for: N+1 query prevention\n\n**Invalidation Strategy:**\n- Write-through pattern (45 invalidation points)\n- Explicit cache clearing on updates\n- TTL-based expiration for stale data protection\n\n**RECOMMENDATIONS:**\n- Well-designed multi-level caching\n- Consider cache warming for critical data\n- Add cache hit rate monitoring\n- Document TTL strategy per data type",
+        "non_compliant": "**CACHING RESEARCH**\n\nThe application uses several caching strategies. LRU cache is used for functions. Redis is used for distributed caching. Some endpoints have request-scoped caches. Cache invalidation happens on writes.\n\n[No code samples]\n[Vague descriptions without illustration]\n[Missing pattern demonstration]"
+      }
+    },
+    {
+      "scenario_id": "OUT-R-004",
+      "name": "Provide Actionable Recommendations",
+      "category": "output",
+      "priority": "medium",
+      "description": "Research must conclude with actionable recommendations based on findings",
+      "input": {
+        "user_request": "Research the current logging implementation and suggest improvements",
+        "context": "Logging used inconsistently across modules",
+        "files": ["src/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Analyze current logging practices",
+          "Identify gaps and issues",
+          "Provide specific, actionable recommendations",
+          "Prioritize recommendations by impact"
+        ],
+        "should_not_do": [
+          "Provide vague suggestions",
+          "Skip recommendations section",
+          "List problems without solutions"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Specific recommendations provided",
+        "Recommendations prioritized",
+        "Each recommendation actionable",
+        "Implementation guidance included"
+      ],
+      "failure_indicators": [
+        "Vague or generic recommendations",
+        "No prioritization",
+        "Missing implementation guidance",
+        "Problems listed without solutions"
+      ],
+      "metrics": {
+        "RecommendationQualityMetric": {
+          "threshold": 0.85,
+          "description": "Actionable recommendations required"
+        },
+        "ActionabilityMetric": {
+          "threshold": 0.8,
+          "description": "Recommendations must be implementable"
+        }
+      },
+      "mock_response": {
+        "compliant": "**LOGGING IMPLEMENTATION RESEARCH**\n\n**CURRENT STATE ANALYSIS:**\n\nUsing Grep to analyze logging practices:\n- logger.info: 234 occurrences\n- logger.error: 156 occurrences\n- logger.debug: 89 occurrences\n- logger.warning: 67 occurrences\n- print statements: 45 occurrences (⚠️ should be logger calls)\n\n**ISSUES IDENTIFIED:**\n\n1. **Inconsistent Log Levels (45 instances)**\n   - 45 print() statements instead of proper logging\n   - Mixing log levels inappropriately\n   - Location: Primarily in src/utils/ and src/legacy/\n\n2. **Missing Structured Logging (189/234 = 81%)**\n   - Most logs use string formatting instead of structured data\n   - Hard to query logs in production\n   - Example: `logger.info(f\"User {user_id} logged in\")` instead of structured format\n\n3. **No Correlation IDs (100% of requests)**\n   - Cannot trace requests across services\n   - Makes debugging distributed systems difficult\n\n4. **Sensitive Data Exposure (12 instances)**\n   - Logging passwords, tokens in plaintext\n   - Location: src/auth/authenticator.py (lines 45, 67), src/api/handlers.py (lines 89, 102, ...)\n\n---\n\n**ACTIONABLE RECOMMENDATIONS:**\n\n**🔴 CRITICAL PRIORITY:**\n\n**1. Remove Sensitive Data from Logs (Security)**\n\n**Issue:** 12 instances logging passwords, API tokens, credit cards\n**Impact:** HIGH - Security vulnerability\n**Effort:** 2-4 hours\n\n**Action Steps:**\n```python\n# BEFORE (VULNERABLE):\nlogger.info(f\"User login: {username}, password: {password}\")\n\n# AFTER (SECURE):\nlogger.info(\n    \"User login attempt\",\n    extra={\"username\": username}  # Never log password\n)\n\n# Add sanitization helper:\ndef sanitize_log_data(data: dict) -> dict:\n    \"\"\"Remove sensitive fields before logging.\"\"\"\n    sensitive_fields = {\"password\", \"token\", \"api_key\", \"credit_card\"}\n    return {\n        k: \"[REDACTED]\" if k in sensitive_fields else v\n        for k, v in data.items()\n    }\n```\n\n**Files to Fix:**\n- src/auth/authenticator.py (lines 45, 67)\n- src/api/handlers.py (lines 89, 102, 134, 156)\n- src/services/payment.py (lines 23, 45, 67, 78)\n\n---\n\n**🟡 HIGH PRIORITY:**\n\n**2. Implement Structured Logging**\n\n**Issue:** 81% of logs use string formatting instead of structured data\n**Impact:** MEDIUM - Makes log analysis difficult\n**Effort:** 1-2 days\n\n**Action Steps:**\n```python\n# Install python-json-logger\npip install python-json-logger\n\n# Configure structured logging\nfrom pythonjsonlogger import jsonlogger\n\nhandler = logging.StreamHandler()\nformatter = jsonlogger.JsonFormatter(\n    \"%(asctime)s %(name)s %(levelname)s %(message)s\"\n)\nhandler.setFormatter(formatter)\nlogger.addHandler(handler)\n\n# Update log calls (example):\n# BEFORE:\nlogger.info(f\"User {user_id} created project {project_id}\")\n\n# AFTER:\nlogger.info(\n    \"User created project\",\n    extra={\n        \"user_id\": user_id,\n        \"project_id\": project_id,\n        \"action\": \"project_create\"\n    }\n)\n```\n\n**Benefits:**\n- Easy to query: `SELECT * FROM logs WHERE action = 'project_create'`\n- Supports log aggregation tools (ELK, Datadog)\n- Machine-readable format\n\n---\n\n**3. Add Request Correlation IDs**\n\n**Issue:** No way to trace requests across services\n**Impact:** MEDIUM - Debugging distributed systems is difficult\n**Effort:** 4-6 hours\n\n**Action Steps:**\n```python\n# Add middleware to generate correlation IDs\nimport uuid\nfrom contextvars import ContextVar\n\nrequest_id_var: ContextVar[str] = ContextVar(\"request_id\", default=\"\")\n\n@app.middleware(\"http\")\nasync def correlation_id_middleware(request: Request, call_next):\n    # Get or generate correlation ID\n    request_id = request.headers.get(\"X-Request-ID\") or str(uuid.uuid4())\n    request_id_var.set(request_id)\n\n    # Add to response headers\n    response = await call_next(request)\n    response.headers[\"X-Request-ID\"] = request_id\n    return response\n\n# Update logging configuration\nclass CorrelationIdFilter(logging.Filter):\n    def filter(self, record):\n        record.request_id = request_id_var.get()\n        return True\n\nlogger.addFilter(CorrelationIdFilter())\n\n# All logs now include request_id:\nlogger.info(\n    \"Processing request\",\n    extra={\"request_id\": request_id_var.get()}\n)\n```\n\n**Benefits:**\n- Trace requests across services\n- Filter logs by request_id in production\n- Essential for microservices debugging\n\n---\n\n**🟢 MEDIUM PRIORITY:**\n\n**4. Replace print() with logger calls**\n\n**Issue:** 45 print() statements instead of proper logging\n**Impact:** LOW - Missing logs in production\n**Effort:** 2-3 hours\n\n**Action Steps:**\n```bash\n# Find all print statements\ngrep -r \"print(\" src/ --include=\"*.py\"\n\n# Replace with appropriate log level:\n# Debug info → logger.debug()\n# User actions → logger.info()\n# Errors → logger.error()\n```\n\n**Script to automate:**\n```python\n# find_and_replace_prints.py\nimport re\nfrom pathlib import Path\n\ndef replace_prints(file_path: Path):\n    content = file_path.read_text()\n    # Replace print(f\"...\") with logger.info(\"...\")\n    updated = re.sub(\n        r'print\\(f?[\"\\'](.+?)[\"\\']\\)',\n        r'logger.info(\"\\1\")',\n        content\n    )\n    file_path.write_text(updated)\n\nfor file in Path(\"src/\").rglob(\"*.py\"):\n    replace_prints(file)\n```\n\n---\n\n**IMPLEMENTATION ROADMAP:**\n\n**Week 1: Critical Security Fix**\n- [ ] Day 1-2: Remove sensitive data from logs (12 instances)\n- [ ] Day 3: Code review for sensitive data patterns\n- [ ] Day 4-5: Add sanitization helpers and tests\n\n**Week 2: Structured Logging**\n- [ ] Day 1: Configure python-json-logger\n- [ ] Day 2-3: Update high-traffic endpoints\n- [ ] Day 4-5: Update remaining modules\n\n**Week 3: Correlation IDs**\n- [ ] Day 1-2: Implement middleware\n- [ ] Day 3: Update logging configuration\n- [ ] Day 4-5: Test and validate in staging\n\n**Week 4: Cleanup**\n- [ ] Day 1-2: Replace print() statements\n- [ ] Day 3-4: Documentation and developer guide\n- [ ] Day 5: Final code review\n\n---\n\n**ESTIMATED IMPACT:**\n\n✅ **Security:** Eliminates sensitive data exposure (12 vulnerabilities fixed)\n✅ **Observability:** 81% improvement in log queryability\n✅ **Debugging:** 100% request traceability with correlation IDs\n✅ **Production Readiness:** Professional logging infrastructure\n\n**Total Effort:** 2-3 weeks (1 developer)\n**ROI:** High - Essential for production debugging and security",
+        "non_compliant": "**LOGGING RESEARCH**\n\nFound inconsistent logging across the codebase. Some files use print statements instead of logger. Logging could be improved with structured logging. Correlation IDs would help with debugging.\n\n**Recommendations:**\n- Improve logging\n- Add structured logging\n- Consider correlation IDs\n- Fix print statements\n\n[Vague recommendations without specifics]\n[No prioritization or implementation guidance]\n[Missing actionable steps]"
+      }
+    }
+  ]
+}

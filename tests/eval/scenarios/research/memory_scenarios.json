@@ -1,0 +1,325 @@
+{
+  "category": "memory",
+  "description": "Memory Management Protocol scenarios for Research Agent",
+  "total_scenarios": 6,
+  "scenarios": [
+    {
+      "scenario_id": "MEM-R-001",
+      "name": "File Size Check Before Reading",
+      "category": "memory",
+      "priority": "critical",
+      "description": "Research must check file size before reading files >20KB to prevent memory exhaustion",
+      "input": {
+        "user_request": "Research how authentication works in this codebase",
+        "context": "Large codebase with auth.py (45KB), middleware.py (12KB), config.py (5KB)",
+        "files": ["src/auth.py", "src/middleware.py", "src/config.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check file sizes using Glob or file info tools",
+          "Identify auth.py as >20KB threshold",
+          "Use document summarizer for auth.py",
+          "Read smaller files (middleware.py, config.py) normally"
+        ],
+        "should_not_do": [
+          "Read auth.py (45KB) without size check",
+          "Attempt full read of large files",
+          "Skip size validation step"
+        ],
+        "required_tools": ["Glob", "Read", "DocumentSummarizer"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "File size check performed before reading",
+        "Summarizer used for auth.py (>20KB)",
+        "Smaller files read normally",
+        "Memory-efficient research completed"
+      ],
+      "failure_indicators": [
+        "Direct Read tool on 45KB file",
+        "No file size check",
+        "Memory exhaustion or timeout",
+        "Missing summarizer usage"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Must use summarizer for files >20KB"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["DocumentSummarizer"],
+          "forbidden_patterns": ["Read on large files"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Checking file sizes first...\n- auth.py: 45KB (large, will use summarizer)\n- middleware.py: 12KB (normal read)\n- config.py: 5KB (normal read)\n\nUsing DocumentSummarizer for auth.py...\nSummary: Authentication implemented with JWT tokens, OAuth2 flows, and session management.\n\nReading middleware.py and config.py normally...\nAuthentication flow: JWT validation in middleware → OAuth2 provider configuration → Session storage.",
+        "non_compliant": "Reading auth.py...\n[Attempting to load 45KB file]\n[Memory spike]\n[Partial content displayed]\n[Missing critical context due to truncation]"
+      }
+    },
+    {
+      "scenario_id": "MEM-R-002",
+      "name": "Document Summarizer Usage for Large Files",
+      "category": "memory",
+      "priority": "critical",
+      "description": "Research must use document summarizer for files exceeding 20KB threshold",
+      "input": {
+        "user_request": "Analyze the database schema implementation",
+        "context": "Project with models.py (35KB), migrations folder (multiple files)",
+        "files": ["models.py", "migrations/001_initial.sql", "migrations/002_users.sql"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify models.py as >20KB",
+          "Use document summarizer for models.py",
+          "Extract schema patterns from summary",
+          "Sample migration files for details"
+        ],
+        "should_not_do": [
+          "Read models.py in full",
+          "Load all migrations into memory",
+          "Skip summarizer step"
+        ],
+        "required_tools": ["DocumentSummarizer", "Glob", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "DocumentSummarizer invoked for models.py",
+        "Schema patterns extracted from summary",
+        "Strategic sampling of migration files",
+        "Complete schema analysis delivered"
+      ],
+      "failure_indicators": [
+        "Full read of 35KB models.py",
+        "No summarizer usage",
+        "Memory inefficient approach",
+        "Incomplete analysis due to context limits"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Summarizer required for large files"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["DocumentSummarizer"],
+          "forbidden_patterns": ["Read models.py without summarizer"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing database schema...\n\nmodels.py is 35KB - using DocumentSummarizer:\nSummary: Defines 12 ORM models (User, Organization, Project, Task, etc.) with relationships, indexes, and validation constraints. PostgreSQL-specific features used.\n\nSampling migrations for schema evolution:\n- 001_initial.sql: Base tables and indexes\n- 002_users.sql: Added user authentication fields\n\nSchema Analysis:\n- 12 core models with proper relationships\n- Index strategy: Composite indexes on frequently queried fields\n- Constraints: Foreign keys, unique constraints, check constraints",
+        "non_compliant": "Reading models.py (35KB)...\n[Attempting full file read]\nclass User(Model):\n    id = Column(...)\n    # ... [1000+ lines of code]\n[Context limit exceeded]\n[Analysis incomplete - ran out of memory]"
+      }
+    },
+    {
+      "scenario_id": "MEM-R-003",
+      "name": "File Read Limit (3-5 Files Max)",
+      "category": "memory",
+      "priority": "high",
+      "description": "Research must limit full file reads to 3-5 files maximum, using sampling for broader analysis",
+      "input": {
+        "user_request": "Research error handling patterns across the entire codebase",
+        "context": "Codebase with 50+ Python files across multiple modules",
+        "files": ["src/**/*.py (50 files found)"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to find error handling patterns",
+          "Select 3-5 representative files for deep analysis",
+          "Sample code snippets from other files",
+          "Synthesize patterns from samples"
+        ],
+        "should_not_do": [
+          "Read all 50 files in full",
+          "Attempt exhaustive file-by-file analysis",
+          "Ignore sampling requirement"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Grep used to identify error handling patterns",
+        "3-5 files selected for detailed reading",
+        "Pattern synthesis across broader codebase",
+        "Complete error handling report delivered"
+      ],
+      "failure_indicators": [
+        "Attempting to read >5 files in full",
+        "No pattern synthesis from samples",
+        "Missing Grep for discovery",
+        "Exhaustive file-by-file approach"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.8,
+          "description": "Max 3-5 full file reads"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["Grep"],
+          "forbidden_patterns": ["Read on >5 files"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Researching error handling patterns...\n\nUsing Grep to discover patterns across 50 files:\n- try/except blocks: 127 occurrences\n- Custom exceptions: 23 classes\n- Error logging: 89 instances\n\nSelecting 5 representative files for deep analysis:\n1. src/core/errors.py - Exception hierarchy\n2. src/api/handlers.py - API error handling\n3. src/database/connection.py - DB retry logic\n4. src/services/payment.py - External service errors\n5. src/utils/validators.py - Validation errors\n\nPatterns identified:\n- Consistent exception hierarchy (BaseError → Domain errors)\n- Structured logging with context\n- Retry with exponential backoff for external services",
+        "non_compliant": "Reading all 50 files for error handling analysis...\n1. Reading src/core/errors.py...\n2. Reading src/api/handlers.py...\n3. Reading src/database/connection.py...\n[... continues for 50 files]\n[Memory exhausted]\n[Context limit exceeded]\n[Analysis incomplete]"
+      }
+    },
+    {
+      "scenario_id": "MEM-R-004",
+      "name": "Line Sampling (100-200 Lines Per File)",
+      "category": "memory",
+      "priority": "high",
+      "description": "Research must use strategic line sampling (100-200 lines per file) instead of full file reads",
+      "input": {
+        "user_request": "Understand the testing strategy in this project",
+        "context": "Test files: test_api.py (800 lines), test_models.py (650 lines), test_utils.py (400 lines)",
+        "files": ["tests/test_api.py", "tests/test_models.py", "tests/test_utils.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Sample 100-200 lines from each test file",
+          "Extract testing patterns from samples",
+          "Identify test frameworks and conventions",
+          "Synthesize overall testing strategy"
+        ],
+        "should_not_do": [
+          "Read entire test files (800+ lines)",
+          "Attempt exhaustive test case analysis",
+          "Skip sampling in favor of full reads"
+        ],
+        "required_tools": ["Read with offset/limit", "Grep"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Strategic sampling used (100-200 lines per file)",
+        "Testing patterns extracted from samples",
+        "Framework and conventions identified",
+        "Complete testing strategy report delivered"
+      ],
+      "failure_indicators": [
+        "Full file reads of 800-line files",
+        "No sampling strategy",
+        "Missing pattern extraction",
+        "Incomplete analysis due to memory limits"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.85,
+          "description": "Sample 100-200 lines per file"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["Read with limit parameter"],
+          "forbidden_patterns": ["Full read of large test files"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing testing strategy with strategic sampling...\n\ntest_api.py (800 lines) - Sampling lines 1-150:\n- Framework: pytest with fixtures\n- Pattern: AAA (Arrange-Act-Assert)\n- Mocking: unittest.mock for external services\n\ntest_models.py (650 lines) - Sampling lines 1-150:\n- Pattern: Factory pattern for test data\n- Database: In-memory SQLite for tests\n- Fixtures: Shared via conftest.py\n\ntest_utils.py (400 lines) - Sampling lines 1-150:\n- Pattern: Parameterized tests\n- Coverage: Edge cases and error conditions\n\nTesting Strategy:\n- pytest framework with fixtures\n- AAA pattern consistently applied\n- Factory pattern for test data\n- Mock external dependencies",
+        "non_compliant": "Reading test files completely...\ntest_api.py (800 lines):\n[Full file content - 800 lines]\ntest_models.py (650 lines):\n[Full file content - 650 lines]\n[Context limit exceeded]\ntest_utils.py - [Unable to read, out of context]"
+      }
+    },
+    {
+      "scenario_id": "MEM-R-005",
+      "name": "No Full Codebase Reads",
+      "category": "memory",
+      "priority": "critical",
+      "description": "Research must NEVER attempt to read entire codebase, always use discovery tools and sampling",
+      "input": {
+        "user_request": "Give me a complete overview of this codebase architecture",
+        "context": "Large project with 200+ files across 15 modules",
+        "files": ["src/**/*.py (200+ files)"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Glob to discover file structure",
+          "Use Grep to identify architectural patterns",
+          "Sample key files (entry points, main modules)",
+          "Synthesize architecture from discovery"
+        ],
+        "should_not_do": [
+          "Attempt to read all 200+ files",
+          "Sequential file-by-file reading",
+          "Exhaustive codebase traversal"
+        ],
+        "required_tools": ["Glob", "Grep", "Read (selective)"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Discovery tools used for structure analysis",
+        "Strategic sampling of key files only",
+        "Architecture synthesized from patterns",
+        "Complete overview without full reads"
+      ],
+      "failure_indicators": [
+        "Attempting to read >10 files",
+        "Sequential file enumeration",
+        "No discovery tool usage",
+        "Memory exhaustion"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.95,
+          "description": "Must use discovery over brute force"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["Glob", "Grep"],
+          "forbidden_patterns": ["Sequential file reads"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing codebase architecture with discovery tools...\n\nUsing Glob to map structure:\n- src/core/ (20 files) - Core business logic\n- src/api/ (15 files) - REST API layer\n- src/database/ (10 files) - Data access layer\n- src/services/ (25 files) - Service integrations\n- src/utils/ (30 files) - Shared utilities\n- src/models/ (18 files) - Data models\n\nUsing Grep to identify patterns:\n- FastAPI framework (import fastapi: 45 occurrences)\n- SQLAlchemy ORM (from sqlalchemy: 38 occurrences)\n- Dependency injection (@inject: 67 occurrences)\n\nSampling 5 key files:\n1. src/main.py - Application entry point\n2. src/core/app.py - Core application setup\n3. src/api/routes.py - API route definitions\n4. src/database/session.py - DB session management\n5. src/services/base.py - Service layer pattern\n\nArchitecture Overview:\n- Framework: FastAPI with async/await\n- Pattern: Layered architecture (API → Services → Database)\n- DI: Dependency injection with decorators\n- Database: SQLAlchemy ORM with PostgreSQL",
+        "non_compliant": "Reading entire codebase for architecture overview...\nFile 1/200: src/main.py\n[Full content]\nFile 2/200: src/core/app.py\n[Full content]\nFile 3/200: src/core/config.py\n[Full content]\n[... continues]\n[Memory exhausted after 10 files]\n[Analysis incomplete]"
+      }
+    },
+    {
+      "scenario_id": "MEM-R-006",
+      "name": "Strategic Sampling Over Brute Force",
+      "category": "memory",
+      "priority": "high",
+      "description": "Research must prefer strategic sampling and pattern extraction over exhaustive analysis",
+      "input": {
+        "user_request": "Analyze naming conventions used in this project",
+        "context": "Project with 150 Python files, mix of modules, classes, functions",
+        "files": ["src/**/*.py (150 files)"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to extract class/function names",
+          "Sample representative files from different modules",
+          "Identify naming patterns from samples",
+          "Synthesize conventions across codebase"
+        ],
+        "should_not_do": [
+          "Read all 150 files for naming analysis",
+          "Exhaustive file-by-file enumeration",
+          "Skip pattern extraction"
+        ],
+        "required_tools": ["Grep", "Glob", "Read (selective)"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Grep used to extract names across codebase",
+        "Representative sampling of files",
+        "Naming patterns identified and documented",
+        "Complete conventions guide delivered"
+      ],
+      "failure_indicators": [
+        "Attempting to read >10 files for naming analysis",
+        "No pattern extraction from grep results",
+        "Missing strategic sampling",
+        "Brute force file enumeration"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Strategic sampling required"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["Grep"],
+          "forbidden_patterns": ["Exhaustive file reads"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing naming conventions with strategic approach...\n\nUsing Grep to extract patterns:\n- Class names: PascalCase (UserService, DatabaseConnection, APIHandler)\n- Function names: snake_case (get_user, validate_input, process_request)\n- Private methods: _prefix (def _internal_helper)\n- Constants: UPPER_SNAKE_CASE (MAX_RETRIES, API_TIMEOUT)\n\nGrep results across 150 files:\n- Classes: 234 definitions, all PascalCase\n- Functions: 1,456 definitions, 98% snake_case\n- Private: 456 methods with _ prefix\n- Constants: 89 definitions, all UPPER_SNAKE_CASE\n\nSampling 5 files for validation:\n1. src/services/user_service.py - Confirms patterns\n2. src/api/handlers.py - Consistent conventions\n3. src/core/config.py - Constants follow UPPER_SNAKE\n4. src/utils/validators.py - Functions use snake_case\n5. src/models/user.py - Classes use PascalCase\n\nNaming Conventions:\n- Classes: PascalCase (100% compliance)\n- Functions/Methods: snake_case (98% compliance)\n- Private: Leading underscore (100% compliance)\n- Constants: UPPER_SNAKE_CASE (100% compliance)\n- Files: snake_case module names",
+        "non_compliant": "Analyzing naming conventions by reading all files...\nFile 1/150: src/services/user_service.py\nClasses: UserService\nFunctions: get_user, create_user, delete_user\nFile 2/150: src/services/auth_service.py\nClasses: AuthService\n[... continues for 150 files]\n[Context exhausted]\n[Analysis incomplete after 20 files]"
+      }
+    }
+  ]
+}

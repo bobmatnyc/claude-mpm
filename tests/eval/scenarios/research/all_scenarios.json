@@ -1,0 +1,153 @@
+{
+  "agent": "research",
+  "description": "Complete Research Agent behavioral scenarios for DeepEval Phase 2",
+  "version": "1.0.0",
+  "total_scenarios": 15,
+  "categories": {
+    "memory": {
+      "count": 6,
+      "file": "memory_scenarios.json",
+      "description": "Memory Management Protocol scenarios"
+    },
+    "discovery": {
+      "count": 5,
+      "file": "discovery_scenarios.json",
+      "description": "Discovery Pattern Protocol scenarios"
+    },
+    "output": {
+      "count": 4,
+      "file": "output_scenarios.json",
+      "description": "Output Requirements scenarios"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "MEM-R-001",
+      "name": "File Size Check Before Reading",
+      "category": "memory",
+      "priority": "critical",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-R-002",
+      "name": "Document Summarizer Usage for Large Files",
+      "category": "memory",
+      "priority": "critical",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-R-003",
+      "name": "File Read Limit (3-5 Files Max)",
+      "category": "memory",
+      "priority": "high",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-R-004",
+      "name": "Line Sampling (100-200 Lines Per File)",
+      "category": "memory",
+      "priority": "high",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-R-005",
+      "name": "No Full Codebase Reads",
+      "category": "memory",
+      "priority": "critical",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-R-006",
+      "name": "Strategic Sampling Over Brute Force",
+      "category": "memory",
+      "priority": "high",
+      "file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "DSC-R-001",
+      "name": "Use Grep/Glob for File Discovery",
+      "category": "discovery",
+      "priority": "critical",
+      "file": "discovery_scenarios.json"
+    },
+    {
+      "scenario_id": "DSC-R-002",
+      "name": "Extract Patterns from Samples",
+      "category": "discovery",
+      "priority": "high",
+      "file": "discovery_scenarios.json"
+    },
+    {
+      "scenario_id": "DSC-R-003",
+      "name": "Synthesize Findings Across Samples",
+      "category": "discovery",
+      "priority": "high",
+      "file": "discovery_scenarios.json"
+    },
+    {
+      "scenario_id": "DSC-R-004",
+      "name": "Provide Executive Summary",
+      "category": "discovery",
+      "priority": "medium",
+      "file": "discovery_scenarios.json"
+    },
+    {
+      "scenario_id": "DSC-R-005",
+      "name": "Include Code Examples in Output",
+      "category": "discovery",
+      "priority": "medium",
+      "file": "discovery_scenarios.json"
+    },
+    {
+      "scenario_id": "OUT-R-001",
+      "name": "Include File List in Output",
+      "category": "output",
+      "priority": "high",
+      "file": "output_scenarios.json"
+    },
+    {
+      "scenario_id": "OUT-R-002",
+      "name": "Provide Pattern Analysis",
+      "category": "output",
+      "priority": "high",
+      "file": "output_scenarios.json"
+    },
+    {
+      "scenario_id": "OUT-R-003",
+      "name": "Include Representative Samples",
+      "category": "output",
+      "priority": "medium",
+      "file": "output_scenarios.json"
+    },
+    {
+      "scenario_id": "OUT-R-004",
+      "name": "Provide Actionable Recommendations",
+      "category": "output",
+      "priority": "medium",
+      "file": "output_scenarios.json"
+    }
+  ],
+  "priority_distribution": {
+    "critical": 3,
+    "high": 6,
+    "medium": 6
+  },
+  "metrics": [
+    "MemoryEfficiencyMetric",
+    "ToolUsageMetric",
+    "EfficiencyMetric",
+    "SynthesisQualityMetric",
+    "InsightDepthMetric",
+    "ExampleQualityMetric",
+    "IllustrationCompletenessMetric",
+    "CompletenessMetric",
+    "OrganizationMetric",
+    "PatternAnalysisDepthMetric",
+    "InsightQualityMetric",
+    "SampleQualityMetric",
+    "RecommendationQualityMetric",
+    "ActionabilityMetric",
+    "StructureQualityMetric",
+    "CommunicationEffectivenessMetric"
+  ]
+}

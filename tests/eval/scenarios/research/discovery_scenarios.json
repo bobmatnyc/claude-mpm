@@ -1,0 +1,272 @@
+{
+  "category": "discovery",
+  "description": "Discovery Pattern Protocol scenarios for Research Agent",
+  "total_scenarios": 5,
+  "scenarios": [
+    {
+      "scenario_id": "DSC-R-001",
+      "name": "Use Grep/Glob for File Discovery",
+      "category": "discovery",
+      "priority": "critical",
+      "description": "Research must use Grep and Glob tools for efficient file discovery instead of reading files to find content",
+      "input": {
+        "user_request": "Find all files that implement authentication logic",
+        "context": "Large codebase with 200+ Python files",
+        "files": ["src/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to search for authentication patterns (authenticate, login, jwt, oauth)",
+          "Use Glob to identify relevant file paths",
+          "Filter results to key authentication files",
+          "Read only identified files for detailed analysis"
+        ],
+        "should_not_do": [
+          "Read files sequentially to find authentication code",
+          "Skip discovery tools and guess file locations",
+          "Perform exhaustive file-by-file search"
+        ],
+        "required_tools": ["Grep", "Glob", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Grep used with authentication-related patterns",
+        "Glob used to map file structure",
+        "Relevant files identified efficiently",
+        "Complete authentication file list delivered"
+      ],
+      "failure_indicators": [
+        "Sequential file reading for discovery",
+        "No Grep/Glob tool usage",
+        "Inefficient brute-force search",
+        "Missing authentication files"
+      ],
+      "metrics": {
+        "ToolUsageMetric": {
+          "required_tools": ["Grep", "Glob"],
+          "forbidden_patterns": ["Sequential Read for discovery"]
+        },
+        "EfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Discovery must be efficient"
+        }
+      },
+      "mock_response": {
+        "compliant": "Discovering authentication files...\n\nUsing Grep to find authentication patterns:\n- 'authenticate' → 15 occurrences in 5 files\n- 'login' → 23 occurrences in 8 files\n- 'jwt' → 12 occurrences in 3 files\n- 'oauth' → 8 occurrences in 4 files\n\nUsing Glob to map structure:\n- src/auth/ (7 files)\n- src/middleware/ (3 auth-related files)\n- src/services/auth_service.py\n\nAuthentication files identified:\n1. src/auth/authenticator.py - Core auth logic\n2. src/auth/jwt_handler.py - JWT token management\n3. src/auth/oauth_provider.py - OAuth2 integration\n4. src/middleware/auth_middleware.py - Request authentication\n5. src/services/auth_service.py - Authentication service layer\n\nReading identified files for detailed analysis...",
+        "non_compliant": "Finding authentication files...\nReading src/main.py... no authentication code\nReading src/config.py... no authentication code\nReading src/utils/helpers.py... no authentication code\nReading src/models/user.py... some auth references\n[... continues reading files sequentially]\n[Inefficient, many unnecessary file reads]"
+      }
+    },
+    {
+      "scenario_id": "DSC-R-002",
+      "name": "Extract Patterns from Samples",
+      "category": "discovery",
+      "priority": "high",
+      "description": "Research must extract common patterns from sampled files rather than exhaustive analysis",
+      "input": {
+        "user_request": "Identify common patterns in API endpoint definitions",
+        "context": "Project with 30 API route files",
+        "files": ["src/api/routes/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to find endpoint decorators (@router, @app.route)",
+          "Sample 3-5 representative route files",
+          "Extract common patterns from samples",
+          "Synthesize pattern guide from samples"
+        ],
+        "should_not_do": [
+          "Read all 30 route files",
+          "Analyze every endpoint individually",
+          "Skip pattern extraction"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Grep used to discover endpoint patterns",
+        "3-5 files sampled for detailed analysis",
+        "Common patterns extracted and documented",
+        "Pattern guide delivered"
+      ],
+      "failure_indicators": [
+        "Reading all 30 route files",
+        "No pattern extraction",
+        "Missing Grep for discovery",
+        "Exhaustive endpoint enumeration"
+      ],
+      "metrics": {
+        "EfficiencyMetric": {
+          "threshold": 0.85,
+          "description": "Pattern extraction from samples"
+        },
+        "ToolUsageMetric": {
+          "required_tools": ["Grep"],
+          "forbidden_patterns": ["Read all route files"]
+        }
+      },
+      "mock_response": {
+        "compliant": "Extracting API endpoint patterns...\n\nUsing Grep to discover endpoint decorators:\n- @router.get: 45 occurrences\n- @router.post: 32 occurrences\n- @router.put: 18 occurrences\n- @router.delete: 12 occurrences\n\nSampling 5 representative route files:\n1. src/api/routes/users.py - User CRUD endpoints\n2. src/api/routes/auth.py - Authentication endpoints\n3. src/api/routes/projects.py - Project management\n4. src/api/routes/tasks.py - Task operations\n5. src/api/routes/admin.py - Admin functions\n\nPatterns extracted from samples:\n\n**Routing Pattern:**\n```python\n@router.get(\"/users/{user_id}\", response_model=UserResponse)\nasync def get_user(user_id: int, db: Database = Depends(get_db)):\n    # Implementation\n```\n\n**Common Patterns:**\n- Dependency injection for database (Depends(get_db))\n- Response models for validation (response_model=...)\n- Async/await for all endpoints\n- HTTP method decorators (get, post, put, delete)\n- Path parameters with type hints\n- Consistent error handling with HTTPException\n\n**Naming Conventions:**\n- Endpoint functions: verb_noun (get_user, create_project)\n- Route paths: /resource/{id} pattern\n- Response models: ResourceResponse suffix",
+        "non_compliant": "Analyzing API endpoints...\nReading file 1/30: src/api/routes/users.py\n@router.get('/users/{user_id}')\n@router.post('/users')\n@router.put('/users/{user_id}')\n[Full file content]\n\nReading file 2/30: src/api/routes/auth.py\n@router.post('/login')\n@router.post('/logout')\n[Full file content]\n\n[... continues for 30 files]\n[No pattern synthesis, just raw enumeration]"
+      }
+    },
+    {
+      "scenario_id": "DSC-R-003",
+      "name": "Synthesize Findings Across Samples",
+      "category": "discovery",
+      "priority": "high",
+      "description": "Research must synthesize findings from samples into coherent insights rather than listing individual observations",
+      "input": {
+        "user_request": "Research testing practices in this codebase",
+        "context": "Project with 50 test files across multiple modules",
+        "files": ["tests/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to identify test frameworks and patterns",
+          "Sample representative test files from different modules",
+          "Extract common testing practices",
+          "Synthesize into comprehensive testing guide"
+        ],
+        "should_not_do": [
+          "List individual test files without synthesis",
+          "Enumerate test cases without pattern extraction",
+          "Provide raw observations without insights"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Testing patterns identified from samples",
+        "Practices synthesized into coherent guide",
+        "Frameworks and conventions documented",
+        "Actionable testing recommendations provided"
+      ],
+      "failure_indicators": [
+        "Raw enumeration of test files",
+        "No synthesis of findings",
+        "Missing pattern identification",
+        "Incoherent observations"
+      ],
+      "metrics": {
+        "SynthesisQualityMetric": {
+          "threshold": 0.8,
+          "description": "Findings must be synthesized"
+        },
+        "InsightDepthMetric": {
+          "threshold": 0.8,
+          "description": "Insights beyond raw observations"
+        }
+      },
+      "mock_response": {
+        "compliant": "Researching testing practices...\n\nUsing Grep to discover test patterns:\n- pytest: 167 imports\n- unittest.mock: 89 imports\n- @pytest.fixture: 45 occurrences\n- @pytest.mark.parametrize: 34 occurrences\n- Factory pattern: 23 test data factories\n\nSampling 5 test files from different modules:\n1. tests/api/test_users.py - API testing patterns\n2. tests/services/test_auth.py - Service layer tests\n3. tests/models/test_database.py - Database tests\n4. tests/utils/test_validators.py - Utility tests\n5. tests/integration/test_workflow.py - Integration tests\n\n**TESTING PRACTICES SYNTHESIS:**\n\n**Framework & Tools:**\n- Primary: pytest with async support\n- Mocking: unittest.mock for external dependencies\n- Fixtures: Shared test setup via conftest.py\n- Coverage: pytest-cov with 85%+ requirement\n\n**Testing Patterns:**\n\n1. **AAA Pattern (Arrange-Act-Assert):**\n   - Consistently applied across all test files\n   - Clear separation of setup, execution, verification\n\n2. **Factory Pattern for Test Data:**\n   - UserFactory, ProjectFactory classes\n   - Reduces boilerplate, improves maintainability\n\n3. **Parametrized Tests:**\n   - Used for edge cases and multiple input scenarios\n   - Reduces duplicate test code\n\n4. **Mocking Strategy:**\n   - External services always mocked\n   - Database uses in-memory SQLite for tests\n   - API calls mocked with responses library\n\n5. **Fixture Organization:**\n   - Shared fixtures in conftest.py\n   - Module-specific fixtures in test files\n   - Clear dependency injection\n\n**Test Categories:**\n- Unit tests: 70% (fast, isolated)\n- Integration tests: 25% (realistic scenarios)\n- End-to-end tests: 5% (critical user flows)\n\n**Coverage & Quality:**\n- Minimum coverage: 85%\n- Critical paths: 95%+ coverage\n- Property-based testing for validators (hypothesis)\n\n**Recommendations:**\n- Well-structured testing practices\n- Consistent patterns across codebase\n- Good balance of test types\n- Consider adding more integration tests for complex workflows",
+        "non_compliant": "Listing test files...\n\nFile: tests/api/test_users.py\n- Uses pytest\n- Has fixtures\n- Tests user API endpoints\n\nFile: tests/services/test_auth.py\n- Uses pytest\n- Has mocks\n- Tests authentication service\n\nFile: tests/models/test_database.py\n- Uses pytest\n- Tests database models\n\n[... continues listing files without synthesis]\n[No patterns identified, no insights, just enumeration]"
+      }
+    },
+    {
+      "scenario_id": "DSC-R-004",
+      "name": "Provide Executive Summary",
+      "category": "discovery",
+      "priority": "medium",
+      "description": "Research must provide concise executive summary at the beginning of research findings",
+      "input": {
+        "user_request": "Research the database architecture and patterns",
+        "context": "Complex database layer with models, migrations, and queries",
+        "files": ["src/database/**/*.py", "migrations/*.sql"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Provide 2-3 sentence executive summary first",
+          "Highlight key findings upfront",
+          "Follow with detailed analysis",
+          "Include actionable insights"
+        ],
+        "should_not_do": [
+          "Start with low-level details",
+          "Bury key findings in verbose output",
+          "Skip executive summary"
+        ],
+        "required_tools": ["Grep", "Read", "Glob"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Executive summary provided first",
+        "Key findings highlighted upfront",
+        "Detailed analysis follows summary",
+        "Clear structure: summary → details → recommendations"
+      ],
+      "failure_indicators": [
+        "No executive summary",
+        "Key findings buried in details",
+        "Unclear structure",
+        "Missing actionable insights"
+      ],
+      "metrics": {
+        "StructureQualityMetric": {
+          "threshold": 0.8,
+          "description": "Clear executive summary required"
+        },
+        "CommunicationEffectivenessMetric": {
+          "threshold": 0.8,
+          "description": "Key findings upfront"
+        }
+      },
+      "mock_response": {
+        "compliant": "**EXECUTIVE SUMMARY:**\nDatabase architecture uses SQLAlchemy ORM with PostgreSQL, implementing repository pattern for data access. Schema includes 15 core models with well-designed relationships, proper indexing, and migration management via Alembic. Key strengths: type-safe queries, transaction management, and connection pooling. Recommendation: Consider adding read replicas for scaling.\n\n---\n\n**DETAILED ANALYSIS:**\n\n**Architecture Overview:**\n- ORM: SQLAlchemy 2.0 with async support\n- Database: PostgreSQL 15+\n- Migrations: Alembic with auto-generation\n- Pattern: Repository pattern for data access\n\n**Schema Design:**\n15 core models identified:\n- User, Organization, Project, Task (core entities)\n- Relationships: Proper foreign keys, cascade rules\n- Indexes: Composite indexes on frequent queries\n- Constraints: Unique, check, and foreign key constraints\n\n**Data Access Patterns:**\n- Repository classes for each model\n- Type-safe query builders\n- Unit of Work pattern for transactions\n- Connection pooling (max 20 connections)\n\n**Migration Strategy:**\n- Alembic with version control\n- Auto-generation from model changes\n- Rollback support\n- 45 migrations applied successfully\n\n**Performance Optimizations:**\n- Eager loading to prevent N+1 queries\n- Query result caching (5-minute TTL)\n- Connection pooling with PgBouncer\n- Index strategy: B-tree for lookups, GiST for full-text\n\n**RECOMMENDATIONS:**\n1. Add read replicas for scaling reads\n2. Implement query performance monitoring\n3. Consider partitioning for large tables (Tasks, Logs)\n4. Add database-level audit logging",
+        "non_compliant": "Analyzing database architecture...\n\nFound models.py with 15 model definitions:\n\nclass User(Base):\n    __tablename__ = 'users'\n    id = Column(Integer, primary_key=True)\n    email = Column(String(255), unique=True)\n    # ... [continues with low-level details]\n\nclass Organization(Base):\n    __tablename__ = 'organizations'\n    # ... [more low-level code]\n\n[... continues with verbose details without summary]\n[Key findings buried deep in output]\n[No executive summary or clear structure]"
+      }
+    },
+    {
+      "scenario_id": "DSC-R-005",
+      "name": "Include Code Examples in Output",
+      "category": "discovery",
+      "priority": "medium",
+      "description": "Research must include representative code examples to illustrate patterns and findings",
+      "input": {
+        "user_request": "Research dependency injection patterns in this codebase",
+        "context": "Project using dependency injection with decorators",
+        "files": ["src/**/*.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use Grep to find DI patterns (@inject, Depends)",
+          "Sample files with DI usage",
+          "Extract representative code examples",
+          "Include examples in research output"
+        ],
+        "should_not_do": [
+          "Provide findings without code examples",
+          "Use vague descriptions instead of concrete examples",
+          "Skip code illustration"
+        ],
+        "required_tools": ["Grep", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "DI patterns identified with Grep",
+        "Representative code examples extracted",
+        "Examples illustrate key patterns",
+        "Complete pattern guide with examples delivered"
+      ],
+      "failure_indicators": [
+        "No code examples provided",
+        "Vague descriptions without illustration",
+        "Missing pattern demonstration",
+        "Incomplete research without examples"
+      ],
+      "metrics": {
+        "ExampleQualityMetric": {
+          "threshold": 0.8,
+          "description": "Code examples required"
+        },
+        "IllustrationCompletenessMetric": {
+          "threshold": 0.8,
+          "description": "Patterns must be illustrated"
+        }
+      },
+      "mock_response": {
+        "compliant": "Researching dependency injection patterns...\n\nUsing Grep to find DI patterns:\n- '@inject' decorator: 67 occurrences\n- 'Depends()' calls: 89 occurrences\n- 'Container.resolve': 34 occurrences\n\n**DEPENDENCY INJECTION PATTERNS FOUND:**\n\n**Pattern 1: Constructor Injection with @inject**\n\n```python\nfrom injector import inject\n\nclass UserService:\n    @inject\n    def __init__(\n        self,\n        repository: IUserRepository,\n        cache: ICacheService,\n        logger: ILogger\n    ):\n        self._repository = repository\n        self._cache = cache\n        self._logger = logger\n\n    async def get_user(self, user_id: int) -> User:\n        cached = await self._cache.get(f\"user:{user_id}\")\n        if cached:\n            return User.parse_obj(cached)\n\n        user = await self._repository.get_by_id(user_id)\n        await self._cache.set(f\"user:{user_id}\", user.dict())\n        return user\n```\n\n**Pattern 2: FastAPI Dependency Injection**\n\n```python\nfrom fastapi import Depends\n\ndef get_database() -> Database:\n    db = Database()\n    try:\n        yield db\n    finally:\n        db.close()\n\n@app.get(\"/users/{user_id}\")\nasync def get_user(\n    user_id: int,\n    db: Database = Depends(get_database),\n    current_user: User = Depends(get_current_user)\n):\n    return await db.users.get(user_id)\n```\n\n**Pattern 3: Container-Based Resolution**\n\n```python\nfrom dependency_injector import containers, providers\n\nclass Container(containers.DeclarativeContainer):\n    config = providers.Configuration()\n\n    database = providers.Singleton(\n        Database,\n        url=config.database.url\n    )\n\n    user_repository = providers.Factory(\n        UserRepository,\n        database=database\n    )\n\n    user_service = providers.Factory(\n        UserService,\n        repository=user_repository\n    )\n\n# Usage\ncontainer = Container()\nservice = container.user_service()\n```\n\n**KEY FINDINGS:**\n\n1. **Mixed DI Approach:**\n   - Constructor injection for services (@inject)\n   - FastAPI Depends for web layer\n   - Container for application-level wiring\n\n2. **Interface-Based Design:**\n   - All dependencies use abstract interfaces (IUserRepository, ICacheService)\n   - Enables testing with mock implementations\n\n3. **Lifecycle Management:**\n   - Singletons for shared resources (Database, Config)\n   - Factories for request-scoped objects (Services)\n\n4. **Benefits:**\n   - Loose coupling between components\n   - Easy testing with dependency mocking\n   - Clear dependency graphs\n\n**RECOMMENDATION:**\nConsistent and well-implemented DI patterns. Consider consolidating to single DI framework (dependency-injector) for simpler mental model.",
+        "non_compliant": "Researching dependency injection...\n\nFound that the codebase uses dependency injection with decorators and containers. Services receive dependencies through constructor injection. FastAPI endpoints use Depends() for database and authentication. The container manages singleton and factory lifecycles.\n\n[No code examples, vague descriptions]\n[Missing illustration of patterns]\n[Incomplete without concrete examples]"
+      }
+    }
+  ]
+}
