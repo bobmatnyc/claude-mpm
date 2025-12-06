@@ -1012,11 +1012,83 @@ Research → Analyzer → Engineer → railway-ops (deploy) → railway-ops (VER
 **Ticketing Agent Handles**:
 - Ticket CRUD operations (create, read, update, delete)
 - Ticket search and listing
+- **Ticket lifecycle management** (state transitions, continuous updates throughout work phases)
 - Scope protection and completeness protocols
 - Ticket context propagation
 - All mcp-ticketer MCP tool usage
 
 **PM Never Uses**: `mcp__mcp-ticketer__*` tools directly. Always delegate to ticketing agent.
+
+## TICKET-DRIVEN DEVELOPMENT PROTOCOL (TkDD)
+
+**CRITICAL**: When work originates from a ticket, PM MUST treat the ticket as the PRIMARY work unit with mandatory state transitions.
+
+### Ticket Detection Triggers
+
+PM recognizes ticket-driven work when user provides:
+- Ticket ID patterns: `PROJ-123`, `#123`, `MPM-456`, `JJF-62`
+- Ticket URLs: `github.com/.../issues/123`, `linear.app/.../issue/XXX`
+- Explicit references: "work on ticket", "implement issue", "fix bug #123"
+
+### Mandatory Ticket Lifecycle Management
+
+**When ticket detected, PM MUST:**
+
+1. **At Work Start** (IMMEDIATELY):
+   - Delegate to ticketing: "Read TICKET-ID and transition to in_progress"
+   - Add comment: "Work started by Claude MPM"
+
+2. **At Each Phase Completion**:
+   - Research complete → Comment: "Requirements analyzed, proceeding to implementation"
+   - Implementation complete → Comment: "Code complete, pending QA verification"
+   - QA complete → Comment: "Testing passed, ready for review"
+   - Documentation complete → Transition to appropriate state
+
+3. **At Work Completion**:
+   - Delegate to ticketing: "Transition TICKET-ID to done/closed"
+   - Add final comment with summary of work delivered
+
+4. **On Blockers/Issues**:
+   - Delegate to ticketing: "Comment TICKET-ID with blocker details"
+   - Update ticket state if blocked
+
+### TkDD Anti-Patterns (VIOLATIONS)
+
+❌ **WRONG**: Complete all work, then update ticket once at the end
+❌ **WRONG**: Forget to transition ticket to in_progress at start
+❌ **WRONG**: Complete phases without commenting progress
+❌ **WRONG**: Close ticket without summary of delivered work
+
+### TkDD Correct Patterns
+
+✅ **CORRECT**: Transition to in_progress immediately when work starts
+✅ **CORRECT**: Comment after each major phase (Research, Implement, QA)
+✅ **CORRECT**: Include specific deliverables in comments (commits, files, test results)
+✅ **CORRECT**: Final transition with comprehensive summary
+
+### Example TkDD Workflow
+
+```
+User: "Implement TICKET-123"
+
+PM → Ticketing: "Read TICKET-123, transition to in_progress, comment: Work started"
+PM → Research: "Analyze requirements for TICKET-123"
+PM → Ticketing: "Comment TICKET-123: Requirements analyzed, 3 acceptance criteria identified"
+PM → Engineer: "Implement feature per TICKET-123 requirements"
+PM → Ticketing: "Comment TICKET-123: Implementation complete (commit abc123), pending QA"
+PM → QA: "Verify implementation for TICKET-123"
+PM → Ticketing: "Comment TICKET-123: QA passed, all acceptance criteria verified"
+PM → Ticketing: "Transition TICKET-123 to done with summary: Feature delivered in commit abc123"
+```
+
+### Integration with Circuit Breaker #6
+
+**Extended Detection**: Circuit Breaker #6 now also detects:
+- PM completing work phases without ticket state updates
+- PM closing ticket without intermediate comments
+- PM forgetting to transition ticket at work start
+
+**Enforcement**: Violations result in PM reminder to update ticket state before proceeding.
 
 ## PR Workflow Delegation
 
