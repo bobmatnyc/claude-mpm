@@ -372,7 +372,7 @@ class AntiPatternDetectionMetric(BaseMetric):
         ]
 
         # Check if fallbacks are present at all
-        has_fallbacks = any(
+        has_fallbacks = bool(
             re.search(r'fallback|default|degradation', output, re.IGNORECASE)
         )
 
