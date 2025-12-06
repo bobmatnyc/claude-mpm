@@ -1,0 +1,1289 @@
+{
+  "agent": "engineer",
+  "description": "Complete Engineer Agent behavioral scenarios for DeepEval Phase 2 - Sprint 3",
+  "version": "1.0.0",
+  "total_scenarios": 25,
+  "categories": {
+    "code_minimization": {
+      "count": 10,
+      "description": "Code Minimization Mandate scenarios (MIN-E-001 to MIN-E-010)",
+      "priority": "critical"
+    },
+    "consolidation": {
+      "count": 7,
+      "description": "Consolidation & Duplicate Elimination scenarios (CONS-E-001 to CONS-E-007)",
+      "priority": "high"
+    },
+    "anti_patterns": {
+      "count": 5,
+      "description": "Anti-Pattern Avoidance scenarios (ANTI-E-001 to ANTI-E-005)",
+      "priority": "critical"
+    },
+    "process_management": {
+      "count": 3,
+      "description": "Test Process Management & Debugging scenarios (PROC-E-001 to PROC-E-003)",
+      "priority": "high"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "MIN-E-001",
+      "name": "Search-First Before Implementation",
+      "category": "code_minimization",
+      "priority": "critical",
+      "description": "Engineer MUST search for existing code before implementing new features using vector search or grep",
+      "input": {
+        "user_request": "Add a new validation function for email addresses",
+        "context": "Python codebase with existing validators module",
+        "codebase_size": "5000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Perform vector search for existing validation code",
+          "Use grep to find email validation patterns",
+          "Check validators module for similar functions",
+          "Report search results before implementation"
+        ],
+        "should_not_do": [
+          "Immediately start writing new validation function",
+          "Create duplicate validation logic",
+          "Skip code search step"
+        ],
+        "required_tools": ["mcp__mcp-vector-search__search_code", "Grep", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Evidence of vector search or grep before implementation",
+        "References to existing validation utilities",
+        "Decision documented (extend existing vs create new)",
+        "Search results mentioned in response"
+      ],
+      "failure_indicators": [
+        "Implements new code without searching first",
+        "Creates duplicate validation logic",
+        "No mention of existing code search",
+        "Immediately jumps to implementation"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must demonstrate search-first behavior"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll search for existing validation code first.\n\nUsing vector search to find similar implementations:\n- Found: utils/validators.py has validate_email() function\n- Found: api/validators.py has email_regex patterns\n- Found: models/user.py has inline email validation\n\nSearching with grep for 'email.*valid':\n- 3 existing email validation implementations found\n- Most complete: utils/validators.py (validated against RFC 5322)\n\nDecision: Extend utils/validators.py instead of creating new function.\nRationale: Consolidate existing implementations, avoid duplication.\n\nProposed approach:\n1. Enhance utils/validators.py with missing features\n2. Update api/validators.py to use centralized function\n3. Refactor models/user.py to use shared validator\n\nNet LOC impact: -15 lines (remove 40, add 25)",
+        "non_compliant": "I'll create a new email validation function.\n\ndef validate_email(email: str) -> bool:\n    import re\n    pattern = r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'\n    return bool(re.match(pattern, email))\n\nThis function validates email addresses using regex pattern matching."
+      }
+    },
+    {
+      "scenario_id": "MIN-E-002",
+      "name": "Extend Existing vs Create New",
+      "category": "code_minimization",
+      "priority": "critical",
+      "description": "Engineer MUST propose extending existing modules over creating new files when functionality overlaps",
+      "input": {
+        "user_request": "Add JSON response formatting utilities",
+        "context": "Codebase has utils/formatters.py with XML and CSV formatters",
+        "codebase_size": "3000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify existing formatters module",
+          "Propose extension of formatters.py",
+          "Justify extension over new file",
+          "Show consolidation benefits"
+        ],
+        "should_not_do": [
+          "Create new json_formatters.py file",
+          "Duplicate formatting infrastructure",
+          "Ignore existing formatter patterns"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Extension approach chosen over new file",
+        "Justification for extension provided",
+        "Existing module identified and analyzed",
+        "Consolidation benefits documented"
+      ],
+      "failure_indicators": [
+        "Creates new file without considering existing modules",
+        "Duplicates formatter infrastructure",
+        "No analysis of existing code",
+        "Missing justification for approach"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must prefer extension over creation"
+        }
+      },
+      "mock_response": {
+        "compliant": "Searching for existing formatting utilities...\n\nFound: utils/formatters.py (150 LOC)\n- XMLFormatter class\n- CSVFormatter class\n- Common base class: BaseFormatter\n\nAnalysis:\n- Existing pattern: Formatter classes with to_format() method\n- Infrastructure: Base class with common validation\n- Opportunity: Add JSONFormatter following same pattern\n\nDecision: EXTEND utils/formatters.py (not create new file)\nRationale:\n1. Maintains single source of truth for formatters\n2. Reuses BaseFormatter infrastructure (30 LOC saved)\n3. Consistent API across all format types\n4. Easier to maintain and test\n\nImplementation:\n- Add JSONFormatter class to utils/formatters.py (+25 LOC)\n- Reuse BaseFormatter validation and error handling\n- Update formatters/__init__.py exports (+1 LOC)\n\nNet LOC impact: +26 lines (no new file created, reused 30 LOC infrastructure)",
+        "non_compliant": "Creating new json_formatters.py file:\n\nclass JSONFormatter:\n    def to_json(self, data):\n        return json.dumps(data, indent=2)\n    \n    def validate(self, data):\n        # validation logic\n        pass\n\nThis provides JSON formatting utilities."
+      }
+    },
+    {
+      "scenario_id": "MIN-E-003",
+      "name": "Configuration Over Code",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "Engineer SHOULD prefer configuration/data-driven solutions over hard-coded implementations",
+      "input": {
+        "user_request": "Add support for 3 new API endpoints with similar validation rules",
+        "context": "Existing API with route configuration",
+        "codebase_size": "8000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Propose config-based route definitions",
+          "Show data-driven validation approach",
+          "Minimize code duplication",
+          "Document config schema"
+        ],
+        "should_not_do": [
+          "Hard-code 3 separate endpoint functions",
+          "Duplicate validation logic per endpoint",
+          "Ignore config-based patterns"
+        ],
+        "required_tools": ["Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Config-based solution proposed",
+        "Minimal code changes required",
+        "Validation rules in data format",
+        "Reusable generic handler implemented"
+      ],
+      "failure_indicators": [
+        "Implements 3 separate functions with similar code",
+        "Hard-codes validation rules in code",
+        "No configuration approach considered",
+        "High code duplication"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must prefer configuration over code"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing existing API patterns...\n\nFound: config/routes.yaml defines endpoint configurations\nFound: api/handlers.py has generic_handler(config) function\n\nProposed Solution: Configuration-based approach\n\n# config/routes.yaml (data change, not code)\nnew_endpoints:\n  - path: /api/users/profile\n    method: GET\n    validation: [authenticated, valid_user_id]\n  - path: /api/users/settings\n    method: POST\n    validation: [authenticated, valid_settings]\n  - path: /api/users/preferences\n    method: PUT\n    validation: [authenticated, valid_preferences]\n\n# No new code needed - existing generic_handler reused\n# Just add 3 validation rules to validators.py (+15 LOC)\n\nBenefits:\n1. Zero endpoint handler code (3 × 20 LOC saved = 60 LOC)\n2. Validation rules in YAML (easy to modify)\n3. Reuses existing generic_handler infrastructure\n4. New endpoints require config change, not code deployment\n\nNet LOC impact: +15 lines (validation rules only)\nConfiguration lines: +12 YAML (not counted in LOC)\nReuse rate: 80% (generic handler + validation framework)",
+        "non_compliant": "@app.route('/api/users/profile', methods=['GET'])\ndef get_user_profile():\n    if not authenticated():\n        return error(401)\n    user_id = validate_user_id(request.args.get('user_id'))\n    return get_profile(user_id)\n\n@app.route('/api/users/settings', methods=['POST'])\ndef update_user_settings():\n    if not authenticated():\n        return error(401)\n    settings = validate_settings(request.json)\n    return update_settings(settings)\n\n@app.route('/api/users/preferences', methods=['PUT'])\ndef update_user_preferences():\n    if not authenticated():\n        return error(401)\n    prefs = validate_preferences(request.json)\n    return update_preferences(prefs)\n\n# 60+ LOC added, high duplication"
+      }
+    },
+    {
+      "scenario_id": "MIN-E-004",
+      "name": "LOC Delta Reporting",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "Engineer MUST report net lines of code impact (+X/-Y) for all implementations",
+      "input": {
+        "user_request": "Refactor authentication module for better testability",
+        "context": "Monolithic auth.py (200 LOC) needs modularization",
+        "codebase_size": "6000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Report exact LOC delta (+added/-removed)",
+          "Calculate net impact (added - removed)",
+          "Justify LOC changes",
+          "Show before/after metrics"
+        ],
+        "should_not_do": [
+          "Complete implementation without LOC metrics",
+          "Ignore lines removed during refactoring",
+          "Report only lines added"
+        ],
+        "required_tools": ["Read", "Edit", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Clear LOC delta reported (e.g., +120/-150)",
+        "Net impact calculated (e.g., -30 LOC)",
+        "Justification for changes provided",
+        "Metrics included in summary"
+      ],
+      "failure_indicators": [
+        "No LOC metrics mentioned",
+        "Only reports lines added",
+        "Missing net calculation",
+        "No justification for LOC impact"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must report LOC delta accurately"
+        }
+      },
+      "mock_response": {
+        "compliant": "Refactoring authentication module with LOC tracking:\n\nBefore:\n- auth.py: 200 LOC (monolithic, hard to test)\n\nAfter:\n- auth/core.py: 80 LOC (authentication logic)\n- auth/validators.py: 45 LOC (validation rules)\n- auth/session.py: 35 LOC (session management)\n- auth/__init__.py: 10 LOC (exports)\n- Total: 170 LOC (modular, testable)\n\nLOC Delta Breakdown:\n- Removed: 200 LOC (old monolithic auth.py)\n- Added: 170 LOC (new modular structure)\n- Net Impact: -30 LOC\n\nJustification:\n- Eliminated 30 LOC of duplicate validation code\n- Removed 15 LOC of redundant session checks\n- Consolidated 20 LOC of error handling\n- Added 5 LOC for module exports\n\nQuality Improvements (non-LOC):\n- Test coverage increased from 40% to 85%\n- Cyclomatic complexity reduced (18 → 8 avg)\n- Module coupling reduced (3 → 0 circular dependencies)\n\nSummary: Refactoring complete with -30 LOC impact and improved testability",
+        "non_compliant": "I've refactored the authentication module into smaller files:\n\nauth/core.py - Core authentication logic\nauth/validators.py - Validation rules\nauth/session.py - Session management\nauth/__init__.py - Module exports\n\nThe code is now more modular and testable. Each module has clear responsibilities and can be tested independently."
+      }
+    },
+    {
+      "scenario_id": "MIN-E-005",
+      "name": "Reuse Rate Calculation",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "Engineer SHOULD calculate and report percentage of existing code leveraged in implementation",
+      "input": {
+        "user_request": "Implement file upload feature with validation and storage",
+        "context": "Codebase has file validators and storage utilities",
+        "codebase_size": "10000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify existing utilities to reuse",
+          "Calculate reuse percentage",
+          "Report new code vs reused code ratio",
+          "Show integration points"
+        ],
+        "should_not_do": [
+          "Implement from scratch without checking existing code",
+          "No reuse metrics reported",
+          "Miss obvious reuse opportunities"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Reuse rate reported (e.g., '65% existing code reused')",
+        "Existing utilities identified",
+        "New code clearly separated from reused",
+        "High reuse rate achieved (≥50% for 10k LOC codebase)"
+      ],
+      "failure_indicators": [
+        "No reuse metrics mentioned",
+        "Low or zero reuse rate",
+        "All new code with no integration",
+        "Missing existing utility identification"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must report reuse rate ≥50% for mature codebase"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing file upload feature with maximum code reuse:\n\nExisting Utilities Identified:\n1. validators/file_validator.py (40 LOC)\n   - validate_file_size() ✓ REUSE\n   - validate_file_type() ✓ REUSE\n   - sanitize_filename() ✓ REUSE\n\n2. storage/file_storage.py (60 LOC)\n   - upload_to_s3() ✓ REUSE\n   - generate_unique_filename() ✓ REUSE\n   - get_storage_path() ✓ REUSE\n\n3. api/base_handler.py (30 LOC)\n   - parse_multipart_form() ✓ REUSE\n   - error_response() ✓ REUSE\n\nNew Code Required:\n1. api/upload_handler.py (25 LOC) - NEW\n   - Orchestrates existing utilities\n   - Handles upload-specific business logic\n   - Error handling and logging\n\nReuse Calculation:\n- Existing code reused: 130 LOC\n- New code written: 25 LOC\n- Total implementation: 155 LOC\n- Reuse Rate: 84% (130/155)\n\nTarget for 10k LOC codebase: ≥50% reuse ✓ EXCEEDED (84%)\n\nNet LOC impact: +25 lines (new code only)\nImplementation efficiency: High (5x reuse multiplier)",
+        "non_compliant": "Implementing file upload feature:\n\nCreated new module: upload/handler.py (150 LOC)\n\nFeatures implemented:\n- File validation (size, type, filename sanitization)\n- S3 upload integration\n- Error handling\n- Multipart form parsing\n- Response formatting\n\nThe file upload feature is now complete and working."
+      }
+    },
+    {
+      "scenario_id": "MIN-E-006",
+      "name": "Maturity Threshold Compliance (<1000 LOC)",
+      "category": "code_minimization",
+      "priority": "medium",
+      "description": "For codebases <1000 LOC, Engineer should establish reusable foundations instead of point solutions",
+      "input": {
+        "user_request": "Add API rate limiting feature",
+        "context": "New Flask API project with 800 LOC",
+        "codebase_size": "800 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Create reusable rate limiting infrastructure",
+          "Design for future extension",
+          "Establish patterns for similar features",
+          "Build foundational abstractions"
+        ],
+        "should_not_do": [
+          "Implement single-use rate limiting",
+          "Hard-code rate limits in routes",
+          "Miss opportunity to establish patterns"
+        ],
+        "required_tools": ["Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Reusable infrastructure created",
+        "Patterns established for future use",
+        "Abstraction level appropriate for small codebase",
+        "Foundation for growth"
+      ],
+      "failure_indicators": [
+        "Point solution with no reusability",
+        "Hard-coded implementation",
+        "No foundation for future features",
+        "Over-engineering for current size"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.7,
+          "description": "Focus on foundations, not over-engineering"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing rate limiting for 800 LOC codebase:\n\nMaturity Analysis:\n- Current size: 800 LOC (<1000 threshold)\n- Stage: Foundation building phase\n- Strategy: Create reusable patterns for future growth\n\nProposed Architecture (Foundation-Focused):\n\n1. middleware/rate_limiter.py (35 LOC)\n   - Decorator: @rate_limit(calls=100, period=60)\n   - Pluggable storage backend interface\n   - Simple in-memory backend (for now)\n\n2. config/rate_limits.yaml (config, not code)\n   - Configurable rate limits per endpoint\n   - Easy to modify without code changes\n\nDesign for Future Extension:\n- Storage interface allows Redis backend later\n- Decorator pattern supports custom rate limit rules\n- Config-driven approach scales to many endpoints\n\nImplementation:\n@rate_limit(calls=100, period=60)\n@app.route('/api/endpoint')\ndef endpoint():\n    return response\n\nBenefits:\n1. Reusable across all future endpoints (just add decorator)\n2. Config-driven (rate limits in YAML, not code)\n3. Extensible (can add Redis, custom rules later)\n4. Foundation pattern established for middleware\n\nNet LOC impact: +35 lines\nFoundation value: Reusable for 100+ future endpoints\nAppropriate for 800 LOC: ✓ (not over-engineered)",
+        "non_compliant": "@app.route('/api/endpoint')\ndef endpoint():\n    # Rate limiting for this endpoint\n    cache_key = f'rate_limit:{request.remote_addr}'\n    count = cache.get(cache_key, 0)\n    if count >= 100:\n        return error(429, 'Rate limit exceeded')\n    cache.set(cache_key, count + 1, timeout=60)\n    \n    return response\n\n# Hard-coded rate limiting in each endpoint\n# No reusability, will need to copy-paste for other endpoints"
+      }
+    },
+    {
+      "scenario_id": "MIN-E-007",
+      "name": "Maturity Threshold Compliance (1000-10k LOC)",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "For codebases 1000-10k LOC, Engineer MUST actively consolidate and target ≥50% reuse rate",
+      "input": {
+        "user_request": "Add user notification feature",
+        "context": "Django project with 5000 LOC, existing email utilities",
+        "codebase_size": "5000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Search for consolidation opportunities",
+          "Target ≥50% reuse rate",
+          "Identify and remove duplicate code",
+          "Consolidate while implementing"
+        ],
+        "should_not_do": [
+          "Add feature without consolidation",
+          "Miss obvious duplicate code",
+          "Accept <50% reuse rate without justification"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Active consolidation performed",
+        "Reuse rate ≥50% achieved",
+        "Duplicate code removed",
+        "Net LOC negative or minimal positive"
+      ],
+      "failure_indicators": [
+        "Pure addition without consolidation",
+        "Low reuse rate (<50%)",
+        "Missed consolidation opportunities",
+        "Significant positive LOC delta"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must achieve ≥50% reuse with consolidation"
+        },
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Active consolidation required"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing notifications with active consolidation (5000 LOC codebase):\n\nMaturity Analysis:\n- Current size: 5000 LOC (mature, consolidation phase)\n- Strategy: Consolidate while implementing\n- Target: ≥50% reuse rate\n\nConsolidation Opportunities Found:\n1. utils/email.py - send_email() function (40 LOC) ✓ REUSE\n2. notifications/sms.py - send_sms() function (35 LOC) ✓ REUSE\n3. Duplicate template rendering in 3 places (60 LOC total) → CONSOLIDATE\n\nConsolidation Actions:\n1. Extract common notification pattern:\n   - Old: Email rendering in utils/email.py (25 LOC)\n   - Old: SMS template in notifications/sms.py (20 LOC)\n   - Old: Push template in services/push.py (15 LOC)\n   - New: Unified template_renderer.py (30 LOC)\n   - Savings: 30 LOC removed\n\n2. Create notification abstraction:\n   - notifications/base.py (40 LOC) - NEW unified interface\n   - Wraps existing send_email() and send_sms()\n   - Adds new send_push_notification() (25 LOC)\n\nCode Reuse Calculation:\n- Existing utilities reused: 75 LOC (email + sms)\n- New unified interface: 40 LOC\n- New push notification: 25 LOC\n- Template consolidation: 30 LOC\n- Total new implementation: 95 LOC\n- Reuse Rate: 79% (75/95) ✓ EXCEEDS 50% target\n\nLOC Impact:\n- Added: +95 LOC (new notification system)\n- Removed: -60 LOC (duplicate templates)\n- Net: +35 LOC (feature + consolidation)\n\nConsolidation Value:\n- Unified 3 template systems into 1\n- Removed 60 LOC of duplication\n- Future notifications reuse 79% existing code",
+        "non_compliant": "Adding notification feature:\n\nCreated notifications/system.py (120 LOC):\n- Email notification function\n- SMS notification function\n- Push notification function\n- Template rendering for each type\n- Formatting utilities\n\nFeature complete. Users can now receive notifications via email, SMS, and push.\n\n[No consolidation, no reuse metrics, missed duplicate template code]"
+      }
+    },
+    {
+      "scenario_id": "MIN-E-008",
+      "name": "Maturity Threshold Compliance (>10k LOC)",
+      "category": "code_minimization",
+      "priority": "critical",
+      "description": "For codebases >10k LOC, Engineer MUST require approval for net positive LOC or achieve negative impact",
+      "input": {
+        "user_request": "Add analytics dashboard feature",
+        "context": "Large Django project with 15000 LOC",
+        "codebase_size": "15000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Aim for negative LOC impact",
+          "Request approval if net positive required",
+          "Justify any LOC additions",
+          "Maximize consolidation and reuse"
+        ],
+        "should_not_do": [
+          "Add significant LOC without approval",
+          "Skip consolidation opportunities",
+          "Accept positive LOC without justification"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Negative LOC impact OR approval explicitly requested",
+        "Maximum consolidation performed",
+        "Strong justification for any additions",
+        "High reuse rate (≥70%)"
+      ],
+      "failure_indicators": [
+        "Net positive LOC without approval request",
+        "Weak or missing justification",
+        "Missed consolidation opportunities",
+        "Low reuse rate"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.85,
+          "description": "Strict minimization required for large codebase"
+        },
+        "ConsolidationMetric": {
+          "threshold": 0.9,
+          "description": "Maximum consolidation expected"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing analytics dashboard for 15k LOC codebase:\n\nMaturity Analysis:\n- Current size: 15000 LOC (large, legacy codebase)\n- Strategy: MANDATORY negative LOC impact or approval required\n- Policy: Zero tolerance for code bloat\n\nConsolidation-First Approach:\n\n1. Found Duplicate Dashboard Code:\n   - admin/dashboard.py (200 LOC) - admin metrics\n   - reports/dashboard.py (180 LOC) - report metrics\n   - analytics/views.py (150 LOC) - partial analytics\n   - Total duplicate: 530 LOC → REMOVE\n\n2. Consolidation Plan:\n   - Create unified dashboard/core.py (120 LOC)\n   - Extract common chart rendering (60 LOC)\n   - Create dashboard/widgets.py (80 LOC) - reusable widgets\n   - Create dashboard/analytics.py (40 LOC) - analytics specific\n   - Total new code: 300 LOC\n\n3. Migration:\n   - Update admin/ to use new dashboard core\n   - Update reports/ to use new widgets\n   - Enhance with analytics features\n\nLOC Impact:\n- Removed: -530 LOC (duplicate dashboard code)\n- Added: +300 LOC (consolidated + analytics)\n- Net Impact: -230 LOC ✓ NEGATIVE\n\nReuse Achievement:\n- Existing chart lib: 150 LOC reused\n- Existing data models: 200 LOC reused\n- New consolidated code: 300 LOC\n- Total implementation: 650 LOC\n- Reuse Rate: 54% (350/650)\n\nApproval Status: NOT REQUIRED (negative LOC impact)\n\nConsolidation Summary:\n- Eliminated 3 duplicate dashboard implementations\n- Unified 530 LOC into 300 LOC (-43% reduction)\n- Added analytics feature with net -230 LOC impact\n- Victory: New feature with code reduction",
+        "non_compliant": "Implementing analytics dashboard:\n\nCreated new analytics module (450 LOC):\n- analytics/dashboard.py (200 LOC)\n- analytics/charts.py (150 LOC)\n- analytics/metrics.py (100 LOC)\n\nFeatures:\n- User analytics dashboard\n- Real-time metrics\n- Custom chart rendering\n- Data export functionality\n\nDashboard is now live with comprehensive analytics.\n\n[+450 LOC, no approval requested, no consolidation, missed duplicate code]"
+      }
+    },
+    {
+      "scenario_id": "MIN-E-009",
+      "name": "Consolidation Opportunity Identification",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "Engineer MUST identify opportunities to delete old code while implementing new features",
+      "input": {
+        "user_request": "Implement new caching layer",
+        "context": "Codebase has old caching implementation and partial new cache",
+        "codebase_size": "7000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify old/partial implementations to remove",
+          "Propose removal while implementing new feature",
+          "Document what will be deleted",
+          "Show consolidation benefits"
+        ],
+        "should_not_do": [
+          "Add new cache without removing old",
+          "Leave partial implementations",
+          "Miss obvious deletion opportunities"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Old code identified for removal",
+        "Deletion plan documented",
+        "Net negative or minimal positive LOC",
+        "Consolidation performed during implementation"
+      ],
+      "failure_indicators": [
+        "Adds new code without removing old",
+        "Multiple cache implementations coexist",
+        "No consolidation mentioned",
+        "Significant positive LOC delta"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Must identify deletion opportunities"
+        },
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Consolidation required"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing new caching layer with consolidation:\n\nExisting Cache Implementations Found (grep for 'cache'):\n1. utils/cache_old.py (120 LOC) - DEPRECATED, marked for deletion\n   - Simple dict-based cache\n   - No TTL support\n   - Not thread-safe\n\n2. services/partial_cache.py (80 LOC) - INCOMPLETE, delete\n   - Started Redis integration\n   - Never completed or used\n   - No references in active code\n\n3. Inline caching in 5 different modules (150 LOC total)\n   - api/views.py: @cache decorator (30 LOC)\n   - models/user.py: Manual cache calls (40 LOC)\n   - reports/generator.py: Local cache dict (35 LOC)\n   - dashboard/metrics.py: Cache logic (25 LOC)\n   - services/api.py: Response caching (20 LOC)\n\nConsolidation Plan:\n1. DELETE old implementations:\n   - Remove utils/cache_old.py (-120 LOC)\n   - Remove services/partial_cache.py (-80 LOC)\n   - Extract inline caching to new unified cache (-150 LOC)\n   - Total removed: -350 LOC\n\n2. CREATE unified caching layer:\n   - cache/core.py (100 LOC) - Redis-backed cache\n   - cache/decorators.py (40 LOC) - @cache decorator\n   - cache/config.py (20 LOC) - Configuration\n   - Total new: +160 LOC\n\n3. MIGRATE existing usage:\n   - Update 5 modules to use new cache\n   - Remove inline implementations\n   - Minimal changes per module (+5 LOC each = +25 LOC)\n\nLOC Impact:\n- Removed: -350 LOC (old caches + inline)\n- Added: +160 LOC (new unified cache)\n- Migration: +25 LOC (5 modules updated)\n- Net Impact: -165 LOC\n\nConsolidation Achievement:\n- Eliminated 3 cache implementations\n- Unified 6 different caching approaches\n- New feature delivered with net -165 LOC impact",
+        "non_compliant": "Implementing new caching layer:\n\nCreated cache/redis_cache.py (180 LOC):\n- Redis integration\n- TTL support\n- Thread-safe operations\n- Cache decorator\n\nThe new caching layer is production-ready and can be used across the application.\n\n[Old cache files still exist, inline caching remains, +180 LOC, no consolidation]"
+      }
+    },
+    {
+      "scenario_id": "MIN-E-010",
+      "name": "Zero Net New Lines Victory",
+      "category": "code_minimization",
+      "priority": "high",
+      "description": "Engineer SHOULD achieve complex feature implementation with ≤0 LOC delta (stretch goal)",
+      "input": {
+        "user_request": "Add real-time WebSocket notifications",
+        "context": "Existing polling-based notifications (200 LOC), WebSocket infrastructure exists",
+        "codebase_size": "12000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Remove old polling implementation",
+          "Reuse existing WebSocket infrastructure",
+          "Consolidate notification logic",
+          "Achieve negative or zero LOC delta"
+        ],
+        "should_not_do": [
+          "Add WebSocket without removing polling",
+          "Duplicate WebSocket infrastructure",
+          "Accept positive LOC without maximizing reuse"
+        ],
+        "required_tools": ["Grep", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Feature complete with ≤0 LOC delta",
+        "Old implementation removed",
+        "Maximum reuse of existing infrastructure",
+        "Clear migration path documented"
+      ],
+      "failure_indicators": [
+        "Positive LOC delta",
+        "Old polling code remains",
+        "Duplicate infrastructure",
+        "Low reuse rate"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.9,
+          "description": "Victory condition: ≤0 LOC delta"
+        },
+        "ConsolidationMetric": {
+          "threshold": 0.9,
+          "description": "Maximum consolidation required"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing WebSocket notifications with ZERO LOC goal:\n\nExisting Code Analysis:\n1. Polling notifications:\n   - notifications/polling.py (200 LOC) → DELETE\n   - client/polling.js (150 LOC) → DELETE\n   - Total: -350 LOC\n\n2. Existing WebSocket infrastructure:\n   - websocket/server.py (120 LOC) ✓ REUSE\n   - websocket/client.js (80 LOC) ✓ REUSE\n   - websocket/events.py (40 LOC) ✓ REUSE\n   - Total reusable: 240 LOC\n\nImplementation Strategy:\n1. DELETE polling implementation (-350 LOC)\n2. ADD notification events to existing WebSocket:\n   - notifications/events.py (60 LOC) - event definitions\n   - notifications/handlers.py (80 LOC) - WebSocket handlers\n   - client/notifications.js (95 LOC) - client-side integration\n   - Total new: +235 LOC\n\n3. CONSOLIDATE notification logic:\n   - Extract common notification formatting (was duplicated)\n   - Remove 50 LOC of duplicate formatting code\n   - Total consolidation: -50 LOC\n\nLOC Impact Calculation:\n- Removed: -350 LOC (polling) + -50 LOC (duplication) = -400 LOC\n- Added: +235 LOC (WebSocket integration)\n- Net Impact: -165 LOC ✓ VICTORY (negative LOC)\n\nReuse Achievement:\n- Existing WebSocket infrastructure: 240 LOC reused\n- New notification-specific code: 235 LOC\n- Total implementation: 475 LOC\n- Reuse Rate: 51% (240/475)\n\nMigration:\n1. Deploy WebSocket notifications\n2. Update clients to use WebSocket\n3. Remove polling endpoints (breaking change documented)\n4. Net result: Better feature, less code\n\nSummary: Real-time notifications delivered with -165 LOC impact\nVictory Condition: ✓ ACHIEVED (≤0 LOC delta)",
+        "non_compliant": "Implementing WebSocket notifications:\n\nCreated new WebSocket notification system:\n- websocket/notifications.py (150 LOC)\n- websocket/events.py (100 LOC)\n- client/websocket_notifications.js (120 LOC)\n- websocket/connection.py (80 LOC)\n\nTotal: 450 LOC\n\nReal-time notifications now work via WebSocket. Clients can subscribe to notification events.\n\n[+450 LOC, polling code remains, duplicate WebSocket infrastructure, no consolidation]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-001",
+      "name": "Duplicate Detection with Vector Search",
+      "category": "consolidation",
+      "priority": "critical",
+      "description": "Engineer MUST use vector search to find similar code before implementation",
+      "input": {
+        "user_request": "Implement PDF generation utility",
+        "context": "Codebase may have existing PDF or document generation code",
+        "codebase_size": "8000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use mcp__mcp-vector-search__search_code",
+          "Search for 'PDF generation' patterns",
+          "Identify similar document utilities",
+          "Report findings before implementation"
+        ],
+        "should_not_do": [
+          "Start implementation without vector search",
+          "Skip similarity detection",
+          "Ignore existing document generation code"
+        ],
+        "required_tools": ["mcp__mcp-vector-search__search_code", "Grep", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Vector search performed for 'PDF generation'",
+        "Similar code identified",
+        "Consolidation decision made based on findings",
+        "Tool usage evidence present"
+      ],
+      "failure_indicators": [
+        "No vector search usage",
+        "Duplicates created unknowingly",
+        "Missing similarity analysis",
+        "Implementation without discovery"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Must use vector search for duplicate detection"
+        }
+      },
+      "mock_response": {
+        "compliant": "Searching for existing PDF/document generation code:\n\nUsing mcp__mcp-vector-search__search_code:\nQuery: 'PDF generation document export'\n\nResults found:\n1. utils/report_exporter.py (Similarity: 0.78)\n   - generate_pdf_report() function\n   - Uses ReportLab library\n   - Template-based rendering\n\n2. invoices/pdf_generator.py (Similarity: 0.65)\n   - create_invoice_pdf() function\n   - Similar PDF library (ReportLab)\n   - Custom styling logic\n\n3. exports/document.py (Similarity: 0.52)\n   - export_to_pdf() function\n   - Basic PDF conversion\n\nSimilarity Analysis:\n- utils/report_exporter.py: 78% similar (SAME DOMAIN)\n- invoices/pdf_generator.py: 65% similar (DIFFERENT DOMAIN)\n- exports/document.py: 52% similar (DIFFERENT DOMAIN)\n\nConsolidation Decision:\n1. CONSOLIDATE utils/report_exporter.py (78% same domain)\n   - Extend existing PDF infrastructure\n   - Add new templates to existing system\n   - Reuse ReportLab setup\n\n2. EXTRACT COMMON from invoices/pdf_generator.py (65% different domain)\n   - Extract shared PDF styling utilities\n   - Create common/pdf_base.py\n   - Reduce duplication\n\n3. ENHANCE exports/document.py (52% different domain)\n   - Keep separate (different use case)\n   - Document why separation is maintained\n\nImplementation: Extend utils/report_exporter.py (+30 LOC)\nConsolidation: Extract common PDF base (-40 LOC from invoices/)\nNet Impact: -10 LOC",
+        "non_compliant": "Implementing PDF generation utility:\n\nimport reportlab\nfrom reportlab.pdfgen import canvas\n\ndef generate_pdf(data, filename):\n    c = canvas.Canvas(filename)\n    # PDF generation logic\n    c.save()\n    return filename\n\nPDF generation utility is now available.\n\n[No search, created duplicate, missed consolidation opportunity]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-002",
+      "name": "Consolidation Decision (Same Domain, >80% Similarity)",
+      "category": "consolidation",
+      "priority": "critical",
+      "description": "Engineer MUST consolidate functions when same domain AND >80% similarity detected",
+      "input": {
+        "user_request": "Review two authentication helper functions",
+        "context": "Found auth_helpers.py and auth_utils.py with 85% similar code",
+        "codebase_size": "6000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Confirm same domain (both authentication)",
+          "Verify >80% similarity",
+          "Consolidate into shared utility",
+          "Update all references",
+          "Remove obsolete code"
+        ],
+        "should_not_do": [
+          "Leave both implementations",
+          "Choose wrong consolidation approach",
+          "Update references incompletely"
+        ],
+        "required_tools": ["Read", "Grep", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Consolidation performed (merged into one)",
+        "All references updated",
+        "Obsolete code removed",
+        "Decision justified with similarity metrics"
+      ],
+      "failure_indicators": [
+        "Both implementations remain",
+        "Incomplete reference updates",
+        "Wrong consolidation approach",
+        "Missing justification"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Must consolidate same domain >80% similarity"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing authentication helper duplication:\n\nSimilarity Analysis:\nFile 1: auth_helpers.py::validate_token() (35 LOC)\nFile 2: auth_utils.py::verify_token() (38 LOC)\n\nCode Comparison:\n- Both decode JWT tokens ✓ SAME\n- Both check expiration ✓ SAME\n- Both validate signature ✓ SAME\n- Both return user claims ✓ SAME\n- Different error messages (minor)\n- Different logging formats (minor)\n\nSimilarity: 85% (same domain, same logic)\n\nConsolidation Decision: CONSOLIDATE\nRationale:\n- Same domain: Authentication (✓)\n- Similarity: 85% (>80% threshold) (✓)\n- Criterion met: MUST consolidate\n\nConsolidation Plan:\n1. Merge best features from both:\n   - Token decoding from auth_helpers (more robust)\n   - Error messages from auth_utils (more descriptive)\n   - Logging from auth_helpers (structured)\n\n2. Create unified implementation:\n   - auth/token_validator.py::validate_token() (40 LOC)\n   - Combines best features from both\n\n3. Update all references (using grep):\n   - 12 files import auth_helpers.validate_token → UPDATE\n   - 8 files import auth_utils.verify_token → UPDATE\n   - Total: 20 files updated\n\n4. Remove obsolete code:\n   - DELETE auth_helpers.py::validate_token ()\n   - DELETE auth_utils.py::verify_token ()\n   - Keep other functions in both files\n\nLOC Impact:\n- Removed: -73 LOC (35 + 38 duplicate functions)\n- Added: +40 LOC (unified implementation)\n- Net: -33 LOC\n\nVerification:\n- All tests pass with unified function ✓\n- All 20 reference sites updated ✓\n- Obsolete code removed ✓",
+        "non_compliant": "Both auth_helpers.py and auth_utils.py have token validation functions. I recommend using auth_helpers.validate_token() as it's more commonly used.\n\n[No consolidation, both implementations remain, references not updated]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-003",
+      "name": "Extract Common Pattern (Different Domains, >50% Similarity)",
+      "category": "consolidation",
+      "priority": "high",
+      "description": "Engineer SHOULD extract common abstraction when different domains share >50% similar logic",
+      "input": {
+        "user_request": "Review HTTP client in API and webhook modules",
+        "context": "api/client.py and webhooks/sender.py have 60% similar HTTP logic",
+        "codebase_size": "9000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify different domains (API vs webhooks)",
+          "Verify >50% similarity",
+          "Extract common HTTP abstraction",
+          "Keep domain-specific logic separate"
+        ],
+        "should_not_do": [
+          "Fully consolidate (wrong for different domains)",
+          "Leave duplicated logic",
+          "Miss abstraction opportunity"
+        ],
+        "required_tools": ["Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Common abstraction extracted",
+        "Both domains use shared code",
+        "Domain-specific logic preserved",
+        "Duplication reduced"
+      ],
+      "failure_indicators": [
+        "Full consolidation (incorrect)",
+        "No abstraction created",
+        "Duplication remains",
+        "Domain separation lost"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Must extract common abstraction"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing HTTP client duplication:\n\nDomain Analysis:\n- api/client.py: External API consumption (outbound requests)\n- webhooks/sender.py: Webhook delivery (outbound notifications)\n- Different domains: API vs Webhooks (✓)\n\nSimilarity Analysis:\nCommon Logic (60% overlap):\n- HTTP request setup ✓ SHARED\n- Retry with exponential backoff ✓ SHARED\n- Timeout handling ✓ SHARED\n- Error logging ✓ SHARED\n- Connection pooling ✓ SHARED\n\nDomain-Specific Logic (40% different):\n- API: Authentication headers, response parsing, caching\n- Webhooks: Signature generation, delivery tracking, retry queues\n\nConsolidation Decision: EXTRACT COMMON (not full consolidation)\nRationale:\n- Different domains: API ≠ Webhooks (✓)\n- Similarity: 60% (>50% threshold) (✓)\n- Criterion met: Extract common, preserve domain-specific\n\nExtraction Plan:\n1. Create common/http_client.py (50 LOC):\n   - BaseHTTPClient class\n   - Common retry logic\n   - Timeout handling\n   - Error logging\n   - Connection pooling\n\n2. Refactor api/client.py:\n   - Extend BaseHTTPClient\n   - Keep API-specific logic (auth, caching)\n   - Remove duplicated retry/timeout code\n   - Reduced: 120 LOC → 70 LOC (-50 LOC)\n\n3. Refactor webhooks/sender.py:\n   - Extend BaseHTTPClient\n   - Keep webhook-specific logic (signatures, tracking)\n   - Remove duplicated retry/timeout code\n   - Reduced: 110 LOC → 65 LOC (-45 LOC)\n\nLOC Impact:\n- Removed duplication: -95 LOC (from both files)\n- Added abstraction: +50 LOC (common/http_client.py)\n- Net: -45 LOC\n\nBenefits:\n- 60% of HTTP logic now shared\n- Domain separation preserved\n- Future HTTP clients can reuse base\n- Retry logic unified (was inconsistent before)",
+        "non_compliant": "Consolidating api/client.py and webhooks/sender.py:\n\nCreated unified http/client.py (200 LOC) that handles both API calls and webhook delivery.\n\nAll HTTP operations now go through this unified client.\n\n[Wrong consolidation approach - merged different domains, lost separation of concerns]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-004",
+      "name": "Leave Separate (Different Domains, <50% Similarity)",
+      "category": "consolidation",
+      "priority": "medium",
+      "description": "Engineer SHOULD leave implementations separate when different domains AND <50% similarity, with documentation",
+      "input": {
+        "user_request": "Review database and cache connection managers",
+        "context": "db/connection.py and cache/connection.py have 40% similar structure",
+        "codebase_size": "7000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify different domains (database vs cache)",
+          "Verify <50% similarity",
+          "Document decision to keep separate",
+          "Explain why separation is appropriate"
+        ],
+        "should_not_do": [
+          "Force consolidation (<50% similarity)",
+          "Leave without documentation",
+          "Miss legitimate abstraction opportunity"
+        ],
+        "required_tools": ["Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Implementations left separate",
+        "Decision documented with rationale",
+        "Similarity analysis performed",
+        "No forced consolidation"
+      ],
+      "failure_indicators": [
+        "Forced consolidation despite <50% similarity",
+        "No documentation of decision",
+        "Missing similarity analysis",
+        "Inappropriate abstraction attempted"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.8,
+          "description": "Correct decision not to consolidate"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing connection manager similarity:\n\nDomain Analysis:\n- db/connection.py: PostgreSQL connection management\n- cache/connection.py: Redis connection management\n- Different domains: Database vs Cache (✓)\n\nSimilarity Analysis:\nCommon Patterns (40% overlap):\n- Connection pooling concept ✓\n- Connect/disconnect lifecycle ✓\n- Connection health checks ✓\n\nDomain-Specific Logic (60% different):\nDatabase:\n- Transaction management\n- Query execution\n- Schema migrations\n- Complex connection string parsing\n- Read/write replica handling\n- Connection retry with deadlock detection\n\nCache:\n- Key expiration\n- Serialization/deserialization\n- Cache eviction policies\n- Pub/sub patterns\n- Cluster mode handling\n- Simple connection retry\n\nConsolidation Decision: LEAVE SEPARATE\nRationale:\n- Different domains: Database ≠ Cache (✓)\n- Similarity: 40% (<50% threshold) (✓)\n- Criterion met: Leave separate, document why\n\nWhy Separation is Appropriate:\n1. Business Logic Differs:\n   - Databases: ACID transactions, complex queries\n   - Caches: Simple key-value with TTL\n   - Consolidation would create inappropriate abstractions\n\n2. Change Frequency Differs:\n   - Database: Stable, infrequent changes\n   - Cache: Evolving, frequent optimization\n   - Shared code would couple different evolution rates\n\n3. Performance Requirements Differ:\n   - Database: Query optimization, connection pooling\n   - Cache: Sub-millisecond operations, different pooling strategy\n   - Consolidation would harm cache performance\n\nDocumentation Added:\n- Added comment to both files explaining separation decision\n- Documented 40% similarity analysis\n- Noted future review threshold (if similarity >50%, reconsider)\n\nRecommendation: Keep separate. Monitor for future changes that increase similarity.",
+        "non_compliant": "Creating unified connection_manager.py (150 LOC):\n\nclass UnifiedConnectionManager:\n    def connect(self, type):\n        if type == 'database':\n            # database connection\n        elif type == 'cache':\n            # cache connection\n\nThis handles both database and cache connections in one place.\n\n[Wrong - forced consolidation despite low similarity and different domains]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-005",
+      "name": "Session Artifact Cleanup",
+      "category": "consolidation",
+      "priority": "high",
+      "description": "Engineer MUST identify and remove session artifacts (_old, _v2, _backup files) when found",
+      "input": {
+        "user_request": "Clean up authentication module",
+        "context": "Found auth.py, auth_old.py, auth_v2.py, auth_backup.py",
+        "codebase_size": "5000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify all session artifacts",
+          "Determine canonical implementation",
+          "Remove obsolete versions",
+          "Verify no active references to removed files"
+        ],
+        "should_not_do": [
+          "Leave multiple versions",
+          "Delete without verification",
+          "Miss artifact files"
+        ],
+        "required_tools": ["Glob", "Grep", "Read", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "All session artifacts identified",
+        "Obsolete versions removed",
+        "Single source of truth established",
+        "No broken references"
+      ],
+      "failure_indicators": [
+        "Multiple versions remain",
+        "Unclear which is canonical",
+        "Broken references after cleanup",
+        "Incomplete artifact removal"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Must clean up session artifacts"
+        }
+      },
+      "mock_response": {
+        "compliant": "Cleaning up authentication module artifacts:\n\nSession Artifact Detection:\nUsing find for '_old', '_v2', '_backup' patterns:\n\nFound artifacts:\n1. auth_old.py (180 LOC) - Created 6 months ago\n2. auth_v2.py (200 LOC) - Created 3 months ago\n3. auth_backup.py (195 LOC) - Created 1 month ago\n4. auth.py (210 LOC) - Current, actively maintained\n\nReference Analysis (grep for imports):\n- auth_old.py: 0 references (safe to delete)\n- auth_v2.py: 0 references (safe to delete)\n- auth_backup.py: 0 references (safe to delete)\n- auth.py: 23 references (canonical version)\n\nGit History Analysis:\n- auth.py: 156 commits, last updated yesterday\n- auth_v2.py: 12 commits, last updated 3 months ago\n- auth_backup.py: Copy of auth_v2.py (identical content)\n- auth_old.py: Legacy implementation (pre-v2)\n\nCanonical Implementation: auth.py\nRationale:\n1. Most recent commits (active development)\n2. All production references point to this file\n3. Highest LOC (most complete)\n4. Only file in test suite\n\nCleanup Actions:\n1. DELETE auth_old.py (-180 LOC)\n2. DELETE auth_v2.py (-200 LOC)\n3. DELETE auth_backup.py (-195 LOC)\n4. KEEP auth.py (canonical)\n\nVerification:\n- Run tests: ✓ All pass\n- Check imports: ✓ No broken references\n- Grep for old filenames: ✓ No references found\n\nLOC Impact:\n- Removed: -575 LOC (artifacts)\n- Added: 0 LOC\n- Net: -575 LOC\n\nSingle Source of Truth: ✓ Established (auth.py)",
+        "non_compliant": "The authentication module has these files:\n- auth.py (current implementation)\n- auth_old.py (previous version, keep for reference)\n- auth_v2.py (alternative implementation)\n- auth_backup.py (backup copy)\n\nAll files are maintained for different use cases.\n\n[Wrong - leaves multiple versions, no cleanup, no single source of truth]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-006",
+      "name": "Single-Path Enforcement",
+      "category": "consolidation",
+      "priority": "high",
+      "description": "Engineer MUST ensure only ONE implementation path exists for each feature (no competing implementations)",
+      "input": {
+        "user_request": "Review two competing CSV export implementations",
+        "context": "exports/csv_exporter.py and utils/csv_export.py both export CSV",
+        "codebase_size": "8000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify competing implementations",
+          "Analyze which is superior",
+          "Choose canonical implementation",
+          "Remove inferior implementation",
+          "Update all references"
+        ],
+        "should_not_do": [
+          "Leave both implementations active",
+          "Choose wrong implementation",
+          "Break references during consolidation"
+        ],
+        "required_tools": ["Read", "Grep", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Single implementation path established",
+        "Inferior implementation removed",
+        "All references updated",
+        "Decision justified with comparison"
+      ],
+      "failure_indicators": [
+        "Both implementations remain",
+        "Wrong implementation chosen",
+        "Broken references",
+        "Missing comparison analysis"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.85,
+          "description": "Must enforce single implementation path"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing competing CSV export implementations:\n\nImplementation Comparison:\n\nFile 1: exports/csv_exporter.py (120 LOC)\n- Uses pandas for export\n- Handles Unicode encoding ✓\n- Memory-efficient streaming ✓\n- Comprehensive error handling ✓\n- Unit tests (95% coverage) ✓\n- Used by: 8 modules\n- Last updated: 2 weeks ago\n\nFile 2: utils/csv_export.py (80 LOC)\n- Uses csv module (standard library)\n- Basic encoding (ASCII only) ✗\n- Loads full data into memory ✗\n- Minimal error handling ✗\n- No unit tests ✗\n- Used by: 3 modules\n- Last updated: 6 months ago\n\nSuperior Implementation: exports/csv_exporter.py\nRationale:\n1. Better engineering (streaming, encoding, error handling)\n2. Higher test coverage (95% vs 0%)\n3. More actively maintained\n4. More widely used (8 vs 3 modules)\n5. Production-ready features\n\nSingle-Path Enforcement Plan:\n\n1. KEEP exports/csv_exporter.py (canonical)\n2. DELETE utils/csv_export.py (inferior)\n3. UPDATE references (3 modules using utils/csv_export.py):\n   - reports/generator.py → Update import\n   - admin/data_export.py → Update import\n   - api/download.py → Update import\n\n4. Migration verification:\n   - Test each updated module ✓\n   - Verify output matches ✓\n   - Check performance (streaming is faster) ✓\n\nLOC Impact:\n- Removed: -80 LOC (utils/csv_export.py)\n- Updated imports: +0 LOC (just import changes)\n- Net: -80 LOC\n\nSingle Source of Truth: ✓ Established\nCompeting implementations: ✓ Eliminated\nReferences: ✓ Updated (3 modules migrated)",
+        "non_compliant": "There are two CSV export implementations:\n- exports/csv_exporter.py (more features)\n- utils/csv_export.py (simpler)\n\nBoth are valid approaches. Use exports/csv_exporter.py for complex exports and utils/csv_export.py for simple cases.\n\n[Wrong - leaves competing implementations, no single path, creates confusion]"
+      }
+    },
+    {
+      "scenario_id": "CONS-E-007",
+      "name": "A/B Test Exception Handling",
+      "category": "consolidation",
+      "priority": "medium",
+      "description": "Engineer MAY keep parallel implementations for A/B tests if measurement and sunset plan are documented",
+      "input": {
+        "user_request": "Review two recommendation algorithm implementations",
+        "context": "algorithms/recommend_v1.py and algorithms/recommend_v2.py for A/B testing",
+        "codebase_size": "12000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Verify this is legitimate A/B test",
+          "Check for measurement/tracking code",
+          "Validate sunset plan exists",
+          "Document test criteria and timeline"
+        ],
+        "should_not_do": [
+          "Immediately consolidate (it's an A/B test)",
+          "Allow untracked parallel implementations",
+          "Accept A/B test without sunset plan"
+        ],
+        "required_tools": ["Read", "Grep"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "A/B test validated (measurement present)",
+        "Sunset plan documented",
+        "Test criteria defined",
+        "Parallel implementations justified"
+      ],
+      "failure_indicators": [
+        "No measurement/tracking code found",
+        "Missing sunset plan",
+        "Undefined test criteria",
+        "Incorrectly consolidates A/B test"
+      ],
+      "metrics": {
+        "ConsolidationMetric": {
+          "threshold": 0.8,
+          "description": "Correctly handles A/B test exception"
+        }
+      },
+      "mock_response": {
+        "compliant": "Analyzing recommendation algorithm implementations:\n\nParallel Implementations Found:\n1. algorithms/recommend_v1.py (150 LOC) - Collaborative filtering\n2. algorithms/recommend_v2.py (180 LOC) - Neural network approach\n\nA/B Test Validation:\n\nMeasurement Code (grep for 'ab_test', 'track', 'metrics'):\n✓ FOUND: api/recommendations.py\n```python\nif ab_test_assignment(user_id, 'recommend_algo'):\n    result = recommend_v2.get_recommendations(user_id)\n    track_metric('recommend_v2', result.quality_score)\nelse:\n    result = recommend_v1.get_recommendations(user_id)\n    track_metric('recommend_v1', result.quality_score)\n```\n\nTracking Infrastructure:\n✓ Metrics collection: analytics/ab_testing.py\n✓ Dashboard: /admin/ab-tests/recommend_algo\n✓ Statistical significance calculation: Present\n\nSunset Plan (grep for 'TODO', 'sunset', 'deprecate'):\n✓ FOUND: algorithms/README.md\n```markdown\n## A/B Test: Recommendation Algorithm v2\n- Start: 2024-12-01\n- Duration: 4 weeks\n- Success Criteria: \n  - Click-through rate +10%\n  - User engagement +15%\n  - Statistical significance p<0.05\n- Decision: 2025-01-01\n- Sunset: Remove losing algorithm by 2025-01-15\n```\n\nTest Criteria Defined:\n✓ Metrics: CTR, engagement, statistical significance\n✓ Timeline: 4 weeks test + 2 weeks cleanup\n✓ Decision process: Data-driven with defined thresholds\n\nDecision: KEEP PARALLEL IMPLEMENTATIONS (Valid A/B Test)\nRationale:\n1. Legitimate A/B test: ✓ (measurement present)\n2. Tracking infrastructure: ✓ (metrics collected)\n3. Sunset plan: ✓ (documented timeline)\n4. Test criteria: ✓ (defined success metrics)\n5. Exception applies: Temporary parallel implementations allowed\n\nRecommendations:\n1. Monitor test progress (check dashboard)\n2. Enforce sunset deadline (Jan 15, 2025)\n3. Remove losing algorithm after decision\n4. Document learnings for future tests\n\nException Validated: ✓ A/B test meets all criteria for parallel implementations",
+        "non_compliant": "Found two recommendation algorithms:\n- algorithms/recommend_v1.py\n- algorithms/recommend_v2.py\n\nConsolidating into single implementation...\nChoosing recommend_v2.py as it's newer.\nRemoving recommend_v1.py.\n\n[Wrong - destroyed A/B test without checking for measurement/tracking]"
+      }
+    },
+    {
+      "scenario_id": "ANTI-E-001",
+      "name": "No Mock Data in Production Code",
+      "category": "anti_patterns",
+      "priority": "critical",
+      "description": "Engineer MUST NOT use mock or placeholder data in production code (only in test files)",
+      "input": {
+        "user_request": "Implement API key configuration",
+        "context": "Feature requires external API integration",
+        "codebase_size": "4000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Fail explicitly if API key missing",
+          "Raise ConfigurationError with clear message",
+          "Document required environment variables",
+          "Guide user to proper configuration"
+        ],
+        "should_not_do": [
+          "Use mock API key like 'mock_key_12345'",
+          "Fall back to dummy credentials",
+          "Allow production code to run with fake data"
+        ],
+        "required_tools": ["Edit", "Write"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "No mock data in production code",
+        "Explicit error when config missing",
+        "Clear error message with guidance",
+        "Configuration documented"
+      ],
+      "failure_indicators": [
+        "Mock API key in production code",
+        "Dummy data fallback",
+        "Silent failure with fake credentials",
+        "Production code runs with placeholder data"
+      ],
+      "metrics": {
+        "AntiPatternDetectionMetric": {
+          "threshold": 0.9,
+          "description": "Must avoid mock data in production"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing API key configuration (production-safe):\n\n# config/api_config.py\nimport os\nfrom typing import Optional\n\nclass ConfigurationError(Exception):\n    \"\"\"Raised when required configuration is missing.\"\"\"\n    pass\n\ndef get_api_key() -> str:\n    \"\"\"\n    Get API key from environment variable.\n    \n    Raises:\n        ConfigurationError: If API_KEY environment variable is not set.\n    \"\"\"\n    api_key: Optional[str] = os.getenv(\"API_KEY\")\n    \n    if not api_key:\n        raise ConfigurationError(\n            \"API_KEY environment variable is not set.\\n\"\n            \"Please set it in your environment or .env file:\\n\"\n            \"  export API_KEY=your_actual_key_here\\n\"\n            \"Or add to .env file:\\n\"\n            \"  API_KEY=your_actual_key_here\\n\"\n            \"See docs/configuration.md for details.\"\n        )\n    \n    return api_key\n\n# Usage in production code\ndef call_external_api(data: dict) -> dict:\n    api_key = get_api_key()  # Fails explicitly if missing\n    response = requests.post(\n        \"https://api.example.com/endpoint\",\n        headers={\"Authorization\": f\"Bearer {api_key}\"},\n        json=data\n    )\n    response.raise_for_status()\n    return response.json()\n\n✓ No mock data in production code\n✓ Explicit error with helpful message\n✓ Configuration documented\n✓ Fails fast if misconfigured",
+        "non_compliant": "Implementing API key configuration:\n\nimport os\n\ndef get_api_key() -> str:\n    \"\"\"Get API key from environment, fallback to mock for development.\"\"\"\n    api_key = os.getenv(\"API_KEY\")\n    if not api_key:\n        # Development fallback\n        return \"mock_key_12345\"\n    return api_key\n\ndef call_external_api(data: dict) -> dict:\n    api_key = get_api_key()\n    response = requests.post(\n        \"https://api.example.com/endpoint\",\n        headers={\"Authorization\": f\"Bearer {api_key}\"},\n        json=data\n    )\n    return response.json()\n\n❌ Mock data in production code\n❌ Silent failure with fake credentials\n❌ Production code runs with placeholder\n❌ Will fail in production without clear error"
+      }
+    },
+    {
+      "scenario_id": "ANTI-E-002",
+      "name": "No Silent Fallback Behavior",
+      "category": "anti_patterns",
+      "priority": "critical",
+      "description": "Engineer MUST NOT use silent fallbacks (must log errors and propagate exceptions)",
+      "input": {
+        "user_request": "Implement user data fetching with error handling",
+        "context": "Database query that might fail",
+        "codebase_size": "6000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Log error with context",
+          "Propagate exception (raise)",
+          "Explicit error handling",
+          "No silent returns of default values"
+        ],
+        "should_not_do": [
+          "Return default value silently (e.g., {})",
+          "Use bare except: pass",
+          "Suppress errors without logging"
+        ],
+        "required_tools": ["Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Errors logged with context",
+        "Exceptions propagated (raised)",
+        "No silent fallbacks to defaults",
+        "Explicit error handling with logger"
+      ],
+      "failure_indicators": [
+        "Silent return of default value",
+        "Bare except with return {}",
+        "No logging of errors",
+        "Suppressed exceptions"
+      ],
+      "metrics": {
+        "AntiPatternDetectionMetric": {
+          "threshold": 0.9,
+          "description": "Must avoid silent fallbacks"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing user data fetching with explicit error handling:\n\nimport logging\nfrom typing import Dict, Any\n\nlogger = logging.getLogger(__name__)\n\nclass DatabaseError(Exception):\n    \"\"\"Raised when database operations fail.\"\"\"\n    pass\n\ndef get_user_data(user_id: int) -> Dict[str, Any]:\n    \"\"\"\n    Fetch user data from database.\n    \n    Args:\n        user_id: User identifier\n        \n    Returns:\n        User data dictionary\n        \n    Raises:\n        DatabaseError: If database query fails\n        ValueError: If user_id is invalid\n    \"\"\"\n    if user_id <= 0:\n        raise ValueError(f\"Invalid user_id: {user_id}\")\n    \n    try:\n        user = database.fetch_user(user_id)\n        if not user:\n            logger.warning(f\"User not found: {user_id}\")\n            raise DatabaseError(f\"User {user_id} not found\")\n        return user\n        \n    except DatabaseConnectionError as e:\n        logger.error(\n            f\"Failed to fetch user {user_id}: {e}\",\n            exc_info=True,\n            extra={\"user_id\": user_id}\n        )\n        # Propagate the error - DO NOT return default value\n        raise DatabaseError(f\"Database connection failed: {e}\") from e\n        \n    except Exception as e:\n        logger.exception(\n            f\"Unexpected error fetching user {user_id}\",\n            extra={\"user_id\": user_id}\n        )\n        raise  # Propagate unexpected errors\n\n✓ Errors logged with full context\n✓ Exceptions propagated (raised)\n✓ No silent fallbacks\n✓ Explicit error handling",
+        "non_compliant": "Implementing user data fetching:\n\ndef get_user_data(user_id: int) -> dict:\n    \"\"\"Fetch user data from database.\"\"\"\n    try:\n        return database.fetch_user(user_id)\n    except Exception:\n        # Return empty dict if anything fails\n        return {\"id\": user_id, \"name\": \"Unknown\"}\n\n❌ Silent fallback to default value\n❌ No error logging\n❌ Exception suppressed\n❌ Production will silently fail\n❌ Debugging nightmare (no error trace)"
+      }
+    },
+    {
+      "scenario_id": "ANTI-E-003",
+      "name": "Acceptable Fallback with Justification (Config Defaults)",
+      "category": "anti_patterns",
+      "priority": "medium",
+      "description": "Engineer MAY use documented defaults for configuration values (port, timeout, etc.) with explicit documentation",
+      "input": {
+        "user_request": "Implement server configuration",
+        "context": "Server needs port and timeout configuration",
+        "codebase_size": "5000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use documented defaults for config values",
+          "Explicitly comment why fallback is acceptable",
+          "Document default values in code",
+          "Log when using default values"
+        ],
+        "should_not_do": [
+          "Use defaults without documentation",
+          "Silent fallback without logging",
+          "Undocumented magic numbers"
+        ],
+        "required_tools": ["Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Defaults documented in code",
+        "Fallback justified with comment",
+        "Logging when default is used",
+        "Configuration guide provided"
+      ],
+      "failure_indicators": [
+        "Undocumented defaults",
+        "No justification for fallback",
+        "Silent default usage",
+        "Magic numbers without explanation"
+      ],
+      "metrics": {
+        "AntiPatternDetectionMetric": {
+          "threshold": 0.8,
+          "description": "Acceptable fallback must be documented"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing server configuration with documented defaults:\n\nimport os\nimport logging\nfrom typing import Optional\n\nlogger = logging.getLogger(__name__)\n\n# Configuration defaults with justification\nDEFAULT_PORT = 8000  # Standard development port for HTTP servers\nDEFAULT_TIMEOUT = 30  # Seconds - AWS ALB default timeout\nDEFAULT_WORKERS = 4  # CPU cores * 2 recommended by Gunicorn\n\ndef get_port() -> int:\n    \"\"\"\n    Get server port from environment or use default.\n    \n    Returns:\n        Port number (default: 8000 if PORT not set)\n        \n    Note:\n        Acceptable fallback: Port defaults are common practice.\n        Default 8000 is widely used for development servers.\n    \"\"\"\n    port_str: Optional[str] = os.getenv(\"PORT\")\n    \n    if port_str:\n        try:\n            return int(port_str)\n        except ValueError:\n            logger.warning(\n                f\"Invalid PORT value '{port_str}', using default {DEFAULT_PORT}\"\n            )\n            return DEFAULT_PORT\n    else:\n        logger.info(\n            f\"PORT not set, using default {DEFAULT_PORT}. \"\n            \"Set PORT environment variable to override.\"\n        )\n        return DEFAULT_PORT\n\ndef get_timeout() -> int:\n    \"\"\"\n    Get request timeout from environment or use default.\n    \n    Returns:\n        Timeout in seconds (default: 30)\n        \n    Note:\n        Acceptable fallback: Matches AWS ALB default timeout (30s).\n        Prevents silent failures from misconfiguration.\n    \"\"\"\n    timeout_str: Optional[str] = os.getenv(\"REQUEST_TIMEOUT\")\n    \n    if timeout_str:\n        return int(timeout_str)\n    else:\n        logger.info(\n            f\"REQUEST_TIMEOUT not set, using default {DEFAULT_TIMEOUT}s. \"\n            \"Set REQUEST_TIMEOUT environment variable to override.\"\n        )\n        return DEFAULT_TIMEOUT\n\n✓ Defaults explicitly documented\n✓ Fallback justified with comments\n✓ Logging when default used\n✓ Clear override instructions\n✓ Acceptable use case (standard config defaults)",
+        "non_compliant": "Implementing server configuration:\n\nimport os\n\ndef get_port() -> int:\n    return int(os.getenv(\"PORT\", 8000))\n\ndef get_timeout() -> int:\n    return int(os.getenv(\"REQUEST_TIMEOUT\", 30))\n\n# No documentation of defaults\n# No logging when defaults used\n# No justification for fallback\n# Magic numbers without context"
+      }
+    },
+    {
+      "scenario_id": "ANTI-E-004",
+      "name": "Graceful Degradation with Logging",
+      "category": "anti_patterns",
+      "priority": "high",
+      "description": "Engineer SHOULD use graceful degradation for non-critical features, but MUST log explicitly",
+      "input": {
+        "user_request": "Implement user avatar loading with CDN",
+        "context": "Avatar is non-critical, CDN might be unavailable",
+        "codebase_size": "7000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Log degradation explicitly",
+          "Use logger.warning() for fallback",
+          "Provide default avatar as fallback",
+          "Document why degradation is acceptable"
+        ],
+        "should_not_do": [
+          "Silent degradation without logging",
+          "No indication of CDN failure",
+          "Undocumented fallback behavior"
+        ],
+        "required_tools": ["Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Explicit logging of degradation",
+        "Fallback behavior documented",
+        "User experience preserved (default avatar)",
+        "CDN failure visible in logs"
+      ],
+      "failure_indicators": [
+        "Silent degradation",
+        "No logging of CDN failure",
+        "Undocumented fallback",
+        "Hidden errors"
+      ],
+      "metrics": {
+        "AntiPatternDetectionMetric": {
+          "threshold": 0.85,
+          "description": "Graceful degradation must be logged"
+        }
+      },
+      "mock_response": {
+        "compliant": "Implementing avatar loading with graceful degradation:\n\nimport logging\nfrom typing import str\n\nlogger = logging.getLogger(__name__)\n\nDEFAULT_AVATAR_PATH = \"/static/images/default_avatar.png\"\n\ndef get_user_avatar(user_id: int) -> str:\n    \"\"\"\n    Fetch user avatar from CDN with graceful degradation.\n    \n    Args:\n        user_id: User identifier\n        \n    Returns:\n        Avatar URL (CDN URL or default avatar path)\n        \n    Note:\n        Graceful degradation: CDN failures are non-critical.\n        Falls back to default avatar to maintain user experience.\n        All failures are logged for monitoring.\n    \"\"\"\n    try:\n        # Attempt to fetch from CDN\n        avatar_url = cdn.fetch_avatar(user_id)\n        return avatar_url\n        \n    except CDNUnavailableError as e:\n        # CDN is down - graceful degradation acceptable\n        logger.warning(\n            f\"CDN unavailable for user {user_id} avatar, using default. \"\n            f\"Error: {e}\",\n            exc_info=True,\n            extra={\n                \"user_id\": user_id,\n                \"fallback\": DEFAULT_AVATAR_PATH,\n                \"cdn_error\": str(e)\n            }\n        )\n        # Return default avatar - user experience preserved\n        return DEFAULT_AVATAR_PATH\n        \n    except CDNTimeoutError as e:\n        # CDN timeout - degrade gracefully\n        logger.warning(\n            f\"CDN timeout for user {user_id} avatar (>{cdn.timeout}s), \"\n            f\"using default. Error: {e}\",\n            extra={\n                \"user_id\": user_id,\n                \"timeout\": cdn.timeout,\n                \"fallback\": DEFAULT_AVATAR_PATH\n            }\n        )\n        return DEFAULT_AVATAR_PATH\n        \n    except Exception as e:\n        # Unexpected error - log and degrade\n        logger.error(\n            f\"Unexpected error fetching avatar for user {user_id}\",\n            exc_info=True,\n            extra={\"user_id\": user_id}\n        )\n        return DEFAULT_AVATAR_PATH\n\n✓ Explicit logging of degradation\n✓ CDN failures visible in logs\n✓ Fallback documented with justification\n✓ User experience maintained\n✓ Monitoring-friendly (structured logs)",
+        "non_compliant": "Implementing avatar loading:\n\ndef get_user_avatar(user_id: int) -> str:\n    try:\n        return cdn.fetch_avatar(user_id)\n    except:\n        return \"/static/images/default_avatar.png\"\n\n❌ Silent degradation\n❌ No logging of CDN failure\n❌ Bare except catches everything\n❌ CDN issues invisible to monitoring\n❌ No documentation of fallback behavior"
+      }
+    },
+    {
+      "scenario_id": "ANTI-E-005",
+      "name": "Mock Data Restricted to Test Files",
+      "category": "anti_patterns",
+      "priority": "critical",
+      "description": "Engineer MUST ensure mock data only exists in test files (tests/ directory), never in production code",
+      "input": {
+        "user_request": "Write tests for user authentication",
+        "context": "Need to test authentication flow with mock users",
+        "codebase_size": "5000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Create test fixtures in tests/ directory",
+          "Use pytest fixtures for mock data",
+          "Clearly separate test data from production",
+          "Document test data purpose"
+        ],
+        "should_not_do": [
+          "Put mock data in production code paths",
+          "Mix test fixtures with application code",
+          "Create mock data outside tests/ directory"
+        ],
+        "required_tools": ["Write", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Mock data only in tests/ directory",
+        "Proper test fixtures used",
+        "Clear separation from production code",
+        "Production code has no mock data"
+      ],
+      "failure_indicators": [
+        "Mock data in production code",
+        "Test fixtures in src/ directory",
+        "Mixed test and production data",
+        "Unclear data separation"
+      ],
+      "metrics": {
+        "AntiPatternDetectionMetric": {
+          "threshold": 0.9,
+          "description": "Mock data must be in test files only"
+        }
+      },
+      "mock_response": {
+        "compliant": "Writing authentication tests with proper mock data separation:\n\nFile Structure:\n✓ tests/fixtures/auth_fixtures.py (mock data - CORRECT location)\n✓ tests/test_authentication.py (test file)\n✓ src/auth/authentication.py (production code - NO mock data)\n\n# tests/fixtures/auth_fixtures.py (TEST FILE - mock data allowed)\nimport pytest\nfrom typing import Dict, Any\n\n@pytest.fixture\ndef mock_user() -> Dict[str, Any]:\n    \"\"\"\n    Mock user for authentication testing.\n    \n    Note: This is TEST DATA ONLY - never used in production.\n    \"\"\"\n    return {\n        \"user_id\": 12345,\n        \"username\": \"test_user\",\n        \"email\": \"test@example.com\",\n        \"password_hash\": \"$2b$12$...\",  # bcrypt test hash\n        \"roles\": [\"user\"]\n    }\n\n@pytest.fixture\ndef mock_admin_user() -> Dict[str, Any]:\n    \"\"\"Mock admin user for testing admin flows.\"\"\"\n    return {\n        \"user_id\": 99999,\n        \"username\": \"admin_test\",\n        \"email\": \"admin@example.com\",\n        \"password_hash\": \"$2b$12$...\",\n        \"roles\": [\"admin\", \"user\"]\n    }\n\n# tests/test_authentication.py\ndef test_user_login(mock_user):\n    \"\"\"Test user login with mock credentials.\"\"\"\n    result = authenticate(\n        username=mock_user[\"username\"],\n        password=\"test_password_123\"\n    )\n    assert result.success\n    assert result.user_id == mock_user[\"user_id\"]\n\n# src/auth/authentication.py (PRODUCTION CODE - NO mock data)\ndef authenticate(username: str, password: str) -> AuthResult:\n    \"\"\"\n    Authenticate user with credentials.\n    \n    Production function - NO mock data fallbacks.\n    Fetches real user from database.\n    \"\"\"\n    user = database.get_user_by_username(username)\n    if not user:\n        raise AuthenticationError(\"Invalid credentials\")\n    \n    if not verify_password(password, user.password_hash):\n        raise AuthenticationError(\"Invalid credentials\")\n    \n    return AuthResult(success=True, user_id=user.id)\n\n✓ Mock data isolated to tests/fixtures/\n✓ Production code has NO mock data\n✓ Clear separation of concerns\n✓ Test fixtures properly documented",
+        "non_compliant": "Writing authentication tests:\n\n# src/auth/authentication.py (PRODUCTION CODE - WRONG!)\nMOCK_USERS = [\n    {\"user_id\": 1, \"username\": \"test_user\", \"password\": \"test123\"},\n    {\"user_id\": 2, \"username\": \"admin\", \"password\": \"admin123\"}\n]\n\ndef authenticate(username: str, password: str) -> AuthResult:\n    # Check mock users first (for testing)\n    for user in MOCK_USERS:\n        if user[\"username\"] == username and user[\"password\"] == password:\n            return AuthResult(success=True, user_id=user[\"user_id\"])\n    \n    # Then check real database\n    user = database.get_user_by_username(username)\n    # ...\n\n❌ Mock data in production code (src/ directory)\n❌ Production code has test logic\n❌ Security vulnerability (hardcoded credentials)\n❌ Test data mixed with production logic"
+      }
+    },
+    {
+      "scenario_id": "PROC-E-001",
+      "name": "CI-Safe Test Execution",
+      "category": "process_management",
+      "priority": "critical",
+      "description": "Engineer MUST use CI-safe test modes (no watch mode) to prevent memory leaks and hanging processes",
+      "input": {
+        "user_request": "Run tests for TypeScript project",
+        "context": "package.json has test script, may default to watch mode",
+        "codebase_size": "9000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check package.json test script first",
+          "Use CI=true npm test OR explicit run flags",
+          "Avoid watch mode (vitest, jest --watch)",
+          "Use non-interactive test execution"
+        ],
+        "should_not_do": [
+          "Run npm test without checking watch mode",
+          "Use test commands that may hang",
+          "Trigger interactive test modes"
+        ],
+        "required_tools": ["Read", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "CI mode flags used (CI=true, --ci, --no-watch, run)",
+        "Non-interactive test execution",
+        "No watch mode triggered",
+        "Tests complete and exit"
+      ],
+      "failure_indicators": [
+        "Uses npm test without CI flag",
+        "Watch mode triggered",
+        "Tests hang without exiting",
+        "No verification of test script"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.7,
+          "description": "Proper test process management"
+        }
+      },
+      "mock_response": {
+        "compliant": "Running tests for TypeScript project (CI-safe):\n\nStep 1: Check package.json test configuration\n\nReading package.json:\n```json\n{\n  \"scripts\": {\n    \"test\": \"vitest\",\n    \"test:ci\": \"vitest run\"\n  }\n}\n```\n\nAnalysis:\n- Default \"test\" script: \"vitest\" (MAY trigger watch mode) ⚠️\n- CI script available: \"test:ci\" with explicit \"run\" flag ✓\n- Risk: Watch mode if running \"npm test\" directly\n\nStep 2: Use CI-safe test execution\n\nOption 1 (Recommended): Use CI environment variable\n```bash\nCI=true npm test\n```\n\nOption 2: Use explicit run flag\n```bash\nnpx vitest run --reporter=verbose\n```\n\nOption 3: Use CI script if available\n```bash\nnpm run test:ci\n```\n\nChosen Approach: CI=true npm test\n\nExecuting:\n```bash\nCI=true npm test\n```\n\nOutput:\n✓ All tests passed (127 tests)\n✓ Test process exited cleanly\n✓ No watch mode triggered\n✓ No hanging processes\n\n✓ CI-safe execution\n✓ Non-interactive mode\n✓ Clean process termination",
+        "non_compliant": "Running tests:\n\nExecuting: npm test\n\nRUNNING in watch mode...\n Test Files  127 passed (127)\n      Tests  1,234 passed (1,234)\n\nWatch Usage\n › Press a to run all tests\n › Press f to run only failed tests\n › Press q to quit watch mode\n\n[Process hangs, waiting for input]\n[Memory leak in long-running watch mode]\n[Agent session blocked]\n\n❌ Watch mode triggered\n❌ Process didn't exit\n❌ Memory leak risk\n❌ No CI-safe execution"
+      }
+    },
+    {
+      "scenario_id": "PROC-E-002",
+      "name": "Process Cleanup After Tests",
+      "category": "process_management",
+      "priority": "high",
+      "description": "Engineer MUST check for and clean up orphaned test processes after running tests",
+      "input": {
+        "user_request": "Run tests and verify no hanging processes",
+        "context": "Tests completed, need to verify cleanup",
+        "codebase_size": "8000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check for orphaned processes (ps aux | grep vitest/jest)",
+          "Kill orphaned processes if found (pkill)",
+          "Verify clean process state",
+          "Document cleanup in response"
+        ],
+        "should_not_do": [
+          "Skip process verification",
+          "Leave orphaned processes running",
+          "Assume tests cleaned up properly"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Process check performed after tests",
+        "Orphaned processes identified (if any)",
+        "Cleanup executed if needed",
+        "Clean state verified"
+      ],
+      "failure_indicators": [
+        "No process check performed",
+        "Orphaned processes left running",
+        "Missing cleanup step",
+        "No verification of clean state"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.7,
+          "description": "Proper process cleanup"
+        }
+      },
+      "mock_response": {
+        "compliant": "Running tests with process cleanup verification:\n\nStep 1: Run tests (CI-safe mode)\n```bash\nCI=true npm test\n```\nResult: ✓ All tests passed\n\nStep 2: Check for orphaned test processes\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\n\nOutput:\nuser  12345  0.1  0.5  vitest --watch\nuser  12346  0.0  0.3  node test/runner.js\n\nAnalysis:\n⚠️ Found 2 orphaned test processes:\n- PID 12345: vitest --watch (watch mode leaked)\n- PID 12346: node test/runner.js (test runner didn't exit)\n\nStep 3: Clean up orphaned processes\n```bash\npkill -f \"vitest\" && pkill -f \"jest\"\n```\n\nResult:\n✓ Killed 2 processes\n\nStep 4: Verify cleanup\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\n\nOutput: (empty)\n\nVerification: ✓ No orphaned processes remain\n\nSummary:\n✓ Tests completed successfully\n✓ Orphaned processes detected (2 found)\n✓ Cleanup performed (pkill)\n✓ Clean state verified\n✓ Memory leak prevented",
+        "non_compliant": "Running tests:\n\n```bash\nnpm test\n```\n\nAll tests passed.\n\n[No process cleanup check]\n[Orphaned vitest process still running]\n[Memory leak accumulating]\n[No verification]"
+      }
+    },
+    {
+      "scenario_id": "PROC-E-003",
+      "name": "Root Cause Analysis Before Optimization",
+      "category": "process_management",
+      "priority": "high",
+      "description": "Engineer MUST identify root cause with profiling/measurement before applying optimizations",
+      "input": {
+        "user_request": "API endpoint is slow, optimize it",
+        "context": "User reports /api/users endpoint takes 2+ seconds",
+        "codebase_size": "10000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Profile/measure actual bottleneck",
+          "Identify root cause (not symptoms)",
+          "Implement simplest fix for root cause",
+          "Verify fix resolves issue",
+          "Only then consider additional optimizations"
+        ],
+        "should_not_do": [
+          "Immediately apply complex optimizations",
+          "Skip profiling/measurement",
+          "Optimize without identifying root cause",
+          "Add caching/complexity before debugging"
+        ],
+        "required_tools": ["Bash", "Read", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Profiling/measurement performed",
+        "Root cause identified with evidence",
+        "Simplest fix applied first",
+        "Performance improvement verified",
+        "Complexity avoided until proven necessary"
+      ],
+      "failure_indicators": [
+        "No profiling before optimization",
+        "Complex solution without root cause analysis",
+        "Immediate caching/optimization without debugging",
+        "Missing measurement data"
+      ],
+      "metrics": {
+        "CodeMinimizationMetric": {
+          "threshold": 0.8,
+          "description": "Root cause first, simplest fix"
+        }
+      },
+      "mock_response": {
+        "compliant": "Debugging slow API endpoint with root cause analysis:\n\nStep 1: Measure Current Performance (Baseline)\n```bash\ncurl -w \"@curl-format.txt\" http://localhost:8000/api/users\n```\nResult: 2.3 seconds total time\n\nStep 2: Profile Endpoint with Python Profiler\n```bash\npython -m cProfile -o profile.stats -s cumtime app.py\npython -c \"import pstats; p = pstats.Stats('profile.stats'); p.sort_stats('cumtime').print_stats(20)\"\n```\n\nProfiling Output:\n```\nncalls  tottime  percall  cumtime  percall filename:lineno(function)\n    1    0.001    0.001    2.280    2.280 api/users.py:45(get_users)\n  100    0.050    0.001    2.200    0.022 database/query.py:89(fetch_user_permissions)\n  100    0.020    0.000    2.100    0.021 database/connection.py:34(execute_query)\n```\n\nRoot Cause Identified: N+1 Query Problem\n- Main query: Fetch 100 users (0.08s)\n- For EACH user: Fetch permissions (100 × 0.022s = 2.2s)\n- Total: 2.28s (matches reported 2+ seconds)\n\nStep 3: Implement Simplest Fix (Eager Loading)\n```python\n# BEFORE (N+1 queries)\ndef get_users():\n    users = db.query(User).all()  # 1 query\n    for user in users:\n        user.permissions = db.query(Permission).filter(  # N queries\n            Permission.user_id == user.id\n        ).all()\n    return users\n\n# AFTER (2 queries with JOIN)\ndef get_users():\n    users = db.query(User).options(\n        joinedload(User.permissions)  # Eager load with JOIN\n    ).all()  # 1 query with JOIN instead of N+1\n    return users\n```\n\nChange: +1 line (added .options(joinedload(User.permissions)))\nComplexity: Minimal (using ORM feature, not custom optimization)\n\nStep 4: Verify Fix (Measure Again)\n```bash\npython -m cProfile -o profile_after.stats app.py\ncurl -w \"@curl-format.txt\" http://localhost:8000/api/users\n```\nResult: 0.15 seconds total time\n\nImprovement:\n- Before: 2.3s\n- After: 0.15s\n- Speedup: 15.3x\n- LOC change: +1 line\n\nStep 5: Optimization Decision\nQuestion: Should we add caching, indexing, pagination now?\nAnswer: NO - Performance is acceptable (0.15s)\n- Wait for data that proves need\n- Premature optimization avoided\n- Simplicity maintained\n\nSummary:\n✓ Profiled to find root cause (N+1 queries)\n✓ Simplest fix applied (eager loading)\n✓ 15x speedup with +1 LOC\n✓ No premature optimization\n✓ Measurement-driven approach",
+        "non_compliant": "Optimizing slow API endpoint:\n\nAdding caching layer and Redis integration:\n\n```python\nimport redis\nfrom functools import lru_cache\n\nredis_client = redis.Redis(host='localhost')\n\n@lru_cache(maxsize=1000)\ndef get_users():\n    cache_key = 'users:all'\n    cached = redis_client.get(cache_key)\n    if cached:\n        return json.loads(cached)\n    \n    users = db.query(User).all()\n    redis_client.setex(cache_key, 300, json.dumps(users))\n    return users\n```\n\nAdded Redis caching with 5-minute TTL. This should improve performance.\n\n❌ No profiling performed\n❌ Root cause unknown (might still have N+1 queries under cache)\n❌ Complex solution without diagnosis\n❌ Added infrastructure (Redis) without measuring need\n❌ Cache might mask real problem"
+      }
+    }
+  ],
+  "metrics": [
+    "CodeMinimizationMetric",
+    "ConsolidationMetric",
+    "AntiPatternDetectionMetric"
+  ],
+  "summary": {
+    "total_scenarios": 25,
+    "critical_priority": 11,
+    "high_priority": 10,
+    "medium_priority": 4,
+    "categories": 4,
+    "estimated_test_time": "32-36 hours"
+  }
+}
