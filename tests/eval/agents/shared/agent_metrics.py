@@ -60,7 +60,7 @@ class AgentMetricBase(BaseMetric, ABC):
 
     def __init__(
         self,
-        threshold: float = None,
+        threshold: float | None = None,
         agent_type: AgentType = AgentType.BASE,
         strict: bool = True,
     ):
@@ -123,7 +123,6 @@ class AgentMetricBase(BaseMetric, ABC):
         Returns:
             Score from 0.0 to 1.0
         """
-        pass
 
     @abstractmethod
     def generate_reason(
@@ -140,7 +139,6 @@ class AgentMetricBase(BaseMetric, ABC):
         Returns:
             Explanation string
         """
-        pass
 
     def is_successful(self) -> bool:
         """Check if metric passes threshold."""

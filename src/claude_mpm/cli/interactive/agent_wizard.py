@@ -103,9 +103,8 @@ class AgentWizard:
                 extra = int(extra_space * proportion)
                 result[col_name] = min_width + extra
             return result
-        else:
-            # Terminal too narrow, use minimum widths
-            return columns.copy()
+        # Terminal too narrow, use minimum widths
+        return columns.copy()
 
     def run_interactive_create(self) -> Tuple[bool, str]:
         """Run interactive agent creation wizard.

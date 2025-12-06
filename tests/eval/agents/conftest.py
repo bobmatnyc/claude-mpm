@@ -26,7 +26,6 @@ from .shared.agent_fixtures import (
     temp_project_dir,
 )
 
-
 # ============================================================================
 # PYTEST CONFIGURATION
 # ============================================================================
@@ -86,7 +85,7 @@ async def mock_agent():
             )
 
             # If using fixture, get the text
-            if hasattr(response_fixture, "__call__"):
+            if callable(response_fixture):
                 response_data = response_fixture()
                 response_text = response_data["text"]
             else:

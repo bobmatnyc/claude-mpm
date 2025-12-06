@@ -1011,9 +1011,8 @@ class ConfigureCommand(BaseCommand):
                 extra = int(extra_space * proportion)
                 result[col_name] = min_width + extra
             return result
-        else:
-            # Terminal too narrow, use minimum widths
-            return columns.copy()
+        # Terminal too narrow, use minimum widths
+        return columns.copy()
 
     def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
         """Display agents table with source information and installation status."""

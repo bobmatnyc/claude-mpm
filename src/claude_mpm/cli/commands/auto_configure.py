@@ -32,7 +32,6 @@ except ImportError:
 from ...core.enums import OperationResult
 from ...services.agents.auto_config_manager import AutoConfigManagerService
 from ...services.agents.observers import NullObserver
-from ...services.core.models.agent_config import ConfigurationResult
 from ..shared import BaseCommand, CommandResult
 
 
@@ -833,10 +832,9 @@ class AutoConfigureCommand(BaseCommand):
             Dict with deployment results: {"deployed": [...], "errors": [...]}
         """
         try:
-            result = self.skills_deployer.deploy_skills(
+            return self.skills_deployer.deploy_skills(
                 skill_names=recommended_skills, force=False
             )
-            return result
         except Exception as e:
             self.logger.error(f"Failed to deploy skills: {e}")
             return {"deployed": [], "errors": [str(e)]}

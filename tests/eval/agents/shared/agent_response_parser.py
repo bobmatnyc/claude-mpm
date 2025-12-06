@@ -358,7 +358,7 @@ class AgentResponseParser:
         except json.JSONDecodeError as e:
             return MemoryCapture(
                 json_block_present=True,
-                validation_errors=[f"Invalid JSON: {str(e)}"],
+                validation_errors=[f"Invalid JSON: {e!s}"],
             )
 
     def _detect_base_violations(

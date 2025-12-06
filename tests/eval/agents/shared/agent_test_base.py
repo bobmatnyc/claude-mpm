@@ -107,7 +107,6 @@ class AgentTestBase:
 
         Override in subclasses for agent-specific cleanup.
         """
-        pass
 
     def get_default_tools(self) -> List[str]:
         """Get default tools available to all agents."""
