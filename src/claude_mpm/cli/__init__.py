@@ -91,7 +91,6 @@ def main(argv: Optional[list] = None):
         )
 
         try:
-            launch_progress.update(10)  # Start progress
             run_background_services()
             launch_progress.finish(message="Ready")
 
