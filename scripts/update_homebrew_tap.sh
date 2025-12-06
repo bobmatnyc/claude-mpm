@@ -191,6 +191,25 @@ clone_or_update_tap_repo() {
         log INFO "Updating existing tap repository..."
         cd "$TAP_DIR"
 
+        # Check if git repository is valid
+        if ! git rev-parse --git-dir > /dev/null 2>&1; then
+            log WARNING "Found corrupt git repository at ${TAP_DIR}"
+            log INFO "Removing corrupt directory and re-cloning..."
+            cd /
+            rm -rf "$TAP_DIR"
+
+            # Clone fresh repository
+            log INFO "Cloning tap repository..."
+            if ! git clone "$TAP_REPO" "$TAP_DIR"; then
+                log ERROR "Failed to clone tap repository"
+                log ERROR "Check network connectivity and GitHub access"
+                return 1
+            fi
+            cd "$TAP_DIR"
+            log SUCCESS "Tap repository ready at: ${TAP_DIR}"
+            return 0
+        fi
+
         # Check for uncommitted changes
         if ! git diff --quiet; then
             log WARNING "Tap repository has uncommitted changes"
