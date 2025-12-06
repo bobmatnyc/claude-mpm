@@ -120,7 +120,9 @@ def mock_filesystem(temp_project_dir):
 
     # Create test files
     test_auth_path = temp_project_dir / "tests" / "test_auth.py"
-    test_auth_path.write_text('"""Test auth module."""\n\ndef test_login():\n    pass\n')
+    test_auth_path.write_text(
+        '"""Test auth module."""\n\ndef test_login():\n    pass\n'
+    )
     files["tests/test_auth.py"] = {
         "path": str(test_auth_path),
         "size": test_auth_path.stat().st_size,
@@ -211,7 +213,7 @@ def sample_javascript_files():
     return [
         {
             "filename": "package.json",
-            "content": '''{
+            "content": """{
   "name": "test-project",
   "version": "1.0.0",
   "scripts": {
@@ -221,14 +223,14 @@ def sample_javascript_files():
   "devDependencies": {
     "vitest": "^1.0.0"
   }
-}''',
+}""",
             "size": 200,
             "language": "json",
             "purpose": "Testing QA package.json inspection",
         },
         {
             "filename": "auth.test.js",
-            "content": '''import { describe, it, expect } from 'vitest';
+            "content": """import { describe, it, expect } from 'vitest';
 import { validateToken } from './auth';
 
 describe('Authentication', () => {
@@ -242,7 +244,7 @@ describe('Authentication', () => {
     expect(validateToken(token)).toBe(false);
   });
 });
-''',
+""",
             "size": 300,
             "language": "javascript",
             "purpose": "Testing QA test discovery",

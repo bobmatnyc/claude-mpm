@@ -12,7 +12,7 @@ import sys
 # This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     force=True,  # Python 3.8+ - reconfigures root logger
     stream=sys.stderr,
 )

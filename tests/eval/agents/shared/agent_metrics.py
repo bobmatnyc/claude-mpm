@@ -439,9 +439,7 @@ def extract_violation_summary(analysis: AgentResponseAnalysis) -> Dict[str, Any]
 
     return {
         "total_violations": len(violations),
-        "by_category": {
-            k: len(v) for k, v in categories.items() if v
-        },
+        "by_category": {k: len(v) for k, v in categories.items() if v},
         "details": categories,
         "has_violations": len(violations) > 0,
     }

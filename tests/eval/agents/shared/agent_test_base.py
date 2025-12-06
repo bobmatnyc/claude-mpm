@@ -171,7 +171,9 @@ class AgentTestBase:
             )
         else:
             # Sync agent
-            raw_response = mock_agent.process_request_sync(input_text, context or self.agent_context)
+            raw_response = mock_agent.process_request_sync(
+                input_text, context or self.agent_context
+            )
 
         # Extract response text
         response_text = raw_response.get("content", "")
@@ -318,8 +320,7 @@ class AgentTestBase:
 
         for tool in required_tools:
             assert tool in tools_used, (
-                f"Required tool '{tool}' not used. "
-                f"Tools used: {', '.join(tools_used)}"
+                f"Required tool '{tool}' not used. Tools used: {', '.join(tools_used)}"
             )
 
     def assert_tools_not_used(
@@ -339,8 +340,7 @@ class AgentTestBase:
 
         for tool in forbidden_tools:
             assert tool not in tools_used, (
-                f"Forbidden tool '{tool}' was used. "
-                f"Tools used: {', '.join(tools_used)}"
+                f"Forbidden tool '{tool}' was used. Tools used: {', '.join(tools_used)}"
             )
 
     # ========================================================================
@@ -420,13 +420,13 @@ class ResearchAgentTest(AgentTestBase):
         data = analysis.agent_specific_data
         assert data.get("document_summarizer_used"), "document_summarizer not used"
 
-    def assert_max_files_respected(self, analysis: AgentResponseAnalysis, max_files: int = 5):
+    def assert_max_files_respected(
+        self, analysis: AgentResponseAnalysis, max_files: int = 5
+    ):
         """Assert agent didn't read too many files."""
         data = analysis.agent_specific_data
         files_read = data.get("files_read_count", 0)
-        assert files_read <= max_files, (
-            f"Read {files_read} files (max: {max_files})"
-        )
+        assert files_read <= max_files, f"Read {files_read} files (max: {max_files})"
 
 
 class EngineerAgentTest(AgentTestBase):
@@ -441,7 +441,9 @@ class EngineerAgentTest(AgentTestBase):
         write_count = data.get("write_tools_used", 0)
 
         if write_count > 0:
-            assert search_count > 0, "Write/Edit without prior search (search-first violation)"
+            assert search_count > 0, (
+                "Write/Edit without prior search (search-first violation)"
+            )
 
     def assert_net_loc_delta_reported(self, analysis: AgentResponseAnalysis):
         """Assert engineer reported LOC impact."""
@@ -451,7 +453,9 @@ class EngineerAgentTest(AgentTestBase):
     def assert_no_mock_data(self, analysis: AgentResponseAnalysis):
         """Assert no mock data in production code."""
         data = analysis.agent_specific_data
-        assert not data.get("mock_data_detected"), "Mock data detected in production code"
+        assert not data.get("mock_data_detected"), (
+            "Mock data detected in production code"
+        )
 
 
 class QAAgentTest(AgentTestBase):
@@ -484,7 +488,9 @@ class OpsAgentTest(AgentTestBase):
     def assert_environment_validated(self, analysis: AgentResponseAnalysis):
         """Assert environment validation performed."""
         data = analysis.agent_specific_data
-        assert data.get("environment_validation"), "Environment validation not performed"
+        assert data.get("environment_validation"), (
+            "Environment validation not performed"
+        )
 
     def assert_rollback_prepared(self, analysis: AgentResponseAnalysis):
         """Assert rollback plan mentioned."""

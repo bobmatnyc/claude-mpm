@@ -279,7 +279,10 @@ class AutoConfigureCommand(BaseCommand):
         # Output results
         if json_output:
             return self._output_preview_json(
-                agent_preview, skills_recommendations, configure_agents, configure_skills
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
             )
         return self._display_preview(
             agent_preview, skills_recommendations, configure_agents, configure_skills
@@ -320,13 +323,19 @@ class AutoConfigureCommand(BaseCommand):
         # Display preview (unless JSON output)
         if not json_output:
             self._display_preview(
-                agent_preview, skills_recommendations, configure_agents, configure_skills
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
             )
 
         # Ask for confirmation (unless skipped)
         if not skip_confirmation and not json_output:
             if not self._confirm_deployment(
-                agent_preview, skills_recommendations, configure_agents, configure_skills
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
             ):
                 if self.console:
                     self.console.print("\n❌ Operation cancelled by user")
@@ -373,7 +382,10 @@ class AutoConfigureCommand(BaseCommand):
         if not self.console:
             # Fallback to plain text
             return self._display_preview_plain(
-                agent_preview, skills_recommendations, configure_agents, configure_skills
+                agent_preview,
+                skills_recommendations,
+                configure_agents,
+                configure_skills,
             )
 
         # Only show toolchain and agents if configuring agents
@@ -394,8 +406,8 @@ class AutoConfigureCommand(BaseCommand):
 
                 for component in agent_preview.detected_toolchain.components:
                     confidence_pct = int(component.confidence * 100)
-                    bar = (
-                        "█" * (confidence_pct // 10) + "░" * (10 - confidence_pct // 10)
+                    bar = "█" * (confidence_pct // 10) + "░" * (
+                        10 - confidence_pct // 10
                     )
                     confidence_str = f"{bar} {confidence_pct}%"
 
@@ -469,7 +481,9 @@ class AutoConfigureCommand(BaseCommand):
             ):
                 for component in agent_preview.detected_toolchain.components:
                     confidence_pct = int(component.confidence * 100)
-                    print(f"  - {component.type}: {component.version} ({confidence_pct}%)")
+                    print(
+                        f"  - {component.type}: {component.version} ({confidence_pct}%)"
+                    )
             else:
                 print("  No toolchain detected")
 
@@ -505,7 +519,9 @@ class AutoConfigureCommand(BaseCommand):
         configure_skills=True,
     ) -> bool:
         """Ask user to confirm deployment."""
-        has_agents = configure_agents and agent_preview and agent_preview.recommendations
+        has_agents = (
+            configure_agents and agent_preview and agent_preview.recommendations
+        )
         has_skills = configure_skills and skills_recommendations
 
         if not has_agents and not has_skills:
@@ -558,12 +574,12 @@ class AutoConfigureCommand(BaseCommand):
 
         # Determine overall success
         agent_success = (
-            agent_result and agent_result.status == OperationResult.SUCCESS
-        ) if agent_result else True
-        skills_success = (
-            not skills_result or (
-                skills_result and not skills_result.get("errors")
-            )
+            (agent_result and agent_result.status == OperationResult.SUCCESS)
+            if agent_result
+            else True
+        )
+        skills_success = not skills_result or (
+            skills_result and not skills_result.get("errors")
         )
         overall_success = agent_success and skills_success
 
@@ -608,7 +624,9 @@ class AutoConfigureCommand(BaseCommand):
             has_errors = True
 
             if agent_result.status == OperationResult.WARNING:
-                self.console.print("\n⚠️  Agent configuration partially completed", style="yellow")
+                self.console.print(
+                    "\n⚠️  Agent configuration partially completed", style="yellow"
+                )
             else:
                 self.console.print("\n❌ Agent configuration failed", style="red")
 
@@ -625,7 +643,12 @@ class AutoConfigureCommand(BaseCommand):
                 self.console.print(f"  ✗ {error}")
 
         return (
-            CommandResult.error_result("Configuration partially succeeded" if (agent_success or skills_success) else "Configuration failed", exit_code=1)
+            CommandResult.error_result(
+                "Configuration partially succeeded"
+                if (agent_success or skills_success)
+                else "Configuration failed",
+                exit_code=1,
+            )
             if has_errors
             else CommandResult.success_result()
         )
@@ -636,11 +659,11 @@ class AutoConfigureCommand(BaseCommand):
         """Display result in plain text (fallback)."""
         # Determine overall success
         agent_success = (
-            agent_result and agent_result.status == OperationResult.SUCCESS
-        ) if agent_result else True
-        skills_success = (
-            not skills_result or not skills_result.get("errors")
+            (agent_result and agent_result.status == OperationResult.SUCCESS)
+            if agent_result
+            else True
         )
+        skills_success = not skills_result or not skills_result.get("errors")
         overall_success = agent_success and skills_success
 
         if overall_success:
@@ -686,7 +709,12 @@ class AutoConfigureCommand(BaseCommand):
                 print(f"  - {error}")
 
         return (
-            CommandResult.error_result("Configuration partially succeeded" if (agent_success or skills_success) else "Configuration failed", exit_code=1)
+            CommandResult.error_result(
+                "Configuration partially succeeded"
+                if (agent_success or skills_success)
+                else "Configuration failed",
+                exit_code=1,
+            )
             if has_errors
             else CommandResult.success_result()
         )

@@ -199,12 +199,16 @@ class AgentResponseParser:
 
         # Parse BASE_AGENT common patterns
         tools_used = self._extract_tools(response_text)
-        verification_events = self._extract_verification_events(response_text, tools_used)
+        verification_events = self._extract_verification_events(
+            response_text, tools_used
+        )
         memory_capture = self._extract_memory_capture(response_text)
         violations = self._detect_base_violations(response_text, tools_used)
 
         # Calculate BASE_AGENT scores
-        verification_score = self._calculate_verification_score(verification_events, tools_used)
+        verification_score = self._calculate_verification_score(
+            verification_events, tools_used
+        )
         memory_score = self._calculate_memory_protocol_score(memory_capture)
 
         # Create base analysis
@@ -220,17 +224,29 @@ class AgentResponseParser:
 
         # Parse agent-specific patterns
         if agent_type == AgentType.RESEARCH:
-            analysis.agent_specific_data = self._parse_research_agent(response_text, tools_used)
+            analysis.agent_specific_data = self._parse_research_agent(
+                response_text, tools_used
+            )
         elif agent_type == AgentType.ENGINEER:
-            analysis.agent_specific_data = self._parse_engineer_agent(response_text, tools_used)
+            analysis.agent_specific_data = self._parse_engineer_agent(
+                response_text, tools_used
+            )
         elif agent_type == AgentType.QA:
-            analysis.agent_specific_data = self._parse_qa_agent(response_text, tools_used)
+            analysis.agent_specific_data = self._parse_qa_agent(
+                response_text, tools_used
+            )
         elif agent_type == AgentType.OPS:
-            analysis.agent_specific_data = self._parse_ops_agent(response_text, tools_used)
+            analysis.agent_specific_data = self._parse_ops_agent(
+                response_text, tools_used
+            )
         elif agent_type == AgentType.DOCUMENTATION:
-            analysis.agent_specific_data = self._parse_documentation_agent(response_text)
+            analysis.agent_specific_data = self._parse_documentation_agent(
+                response_text
+            )
         elif agent_type == AgentType.PROMPT_ENGINEER:
-            analysis.agent_specific_data = self._parse_prompt_engineer_agent(response_text)
+            analysis.agent_specific_data = self._parse_prompt_engineer_agent(
+                response_text
+            )
 
         return analysis
 
@@ -278,7 +294,9 @@ class AgentResponseParser:
         for edit_tool in edit_tools:
             # Look for Read tool after this Edit/Write
             verified = any(
-                read_tool.line_number and edit_tool.line_number and read_tool.line_number > edit_tool.line_number
+                read_tool.line_number
+                and edit_tool.line_number
+                and read_tool.line_number > edit_tool.line_number
                 for read_tool in read_tools
             )
 
@@ -390,10 +408,9 @@ class AgentResponseParser:
                 )
 
                 if not has_verification:
-                    line_num = text[:match.start()].count('\n') + 1
+                    line_num = text[: match.start()].count("\n") + 1
                     violations.append(
-                        f"Unverified assertion at line {line_num}: "
-                        f"'{match.group(0)}'"
+                        f"Unverified assertion at line {line_num}: '{match.group(0)}'"
                     )
 
         return violations
@@ -443,16 +460,24 @@ class AgentResponseParser:
         - grep/glob for discovery, not full reads
         """
         data = {
-            "file_size_checks": self._detect_pattern(text, r"file.*size|check.*size|>.*KB|>.*20"),
+            "file_size_checks": self._detect_pattern(
+                text, r"file.*size|check.*size|>.*KB|>.*20"
+            ),
             "files_read_count": len([t for t in tools_used if t.tool_name == "Read"]),
-            "sampling_strategy_used": self._detect_pattern(text, r"sampl(e|ing)|grep|glob|pattern"),
-            "document_summarizer_used": self._detect_pattern(text, r"document_summarizer"),
+            "sampling_strategy_used": self._detect_pattern(
+                text, r"sampl(e|ing)|grep|glob|pattern"
+            ),
+            "document_summarizer_used": self._detect_pattern(
+                text, r"document_summarizer"
+            ),
             "max_files_threshold": 5,  # Research agent should read ≤5 files
         }
 
         # Check violations
         if data["files_read_count"] > data["max_files_threshold"]:
-            data["violation"] = f"Read {data['files_read_count']} files (max: {data['max_files_threshold']})"
+            data["violation"] = (
+                f"Read {data['files_read_count']} files (max: {data['max_files_threshold']})"
+            )
 
         return data
 
@@ -472,16 +497,28 @@ class AgentResponseParser:
             "search_tools_used": len(
                 [t for t in tools_used if t.tool_name in ["Grep", "Glob", "WebSearch"]]
             ),
-            "write_tools_used": len([t for t in tools_used if t.tool_name in ["Edit", "Write"]]),
-            "vector_search_used": any("vector" in t.context.lower() for t in tools_used),
-            "consolidation_mentioned": self._detect_pattern(text, r"consolidat(e|ion)|reuse|duplicate"),
-            "loc_delta_mentioned": self._detect_pattern(text, r"LOC|lines.*code|net.*lines"),
-            "mock_data_detected": self._detect_pattern(text, r"mock.*data|dummy.*data|fallback.*data"),
+            "write_tools_used": len(
+                [t for t in tools_used if t.tool_name in ["Edit", "Write"]]
+            ),
+            "vector_search_used": any(
+                "vector" in t.context.lower() for t in tools_used
+            ),
+            "consolidation_mentioned": self._detect_pattern(
+                text, r"consolidat(e|ion)|reuse|duplicate"
+            ),
+            "loc_delta_mentioned": self._detect_pattern(
+                text, r"LOC|lines.*code|net.*lines"
+            ),
+            "mock_data_detected": self._detect_pattern(
+                text, r"mock.*data|dummy.*data|fallback.*data"
+            ),
         }
 
         # Check search-before-create pattern
         if data["write_tools_used"] > 0 and data["search_tools_used"] == 0:
-            data["violation"] = "Write/Edit without prior search (violates search-first protocol)"
+            data["violation"] = (
+                "Write/Edit without prior search (violates search-first protocol)"
+            )
 
         return data
 
@@ -508,18 +545,28 @@ class AgentResponseParser:
                 ]
             ),
             "ci_mode_used": any("CI=true" in t.context for t in bash_tools),
-            "watch_mode_detected": self._detect_pattern(text, r"vitest(?!\s+run)|--watch|watch.*mode"),
-            "process_cleanup_verified": self._detect_pattern(text, r"ps aux|pkill|process.*cleanup"),
-            "package_json_checked": any("package.json" in t.context for t in tools_used if t.tool_name == "Read"),
+            "watch_mode_detected": self._detect_pattern(
+                text, r"vitest(?!\s+run)|--watch|watch.*mode"
+            ),
+            "process_cleanup_verified": self._detect_pattern(
+                text, r"ps aux|pkill|process.*cleanup"
+            ),
+            "package_json_checked": any(
+                "package.json" in t.context for t in tools_used if t.tool_name == "Read"
+            ),
         }
 
         # Check critical violation: watch mode
         if data["watch_mode_detected"]:
-            data["violation"] = "CRITICAL: Watch mode detected (violates QA safe execution protocol)"
+            data["violation"] = (
+                "CRITICAL: Watch mode detected (violates QA safe execution protocol)"
+            )
 
         return data
 
-    def _parse_ops_agent(self, text: str, tools_used: List[ToolUsage]) -> Dict[str, Any]:
+    def _parse_ops_agent(
+        self, text: str, tools_used: List[ToolUsage]
+    ) -> Dict[str, Any]:
         """
         Parse ops agent specific patterns.
 
@@ -529,11 +576,21 @@ class AgentResponseParser:
         - Security: Secrets management, vulnerability scanning
         """
         data = {
-            "deployment_tools_used": self._detect_pattern(text, r"docker|kubectl|helm|terraform"),
-            "environment_validation": self._detect_pattern(text, r"environment|env.*var|config.*check"),
-            "rollback_mentioned": self._detect_pattern(text, r"rollback|revert|restore"),
-            "health_checks": self._detect_pattern(text, r"health.*check|readiness|liveness"),
-            "secrets_management": self._detect_pattern(text, r"secret|credential|key.*vault"),
+            "deployment_tools_used": self._detect_pattern(
+                text, r"docker|kubectl|helm|terraform"
+            ),
+            "environment_validation": self._detect_pattern(
+                text, r"environment|env.*var|config.*check"
+            ),
+            "rollback_mentioned": self._detect_pattern(
+                text, r"rollback|revert|restore"
+            ),
+            "health_checks": self._detect_pattern(
+                text, r"health.*check|readiness|liveness"
+            ),
+            "secrets_management": self._detect_pattern(
+                text, r"secret|credential|key.*vault"
+            ),
         }
 
         return data
@@ -547,9 +604,13 @@ class AgentResponseParser:
         - Audience awareness
         """
         data = {
-            "examples_included": self._detect_pattern(text, r"example|e\.g\.|for instance"),
+            "examples_included": self._detect_pattern(
+                text, r"example|e\.g\.|for instance"
+            ),
             "code_blocks": len(re.findall(r"```", text)) // 2,  # Pairs of backticks
-            "audience_awareness": self._detect_pattern(text, r"user|developer|beginner|advanced"),
+            "audience_awareness": self._detect_pattern(
+                text, r"user|developer|beginner|advanced"
+            ),
         }
 
         return data
@@ -563,8 +624,12 @@ class AgentResponseParser:
         - Testing: A/B testing, success metrics
         """
         data = {
-            "token_efficiency_mentioned": self._detect_pattern(text, r"token|efficiency|optimize.*prompt"),
-            "testing_mentioned": self._detect_pattern(text, r"test|A/B|baseline|metric"),
+            "token_efficiency_mentioned": self._detect_pattern(
+                text, r"token|efficiency|optimize.*prompt"
+            ),
+            "testing_mentioned": self._detect_pattern(
+                text, r"test|A/B|baseline|metric"
+            ),
             "prompt_examples": len(re.findall(r"prompt.*:", text, re.IGNORECASE)),
         }
 
