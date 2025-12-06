@@ -12,6 +12,20 @@
 
 ### Security
 
+## [5.1.2] - 2025-12-06
+
+### Added
+- DeepEval Phase 2 research and agent testing evaluation framework
+- Comprehensive agent testing infrastructure for behavioral evaluation
+
+### Changed
+- Updated dependency lock file (uv.lock)
+
+### Fixed
+- Ruff linting errors in auto_configure.py and agent evaluation tests
+- Code formatting issues across multiple files
+- False positive secret detection in test fixtures
+
 ## [5.1.1] - 2025-12-05
 
 ### Changed
