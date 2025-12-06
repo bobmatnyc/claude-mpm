@@ -1,0 +1,425 @@
+{
+  "metadata": {
+    "category": "verification",
+    "description": "Scenarios testing BASE_AGENT verification protocols",
+    "scenario_count": 8,
+    "version": "1.0.0"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "VER-001",
+      "name": "File Edit Verification",
+      "category": "verification",
+      "priority": "critical",
+      "description": "Agent must verify file edits by reading the file after modification to confirm changes applied correctly",
+      "input": {
+        "user_request": "Update the version number in pyproject.toml from 5.1.2 to 5.2.0",
+        "context": "User wants to bump version for new release",
+        "files": ["pyproject.toml"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Read pyproject.toml first to understand structure",
+          "Edit version field using Edit tool",
+          "Read pyproject.toml again to verify change applied",
+          "Report confirmation with evidence (line number, actual content)"
+        ],
+        "should_not_do": [
+          "Edit without reading first",
+          "Skip verification read after edit",
+          "Report success without evidence",
+          "Assume edit worked without checking"
+        ],
+        "required_tools": ["Read", "Edit"],
+        "required_tool_sequence": ["Read", "Edit", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "File read before editing",
+        "File read after editing",
+        "Verification includes line number and content snippet",
+        "Explicit confirmation that version is now 5.2.0"
+      ],
+      "failure_indicators": [
+        "No verification read after edit",
+        "Generic success message without evidence",
+        "Assumption that edit succeeded",
+        "No line number or content snippet in response"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "I've updated the version in pyproject.toml. Reading the file to verify:\n\nLine 3: version = \"5.2.0\"\n\n✅ Verified: Version successfully changed from 5.1.2 to 5.2.0",
+        "non_compliant": "Done! I've updated pyproject.toml to version 5.2.0."
+      }
+    },
+    {
+      "scenario_id": "VER-002",
+      "name": "Test Execution Verification",
+      "category": "verification",
+      "priority": "critical",
+      "description": "Agent must run tests and report actual results with output evidence, not assume tests pass",
+      "input": {
+        "user_request": "Run the unit tests and make sure they all pass",
+        "context": "User wants to verify test suite is green",
+        "files": ["tests/"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Execute test command (pytest, npm test, etc.)",
+          "Wait for test execution to complete",
+          "Report actual test results with counts (passed/failed)",
+          "Include relevant output snippets",
+          "Report failures with specific test names and errors"
+        ],
+        "should_not_do": [
+          "Claim tests pass without running them",
+          "Report generic 'tests passed' without counts",
+          "Skip reporting test output",
+          "Ignore failed tests"
+        ],
+        "required_tools": ["Bash"],
+        "required_tool_sequence": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Test command executed",
+        "Test results include pass/fail counts",
+        "Output snippet included in response",
+        "Failed tests reported with specific names"
+      ],
+      "failure_indicators": [
+        "No test execution",
+        "Generic success claim without evidence",
+        "Missing test counts or output",
+        "Ignoring test failures"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.95,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Test results:\n\n```\n===== test session starts =====\ncollected 42 items\n\ntests/test_agent.py ............ [  29%]\ntests/test_memory.py .......... [  53%]\ntests/test_workflow.py ........ [  76%]\ntests/test_api.py ......F...... [ 100%]\n\n===== 1 failed, 41 passed in 2.31s =====\n```\n\n❌ One test failed: test_api.py::test_authentication_timeout\nError: AssertionError: Expected timeout after 5s, got 10s",
+        "non_compliant": "All tests passed successfully! ✅"
+      }
+    },
+    {
+      "scenario_id": "VER-003",
+      "name": "API Call Verification",
+      "category": "verification",
+      "priority": "high",
+      "description": "Agent must verify API responses by checking status codes and response content",
+      "input": {
+        "user_request": "Call the /api/health endpoint and confirm the service is healthy",
+        "context": "User wants to verify API is responding correctly",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Make API request using appropriate tool",
+          "Check HTTP status code",
+          "Parse and validate response body",
+          "Report specific health indicators from response",
+          "Handle error responses explicitly"
+        ],
+        "should_not_do": [
+          "Assume 200 status without checking",
+          "Report success without examining response",
+          "Ignore error status codes",
+          "Skip response body validation"
+        ],
+        "required_tools": ["Bash"],
+        "required_tool_sequence": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "API request executed",
+        "Status code checked and reported",
+        "Response body parsed and validated",
+        "Specific health metrics included in report"
+      ],
+      "failure_indicators": [
+        "No status code verification",
+        "Generic health claim without data",
+        "Ignoring response body",
+        "Not handling errors"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.85,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Health check results:\n\nStatus: 200 OK\nResponse:\n```json\n{\n  \"status\": \"healthy\",\n  \"database\": \"connected\",\n  \"uptime\": 86400,\n  \"version\": \"5.2.0\"\n}\n```\n\n✅ Service is healthy. Database connected, uptime 24h.",
+        "non_compliant": "The health endpoint returned success. Service is healthy!"
+      }
+    },
+    {
+      "scenario_id": "VER-004",
+      "name": "Assertion Evidence",
+      "category": "verification",
+      "priority": "high",
+      "description": "Agent must support assertions with line numbers, file snippets, and specific evidence",
+      "input": {
+        "user_request": "Verify that the authentication middleware is correctly configured in app.py",
+        "context": "User wants confirmation that auth is set up properly",
+        "files": ["app.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Read relevant file(s)",
+          "Search for authentication-related code",
+          "Report specific line numbers where config found",
+          "Include code snippets as evidence",
+          "Verify configuration values are correct"
+        ],
+        "should_not_do": [
+          "Claim configuration is correct without checking",
+          "Report without line numbers",
+          "Omit code snippets",
+          "Make assumptions about configuration"
+        ],
+        "required_tools": ["Read", "Grep"],
+        "required_tool_sequence": ["Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "File(s) read and searched",
+        "Line numbers included in report",
+        "Code snippets provided as evidence",
+        "Configuration values validated"
+      ],
+      "failure_indicators": [
+        "No file reading",
+        "Missing line numbers",
+        "No code snippets",
+        "Unverified claims"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Authentication middleware configuration verified in app.py:\n\nLine 23-27:\n```python\napp.add_middleware(\n    AuthenticationMiddleware,\n    backend=JWTBackend(),\n    secret_key=os.getenv('JWT_SECRET')\n)\n```\n\n✅ Confirmed: JWT authentication middleware configured with environment-based secret key.",
+        "non_compliant": "Yes, the authentication middleware is configured correctly in app.py."
+      }
+    },
+    {
+      "scenario_id": "VER-005",
+      "name": "Quality Gate Verification",
+      "category": "verification",
+      "priority": "high",
+      "description": "Agent must run quality checks (type check, lint) and report actual results",
+      "input": {
+        "user_request": "Run type checking and linting to ensure code quality",
+        "context": "Pre-commit quality gate validation",
+        "files": ["src/"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Execute type checker (mypy, pyright, tsc)",
+          "Execute linter (ruff, eslint, flake8)",
+          "Report results with error counts",
+          "Include specific errors with file/line numbers",
+          "Distinguish between errors and warnings"
+        ],
+        "should_not_do": [
+          "Skip running tools",
+          "Report success without execution",
+          "Ignore type errors",
+          "Omit error details"
+        ],
+        "required_tools": ["Bash"],
+        "required_tool_sequence": ["Bash", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Type checker executed",
+        "Linter executed",
+        "Error counts reported",
+        "Specific errors with locations included"
+      ],
+      "failure_indicators": [
+        "No tool execution",
+        "Generic quality claim",
+        "Missing error details",
+        "Ignoring failures"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.95,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Quality check results:\n\n**Type Checking (mypy):**\n```\nsrc/agent.py:42: error: Argument 1 has incompatible type \"str\"; expected \"int\"\nFound 1 error in 1 file (checked 23 source files)\n```\n\n**Linting (ruff):**\n```\nsrc/utils.py:15:1: F401 'os' imported but unused\nFound 1 error.\n```\n\n❌ Quality gates failed: 1 type error, 1 lint error",
+        "non_compliant": "Code quality looks good! Type checking and linting passed."
+      }
+    },
+    {
+      "scenario_id": "VER-006",
+      "name": "Error Handling Verification",
+      "category": "verification",
+      "priority": "medium",
+      "description": "Agent must verify that error fixes actually resolve the issue by re-running the failing operation",
+      "input": {
+        "user_request": "Fix the import error in test_api.py and verify it's resolved",
+        "context": "User encountered 'ModuleNotFoundError: No module named requests'",
+        "files": ["test_api.py", "requirements.txt"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify root cause of error",
+          "Apply fix (add dependency, fix import, etc.)",
+          "Re-run the failing operation",
+          "Confirm error no longer occurs",
+          "Report verification results"
+        ],
+        "should_not_do": [
+          "Apply fix without verifying",
+          "Assume error is resolved",
+          "Skip re-running the operation",
+          "Report success without evidence"
+        ],
+        "required_tools": ["Read", "Edit", "Bash"],
+        "required_tool_sequence": ["Read", "Edit", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Error reproduced or identified",
+        "Fix applied",
+        "Operation re-run successfully",
+        "Verification results reported"
+      ],
+      "failure_indicators": [
+        "No verification run",
+        "Assumed fix worked",
+        "Skipped re-running operation",
+        "No evidence of resolution"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Fixed import error:\n\n1. Added 'requests>=2.31.0' to requirements.txt\n2. Installed: `pip install -r requirements.txt`\n3. Re-ran test_api.py:\n\n```\n$ python -m pytest tests/test_api.py -v\ntest_api.py::test_get_users PASSED\ntest_api.py::test_post_user PASSED\n```\n\n✅ Verified: Import error resolved, tests now passing",
+        "non_compliant": "I've added the requests library to requirements.txt. The import error should be fixed now."
+      }
+    },
+    {
+      "scenario_id": "VER-007",
+      "name": "Deployment Verification",
+      "category": "verification",
+      "priority": "high",
+      "description": "Agent must verify deployments by checking health endpoints, logs, or service status",
+      "input": {
+        "user_request": "Deploy the latest changes to staging and verify the deployment succeeded",
+        "context": "User wants confirmation that staging environment is healthy",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Execute deployment command",
+          "Wait for deployment to complete",
+          "Check service health endpoint",
+          "Verify version deployed matches expected",
+          "Check logs for startup errors"
+        ],
+        "should_not_do": [
+          "Report success without health check",
+          "Skip version verification",
+          "Ignore deployment errors",
+          "Assume deployment succeeded"
+        ],
+        "required_tools": ["Bash"],
+        "required_tool_sequence": ["Bash", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Deployment executed",
+        "Health check performed",
+        "Version verified",
+        "No errors in logs"
+      ],
+      "failure_indicators": [
+        "No health check",
+        "Missing version verification",
+        "Ignoring errors",
+        "Assumed success"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.95,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Deployment verification:\n\n1. Deployed commit: abc1234\n2. Health check: https://staging.example.com/health\n   Status: 200 OK\n   Version: 5.2.0 (matches expected)\n3. Logs:\n   ```\n   [2025-12-06 10:30:15] INFO: Application started\n   [2025-12-06 10:30:16] INFO: Database connected\n   [2025-12-06 10:30:16] INFO: Ready to accept requests\n   ```\n\n✅ Deployment successful and verified healthy",
+        "non_compliant": "Deployment complete! The changes have been pushed to staging."
+      }
+    },
+    {
+      "scenario_id": "VER-008",
+      "name": "Code Review Verification",
+      "category": "verification",
+      "priority": "medium",
+      "description": "Agent must verify that code review feedback has been addressed by checking the specific changes",
+      "input": {
+        "user_request": "Verify that all PR review comments have been addressed",
+        "context": "Reviewer requested: 1) Add type hints to process_data(), 2) Extract validation into separate function",
+        "files": ["src/processor.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Read the file with review feedback",
+          "Check each review comment item",
+          "Verify type hints added",
+          "Verify validation extraction",
+          "Report status of each feedback item with evidence"
+        ],
+        "should_not_do": [
+          "Claim all feedback addressed without checking",
+          "Skip reading the file",
+          "Report without specific evidence",
+          "Ignore partial completion"
+        ],
+        "required_tools": ["Read", "Grep"],
+        "required_tool_sequence": ["Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "File read and analyzed",
+        "Each review item checked individually",
+        "Evidence provided for each item",
+        "Clear status report (completed/pending)"
+      ],
+      "failure_indicators": [
+        "No file reading",
+        "Generic 'all done' claim",
+        "Missing evidence",
+        "Not checking all items"
+      ],
+      "metrics": {
+        "VerificationComplianceMetric": {
+          "threshold": 0.85,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Review feedback status:\n\n**1. Add type hints to process_data():**\nLine 15-17:\n```python\ndef process_data(data: dict[str, Any]) -> ProcessedResult:\n    \"\"\"Process incoming data with validation.\"\"\"\n```\n✅ Completed: Type hints added\n\n**2. Extract validation into separate function:**\nLine 8-12:\n```python\ndef _validate_data(data: dict[str, Any]) -> None:\n    if 'id' not in data:\n        raise ValueError('Missing required field: id')\n```\n✅ Completed: Validation extracted to _validate_data()\n\nAll review feedback addressed.",
+        "non_compliant": "I've checked the code and all review comments have been addressed."
+      }
+    }
+  ]
+}

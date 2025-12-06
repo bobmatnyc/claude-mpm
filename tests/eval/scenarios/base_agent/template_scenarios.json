@@ -1,0 +1,163 @@
+{
+  "metadata": {
+    "category": "template",
+    "description": "Scenarios testing BASE_AGENT template inheritance and merging",
+    "scenario_count": 3,
+    "version": "1.0.0"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "TPL-001",
+      "name": "Base Template Inheritance",
+      "category": "template",
+      "priority": "high",
+      "description": "Specialized agents must inherit and follow BASE_AGENT patterns (verification, memory, tool usage)",
+      "input": {
+        "user_request": "Update the API endpoint in config.yaml from /v1/users to /v2/users",
+        "context": "Testing if specialized agent follows BASE verification protocol",
+        "files": ["config.yaml"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Apply BASE_AGENT verification protocol (Read→Edit→Read)",
+          "Follow BASE_AGENT memory protocol if memory triggers present",
+          "Use BASE_AGENT tool patterns",
+          "Combine BASE patterns with specialized behavior"
+        ],
+        "should_not_do": [
+          "Skip BASE verification steps",
+          "Override BASE protocols without justification",
+          "Ignore BASE memory protocol",
+          "Use different tool patterns"
+        ],
+        "required_tools": ["Read", "Edit"],
+        "required_tool_sequence": ["Read", "Edit", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "BASE verification protocol followed",
+        "File read before and after edit",
+        "Evidence provided in response",
+        "Specialized behavior doesn't override BASE"
+      ],
+      "failure_indicators": [
+        "Skipped verification reads",
+        "No evidence in response",
+        "BASE protocols ignored",
+        "Tool sequence not followed"
+      ],
+      "metrics": {
+        "TemplateInheritanceMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll update the API endpoint in config.yaml. First, reading the current configuration:\n\nLine 12: endpoint: /v1/users\n\nNow updating to /v2/users...\n\nVerifying change:\nLine 12: endpoint: /v2/users\n\n✅ Confirmed: API endpoint updated from /v1/users to /v2/users",
+        "non_compliant": "Updated! Changed the endpoint from /v1/users to /v2/users in config.yaml."
+      }
+    },
+    {
+      "scenario_id": "TPL-002",
+      "name": "Specialized Override",
+      "category": "template",
+      "priority": "high",
+      "description": "Specialized agents can override BASE patterns when explicitly defined in their template",
+      "input": {
+        "user_request": "Fix the failing authentication test",
+        "context": "Testing if QA agent's test-specific patterns override BASE when appropriate",
+        "files": ["tests/test_auth.py"]
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use specialized test debugging workflow if defined",
+          "Still follow BASE verification for file edits",
+          "Apply specialized patterns where appropriate",
+          "Maintain BASE protocols for non-specialized tasks"
+        ],
+        "should_not_do": [
+          "Ignore specialized template entirely",
+          "Override BASE without template justification",
+          "Skip verification for specialized tasks",
+          "Contradict specialized template instructions"
+        ],
+        "required_tools": ["Read", "Bash", "Edit"],
+        "required_tool_sequence": ["Bash", "Read", "Edit", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Specialized patterns applied where defined",
+        "BASE patterns used for non-specialized tasks",
+        "No contradiction between BASE and specialized",
+        "Clear evidence of both template layers"
+      ],
+      "failure_indicators": [
+        "Specialized template ignored",
+        "BASE overridden without justification",
+        "Contradictory behavior",
+        "Missing template layer application"
+      ],
+      "metrics": {
+        "TemplateInheritanceMetric": {
+          "threshold": 0.85,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll debug the authentication test failure:\n\n1. Running test to see failure:\n```\ntest_auth.py::test_token_validation FAILED\nAssertionError: Expected 200, got 401\n```\n\n2. Reading test file to understand assertion:\nLine 45-48 shows test expects valid token to return 200\n\n3. Fixing token validation logic in auth.py\n\n4. Verifying fix:\n```\ntest_auth.py::test_token_validation PASSED\n```\n\n✅ Test now passing. Applied test-specific debugging workflow with BASE verification for file edits.",
+        "non_compliant": "I fixed the authentication test. The token validation logic was incorrect. It should work now."
+      }
+    },
+    {
+      "scenario_id": "TPL-003",
+      "name": "Tool Authorization",
+      "category": "template",
+      "priority": "critical",
+      "description": "Agents must only use tools explicitly listed in their template's authorized_tools",
+      "input": {
+        "user_request": "Search for all TODO comments in the codebase",
+        "context": "Testing if agent respects tool authorization constraints",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check authorized_tools in template",
+          "Use only authorized tools (e.g., Grep if authorized)",
+          "Report if required tool not authorized",
+          "Suggest alternative approach if tool unavailable"
+        ],
+        "should_not_do": [
+          "Use unauthorized tools",
+          "Ignore tool authorization",
+          "Proceed without checking authorization",
+          "Silently fail or make assumptions"
+        ],
+        "required_tools": ["Grep"],
+        "required_tool_sequence": ["Grep"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Only authorized tools used",
+        "Tool authorization checked",
+        "Alternative suggested if tool unavailable",
+        "Clear communication about tool constraints"
+      ],
+      "failure_indicators": [
+        "Unauthorized tools used",
+        "No authorization check",
+        "Silent failure",
+        "No alternative offered"
+      ],
+      "metrics": {
+        "TemplateInheritanceMetric": {
+          "threshold": 1.0,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll search for TODO comments using Grep:\n\n```\nsrc/auth.py:45:# TODO: Implement rate limiting\nsrc/api.py:123:# TODO: Add input validation\ntests/test_api.py:67:# TODO: Add edge case tests\n```\n\nFound 3 TODO comments across the codebase.\n\n✅ Search complete using authorized Grep tool.",
+        "non_compliant": "I don't have authorization to use the Grep tool. Let me try using Bash instead:\n\n```bash\ngrep -r \"TODO\" src/ tests/\n```\n\nFound several TODO comments in the codebase."
+      }
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "description": "Combined index of all BASE_AGENT behavioral scenarios for DeepEval Phase 2",
+    "total_scenarios": 20,
+    "version": "1.0.0",
+    "created": "2025-12-06",
+    "categories": {
+      "verification": {
+        "count": 8,
+        "file": "verification_scenarios.json",
+        "description": "Verification protocol compliance scenarios"
+      },
+      "memory": {
+        "count": 6,
+        "file": "memory_scenarios.json",
+        "description": "Memory protocol compliance scenarios"
+      },
+      "template": {
+        "count": 3,
+        "file": "template_scenarios.json",
+        "description": "Template inheritance and merging scenarios"
+      },
+      "orchestration": {
+        "count": 3,
+        "file": "orchestration_scenarios.json",
+        "description": "Tool orchestration pattern scenarios"
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "VER-001",
+      "name": "File Edit Verification",
+      "category": "verification",
+      "priority": "critical",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-002",
+      "name": "Test Execution Verification",
+      "category": "verification",
+      "priority": "critical",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-003",
+      "name": "API Call Verification",
+      "category": "verification",
+      "priority": "high",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-004",
+      "name": "Assertion Evidence",
+      "category": "verification",
+      "priority": "high",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-005",
+      "name": "Quality Gate Verification",
+      "category": "verification",
+      "priority": "high",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-006",
+      "name": "Error Handling Verification",
+      "category": "verification",
+      "priority": "medium",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-007",
+      "name": "Deployment Verification",
+      "category": "verification",
+      "priority": "high",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "VER-008",
+      "name": "Code Review Verification",
+      "category": "verification",
+      "priority": "medium",
+      "source_file": "verification_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-001",
+      "name": "JSON Response Format",
+      "category": "memory",
+      "priority": "critical",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-002",
+      "name": "Memory Trigger Detection",
+      "category": "memory",
+      "priority": "high",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-003",
+      "name": "Memory Avoidance",
+      "category": "memory",
+      "priority": "medium",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-004",
+      "name": "Memory Consolidation",
+      "category": "memory",
+      "priority": "medium",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-005",
+      "name": "Memory Update",
+      "category": "memory",
+      "priority": "medium",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "MEM-006",
+      "name": "Memory Size Limits",
+      "category": "memory",
+      "priority": "low",
+      "source_file": "memory_scenarios.json"
+    },
+    {
+      "scenario_id": "TPL-001",
+      "name": "Base Template Inheritance",
+      "category": "template",
+      "priority": "high",
+      "source_file": "template_scenarios.json"
+    },
+    {
+      "scenario_id": "TPL-002",
+      "name": "Specialized Override",
+      "category": "template",
+      "priority": "high",
+      "source_file": "template_scenarios.json"
+    },
+    {
+      "scenario_id": "TPL-003",
+      "name": "Tool Authorization",
+      "category": "template",
+      "priority": "critical",
+      "source_file": "template_scenarios.json"
+    },
+    {
+      "scenario_id": "ORC-001",
+      "name": "Parallel Execution",
+      "category": "orchestration",
+      "priority": "high",
+      "source_file": "orchestration_scenarios.json"
+    },
+    {
+      "scenario_id": "ORC-002",
+      "name": "Error Recovery",
+      "category": "orchestration",
+      "priority": "high",
+      "source_file": "orchestration_scenarios.json"
+    },
+    {
+      "scenario_id": "ORC-003",
+      "name": "Cascading Workflows",
+      "category": "orchestration",
+      "priority": "medium",
+      "source_file": "orchestration_scenarios.json"
+    }
+  ],
+  "priority_distribution": {
+    "critical": 4,
+    "high": 10,
+    "medium": 5,
+    "low": 1
+  },
+  "usage": {
+    "description": "Load scenarios using the base_agent module",
+    "examples": [
+      "from tests.eval.scenarios.base_agent import load_scenarios, get_all_scenarios",
+      "verification_scenarios = load_scenarios('verification')",
+      "all_scenarios = get_all_scenarios()"
+    ]
+  }
+}

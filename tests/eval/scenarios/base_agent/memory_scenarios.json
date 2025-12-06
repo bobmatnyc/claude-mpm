@@ -1,0 +1,317 @@
+{
+  "metadata": {
+    "category": "memory",
+    "description": "Scenarios testing BASE_AGENT memory protocol compliance",
+    "scenario_count": 6,
+    "version": "1.0.0"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "MEM-001",
+      "name": "JSON Response Format",
+      "category": "memory",
+      "priority": "critical",
+      "description": "Agent must include valid JSON memory block at end of response when memory updates are needed",
+      "input": {
+        "user_request": "The API uses OAuth2 with client credentials flow for authentication. Remember this for future reference.",
+        "context": "User explicitly asks to remember authentication pattern",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Acknowledge the information",
+          "Include JSON block at end of response",
+          "Use 'remember' field for simple memories",
+          "Ensure JSON is valid and parseable",
+          "Keep memory concise and specific"
+        ],
+        "should_not_do": [
+          "Skip JSON block when 'remember' keyword used",
+          "Use invalid JSON syntax",
+          "Include memories in plain text only",
+          "Create overly verbose memories"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Response includes JSON block",
+        "JSON is valid and parseable",
+        "Memory is concise and specific",
+        "Uses 'remember' field correctly"
+      ],
+      "failure_indicators": [
+        "No JSON block present",
+        "Invalid JSON syntax",
+        "Memory in plain text only",
+        "Overly verbose memory entries"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 1.0,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Understood. I'll remember that the API uses OAuth2 with client credentials flow for authentication.\n\n```json\n{\n  \"remember\": [\"API uses OAuth2 client credentials flow for authentication\"]\n}\n```",
+        "non_compliant": "Got it! I'll remember that the API uses OAuth2 with client credentials flow for authentication."
+      }
+    },
+    {
+      "scenario_id": "MEM-002",
+      "name": "Memory Trigger Detection",
+      "category": "memory",
+      "priority": "high",
+      "description": "Agent must detect memory triggers (remember, store, note for future) and create memory entries",
+      "input": {
+        "user_request": "Please note for future tasks that we use conventional commits with types: feat, fix, docs, chore, refactor, test",
+        "context": "User wants commit convention remembered",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Detect 'note for future' trigger phrase",
+          "Create memory entry with structured format",
+          "Categorize memory appropriately",
+          "Include JSON block in response"
+        ],
+        "should_not_do": [
+          "Ignore memory trigger phrases",
+          "Skip JSON block",
+          "Store generic/obvious information",
+          "Create unstructured memory"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Memory trigger detected",
+        "JSON memory block included",
+        "Memory is project-specific",
+        "Appropriate categorization used"
+      ],
+      "failure_indicators": [
+        "Missing memory trigger detection",
+        "No JSON block",
+        "Generic memory content",
+        "Wrong categorization"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Noted! I'll remember your conventional commit format for future tasks.\n\n```json\n{\n  \"memory-update\": {\n    \"Project Conventions\": [\n      \"Use conventional commits: feat, fix, docs, chore, refactor, test\"\n    ]\n  }\n}\n```",
+        "non_compliant": "Understood! I'll use conventional commits with those types in the future."
+      }
+    },
+    {
+      "scenario_id": "MEM-003",
+      "name": "Memory Avoidance",
+      "category": "memory",
+      "priority": "medium",
+      "description": "Agent must NOT store obvious facts, well-known patterns, or information already in codebase",
+      "input": {
+        "user_request": "Remember that Python uses snake_case for variable names",
+        "context": "User asks to remember standard Python convention",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Acknowledge the request",
+          "Explain this is standard Python convention",
+          "Skip creating memory for obvious facts",
+          "No JSON block needed"
+        ],
+        "should_not_do": [
+          "Store well-known language conventions",
+          "Create memory for obvious facts",
+          "Include JSON block for skipped memories",
+          "Store information available in docs"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Request acknowledged",
+        "Explanation provided for not storing",
+        "No JSON memory block",
+        "Distinction made between obvious and project-specific"
+      ],
+      "failure_indicators": [
+        "Storing obvious facts",
+        "Including JSON for standard conventions",
+        "Not explaining why not stored",
+        "Missing distinction"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 0.85,
+          "weight": 0.8
+        }
+      },
+      "mock_response": {
+        "compliant": "I understand you want me to remember Python's snake_case convention, but this is a standard Python style guideline (PEP 8) that's already part of my knowledge. I'll focus on storing project-specific patterns and decisions instead.\n\nIf you have specific snake_case naming conventions unique to your project (e.g., 'use _internal suffix for private functions'), I'd be happy to remember those!",
+        "non_compliant": "Got it! I'll remember that Python uses snake_case for variable names.\n\n```json\n{\n  \"remember\": [\"Python uses snake_case for variable names\"]\n}\n```"
+      }
+    },
+    {
+      "scenario_id": "MEM-004",
+      "name": "Memory Consolidation",
+      "category": "memory",
+      "priority": "medium",
+      "description": "Agent must consolidate related memories into single entries rather than creating duplicates",
+      "input": {
+        "user_request": "Remember that our API base URL is https://api.example.com and it requires the X-API-Key header",
+        "context": "User provides two related pieces of API information",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Recognize related information",
+          "Create single consolidated memory entry",
+          "Group under appropriate category",
+          "Keep memory atomic but complete"
+        ],
+        "should_not_do": [
+          "Split into multiple separate memories",
+          "Create redundant entries",
+          "Store in multiple categories",
+          "Lose relationships between facts"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Single consolidated memory entry",
+        "Both facts included",
+        "Appropriate categorization",
+        "Clear and concise format"
+      ],
+      "failure_indicators": [
+        "Multiple separate memories",
+        "Fragmented information",
+        "Redundant storage",
+        "Lost relationships"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 0.85,
+          "weight": 0.9
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll remember both the API base URL and authentication requirement.\n\n```json\n{\n  \"memory-update\": {\n    \"API Configuration\": [\n      \"API base URL: https://api.example.com, requires X-API-Key header for authentication\"\n    ]\n  }\n}\n```",
+        "non_compliant": "I'll remember both of those details.\n\n```json\n{\n  \"remember\": [\n    \"API base URL is https://api.example.com\",\n    \"API requires X-API-Key header\"\n  ]\n}\n```"
+      }
+    },
+    {
+      "scenario_id": "MEM-005",
+      "name": "Memory Update",
+      "category": "memory",
+      "priority": "medium",
+      "description": "Agent must update existing memories when new information supersedes or refines previous entries",
+      "input": {
+        "user_request": "Update: The API base URL changed from https://api.example.com to https://api-v2.example.com",
+        "context": "User provides updated information that supersedes previous memory",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Recognize this updates existing memory",
+          "Replace old information with new",
+          "Note the change in memory update",
+          "Keep historical context if relevant"
+        ],
+        "should_not_do": [
+          "Store both old and new as separate entries",
+          "Keep outdated information",
+          "Create duplicate memories",
+          "Lose update context"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Old memory replaced with new",
+        "Update acknowledged",
+        "No duplicate entries",
+        "Clear indication this is an update"
+      ],
+      "failure_indicators": [
+        "Both old and new stored",
+        "Outdated info retained",
+        "Duplicate memories created",
+        "Update not indicated"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 0.85,
+          "weight": 0.85
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll update the API base URL in my memory.\n\n```json\n{\n  \"memory-update\": {\n    \"API Configuration\": [\n      \"API base URL: https://api-v2.example.com (updated from api.example.com), requires X-API-Key header\"\n    ]\n  }\n}\n```",
+        "non_compliant": "I'll remember the new API URL.\n\n```json\n{\n  \"remember\": [\"API base URL is https://api-v2.example.com\"]\n}\n```"
+      }
+    },
+    {
+      "scenario_id": "MEM-006",
+      "name": "Memory Size Limits",
+      "category": "memory",
+      "priority": "low",
+      "description": "Agent must keep memory entries concise (under 200 chars) and focused, avoiding verbose descriptions",
+      "input": {
+        "user_request": "Remember that when deploying to production we need to: 1) run tests, 2) build Docker image, 3) push to registry, 4) update k8s deployment, 5) verify health checks",
+        "context": "User provides multi-step deployment process",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Create concise summary of deployment steps",
+          "Keep under 200 characters if possible",
+          "Focus on essential information",
+          "Use abbreviated format"
+        ],
+        "should_not_do": [
+          "Include full verbose descriptions",
+          "Create overly long memory entries",
+          "Store obvious details",
+          "Duplicate information in memory"
+        ],
+        "required_tools": [],
+        "required_tool_sequence": [],
+        "evidence_required": false
+      },
+      "success_criteria": [
+        "Memory is concise (preferably under 200 chars)",
+        "All essential steps included",
+        "No redundant information",
+        "Clear and scannable format"
+      ],
+      "failure_indicators": [
+        "Overly verbose memory",
+        "Memory exceeds 300 characters",
+        "Redundant details included",
+        "Poor formatting"
+      ],
+      "metrics": {
+        "MemoryProtocolMetric": {
+          "threshold": 0.8,
+          "weight": 0.7
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll remember your production deployment process.\n\n```json\n{\n  \"memory-update\": {\n    \"Deployment Process\": [\n      \"Prod deploy: test → docker build → push registry → k8s update → health check\"\n    ]\n  }\n}\n```",
+        "non_compliant": "I'll remember your deployment process.\n\n```json\n{\n  \"remember\": [\n    \"Production deployment process: First, run all automated tests to ensure code quality. Second, build the Docker container image with the latest code changes. Third, push the Docker image to the container registry. Fourth, update the Kubernetes deployment configuration with the new image. Finally, verify that all health checks are passing and the service is responding correctly.\"\n  ]\n}\n```"
+      }
+    }
+  ]
+}

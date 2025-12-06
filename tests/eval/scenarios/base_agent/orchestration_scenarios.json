@@ -1,0 +1,171 @@
+{
+  "metadata": {
+    "category": "orchestration",
+    "description": "Scenarios testing BASE_AGENT tool orchestration patterns",
+    "scenario_count": 3,
+    "version": "1.0.0"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "ORC-001",
+      "name": "Parallel Execution",
+      "category": "orchestration",
+      "priority": "high",
+      "description": "Agent must execute independent tool calls in parallel for optimal performance",
+      "input": {
+        "user_request": "Check the status of the database service and the API service",
+        "context": "Testing parallel tool execution for independent operations",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify operations are independent",
+          "Execute both checks in parallel (single response with multiple tool calls)",
+          "Collect results from both operations",
+          "Report combined results"
+        ],
+        "should_not_do": [
+          "Execute sequentially when parallel is possible",
+          "Make user wait for sequential execution",
+          "Miss parallelization opportunities",
+          "Create artificial dependencies"
+        ],
+        "required_tools": ["Bash"],
+        "required_tool_sequence": [],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Independent operations identified",
+        "Parallel execution used",
+        "Both results collected",
+        "Faster completion than sequential"
+      ],
+      "failure_indicators": [
+        "Sequential execution of independent tasks",
+        "Unnecessary waiting",
+        "Single tool call when multiple needed",
+        "Missed optimization opportunity"
+      ],
+      "metrics": {
+        "ToolOrchestrationMetric": {
+          "threshold": 0.85,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Checking both services in parallel:\n\n**Database Service:**\n```\nStatus: active (running)\nUptime: 24 days\nConnections: 42/100\n```\n\n**API Service:**\n```\nStatus: active (running)\nUptime: 24 days\nResponse time: 45ms\n```\n\n✅ Both services healthy and running",
+        "non_compliant": "Let me check the database first:\n\n```\nDatabase: active (running)\n```\n\nNow checking the API:\n\n```\nAPI: active (running)\n```\n\nBoth services are healthy."
+      }
+    },
+    {
+      "scenario_id": "ORC-002",
+      "name": "Error Recovery",
+      "category": "orchestration",
+      "priority": "high",
+      "description": "Agent must handle tool failures gracefully with retry logic and error reporting",
+      "input": {
+        "user_request": "Fetch user data from the API and save it to users.json",
+        "context": "Testing error handling when API call might fail",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Attempt API call",
+          "Detect and report errors",
+          "Implement retry logic for transient failures",
+          "Provide clear error messages",
+          "Suggest remediation steps"
+        ],
+        "should_not_do": [
+          "Silently fail on errors",
+          "Continue with invalid data",
+          "Ignore error responses",
+          "Retry indefinitely",
+          "Provide generic error messages"
+        ],
+        "required_tools": ["Bash", "Write"],
+        "required_tool_sequence": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Error detected and reported",
+        "Retry logic applied for transient errors",
+        "Clear error message provided",
+        "Remediation steps suggested",
+        "No silent failures"
+      ],
+      "failure_indicators": [
+        "Silent failure on error",
+        "Proceeding with invalid data",
+        "No retry logic",
+        "Generic error message",
+        "No remediation suggested"
+      ],
+      "metrics": {
+        "ToolOrchestrationMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "mock_response": {
+        "compliant": "Attempting to fetch user data from API:\n\nAttempt 1: Failed - Connection timeout (read timeout=5s)\nAttempt 2: Failed - Connection timeout (read timeout=5s)\nAttempt 3: Failed - Connection timeout (read timeout=5s)\n\n❌ API fetch failed after 3 attempts. Error: Connection timeout\n\nPossible causes:\n1. API service may be down - check `systemctl status api-service`\n2. Network connectivity issue - check `ping api.example.com`\n3. Firewall blocking port 443 - check firewall rules\n\nWould you like me to:\n- Check API service status\n- Use cached data if available\n- Try alternative endpoint",
+        "non_compliant": "I tried to fetch user data but the API didn't respond. The operation failed."
+      }
+    },
+    {
+      "scenario_id": "ORC-003",
+      "name": "Cascading Workflows",
+      "category": "orchestration",
+      "priority": "medium",
+      "description": "Agent must handle dependent tool sequences where output of one feeds input of next",
+      "input": {
+        "user_request": "Find all Python files in src/, count the lines of code in each, and generate a report sorted by file size",
+        "context": "Testing cascading workflow: find → analyze → aggregate → report",
+        "files": []
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Execute steps in correct dependency order",
+          "Pass output from one step as input to next",
+          "Maintain data integrity through pipeline",
+          "Report final aggregated result",
+          "Handle errors at any pipeline stage"
+        ],
+        "should_not_do": [
+          "Execute steps in wrong order",
+          "Lose data between steps",
+          "Skip intermediate validation",
+          "Ignore pipeline stage failures",
+          "Provide partial results without indication"
+        ],
+        "required_tools": ["Glob", "Bash"],
+        "required_tool_sequence": ["Glob", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Correct step order maintained",
+        "Data flows properly between steps",
+        "All steps validated",
+        "Final aggregated report provided",
+        "Pipeline errors handled"
+      ],
+      "failure_indicators": [
+        "Wrong step order",
+        "Data loss between steps",
+        "Missing validation",
+        "Incomplete results",
+        "Unhandled pipeline failures"
+      ],
+      "metrics": {
+        "ToolOrchestrationMetric": {
+          "threshold": 0.85,
+          "weight": 0.9
+        }
+      },
+      "mock_response": {
+        "compliant": "Executing cascading workflow:\n\n**Step 1: Find Python files**\nFound 23 Python files in src/\n\n**Step 2: Count lines in each file**\n```\nwc -l src/**/*.py\n```\n\n**Step 3: Generate sorted report**\n\n| File | Lines |\n|------|-------|\n| src/agent.py | 1,234 |\n| src/workflow.py | 856 |\n| src/api.py | 642 |\n| src/utils.py | 423 |\n| ... | ... |\n\n**Total:** 23 files, 8,542 lines of Python code\n\n✅ Pipeline complete: find → count → aggregate → report",
+        "non_compliant": "Here are the Python files in src/:\n\n- src/agent.py\n- src/workflow.py\n- src/api.py\n- ...\n\nThere are about 23 files with roughly 8,000 lines of code total."
+      }
+    }
+  ]
+}
