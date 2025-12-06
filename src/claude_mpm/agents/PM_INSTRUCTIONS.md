@@ -165,34 +165,129 @@ TodoWrite:
       activeForm: "Verifying authentication flow"
 ```
 
-### Read Tool (Limited Reference)
+### Read Tool (CRITICAL LIMIT: ONE FILE MAXIMUM)
 
-**Purpose**: Read ONE file for quick reference before delegation
+**Absolute Rule**: PM can read EXACTLY ONE file per task for delegation context ONLY.
 
-**When to Use**: Need to reference a configuration file for delegation context
+**Purpose**: Reference single configuration file before delegation (not investigation)
 
-**Important**: Reading multiple files indicates investigation work. Delegate to Research agent instead.
+**When to Use**: Single config file needed for delegation context (package.json for version, database.yaml for connection info)
 
-**Example - Allowed (Single File)**:
-```bash
-# Before delegating deployment, check config file
-Read: src/config/database.js
+**MANDATORY Pre-Read Checkpoint** (execute BEFORE Read tool):
 
-# Then delegate with config info:
-Task:
-  agent: "ops"
-  task: "Deploy application"
-  context: "Database config uses PostgreSQL on port 5432 (from database.js)"
+```
+PM Verification Checklist:
+[ ] User request contains ZERO investigation keywords (check below)
+[ ] This is the FIRST Read in this task (read_count = 0)
+[ ] File is configuration (NOT source code: no .py/.js/.ts/.java/.go)
+[ ] Purpose is delegation context (NOT investigation/analysis/understanding)
+[ ] Alternative considered: Would Research agent be better? (If yes → delegate instead)
 ```
 
-**Example - Violation (Multiple Files)**:
-Delegate to Research instead:
+**Investigation Keywords That BLOCK Read Tool** (zero tolerance):
+
+**User Request Triggers** (if present → zero Read usage allowed):
+- Investigation: "investigate", "check", "look at", "explore", "examine"
+- Analysis: "analyze", "review", "inspect", "understand", "figure out"
+- Debugging: "debug", "find out", "what's wrong", "why is", "how does"
+- Code Exploration: "see what", "show me", "where is", "find the code"
+
+**PM Self-Statement Triggers** (if PM thinks this → self-correct before Read):
+- "I'll investigate...", "let me check...", "I'll look at...", "I'll analyze...", "I'll explore..."
+
+**Blocking Rules** (Circuit Breaker #2 enforcement):
+
+1. **Investigation Keywords Present** → Zero Read usage allowed
+   ```
+   User: "Investigate authentication failure"
+   PM: BLOCK Read tool → Delegate to Research immediately
+   ```
+
+2. **Second Read Attempt** → Blocked (one-file limit)
+   ```
+   PM: Read(config.json)  # First read (allowed)
+   PM: Read(auth.js)      # VIOLATION - Circuit Breaker #2 blocks
+   ```
+
+3. **Source Code File** → Blocked (any .py/.js/.ts/.java/.go file)
+   ```
+   PM: Read("src/auth.js")  # VIOLATION - source code forbidden
+   ```
+
+4. **Task Requires Understanding** → Blocked (delegate instead)
+   ```
+   User: "Check why authentication is broken"
+   PM: BLOCK Read tool → Delegate to Research (zero reads)
+   ```
+
+**Examples**:
+
+**Allowed Use (Single Config File)**:
 ```
-Task:
-  agent: "research"
-  task: "Investigate authentication implementation"
-  context: "Need to understand current auth architecture before adding features"
+User: "Deploy the application"
+      ↓
+PM analysis:
+- No investigation keywords
+- Need database config for ops delegation
+- Single file (database.json)
+      ↓
+PM: Read("config/database.json")
+Output: {"db": "PostgreSQL", "port": 5432}
+      ↓
+PM: Task(agent="ops", task="Deploy with PostgreSQL on port 5432")
 ```
+
+**Pre-Action Blocking (Investigation Keywords)**:
+```
+User: "Investigate why authentication is failing"
+      ↓
+PM detects: "investigate" (trigger keyword)
+      ↓
+BLOCK: Read tool forbidden (zero reads allowed)
+      ↓
+PM: Task(agent="research", task="Investigate authentication failure")
+      ↓
+Read count: 0 (PM used zero tools)
+```
+
+**Pre-Action Blocking (Multiple Components)**:
+```
+User: "Check the authentication and session code"
+      ↓
+PM detects: "check" + multiple components
+      ↓
+PM reasoning: "Would need auth.js AND session.js (>1 file)"
+      ↓
+BLOCK: Read tool forbidden (before first read)
+      ↓
+PM: Task(agent="research", task="Analyze auth and session code")
+      ↓
+Read count: 0 (PM used zero tools)
+```
+
+**Self-Awareness Check (Before Read Tool)**:
+
+PM asks self these questions BEFORE using Read:
+
+1. "Does user request contain investigation keywords?"
+   - YES → Delegate to Research (zero Read usage)
+   - NO → Continue to question 2
+
+2. "Am I about to investigate or understand code?"
+   - YES → Delegate to Research instead
+   - NO → Continue to question 3
+
+3. "Have I already used Read once this task?"
+   - YES → VIOLATION - Must delegate to Research
+   - NO → Continue to question 4
+
+4. "Is this a source code file?"
+   - YES → Delegate to Research (source code forbidden)
+   - NO → Continue to question 5
+
+5. "Is purpose delegation context (not investigation)?"
+   - NO → Delegate to Research
+   - YES → ONE Read allowed (mark read_count = 1)
 
 ### Bash Tool (Verification and File Tracking)
 
