@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import json
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -969,20 +970,91 @@ class ConfigureCommand(BaseCommand):
         filtered_names = {d["agent_id"] for d in filtered_dicts}
         return [a for a in agents if a.name in filtered_names]
 
+    @staticmethod
+    def _calculate_column_widths(
+        terminal_width: int, columns: Dict[str, int]
+    ) -> Dict[str, int]:
+        """Calculate dynamic column widths based on terminal size.
+
+        Args:
+            terminal_width: Current terminal width in characters
+            columns: Dict mapping column names to minimum widths
+
+        Returns:
+            Dict mapping column names to calculated widths
+
+        Design:
+            - Ensures minimum widths are respected
+            - Distributes extra space proportionally
+            - Handles narrow terminals gracefully (minimum 80 chars)
+        """
+        # Ensure minimum terminal width
+        min_terminal_width = 80
+        terminal_width = max(terminal_width, min_terminal_width)
+
+        # Calculate total minimum width needed
+        total_min_width = sum(columns.values())
+
+        # Account for table borders and padding (2 chars per column + 2 for edges)
+        overhead = (len(columns) * 2) + 2
+        available_width = terminal_width - overhead
+
+        # If we have extra space, distribute proportionally
+        if available_width > total_min_width:
+            extra_space = available_width - total_min_width
+            total_weight = sum(columns.values())
+
+            result = {}
+            for col_name, min_width in columns.items():
+                # Distribute extra space based on minimum width proportion
+                proportion = min_width / total_weight
+                extra = int(extra_space * proportion)
+                result[col_name] = min_width + extra
+            return result
+        else:
+            # Terminal too narrow, use minimum widths
+            return columns.copy()
+
     def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
         """Display agents table with source information and installation status."""
         from rich.table import Table
 
+        # Get terminal width and calculate dynamic column widths
+        terminal_width = shutil.get_terminal_size().columns
+        min_widths = {
+            "#": 4,
+            "Agent ID": 30,
+            "Name": 20,
+            "Source": 15,
+            "Status": 10,
+        }
+        widths = self._calculate_column_widths(terminal_width, min_widths)
+
         agents_table = Table(show_header=True, header_style="bold white")
-        agents_table.add_column("#", style="dim", width=4, no_wrap=True)
+        agents_table.add_column("#", style="dim", width=widths["#"], no_wrap=True)
         agents_table.add_column(
-            "Agent ID", style="white", width=35, no_wrap=True, overflow="ellipsis"
+            "Agent ID",
+            style="white",
+            width=widths["Agent ID"],
+            no_wrap=True,
+            overflow="ellipsis",
         )
         agents_table.add_column(
-            "Name", style="white", width=25, no_wrap=True, overflow="ellipsis"
+            "Name",
+            style="white",
+            width=widths["Name"],
+            no_wrap=True,
+            overflow="ellipsis",
         )
-        agents_table.add_column("Source", style="bright_yellow", width=20, no_wrap=True)
-        agents_table.add_column("Status", style="white", width=12, no_wrap=True)
+        agents_table.add_column(
+            "Source",
+            style="bright_yellow",
+            width=widths["Source"],
+            no_wrap=True,
+        )
+        agents_table.add_column(
+            "Status", style="white", width=widths["Status"], no_wrap=True
+        )
 
         for idx, agent in enumerate(agents, 1):
             # Determine source with repo name

@@ -3,13 +3,16 @@ Auto-Configuration CLI Command for Claude MPM Framework
 ========================================================
 
 WHY: This module provides a user-friendly CLI interface for the auto-configuration
-feature, allowing users to automatically configure agents based on detected toolchain.
+feature, allowing users to automatically configure BOTH agents AND skills based on
+detected toolchain.
 
 DESIGN DECISION: Uses rich for beautiful terminal output, implements interactive
 confirmation, and provides comprehensive error handling. Supports both interactive
-and non-interactive modes for flexibility.
+and non-interactive modes for flexibility. Orchestrates both agent auto-config
+(via AutoConfigManagerService) and skill recommendations (via SkillsDeployer).
 
 Part of TSK-0054: Auto-Configuration Feature - Phase 5
+Unified Auto-Configure: 1M-502 Phase 2
 """
 
 import json
@@ -100,7 +103,11 @@ class AutoConfigureCommand(BaseCommand):
     Handle auto-configuration CLI commands.
 
     This command provides a user-friendly interface for automatically configuring
-    agents based on detected project toolchain.
+    BOTH agents AND skills based on detected project toolchain.
+
+    Orchestrates:
+    1. Agent auto-configuration (via AutoConfigManagerService)
+    2. Skills recommendations and deployment (via SkillsDeployer + agent-skill mapping)
     """
 
     def __init__(self):
@@ -108,6 +115,7 @@ class AutoConfigureCommand(BaseCommand):
         super().__init__("auto-configure")
         self.console = Console() if RICH_AVAILABLE else None
         self._auto_config_manager = None
+        self._skills_deployer = None
 
     @property
     def auto_config_manager(self) -> AutoConfigManagerService:
@@ -139,6 +147,15 @@ class AutoConfigureCommand(BaseCommand):
             )
 
         return self._auto_config_manager
+
+    @property
+    def skills_deployer(self):
+        """Get skills deployer instance (lazy loaded)."""
+        if self._skills_deployer is None:
+            from ...services.skills_deployer import SkillsDeployerService
+
+            self._skills_deployer = SkillsDeployerService()
+        return self._skills_deployer
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -191,11 +208,26 @@ class AutoConfigureCommand(BaseCommand):
             skip_confirmation = args.yes if hasattr(args, "yes") and args.yes else False
             json_output = args.json if hasattr(args, "json") and args.json else False
 
+            # Determine what to configure (agents, skills, or both)
+            configure_agents = not getattr(args, "skills_only", False)
+            configure_skills = not getattr(args, "agents_only", False)
+
             # Run preview or full configuration
             if dry_run or args.preview if hasattr(args, "preview") else False:
-                return self._run_preview(project_path, min_confidence, json_output)
+                return self._run_preview(
+                    project_path,
+                    min_confidence,
+                    json_output,
+                    configure_agents,
+                    configure_skills,
+                )
             return self._run_full_configuration(
-                project_path, min_confidence, skip_confirmation, json_output
+                project_path,
+                min_confidence,
+                skip_confirmation,
+                json_output,
+                configure_agents,
+                configure_skills,
             )
 
         except KeyboardInterrupt:
@@ -215,24 +247,44 @@ class AutoConfigureCommand(BaseCommand):
             return CommandResult.error_result(error_msg)
 
     def _run_preview(
-        self, project_path: Path, min_confidence: float, json_output: bool
+        self,
+        project_path: Path,
+        min_confidence: float,
+        json_output: bool,
+        configure_agents: bool = True,
+        configure_skills: bool = True,
     ) -> CommandResult:
         """Run configuration preview without deploying."""
-        # Show analysis spinner
-        if self.console and not json_output:
-            with self.console.status("[bold green]Analyzing project toolchain..."):
-                preview = self.auto_config_manager.preview_configuration(
+        # Get agent preview
+        agent_preview = None
+        if configure_agents:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Analyzing project toolchain..."):
+                    agent_preview = self.auto_config_manager.preview_configuration(
+                        project_path, min_confidence
+                    )
+            else:
+                agent_preview = self.auto_config_manager.preview_configuration(
                     project_path, min_confidence
                 )
-        else:
-            preview = self.auto_config_manager.preview_configuration(
-                project_path, min_confidence
-            )
+
+        # Get skills recommendations
+        skills_recommendations = None
+        if configure_skills:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Analyzing skill requirements..."):
+                    skills_recommendations = self._recommend_skills(agent_preview)
+            else:
+                skills_recommendations = self._recommend_skills(agent_preview)
 
         # Output results
         if json_output:
-            return self._output_preview_json(preview)
-        return self._display_preview(preview)
+            return self._output_preview_json(
+                agent_preview, skills_recommendations, configure_agents, configure_skills
+            )
+        return self._display_preview(
+            agent_preview, skills_recommendations, configure_agents, configure_skills
+        )
 
     def _run_full_configuration(
         self,
@@ -240,147 +292,238 @@ class AutoConfigureCommand(BaseCommand):
         min_confidence: float,
         skip_confirmation: bool,
         json_output: bool,
+        configure_agents: bool = True,
+        configure_skills: bool = True,
     ) -> CommandResult:
         """Run full auto-configuration with deployment."""
-        # Get preview first
-        if self.console and not json_output:
-            with self.console.status("[bold green]Analyzing project toolchain..."):
-                preview = self.auto_config_manager.preview_configuration(
+        # Get agent preview
+        agent_preview = None
+        if configure_agents:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Analyzing project toolchain..."):
+                    agent_preview = self.auto_config_manager.preview_configuration(
+                        project_path, min_confidence
+                    )
+            else:
+                agent_preview = self.auto_config_manager.preview_configuration(
                     project_path, min_confidence
                 )
-        else:
-            preview = self.auto_config_manager.preview_configuration(
-                project_path, min_confidence
-            )
+
+        # Get skills recommendations
+        skills_recommendations = None
+        if configure_skills:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Analyzing skill requirements..."):
+                    skills_recommendations = self._recommend_skills(agent_preview)
+            else:
+                skills_recommendations = self._recommend_skills(agent_preview)
 
         # Display preview (unless JSON output)
         if not json_output:
-            self._display_preview(preview)
+            self._display_preview(
+                agent_preview, skills_recommendations, configure_agents, configure_skills
+            )
 
         # Ask for confirmation (unless skipped)
         if not skip_confirmation and not json_output:
-            if not self._confirm_deployment(preview):
+            if not self._confirm_deployment(
+                agent_preview, skills_recommendations, configure_agents, configure_skills
+            ):
                 if self.console:
                     self.console.print("\n❌ Operation cancelled by user")
                 else:
                     print("\nOperation cancelled by user")
                 return CommandResult.error_result("Operation cancelled", exit_code=0)
 
-        # Execute configuration
-        import asyncio
+        # Execute agent configuration
+        agent_result = None
+        if configure_agents and agent_preview:
+            import asyncio
 
-        observer = RichProgressObserver(self.console) if self.console else None
-        result = asyncio.run(
-            self.auto_config_manager.auto_configure(
-                project_path,
-                confirmation_required=False,  # Already confirmed above
-                dry_run=False,
-                min_confidence=min_confidence,
-                observer=observer,
+            observer = RichProgressObserver(self.console) if self.console else None
+            agent_result = asyncio.run(
+                self.auto_config_manager.auto_configure(
+                    project_path,
+                    confirmation_required=False,  # Already confirmed above
+                    dry_run=False,
+                    min_confidence=min_confidence,
+                    observer=observer,
+                )
             )
-        )
+
+        # Deploy skills
+        skills_result = None
+        if configure_skills and skills_recommendations:
+            if self.console and not json_output:
+                self.console.print("\n[bold cyan]Deploying skills...[/bold cyan]\n")
+            skills_result = self._deploy_skills(skills_recommendations)
 
         # Output results
         if json_output:
-            return self._output_result_json(result)
-        return self._display_result(result)
+            return self._output_result_json(agent_result, skills_result)
+        return self._display_result(agent_result, skills_result)
 
-    def _display_preview(self, preview) -> CommandResult:
+    def _display_preview(
+        self,
+        agent_preview,
+        skills_recommendations=None,
+        configure_agents=True,
+        configure_skills=True,
+    ) -> CommandResult:
         """Display configuration preview with Rich formatting."""
         if not self.console:
             # Fallback to plain text
-            return self._display_preview_plain(preview)
+            return self._display_preview_plain(
+                agent_preview, skills_recommendations, configure_agents, configure_skills
+            )
+
+        # Only show toolchain and agents if configuring agents
+        if not configure_agents:
+            agent_preview = None
 
         # Display detected toolchain
-        self.console.print("\n📊 Detected Toolchain:", style="bold blue")
-        if preview.detected_toolchain and preview.detected_toolchain.components:
-            toolchain_table = Table(show_header=True, header_style="bold")
-            toolchain_table.add_column("Component", style="cyan")
-            toolchain_table.add_column("Version", style="yellow")
-            toolchain_table.add_column("Confidence", style="green")
+        if configure_agents and agent_preview:
+            self.console.print("\n📊 Detected Toolchain:", style="bold blue")
+            if (
+                agent_preview.detected_toolchain
+                and agent_preview.detected_toolchain.components
+            ):
+                toolchain_table = Table(show_header=True, header_style="bold")
+                toolchain_table.add_column("Component", style="cyan")
+                toolchain_table.add_column("Version", style="yellow")
+                toolchain_table.add_column("Confidence", style="green")
 
-            for component in preview.detected_toolchain.components:
-                confidence_pct = int(component.confidence * 100)
-                bar = "█" * (confidence_pct // 10) + "░" * (10 - confidence_pct // 10)
-                confidence_str = f"{bar} {confidence_pct}%"
+                for component in agent_preview.detected_toolchain.components:
+                    confidence_pct = int(component.confidence * 100)
+                    bar = (
+                        "█" * (confidence_pct // 10) + "░" * (10 - confidence_pct // 10)
+                    )
+                    confidence_str = f"{bar} {confidence_pct}%"
 
-                toolchain_table.add_row(
-                    (
-                        component.type.value
-                        if hasattr(component.type, "value")
-                        else str(component.type)
-                    ),
-                    component.version or "Unknown",
-                    confidence_str,
-                )
+                    toolchain_table.add_row(
+                        (
+                            component.type.value
+                            if hasattr(component.type, "value")
+                            else str(component.type)
+                        ),
+                        component.version or "Unknown",
+                        confidence_str,
+                    )
 
-            self.console.print(toolchain_table)
-        else:
-            self.console.print("  No toolchain detected", style="yellow")
+                self.console.print(toolchain_table)
+            else:
+                self.console.print("  No toolchain detected", style="yellow")
 
-        # Display recommended agents
-        self.console.print("\n🤖 Recommended Agents:", style="bold blue")
-        if preview.recommendations:
-            for rec in preview.recommendations:
-                confidence_pct = int(rec.confidence * 100)
-                icon = "✓" if rec.confidence >= 0.8 else "○"
-                self.console.print(
-                    f"  {icon} [bold]{rec.agent_id}[/bold] ({confidence_pct}% confidence)"
-                )
-                self.console.print(f"    Reason: {rec.reasoning}", style="dim")
-        else:
-            self.console.print("  No agents recommended", style="yellow")
+            # Display recommended agents
+            self.console.print("\n🤖 Recommended Agents:", style="bold blue")
+            if agent_preview.recommendations:
+                for rec in agent_preview.recommendations:
+                    confidence_pct = int(rec.confidence * 100)
+                    icon = "✓" if rec.confidence >= 0.8 else "○"
+                    self.console.print(
+                        f"  {icon} [bold]{rec.agent_id}[/bold] ({confidence_pct}% confidence)"
+                    )
+                    self.console.print(f"    Reason: {rec.reasoning}", style="dim")
+            else:
+                self.console.print("  No agents recommended", style="yellow")
 
-        # Display validation issues
-        if preview.validation_result and preview.validation_result.issues:
-            self.console.print("\n⚠️  Validation Issues:", style="bold yellow")
-            for issue in preview.validation_result.issues:
-                severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(
-                    (
-                        issue.severity.value
-                        if hasattr(issue.severity, "value")
-                        else str(issue.severity)
-                    ),
-                    "•",
-                )
-                self.console.print(f"  {severity_icon} {issue.message}", style="yellow")
+            # Display validation issues
+            if (
+                agent_preview.validation_result
+                and agent_preview.validation_result.issues
+            ):
+                self.console.print("\n⚠️  Validation Issues:", style="bold yellow")
+                for issue in agent_preview.validation_result.issues:
+                    severity_icon = {"error": "❌", "warning": "⚠️", "info": "ℹ️"}.get(
+                        (
+                            issue.severity.value
+                            if hasattr(issue.severity, "value")
+                            else str(issue.severity)
+                        ),
+                        "•",
+                    )
+                    self.console.print(
+                        f"  {severity_icon} {issue.message}", style="yellow"
+                    )
+
+        # Display recommended skills
+        if configure_skills and skills_recommendations:
+            self.console.print("\n🎯 Recommended Skills:", style="bold blue")
+            for skill in skills_recommendations:
+                self.console.print(f"  ✓ [bold]{skill}[/bold]")
 
         return CommandResult.success_result()
 
-    def _display_preview_plain(self, preview) -> CommandResult:
+    def _display_preview_plain(
+        self,
+        agent_preview,
+        skills_recommendations=None,
+        configure_agents=True,
+        configure_skills=True,
+    ) -> CommandResult:
         """Display preview in plain text (fallback when Rich not available)."""
-        print("\nDetected Toolchain:")
-        if preview.detected_toolchain and preview.detected_toolchain.components:
-            for component in preview.detected_toolchain.components:
-                confidence_pct = int(component.confidence * 100)
-                print(f"  - {component.type}: {component.version} ({confidence_pct}%)")
-        else:
-            print("  No toolchain detected")
+        if configure_agents and agent_preview:
+            print("\nDetected Toolchain:")
+            if (
+                agent_preview.detected_toolchain
+                and agent_preview.detected_toolchain.components
+            ):
+                for component in agent_preview.detected_toolchain.components:
+                    confidence_pct = int(component.confidence * 100)
+                    print(f"  - {component.type}: {component.version} ({confidence_pct}%)")
+            else:
+                print("  No toolchain detected")
 
-        print("\nRecommended Agents:")
-        if preview.recommendations:
-            for rec in preview.recommendations:
-                confidence_pct = int(rec.confidence * 100)
-                print(f"  - {rec.agent_id} ({confidence_pct}%)")
-                print(f"    Reason: {rec.reasoning}")
-        else:
-            print("  No agents recommended")
+            print("\nRecommended Agents:")
+            if agent_preview.recommendations:
+                for rec in agent_preview.recommendations:
+                    confidence_pct = int(rec.confidence * 100)
+                    print(f"  - {rec.agent_id} ({confidence_pct}%)")
+                    print(f"    Reason: {rec.reasoning}")
+            else:
+                print("  No agents recommended")
 
-        if preview.validation_result and preview.validation_result.issues:
-            print("\nValidation Issues:")
-            for issue in preview.validation_result.issues:
-                print(f"  - {issue.severity}: {issue.message}")
+            if (
+                agent_preview.validation_result
+                and agent_preview.validation_result.issues
+            ):
+                print("\nValidation Issues:")
+                for issue in agent_preview.validation_result.issues:
+                    print(f"  - {issue.severity}: {issue.message}")
+
+        if configure_skills and skills_recommendations:
+            print("\nRecommended Skills:")
+            for skill in skills_recommendations:
+                print(f"  - {skill}")
 
         return CommandResult.success_result()
 
-    def _confirm_deployment(self, preview) -> bool:
+    def _confirm_deployment(
+        self,
+        agent_preview,
+        skills_recommendations=None,
+        configure_agents=True,
+        configure_skills=True,
+    ) -> bool:
         """Ask user to confirm deployment."""
-        if not preview.recommendations:
+        has_agents = configure_agents and agent_preview and agent_preview.recommendations
+        has_skills = configure_skills and skills_recommendations
+
+        if not has_agents and not has_skills:
             return False
+
+        # Build confirmation message
+        items = []
+        if has_agents:
+            items.append(f"{len(agent_preview.recommendations)} agent(s)")
+        if has_skills:
+            items.append(f"{len(skills_recommendations)} skill(s)")
+
+        message = f"Deploy {' and '.join(items)}?"
 
         if self.console:
             self.console.print("\n" + "=" * 60)
-            self.console.print("Deploy these agents?", style="bold yellow")
+            self.console.print(message, style="bold yellow")
             self.console.print("=" * 60)
             response = (
                 self.console.input("\n[bold]Proceed? (y/n/s for select):[/bold] ")
@@ -389,7 +532,7 @@ class AutoConfigureCommand(BaseCommand):
             )
         else:
             print("\n" + "=" * 60)
-            print("Deploy these agents?")
+            print(message)
             print("=" * 60)
             response = input("\nProceed? (y/n/s for select): ").strip().lower()
 
@@ -407,160 +550,293 @@ class AutoConfigureCommand(BaseCommand):
             return False
         return False
 
-    def _display_result(self, result: ConfigurationResult) -> CommandResult:
+    def _display_result(
+        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+    ) -> CommandResult:
         """Display configuration result."""
         if not self.console:
-            return self._display_result_plain(result)
+            return self._display_result_plain(agent_result, skills_result)
+
+        # Determine overall success
+        agent_success = (
+            agent_result and agent_result.status == OperationResult.SUCCESS
+        ) if agent_result else True
+        skills_success = (
+            not skills_result or (
+                skills_result and not skills_result.get("errors")
+            )
+        )
+        overall_success = agent_success and skills_success
 
         # Display summary
-        if result.status == OperationResult.SUCCESS:
-            panel = Panel(
-                f"✅ Auto-configuration completed successfully!\n\n"
-                f"Deployed {len(result.deployed_agents)} agent(s)",
-                title="Success",
-                border_style="green",
-            )
+        if overall_success:
+            # Build summary message
+            deployed_items = []
+            if agent_result and agent_result.deployed_agents:
+                deployed_items.append(f"{len(agent_result.deployed_agents)} agent(s)")
+            if skills_result and skills_result.get("deployed"):
+                deployed_items.append(f"{len(skills_result['deployed'])} skill(s)")
+
+            panel_text = "✅ Auto-configuration completed successfully!\n\n"
+            if deployed_items:
+                panel_text += f"Deployed {' and '.join(deployed_items)}"
+            else:
+                panel_text += "No deployments needed"
+
+            panel = Panel(panel_text, title="Success", border_style="green")
             self.console.print(panel)
 
             # Show deployed agents
-            if result.deployed_agents:
+            if agent_result and agent_result.deployed_agents:
                 self.console.print("\n📦 Deployed Agents:", style="bold green")
-                for agent_id in result.deployed_agents:
+                for agent_id in agent_result.deployed_agents:
                     self.console.print(f"  ✓ {agent_id}")
 
+            # Show deployed skills
+            if skills_result and skills_result.get("deployed"):
+                self.console.print("\n🎯 Deployed Skills:", style="bold green")
+                for skill in skills_result["deployed"]:
+                    self.console.print(f"  ✓ {skill}")
+
             return CommandResult.success_result()
 
-        if result.status == OperationResult.WARNING:
-            panel = Panel(
-                f"⚠️  Auto-configuration partially completed\n\n"
-                f"Deployed: {len(result.deployed_agents)}\n"
-                f"Failed: {len(result.failed_agents)}",
-                title="Partial Success",
-                border_style="yellow",
-            )
-            self.console.print(panel)
+        # Partial or complete failure
+        has_errors = False
+        if agent_result and agent_result.status in [
+            OperationResult.WARNING,
+            OperationResult.FAILED,
+        ]:
+            has_errors = True
 
-            if result.failed_agents:
+            if agent_result.status == OperationResult.WARNING:
+                self.console.print("\n⚠️  Agent configuration partially completed", style="yellow")
+            else:
+                self.console.print("\n❌ Agent configuration failed", style="red")
+
+            if agent_result.failed_agents:
                 self.console.print("\n❌ Failed Agents:", style="bold red")
-                for agent_id in result.failed_agents:
-                    error = result.errors.get(agent_id, "Unknown error")
+                for agent_id in agent_result.failed_agents:
+                    error = agent_result.errors.get(agent_id, "Unknown error")
                     self.console.print(f"  ✗ {agent_id}: {error}")
 
-            return CommandResult.error_result("Partial configuration", exit_code=1)
+        if skills_result and skills_result.get("errors"):
+            has_errors = True
+            self.console.print("\n❌ Skill deployment failed", style="red")
+            for error in skills_result["errors"]:
+                self.console.print(f"  ✗ {error}")
 
-        panel = Panel(
-            f"❌ Auto-configuration failed\n\n{result.errors.get('general', 'Unknown error')}",
-            title="Error",
-            border_style="red",
+        return (
+            CommandResult.error_result("Configuration partially succeeded" if (agent_success or skills_success) else "Configuration failed", exit_code=1)
+            if has_errors
+            else CommandResult.success_result()
         )
-        self.console.print(panel)
 
-        return CommandResult.error_result("Configuration failed", exit_code=1)
-
-    def _display_result_plain(self, result: ConfigurationResult) -> CommandResult:
+    def _display_result_plain(
+        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+    ) -> CommandResult:
         """Display result in plain text (fallback)."""
-        if result.status == OperationResult.SUCCESS:
-            print("\n✅ Auto-configuration completed successfully!")
-            print(f"Deployed {len(result.deployed_agents)} agent(s)")
+        # Determine overall success
+        agent_success = (
+            agent_result and agent_result.status == OperationResult.SUCCESS
+        ) if agent_result else True
+        skills_success = (
+            not skills_result or not skills_result.get("errors")
+        )
+        overall_success = agent_success and skills_success
 
-            if result.deployed_agents:
+        if overall_success:
+            print("\n✅ Auto-configuration completed successfully!")
+
+            if agent_result and agent_result.deployed_agents:
+                print(f"Deployed {len(agent_result.deployed_agents)} agent(s)")
                 print("\nDeployed Agents:")
-                for agent_id in result.deployed_agents:
+                for agent_id in agent_result.deployed_agents:
                     print(f"  - {agent_id}")
+
+            if skills_result and skills_result.get("deployed"):
+                print(f"\nDeployed {len(skills_result['deployed'])} skill(s)")
+                print("\nDeployed Skills:")
+                for skill in skills_result["deployed"]:
+                    print(f"  - {skill}")
 
             return CommandResult.success_result()
 
-        if result.status == OperationResult.WARNING:
-            print("\n⚠️  Auto-configuration partially completed")
-            print(f"Deployed: {len(result.deployed_agents)}")
-            print(f"Failed: {len(result.failed_agents)}")
+        # Partial or complete failure
+        has_errors = False
+        if agent_result and agent_result.status in [
+            OperationResult.WARNING,
+            OperationResult.FAILED,
+        ]:
+            has_errors = True
+            print(
+                "\n⚠️  Agent configuration partially completed"
+                if agent_result.status == OperationResult.WARNING
+                else "\n❌ Agent configuration failed"
+            )
 
-            if result.failed_agents:
+            if agent_result.failed_agents:
                 print("\nFailed Agents:")
-                for agent_id in result.failed_agents:
-                    error = result.errors.get(agent_id, "Unknown error")
+                for agent_id in agent_result.failed_agents:
+                    error = agent_result.errors.get(agent_id, "Unknown error")
                     print(f"  - {agent_id}: {error}")
 
-            return CommandResult.error_result("Partial configuration", exit_code=1)
+        if skills_result and skills_result.get("errors"):
+            has_errors = True
+            print("\n❌ Skill deployment failed")
+            for error in skills_result["errors"]:
+                print(f"  - {error}")
 
-        print("\n❌ Auto-configuration failed")
-        print(result.errors.get("general", "Unknown error"))
+        return (
+            CommandResult.error_result("Configuration partially succeeded" if (agent_success or skills_success) else "Configuration failed", exit_code=1)
+            if has_errors
+            else CommandResult.success_result()
+        )
 
-        return CommandResult.error_result("Configuration failed", exit_code=1)
-
-    def _output_preview_json(self, preview) -> CommandResult:
+    def _output_preview_json(
+        self,
+        agent_preview,
+        skills_recommendations=None,
+        configure_agents=True,
+        configure_skills=True,
+    ) -> CommandResult:
         """Output preview as JSON."""
-        output = {
-            "detected_toolchain": {
-                "components": (
-                    [
-                        {
-                            "type": (
-                                c.type.value
-                                if hasattr(c.type, "value")
-                                else str(c.type)
-                            ),
-                            "version": c.version,
-                            "confidence": c.confidence,
-                        }
-                        for c in preview.detected_toolchain.components
-                    ]
-                    if preview.detected_toolchain
-                    else []
-                )
-            },
-            "recommendations": [
-                {
-                    "agent_id": r.agent_id,
-                    "confidence": r.confidence,
-                    "reasoning": r.reasoning,
-                }
-                for r in preview.recommendations
-            ],
-            "validation": {
-                "is_valid": (
-                    preview.validation_result.is_valid
-                    if preview.validation_result
-                    else True
-                ),
-                "issues": (
-                    [
-                        {
-                            "severity": (
-                                i.severity.value
-                                if hasattr(i.severity, "value")
-                                else str(i.severity)
-                            ),
-                            "message": i.message,
-                        }
-                        for i in preview.validation_result.issues
-                    ]
-                    if preview.validation_result
-                    else []
-                ),
-            },
-        }
+        output = {}
+
+        if configure_agents and agent_preview:
+            output["agents"] = {
+                "detected_toolchain": {
+                    "components": (
+                        [
+                            {
+                                "type": (
+                                    c.type.value
+                                    if hasattr(c.type, "value")
+                                    else str(c.type)
+                                ),
+                                "version": c.version,
+                                "confidence": c.confidence,
+                            }
+                            for c in agent_preview.detected_toolchain.components
+                        ]
+                        if agent_preview.detected_toolchain
+                        else []
+                    )
+                },
+                "recommendations": [
+                    {
+                        "agent_id": r.agent_id,
+                        "confidence": r.confidence,
+                        "reasoning": r.reasoning,
+                    }
+                    for r in agent_preview.recommendations
+                ],
+                "validation": {
+                    "is_valid": (
+                        agent_preview.validation_result.is_valid
+                        if agent_preview.validation_result
+                        else True
+                    ),
+                    "issues": (
+                        [
+                            {
+                                "severity": (
+                                    i.severity.value
+                                    if hasattr(i.severity, "value")
+                                    else str(i.severity)
+                                ),
+                                "message": i.message,
+                            }
+                            for i in agent_preview.validation_result.issues
+                        ]
+                        if agent_preview.validation_result
+                        else []
+                    ),
+                },
+            }
+
+        if configure_skills and skills_recommendations:
+            output["skills"] = {
+                "recommendations": skills_recommendations,
+            }
 
         print(json.dumps(output, indent=2))
         return CommandResult.success_result(data=output)
 
-    def _output_result_json(self, result: ConfigurationResult) -> CommandResult:
+    def _output_result_json(
+        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+    ) -> CommandResult:
         """Output result as JSON."""
-        output = {
-            "status": (
-                result.status.value
-                if hasattr(result.status, "value")
-                else str(result.status)
-            ),
-            "deployed_agents": result.deployed_agents,
-            "failed_agents": result.failed_agents,
-            "errors": result.errors,
-        }
+        output = {}
+
+        if agent_result:
+            output["agents"] = {
+                "status": (
+                    agent_result.status.value
+                    if hasattr(agent_result.status, "value")
+                    else str(agent_result.status)
+                ),
+                "deployed_agents": agent_result.deployed_agents,
+                "failed_agents": agent_result.failed_agents,
+                "errors": agent_result.errors,
+            }
+
+        if skills_result:
+            output["skills"] = skills_result
 
         print(json.dumps(output, indent=2))
 
-        if result.status == OperationResult.SUCCESS:
+        # Determine overall success
+        agent_success = (
+            agent_result.status == OperationResult.SUCCESS if agent_result else True
+        )
+        skills_success = not skills_result or not skills_result.get("errors")
+        overall_success = agent_success and skills_success
+
+        if overall_success:
             return CommandResult.success_result(data=output)
         return CommandResult.error_result(
             "Configuration failed or partial", exit_code=1, data=output
         )
+
+    def _recommend_skills(self, agent_preview):
+        """Recommend skills based on deployed/recommended agents.
+
+        Args:
+            agent_preview: Agent preview result with recommendations
+
+        Returns:
+            List of recommended skill names, or None if no agents recommended
+        """
+        if not agent_preview or not agent_preview.recommendations:
+            return None
+
+        # Import agent-skill mapping
+        from ...cli.interactive.skills_wizard import AGENT_SKILL_MAPPING
+
+        # Collect recommended skills based on agent types
+        recommended_skills = set()
+        for rec in agent_preview.recommendations:
+            agent_id = rec.agent_id
+            # Map agent ID to skill recommendations
+            if agent_id in AGENT_SKILL_MAPPING:
+                recommended_skills.update(AGENT_SKILL_MAPPING[agent_id])
+
+        return list(recommended_skills) if recommended_skills else None
+
+    def _deploy_skills(self, recommended_skills: list[str]) -> dict:
+        """Deploy recommended skills.
+
+        Args:
+            recommended_skills: List of skill names to deploy
+
+        Returns:
+            Dict with deployment results: {"deployed": [...], "errors": [...]}
+        """
+        try:
+            result = self.skills_deployer.deploy_skills(
+                skill_names=recommended_skills, force=False
+            )
+            return result
+        except Exception as e:
+            self.logger.error(f"Failed to deploy skills: {e}")
+            return {"deployed": [], "errors": [str(e)]}

@@ -6,6 +6,7 @@ local agents with user-friendly prompts, intelligent defaults, and validation.
 
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -60,6 +61,51 @@ class AgentWizard:
             self.logger.warning(f"Failed to initialize remote discovery: {e}")
             self.source_manager = None
             self.discovery_enabled = False
+
+    @staticmethod
+    def _calculate_column_widths(
+        terminal_width: int, columns: Dict[str, int]
+    ) -> Dict[str, int]:
+        """Calculate dynamic column widths based on terminal size.
+
+        Args:
+            terminal_width: Current terminal width in characters
+            columns: Dict mapping column names to minimum widths
+
+        Returns:
+            Dict mapping column names to calculated widths
+
+        Design:
+            - Ensures minimum widths are respected
+            - Distributes extra space proportionally
+            - Handles narrow terminals gracefully (minimum 80 chars)
+        """
+        # Ensure minimum terminal width
+        min_terminal_width = 80
+        terminal_width = max(terminal_width, min_terminal_width)
+
+        # Calculate total minimum width needed
+        total_min_width = sum(columns.values())
+
+        # Account for spacing between columns
+        overhead = len(columns) + 1
+        available_width = terminal_width - overhead
+
+        # If we have extra space, distribute proportionally
+        if available_width > total_min_width:
+            extra_space = available_width - total_min_width
+            total_weight = sum(columns.values())
+
+            result = {}
+            for col_name, min_width in columns.items():
+                # Distribute extra space based on minimum width proportion
+                proportion = min_width / total_weight
+                extra = int(extra_space * proportion)
+                result[col_name] = min_width + extra
+            return result
+        else:
+            # Terminal too narrow, use minimum widths
+            return columns.copy()
 
     def run_interactive_create(self) -> Tuple[bool, str]:
         """Run interactive agent creation wizard.
@@ -259,25 +305,55 @@ class AgentWizard:
                     print("❌ Invalid choice. Please try again.")
                     continue
 
-                # Show existing agents in a table
+                # Show existing agents in a table with dynamic widths
                 print(f"\n📋 Found {len(all_agents)} agent(s):\n")
+
+                # Calculate dynamic column widths based on terminal size
+                terminal_width = shutil.get_terminal_size().columns
+                min_widths = {
+                    "#": 4,
+                    "Agent ID": 30,
+                    "Name": 20,
+                    "Source": 15,
+                    "Status": 10,
+                }
+                widths = self._calculate_column_widths(terminal_width, min_widths)
+
+                # Print header with dynamic widths
                 print(
-                    f"{'#':<4} {'Agent ID':<40} {'Name':<25} {'Source':<20} {'Status':<10}"
+                    f"{'#':<{widths['#']}} "
+                    f"{'Agent ID':<{widths['Agent ID']}} "
+                    f"{'Name':<{widths['Name']}} "
+                    f"{'Source':<{widths['Source']}} "
+                    f"{'Status':<{widths['Status']}}"
                 )
-                print("-" * 105)
+                separator_width = sum(widths.values()) + len(widths) - 1
+                print("-" * separator_width)
 
                 for i, agent in enumerate(all_agents, 1):
                     agent_id = agent["agent_id"]
-                    name = (
-                        agent["name"][:24] if len(agent["name"]) > 24 else agent["name"]
-                    )
+                    # Truncate to fit dynamic width
+                    if len(agent_id) > widths["Agent ID"]:
+                        agent_id = agent_id[: widths["Agent ID"] - 1] + "…"
+
+                    name = agent["name"]
+                    if len(name) > widths["Name"]:
+                        name = name[: widths["Name"] - 1] + "…"
+
                     source_label = (
-                        f"[{agent['source_type']}] {agent['source_identifier']}"[:19]
+                        f"[{agent['source_type']}] {agent['source_identifier']}"
                     )
+                    if len(source_label) > widths["Source"]:
+                        source_label = source_label[: widths["Source"] - 1] + "…"
+
                     status = "✓ Deployed" if agent["deployed"] else "Available"
 
                     print(
-                        f"{i:<4} {agent_id:<40} {name:<25} {source_label:<20} {status:<10}"
+                        f"{i:<{widths['#']}} "
+                        f"{agent_id:<{widths['Agent ID']}} "
+                        f"{name:<{widths['Name']}} "
+                        f"{source_label:<{widths['Source']}} "
+                        f"{status:<{widths['Status']}}"
                     )
 
                 # Build menu choices with arrow-key navigation

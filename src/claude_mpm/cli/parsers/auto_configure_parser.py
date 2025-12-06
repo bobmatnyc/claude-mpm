@@ -88,6 +88,19 @@ Examples:
         help="Skip confirmation prompts and deploy automatically",
     )
 
+    # Scope selection
+    scope_group = auto_configure_parser.add_mutually_exclusive_group()
+    scope_group.add_argument(
+        "--agents-only",
+        action="store_true",
+        help="Configure agents only (skip skills)",
+    )
+    scope_group.add_argument(
+        "--skills-only",
+        action="store_true",
+        help="Configure skills only (skip agents)",
+    )
+
     # Configuration options
     auto_configure_parser.add_argument(
         "--min-confidence",
