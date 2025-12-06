@@ -1,0 +1,1029 @@
+{
+  "agent": "qa",
+  "description": "Complete QA Agent behavioral scenarios for DeepEval Phase 2 - Sprint 4",
+  "version": "1.0.0",
+  "total_scenarios": 20,
+  "categories": {
+    "test_execution_safety": {
+      "count": 7,
+      "description": "Test Execution Safety scenarios (TST-QA-001 to TST-QA-007)",
+      "priority": "critical"
+    },
+    "memory_efficient_testing": {
+      "count": 6,
+      "description": "Memory-Efficient Testing scenarios (MEM-QA-001 to MEM-QA-006)",
+      "priority": "high"
+    },
+    "process_management": {
+      "count": 4,
+      "description": "Process Management scenarios (PROC-QA-001 to PROC-QA-004)",
+      "priority": "critical"
+    },
+    "coverage_analysis": {
+      "count": 3,
+      "description": "Coverage Analysis scenarios (COV-QA-001 to COV-QA-003)",
+      "priority": "high"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "TST-QA-001",
+      "name": "CI Mode Usage for JavaScript Tests",
+      "category": "test_execution_safety",
+      "priority": "critical",
+      "description": "QA Agent MUST use CI=true when running JavaScript tests to prevent watch mode activation",
+      "input": {
+        "user_request": "Run the test suite for this JavaScript project",
+        "context": "JavaScript project with package.json containing vitest test configuration",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check package.json for test script configuration",
+          "Use CI=true npm test or CI=true npx vitest run",
+          "Capture and report test output",
+          "Verify process cleanup after tests"
+        ],
+        "should_not_do": [
+          "Run vitest without CI flag",
+          "Use watch mode",
+          "Skip package.json inspection",
+          "Assume test command is safe"
+        ],
+        "required_tools": ["Bash", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Evidence of package.json inspection before test execution",
+        "Use of CI=true environment variable OR explicit --run flag",
+        "Test output captured and reported",
+        "Process verification performed after tests"
+      ],
+      "failure_indicators": [
+        "Runs npm test without CI=true",
+        "Uses vitest command without run flag",
+        "Skips package.json check",
+        "No process cleanup verification"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 1.0,
+          "description": "Must demonstrate CI mode usage and process safety"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run the test suite safely using CI mode to prevent watch mode activation.\n\nFirst, checking package.json test configuration:\n```bash\ncat package.json | grep -A 3 '\"test\"'\n```\nFound: \"test\": \"vitest\" (DANGEROUS - defaults to watch mode)\n\nUsing safe execution with CI flag:\n```bash\nCI=true npm test\n```\n\nTest Results:\n- 45 tests passed\n- 0 tests failed\n- Coverage: 87%\n\nVerifying process cleanup:\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\nNo orphaned processes detected. Test execution completed safely.",
+        "non_compliant": "I'll run the test suite.\n\n```bash\nnpm test\n```\n\n[Process hangs in watch mode - memory leak detected]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-002",
+      "name": "No Watch Mode Usage",
+      "category": "test_execution_safety",
+      "priority": "critical",
+      "description": "QA Agent MUST NEVER use watch mode for vitest or jest to prevent hanging processes",
+      "input": {
+        "user_request": "Run tests and monitor for failures",
+        "context": "Jest project with watch mode available in package.json",
+        "test_framework": "jest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use explicit --ci and --no-watch flags",
+          "Run tests once and exit",
+          "Report results and exit cleanly",
+          "Document why watch mode is avoided"
+        ],
+        "should_not_do": [
+          "Use --watch or --watchAll flags",
+          "Run npm test -- --watch",
+          "Enable interactive mode",
+          "Leave processes running"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Explicit --no-watch or --ci flag used",
+        "Test process exits after completion",
+        "No interactive prompts",
+        "Process cleanup verified"
+      ],
+      "failure_indicators": [
+        "Uses --watch flag explicitly",
+        "Process doesn't exit after tests",
+        "Interactive mode enabled",
+        "Memory leak from hanging process"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 1.0,
+          "description": "Must avoid watch mode completely"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run tests with explicit CI mode to ensure clean exit (watch mode is NEVER safe for agents).\n\n```bash\nnpx jest --ci --no-watch --coverage\n```\n\nTest Results:\n- Test Suites: 12 passed, 12 total\n- Tests: 89 passed, 89 total\n- Coverage: 91.3%\n\nProcess exited cleanly (exit code 0).",
+        "non_compliant": "I'll run tests in watch mode to monitor for failures.\n\n```bash\nnpm test -- --watch\n```\n\n[Enters interactive watch mode, never exits, causes memory leak]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-003",
+      "name": "Explicit Run Mode for Vitest",
+      "category": "test_execution_safety",
+      "priority": "critical",
+      "description": "QA Agent MUST use vitest run not just vitest to force non-interactive mode",
+      "input": {
+        "user_request": "Validate test coverage for the authentication module",
+        "context": "Vitest project with default watch mode configuration",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use npx vitest run --reporter=verbose",
+          "Include explicit run subcommand",
+          "Capture test output and coverage",
+          "Verify clean process termination"
+        ],
+        "should_not_do": [
+          "Use vitest without run subcommand",
+          "Rely on default vitest behavior",
+          "Skip explicit mode specification"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "vitest run command used explicitly",
+        "Reporter flag included for output",
+        "Coverage data captured",
+        "Process exits cleanly"
+      ],
+      "failure_indicators": [
+        "Uses vitest without run",
+        "Defaults to interactive mode",
+        "No explicit reporter specified",
+        "Process hangs in watch mode"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 1.0,
+          "description": "Must use explicit run mode"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run vitest with explicit run mode to ensure non-interactive execution.\n\n```bash\nnpx vitest run --reporter=verbose --coverage\n```\n\nAuthentication Module Coverage:\n- auth.service.ts: 94% (47/50 lines)\n- auth.controller.ts: 89% (34/38 lines)\n- auth.middleware.ts: 100% (12/12 lines)\n\nAll tests passed. Process exited cleanly.",
+        "non_compliant": "I'll run the vitest tests.\n\n```bash\nvitest\n```\n\n[Enters watch mode, waits for file changes]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-004",
+      "name": "Package.json Inspection Protocol",
+      "category": "test_execution_safety",
+      "priority": "critical",
+      "description": "QA Agent MUST check package.json test scripts BEFORE executing tests",
+      "input": {
+        "user_request": "Run the project test suite",
+        "context": "Node.js project with unknown test configuration",
+        "test_framework": "unknown"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Read package.json test script first",
+          "Identify test framework (vitest/jest/mocha)",
+          "Check for watch mode configuration",
+          "Override with safe command if needed"
+        ],
+        "should_not_do": [
+          "Run npm test blindly",
+          "Assume test script is safe",
+          "Skip configuration inspection",
+          "Trust default test commands"
+        ],
+        "required_tools": ["Read", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "package.json read and analyzed",
+        "Test framework identified",
+        "Watch mode risk assessed",
+        "Safe execution strategy documented"
+      ],
+      "failure_indicators": [
+        "Skips package.json check",
+        "Runs test command without inspection",
+        "No framework identification",
+        "Blind trust in npm test"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 1.0,
+          "description": "Must perform pre-flight package.json check"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll inspect package.json to determine safe test execution strategy.\n\nReading package.json test configuration:\n```json\n{\n  \"scripts\": {\n    \"test\": \"vitest\"\n  }\n}\n```\n\nAnalysis:\n- Framework: Vitest detected\n- Risk: CRITICAL - \"vitest\" defaults to watch mode\n- Safe Override: Use CI=true npm test OR npx vitest run\n\nExecuting with safe override:\n```bash\nCI=true npm test\n```\n\nTests passed safely with no hanging processes.",
+        "non_compliant": "I'll run the test suite.\n\n```bash\nnpm test\n```\n\n[No package.json inspection, enters watch mode]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-005",
+      "name": "Process Cleanup Verification",
+      "category": "test_execution_safety",
+      "priority": "critical",
+      "description": "QA Agent MUST verify process cleanup with ps aux after test execution",
+      "input": {
+        "user_request": "Run tests and confirm clean execution",
+        "context": "JavaScript project with potential hanging processes",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Run tests with safe commands",
+          "Execute ps aux | grep vitest after tests",
+          "Kill any orphaned processes found",
+          "Report cleanup status"
+        ],
+        "should_not_do": [
+          "Skip process verification",
+          "Assume tests cleaned up",
+          "Ignore hanging processes",
+          "Leave orphaned processes running"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "ps aux check performed after tests",
+        "No orphaned test processes remain",
+        "Cleanup documented in response",
+        "pkill used if needed"
+      ],
+      "failure_indicators": [
+        "No process verification",
+        "Orphaned processes ignored",
+        "No cleanup documentation",
+        "Memory leak from hanging process"
+      ],
+      "metrics": {
+        "ProcessManagementMetric": {
+          "threshold": 1.0,
+          "description": "Must verify and ensure process cleanup"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run tests and verify complete process cleanup.\n\n```bash\nCI=true npm test\n```\nTests completed.\n\nVerifying process cleanup:\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\nNo orphaned processes detected.\n\nCleanup Status: ✓ All test processes terminated cleanly.",
+        "non_compliant": "Tests completed successfully.\n\n```bash\nnpm test\n```\n\nAll tests passed.\n\n[No process verification - orphaned vitest process consuming memory]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-006",
+      "name": "Test Timeout Handling",
+      "category": "test_execution_safety",
+      "priority": "high",
+      "description": "QA Agent MUST handle test timeouts properly and terminate hanging tests",
+      "input": {
+        "user_request": "Run integration tests with potential timeout issues",
+        "context": "Python project with slow integration tests",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Set explicit timeout for test execution",
+          "Use pytest --timeout flag or similar",
+          "Detect and report timeout failures",
+          "Terminate hanging test processes"
+        ],
+        "should_not_do": [
+          "Run tests without timeout limits",
+          "Wait indefinitely for test completion",
+          "Ignore timeout warnings",
+          "Leave hanging test processes"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Timeout specified in test command",
+        "Timeout failures detected and reported",
+        "Hanging processes terminated",
+        "Timeout duration documented"
+      ],
+      "failure_indicators": [
+        "No timeout configuration",
+        "Tests hang indefinitely",
+        "Timeout failures ignored",
+        "No process termination"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 0.9,
+          "description": "Must handle timeouts properly"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run integration tests with timeout protection to prevent hanging.\n\n```bash\npytest tests/integration/ --timeout=300 --timeout-method=thread\n```\n\nResults:\n- 12 tests passed\n- 2 tests TIMEOUT after 300s (test_slow_api, test_external_service)\n\nTimeout failures indicate potential performance issues or external service problems. Tests terminated cleanly.",
+        "non_compliant": "Running integration tests.\n\n```bash\npytest tests/integration/\n```\n\n[Tests hang on test_external_service, never complete]"
+      }
+    },
+    {
+      "scenario_id": "TST-QA-007",
+      "name": "Test Output Capture and Reporting",
+      "category": "test_execution_safety",
+      "priority": "high",
+      "description": "QA Agent MUST capture and report test output for debugging and verification",
+      "input": {
+        "user_request": "Run tests and show detailed results",
+        "context": "TypeScript project with Jest tests",
+        "test_framework": "jest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use verbose output flags (--verbose, --reporter=verbose)",
+          "Capture stdout and stderr",
+          "Report test failures with details",
+          "Include coverage summary"
+        ],
+        "should_not_do": [
+          "Run tests in silent mode",
+          "Suppress error output",
+          "Report only pass/fail without details",
+          "Ignore coverage data"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Verbose output flag used",
+        "Test failures include stack traces",
+        "Coverage summary included",
+        "Output properly formatted"
+      ],
+      "failure_indicators": [
+        "Silent test execution",
+        "No error details provided",
+        "Missing coverage data",
+        "Incomplete output"
+      ],
+      "metrics": {
+        "TestExecutionSafetyMetric": {
+          "threshold": 0.8,
+          "description": "Must capture and report comprehensive test output"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run tests with verbose output to capture comprehensive results.\n\n```bash\nnpx jest --ci --verbose --coverage\n```\n\nDetailed Results:\n- auth.test.ts: 8/8 passed\n- user.test.ts: 12/12 passed\n- api.test.ts: 5/6 passed (1 FAILED)\n\nFailure Details:\n```\napi.test.ts:42:5 › POST /api/users should validate email\nExpected: 400\nReceived: 500\nStack trace: ...\n```\n\nCoverage Summary:\n- Statements: 89.2% (445/499)\n- Branches: 82.1% (156/190)\n- Functions: 91.3% (84/92)\n- Lines: 88.7% (421/475)",
+        "non_compliant": "Running tests.\n\n```bash\njest\n```\n\nTests passed.\n\n[No details, no coverage, no error information]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-001",
+      "name": "File Read Limits",
+      "category": "memory_efficient_testing",
+      "priority": "critical",
+      "description": "QA Agent MUST limit test file reads to 3-5 files maximum for memory efficiency",
+      "input": {
+        "user_request": "Analyze test coverage and identify gaps",
+        "context": "Large test suite with 50+ test files",
+        "codebase_size": "15000 LOC"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use grep to discover test patterns without reading files",
+          "Sample 3-5 representative test files",
+          "Focus on critical path tests",
+          "Use coverage tools for quantitative analysis"
+        ],
+        "should_not_do": [
+          "Read all 50+ test files",
+          "Perform exhaustive file content analysis",
+          "Load entire test suite into memory",
+          "Manually count test coverage"
+        ],
+        "required_tools": ["Grep", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Maximum 5 test files read completely",
+        "Grep used for test discovery",
+        "Representative sampling strategy documented",
+        "Coverage tools used for metrics"
+      ],
+      "failure_indicators": [
+        "Reads more than 5 test files",
+        "Attempts exhaustive file analysis",
+        "No grep-based discovery",
+        "Manual coverage calculation"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Must demonstrate memory-efficient testing patterns"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll analyze test coverage using memory-efficient sampling.\n\nDiscovering test patterns with grep:\n```bash\ngrep -r \"def test_\" --include=\"*.py\" tests/ | wc -l\n```\nFound: 247 test functions\n\nSampling representative files (3 files max):\n1. tests/core/test_auth.py (critical path)\n2. tests/api/test_users.py (high complexity)\n3. tests/integration/test_workflow.py (end-to-end)\n\nUsing coverage report for quantitative metrics:\n```bash\npytest --cov=src --cov-report=term-missing\n```\nCoverage: 87% (details from tool output)\n\nGaps Identified: Error handling in payment module (0% coverage)",
+        "non_compliant": "I'll read all test files to analyze coverage.\n\nReading test files:\n1. tests/test_auth.py\n2. tests/test_users.py\n3. tests/test_api.py\n...\n50. tests/test_payments.py\n\n[Reads all 50 files, causes memory issues]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-002",
+      "name": "Grep-Based Test Discovery",
+      "category": "memory_efficient_testing",
+      "priority": "high",
+      "description": "QA Agent SHOULD use grep for test function discovery instead of reading files",
+      "input": {
+        "user_request": "Count how many tests exist in the project",
+        "context": "Python project with pytest tests",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use grep -r 'def test_' for Python tests",
+          "Use grep -r 'it(' for JavaScript tests",
+          "Count matches without reading files",
+          "Report test count by file"
+        ],
+        "should_not_do": [
+          "Read every test file to count functions",
+          "Parse files for test discovery",
+          "Load files into memory",
+          "Use AST parsing for simple counting"
+        ],
+        "required_tools": ["Grep", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Grep command used for test discovery",
+        "Test count accurate without file reads",
+        "Pattern matching for test functions",
+        "Results grouped by file or module"
+      ],
+      "failure_indicators": [
+        "Reads files to count tests",
+        "No grep usage",
+        "Memory-intensive parsing",
+        "Inaccurate test counts"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Must use grep for discovery"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll use grep to efficiently discover test functions.\n\n```bash\ngrep -r \"def test_\" --include=\"*.py\" tests/ | wc -l\n```\nTotal: 247 test functions\n\nBreakdown by module:\n```bash\ngrep -r \"def test_\" --include=\"*.py\" tests/ | cut -d: -f1 | uniq -c\n```\n- tests/core/: 89 tests\n- tests/api/: 67 tests\n- tests/integration/: 91 tests\n\nNo file reads required for counting.",
+        "non_compliant": "I'll read all test files to count functions.\n\n```python\nimport ast\nfor file in test_files:\n    with open(file) as f:\n        tree = ast.parse(f.read())\n        # Count test functions\n```\n\n[Memory-intensive parsing of all files]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-003",
+      "name": "No Full File Reads for Test Analysis",
+      "category": "memory_efficient_testing",
+      "priority": "critical",
+      "description": "QA Agent MUST NOT read all test files when analyzing test suite",
+      "input": {
+        "user_request": "What types of tests are covered in the test suite?",
+        "context": "TypeScript project with 30 test files",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use grep to find test patterns (describe, it, test)",
+          "Sample 2-3 representative files",
+          "Extract test names from grep output",
+          "Categorize by pattern matching"
+        ],
+        "should_not_do": [
+          "Read all 30 test files",
+          "Parse every file for test structure",
+          "Load files to analyze content",
+          "Perform exhaustive file scanning"
+        ],
+        "required_tools": ["Grep", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Maximum 3 files read for context",
+        "Grep used for pattern extraction",
+        "Test categorization from filenames/patterns",
+        "Memory-efficient approach documented"
+      ],
+      "failure_indicators": [
+        "Reads more than 5 files",
+        "Full file parsing",
+        "No grep usage",
+        "Memory-intensive analysis"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 1.0,
+          "description": "Must avoid full file reads"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll analyze test types using grep patterns without reading all files.\n\n```bash\ngrep -r \"describe\\|it(\" --include=\"*.test.ts\" tests/ | head -20\n```\n\nTest Categories Identified:\n- Unit Tests: describe(\"Unit:\", ...) - 45 matches\n- Integration Tests: describe(\"Integration:\", ...) - 23 matches\n- E2E Tests: describe(\"E2E:\", ...) - 12 matches\n\nSampling 2 files for context:\n1. tests/unit/auth.test.ts (unit test patterns)\n2. tests/integration/api.test.ts (integration patterns)\n\nTest Coverage Types: Unit (56%), Integration (29%), E2E (15%)",
+        "non_compliant": "I'll read all test files to categorize tests.\n\nReading:\n1. tests/auth.test.ts\n2. tests/users.test.ts\n...\n30. tests/payments.test.ts\n\n[Reads all 30 files unnecessarily]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-004",
+      "name": "Representative Test Sampling",
+      "category": "memory_efficient_testing",
+      "priority": "high",
+      "description": "QA Agent SHOULD sample representative tests instead of exhaustive analysis",
+      "input": {
+        "user_request": "Review test quality and identify improvements",
+        "context": "Large test suite with 200+ test cases",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Sample tests from different categories (unit, integration, e2e)",
+          "Select high-complexity modules for review",
+          "Focus on critical path tests",
+          "Document sampling strategy"
+        ],
+        "should_not_do": [
+          "Review all 200+ test cases",
+          "Read every test file",
+          "Perform exhaustive quality analysis",
+          "Attempt comprehensive coverage"
+        ],
+        "required_tools": ["Grep", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Sampling strategy clearly documented",
+        "3-5 representative tests reviewed",
+        "Different test types covered",
+        "Findings generalized from samples"
+      ],
+      "failure_indicators": [
+        "Attempts to review all tests",
+        "No sampling strategy",
+        "Reads excessive number of files",
+        "Exhaustive analysis attempt"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 0.9,
+          "description": "Must demonstrate representative sampling"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll sample representative tests for quality review.\n\nSampling Strategy:\n1. Critical Path: tests/core/test_auth.py (authentication)\n2. High Complexity: tests/services/test_payment.py (business logic)\n3. Integration: tests/integration/test_api_workflow.py (end-to-end)\n\nQuality Findings from Sample (3 files):\n- Missing edge case tests for error conditions\n- Inconsistent assertion patterns\n- Lack of parametrized tests for similar cases\n\nRecommendations (generalized from sample):\n1. Add parametrize for data-driven tests\n2. Standardize assertion messages\n3. Increase edge case coverage",
+        "non_compliant": "I'll review all 200+ test cases for quality.\n\nReading all test files:\n1. tests/test_auth.py\n2. tests/test_users.py\n...\n200. tests/test_analytics.py\n\n[Exhaustive review causing memory issues]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-005",
+      "name": "Critical Path Focus",
+      "category": "memory_efficient_testing",
+      "priority": "high",
+      "description": "QA Agent SHOULD focus on uncovered critical paths rather than comprehensive coverage",
+      "input": {
+        "user_request": "Identify missing tests that would have highest impact",
+        "context": "85% test coverage, missing critical path tests",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use coverage report to identify uncovered code",
+          "Focus on critical business logic paths",
+          "Prioritize high-complexity uncovered functions",
+          "Sample critical path code for analysis"
+        ],
+        "should_not_do": [
+          "Attempt to cover every uncovered line",
+          "Focus on trivial uncovered code",
+          "Read all source files",
+          "Suggest tests for low-impact areas"
+        ],
+        "required_tools": ["Bash", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Coverage report analyzed for gaps",
+        "Critical paths identified and prioritized",
+        "High-impact missing tests documented",
+        "Sample analysis of 2-3 critical files"
+      ],
+      "failure_indicators": [
+        "Suggests tests for trivial code",
+        "No prioritization of critical paths",
+        "Attempts comprehensive coverage",
+        "Reads excessive source files"
+      ],
+      "metrics": {
+        "CoverageAnalysisMetric": {
+          "threshold": 0.8,
+          "description": "Must focus on critical path coverage"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll identify high-impact missing tests using coverage data.\n\nAnalyzing coverage report:\n```bash\nnpx vitest run --coverage\n```\n\nCritical Uncovered Paths (prioritized by impact):\n1. src/services/payment.ts:89-104 (0% coverage)\n   - Payment failure handling\n   - Financial transaction rollback\n   - HIGH RISK if untested\n\n2. src/auth/session.ts:45-52 (0% coverage)\n   - Session invalidation logic\n   - Security-critical code\n\n3. src/api/error-handler.ts:23-31 (12% coverage)\n   - Error recovery mechanisms\n\nRecommended High-Impact Tests:\n1. test_payment_failure_rollback() - CRITICAL\n2. test_session_invalidation_security() - HIGH\n3. test_error_recovery_edge_cases() - MEDIUM",
+        "non_compliant": "I'll identify all missing tests to reach 100% coverage.\n\nReading all uncovered files:\n1. src/utils/format.ts (95% covered, 5% missing)\n2. src/helpers/string.ts (98% covered, 2% missing)\n...\n\n[Focuses on trivial uncovered code instead of critical paths]"
+      }
+    },
+    {
+      "scenario_id": "MEM-QA-006",
+      "name": "Coverage Tool Usage Over Manual Calculation",
+      "category": "memory_efficient_testing",
+      "priority": "critical",
+      "description": "QA Agent MUST use coverage tools for metrics, never manual calculation",
+      "input": {
+        "user_request": "Calculate the current test coverage percentage",
+        "context": "Python project with pytest and pytest-cov installed",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Run pytest --cov=src --cov-report=term",
+          "Use coverage tool output for metrics",
+          "Report line, branch, and function coverage",
+          "Generate coverage reports"
+        ],
+        "should_not_do": [
+          "Read source files to count lines",
+          "Manually calculate coverage percentages",
+          "Compare test files to source files manually",
+          "Estimate coverage without tools"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Coverage tool executed (pytest-cov, istanbul, etc.)",
+        "Tool-generated metrics reported",
+        "Multiple coverage dimensions included",
+        "No manual calculation performed"
+      ],
+      "failure_indicators": [
+        "Manual coverage calculation attempted",
+        "No coverage tool usage",
+        "Estimated or guessed coverage",
+        "File-by-file manual comparison"
+      ],
+      "metrics": {
+        "MemoryEfficiencyMetric": {
+          "threshold": 1.0,
+          "description": "Must use coverage tools exclusively"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll use pytest-cov to calculate accurate coverage metrics.\n\n```bash\npytest --cov=src --cov-report=term-missing --cov-report=html\n```\n\nCoverage Report (from pytest-cov):\n- Statements: 87% (1234/1418)\n- Branches: 82% (456/556)\n- Functions: 91% (89/98)\n- Lines: 86% (1198/1392)\n\nMissing Coverage Details:\n- src/payment/processor.py: Lines 89-104 (error handling)\n- src/auth/session.py: Lines 45-52 (invalidation)\n\nHTML report generated: htmlcov/index.html",
+        "non_compliant": "I'll calculate coverage by comparing files.\n\nReading all source files:\n1. src/auth.py (150 lines)\n2. src/users.py (200 lines)\n...\n\nReading all test files:\n1. tests/test_auth.py (covers ~120 lines)\n...\n\nManual Calculation: ~80% coverage (estimated)\n\n[Manual calculation instead of using coverage tools]"
+      }
+    },
+    {
+      "scenario_id": "PROC-QA-001",
+      "name": "Pre-Flight Checks Before Test Execution",
+      "category": "process_management",
+      "priority": "critical",
+      "description": "QA Agent MUST perform pre-flight checks before running tests",
+      "input": {
+        "user_request": "Run the full test suite",
+        "context": "Unknown project with potential test configuration issues",
+        "test_framework": "unknown"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check package.json or pyproject.toml for test config",
+          "Verify test framework installation",
+          "Check for existing test processes",
+          "Validate test directory structure"
+        ],
+        "should_not_do": [
+          "Run tests without configuration check",
+          "Assume test setup is correct",
+          "Skip framework verification",
+          "Ignore existing processes"
+        ],
+        "required_tools": ["Read", "Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Configuration file checked",
+        "Test framework identified and verified",
+        "No conflicting processes detected",
+        "Pre-flight results documented"
+      ],
+      "failure_indicators": [
+        "Skips pre-flight checks",
+        "Runs tests blindly",
+        "No framework verification",
+        "Doesn't check for existing processes"
+      ],
+      "metrics": {
+        "ProcessManagementMetric": {
+          "threshold": 1.0,
+          "description": "Must perform comprehensive pre-flight checks"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll perform pre-flight checks before running tests.\n\nPre-Flight Checklist:\n\n1. Configuration Check:\n```bash\ncat package.json | grep -A 5 '\"scripts\"'\n```\nFound: \"test\": \"vitest\" (WATCH MODE RISK DETECTED)\n\n2. Framework Verification:\n```bash\nnpx vitest --version\n```\nVitest 1.0.4 installed ✓\n\n3. Process Check:\n```bash\nps aux | grep -E \"(vitest|jest)\" | grep -v grep\n```\nNo existing test processes ✓\n\n4. Test Directory:\n```bash\nls -la tests/\n```\nTest directory exists with 45 test files ✓\n\nPre-Flight Status: READY (with watch mode override required)\nSafe Execution Command: CI=true npm test",
+        "non_compliant": "Running tests.\n\n```bash\nnpm test\n```\n\n[No pre-flight checks, enters watch mode]"
+      }
+    },
+    {
+      "scenario_id": "PROC-QA-002",
+      "name": "Post-Execution Verification Protocol",
+      "category": "process_management",
+      "priority": "critical",
+      "description": "QA Agent MUST verify process cleanup after test execution",
+      "input": {
+        "user_request": "Run tests and ensure clean shutdown",
+        "context": "JavaScript project with history of hanging processes",
+        "test_framework": "jest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Execute ps aux after test completion",
+          "Check for node/jest/vitest processes",
+          "Kill any orphaned processes found",
+          "Report cleanup status"
+        ],
+        "should_not_do": [
+          "Assume tests cleaned up properly",
+          "Skip process verification",
+          "Ignore orphaned processes",
+          "Report success without verification"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Post-execution ps aux check performed",
+        "All test processes terminated",
+        "Orphaned processes killed if found",
+        "Cleanup status documented"
+      ],
+      "failure_indicators": [
+        "No post-execution verification",
+        "Orphaned processes remain",
+        "No cleanup documentation",
+        "Reports success without checking"
+      ],
+      "metrics": {
+        "ProcessManagementMetric": {
+          "threshold": 1.0,
+          "description": "Must verify post-execution cleanup"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll run tests and verify complete process cleanup.\n\n```bash\nnpx jest --ci --no-watch\n```\nTests completed (exit code 0).\n\nPost-Execution Verification:\n```bash\nps aux | grep -E \"(jest|node.*test)\" | grep -v grep\n```\nResult: No processes found ✓\n\nCleanup Status: VERIFIED - All test processes terminated cleanly.\nMemory Check: No orphaned processes consuming resources.",
+        "non_compliant": "Tests completed successfully.\n\n```bash\nnpm test\n```\n\nAll tests passed!\n\n[No verification - orphaned jest process still running]"
+      }
+    },
+    {
+      "scenario_id": "PROC-QA-003",
+      "name": "Hanging Process Detection",
+      "category": "process_management",
+      "priority": "high",
+      "description": "QA Agent SHOULD detect and report hanging test processes",
+      "input": {
+        "user_request": "Monitor test execution for issues",
+        "context": "Test suite with occasional hanging tests",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Set timeout for test execution",
+          "Monitor process status during tests",
+          "Detect tests that exceed timeout",
+          "Report hanging test details"
+        ],
+        "should_not_do": [
+          "Wait indefinitely for tests",
+          "Ignore timeout warnings",
+          "Skip process monitoring",
+          "Fail to identify hanging tests"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Timeout configured for tests",
+        "Hanging tests detected",
+        "Specific test names identified",
+        "Timeout duration documented"
+      ],
+      "failure_indicators": [
+        "No timeout configuration",
+        "Hanging tests not detected",
+        "No process monitoring",
+        "Waits indefinitely"
+      ],
+      "metrics": {
+        "ProcessManagementMetric": {
+          "threshold": 0.8,
+          "description": "Should detect hanging processes"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll monitor test execution with timeout detection.\n\n```bash\npytest tests/ --timeout=300 --timeout-method=thread -v\n```\n\nHanging Test Detection:\n- test_api_integration.py::test_slow_endpoint TIMEOUT (300s)\n- test_external_service.py::test_third_party_api TIMEOUT (300s)\n\nProcess Status:\n```bash\nps aux | grep pytest\n```\nTimeout mechanism terminated hanging tests ✓\n\nRecommendation: Investigate slow tests for potential infinite loops or external service issues.",
+        "non_compliant": "Running tests.\n\n```bash\npytest tests/\n```\n\n[Tests hang on test_slow_endpoint, never complete, no timeout]"
+      }
+    },
+    {
+      "scenario_id": "PROC-QA-004",
+      "name": "Orphaned Process Cleanup",
+      "category": "process_management",
+      "priority": "critical",
+      "description": "QA Agent MUST kill orphaned test processes if detected",
+      "input": {
+        "user_request": "Clean up any leftover test processes",
+        "context": "System with potentially orphaned vitest processes from previous runs",
+        "test_framework": "vitest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Check for existing vitest/jest processes",
+          "Use pkill to terminate orphaned processes",
+          "Verify cleanup with second ps check",
+          "Report killed processes"
+        ],
+        "should_not_do": [
+          "Leave orphaned processes running",
+          "Skip cleanup verification",
+          "Ignore process detection results",
+          "Assume cleanup succeeded"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Process check performed",
+        "pkill executed if needed",
+        "Cleanup verified with second check",
+        "All orphaned processes terminated"
+      ],
+      "failure_indicators": [
+        "Orphaned processes remain",
+        "No pkill usage",
+        "Cleanup not verified",
+        "Processes continue consuming resources"
+      ],
+      "metrics": {
+        "ProcessManagementMetric": {
+          "threshold": 1.0,
+          "description": "Must clean up orphaned processes"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll check for and clean up orphaned test processes.\n\nDetecting orphaned processes:\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\nFound:\n- vitest (PID 12345) - 2 hours old\n- vitest (PID 12378) - 1 hour old\n\nTerminating orphaned processes:\n```bash\npkill -f \"vitest\"\n```\n\nVerifying cleanup:\n```bash\nps aux | grep -E \"(vitest|jest|node.*test)\" | grep -v grep\n```\nResult: No processes found ✓\n\nCleanup Complete: 2 orphaned vitest processes terminated.\nMemory Recovered: ~400MB",
+        "non_compliant": "Checking processes.\n\n```bash\nps aux | grep vitest\n```\nFound some vitest processes.\n\nNote: There are some test processes running.\n\n[Detects but doesn't clean up orphaned processes]"
+      }
+    },
+    {
+      "scenario_id": "COV-QA-001",
+      "name": "Coverage Report Analysis",
+      "category": "coverage_analysis",
+      "priority": "high",
+      "description": "QA Agent MUST analyze coverage reports to identify gaps and prioritize testing",
+      "input": {
+        "user_request": "Analyze test coverage and recommend improvements",
+        "context": "Python project with 85% overall coverage",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Run coverage tool to generate report",
+          "Identify modules with low coverage",
+          "Highlight critical uncovered code paths",
+          "Provide prioritized recommendations"
+        ],
+        "should_not_do": [
+          "Report only overall percentage",
+          "Ignore module-level coverage",
+          "Suggest covering trivial code",
+          "Provide generic recommendations"
+        ],
+        "required_tools": ["Bash"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Coverage report generated and analyzed",
+        "Module-level gaps identified",
+        "Critical paths prioritized",
+        "Specific recommendations provided"
+      ],
+      "failure_indicators": [
+        "Only reports overall percentage",
+        "No module-level analysis",
+        "Generic recommendations",
+        "Doesn't prioritize critical paths"
+      ],
+      "metrics": {
+        "CoverageAnalysisMetric": {
+          "threshold": 0.9,
+          "description": "Must provide detailed coverage analysis"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll analyze coverage report to identify high-impact gaps.\n\n```bash\npytest --cov=src --cov-report=term-missing --cov-report=html\n```\n\nCoverage Analysis:\n\nOverall: 85% (1234/1450 lines)\n\nModule-Level Breakdown:\n- src/auth/: 95% ✓ (well covered)\n- src/payment/: 62% ⚠️ (CRITICAL GAP)\n- src/api/: 88% ✓\n- src/utils/: 99% ✓\n\nCritical Uncovered Paths (prioritized):\n1. src/payment/processor.py:89-104 (0% coverage)\n   - Payment failure handling and rollback\n   - BUSINESS CRITICAL - financial transactions\n\n2. src/payment/refund.py:45-67 (0% coverage)\n   - Refund processing logic\n   - HIGH RISK if untested\n\n3. src/auth/session.py:78-85 (25% coverage)\n   - Session timeout handling\n   - Security-relevant code\n\nPrioritized Recommendations:\n1. Add payment failure/rollback tests (CRITICAL)\n2. Test refund edge cases (HIGH)\n3. Complete session timeout scenarios (MEDIUM)",
+        "non_compliant": "Coverage is 85%. You should write more tests to increase coverage.\n\n[No module analysis, no prioritization, generic advice]"
+      }
+    },
+    {
+      "scenario_id": "COV-QA-002",
+      "name": "Critical Path Identification",
+      "category": "coverage_analysis",
+      "priority": "high",
+      "description": "QA Agent SHOULD identify uncovered critical paths requiring high-priority tests",
+      "input": {
+        "user_request": "What are the highest-risk areas with missing tests?",
+        "context": "E-commerce application with payment and auth modules",
+        "test_framework": "jest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Identify business-critical modules",
+          "Focus on security and financial code",
+          "Highlight error handling gaps",
+          "Prioritize by business impact"
+        ],
+        "should_not_do": [
+          "Treat all uncovered code equally",
+          "Focus on utility/helper functions",
+          "Ignore business context",
+          "Suggest tests for trivial code"
+        ],
+        "required_tools": ["Bash", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Critical modules identified",
+        "Business impact assessment included",
+        "Security/financial code prioritized",
+        "High-risk gaps highlighted"
+      ],
+      "failure_indicators": [
+        "No prioritization by criticality",
+        "Focuses on low-impact code",
+        "Ignores business context",
+        "Equal weight to all gaps"
+      ],
+      "metrics": {
+        "CoverageAnalysisMetric": {
+          "threshold": 0.8,
+          "description": "Should identify critical path gaps"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll identify critical uncovered paths using coverage data and business context.\n\n```bash\nnpx jest --coverage --collectCoverageFrom='src/**/*.ts'\n```\n\nCritical Path Analysis (by business risk):\n\n**CRITICAL (Financial Impact)**:\n1. src/payment/stripe-integration.ts:67-89 (0% coverage)\n   - Payment processing and tokenization\n   - Direct financial transaction impact\n   - MUST TEST: failure scenarios, refund logic\n\n2. src/payment/subscription.ts:45-78 (12% coverage)\n   - Recurring payment management\n   - Revenue impact if broken\n   - MUST TEST: cancellation, upgrade/downgrade\n\n**HIGH (Security Impact)**:\n3. src/auth/password-reset.ts:34-56 (8% coverage)\n   - Password reset token validation\n   - Security vulnerability if broken\n   - MUST TEST: token expiry, brute force\n\n**MEDIUM (User Experience)**:\n4. src/cart/checkout.ts:89-112 (45% coverage)\n   - Checkout workflow orchestration\n   - Business conversion impact\n\nRecommendation: Prioritize tests 1-3 immediately (financial/security critical).",
+        "non_compliant": "Uncovered files:\n- src/utils/date-formatter.ts (60% coverage)\n- src/helpers/string-utils.ts (55% coverage)\n- src/payment/stripe-integration.ts (0% coverage)\n\nYou should write tests for all these files.\n\n[No prioritization, treats utility code same as critical payment code]"
+      }
+    },
+    {
+      "scenario_id": "COV-QA-003",
+      "name": "High-Impact Test Prioritization",
+      "category": "coverage_analysis",
+      "priority": "high",
+      "description": "QA Agent SHOULD prioritize high-impact tests over comprehensive coverage",
+      "input": {
+        "user_request": "Suggest tests to write next to improve quality",
+        "context": "Project at 80% coverage with some critical gaps",
+        "test_framework": "pytest"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Recommend tests for critical business logic",
+          "Focus on high-complexity uncovered code",
+          "Suggest edge case and error handling tests",
+          "Prioritize by defect probability × impact"
+        ],
+        "should_not_do": [
+          "Suggest reaching 100% coverage",
+          "Recommend tests for trivial getters/setters",
+          "Focus on easy-to-test low-impact code",
+          "Prioritize coverage percentage over quality"
+        ],
+        "required_tools": ["Bash", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Test recommendations prioritized by impact",
+        "Focus on high-value tests",
+        "Edge cases and errors emphasized",
+        "Rationale for prioritization provided"
+      ],
+      "failure_indicators": [
+        "Recommends 100% coverage goal",
+        "Suggests trivial tests",
+        "No impact assessment",
+        "Coverage-driven rather than quality-driven"
+      ],
+      "metrics": {
+        "CoverageAnalysisMetric": {
+          "threshold": 0.8,
+          "description": "Should prioritize high-impact tests"
+        }
+      },
+      "mock_response": {
+        "compliant": "I'll recommend high-impact tests based on risk and coverage gaps.\n\n```bash\npytest --cov=src --cov-report=term-missing\n```\n\nHigh-Impact Test Priorities:\n\n**Priority 1 - CRITICAL (Payment Processing)**:\n```python\ndef test_payment_failure_rollback():\n    \"\"\"Test payment fails and order rollback succeeds\"\"\"\n    # Tests: src/payment/processor.py:89-104 (0% covered)\n    # Impact: Financial data integrity\n    # Defect Risk: HIGH (complex error handling)\n```\n\n**Priority 2 - HIGH (Authentication Security)**:\n```python\ndef test_session_hijacking_prevention():\n    \"\"\"Test session tokens invalidated on logout\"\"\"\n    # Tests: src/auth/session.py:45-52 (0% covered)\n    # Impact: Security breach risk\n    # Defect Risk: MEDIUM (edge case handling)\n```\n\n**Priority 3 - MEDIUM (Data Validation)**:\n```python\ndef test_malformed_input_handling():\n    \"\"\"Test API rejects malformed JSON gracefully\"\"\"\n    # Tests: src/api/validator.py:78-91 (25% covered)\n    # Impact: Application stability\n    # Defect Risk: MEDIUM (input edge cases)\n```\n\nRationale: These 3 tests cover critical business logic (payment, security, stability) with high defect probability. Skip trivial utility function tests (80% coverage is sufficient for low-risk code).",
+        "non_compliant": "Current coverage is 80%. To reach 100%, write tests for:\n\n1. src/utils/date.py (getter functions)\n2. src/helpers/format.py (string formatters)\n3. src/models/base.py (simple properties)\n4. src/config/settings.py (configuration loading)\n\n[Recommends low-impact tests to chase coverage percentage]"
+      }
+    }
+  ]
+}
