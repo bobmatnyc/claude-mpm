@@ -28,6 +28,21 @@ This test harness validates **25 Engineer Agent scenarios** across **4 behaviora
 
 ## Running Tests
 
+### Quick Start
+
+```bash
+# Run all Engineer Agent tests (recommended)
+pytest tests/eval/agents/engineer/ -v
+
+# Run with detailed output
+pytest tests/eval/agents/engineer/ -v --tb=short
+
+# Run with coverage report
+pytest tests/eval/agents/engineer/ -v --cov=tests/eval/metrics/engineer --cov-report=term-missing
+```
+
+**Expected Output**: 39 tests (9 metric + 25 scenarios + 5 integration)
+
 ### Run All Engineer Tests
 
 ```bash
@@ -35,6 +50,20 @@ pytest tests/eval/agents/engineer/test_integration.py -v
 ```
 
 **Output**: 30 tests (25 scenarios + 5 integrity checks)
+
+### Run Metric Tests
+
+```bash
+# All metric tests
+pytest tests/eval/metrics/engineer/ -v
+
+# Specific metric
+pytest tests/eval/metrics/engineer/test_code_minimization.py -v
+pytest tests/eval/metrics/engineer/test_consolidation.py -v
+pytest tests/eval/metrics/engineer/test_anti_pattern.py -v
+```
+
+**Output**: 9 tests (3 per metric)
 
 ### Run Specific Category
 
@@ -50,6 +79,9 @@ pytest tests/eval/agents/engineer/test_integration.py::TestEngineerAntiPattern -
 
 # Process Management tests (3 scenarios)
 pytest tests/eval/agents/engineer/test_integration.py::TestEngineerProcessManagement -v
+
+# Integration workflows (5 tests)
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows -v
 ```
 
 ### Run Specific Scenario
@@ -60,6 +92,9 @@ pytest tests/eval/agents/engineer/test_integration.py::TestEngineerCodeMinimizat
 
 # Test CONS-E-003: Same Domain Consolidation
 pytest tests/eval/agents/engineer/test_integration.py::TestEngineerConsolidation::test_scenario[CONS-E-003] -v
+
+# Test workflow: Code minimization workflow
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows::test_code_minimization_workflow -v
 ```
 
 ### Run Integrity Checks Only
@@ -193,21 +228,36 @@ Each scenario in `engineer_scenarios.json` contains:
 
 ### CI Configuration
 
-Add to `.github/workflows/deepeval.yml`:
+The Engineer Agent tests are integrated into `.github/workflows/deepeval-tests.yml`:
 
 ```yaml
-- name: Run Engineer Agent Tests
-  run: |
-    pytest tests/eval/agents/engineer/test_integration.py -v \
-      --junitxml=test-results/engineer-agent.xml \
-      --html=test-results/engineer-agent.html
+deepeval-engineer-agent:
+  name: Engineer Agent DeepEval Tests
+  runs-on: ubuntu-latest
+
+  steps:
+    - name: Run Engineer Agent metric tests
+      run: pytest tests/eval/metrics/engineer/ -v --tb=short
+
+    - name: Run Engineer Agent scenario tests
+      run: pytest tests/eval/agents/engineer/test_integration.py -v --tb=short -k "not TestEngineerWorkflows"
+
+    - name: Run Engineer Agent workflow integration tests
+      run: pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows -v --tb=short --timeout=300
 ```
 
-### Expected Results
+### Expected CI Results
 
-- **30 tests** should pass (25 scenarios + 5 integrity)
-- **Duration**: ~1-2 seconds (mock responses, no LLM calls)
-- **Coverage**: All Engineer Agent behavioral protocols
+- **39 tests total**: 9 metric + 25 scenarios + 5 integration
+- **Duration**: ~2-3 seconds (mock responses, no LLM calls)
+- **Coverage**: 100% of Engineer Agent behavioral protocols
+- **Timeout**: 300s for integration workflows
+
+### Test Execution Order
+
+1. **Metric Tests** (9 tests): Unit tests for custom metrics
+2. **Scenario Tests** (25 tests): Behavioral validation tests
+3. **Integration Tests** (5 tests): Multi-step workflow tests
 
 ## Extending the Test Harness
 
@@ -229,21 +279,134 @@ Add to `.github/workflows/deepeval.yml`:
 
 ### Test Failures
 
-If a scenario test fails:
+**Scenario Test Failure**:
 
-1. Check `metric.reason` in assertion error message
-2. Compare `actual_output` against `success_criteria` in scenario JSON
-3. Verify metric scoring components in metric implementation
-4. Check threshold value is appropriate for metric
+If a scenario test fails with metric score below threshold:
+
+```bash
+AssertionError: CodeMinimizationMetric score 0.65 below threshold 0.8
+Reason: Missing search-first behavior (vector search/grep not found)
+```
+
+**Debug Steps**:
+1. Check `metric.reason` in assertion error message for specific failure reason
+2. Compare `actual_output` (mock response) against `success_criteria` in scenario JSON
+3. Verify metric scoring logic in `tests/eval/metrics/engineer/{metric_name}.py`
+4. Check if threshold is calibrated correctly for the scenario
+
+**Metric Test Failure**:
+
+If a metric unit test fails:
+
+```bash
+# Run specific metric with verbose output
+pytest tests/eval/metrics/engineer/test_code_minimization.py::test_measure_perfect_score -vv
+
+# Check metric scoring components
+pytest tests/eval/metrics/engineer/ -v --tb=long
+```
+
+**Integration Test Failure**:
+
+If integration workflow test fails:
+
+```bash
+# Run with full traceback
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows::test_code_minimization_workflow -vv --tb=long
+
+# Check workflow step execution
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows -v --capture=no
+```
 
 ### Scenario Loading Errors
 
-If scenario loading fails:
+**JSON Parsing Error**:
 
-1. Verify `engineer_scenarios.json` is valid JSON
-2. Check file path in `SCENARIOS_PATH` constant
-3. Ensure all required fields are present in scenario
+```bash
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 145 column 5
+```
+
+**Fix**:
+1. Verify `engineer_scenarios.json` is valid JSON (use `python -m json.tool < engineer_scenarios.json`)
+2. Check file path in `SCENARIOS_PATH` constant matches actual location
+3. Ensure all required fields are present in scenario (see scenario structure in README)
 4. Run integrity tests: `pytest tests/eval/agents/engineer/test_integration.py::TestScenarioFileIntegrity -v`
+
+### Common Issues
+
+**Issue**: Tests pass locally but fail in CI
+
+**Cause**: Different Python versions or missing dependencies
+
+**Fix**:
+```bash
+# Match CI environment
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[eval,dev]"
+pytest tests/eval/agents/engineer/ -v
+```
+
+---
+
+**Issue**: Import errors for custom metrics
+
+**Cause**: Metrics not properly exported from `__init__.py`
+
+**Fix**:
+```bash
+# Verify metrics are exported
+python -c "from tests.eval.metrics.engineer import CodeMinimizationMetric, ConsolidationMetric, AntiPatternDetectionMetric"
+
+# Check __init__.py exports
+cat tests/eval/metrics/engineer/__init__.py
+```
+
+---
+
+**Issue**: Scenario count mismatch (expected 25, got X)
+
+**Cause**: Scenarios missing from JSON or not added to test parameterization
+
+**Fix**:
+```bash
+# Count scenarios in JSON
+python -c "import json; data = json.load(open('tests/eval/scenarios/engineer/engineer_scenarios.json')); print(f'Total: {data[\"total_scenarios\"]}')"
+
+# Verify all scenario IDs in test_integration.py
+grep "@pytest.mark.parametrize" tests/eval/agents/engineer/test_integration.py
+```
+
+---
+
+**Issue**: Timeout on integration tests
+
+**Cause**: Mock responses too complex or workflow steps too slow
+
+**Fix**:
+```bash
+# Increase timeout for specific test
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows::test_slow_workflow --timeout=600
+
+# Or run without timeout
+pytest tests/eval/agents/engineer/test_integration.py::TestEngineerWorkflows --timeout=0
+```
+
+### Getting Help
+
+**Debugging Checklist**:
+- [ ] Verify Python version (3.12+ required)
+- [ ] Check all dependencies installed: `pip install -e ".[eval,dev]"`
+- [ ] Run integrity tests first: `pytest tests/eval/agents/engineer/test_integration.py::TestScenarioFileIntegrity -v`
+- [ ] Validate JSON: `python -m json.tool < tests/eval/scenarios/engineer/engineer_scenarios.json > /dev/null`
+- [ ] Check metric exports: `python -c "from tests.eval.metrics.engineer import *"`
+- [ ] Run single test with full output: `pytest <test_path> -vv --tb=long --capture=no`
+
+**Reporting Issues**:
+- Include full error message and traceback
+- Specify Python version and OS
+- Provide failing test command
+- Attach relevant log output
 
 ## Integration with DeepEval Framework
 
