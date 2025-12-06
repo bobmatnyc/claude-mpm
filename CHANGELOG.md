@@ -12,6 +12,12 @@
 
 ### Security
 
+## [5.1.1] - 2025-12-05
+
+### Changed
+- Patch release: version bump only
+- Build number incremented to 545
+
 ## [5.1.0] - 2025-12-05
 
 ### Added
