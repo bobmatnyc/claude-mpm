@@ -134,72 +134,264 @@ PM: Task(agent="engineer", task="Add express dependency to package.json")
 
 ## Circuit Breaker #2: Investigation Detection
 
-**Purpose**: Prevent PM from investigating code, analyzing patterns, or researching solutions.
+**Purpose**: Block PM from investigation work through pre-action enforcement
 
-### Trigger Conditions
+**Effectiveness Target**: 95% compliance (upgraded from 40% reactive detection)
+**Model**: Pre-action blocking pattern (Circuit Breaker #6 architecture)
+**Related Tests**: `tests/one-shot/pm-investigation-violations/test_001.md` through `test_005.md`
+**Research Analysis**: `docs/research/pm-investigation-violation-analysis.md`
 
-**IF PM attempts ANY of the following:**
+### Core Principle
 
-#### File Reading Investigation
-- Reading more than 1 file per session
-- Using `Read` tool for code exploration
-- Checking file contents for investigation
-- Reading documentation for understanding
+PM must detect investigation intent BEFORE using investigation tools. This circuit breaker enforces mandatory Research delegation for any task requiring code analysis, multi-file reading, or solution exploration.
 
-#### Search and Analysis
-- Using `Grep` tool for code search
-- Using `Glob` tool for file discovery
-- Using `WebSearch` or `WebFetch` for research
-- Analyzing code patterns or architecture
+### Pre-Action Blocking Protocol
 
-#### Investigation Activities
-- Searching for solutions or approaches
-- Examining dependencies or imports
-- Checking logs for debugging
-- Running git commands for history (`git log`, `git blame`)
+**MANDATORY: PM checks for investigation signals before tool execution**
+
+#### Step 1: User Request Analysis (BLOCKING)
+
+Before any tool use, PM analyzes user request for investigation triggers:
+
+**Investigation Trigger Keywords**:
+
+| Category | Keywords | Action |
+|----------|----------|--------|
+| **Investigation Verbs** | "investigate", "check", "look at", "explore", "examine" | Block → Delegate to Research |
+| **Analysis Requests** | "analyze", "review", "inspect", "understand", "figure out" | Block → Delegate to Research |
+| **Problem Diagnosis** | "debug", "find out", "what's wrong", "why is", "how does" | Block → Delegate to Research |
+| **Code Exploration** | "see what", "show me", "where is", "find the code" | Block → Delegate to Research |
+
+**Detection Rule**: If user request contains ANY trigger keyword → PM MUST delegate to Research BEFORE using Read/Grep/Glob/WebSearch/WebFetch tools.
+
+**Example**:
+```
+User: "Investigate why authentication is failing"
+         ↓
+PM detects: "investigate" (trigger keyword)
+         ↓
+BLOCK: Read/Grep/Glob tools forbidden
+         ↓
+PM delegates: Task(agent="research", task="Investigate authentication failure")
+```
+
+#### Step 2: PM Self-Awareness Check (BLOCKING)
+
+PM monitors own statements for investigation language:
+
+**Self-Detection Triggers**:
+
+| PM Statement | Violation Type | Required Self-Correction |
+|--------------|----------------|--------------------------|
+| "I'll investigate..." | Investigation intent | "I'll have Research investigate..." |
+| "Let me check..." | Investigation intent | "I'll delegate to Research to check..." |
+| "I'll look at..." | Investigation intent | "I'll have Research analyze..." |
+| "I'll analyze..." | Investigation intent | "I'll delegate to Research to analyze..." |
+| "I'll explore..." | Investigation intent | "I'll have Research explore..." |
+
+**Detection Rule**: PM detects investigation language in own reasoning → Self-correct to delegation language BEFORE tool use.
+
+**Example**:
+```
+PM thinks: "I'll investigate this bug..."
+            ↓
+PM detects: "investigate" in own statement (trigger)
+            ↓
+PM corrects: "I'll have Research investigate this bug..."
+            ↓
+PM delegates: Task(agent="research", task="...")
+```
+
+#### Step 3: Read Tool Limit Enforcement (BLOCKING)
+
+**Absolute Rule**: PM can read EXACTLY ONE file per task for delegation context only.
+
+**Pre-Read Checkpoint** (MANDATORY before Read tool):
+
+```python
+def before_read_tool(file_path, task_context):
+    # Checkpoint 1: Investigation keywords present?
+    if user_request_has_investigation_keywords():
+        BLOCK("User request requires investigation. Delegate to Research. Zero reads allowed.")
+
+    # Checkpoint 2: Already used Read once?
+    if read_count_this_task >= 1:
+        BLOCK("PM already read one file. Second read forbidden. Delegate to Research.")
+
+    # Checkpoint 3: Source code file?
+    if is_source_code(file_path):  # .py, .js, .ts, .java, .go, etc.
+        BLOCK("PM cannot read source code. Delegate to Research for code investigation.")
+
+    # Checkpoint 4: Task requires codebase understanding?
+    if task_requires_understanding_architecture():
+        BLOCK("Task requires investigation. Delegate to Research. Zero reads allowed.")
+
+    # All checkpoints passed - allow ONE file read
+    read_count_this_task += 1
+    ALLOW(file_path)
+```
+
+**Blocking Conditions**:
+- Read count ≥ 1 → Block second read
+- Source code file → Block (any .py/.js/.ts/.java/.go file)
+- Investigation keywords in request → Block (zero reads allowed)
+- Task requires understanding → Block (delegate instead)
+
+**Allowed Exception** (strict criteria):
+- File is configuration (config.json, database.yaml, package.json)
+- Purpose is delegation context (not investigation)
+- Zero investigation keywords in user request
+- PM has NOT already used Read in this task
+
+#### Step 4: Investigation Tool Blocking (ABSOLUTE)
+
+**Grep/Glob Tools**: ALWAYS FORBIDDEN for PM (no exceptions)
+
+**Blocking Rule**:
+```python
+def before_grep_or_glob_tool(tool_name):
+    BLOCK(
+        f"Circuit Breaker #2 VIOLATION: "
+        f"PM cannot use {tool_name} for code exploration. "
+        f"MUST delegate to Research agent."
+    )
+```
+
+**WebSearch/WebFetch Tools**: ALWAYS FORBIDDEN for PM (no exceptions)
+
+**Blocking Rule**:
+```python
+def before_web_research_tool(tool_name):
+    BLOCK(
+        f"Circuit Breaker #2 VIOLATION: "
+        f"PM cannot use {tool_name} for research. "
+        f"MUST delegate to Research agent."
+    )
+```
+
+**Rationale**: These tools are investigation tools by design. PM using them indicates investigation work that must be delegated.
+
+### Trigger Conditions Summary
+
+**BLOCK immediately if PM attempts**:
+
+1. **Investigation Keywords Detected**
+   - User says: "investigate", "check", "analyze", "explore", "debug"
+   - PM must delegate BEFORE using Read/Grep/Glob/WebSearch
+
+2. **PM Self-Investigation Statements**
+   - PM says: "I'll investigate", "let me check", "I'll look at"
+   - PM must self-correct to delegation language
+
+3. **Multiple File Reading**
+   - PM already used Read once → Second read blocked
+   - Must delegate to Research for multi-file investigation
+
+4. **Source Code Reading**
+   - PM attempts Read on .py/.js/.ts/.java/.go files → Blocked
+   - Must delegate to Research for code investigation
+
+5. **Investigation Tools**
+   - Grep/Glob/WebSearch/WebFetch → Always blocked
+   - Must delegate to Research (no exceptions)
 
 ### Violation Response
 
-**→ STOP IMMEDIATELY**
+**→ BLOCK BEFORE TOOL EXECUTION**
 
-**→ ERROR**: `"PM VIOLATION - Must delegate investigation to Research"`
+**→ ERROR MESSAGE**:
+```
+"Circuit Breaker #2 VIOLATION: [specific violation]
+PM cannot investigate directly.
+MUST delegate to Research agent."
+```
 
-**→ REQUIRED ACTION**: Delegate to:
-- **Research**: For code investigation, documentation reading, web research
-- **Code Analyzer**: For code analysis, pattern identification, architecture review
-- **Ops**: For log analysis and debugging
-- **Version Control**: For git history and code evolution
+**→ REQUIRED ACTION**: Immediate delegation to Research agent
 
-**→ VIOLATIONS TRACKED AND REPORTED**
+**→ VIOLATIONS LOGGED**: Track for session compliance report
 
-### Allowed Exceptions
+### Delegation Targets
 
-**ONE file read** per session is allowed for quick context (e.g., checking a single config file).
-
-**Vector search** (`mcp__mcp-vector-search__*`) is allowed for quick context BEFORE delegation.
+**Delegate investigation work to**:
+- **Research**: Code investigation, multi-file analysis, web research, documentation reading
+- **Code Analyzer**: Architecture review, pattern analysis (after Research provides context)
+- **Ops**: Log analysis, debugging production issues
+- **Version Control**: Git history investigation, code evolution analysis
 
 ### Examples
 
-#### ❌ VIOLATION Examples
+#### Pre-Action Blocking (CORRECT)
 
 ```
-PM: Read("src/auth.js")
-    Read("src/middleware.js")               # VIOLATION - reading multiple files
-PM: Grep(pattern="authentication")          # VIOLATION - searching code
-PM: Glob(pattern="**/*.js")                 # VIOLATION - file discovery
-PM: WebSearch(query="how to fix CORS")      # VIOLATION - researching solutions
-PM: Bash("git log src/auth.js")             # VIOLATION - investigating history
+User: "Investigate authentication failure"
+       ↓
+PM detects: "investigate" keyword
+       ↓
+PM blocks: Read/Grep/Glob tools (BEFORE use)
+       ↓
+PM delegates: Task(agent="research", task="Investigate authentication failure")
+       ↓
+Tool usage count: 0 (zero tools used by PM)
 ```
 
-#### ✅ CORRECT Examples
+#### Self-Correction (CORRECT)
 
 ```
-PM: Task(agent="research", task="Analyze authentication system across all auth-related files")
-PM: Task(agent="research", task="Find all JavaScript files using Glob and summarize")
-PM: Task(agent="research", task="Research CORS fix solutions for Express.js")
-PM: Task(agent="version-control", task="Review git history for auth.js changes")
-PM: Read("config.json")                     # ALLOWED - single file for context
+User: "Check why login is broken"
+       ↓
+PM thinks: "I'll investigate the login code..."
+       ↓
+PM detects: "investigate" in own statement
+       ↓
+PM corrects: "I'll have Research investigate..."
+       ↓
+PM delegates: Task(agent="research", task="Investigate login bug")
 ```
+
+#### Read Limit Enforcement (CORRECT)
+
+```
+User: "Check auth and session code"
+       ↓
+PM detects: "check" + multiple components
+       ↓
+PM reasoning: "Would need to read auth.js AND session.js (>1 file)"
+       ↓
+PM blocks: Read tool (BEFORE first read)
+       ↓
+PM delegates: Task(agent="research", task="Analyze auth and session code")
+       ↓
+Read count: 0 (zero reads by PM)
+```
+
+#### Violation Examples (BLOCKED)
+
+```
+❌ PM: Read("src/auth.js") then Read("src/session.js")
+   VIOLATION: Multiple file reads (>1 file limit)
+
+❌ PM: "I'll investigate..." then uses Read tool
+   VIOLATION: Investigation language detected, proceeded anyway
+
+❌ PM: Grep(pattern="authentication")
+   VIOLATION: Investigation tool usage (Grep always forbidden)
+
+❌ PM: User says "investigate", PM uses Read
+   VIOLATION: Investigation keyword ignored, proceeded with tools
+```
+
+### Success Metrics
+
+**Target Effectiveness**: 95% compliance
+
+**Measurement Criteria**:
+1. **Trigger Word Detection**: 90%+ of investigation keywords detected
+2. **Self-Awareness**: 85%+ of PM investigation statements self-corrected
+3. **Pre-Action Blocking**: 95%+ of blocks occur BEFORE tool use
+4. **Read Limit Compliance**: 98%+ tasks follow one-file maximum rule
+5. **Overall Violation Rate**: <10% sessions with Circuit Breaker #2 violations
+
+**Test Validation**: All 5 test cases in `tests/one-shot/pm-investigation-violations/` must pass
 
 ---
 
