@@ -1,0 +1,651 @@
+{
+  "agent": "documentation",
+  "description": "Complete Documentation Agent behavioral scenarios for DeepEval Phase 2 - Sprint 6",
+  "version": "1.0.0",
+  "total_scenarios": 12,
+  "categories": {
+    "clarity_standards": {
+      "count": 4,
+      "description": "Clarity Standards scenarios (DOC-CLARITY-001 to DOC-CLARITY-004)",
+      "priority": "critical"
+    },
+    "audience_awareness": {
+      "count": 4,
+      "description": "Audience Awareness scenarios (DOC-AUDIENCE-001 to DOC-AUDIENCE-004)",
+      "priority": "critical"
+    },
+    "maintenance_focus": {
+      "count": 2,
+      "description": "Maintenance Focus scenarios (DOC-MAINT-001 to DOC-MAINT-002)",
+      "priority": "high"
+    },
+    "completeness_requirements": {
+      "count": 2,
+      "description": "Completeness Requirements scenarios (DOC-COMPLETE-001 to DOC-COMPLETE-002)",
+      "priority": "critical"
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "DOC-CLARITY-001",
+      "name": "Active Voice Usage",
+      "category": "clarity_standards",
+      "priority": "critical",
+      "description": "Documentation Agent MUST use active voice instead of passive voice for clarity and directness",
+      "input": {
+        "user_request": "Document the authentication flow for our API",
+        "context": "REST API with JWT-based authentication",
+        "documentation_type": "developer_guide"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Use direct imperatives: 'Send a POST request' instead of 'A POST request should be sent'",
+          "Use 'You can' instead of 'It is possible to'",
+          "Use active constructions throughout documentation",
+          "Use imperative mood for instructions"
+        ],
+        "should_not_do": [
+          "Use passive voice: 'The request is sent'",
+          "Use impersonal constructions",
+          "Use vague language like 'It might be necessary to'",
+          "Use 'should be done' patterns"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Active voice used in >90% of instructional sentences",
+        "Passive voice only used where necessary (e.g., 'The token is encrypted by the server')",
+        "Clear, direct language throughout",
+        "Imperative mood for commands and instructions"
+      ],
+      "failure_indicators": [
+        "Passive voice dominates ('Authentication is performed by sending...')",
+        "Vague instructions ('The user might want to...')",
+        "Indirect language ('It is recommended that...')",
+        "Impersonal constructions without technical justification"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate active voice usage (25% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# API Authentication\n\nSend a POST request to `/auth/login` with your credentials:\n\n```bash\ncurl -X POST https://api.example.com/auth/login \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"username\": \"user\", \"password\": \"pass\"}'\n```\n\nThe API returns a JWT token. Include this token in subsequent requests:\n\n```bash\ncurl -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  https://api.example.com/protected\n```\n\nStore the token securely in your application. Tokens expire after 1 hour.",
+        "non_compliant": "# API Authentication\n\nAuthentication is performed by sending credentials to the login endpoint.\nA POST request should be sent to `/auth/login`. The response will contain\na JWT token that can be used for subsequent requests.\n\nIt is recommended that the token be stored securely. The token should be\nincluded in the Authorization header when requests are made to protected endpoints."
+      }
+    },
+    {
+      "scenario_id": "DOC-CLARITY-002",
+      "name": "Jargon Handling and Definitions",
+      "category": "clarity_standards",
+      "priority": "high",
+      "description": "Documentation Agent MUST explain technical jargon or provide glossary links on first use",
+      "input": {
+        "user_request": "Document the OAuth2 PKCE flow implementation",
+        "context": "Security-sensitive authentication with technical audience",
+        "documentation_type": "security_guide"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Define acronyms on first use (e.g., 'PKCE (Proof Key for Code Exchange)')",
+          "Explain technical terms or link to glossary",
+          "Provide context for domain-specific concepts",
+          "State audience assumptions upfront"
+        ],
+        "should_not_do": [
+          "Use acronyms without definition (PKCE, OIDC, IdP)",
+          "Use technical jargon without context",
+          "Assume knowledge without stating it",
+          "Skip glossary for complex terminology"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "All acronyms defined on first use",
+        "Technical terms explained or linked to references",
+        "Audience assumptions stated upfront",
+        "Glossary provided for complex terminology"
+      ],
+      "failure_indicators": [
+        "Acronyms used without definition",
+        "Technical jargon without context",
+        "Assumed knowledge not stated",
+        "No glossary or references for complex docs"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate jargon handling (20% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# OAuth2 PKCE Flow\n\n**Audience**: Developers familiar with OAuth2 basics\n\n## Overview\n\nPKCE (Proof Key for Code Exchange) is an OAuth2 extension that prevents\nauthorization code interception attacks. It's required for public clients\nlike mobile apps and SPAs (Single-Page Applications) that can't securely\nstore client secrets.\n\n## Key Concepts\n\n- **Code Verifier**: Random string (43-128 characters) generated by client\n- **Code Challenge**: SHA256 hash of code verifier, sent with authorization request\n- **Authorization Code**: Short-lived token exchanged for access token\n- **IdP (Identity Provider)**: Service that authenticates users (e.g., Google, Auth0)\n\nSee [OAuth2 RFC 7636](https://tools.ietf.org/html/rfc7636) for full specification.",
+        "non_compliant": "# OAuth2 PKCE Flow\n\nImplement PKCE for your OAuth2 flow. Generate a code verifier and challenge,\nthen exchange the authorization code with the verifier. This prevents CSRF\nand authorization code injection attacks in public clients.\n\nUse the IdP's OIDC endpoints with the S256 challenge method."
+      }
+    },
+    {
+      "scenario_id": "DOC-CLARITY-003",
+      "name": "Code Examples for Complex Concepts",
+      "category": "clarity_standards",
+      "priority": "critical",
+      "description": "Documentation Agent MUST include practical, runnable code examples for complex concepts",
+      "input": {
+        "user_request": "Document the dependency injection container usage",
+        "context": "TypeScript application with DI framework",
+        "documentation_type": "developer_guide"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Include runnable code examples with stated dependencies",
+          "Show practical use cases (not just API signatures)",
+          "Include edge cases and error handling",
+          "Show before/after examples when replacing patterns",
+          "Specify language hints in code blocks (```typescript)"
+        ],
+        "should_not_do": [
+          "Provide abstract examples only (no concrete code)",
+          "Use non-runnable pseudocode",
+          "Skip error handling in examples",
+          "Show examples that violate best practices"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Code examples are runnable (with stated dependencies)",
+        "Examples demonstrate practical usage",
+        "Edge cases covered (optional parameters, error handling)",
+        "Examples follow best practices",
+        "Language hints specified in code blocks"
+      ],
+      "failure_indicators": [
+        "Abstract examples only (no concrete code)",
+        "Non-runnable pseudocode",
+        "Missing error handling",
+        "Examples violate best practices",
+        "No language hints in code blocks"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate code examples (30% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Dependency Injection Container\n\nThe DI container manages service dependencies automatically.\n\n## Basic Usage\n\n```typescript\nimport { Container, injectable } from 'inversify';\n\n// 1. Define service with dependencies\n@injectable()\nclass UserService {\n  constructor(\n    private db: Database,\n    private cache: Cache\n  ) {}\n\n  async getUser(id: string): Promise<User> {\n    // Check cache first\n    const cached = await this.cache.get(`user:${id}`);\n    if (cached) return cached;\n\n    // Fetch from database\n    const user = await this.db.query('SELECT * FROM users WHERE id = ?', [id]);\n\n    // Cache result\n    await this.cache.set(`user:${id}`, user, { ttl: 300 });\n    return user;\n  }\n}\n\n// 2. Register services\nconst container = new Container();\ncontainer.bind<Database>(Database).toSelf().inSingletonScope();\ncontainer.bind<Cache>(Cache).toSelf().inSingletonScope();\ncontainer.bind<UserService>(UserService).toSelf();\n\n// 3. Resolve service (dependencies injected automatically)\nconst userService = container.get<UserService>(UserService);\nconst user = await userService.getUser('123');\n```\n\n## Error Handling\n\n```typescript\n// Handle missing dependencies gracefully\ntry {\n  const service = container.get<UserService>(UserService);\n} catch (error) {\n  if (error instanceof ContainerError) {\n    console.error('Service not registered:', error.message);\n  }\n  throw error;\n}\n```",
+        "non_compliant": "# Dependency Injection Container\n\nUse the DI container to manage dependencies:\n\n```\ncontainer.bind(Service).to(Implementation);\nconst service = container.get(Service);\n```\n\nThe container handles dependency resolution automatically."
+      }
+    },
+    {
+      "scenario_id": "DOC-CLARITY-004",
+      "name": "Concise and Accurate Writing",
+      "category": "clarity_standards",
+      "priority": "high",
+      "description": "Documentation Agent MUST write concisely without sacrificing accuracy, eliminating redundant phrases",
+      "input": {
+        "user_request": "Document the database migration process",
+        "context": "PostgreSQL with migration tool",
+        "documentation_type": "operations_guide"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Eliminate redundant phrases ('in order to' → 'to')",
+          "Be direct and specific (avoid 'generally', 'usually' without data)",
+          "Prioritize essential information",
+          "Use lists and tables for dense information"
+        ],
+        "should_not_do": [
+          "Use verbose, wordy explanations",
+          "Include redundant phrases ('it should be noted that')",
+          "Use vague language ('you might want to', 'generally speaking')",
+          "Write dense paragraphs without structure"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "No redundant phrases or filler words",
+        "Specific instructions (not vague guidance)",
+        "Essential information only",
+        "Clear structure (headings, lists, tables)"
+      ],
+      "failure_indicators": [
+        "Verbose, wordy explanations",
+        "Redundant phrases ('in order to', 'it should be noted that')",
+        "Vague language ('you might want to', 'generally speaking')",
+        "Dense paragraphs without structure"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate conciseness (25% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Database Migrations\n\n## Running Migrations\n\n**Production**:\n```bash\n# 1. Backup database\npg_dump -U postgres mydb > backup_$(date +%Y%m%d).sql\n\n# 2. Run migrations\nnpm run migrate:up\n\n# 3. Verify migration\nnpm run migrate:status\n```\n\n**Rollback** (if migration fails):\n```bash\nnpm run migrate:down\npsql -U postgres mydb < backup_YYYYMMDD.sql\n```\n\n## Creating Migrations\n\n```bash\n# Generate migration file\nnpm run migrate:create add_user_roles\n\n# Edit migrations/YYYYMMDD_add_user_roles.sql\n# Add up/down SQL commands\n```\n\n**Migration Structure**:\n- `up`: Forward migration (new schema changes)\n- `down`: Rollback migration (undo changes)\n\nAlways test migrations in staging before production.",
+        "non_compliant": "# Database Migrations\n\nIn order to run database migrations, you will generally want to follow\nthese steps. First of all, it should be noted that you should typically\ncreate a backup of your database before proceeding with any migration\noperations. This is important because migrations can potentially cause\ndata loss if something goes wrong during the process.\n\nYou can create a backup by using the pg_dump command, which is generally\nthe recommended approach for PostgreSQL databases. After you have created\na backup, you can then proceed to run the migrations using the migration\ntool that is provided in the project."
+      }
+    },
+    {
+      "scenario_id": "DOC-AUDIENCE-001",
+      "name": "Developer vs User Documentation",
+      "category": "audience_awareness",
+      "priority": "critical",
+      "description": "Documentation Agent MUST adapt documentation style and depth based on target audience (developers vs end users)",
+      "input": {
+        "user_request": "Create both API documentation and user guide for the export feature",
+        "context": "Data export functionality with JSON API and UI",
+        "documentation_type": "dual_audience"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Create separate docs for developers and users",
+          "Developer docs: Technical details, API signatures, code examples",
+          "User docs: Step-by-step instructions, no code (unless necessary)",
+          "Use appropriate terminology for each audience"
+        ],
+        "should_not_do": [
+          "Create single documentation for both audiences",
+          "Include code examples in user guide",
+          "Miss technical details in API docs",
+          "Use technical jargon in user docs without definitions"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Two distinct documentation styles created",
+        "Developer docs include API details and code examples",
+        "User docs include UI instructions without code",
+        "Technical terms defined in user docs",
+        "No audience mixing"
+      ],
+      "failure_indicators": [
+        "Single documentation for both audiences",
+        "Code examples in user guide",
+        "Missing technical details in API docs",
+        "Technical jargon in user docs without definitions",
+        "Mixed audience targeting"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate audience targeting (35% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Export Feature Documentation\n\n## For Developers: Export API\n\n**Endpoint**: `POST /api/v1/exports`\n\n**Authentication**: Bearer token required\n\n**Request Body**:\n```json\n{\n  \"format\": \"csv\" | \"json\" | \"xlsx\",\n  \"filters\": {\n    \"dateRange\": { \"start\": \"2024-01-01\", \"end\": \"2024-12-31\" },\n    \"categories\": [\"sales\", \"marketing\"]\n  }\n}\n```\n\n**Example**:\n```typescript\nconst response = await fetch('/api/v1/exports', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer ' + token,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    format: 'csv',\n    filters: { dateRange: { start: '2024-01-01', end: '2024-12-31' } }\n  })\n});\n```\n\n---\n\n## For Users: How to Export Data\n\n**Step 1**: Navigate to the Data page\n\nClick \"Data\" in the main navigation menu.\n\n**Step 2**: Set your filters\n\n1. Choose a date range using the calendar picker\n2. Select categories to include in your export\n3. Click \"Apply Filters\"\n\n**Step 3**: Export your data\n\n1. Click the \"Export\" button in the top-right corner\n2. Choose your preferred format:\n   - **CSV**: For Excel or spreadsheet applications\n   - **JSON**: For technical integrations\n   - **Excel**: For formatted spreadsheets with charts\n\n3. Click \"Start Export\"\n\n**Step 4**: Download your file\n\nYou'll receive an email when your export is ready (usually within 1-2 minutes).\nClick the download link in the email.",
+        "non_compliant": "# Export Feature\n\nTo export data, use the POST /api/v1/exports endpoint or click the Export button.\n\nSend a JSON payload with format, filters, and options. The API returns an exportId\nwhich you can poll for completion. Alternatively, click Export in the UI and\nselect your format from the dropdown menu.\n\nUse fetch() or axios for API calls, or just click the button."
+      }
+    },
+    {
+      "scenario_id": "DOC-AUDIENCE-002",
+      "name": "Technical Depth Adaptation",
+      "category": "audience_awareness",
+      "priority": "high",
+      "description": "Documentation Agent MUST adjust technical depth based on audience expertise level",
+      "input": {
+        "user_request": "Document WebSocket connection handling for senior engineers",
+        "context": "Real-time data synchronization system",
+        "documentation_type": "technical_deep_dive",
+        "audience": "senior_engineers"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Assume advanced knowledge for senior audience",
+          "Include architecture diagrams and design decisions",
+          "Explain 'why' not just 'how'",
+          "Reference relevant RFCs, papers, design patterns",
+          "Discuss performance characteristics and trade-offs"
+        ],
+        "should_not_do": [
+          "Over-simplify explanations for senior audience",
+          "Skip design rationale",
+          "Omit discussion of alternatives or trade-offs",
+          "Skip performance considerations"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Technical depth appropriate for audience",
+        "Architecture and design decisions explained",
+        "References to standards and best practices",
+        "Performance considerations and trade-offs discussed",
+        "Advanced patterns demonstrated"
+      ],
+      "failure_indicators": [
+        "Over-simplified explanations for senior audience",
+        "Missing design rationale",
+        "No discussion of alternatives or trade-offs",
+        "Lack of performance considerations",
+        "No references to standards"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate technical depth (30% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# WebSocket Connection Management Architecture\n\n**Audience**: Senior Engineers\n**Prerequisites**: Familiarity with WebSocket protocol, event-driven architectures\n\n## Design Decisions\n\nWe chose a **connection pool with heartbeat monitoring** over individual connections\nto optimize resource usage and enable graceful degradation under load.\n\n### Why Connection Pooling?\n\n**Trade-offs**:\n- ✅ Memory efficient: O(pool_size) vs. O(connections)\n- ✅ Better load distribution\n- ❌ Added complexity: Pool management logic required\n- ❌ Higher latency: Queueing overhead (~5ms p99)\n\n### Heartbeat Strategy\n\n**Implementation**: RFC 6455 Ping/Pong frames every 30s\n\n**Why 30s interval?**\n- NAT timeout on most routers: 60-300s\n- TCP keepalive: 2 hours (too slow for real-time)\n- 30s balances network overhead vs. fast failure detection\n\n### Performance Characteristics\n\n**Benchmarks** (c5.2xlarge, 8 vCPU, 16GB RAM):\n- Max concurrent connections: 50K per instance\n- Message throughput: 100K msg/s\n- P99 latency: 12ms (end-to-end)\n- Memory usage: ~400MB (50K connections)\n\n**Bottlenecks**:\n1. Redis PubSub: ~200K msg/s limit\n2. PostgreSQL state queries: Connection pool exhaustion at 10K QPS\n\n### References\n\n- [RFC 6455](https://tools.ietf.org/html/rfc6455): WebSocket Protocol\n- [AWS Exponential Backoff](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)",
+        "non_compliant": "# WebSocket Connection\n\nCreate a WebSocket connection like this:\n\n```typescript\nconst ws = new WebSocket('wss://example.com');\n\nws.on('open', () => {\n  console.log('Connected!');\n});\n\nws.on('message', (data) => {\n  console.log('Received:', data);\n});\n```\n\nUse heartbeats to detect disconnections and reconnect if needed."
+      }
+    },
+    {
+      "scenario_id": "DOC-AUDIENCE-003",
+      "name": "Context Adaptation (Internal vs Public)",
+      "category": "audience_awareness",
+      "priority": "medium",
+      "description": "Documentation Agent MUST adapt documentation based on internal (team) vs public (open-source) context",
+      "input": {
+        "user_request": "Document the rate limiting implementation",
+        "context": "Public-facing API documentation for open-source project",
+        "documentation_type": "public_docs"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Public docs: Omit internal implementation details, focus on behavior",
+          "Public docs: Avoid internal service names, infrastructure details",
+          "Document user-facing behavior without revealing internals",
+          "Use appropriate contact information (public vs internal)"
+        ],
+        "should_not_do": [
+          "Expose internal service names in public docs",
+          "Include infrastructure details in public docs",
+          "Reference internal Slack/contact info in public docs",
+          "Leak security-sensitive implementation details"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "No internal system references in public docs",
+        "Behavior documented without revealing implementation",
+        "Appropriate contact information (public)",
+        "No infrastructure details exposed"
+      ],
+      "failure_indicators": [
+        "Internal service names in public docs",
+        "Infrastructure details exposed publicly",
+        "Internal Slack/contact info in public docs",
+        "Security-sensitive details revealed"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate context adaptation (20% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# API Rate Limiting\n\nAll API endpoints are rate limited to ensure fair usage and system stability.\n\n## Rate Limits\n\n| Tier | Requests/Minute | Requests/Hour |\n|------|-----------------|---------------|\n| Free | 60 | 1,000 |\n| Pro | 600 | 10,000 |\n| Enterprise | Custom | Custom |\n\n## Rate Limit Headers\n\nEvery API response includes rate limit information:\n\n```http\nHTTP/1.1 200 OK\nX-RateLimit-Limit: 60\nX-RateLimit-Remaining: 42\nX-RateLimit-Reset: 1640000000\n```\n\n## Handling Rate Limits\n\nWhen you exceed the rate limit, the API returns HTTP 429:\n\n```json\n{\n  \"error\": \"rate_limit_exceeded\",\n  \"message\": \"Rate limit exceeded. Retry after 30 seconds.\",\n  \"retryAfter\": 30\n}\n```\n\n**Best Practice**: Implement exponential backoff when receiving 429 responses.\n\n## Increasing Limits\n\nEnterprise customers can request custom rate limits. Contact sales@example.com.",
+        "non_compliant": "# API Rate Limiting\n\nWe use a token bucket algorithm implemented in our rate-limiter-service (Go)\nwith Redis cluster (rate-limit-prod.cache.internal) for persistence.\n\nRate limits are defined in `tiers.yaml`:\n- Free tier: 60 RPM (enforced by nginx + rate-limiter-service)\n- Pro tier: 600 RPM\n\nIf Redis goes down, the rate limiter fails open and stops enforcement.\nCheck the #oncall-api Slack channel for alerts.\n\nFuture plans: Implement distributed token bucket (JIRA: INFRA-2847)."
+      }
+    },
+    {
+      "scenario_id": "DOC-AUDIENCE-004",
+      "name": "Prerequisite Knowledge Statement",
+      "category": "audience_awareness",
+      "priority": "medium",
+      "description": "Documentation Agent MUST clearly state prerequisite knowledge and assumed skills upfront",
+      "input": {
+        "user_request": "Document the custom React Hook for data fetching",
+        "context": "Advanced React patterns for internal team",
+        "documentation_type": "technical_guide"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "State prerequisites at the beginning",
+          "Link to prerequisite learning resources",
+          "Define assumed knowledge level",
+          "Provide quick tests for prerequisite validation"
+        ],
+        "should_not_do": [
+          "Skip prerequisite statement",
+          "Assume knowledge without stating it",
+          "Skip links to prerequisite resources",
+          "Jump into advanced topics without context"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Prerequisites clearly listed upfront",
+        "Links to learning resources provided",
+        "Knowledge level explicitly stated",
+        "Optional: Self-assessment quiz or checklist"
+      ],
+      "failure_indicators": [
+        "No prerequisite statement",
+        "Assumes knowledge without stating it",
+        "Missing links to prerequisite resources",
+        "Jumps into advanced topics without context"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate prerequisites (15% weight component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Custom Data Fetching Hook: `useQuery`\n\n## Prerequisites\n\n**Required Knowledge**:\n- ✅ React Hooks fundamentals ([useEffect](https://react.dev/reference/react/useEffect), [useState](https://react.dev/reference/react/useState))\n- ✅ TypeScript generics\n- ✅ Async/await and Promises\n- ✅ HTTP request lifecycle\n\n**Skill Level**: Intermediate React Developer (6+ months React experience)\n\n**Quick Self-Check**:\n- Can you explain the difference between `useEffect` and `useLayoutEffect`?\n- Do you understand TypeScript's `<T>` generic syntax?\n\nIf not, review the [React Hooks Guide](https://react.dev/learn) first.\n\n---\n\n## Overview\n\n`useQuery` is a custom hook that simplifies data fetching with automatic\nloading states, error handling, and caching.\n\n**When to use**:\n- ✅ Fetching data from REST APIs\n- ✅ Need automatic retry on failure\n- ✅ Want built-in loading/error states\n\n**When NOT to use**:\n- ❌ GraphQL queries (use Apollo Client's `useQuery` instead)\n- ❌ Real-time data (use WebSocket hooks)\n- ❌ Mutations (use `useMutation` hook instead)",
+        "non_compliant": "# Custom Data Fetching Hook: `useQuery`\n\nThis hook uses generics and memoization to optimize data fetching:\n\n```typescript\nconst { data, loading, error } = useQuery<User>(`/api/users/${id}`);\n```\n\nIt returns a discriminated union type and leverages useEffect cleanup functions."
+      }
+    },
+    {
+      "scenario_id": "DOC-MAINT-001",
+      "name": "Code Synchronization Verification",
+      "category": "maintenance_focus",
+      "priority": "critical",
+      "description": "Documentation Agent MUST verify code examples match current API signatures before documenting",
+      "input": {
+        "user_request": "Update the authentication documentation after API changes",
+        "context": "Login endpoint changed from /auth/login to /v2/auth/login",
+        "documentation_type": "api_reference_update"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Verify code examples are up-to-date with current API",
+          "Test code examples when possible",
+          "Include version information (e.g., 'Since v2.0')",
+          "Flag deprecated APIs clearly",
+          "Add 'Last Verified' timestamp"
+        ],
+        "should_not_do": [
+          "Use code examples with old API paths",
+          "Provide non-runnable examples",
+          "Skip version information",
+          "Leave deprecated APIs unflagged"
+        ],
+        "required_tools": ["Write", "Read", "Grep"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Code examples use current API endpoints",
+        "Examples are runnable (with stated environment)",
+        "Version numbers referenced (e.g., 'Since v2.0')",
+        "Deprecated features marked clearly with warnings",
+        "Last verified timestamp included"
+      ],
+      "failure_indicators": [
+        "Code examples reference old API paths",
+        "Non-runnable examples",
+        "Missing version information",
+        "Deprecated APIs not flagged",
+        "No verification timestamp"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate maintenance adherence (10% bonus component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Authentication API\n\n**API Version**: v2.0+\n**Last Updated**: December 6, 2025\n\n## Login Endpoint\n\n**Current** (v2.0+):\n```bash\nPOST /v2/auth/login\nContent-Type: application/json\n\n{\n  \"email\": \"user@example.com\",\n  \"password\": \"secretpassword\",\n  \"mfaCode\": \"123456\"  # Required if MFA enabled\n}\n```\n\n**Response**:\n```json\n{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refreshToken\": \"refresh_abc123...\",\n  \"expiresIn\": 3600\n}\n```\n\n---\n\n**⚠️ Deprecated** (v1.x, removed in v3.0):\n```bash\nPOST /auth/login  # DO NOT USE - Removed in v3.0\n```\n\n**Migration Guide**: See [v1 to v2 Migration](./migration-v1-v2.md)\n\n---\n\n## Example (Node.js)\n\n**Tested with**: Node.js 20.x, fetch API\n\n```javascript\n// ✅ Current implementation (v2.0+)\nconst response = await fetch('https://api.example.com/v2/auth/login', {\n  method: 'POST',\n  headers: { 'Content-Type': 'application/json' },\n  body: JSON.stringify({\n    email: 'user@example.com',\n    password: 'secretpassword',\n    mfaCode: '123456'\n  })\n});\n```\n\n**Last Verified**: December 6, 2025 (works with API v2.1.3)",
+        "non_compliant": "# Authentication API\n\nLogin to get an access token:\n\n```bash\nPOST /auth/login\n\n{\n  \"username\": \"user\",\n  \"password\": \"pass\"\n}\n```\n\nReturns a JWT token for subsequent requests."
+      }
+    },
+    {
+      "scenario_id": "DOC-MAINT-002",
+      "name": "Example Update Protocol",
+      "category": "maintenance_focus",
+      "priority": "high",
+      "description": "Documentation Agent MUST update examples when detecting API changes in codebase",
+      "input": {
+        "user_request": "We just added a required 'apiVersion' parameter to all API calls. Update docs.",
+        "context": "Breaking change requires documentation updates across all endpoints",
+        "documentation_type": "breaking_change_update"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Search for all affected examples using Grep/search tools",
+          "Update ALL examples consistently",
+          "Add migration guide for breaking changes",
+          "Include before/after examples",
+          "Add changelog entry",
+          "Specify rollout timeline"
+        ],
+        "should_not_do": [
+          "Update some examples but not all (inconsistency)",
+          "Skip migration guide",
+          "Fail to mark as breaking change",
+          "Skip changelog entry"
+        ],
+        "required_tools": ["Write", "Read", "Grep", "Edit"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "All examples updated with new parameter (100% consistency)",
+        "Migration guide provided with before/after",
+        "Breaking change clearly marked (⚠️ BREAKING)",
+        "Changelog entry created",
+        "Rollout timeline specified"
+      ],
+      "failure_indicators": [
+        "Some examples missed (inconsistent updates)",
+        "No migration guide",
+        "Breaking change not marked",
+        "No changelog entry",
+        "Missing rollout timeline"
+      ],
+      "metrics": {
+        "AudienceAwarenessMetric": {
+          "threshold": 0.80,
+          "description": "Must demonstrate maintenance adherence (10% bonus component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# ⚠️ BREAKING CHANGE: API Version Parameter Required (v3.0)\n\n**Effective Date**: December 15, 2025\n**Migration Deadline**: January 15, 2026\n\n## What Changed\n\nAll API endpoints now require an `X-API-Version` header.\n\n**Before (v2.x)**:\n```bash\ncurl https://api.example.com/users\n```\n\n**After (v3.0+)**:\n```bash\ncurl -H \"X-API-Version: 2025-12-01\" \\\n  https://api.example.com/users\n```\n\n## Migration Guide\n\n### Step 1: Add version header to all requests\n\n**JavaScript (fetch)**:\n```javascript\n// ✅ v3.0+ compliant\nfetch('https://api.example.com/users', {\n  headers: { 'X-API-Version': '2025-12-01' }\n})\n\n// ❌ v2.x (will fail after Jan 15, 2026)\nfetch('https://api.example.com/users')\n```\n\n**Python (requests)**:\n```python\n# ✅ v3.0+ compliant\nheaders = {'X-API-Version': '2025-12-01'}\nresponse = requests.get('https://api.example.com/users', headers=headers)\n\n# ❌ v2.x (will fail after Jan 15, 2026)\nresponse = requests.get('https://api.example.com/users')\n```\n\n### Step 2: Update all affected endpoints\n\n**Updated Endpoints** (complete list):\n- ✅ `/users` - Updated Dec 6, 2025\n- ✅ `/posts` - Updated Dec 6, 2025\n- ✅ `/comments` - Updated Dec 6, 2025\n- ✅ `/auth/login` - Updated Dec 6, 2025\n- ✅ `/auth/refresh` - Updated Dec 6, 2025\n\n## Rollout Timeline\n\n- **Dec 15, 2025**: Version header required (API returns warning)\n- **Jan 1, 2026**: Grace period ends (API returns HTTP 400 without header)\n- **Jan 15, 2026**: Enforcement (clients without header blocked)\n\n## Changelog\n\n**v3.0.0** (December 15, 2025):\n- 🔴 **BREAKING**: Added required `X-API-Version` header to all endpoints\n- 🔴 **BREAKING**: Removed deprecated `format` query parameter\n- ✨ **NEW**: Versioned API responses enable gradual schema evolution\n- 📖 **DOCS**: Added migration guide and version compatibility matrix",
+        "non_compliant": "# API Changes\n\nWe added a version header. Include `X-API-Version: 2025-12-01` in requests:\n\n```bash\ncurl -H \"X-API-Version: 2025-12-01\" https://api.example.com/users\n```\n\nUpdate your code to include this header."
+      }
+    },
+    {
+      "scenario_id": "DOC-COMPLETE-001",
+      "name": "Required Sections Completeness",
+      "category": "completeness_requirements",
+      "priority": "critical",
+      "description": "Documentation Agent MUST include all required sections (Overview, Quick Start, Reference, Troubleshooting, Changelog)",
+      "input": {
+        "user_request": "Create documentation for the new caching module",
+        "context": "Redis-based caching with multiple backends",
+        "documentation_type": "module_documentation"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Include Overview/Purpose section",
+          "Include Quick Start Guide",
+          "Include Detailed Reference (API/Configuration)",
+          "Include Troubleshooting section",
+          "Include Changelog (for versioned modules)",
+          "Add Table of Contents for long docs"
+        ],
+        "should_not_do": [
+          "Skip any required sections",
+          "Create sections out of order",
+          "Leave sections incomplete (stubs)",
+          "Skip table of contents for long docs"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "All 5 required sections present",
+        "Sections in logical order",
+        "Each section is complete and accurate",
+        "Table of contents included for docs >500 lines"
+      ],
+      "failure_indicators": [
+        "Missing required sections",
+        "Sections out of order or poorly organized",
+        "Incomplete sections (stubs like 'TODO')",
+        "No table of contents for long docs"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate completeness (15% bonus component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# Caching Module Documentation\n\n**Version**: 2.1.0\n**Last Updated**: December 6, 2025\n\n## Table of Contents\n\n1. [Overview](#overview)\n2. [Quick Start](#quick-start)\n3. [Configuration Reference](#configuration-reference)\n4. [API Reference](#api-reference)\n5. [Troubleshooting](#troubleshooting)\n6. [Changelog](#changelog)\n\n---\n\n## Overview\n\nThe Caching Module provides a unified interface for multiple caching backends\n(Redis, Memcached, in-memory) with automatic failover and monitoring.\n\n**Key Features**:\n- Multiple backend support (Redis, Memcached, in-memory)\n- Automatic failover to fallback cache\n- TTL (Time-To-Live) support with automatic expiration\n- Metrics and monitoring integration\n\n**When to use**:\n- ✅ Frequently accessed database queries\n- ✅ Expensive computations with predictable results\n- ✅ Session storage and rate limiting\n\n---\n\n## Quick Start\n\n### Installation\n\n```bash\nnpm install @company/caching-module\n```\n\n### Basic Usage (5 minutes)\n\n```typescript\nimport { CacheClient } from '@company/caching-module';\n\n// 1. Initialize cache client\nconst cache = new CacheClient({\n  backend: 'redis',\n  url: 'redis://localhost:6379'\n});\n\n// 2. Set a value with TTL\nawait cache.set('user:123', { name: 'Alice' }, { ttl: 300 });\n\n// 3. Get a value\nconst user = await cache.get('user:123');\n```\n\n---\n\n## Configuration Reference\n\n### Redis Backend\n\n```typescript\nconst cache = new CacheClient({\n  backend: 'redis',\n  url: 'redis://localhost:6379',\n  options: {\n    db: 0,\n    password: 'your-password',\n    maxRetries: 3\n  }\n});\n```\n\n---\n\n## API Reference\n\n### `CacheClient`\n\n#### `get<T>(key: string): Promise<T | null>`\n\nRetrieves a value from the cache.\n\n**Parameters**:\n- `key` (string): Cache key\n\n**Returns**: Promise resolving to cached value or null\n\n---\n\n## Troubleshooting\n\n### Connection Issues\n\n**Problem**: `Error: Connection refused to Redis server`\n\n**Solution**:\n1. Verify Redis is running: `redis-cli ping`\n2. Check connection URL\n3. Check firewall: `telnet localhost 6379`\n\n---\n\n## Changelog\n\n### v2.1.0 (December 6, 2025)\n\n**Features**:\n- ✨ Added Memcached backend support\n- ✨ Added automatic failover\n\n**Bug Fixes**:\n- 🐛 Fixed race condition in connection retry logic",
+        "non_compliant": "# Caching Module\n\nUse the caching module to cache data in Redis:\n\n```typescript\nconst cache = new CacheClient({ backend: 'redis' });\nawait cache.set('key', 'value');\nconst value = await cache.get('key');\n```\n\nSupports Redis, Memcached, and in-memory backends."
+      }
+    },
+    {
+      "scenario_id": "DOC-COMPLETE-002",
+      "name": "Troubleshooting Coverage",
+      "category": "completeness_requirements",
+      "priority": "high",
+      "description": "Documentation Agent MUST include troubleshooting section with common errors and solutions",
+      "input": {
+        "user_request": "Document the file upload API endpoint",
+        "context": "File upload with size limits and type validation",
+        "documentation_type": "api_documentation"
+      },
+      "expected_behavior": {
+        "should_do": [
+          "Include Troubleshooting section",
+          "Cover 3-5 most common errors",
+          "Provide solutions (not just error descriptions)",
+          "Include error codes and HTTP status codes",
+          "Show example error responses"
+        ],
+        "should_not_do": [
+          "Skip troubleshooting section",
+          "Provide error descriptions without solutions",
+          "Skip error codes",
+          "Use generic troubleshooting (not specific to API)"
+        ],
+        "required_tools": ["Write", "Read"],
+        "evidence_required": true
+      },
+      "success_criteria": [
+        "Troubleshooting section present",
+        "3+ common errors documented",
+        "Solutions provided (not just descriptions)",
+        "Error codes and HTTP status codes included",
+        "Example error responses shown"
+      ],
+      "failure_indicators": [
+        "No troubleshooting section",
+        "Error descriptions without solutions",
+        "Missing error codes",
+        "Generic troubleshooting (not specific to API)",
+        "Less than 3 common errors covered"
+      ],
+      "metrics": {
+        "ClarityStandardsMetric": {
+          "threshold": 0.85,
+          "description": "Must demonstrate completeness (10% bonus component)"
+        }
+      },
+      "mock_response": {
+        "compliant": "# File Upload API\n\n## Endpoint\n\n```\nPOST /api/v1/uploads\nContent-Type: multipart/form-data\n```\n\n## Request\n\n```bash\ncurl -X POST https://api.example.com/api/v1/uploads \\\n  -H \"Authorization: Bearer YOUR_TOKEN\" \\\n  -F \"file=@document.pdf\"\n```\n\n---\n\n## Troubleshooting\n\n### Error: `file_too_large` (HTTP 413)\n\n**Error Response**:\n```json\n{\n  \"error\": \"file_too_large\",\n  \"message\": \"File size exceeds maximum allowed size of 10 MB\",\n  \"maxSize\": 10485760,\n  \"actualSize\": 15728640\n}\n```\n\n**Cause**: File exceeds 10 MB size limit\n\n**Solution**:\n1. **Compress the file**: Use ZIP or reduce quality\n2. **Split the file**: Upload in chunks using multipart API\n3. **Request limit increase**: Contact support for Enterprise plan\n\n**Prevention**:\n```javascript\nconst MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB\n\nif (file.size > MAX_FILE_SIZE) {\n  alert(`File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024} MB`);\n  return;\n}\n```\n\n---\n\n### Error: `invalid_file_type` (HTTP 400)\n\n**Error Response**:\n```json\n{\n  \"error\": \"invalid_file_type\",\n  \"message\": \"File type not allowed\",\n  \"allowedTypes\": [\"pdf\", \"docx\", \"png\", \"jpg\"],\n  \"receivedType\": \"exe\"\n}\n```\n\n**Cause**: File extension not in allowed list\n\n**Solution**:\n1. Convert file to allowed type\n2. Check file extension case (.pdf not .PDF)\n3. Contact support for additional types (Enterprise only)\n\n**Allowed Types**: pdf, docx, doc, xlsx, xls, png, jpg, jpeg\n\n---\n\n### Error: `unauthorized` (HTTP 401)\n\n**Error Response**:\n```json\n{\n  \"error\": \"unauthorized\",\n  \"message\": \"Authentication token is missing or invalid\"\n}\n```\n\n**Cause**: Missing or expired authentication token\n\n**Solution**:\n1. Include Authorization header: `Authorization: Bearer YOUR_TOKEN`\n2. Refresh token if expired (TTL: 1 hour)\n3. Check token validity at https://jwt.io\n\n---\n\n**Still having issues?** Email api-support@example.com with:\n- Error message and requestId\n- File details (size, type, name)\n- cURL command or code snippet",
+        "non_compliant": "# File Upload API\n\nUpload files to `/api/v1/uploads`:\n\n```bash\ncurl -X POST /api/v1/uploads -F \"file=@document.pdf\"\n```\n\nReturns HTTP 201 on success.\n\n**Errors**:\n- HTTP 413: File too large\n- HTTP 400: Invalid file type\n- HTTP 401: Unauthorized"
+      }
+    }
+  ]
+}
