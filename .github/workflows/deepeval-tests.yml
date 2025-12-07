@@ -139,3 +139,75 @@ jobs:
             .pytest_cache/
             htmlcov/
           retention-days: 7
+
+  deepeval-qa-agent:
+    name: QA Agent DeepEval Tests
+    runs-on: ubuntu-latest
+    needs: [deepeval-base-agent]  # Depends on base tests passing
+
+    strategy:
+      matrix:
+        python-version: ['3.12']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[eval,dev]"
+
+      - name: Run QA Agent metric tests
+        run: |
+          pytest tests/eval/metrics/qa/ -v --tb=short
+
+      - name: Run QA Agent scenario tests
+        run: |
+          pytest tests/eval/agents/qa/test_integration.py -v --tb=short -k "not TestQAWorkflows"
+
+      - name: Run QA Agent workflow integration tests
+        run: |
+          pytest tests/eval/agents/qa/test_integration.py::TestQAWorkflows -v --tb=short --timeout=300
+
+      - name: Generate QA Agent test summary
+        if: always()
+        run: |
+          echo "## QA Agent Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Metric Tests: tests/eval/metrics/qa/" >> $GITHUB_STEP_SUMMARY
+          echo "- Scenario Tests: tests/eval/agents/qa/ (20 scenarios)" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: TestQAWorkflows (5 tests)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Tests:** 67 (42 metric + 20 scenarios + 5 integration)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Categories Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- Test Execution Safety (7 scenarios)" >> $GITHUB_STEP_SUMMARY
+          echo "- Memory-Efficient Testing (6 scenarios)" >> $GITHUB_STEP_SUMMARY
+          echo "- Process Management (4 scenarios)" >> $GITHUB_STEP_SUMMARY
+          echo "- Coverage Analysis (3 scenarios)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload QA Agent test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepeval-qa-agent-results-${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+            htmlcov/
+          retention-days: 7
