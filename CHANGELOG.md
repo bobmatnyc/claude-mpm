@@ -12,6 +12,15 @@
 
 ### Security
 
+## [5.1.3] - 2025-12-07
+
+### Added
+- DeepEval Prompt-Engineer Agent scenarios and test harness
+- Custom metrics for Prompt-Engineer Agent evaluation
+
+### Changed
+- Version bump for Sprint 7 completion (Prompt-Engineer Agent testing)
+
 ## [5.1.2] - 2025-12-06
 
 ### Added
