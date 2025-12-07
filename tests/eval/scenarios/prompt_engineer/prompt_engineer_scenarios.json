@@ -1,0 +1,281 @@
+{
+  "agent": "prompt-engineer",
+  "version": "3.0.0",
+  "description": "Test scenarios for Prompt-Engineer Agent behavioral validation",
+  "categories": [
+    {
+      "name": "Anti-Pattern Detection",
+      "description": "Tests agent's ability to identify and flag prompt anti-patterns"
+    },
+    {
+      "name": "Token Efficiency",
+      "description": "Tests agent's token optimization and cache-friendly structure recommendations"
+    },
+    {
+      "name": "Refactoring Quality",
+      "description": "Tests agent's prompt refactoring capabilities and quality improvements"
+    },
+    {
+      "name": "Claude 4.5 Alignment",
+      "description": "Tests adherence to 2025 Claude best practices"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "PE-ANTIPATTERN-001",
+      "category": "Anti-Pattern Detection",
+      "name": "Emoji Detection and Removal",
+      "description": "Agent should detect decorative emojis and recommend removal",
+      "input": "Analyze this prompt for anti-patterns",
+      "expected_behaviors": [
+        "Identifies emoji usage as anti-pattern",
+        "Recommends emoji removal",
+        "Explains professional communication standards"
+      ],
+      "metric": "AntiPatternDetectionMetric",
+      "threshold": 0.85,
+      "compliant_mock_response": "## Complete Anti-Pattern Analysis\n\n### 1. Emoji Detection\nFound decorative emojis that should be removed. The prompt contains emoji anti-patterns that violate professional communication standards. Recommend removing all emojis for an emoji-free professional tone.\n\n### 2. Over-Specification\nThis prompt is over-specified with 700+ lines and excessive micro-instructions. Reduce verbosity from 700 lines to under 200 lines. Consolidate step-by-step instructions that are too verbose.\n\n### 3. Generic Language\nDetected vague prompts with generic language lacking specific context. Need to add measurable criteria and make instructions more specific with concrete requirements.\n\n### 4. Cache-Hostile Patterns\nVariable data in system prompts causes cache invalidation. Separate static and dynamic content to achieve 90% cache hit rates. Move timestamps out of system prompt for cache-friendly structure.\n\n### 5. Negative Instructions\nFound \"Don't X\" patterns - converting these negative instructions to positive framing with affirmative language. Tell the model what TO DO, not what to avoid.",
+      "non_compliant_mock_response": "The prompt looks good! The emojis add a friendly tone. No changes needed."
+    },
+    {
+      "id": "PE-ANTIPATTERN-002",
+      "category": "Anti-Pattern Detection",
+      "name": "Over-Specification Detection",
+      "description": "Agent should detect verbose, over-specified prompts",
+      "input": "Review this 700-line prompt with micro-instructions for every edge case",
+      "expected_behaviors": [
+        "Identifies over-specification",
+        "Recommends consolidation",
+        "Provides line count reduction target"
+      ],
+      "metric": "AntiPatternDetectionMetric",
+      "threshold": 0.85,
+      "compliant_mock_response": "## Full Anti-Pattern Analysis\n\n### 1. Emoji Detection\nNo decorative emojis found. The prompt is emoji-free and follows professional standards. Avoid emojis going forward.\n\n### 2. Over-Specification\nThis prompt is over-specified with 700+ lines of micro-instructions. Too verbose with step-by-step instructions for every edge case. Recommend:\n- Reduce verbosity from 700 lines to under 200 lines (70% reduction)\n- Consolidate redundant instructions\n- Focus on essential guidance only\n\n### 3. Generic Language\nSome generic prompts detected. Adding specific, measurable criteria to replace vague language.\n\n### 4. Cache-Hostile Patterns\nNo variable data in system prompt. Cache-friendly structure maintained for 90%+ cache hit rates.\n\n### 5. Negative Instructions\nConverted all \"Don't X\" negative instructions to positive framing with \"Do Y instead\" affirmative style.",
+      "non_compliant_mock_response": "The detailed instructions are thorough and comprehensive. Each edge case is well-documented."
+    },
+    {
+      "id": "PE-ANTIPATTERN-003",
+      "category": "Anti-Pattern Detection",
+      "name": "Generic Prompt Detection",
+      "description": "Agent should detect vague, context-free language",
+      "input": "Analyze: 'Make it better. Fix the issues. Improve the code.'",
+      "expected_behaviors": [
+        "Identifies generic/vague language",
+        "Recommends specific criteria",
+        "Adds measurable goals"
+      ],
+      "metric": "AntiPatternDetectionMetric",
+      "threshold": 0.85,
+      "compliant_mock_response": "## Comprehensive Anti-Pattern Analysis\n\n### 1. Emoji Detection\nEnsuring emoji-free communication. Remove all decorative emojis as anti-pattern.\n\n### 2. Over-Specification\nNo over-specification detected. Prompt is appropriately concise. Avoid verbose 700+ line prompts.\n\n### 3. Generic Language\nDetected vague prompts lacking specific context:\n- \"Make it better\" - No measurable criteria\n- \"Fix the issues\" - Issues not identified\n- \"Improve the code\" - No improvement metrics\n\nReplacing generic prompts with specific, measurable criteria:\n- \"Make it better\" -> \"Reduce response time to <100ms\"\n- \"Fix the issues\" -> \"Fix the null pointer in line 42\"\n- \"Improve the code\" -> \"Add input validation for user fields\"\n\n### 4. Cache-Hostile Patterns\nSeparating static content from variable data for 90% cache hit rate.\n\n### 5. Negative Instructions\nConverting negative instructions (\"Don't X\") to positive framing with affirmative language.",
+      "non_compliant_mock_response": "The prompt is clear enough. Claude will understand what to do."
+    },
+    {
+      "id": "PE-ANTIPATTERN-004",
+      "category": "Anti-Pattern Detection",
+      "name": "Cache-Hostile Pattern Detection",
+      "description": "Agent should detect variable data in system prompts",
+      "input": "Review system prompt containing dynamic variables",
+      "expected_behaviors": [
+        "Identifies cache-hostile patterns",
+        "Recommends static/variable separation",
+        "Provides cache hit rate target"
+      ],
+      "metric": "AntiPatternDetectionMetric",
+      "threshold": 0.85,
+      "compliant_mock_response": "## Complete Anti-Pattern Detection\n\n### 1. Emoji Detection\nNo emojis found. Emoji-free professional communication maintained. Avoid decorative emojis.\n\n### 2. Over-Specification\nNot over-specified. Under 200 lines with focused instructions. Reduce verbosity if needed.\n\n### 3. Generic Language\nNo generic prompts. Specific measurable criteria present.\n\n### 4. Cache-Hostile Patterns\nCritical issue detected! Cache-hostile patterns found in system prompt:\n- Variable data causes cache invalidation\n- Timestamp in system prompt breaks caching\n- User-specific data should be moved\n\nRecommendation:\n- Separate static and variable content\n- Achieve 90%+ cache hit rate with static system prompts\n- Move dynamic data to user messages for cache efficiency\n\n### 5. Negative Instructions\nAll instructions use positive framing. Converted \"Don't X\" patterns to affirmative \"Do Y\" style.",
+      "non_compliant_mock_response": "Including dynamic data in the system prompt is convenient for the model."
+    },
+    {
+      "id": "PE-ANTIPATTERN-005",
+      "category": "Anti-Pattern Detection",
+      "name": "Negative Instruction Detection",
+      "description": "Agent should detect 'Don't X' patterns and convert to positive framing",
+      "input": "Review instructions: 'Don't use emojis. Don't be verbose.'",
+      "expected_behaviors": [
+        "Identifies negative instruction patterns",
+        "Converts to positive framing",
+        "Uses affirmative language"
+      ],
+      "metric": "AntiPatternDetectionMetric",
+      "threshold": 0.85,
+      "compliant_mock_response": "## Full Anti-Pattern Analysis Report\n\n### 1. Emoji Detection\nEnsuring emoji anti-pattern is addressed. Remove emojis for emoji-free output.\n\n### 2. Over-Specification\nPrompt length is appropriate. Not over-specified. Avoid 700+ line verbose prompts.\n\n### 3. Generic Language\nSpecific language used. No vague prompts with generic phrasing. Added measurable criteria.\n\n### 4. Cache-Hostile Patterns\nNo cache-hostile variable data. Separate static from dynamic for 90% cache hit.\n\n### 5. Negative Instructions\nDetected negative instruction patterns that need conversion:\n- \"Don't use emojis\" -> Negative framing\n- \"Don't be verbose\" -> Tells what NOT to do\n\nConverting to positive framing with affirmative language:\n- \"Don't use emojis\" -> \"Use professional text-only communication\"\n- \"Don't be verbose\" -> \"Write concisely with essential info only\"\n\nPositive framing tells the model what TO DO, not what to avoid.",
+      "non_compliant_mock_response": "The negative instructions are clear about what to avoid."
+    },
+    {
+      "id": "PE-TOKEN-001",
+      "category": "Token Efficiency",
+      "name": "Token Reduction Analysis",
+      "description": "Agent should demonstrate token reduction with percentages",
+      "input": "Optimize this 1000-token verbose prompt for efficiency",
+      "expected_behaviors": [
+        "Provides token reduction percentage",
+        "Shows before/after token counts",
+        "Achieves 30%+ reduction"
+      ],
+      "metric": "TokenEfficiencyMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Token Efficiency Optimization\n\n### Token Reduction\n- Original: 1000 tokens\n- Optimized: 350 tokens\n- Reduction: 65% fewer tokens\n\nCut length by removing verbose explanations and streamlined content.\n\n### Cache Optimization\n- Separated static from variable content\n- Achieved 95% cache hit rate\n- Cache-friendly structure implemented\n\n### Redundancy Elimination\n- Removed duplicate instructions\n- Applied DRY principle throughout\n- Single source of truth for guidelines\n- Consolidated repeated sections\n\n### Structural Optimization\nUsing XML tags for complex sections:\n```xml\n<instructions>Core rules</instructions>\n```\n\nMarkdown for navigation:\n```markdown\n## Overview\n## Guidelines\n```",
+      "non_compliant_mock_response": "The prompt is optimized. Made some minor edits."
+    },
+    {
+      "id": "PE-TOKEN-002",
+      "category": "Token Efficiency",
+      "name": "Cache Optimization",
+      "description": "Agent should optimize for cache-friendly structure",
+      "input": "Restructure this prompt for maximum cache efficiency",
+      "expected_behaviors": [
+        "Recommends cache-friendly patterns",
+        "Separates static/variable content",
+        "Targets 90%+ cache hit rate"
+      ],
+      "metric": "TokenEfficiencyMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Complete Token Optimization\n\n### Token Reduction\nReduced from 800 to 300 tokens (62% reduction). Decreased length significantly.\n\n### Cache Optimization\n- Cache-friendly structure implemented\n- Static system prompts separated from dynamic content\n- Achieved 95% cache hit rate\n- Stable prefix optimized for caching\n- Variable data moved out for cache efficiency\n\n### Redundancy Elimination\n- Removed all redundant duplicate content\n- DRY principle strictly applied\n- Single source of truth established\n- Merged similar instructions\n\n### Structural Optimization\n```xml\n<static>\n  Core instructions here\n</static>\n```\n\n```markdown\n## Sections\nClear navigation structure\n```",
+      "non_compliant_mock_response": "The prompt structure is fine as is."
+    },
+    {
+      "id": "PE-TOKEN-003",
+      "category": "Token Efficiency",
+      "name": "Redundancy Elimination",
+      "description": "Agent should identify and remove redundant content",
+      "input": "Find and remove duplicate instructions in this prompt",
+      "expected_behaviors": [
+        "Identifies redundant content",
+        "Applies DRY principle",
+        "Consolidates duplicates"
+      ],
+      "metric": "TokenEfficiencyMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Token Efficiency Report\n\n### Token Reduction\n- Before: 600 tokens\n- After: 250 tokens\n- 58% reduction achieved\n\n### Cache Optimization\nCache-efficient with 92% hit rate. Separated stable static content from variable data.\n\n### Redundancy Elimination\nMajor focus of this optimization:\n- Found 5 instances of duplicate instructions\n- Removed redundant repeated sections\n- Applied DRY (Don't Repeat Yourself) principle\n- Single source of truth now established\n- Consolidated all similar rules into one\n- Merged duplicate error handling\n\n### Structural Optimization\nApplied XML and markdown formatting:\n```xml\n<rules>Consolidated rules</rules>\n```\n\n```markdown\n## Single Source\nOne definitive reference\n```",
+      "non_compliant_mock_response": "The repetition reinforces important concepts."
+    },
+    {
+      "id": "PE-TOKEN-004",
+      "category": "Token Efficiency",
+      "name": "Structural Optimization",
+      "description": "Agent should apply efficient formatting structures",
+      "input": "Improve the structure of this unformatted prompt",
+      "expected_behaviors": [
+        "Uses XML tags for complex sections",
+        "Applies markdown for navigation",
+        "Optimizes layout"
+      ],
+      "metric": "TokenEfficiencyMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Token Efficiency Improvements\n\n### Token Reduction\nReduced from 500 to 200 tokens - 60% reduction in size. Length decreased significantly.\n\n### Cache Optimization\nCache-friendly with 90% hit rate. Separated static and variable for cache efficiency.\n\n### Redundancy Elimination\n- Removed duplicate sections\n- Applied DRY principle\n- Single source of truth\n- Consolidated redundant rules\n\n### Structural Optimization\nComprehensive restructuring applied:\n\nXML for complex structured data:\n```xml\n<instructions>\n  <rule priority=\"high\">Be concise</rule>\n  <rule priority=\"medium\">Use examples</rule>\n</instructions>\n```\n\nMarkdown for clear navigation:\n```markdown\n## Overview\nCore purpose explained\n\n## Guidelines\nBehavioral requirements\n\n## Examples\nPractical demonstrations\n```\n\nHierarchical bullet points for lists.",
+      "non_compliant_mock_response": "Added some formatting to the prompt."
+    },
+    {
+      "id": "PE-REFACTOR-001",
+      "category": "Refactoring Quality",
+      "name": "Before/After Comparison",
+      "description": "Agent should provide clear before/after metrics",
+      "input": "Refactor this prompt and show improvement metrics",
+      "expected_behaviors": [
+        "Shows before state",
+        "Shows after state",
+        "Provides quantitative comparison"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Prompt Refactoring Report\n\n### Before/After Comparison\n| Metric | Before | After | Improvement |\n|--------|--------|-------|-------------|\n| Lines | 700 | 150 | 78% reduction |\n| Tokens | 3000 | 600 | 80% reduction |\n\nOriginal: 700 lines unfocused\nRefactored: 150 lines structured\nImprovement: 78% reduction achieved\n\nWas verbose, now concise. Reduced from 3000 to 600 tokens.\n\n### Quality Rubric Assessment\nUsing 8-criteria evaluation:\n- Clarity: 4/5\n- Specificity: 5/5\n- Measurable: 4/5\n- Actionable: 5/5\n- Correctness: 5/5\n- Consistency: 4/5\n- Completeness: 4/5\n- Maintainability: 5/5\nAverage score: 4.5/5\n\n### Prioritized Improvements\n1. High priority: Critical changes first\n2. Medium priority: Important updates\n3. Low priority: Nice-to-have polish\n\n### Claude 4.5 Alignment\nApplied 2025 best practices with extended thinking and no emojis.\n\n### Evidence\nEach change justified because it improves efficiency. Based on research, this approach works. Therefore results are measurable.",
+      "non_compliant_mock_response": "Made improvements to the prompt."
+    },
+    {
+      "id": "PE-REFACTOR-002",
+      "category": "Refactoring Quality",
+      "name": "Quality Rubric Application",
+      "description": "Agent should apply 8-criteria quality rubric",
+      "input": "Evaluate this prompt using the quality rubric",
+      "expected_behaviors": [
+        "Uses 8-criteria rubric",
+        "Provides 1-5 scale scores",
+        "Calculates average"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Quality Evaluation Report\n\n### Before/After Comparison\nBefore: 500 lines, score 2.5/5\nAfter: 150 lines, score 4.5/5\nOriginal was unfocused, new version is streamlined.\nReduced from 500 to 150 lines (70% improvement).\n\n### Quality Rubric Assessment (8 criteria, 1-5 scale)\n\n1. **Clarity**: 4/5 - Instructions are mostly clear\n2. **Specificity**: 5/5 - Concrete requirements with examples\n3. **Measurable**: 4/5 - Success metrics defined\n4. **Actionable**: 5/5 - Steps are executable\n5. **Correctness**: 5/5 - Technically accurate\n6. **Consistency**: 4/5 - Style mostly uniform\n7. **Completeness**: 4/5 - All major sections present\n8. **Maintainability**: 5/5 - Easy to update\n\n**Average Score**: 4.5/5 (Target: 4.0/5 minimum)\n\n### Prioritized Improvements\n1. First: High priority critical items\n2. Second: Medium priority changes\n3. Third: Low priority polish\n\n### Claude 4.5 Alignment\nApplied 2025 modern best practices. Extended thinking configured. No emojis. Direct style.\n\n### Evidence\nChanges justified because they improve clarity. Since metrics show improvement, therefore recommendation is sound. Based on research, this works.",
+      "non_compliant_mock_response": "The prompt quality is good."
+    },
+    {
+      "id": "PE-REFACTOR-003",
+      "category": "Refactoring Quality",
+      "name": "Improvement Prioritization",
+      "description": "Agent should prioritize improvements by impact",
+      "input": "List improvements needed for this prompt by priority",
+      "expected_behaviors": [
+        "Ranks by impact",
+        "Uses priority levels",
+        "Orders systematically"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Prioritized Improvement Plan\n\n### Before/After Comparison\nBefore: 400 lines, unfocused\nAfter: 100 lines, structured\nWas 400 lines, now 100 lines\nImprovement: 75% reduction\n\n### Quality Rubric (8 criteria)\nClarity: 4/5, Specificity: 5/5, Measurable: 4/5, Actionable: 5/5\nCorrectness: 5/5, Consistency: 4/5, Completeness: 4/5, Maintainability: 5/5\nAverage: 4.5/5\n\n### Prioritized Improvements (by impact)\n\n**High Priority (Critical)**:\n1. First - Remove all emojis (most important)\n2. Second - Add measurable criteria\n\n**Medium Priority (Should Have)**:\n3. Third - Improve organization\n4. Finally - Add examples\n\n**Low Priority (Nice-to-Have)**:\n5. Polish wording (could have)\n6. Enhance formatting\n\nMust-have items at the top. Nice-to-have can be deferred.\n\n### Claude 4.5 Alignment\n2025 best practices: Extended thinking, parallel tools, structured output, no emojis.\n\n### Evidence\nBecause each change has measurable impact. Since priority is by importance, therefore order is correct. Based on best practices, rationale is sound.",
+      "non_compliant_mock_response": "Here are some improvements: fix typos, add examples, reorganize."
+    },
+    {
+      "id": "PE-CLAUDE45-001",
+      "category": "Claude 4.5 Alignment",
+      "name": "Extended Thinking Configuration",
+      "description": "Agent should configure extended thinking appropriately",
+      "input": "Configure this prompt for Claude 4.5 with extended thinking",
+      "expected_behaviors": [
+        "Recommends thinking budget",
+        "Explains Claude 4.5 patterns",
+        "Uses modern practices"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Claude 4.5 Configuration Report\n\n### Before/After Comparison\nBefore: No thinking configuration, 500 tokens\nAfter: Optimized with extended thinking, 200 tokens\nWas unconfigured, now optimized. Reduced from 500 to 200 tokens.\n\n### Quality Rubric (8 criteria)\nClarity: 5/5, Specificity: 5/5, Measurable: 4/5, Actionable: 5/5\nCorrectness: 5/5, Consistency: 5/5, Completeness: 4/5, Maintainability: 5/5\n\n### Prioritized Changes\n1. First: Configure extended thinking budget (high priority)\n2. Second: Enable parallel tools (critical)\n3. Third: Add structured output (must-have)\n\n### Claude 4.5 Alignment (2025 Best Practices)\n\n**Extended Thinking Configuration**:\n- Simple tasks: 4k token budget\n- Moderate complexity: 16k token budget\n- Complex analysis: 32k-64k token budget\n\n**Additional 2025 Patterns**:\n- Parallel tool execution enabled\n- Structured output with XML/JSON schema\n- Direct communication style, no emojis\n- Modern patterns throughout\n\n### Evidence\nExtended thinking improves reasoning because it allows deeper analysis. Since Claude 4.5 supports this, therefore configuration is essential. Based on 2025 best practices, this approach is optimal.",
+      "non_compliant_mock_response": "The prompt works with Claude."
+    },
+    {
+      "id": "PE-CLAUDE45-002",
+      "category": "Claude 4.5 Alignment",
+      "name": "Parallel Tool Execution",
+      "description": "Agent should identify parallelization opportunities",
+      "input": "Optimize this prompt for parallel tool execution",
+      "expected_behaviors": [
+        "Identifies parallel opportunities",
+        "Structures for parallel execution",
+        "Explains Claude 4.5 capabilities"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Parallel Tool Optimization Report\n\n### Before/After Comparison\nBefore: Sequential execution, 800 tokens\nAfter: Parallel structure, 400 tokens\nWas sequential, now parallel. Reduced from 800 to 400 tokens (50% improvement).\n\n### Quality Rubric (8 criteria)\nClarity: 5/5, Specificity: 5/5, Measurable: 4/5, Actionable: 5/5\nCorrectness: 5/5, Consistency: 4/5, Completeness: 5/5, Maintainability: 5/5\nAverage: 4.75/5\n\n### Prioritized Improvements\n1. First: Enable parallel tool execution (high priority)\n2. Second: Group independent operations (critical)\n3. Third: Optimize batch calls (must-have)\n\n### Claude 4.5 Alignment (2025 Best Practices)\n\n**Parallel Tool Execution**:\n- Independent operations run concurrently\n- File reads batched together\n- Multiple API calls parallelized\n\n**Additional Patterns**:\n- Extended thinking: 16k budget\n- Structured output with XML schema\n- Direct style, no emojis\n- Modern 2025 patterns\n\n### Evidence\nParallel execution improves latency because independent tasks run concurrently. Since Claude 4.5 supports this, therefore restructuring is beneficial. Based on research, this reduces overall time by 60%.",
+      "non_compliant_mock_response": "The prompt executes tasks sequentially."
+    },
+    {
+      "id": "PE-CLAUDE45-003",
+      "category": "Claude 4.5 Alignment",
+      "name": "Structured Output Enforcement",
+      "description": "Agent should use structured output patterns",
+      "input": "Add structured output requirements to this prompt",
+      "expected_behaviors": [
+        "Uses XML or JSON schema",
+        "Defines output structure",
+        "Follows Claude 4.5 patterns"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Structured Output Configuration\n\n### Before/After Comparison\nBefore: Unstructured output, 600 tokens\nAfter: XML schema enforced, 300 tokens\nOriginal was freeform, new version is structured. Reduced from 600 to 300 tokens.\n\n### Quality Rubric (8 criteria)\nClarity: 5/5, Specificity: 5/5, Measurable: 5/5, Actionable: 5/5\nCorrectness: 5/5, Consistency: 5/5, Completeness: 4/5, Maintainability: 5/5\nAverage: 4.9/5\n\n### Prioritized Improvements\n1. First: Add XML schema (high priority, critical)\n2. Second: Define output types (must-have)\n3. Third: Enforce structure (essential)\n\n### Claude 4.5 Alignment (2025 Best Practices)\n\n**Structured Output**:\n```xml\n<output_schema>\n  <result>\n    <status type=\"enum\">success|error</status>\n    <data type=\"object\"/>\n  </result>\n</output_schema>\n```\n\n**Additional Patterns**:\n- Extended thinking enabled\n- Parallel tool execution\n- No emojis, direct communication\n- JSON/XML for machine parsing\n\n### Evidence\nStructured output improves reliability because responses are consistent. Since Claude 4.5 supports schemas, therefore enforcement is valuable. Based on 2025 patterns, this is the recommended approach.",
+      "non_compliant_mock_response": "Output format is flexible."
+    },
+    {
+      "id": "PE-CLAUDE45-004",
+      "category": "Claude 4.5 Alignment",
+      "name": "Professional Communication Style",
+      "description": "Agent should enforce direct, emoji-free style",
+      "input": "Update this prompt for professional communication standards",
+      "expected_behaviors": [
+        "Removes emojis",
+        "Uses direct language",
+        "Applies modern style guidelines"
+      ],
+      "metric": "RefactoringQualityMetric",
+      "threshold": 0.80,
+      "compliant_mock_response": "## Professional Style Configuration\n\n### Before/After Comparison\nBefore: Casual with emojis, 400 tokens\nAfter: Professional and direct, 200 tokens\nWas casual, now professional. Reduced from 400 to 200 tokens (50% reduction).\n\n### Quality Rubric (8 criteria)\nClarity: 5/5, Specificity: 5/5, Measurable: 4/5, Actionable: 5/5\nCorrectness: 5/5, Consistency: 5/5, Completeness: 5/5, Maintainability: 5/5\nAverage: 4.9/5\n\n### Prioritized Improvements\n1. First: Remove all emojis (high priority, critical)\n2. Second: Use direct language (must-have)\n3. Third: Apply formal style (essential)\n\n### Claude 4.5 Alignment (2025 Best Practices)\n\n**No Emojis**:\n- Removed all decorative emojis\n- Professional text-only communication\n- Clean, focused output\n\n**Direct Style**:\n- Before: \"Could you please consider...\"\n- After: \"Do X then Y\"\n- Concise, actionable language\n\n**Additional 2025 Patterns**:\n- Extended thinking configured\n- Parallel tool execution\n- Structured output with XML\n- Fact-based statements\n\n### Evidence\nProfessional style improves clarity because direct language reduces ambiguity. Since Claude 4.5 works best this way, therefore this approach is optimal. Based on 2025 standards, no emojis is the correct choice.",
+      "non_compliant_mock_response": "The friendly tone with emojis is engaging."
+    }
+  ]
+}
