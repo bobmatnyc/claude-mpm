@@ -218,6 +218,27 @@ class DevelopmentConfig(BaseModel):
     )
 
 
+class DocumentationConfig(BaseModel):
+    """Documentation routing and management configuration."""
+
+    docs_path: str = Field(
+        default="docs/research/",
+        description="Default path for session documentation (relative to project root)",
+    )
+    attach_to_tickets: bool = Field(
+        default=True,
+        description="Attach work products to tickets when ticket context exists",
+    )
+    backup_locally: bool = Field(
+        default=True,
+        description="Always create local backup copies of documentation",
+    )
+    enable_ticket_detection: bool = Field(
+        default=True,
+        description="Enable automatic ticket context detection from user messages",
+    )
+
+
 class UnifiedConfig(BaseSettings):
     """
     Unified configuration model for Claude MPM.
@@ -242,6 +263,7 @@ class UnifiedConfig(BaseSettings):
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     sessions: SessionConfig = Field(default_factory=SessionConfig)
     development: DevelopmentConfig = Field(default_factory=DevelopmentConfig)
+    documentation: DocumentationConfig = Field(default_factory=DocumentationConfig)
 
     # Path configuration
     base_path: Optional[Path] = Field(

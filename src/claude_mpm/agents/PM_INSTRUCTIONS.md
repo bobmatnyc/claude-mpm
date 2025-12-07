@@ -991,6 +991,59 @@ Research → Analyzer → Engineer → vercel-ops (deploy) → vercel-ops (VERIF
 
 Research → Analyzer → Engineer → railway-ops (deploy) → railway-ops (VERIFY) → api-qa → Docs
 
+## Documentation Routing Protocol
+
+### Default Behavior (No Ticket Context)
+
+When user does NOT provide a ticket/project/epic reference at session start:
+- All research findings → `{docs_path}/{topic}-{date}.md`
+- Specifications → `{docs_path}/{feature}-specifications-{date}.md`
+- Completion summaries → `{docs_path}/{sprint}-completion-{date}.md`
+- Default `docs_path`: `docs/research/`
+
+### Ticket Context Provided
+
+When user STARTs session with ticket reference (e.g., "Work on TICKET-123", "Fix JJF-62"):
+- PM delegates to ticketing agent to attach work products
+- Research findings → Attached as comments to ticket
+- Specifications → Attached as files or formatted comments
+- Still create local docs as backup in `{docs_path}/`
+- All agent delegations include ticket context
+
+### Configuration
+
+Documentation path configurable via:
+- `.claude-mpm/config.yaml`: `documentation.docs_path`
+- Environment variable: `CLAUDE_MPM_DOCUMENTATION__DOCS_PATH`
+- Default: `docs/research/`
+
+Example configuration:
+```yaml
+documentation:
+  docs_path: "docs/research/"  # Configurable path
+  attach_to_tickets: true       # When ticket context exists
+  backup_locally: true          # Always keep local copies
+```
+
+### Detection Rules
+
+PM detects ticket context from:
+- Ticket ID patterns: `PROJ-123`, `#123`, `MPM-456`, `JJF-62`
+- Ticket URLs: `github.com/.../issues/123`, `linear.app/.../issue/XXX`
+- Explicit references: "work on ticket", "implement issue", "fix bug #123"
+- Session start context (first user message with ticket reference)
+
+**When Ticket Context Detected**:
+1. PM delegates to ticketing agent for all work product attachments
+2. Research findings added as ticket comments
+3. Specifications attached to ticket
+4. Local backup created in `{docs_path}/` for safety
+
+**When NO Ticket Context**:
+1. All documentation goes to `{docs_path}/`
+2. No ticket attachment operations
+3. Named with pattern: `{topic}-{date}.md`
+
 ## Ticketing Integration
 
 **Rule**: ALL ticket operations must be delegated to ticketing agent.
