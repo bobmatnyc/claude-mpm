@@ -60,9 +60,9 @@ controllers (presentation), services (business logic), and repositories
         )
 
         score = metric.measure(test_case)
-        assert (
-            score >= 0.85
-        ), f"Perfect strategic research should score >= 0.85, got {score}"
+        assert score >= 0.85, (
+            f"Perfect strategic research should score >= 0.85, got {score}"
+        )
         assert metric.is_successful()
         assert "Excellent strategic research" in metric.reason
 
@@ -102,9 +102,9 @@ Found config.yaml and settings.json in the config/ directory.
 
         score = metric.measure(test_case)
         # Should get partial discovery score (0.5 * 0.30 = 0.15)
-        assert (
-            score >= 0.15
-        ), f"Single discovery tool should get partial score, got {score}"
+        assert score >= 0.15, (
+            f"Single discovery tool should get partial score, got {score}"
+        )
 
     def test_discovery_tools_none(self):
         """Test no discovery tools used."""
@@ -177,9 +177,9 @@ Files are grouped logically.
 
         score = metric.measure(test_case)
         # Should get partial pattern score (0.6 * 0.25 = 0.15)
-        assert (
-            score >= 0.10
-        ), f"Single pattern indicator should get partial score, got {score}"
+        assert score >= 0.10, (
+            f"Single pattern indicator should get partial score, got {score}"
+        )
 
     def test_pattern_extraction_none(self):
         """Test no pattern extraction."""
@@ -376,9 +376,9 @@ Summary: Architecture is good.
         # Base score would be high, but penalty should reduce it
         # Anti-patterns: "reading all" + "every single" = 2 * 0.2 = 0.4 penalty
         # Penalty reduces score by up to 50%
-        assert (
-            score < 0.85
-        ), f"Anti-patterns should reduce score below threshold, got {score}"
+        assert score < 0.85, (
+            f"Anti-patterns should reduce score below threshold, got {score}"
+        )
         assert not metric.is_successful()
         assert "Anti-patterns detected" in metric.reason
 
@@ -445,9 +445,9 @@ Summary: Good architecture overall.
         score = metric.measure(test_case)
         # Discovery (30%) + Pattern (25%) + Summary (20%) = 75%
         # Missing sampling (25%), should fail threshold
-        assert (
-            score < 0.85
-        ), f"Missing component should fail 0.85 threshold, got {score}"
+        assert score < 0.85, (
+            f"Missing component should fail 0.85 threshold, got {score}"
+        )
         assert not metric.is_successful()
 
     def test_all_components_partial_scores(self):

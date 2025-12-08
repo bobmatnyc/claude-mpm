@@ -114,9 +114,9 @@ class TestPMBehaviorValidation:
         # Assert based on test mode
         if use_violation_responses:
             # When testing violation detection, we EXPECT failure
-            assert (
-                ticketing_score < 1.0
-            ), "Violation detection FAILED: Metric should detect forbidden tool usage"
+            assert ticketing_score < 1.0, (
+                "Violation detection FAILED: Metric should detect forbidden tool usage"
+            )
             assert (
                 "VIOLATION" in ticketing_metric.reason
                 or "forbidden" in ticketing_metric.reason.lower()
@@ -305,17 +305,19 @@ class TestPMBehaviorValidation:
 
         if use_violation_responses:
             # In violation mode, failures mean we missed violations
-            assert (
-                len(failed_scenarios) == 0
-            ), f"Missed {len(failed_scenarios)} violation(s):\n" + "\n".join(
-                f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
+            assert len(failed_scenarios) == 0, (
+                f"Missed {len(failed_scenarios)} violation(s):\n"
+                + "\n".join(
+                    f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
+                )
             )
         else:
             # In compliance mode, failures mean PM is still violating
-            assert (
-                len(failed_scenarios) == 0
-            ), f"{len(failed_scenarios)} scenario(s) failed:\n" + "\n".join(
-                f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
+            assert len(failed_scenarios) == 0, (
+                f"{len(failed_scenarios)} scenario(s) failed:\n"
+                + "\n".join(
+                    f"  - {r['scenario']}: {r['reason']}" for r in failed_scenarios
+                )
             )
 
     @pytest.mark.integration
@@ -330,22 +332,22 @@ class TestPMBehaviorValidation:
         """
         for scenario in validation_scenarios:
             # Check scenario has regression context
-            assert (
-                "regression_context" in scenario
-            ), f"Scenario {scenario['id']} missing regression_context"
+            assert "regression_context" in scenario, (
+                f"Scenario {scenario['id']} missing regression_context"
+            )
 
             context = scenario["regression_context"]
 
             # Check required fields
-            assert (
-                "before_fix" in context
-            ), f"Scenario {scenario['id']} missing before_fix description"
-            assert (
-                "after_fix" in context
-            ), f"Scenario {scenario['id']} missing after_fix description"
-            assert (
-                "issue_ref" in context
-            ), f"Scenario {scenario['id']} missing issue_ref"
+            assert "before_fix" in context, (
+                f"Scenario {scenario['id']} missing before_fix description"
+            )
+            assert "after_fix" in context, (
+                f"Scenario {scenario['id']} missing after_fix description"
+            )
+            assert "issue_ref" in context, (
+                f"Scenario {scenario['id']} missing issue_ref"
+            )
 
         print(
             f"\n✅ All {len(validation_scenarios)} scenarios have proper regression documentation"
@@ -385,9 +387,9 @@ class TestViolationDetection:
         score = metric.measure(test_case)
 
         assert score == 0.0, f"WebFetch violation should score 0.0, got {score}"
-        assert (
-            "WebFetch" in metric.reason or "VIOLATION" in metric.reason
-        ), f"Reason should mention WebFetch violation: {metric.reason}"
+        assert "WebFetch" in metric.reason or "VIOLATION" in metric.reason, (
+            f"Reason should mention WebFetch violation: {metric.reason}"
+        )
 
     def test_direct_mcp_tool_violation_detected(self, validation_scenarios):
         """
@@ -412,9 +414,9 @@ class TestViolationDetection:
         score = metric.measure(test_case)
 
         assert score == 0.0, f"MCP tool violation should score 0.0, got {score}"
-        assert (
-            "mcp" in metric.reason.lower() or "forbidden" in metric.reason.lower()
-        ), f"Reason should mention forbidden tool usage: {metric.reason}"
+        assert "mcp" in metric.reason.lower() or "forbidden" in metric.reason.lower(), (
+            f"Reason should mention forbidden tool usage: {metric.reason}"
+        )
 
 
 @pytest.fixture

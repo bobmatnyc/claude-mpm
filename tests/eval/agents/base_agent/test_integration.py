@@ -80,12 +80,12 @@ class TestBaseAgentIntegration:
         )
 
         # Verify specialized agent patterns are preserved
-        assert (
-            "type hints" in response.lower()
-        ), "Python Engineer specialization should include type hints"
-        assert (
-            "pytest" in response.lower()
-        ), "Python Engineer specialization should include testing"
+        assert "type hints" in response.lower(), (
+            "Python Engineer specialization should include type hints"
+        )
+        assert "pytest" in response.lower(), (
+            "Python Engineer specialization should include testing"
+        )
 
         # Verify BASE_AGENT + specialized agent coexistence
         assert "```python" in response, "Code snippets should be present"
@@ -128,24 +128,24 @@ class TestBaseAgentIntegration:
         assert len(steps) >= 4, f"Should have 4+ steps, got {len(steps)}"
 
         # Verify each critical operation is present
-        assert (
-            "read" in response.lower() and "auth.py" in response.lower()
-        ), "Should read file first"
-        assert (
-            "edit" in response.lower() or "updating" in response.lower()
-        ), "Should edit file"
-        assert (
-            "pytest" in response.lower() or "test" in response.lower()
-        ), "Should run tests"
+        assert "read" in response.lower() and "auth.py" in response.lower(), (
+            "Should read file first"
+        )
+        assert "edit" in response.lower() or "updating" in response.lower(), (
+            "Should edit file"
+        )
+        assert "pytest" in response.lower() or "test" in response.lower(), (
+            "Should run tests"
+        )
         assert "deploy" in response.lower(), "Should deploy"
 
         # Verify verification keywords present after each step
         verification_count = response.lower().count("verified")
         verification_count += response.lower().count("confirmed")
         verification_count += response.lower().count("✅")
-        assert (
-            verification_count >= 3
-        ), f"Should have 3+ verification confirmations, got {verification_count}"
+        assert verification_count >= 3, (
+            f"Should have 3+ verification confirmations, got {verification_count}"
+        )
 
     # =========================================================================
     # Test 3: Error Recovery and Escalation
@@ -182,9 +182,9 @@ class TestBaseAgentIntegration:
         # Parse JSON and verify task completed
         json_block = self._extract_json_block(response_success)
         assert json_block is not None, "Should have JSON block"
-        assert (
-            json_block.get("task_completed") is True
-        ), "Task should be completed after successful recovery"
+        assert json_block.get("task_completed") is True, (
+            "Task should be completed after successful recovery"
+        )
 
         # Scenario B: Failed recovery → escalation
         user_request_failure = "Deploy the application to production"
@@ -209,9 +209,9 @@ class TestBaseAgentIntegration:
         # Parse JSON and verify task NOT completed
         json_block_failure = self._extract_json_block(response_failure)
         assert json_block_failure is not None, "Should have JSON block"
-        assert (
-            json_block_failure.get("task_completed") is False
-        ), "Task should NOT be completed when escalating"
+        assert json_block_failure.get("task_completed") is False, (
+            "Task should NOT be completed when escalating"
+        )
 
     # =========================================================================
     # Test 4: Memory Persistence Workflow
@@ -267,9 +267,9 @@ class TestBaseAgentIntegration:
         )
 
         # Verify memory was recalled and used
-        assert (
-            "poetry add" in session2_response.lower()
-        ), "Should use Poetry based on recalled memory"
+        assert "poetry add" in session2_response.lower(), (
+            "Should use Poetry based on recalled memory"
+        )
 
         # Session 3: Memory update
         session3_request = (
@@ -350,14 +350,14 @@ class TestBaseAgentIntegration:
 
         # Verify metrics provide specific violation reasons
         if verification_score_bad < 0.9:
-            assert (
-                len(self.verification_metric.reason) > 0
-            ), "Verification metric should explain failure"
+            assert len(self.verification_metric.reason) > 0, (
+                "Verification metric should explain failure"
+            )
 
         if memory_score_bad < 0.999:
-            assert (
-                len(self.memory_metric.reason) > 0
-            ), "Memory metric should explain failure"
+            assert len(self.memory_metric.reason) > 0, (
+                "Memory metric should explain failure"
+            )
 
     # =========================================================================
     # Helper Methods

@@ -322,9 +322,9 @@ class TestMemoryProtocolMetric:
         )
 
         score = metric.measure(test_case)
-        assert (
-            abs(score - 1.0) < 0.01
-        ), f"Memory trigger should be captured, got {score}"
+        assert abs(score - 1.0) < 0.01, (
+            f"Memory trigger should be captured, got {score}"
+        )
         assert metric.is_successful()
 
     def test_memory_capture_with_trigger_not_captured(self):
@@ -375,9 +375,9 @@ class TestMemoryProtocolMetric:
 
         score = metric.measure(test_case)
         # Should NOT capture user preference
-        assert (
-            abs(score - 1.0) < 0.01
-        ), f"User preference should not be captured, got {score}"
+        assert abs(score - 1.0) < 0.01, (
+            f"User preference should not be captured, got {score}"
+        )
         assert metric.is_successful()
 
     def test_memory_capture_user_specific_incorrectly_captured(self):
@@ -427,9 +427,9 @@ class TestMemoryProtocolMetric:
 
         score = metric.measure(test_case)
         # Should NOT capture obvious fact
-        assert (
-            abs(score - 1.0) < 0.01
-        ), f"Obvious fact should not be captured, got {score}"
+        assert abs(score - 1.0) < 0.01, (
+            f"Obvious fact should not be captured, got {score}"
+        )
         assert metric.is_successful()
 
     # ========================================================================
@@ -457,9 +457,9 @@ class TestMemoryProtocolMetric:
         )
 
         score = metric.measure(test_case)
-        assert (
-            abs(score - 1.0) < 0.01
-        ), f"Concise entries should score perfectly, got {score}"
+        assert abs(score - 1.0) < 0.01, (
+            f"Concise entries should score perfectly, got {score}"
+        )
         assert metric.is_successful()
 
     def test_memory_quality_verbose_entries(self):

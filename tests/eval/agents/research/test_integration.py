@@ -68,17 +68,17 @@ class TestResearchAgentIntegration:
         # Verify key efficiency patterns present
         assert "file size" in response.lower(), "Should check file sizes"
         assert "summariz" in response.lower(), "Should use summarizer"
-        assert (
-            "grep" in response.lower() or "glob" in response.lower()
-        ), "Should use discovery tools"
+        assert "grep" in response.lower() or "glob" in response.lower(), (
+            "Should use discovery tools"
+        )
 
         # Count file reads (should be ≤5)
         import re
 
         file_reads = re.findall(r"reading [a-z_/]+\.py", response, re.IGNORECASE)
-        assert (
-            len(set(file_reads)) <= 5
-        ), f"Should read ≤5 files, found {len(set(file_reads))}"
+        assert len(set(file_reads)) <= 5, (
+            f"Should read ≤5 files, found {len(set(file_reads))}"
+        )
 
     # =========================================================================
     # Test 2: Discovery-First Approach
@@ -109,14 +109,14 @@ class TestResearchAgentIntegration:
         # Verify discovery-first workflow
         assert "grep" in response.lower(), "Should use grep for discovery"
         assert "pattern" in response.lower(), "Should identify patterns"
-        assert (
-            "sample" in response.lower() or "representative" in response.lower()
-        ), "Should mention sampling"
+        assert "sample" in response.lower() or "representative" in response.lower(), (
+            "Should mention sampling"
+        )
 
         # Verify synthesis present
-        assert (
-            "summary" in response.lower() or "overview" in response.lower()
-        ), "Should provide synthesis"
+        assert "summary" in response.lower() or "overview" in response.lower(), (
+            "Should provide synthesis"
+        )
 
     # =========================================================================
     # Test 3: Pattern Extraction and Synthesis
@@ -140,12 +140,12 @@ class TestResearchAgentIntegration:
         memory_score = self.memory_metric.measure(test_case)
         sampling_score = self.sampling_metric.measure(test_case)
 
-        assert (
-            memory_score >= 0.85
-        ), f"Pattern extraction should be memory efficient, got {memory_score}"
-        assert (
-            sampling_score >= 0.85
-        ), f"Pattern extraction should use strategic sampling, got {sampling_score}"
+        assert memory_score >= 0.85, (
+            f"Pattern extraction should be memory efficient, got {memory_score}"
+        )
+        assert sampling_score >= 0.85, (
+            f"Pattern extraction should use strategic sampling, got {sampling_score}"
+        )
 
         # Verify pattern analysis present
         assert "pattern" in response.lower(), "Should identify patterns"
@@ -156,9 +156,9 @@ class TestResearchAgentIntegration:
         pattern_sections = re.findall(
             r"pattern \d+:|pattern:|key pattern", response, re.IGNORECASE
         )
-        assert (
-            len(pattern_sections) >= 2
-        ), f"Should identify multiple patterns, found {len(pattern_sections)}"
+        assert len(pattern_sections) >= 2, (
+            f"Should identify multiple patterns, found {len(pattern_sections)}"
+        )
 
         # Verify synthesis/insights
         assert any(
@@ -195,27 +195,27 @@ class TestResearchAgentIntegration:
         # Verify all required sections present
 
         # 1. File list section
-        assert (
-            "files analyzed" in response.lower() or "files:" in response.lower()
-        ), "Should include file list section"
+        assert "files analyzed" in response.lower() or "files:" in response.lower(), (
+            "Should include file list section"
+        )
 
         # 2. Pattern analysis
         assert "pattern" in response.lower(), "Should include pattern analysis"
 
         # 3. Code samples
-        assert (
-            "```python" in response or "```" in response
-        ), "Should include code samples"
+        assert "```python" in response or "```" in response, (
+            "Should include code samples"
+        )
 
         # 4. Recommendations
-        assert (
-            "recommend" in response.lower() or "suggestion" in response.lower()
-        ), "Should include recommendations"
+        assert "recommend" in response.lower() or "suggestion" in response.lower(), (
+            "Should include recommendations"
+        )
 
         # 5. Executive summary
-        assert (
-            "summary" in response.lower() or "overview" in response.lower()
-        ), "Should include executive summary"
+        assert "summary" in response.lower() or "overview" in response.lower(), (
+            "Should include executive summary"
+        )
 
     # =========================================================================
     # Helper Methods

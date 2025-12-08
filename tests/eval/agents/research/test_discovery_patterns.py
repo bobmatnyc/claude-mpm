@@ -60,8 +60,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Sequential reads should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Sequential reads should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -82,8 +81,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Pattern extraction should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Pattern extraction should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
@@ -104,8 +102,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Raw enumeration should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Raw enumeration should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -126,8 +123,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Findings synthesis should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Findings synthesis should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
@@ -148,8 +144,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Raw observations should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Raw observations should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -170,8 +165,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Executive summary should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Executive summary should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
@@ -192,8 +186,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Missing summary should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Missing summary should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -213,9 +206,9 @@ class TestDiscoveryPatterns:
         )
 
         score = self.metric.measure(test_case)
-        assert (
-            score >= 0.85
-        ), f"Code examples should pass, got {score}\nReason: {self.metric.reason}"
+        assert score >= 0.85, (
+            f"Code examples should pass, got {score}\nReason: {self.metric.reason}"
+        )
         assert self.metric.is_successful()
 
     def test_code_examples_non_compliant(
@@ -235,7 +228,6 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Vague descriptions should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Vague descriptions should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()

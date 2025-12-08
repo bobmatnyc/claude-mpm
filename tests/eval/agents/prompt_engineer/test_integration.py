@@ -81,9 +81,9 @@ class TestScenarioFileIntegrity:
 
     def test_scenario_count(self, all_scenarios: list[dict]):
         """Verify expected number of scenarios."""
-        assert (
-            len(all_scenarios) == 16
-        ), f"Expected 16 scenarios, got {len(all_scenarios)}"
+        assert len(all_scenarios) == 16, (
+            f"Expected 16 scenarios, got {len(all_scenarios)}"
+        )
 
     def test_category_counts(
         self,
@@ -94,9 +94,9 @@ class TestScenarioFileIntegrity:
     ):
         """Verify scenario counts per category."""
         assert len(anti_pattern_scenarios) == 5, "Expected 5 anti-pattern scenarios"
-        assert (
-            len(token_efficiency_scenarios) == 4
-        ), "Expected 4 token efficiency scenarios"
+        assert len(token_efficiency_scenarios) == 4, (
+            "Expected 4 token efficiency scenarios"
+        )
         assert len(refactoring_scenarios) == 3, "Expected 3 refactoring scenarios"
         assert len(claude45_scenarios) == 4, "Expected 4 Claude 4.5 scenarios"
 
@@ -117,9 +117,9 @@ class TestScenarioFileIntegrity:
 
         for scenario in all_scenarios:
             for field in required_fields:
-                assert (
-                    field in scenario
-                ), f"Missing {field} in scenario {scenario.get('id', 'unknown')}"
+                assert field in scenario, (
+                    f"Missing {field} in scenario {scenario.get('id', 'unknown')}"
+                )
 
     def test_unique_scenario_ids(self, all_scenarios: list[dict]):
         """Verify all scenario IDs are unique."""
@@ -135,9 +135,9 @@ class TestScenarioFileIntegrity:
         ]
 
         for scenario in all_scenarios:
-            assert (
-                scenario["metric"] in valid_metrics
-            ), f"Invalid metric {scenario['metric']} in {scenario['id']}"
+            assert scenario["metric"] in valid_metrics, (
+                f"Invalid metric {scenario['metric']} in {scenario['id']}"
+            )
 
 
 class TestAntiPatternScenarios:
@@ -160,9 +160,9 @@ class TestAntiPatternScenarios:
 
         score = metric.measure(test_case)
 
-        assert (
-            score >= scenario["threshold"]
-        ), f"Score {score} below threshold {scenario['threshold']}"
+        assert score >= scenario["threshold"], (
+            f"Score {score} below threshold {scenario['threshold']}"
+        )
         assert metric.is_successful()
 
     def test_emoji_detection_non_compliant(
@@ -177,9 +177,9 @@ class TestAntiPatternScenarios:
 
         score = metric.measure(test_case)
 
-        assert (
-            score < scenario["threshold"]
-        ), "Non-compliant response should score below threshold"
+        assert score < scenario["threshold"], (
+            "Non-compliant response should score below threshold"
+        )
 
     def test_overspecification_detection(
         self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric

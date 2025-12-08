@@ -164,9 +164,9 @@ def process_payment(payment_data):
         score = metric.measure(test_case)
 
         # Should score well: explicit error propagation
-        assert (
-            score >= 0.7
-        ), f"Expected score >= 0.7 with error propagation, got {score}"
+        assert score >= 0.7, (
+            f"Expected score >= 0.7 with error propagation, got {score}"
+        )
 
     def test_acceptable_fallback_justification(self):
         """Test acceptable fallback patterns."""
@@ -192,9 +192,9 @@ def get_avatar(user_id):
         score = metric.measure(test_case)
 
         # Should score well: acceptable justified fallbacks
-        assert (
-            score >= 0.8
-        ), f"Expected score >= 0.8 with justified fallbacks, got {score}"
+        assert score >= 0.8, (
+            f"Expected score >= 0.8 with justified fallbacks, got {score}"
+        )
 
     def test_no_error_handling_neutral(self):
         """Test neutral score when no error handling present."""
@@ -272,9 +272,9 @@ def func3():
 
         # Should score very poorly: multiple silent failures
         # Actual: 0.62 (3+ silent fallbacks gets 0.0*0.30, but other components score neutrally)
-        assert (
-            score < 0.7
-        ), f"Expected score < 0.7 for multiple silent fallbacks, got {score}"
+        assert score < 0.7, (
+            f"Expected score < 0.7 for multiple silent fallbacks, got {score}"
+        )
 
     def test_threshold_enforcement(self):
         """Test threshold pass/fail logic."""
@@ -461,9 +461,9 @@ def authenticate(username, password):
         score = metric.measure(test_case)
 
         # Should score very poorly: multiple anti-patterns
-        assert (
-            score < 0.5
-        ), f"Expected score < 0.5 for multiple anti-patterns, got {score}"
+        assert score < 0.5, (
+            f"Expected score < 0.5 for multiple anti-patterns, got {score}"
+        )
         assert not metric.is_successful()
 
 

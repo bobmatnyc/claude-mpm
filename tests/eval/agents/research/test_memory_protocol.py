@@ -82,8 +82,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score >= 0.9, (
-            f"Summarizer usage should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Summarizer usage should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
@@ -104,8 +103,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score < 0.9, (
-            f"Missing summarizer should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Missing summarizer should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -167,9 +165,9 @@ class TestMemoryProtocol:
         )
 
         score = self.metric.measure(test_case)
-        assert (
-            score >= 0.85
-        ), f"Line sampling should pass, got {score}\nReason: {self.metric.reason}"
+        assert score >= 0.85, (
+            f"Line sampling should pass, got {score}\nReason: {self.metric.reason}"
+        )
 
     def test_line_sampling_non_compliant(
         self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
@@ -188,8 +186,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Full file reads should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Full file reads should fail, got {score}\nReason: {self.metric.reason}"
         )
 
     def test_no_full_codebase_reads_compliant(
@@ -231,8 +228,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score < 0.95, (
-            f"Brute force reads should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Brute force reads should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -253,8 +249,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score >= 0.9, (
-            f"Strategic sampling should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Strategic sampling should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 

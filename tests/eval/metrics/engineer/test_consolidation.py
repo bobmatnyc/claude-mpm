@@ -243,9 +243,9 @@ Domain analysis:
 
         # Should score well with domain analysis
         # Actual: 0.58 (detection=0.5, decision=0.8, impl=0.5)
-        assert (
-            score >= 0.55
-        ), f"Expected score >= 0.55 with domain analysis, got {score}"
+        assert score >= 0.55, (
+            f"Expected score >= 0.55 with domain analysis, got {score}"
+        )
 
     def test_threshold_enforcement(self):
         """Test threshold pass/fail logic."""

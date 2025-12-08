@@ -281,10 +281,9 @@ class AgentTestBase:
             v for v in analysis.violations if "Unverified assertion" in v
         ]
 
-        assert (
-            not unverified_violations
-        ), f"Found {len(unverified_violations)} unverified assertions:\n" + "\n".join(
-            f"  - {v}" for v in unverified_violations
+        assert not unverified_violations, (
+            f"Found {len(unverified_violations)} unverified assertions:\n"
+            + "\n".join(f"  - {v}" for v in unverified_violations)
         )
 
     def assert_json_format_valid(self, analysis: AgentResponseAnalysis):
@@ -300,9 +299,9 @@ class AgentTestBase:
         memory = analysis.memory_capture
 
         assert memory.json_block_present, "No JSON block in response"
-        assert (
-            not memory.validation_errors
-        ), f"JSON validation errors: {', '.join(memory.validation_errors)}"
+        assert not memory.validation_errors, (
+            f"JSON validation errors: {', '.join(memory.validation_errors)}"
+        )
 
     def assert_tools_used(
         self, analysis: AgentResponseAnalysis, required_tools: List[str]
@@ -320,9 +319,9 @@ class AgentTestBase:
         tools_used = {t.tool_name for t in analysis.tools_used}
 
         for tool in required_tools:
-            assert (
-                tool in tools_used
-            ), f"Required tool '{tool}' not used. Tools used: {', '.join(tools_used)}"
+            assert tool in tools_used, (
+                f"Required tool '{tool}' not used. Tools used: {', '.join(tools_used)}"
+            )
 
     def assert_tools_not_used(
         self, analysis: AgentResponseAnalysis, forbidden_tools: List[str]
@@ -340,9 +339,9 @@ class AgentTestBase:
         tools_used = {t.tool_name for t in analysis.tools_used}
 
         for tool in forbidden_tools:
-            assert (
-                tool not in tools_used
-            ), f"Forbidden tool '{tool}' was used. Tools used: {', '.join(tools_used)}"
+            assert tool not in tools_used, (
+                f"Forbidden tool '{tool}' was used. Tools used: {', '.join(tools_used)}"
+            )
 
     # ========================================================================
     # RESULT VALIDATION HELPERS
@@ -442,9 +441,9 @@ class EngineerAgentTest(AgentTestBase):
         write_count = data.get("write_tools_used", 0)
 
         if write_count > 0:
-            assert (
-                search_count > 0
-            ), "Write/Edit without prior search (search-first violation)"
+            assert search_count > 0, (
+                "Write/Edit without prior search (search-first violation)"
+            )
 
     def assert_net_loc_delta_reported(self, analysis: AgentResponseAnalysis):
         """Assert engineer reported LOC impact."""
@@ -454,9 +453,9 @@ class EngineerAgentTest(AgentTestBase):
     def assert_no_mock_data(self, analysis: AgentResponseAnalysis):
         """Assert no mock data in production code."""
         data = analysis.agent_specific_data
-        assert not data.get(
-            "mock_data_detected"
-        ), "Mock data detected in production code"
+        assert not data.get("mock_data_detected"), (
+            "Mock data detected in production code"
+        )
 
 
 class QAAgentTest(AgentTestBase):
@@ -489,9 +488,9 @@ class OpsAgentTest(AgentTestBase):
     def assert_environment_validated(self, analysis: AgentResponseAnalysis):
         """Assert environment validation performed."""
         data = analysis.agent_specific_data
-        assert data.get(
-            "environment_validation"
-        ), "Environment validation not performed"
+        assert data.get("environment_validation"), (
+            "Environment validation not performed"
+        )
 
     def assert_rollback_prepared(self, analysis: AgentResponseAnalysis):
         """Assert rollback plan mentioned."""

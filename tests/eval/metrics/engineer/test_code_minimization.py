@@ -154,9 +154,9 @@ Implemented through configuration:
 
         # Should score well on config component
         # Actual: config=1.0*0.10 = 0.10
-        assert (
-            score >= 0.08
-        ), f"Expected score >= 0.08 with config approach, got {score}"
+        assert score >= 0.08, (
+            f"Expected score >= 0.08 with config approach, got {score}"
+        )
 
     def test_no_search_penalty(self):
         """Test penalty for missing search-first workflow."""

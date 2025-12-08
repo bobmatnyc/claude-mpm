@@ -60,8 +60,7 @@ class TestOutputRequirements:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Missing file list should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Missing file list should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -82,8 +81,7 @@ class TestOutputRequirements:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Pattern analysis should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Pattern analysis should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
@@ -104,8 +102,7 @@ class TestOutputRequirements:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Raw observations should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Raw observations should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -148,8 +145,7 @@ class TestOutputRequirements:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Vague descriptions should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Vague descriptions should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()
 
@@ -192,7 +188,6 @@ class TestOutputRequirements:
 
         score = self.metric.measure(test_case)
         assert score < 0.85, (
-            f"Vague suggestions should fail, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Vague suggestions should fail, got {score}\nReason: {self.metric.reason}"
         )
         assert not self.metric.is_successful()

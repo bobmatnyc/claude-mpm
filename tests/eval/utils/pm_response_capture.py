@@ -327,7 +327,9 @@ class PMResponseCapture:
                     (
                         self._redact_dict(item, redact_fn)
                         if isinstance(item, dict)
-                        else redact_fn(item) if isinstance(item, str) else item
+                        else redact_fn(item)
+                        if isinstance(item, str)
+                        else item
                     )
                     for item in value
                 ]

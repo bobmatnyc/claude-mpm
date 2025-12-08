@@ -82,9 +82,9 @@ class TestRealPMTicketingDelegation:
             # Check for regression
             if "comparison" in result:
                 comparison = result["comparison"]
-                assert (
-                    not comparison.regression_detected
-                ), f"Regression detected: {comparison.differences}"
+                assert not comparison.regression_detected, (
+                    f"Regression detected: {comparison.differences}"
+                )
 
     async def test_ticket_id_status_check_integration(
         self,
@@ -121,9 +121,9 @@ class TestRealPMTicketingDelegation:
             metric = TicketingDelegationMetric(threshold=1.0)
             score = metric.measure(test_case)
 
-            assert (
-                score == 1.0
-            ), f"PM should delegate ticket status check: {metric.reason}"
+            assert score == 1.0, (
+                f"PM should delegate ticket status check: {metric.reason}"
+            )
 
     async def test_create_ticket_with_context_integration(
         self,
@@ -163,9 +163,9 @@ class TestRealPMTicketingDelegation:
             assert score == 1.0, f"Expected delegation: {metric.reason}"
 
             # Check for proper context in delegation
-            assert (
-                "Task(" in response_text or "delegate" in response_text.lower()
-            ), "PM should use Task tool or mention delegation"
+            assert "Task(" in response_text or "delegate" in response_text.lower(), (
+                "PM should use Task tool or mention delegation"
+            )
 
     async def test_mixed_ticket_operations_integration(
         self,
@@ -201,9 +201,9 @@ class TestRealPMTicketingDelegation:
             metric = TicketingDelegationMetric(threshold=1.0)
             score = metric.measure(test_case)
 
-            assert (
-                score == 1.0
-            ), f"PM must delegate ALL ticketing operations: {metric.reason}"
+            assert score == 1.0, (
+                f"PM must delegate ALL ticketing operations: {metric.reason}"
+            )
 
 
 @pytest.mark.regression
@@ -262,9 +262,9 @@ class TestTicketingRegressionTests:
             category="ticketing",
         )
 
-        assert (
-            not comparison.regression_detected
-        ), f"Ticket creation behavior changed: {comparison.differences}"
+        assert not comparison.regression_detected, (
+            f"Ticket creation behavior changed: {comparison.differences}"
+        )
 
     def test_full_regression_suite(self, response_replay):
         """
@@ -290,9 +290,9 @@ class TestTicketingRegressionTests:
                 print(f"  - {reg.scenario_id}: {reg.differences[:100]}")
 
         # Assert no regressions
-        assert (
-            report.failed == 0
-        ), f"{report.failed} regression(s) detected. See report above for details."
+        assert report.failed == 0, (
+            f"{report.failed} regression(s) detected. See report above for details."
+        )
 
 
 @pytest.mark.asyncio
@@ -370,9 +370,9 @@ class TestTicketingWorkflows:
             response_text = result["response"].response.get("content", "")
 
             # PM should still delegate (not fail on its own)
-            assert (
-                "Task(" in response_text or "delegate" in response_text.lower()
-            ), "PM should delegate even for potentially invalid tickets"
+            assert "Task(" in response_text or "delegate" in response_text.lower(), (
+                "PM should delegate even for potentially invalid tickets"
+            )
 
             # Check for error reporting from ticketing agent
             # This would be more specific in real implementation

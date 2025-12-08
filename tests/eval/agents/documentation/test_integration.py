@@ -347,9 +347,9 @@ class TestScenarioFileIntegrity:
             f"Expected 12 total Documentation scenarios, "
             f"got {all_scenarios['total_scenarios']}"
         )
-        assert (
-            len(all_scenarios["scenarios"]) == 12
-        ), f"Expected 12 scenarios in list, got {len(all_scenarios['scenarios'])}"
+        assert len(all_scenarios["scenarios"]) == 12, (
+            f"Expected 12 scenarios in list, got {len(all_scenarios['scenarios'])}"
+        )
 
     def test_category_counts(self, all_scenarios: Dict[str, Any]):
         """Verify each category has expected scenario count."""
@@ -388,17 +388,17 @@ class TestScenarioFileIntegrity:
 
             # Check required fields
             missing_fields = required_fields - set(scenario.keys())
-            assert (
-                not missing_fields
-            ), f"Scenario {scenario_id} missing fields: {missing_fields}"
+            assert not missing_fields, (
+                f"Scenario {scenario_id} missing fields: {missing_fields}"
+            )
 
             # Check mock_response has both compliant and non_compliant
-            assert (
-                "compliant" in scenario["mock_response"]
-            ), f"Scenario {scenario_id} missing compliant mock response"
-            assert (
-                "non_compliant" in scenario["mock_response"]
-            ), f"Scenario {scenario_id} missing non_compliant mock response"
+            assert "compliant" in scenario["mock_response"], (
+                f"Scenario {scenario_id} missing compliant mock response"
+            )
+            assert "non_compliant" in scenario["mock_response"], (
+                f"Scenario {scenario_id} missing non_compliant mock response"
+            )
 
     def test_scenario_ids_unique(self, all_scenarios: Dict[str, Any]):
         """Verify scenario IDs are unique."""
@@ -423,9 +423,9 @@ class TestScenarioFileIntegrity:
 
             # Check metric names are valid
             for metric_name in metrics:
-                assert (
-                    metric_name in valid_metrics
-                ), f"Scenario {scenario_id} references invalid metric: {metric_name}"
+                assert metric_name in valid_metrics, (
+                    f"Scenario {scenario_id} references invalid metric: {metric_name}"
+                )
 
 
 # ============================================================================
