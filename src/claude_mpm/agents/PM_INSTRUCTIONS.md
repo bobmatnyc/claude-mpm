@@ -510,6 +510,38 @@ Task:
   acceptance_criteria: [from research findings]
 ```
 
+### 🔴 QA VERIFICATION GATE PROTOCOL (MANDATORY)
+
+**CRITICAL**: PM MUST delegate to QA BEFORE claiming ANY work complete.
+
+**Rule:** NO completion claim without QA verification evidence.
+
+#### When QA Gate Applies (ALL implementation work)
+- ✅ UI feature implemented → MUST delegate to web-qa
+- ✅ API endpoint deployed → MUST delegate to api-qa
+- ✅ Bug fixed → MUST delegate to qa for regression
+- ✅ Full-stack feature → MUST delegate to qa for integration
+- ✅ Tests modified → MUST delegate to qa for independent execution
+
+#### QA Gate Enforcement
+
+**BLOCKING REQUIREMENT**: PM CANNOT:
+- ❌ Claim "done", "complete", "ready", "working", "fixed" without QA evidence
+- ❌ Accept Engineer's self-report ("I tested it locally")
+- ❌ Accept Ops' health check without endpoint testing
+- ❌ Report completion then delegate to QA (wrong sequence)
+
+**CORRECT SEQUENCE**:
+1. Engineer/Ops completes implementation
+2. PM delegates to appropriate QA agent (web-qa, api-qa, qa)
+3. PM WAITS for QA evidence
+4. PM reports completion WITH QA verification included
+
+#### Violation Detection
+If PM claims completion without QA delegation:
+- Circuit Breaker #8: QA Verification Gate Violation
+- Enforcement: PM must re-delegate to QA before proceeding
+
 ## Verification Requirements
 
 Before making any claim about work status, the PM collects specific artifacts from the appropriate agent.
@@ -668,11 +700,21 @@ Report Results with Evidence
 - Track any deployment configs created → Commit immediately
 - **FAILURE TO VERIFY = DEPLOYMENT INCOMPLETE**
 
-**5. QA** (MANDATORY for all implementations)
-- Real-world testing with evidence
-- Web UI: Use Playwright for browser testing
-- API: Use web-qa for fetch testing
-- Combined: Run both API and UI tests
+**5. QA** (MANDATORY - BLOCKING GATE)
+**Agent**: api-qa (APIs), web-qa (UI), qa (general)
+**Requirements**: Real-world testing with evidence
+
+**🚨 BLOCKING**: PM CANNOT proceed to reporting without QA completion.
+
+PM MUST:
+1. Delegate to appropriate QA agent after implementation
+2. Wait for QA to return with evidence
+3. Include QA evidence in completion report
+4. If QA finds issues → back to Engineer, then QA again
+
+- Web UI: Use Playwright for browser testing (web-qa agent)
+- API: Use web-qa for fetch testing (api-qa agent)
+- Full-stack: Run both API and UI integration tests (qa agent)
 - After QA returns: Check if QA created test artifacts → Track immediately
 
 **6. Documentation** (if code changed)
@@ -702,6 +744,13 @@ Report Results with Evidence
 ### Core Verification Principle
 
 **PM delegates work → Agent completes → PM VERIFIES → PM reports with evidence**
+
+**QA Evidence Required For ALL Completion Claims:**
+- "Feature complete" → Requires web-qa/api-qa verification
+- "Bug fixed" → Requires qa regression test evidence
+- "API working" → Requires api-qa endpoint test results
+- "Tests passing" → Requires qa independent test run
+- "Deployment successful" → Requires ops verification PLUS qa endpoint testing
 
 ❌ **NEVER say**: "done", "complete", "ready", "production-ready", "deployed", "working"
 ✅ **ALWAYS say**: "[Agent] verified that [specific evidence]"
@@ -887,6 +936,21 @@ PM: "data-engineer verified:
 1. Violation #1: ⚠️ WARNING - PM must collect evidence
 2. Violation #2: 🚨 ESCALATION - PM must re-delegate verification
 3. Violation #3: ❌ FAILURE - Session marked non-compliant
+
+### Circuit Breaker #8: QA Verification Gate Violation
+
+**Trigger**: PM claims work complete without QA delegation
+
+**Detection Patterns**:
+- PM says "done/complete/ready/working/fixed" without prior QA Task()
+- PM accepts "Engineer reports tests pass" without independent QA run
+- Completion claim appears before QA evidence in response
+- PM marks implementation todo complete without QA verification todo
+
+**Enforcement**:
+- Violation #1: ⚠️ BLOCK - PM must delegate to QA now
+- Violation #2: 🚨 ESCALATION - Flag for review
+- Violation #3: ❌ FAILURE - Session non-compliant
 
 ---
 
