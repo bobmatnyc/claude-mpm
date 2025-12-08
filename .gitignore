@@ -330,3 +330,6 @@ dist/
 *.original
 *.optimized
 *.backup
+
+# MCP configuration (contains tokens)
+.mcp.json
