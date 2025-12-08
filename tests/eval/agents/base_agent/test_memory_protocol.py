@@ -214,7 +214,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score >= 0.9, (
-            f"Memory update should pass, got {score}\n" f"Reason: {self.metric.reason}"
+            f"Memory update should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 

@@ -214,7 +214,7 @@ class TestDiscoveryPatterns:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Code examples should pass, got {score}\n" f"Reason: {self.metric.reason}"
+            f"Code examples should pass, got {score}\nReason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 

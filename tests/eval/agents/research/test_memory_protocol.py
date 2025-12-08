@@ -168,7 +168,7 @@ class TestMemoryProtocol:
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Line sampling should pass, got {score}\n" f"Reason: {self.metric.reason}"
+            f"Line sampling should pass, got {score}\nReason: {self.metric.reason}"
         )
 
     def test_line_sampling_non_compliant(
