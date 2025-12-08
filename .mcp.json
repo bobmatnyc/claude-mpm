@@ -2,10 +2,9 @@
   "mcpServers": {
     "kuzu-memory": {
       "type": "stdio",
-      "command": "/Users/masa/.local/pipx/venvs/kuzu-memory/bin/python",
+      "command": "kuzu-memory",
       "args": [
-        "-m",
-        "kuzu_memory.mcp.server"
+        "mcp"
       ],
       "env": {
         "KUZU_MEMORY_PROJECT_ROOT": "/Users/masa/Projects/claude-mpm",
@@ -13,6 +12,7 @@
       }
     },
     "mcp-vector-search": {
+      "type": "stdio",
       "command": "uv",
       "args": [
         "run",
@@ -21,8 +21,17 @@
       ],
       "env": {
         "MCP_ENABLE_FILE_WATCHING": "true"
-      },
-      "type": "stdio"
+      }
+    },
+    "mcp-ticketer": {
+      "type": "stdio",
+      "command": "mcp-ticketer",
+      "args": [
+        "mcp",
+        "--path",
+        "/Users/masa/Projects/claude-mpm"
+      ],
+      "env": {}
     }
   }
 }

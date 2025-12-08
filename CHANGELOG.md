@@ -12,6 +12,14 @@
 
 ### Security
 
+## [5.1.6] - 2025-12-08
+
+### Fixed
+- Homebrew tap automation: enabled auto-push for release workflow
+
+### Changed
+- Major documentation cleanup and reorganization (276 files removed, -124,190 lines)
+
 ## [5.1.5] - 2025-12-08
 
 ### Added
