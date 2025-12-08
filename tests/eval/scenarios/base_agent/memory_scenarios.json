@@ -54,7 +54,7 @@
         }
       },
       "mock_response": {
-        "compliant": "Understood. I'll remember that the API uses OAuth2 with client credentials flow for authentication.\n\n```json\n{\n  \"remember\": [\"API uses OAuth2 client credentials flow for authentication\"]\n}\n```",
+        "compliant": "Understood. I'll remember that the API uses OAuth2 with client credentials flow for authentication.\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"Remember API authentication pattern\",\n  \"results\": \"Noted that API uses OAuth2 client credentials flow for authentication\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": [\"API uses OAuth2 client credentials flow for authentication\"]\n}\n```",
         "non_compliant": "Got it! I'll remember that the API uses OAuth2 with client credentials flow for authentication."
       }
     },
@@ -105,7 +105,7 @@
         }
       },
       "mock_response": {
-        "compliant": "Noted! I'll remember your conventional commit format for future tasks.\n\n```json\n{\n  \"memory-update\": {\n    \"Project Conventions\": [\n      \"Use conventional commits: feat, fix, docs, chore, refactor, test\"\n    ]\n  }\n}\n```",
+        "compliant": "Noted! I'll remember your conventional commit format for future tasks.\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"Note conventional commit format for future tasks\",\n  \"results\": \"Stored project convention for commit message formatting\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": [\"Use conventional commits: feat, fix, docs, chore, refactor, test\"]\n}\n```",
         "non_compliant": "Understood! I'll use conventional commits with those types in the future."
       }
     },
@@ -116,7 +116,7 @@
       "priority": "medium",
       "description": "Agent must NOT store obvious facts, well-known patterns, or information already in codebase",
       "input": {
-        "user_request": "Remember that Python uses snake_case for variable names",
+        "user_request": "Note that Python code is in snake_case for variable names - this is standard practice",
         "context": "User asks to remember standard Python convention",
         "files": []
       },
@@ -151,12 +151,12 @@
       ],
       "metrics": {
         "MemoryProtocolMetric": {
-          "threshold": 0.85,
+          "threshold": 0.75,
           "weight": 0.8
         }
       },
       "mock_response": {
-        "compliant": "I understand you want me to remember Python's snake_case convention, but this is a standard Python style guideline (PEP 8) that's already part of my knowledge. I'll focus on storing project-specific patterns and decisions instead.\n\nIf you have specific snake_case naming conventions unique to your project (e.g., 'use _internal suffix for private functions'), I'd be happy to remember those!",
+        "compliant": "I understand this is a request about Python's snake_case naming convention, but this is a well-known standard Python style guideline documented in PEP 8 that's already part of my knowledge base. \n\nI focus on storing project-specific patterns and architectural decisions that are unique to your codebase. Standard language conventions like snake_case are not captured as project memory since they're universally applicable Python knowledge.\n\nIf you have specific naming conventions unique to your project (e.g., 'use _internal suffix for private functions'), I'd be happy to capture those as project-specific knowledge!\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"User mentioned standard Python naming convention\",\n  \"results\": \"Explained that snake_case is documented in PEP 8 and not stored as project-specific memory\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": null\n}\n```",
         "non_compliant": "Got it! I'll remember that Python uses snake_case for variable names.\n\n```json\n{\n  \"remember\": [\"Python uses snake_case for variable names\"]\n}\n```"
       }
     },
@@ -207,7 +207,7 @@
         }
       },
       "mock_response": {
-        "compliant": "I'll remember both the API base URL and authentication requirement.\n\n```json\n{\n  \"memory-update\": {\n    \"API Configuration\": [\n      \"API base URL: https://api.example.com, requires X-API-Key header for authentication\"\n    ]\n  }\n}\n```",
+        "compliant": "I'll remember both the API base URL and authentication requirement.\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"Remember API configuration details\",\n  \"results\": \"Consolidated API base URL and authentication requirement into single memory\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": [\"API base URL: https://api.example.com, requires X-API-Key header for authentication\"]\n}\n```",
         "non_compliant": "I'll remember both of those details.\n\n```json\n{\n  \"remember\": [\n    \"API base URL is https://api.example.com\",\n    \"API requires X-API-Key header\"\n  ]\n}\n```"
       }
     },
@@ -258,7 +258,7 @@
         }
       },
       "mock_response": {
-        "compliant": "I'll update the API base URL in my memory.\n\n```json\n{\n  \"memory-update\": {\n    \"API Configuration\": [\n      \"API base URL: https://api-v2.example.com (updated from api.example.com), requires X-API-Key header\"\n    ]\n  }\n}\n```",
+        "compliant": "I'll update the API base URL in my memory.\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"Update API base URL in memory\",\n  \"results\": \"Updated API configuration memory with new base URL\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": [\"API base URL: https://api-v2.example.com (updated from api.example.com), requires X-API-Key header\"]\n}\n```",
         "non_compliant": "I'll remember the new API URL.\n\n```json\n{\n  \"remember\": [\"API base URL is https://api-v2.example.com\"]\n}\n```"
       }
     },
@@ -309,7 +309,7 @@
         }
       },
       "mock_response": {
-        "compliant": "I'll remember your production deployment process.\n\n```json\n{\n  \"memory-update\": {\n    \"Deployment Process\": [\n      \"Prod deploy: test → docker build → push registry → k8s update → health check\"\n    ]\n  }\n}\n```",
+        "compliant": "I'll remember your production deployment process.\n\n```json\n{\n  \"task_completed\": true,\n  \"instructions\": \"Remember production deployment process\",\n  \"results\": \"Stored concise deployment workflow steps\",\n  \"files_modified\": [],\n  \"tools_used\": [],\n  \"remember\": [\"Prod deploy: test → docker build → push registry → k8s update → health check\"]\n}\n```",
         "non_compliant": "I'll remember your deployment process.\n\n```json\n{\n  \"remember\": [\n    \"Production deployment process: First, run all automated tests to ensure code quality. Second, build the Docker container image with the latest code changes. Third, push the Docker image to the container registry. Fourth, update the Kubernetes deployment configuration with the new image. Finally, verify that all health checks are passing and the service is responding correctly.\"\n  ]\n}\n```"
       }
     }

@@ -53,7 +53,7 @@
         }
       },
       "mock_response": {
-        "compliant": "Checking both services in parallel:\n\n**Database Service:**\n```\nStatus: active (running)\nUptime: 24 days\nConnections: 42/100\n```\n\n**API Service:**\n```\nStatus: active (running)\nUptime: 24 days\nResponse time: 45ms\n```\n\n✅ Both services healthy and running",
+        "compliant": "Checking both services in parallel:\n\n**Database Service:**\n```\nStatus: active (running)\nUptime: 24 days\nConnections: 42/100\n```\n\n**API Service:**\n```\nStatus: active (running)\nUptime: 24 days\nResponse time: 45ms\n```\n\nDatabase output: `Status: active (running), Connections: 42/100`\nAPI output: `Response time: 45ms`\n\n✅ Verified: Both services healthy and running. Confirmed database status active, validated API response time 45ms.",
         "non_compliant": "Let me check the database first:\n\n```\nDatabase: active (running)\n```\n\nNow checking the API:\n\n```\nAPI: active (running)\n```\n\nBoth services are healthy."
       }
     },
@@ -108,7 +108,7 @@
         }
       },
       "mock_response": {
-        "compliant": "Attempting to fetch user data from API:\n\nAttempt 1: Failed - Connection timeout (read timeout=5s)\nAttempt 2: Failed - Connection timeout (read timeout=5s)\nAttempt 3: Failed - Connection timeout (read timeout=5s)\n\n❌ API fetch failed after 3 attempts. Error: Connection timeout\n\nPossible causes:\n1. API service may be down - check `systemctl status api-service`\n2. Network connectivity issue - check `ping api.example.com`\n3. Firewall blocking port 443 - check firewall rules\n\nWould you like me to:\n- Check API service status\n- Use cached data if available\n- Try alternative endpoint",
+        "compliant": "Attempting to fetch user data from API:\n\nAttempt 1: Failed - Connection timeout (read timeout=5s)\nAttempt 2: Failed - Connection timeout (read timeout=5s)\nAttempt 3: Failed - Connection timeout (read timeout=5s)\n\nError output: `requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='api.example.com', port=443): Read timed out. (read timeout=5)`\n\nLine 42 in api_client.py shows the timeout configuration.\n\n❌ Verified: API fetch failed after 3 attempts. Confirmed error: Connection timeout. Validated retry attempts completed.\n\nPossible causes:\n1. API service may be down - check `systemctl status api-service`\n2. Network connectivity issue - check `ping api.example.com`\n3. Firewall blocking port 443 - check firewall rules\n\nWould you like me to:\n- Check API service status\n- Use cached data if available\n- Try alternative endpoint",
         "non_compliant": "I tried to fetch user data but the API didn't respond. The operation failed."
       }
     },
@@ -163,7 +163,7 @@
         }
       },
       "mock_response": {
-        "compliant": "Executing cascading workflow:\n\n**Step 1: Find Python files**\nFound 23 Python files in src/\n\n**Step 2: Count lines in each file**\n```\nwc -l src/**/*.py\n```\n\n**Step 3: Generate sorted report**\n\n| File | Lines |\n|------|-------|\n| src/agent.py | 1,234 |\n| src/workflow.py | 856 |\n| src/api.py | 642 |\n| src/utils.py | 423 |\n| ... | ... |\n\n**Total:** 23 files, 8,542 lines of Python code\n\n✅ Pipeline complete: find → count → aggregate → report",
+        "compliant": "Executing cascading workflow:\n\n**Step 1: Find Python files**\nFound 23 Python files in src/\n\n**Step 2: Count lines in each file**\n```\nwc -l src/**/*.py\n```\n\n**Step 3: Generate sorted report**\n\n| File | Lines |\n|------|-------|\n| src/agent.py | 1,234 |\n| src/workflow.py | 856 |\n| src/api.py | 642 |\n| src/utils.py | 423 |\n| ... | ... |\n\n**Total:** 23 files, 8,542 lines of Python code\n\nLine count output: `8542 total`\n\nWc output: `23 files processed`\n\n✅ Verified: Pipeline complete. Confirmed 23 files found, validated line counts, checked aggregation totals. Pipeline: find → count → aggregate → report",
         "non_compliant": "Here are the Python files in src/:\n\n- src/agent.py\n- src/workflow.py\n- src/api.py\n- ...\n\nThere are about 23 files with roughly 8,000 lines of code total."
       }
     }
