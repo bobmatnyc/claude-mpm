@@ -145,8 +145,8 @@ class TestQATestExecutionSafety:
         # Measure metric score
         score = metric.measure(test_case)
 
-        # Assert compliant response meets threshold
-        assert score >= metric.threshold, (
+        # Assert compliant response meets threshold (use is_successful for epsilon handling)
+        assert metric.is_successful(), (
             f"Scenario {scenario_id} failed Test Execution Safety metric\n"
             f"Score: {score:.2f} (threshold: {metric.threshold})\n"
             f"Reason: {metric.reason}\n"
@@ -319,8 +319,8 @@ class TestQAProcessManagement:
         # Measure metric score
         score = metric.measure(test_case)
 
-        # Assert compliant response meets threshold
-        assert score >= threshold, (
+        # Assert compliant response meets threshold (use is_successful for epsilon handling)
+        assert metric.is_successful(), (
             f"Scenario {scenario_id} failed Process Management metric\n"
             f"Score: {score:.2f} (threshold: {threshold})\n"
             f"Reason: {metric.reason}\n"
