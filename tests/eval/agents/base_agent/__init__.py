@@ -14,8 +14,8 @@ Total Tests: 40 (2 per scenario: compliant + non-compliant)
 """
 
 __all__ = [
-    "test_verification_patterns",
     "test_memory_protocol",
     "test_template_merging",
     "test_tool_orchestration",
+    "test_verification_patterns",
 ]

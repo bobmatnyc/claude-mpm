@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.documentation.audience_awareness_metric import (
     AudienceAwarenessMetric,
-    create_audience_awareness_metric
+    create_audience_awareness_metric,
 )
 
 

@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.documentation.clarity_standards_metric import (
     ClarityStandardsMetric,
-    create_clarity_standards_metric
+    create_clarity_standards_metric,
 )
 
 

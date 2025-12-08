@@ -247,12 +247,11 @@ class ConsolidationMetric(BaseMetric):
         if len(detection_matches) >= 3 and has_search_tools:
             # Perfect: comprehensive duplicate detection with tools
             return 1.0
-        elif len(detection_matches) >= 2 or has_search_tools:
+        if len(detection_matches) >= 2 or has_search_tools:
             # Good: multiple detection patterns or tool usage
             return 0.8
-        else:
-            # Minimal: duplicate mentioned but not thoroughly searched
-            return 0.5
+        # Minimal: duplicate mentioned but not thoroughly searched
+        return 0.5
 
     def _score_consolidation_decision(self, output: str) -> float:
         """
@@ -306,15 +305,14 @@ class ConsolidationMetric(BaseMetric):
         if has_similarity_analysis and has_domain_analysis:
             # Perfect: thorough analysis with thresholds and domain
             return 1.0
-        elif has_similarity_analysis or has_domain_analysis:
+        if has_similarity_analysis or has_domain_analysis:
             # Good: some analysis done
             return 0.8
-        elif len(decision_matches) >= 2:
+        if len(decision_matches) >= 2:
             # Acceptable: decision made but not quantified
             return 0.6
-        else:
-            # Minimal: decision mentioned
-            return 0.4
+        # Minimal: decision mentioned
+        return 0.4
 
     def _score_implementation_quality(self, output: str) -> float:
         """
@@ -356,12 +354,11 @@ class ConsolidationMetric(BaseMetric):
         if len(implementation_matches) >= 3 and has_reference_updates:
             # Perfect: comprehensive consolidation with reference updates
             return 1.0
-        elif len(implementation_matches) >= 2:
+        if len(implementation_matches) >= 2:
             # Good: consolidation done with some documentation
             return 0.8
-        else:
-            # Minimal: consolidation mentioned
-            return 0.5
+        # Minimal: consolidation mentioned
+        return 0.5
 
     def _score_single_path_enforcement(self, output: str) -> float:
         """
@@ -392,9 +389,8 @@ class ConsolidationMetric(BaseMetric):
         if len(single_path_matches) >= 2:
             # Perfect: explicit single-path enforcement
             return 1.0
-        else:
-            # Good: single-path mentioned
-            return 0.8
+        # Good: single-path mentioned
+        return 0.8
 
     def _score_session_artifact_cleanup(self, output: str) -> float:
         """

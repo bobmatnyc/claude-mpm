@@ -243,15 +243,14 @@ class DeploymentSafetyMetric(BaseMetric):
         if match_count >= 4:
             # Perfect: comprehensive environment validation
             return 1.0
-        elif match_count == 3:
+        if match_count == 3:
             # Good: solid validation
             return 0.85
-        elif match_count == 2:
+        if match_count == 2:
             # Acceptable: basic validation
             return 0.7
-        else:
-            # Minimal: single check
-            return 0.5
+        # Minimal: single check
+        return 0.5
 
     def _score_rollback_preparation(self, output: str) -> float:
         """
@@ -283,15 +282,14 @@ class DeploymentSafetyMetric(BaseMetric):
         if match_count >= 4:
             # Perfect: comprehensive rollback plan
             return 1.0
-        elif match_count == 3:
+        if match_count == 3:
             # Good: solid rollback plan
             return 0.85
-        elif match_count == 2:
+        if match_count == 2:
             # Acceptable: basic rollback plan
             return 0.7
-        else:
-            # Minimal: rollback mentioned
-            return 0.5
+        # Minimal: rollback mentioned
+        return 0.5
 
     def _score_health_checks(self, output: str) -> float:
         """
@@ -323,12 +321,11 @@ class DeploymentSafetyMetric(BaseMetric):
         if match_count >= 3:
             # Perfect: comprehensive health checks
             return 1.0
-        elif match_count == 2:
+        if match_count == 2:
             # Good: multiple health checks
             return 0.8
-        else:
-            # Minimal: single health check
-            return 0.6
+        # Minimal: single health check
+        return 0.6
 
     def _score_smoke_tests(self, output: str) -> float:
         """
@@ -359,12 +356,11 @@ class DeploymentSafetyMetric(BaseMetric):
         if match_count >= 3:
             # Perfect: comprehensive smoke tests
             return 1.0
-        elif match_count == 2:
+        if match_count == 2:
             # Good: multiple smoke tests
             return 0.8
-        else:
-            # Minimal: single smoke test
-            return 0.6
+        # Minimal: single smoke test
+        return 0.6
 
     def _score_documentation(self, output: str) -> float:
         """
@@ -395,12 +391,11 @@ class DeploymentSafetyMetric(BaseMetric):
         if match_count >= 3:
             # Perfect: comprehensive documentation
             return 1.0
-        elif match_count == 2:
+        if match_count == 2:
             # Good: solid documentation
             return 0.8
-        else:
-            # Minimal: documentation mentioned
-            return 0.6
+        # Minimal: documentation mentioned
+        return 0.6
 
     # ========================================================================
     # HELPER METHODS

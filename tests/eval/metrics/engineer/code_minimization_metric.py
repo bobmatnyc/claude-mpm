@@ -247,15 +247,14 @@ class CodeMinimizationMetric(BaseMetric):
         if early_search and len(search_matches) >= 2:
             # Perfect: multiple search types early in workflow
             return 1.0
-        elif early_search:
+        if early_search:
             # Good: search done early
             return 0.9
-        elif len(search_matches) >= 2:
+        if len(search_matches) >= 2:
             # Acceptable: multiple searches but later
             return 0.7
-        else:
-            # Minimal: search mentioned but not emphasized
-            return 0.5
+        # Minimal: search mentioned but not emphasized
+        return 0.5
 
     def _score_loc_delta_reporting(self, output: str) -> float:
         """
@@ -300,9 +299,8 @@ class CodeMinimizationMetric(BaseMetric):
         if has_negative_delta:
             # Perfect: negative LOC delta (ideal outcome)
             return 1.0
-        else:
-            # Good: LOC delta tracked even if positive
-            return 0.7
+        # Good: LOC delta tracked even if positive
+        return 0.7
 
     def _score_reuse_rate(self, output: str) -> float:
         """
@@ -334,12 +332,11 @@ class CodeMinimizationMetric(BaseMetric):
         if reuse_count >= 3:
             # Perfect: multiple reuse strategies
             return 1.0
-        elif reuse_count == 2:
+        if reuse_count == 2:
             # Good: some reuse
             return 0.8
-        else:
-            # Minimal: single reuse mention
-            return 0.5
+        # Minimal: single reuse mention
+        return 0.5
 
     def _score_consolidation(self, output: str) -> float:
         """
@@ -371,9 +368,8 @@ class CodeMinimizationMetric(BaseMetric):
         if consolidation_count >= 2:
             # Perfect: active consolidation with evidence
             return 1.0
-        else:
-            # Good: consolidation mentioned
-            return 0.7
+        # Good: consolidation mentioned
+        return 0.7
 
     def _score_config_vs_code(self, output: str) -> float:
         """

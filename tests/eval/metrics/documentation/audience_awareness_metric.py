@@ -303,15 +303,14 @@ class AudienceAwarenessMetric(BaseMetric):
         if audience_stated and not has_mixed_indicators:
             # Clear audience statement + consistent depth
             return 1.0
-        elif audience_stated and has_mixed_indicators:
+        if audience_stated and has_mixed_indicators:
             # Audience stated but mixed signals
             return 0.8
-        elif not audience_stated and not has_mixed_indicators:
+        if not audience_stated and not has_mixed_indicators:
             # No statement but consistent depth (implied audience)
             return 0.6
-        else:
-            # Mixed signals, no clear audience
-            return 0.3
+        # Mixed signals, no clear audience
+        return 0.3
 
     def _score_technical_depth(self, output: str) -> float:
         """
@@ -353,21 +352,20 @@ class AudienceAwarenessMetric(BaseMetric):
         if is_developer_doc and dev_indicators >= 3:
             # Developer doc with appropriate depth
             return 1.0
-        elif is_user_doc and user_indicators >= 3:
+        if is_user_doc and user_indicators >= 3:
             # User doc with appropriate depth
             return 1.0
-        elif dev_indicators >= 3 and user_indicators == 0:
+        if dev_indicators >= 3 and user_indicators == 0:
             # Clearly developer-focused (implied)
             return 0.8
-        elif user_indicators >= 3 and dev_indicators == 0:
+        if user_indicators >= 3 and dev_indicators == 0:
             # Clearly user-focused (implied)
             return 0.8
-        elif dev_indicators > 0 and user_indicators > 0:
+        if dev_indicators > 0 and user_indicators > 0:
             # Mixed depth (might be intentional for dual audience)
             return 0.6
-        else:
-            # No clear depth indicators
-            return 0.4
+        # No clear depth indicators
+        return 0.4
 
     def _score_context_adaptation(self, output: str) -> float:
         """
@@ -406,7 +404,7 @@ class AudienceAwarenessMetric(BaseMetric):
         if internal_matches > 0 and public_matches > 0:
             # Mixed context (might be intentional or violation)
             return 0.6
-        elif internal_matches > 0:
+        if internal_matches > 0:
             # Internal doc - check if it's marked as such
             is_marked_internal = re.search(
                 r'(?:internal|private|team-only)',
@@ -415,13 +413,11 @@ class AudienceAwarenessMetric(BaseMetric):
             )
             if is_marked_internal:
                 return 1.0  # Correctly marked internal
-            else:
-                return 0.5  # Internal references without marking
-        elif public_matches > 0:
+            return 0.5  # Internal references without marking
+        if public_matches > 0:
             # Public doc - good
             return 1.0
-        else:
-            return 0.7  # Neutral
+        return 0.7  # Neutral
 
     def _score_prerequisites(self, output: str) -> float:
         """
@@ -452,12 +448,11 @@ class AudienceAwarenessMetric(BaseMetric):
 
         if total_prereqs >= 3:
             return 1.0  # Clear prerequisites with links
-        elif total_prereqs == 2:
+        if total_prereqs == 2:
             return 0.8  # Prerequisites stated, some links
-        elif total_prereqs == 1:
+        if total_prereqs == 1:
             return 0.6  # Minimal prerequisites
-        else:
-            return 0.3  # No prerequisites stated
+        return 0.3  # No prerequisites stated
 
     def _score_maintenance(self, output: str) -> float:
         """
@@ -488,10 +483,9 @@ class AudienceAwarenessMetric(BaseMetric):
 
         if total_maintenance >= 3:
             return 0.10  # Comprehensive version tracking + deprecation
-        elif total_maintenance == 2:
+        if total_maintenance == 2:
             return 0.05  # Some version info
-        else:
-            return 0.0  # No version tracking
+        return 0.0  # No version tracking
 
     # ========================================================================
     # HELPER METHODS

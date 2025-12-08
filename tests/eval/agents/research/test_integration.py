@@ -248,8 +248,8 @@ Using Glob to discover authentication files:
 **Step 2: Using DocumentSummarizer for Large Files**
 
 Summarizing auth/authenticator.py (45KB):
-Summary: Core authentication logic with JWT token generation, OAuth2 integration, 
-session management, and password hashing (bcrypt). Implements login, logout, 
+Summary: Core authentication logic with JWT token generation, OAuth2 integration,
+session management, and password hashing (bcrypt). Implements login, logout,
 token refresh, and credential validation.
 
 **Step 3: Reading Smaller Files (3 files max)**

@@ -31,17 +31,17 @@ Test Strategy:
 """
 
 import json
-import pytest
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
+import pytest
 from deepeval.test_case import LLMTestCase
 
 # Import QA Agent custom metrics
 from tests.eval.metrics.qa import (
-    TestExecutionSafetyMetric,
     CoverageQualityMetric,
     ProcessManagementMetric,
+    TestExecutionSafetyMetric,
 )
 
 # Path to QA scenarios JSON
@@ -493,7 +493,7 @@ class TestScenarioFileIntegrity:
             assert metrics, f"Scenario {scenario_id} has no metrics defined"
 
             # Check metric names are valid
-            for metric_name in metrics.keys():
+            for metric_name in metrics:
                 assert metric_name in valid_metrics, (
                     f"Scenario {scenario_id} references invalid metric: {metric_name}"
                 )

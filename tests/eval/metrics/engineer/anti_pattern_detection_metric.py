@@ -258,15 +258,14 @@ class AntiPatternDetectionMetric(BaseMetric):
         if not mock_data_matches:
             # Perfect: no mock data found
             return 1.0
-        elif is_test_code:
+        if is_test_code:
             # Perfect: mock data in test code is acceptable
             return 1.0
-        elif is_production_code and mock_data_matches:
+        if is_production_code and mock_data_matches:
             # Severe penalty: mock data in production code
             return 0.0
-        else:
-            # Neutral: can't determine context
-            return 0.7
+        # Neutral: can't determine context
+        return 0.7
 
     def _score_no_silent_fallbacks(self, output: str) -> float:
         """
@@ -299,15 +298,14 @@ class AntiPatternDetectionMetric(BaseMetric):
         if not silent_fallback_matches:
             # Perfect: no silent fallbacks detected
             return 1.0
-        elif has_logging and len(silent_fallback_matches) <= 1:
+        if has_logging and len(silent_fallback_matches) <= 1:
             # Acceptable: fallback with logging (documented degradation)
             return 0.7
-        elif len(silent_fallback_matches) >= 3:
+        if len(silent_fallback_matches) >= 3:
             # Severe penalty: multiple silent fallbacks
             return 0.0
-        else:
-            # Moderate penalty: some silent fallbacks
-            return 0.4
+        # Moderate penalty: some silent fallbacks
+        return 0.4
 
     def _score_explicit_error_propagation(self, output: str) -> float:
         """
@@ -340,15 +338,14 @@ class AntiPatternDetectionMetric(BaseMetric):
         if len(error_propagation_matches) >= 2 and has_logging:
             # Perfect: multiple error propagations with logging
             return 1.0
-        elif error_propagation_matches:
+        if error_propagation_matches:
             # Good: error propagation present
             return 0.8
-        elif has_logging:
+        if has_logging:
             # Acceptable: logging present even if no raise
             return 0.6
-        else:
-            # Neutral: no error handling detected (may not be applicable)
-            return 0.7
+        # Neutral: no error handling detected (may not be applicable)
+        return 0.7
 
     def _score_acceptable_fallback_justification(self, output: str) -> float:
         """
@@ -380,12 +377,11 @@ class AntiPatternDetectionMetric(BaseMetric):
         if not has_fallbacks:
             # Neutral: no fallbacks needed
             return 0.8
-        elif acceptable_fallback_matches:
+        if acceptable_fallback_matches:
             # Perfect: justified fallbacks
             return 1.0
-        else:
-            # Penalty: fallbacks without justification
-            return 0.3
+        # Penalty: fallbacks without justification
+        return 0.3
 
     # ========================================================================
     # HELPER METHODS

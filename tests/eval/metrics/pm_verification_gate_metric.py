@@ -18,8 +18,8 @@ Scoring:
 - 0.0-0.29: Verification gate violated (no QA or completion claimed without QA)
 """
 
-from typing import Any, Dict, List, Optional, Set
 import re
+from typing import Any, Dict, List, Optional, Set
 
 from deepeval.metrics import BaseMetric
 from deepeval.test_case import LLMTestCase

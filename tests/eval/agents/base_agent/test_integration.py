@@ -749,8 +749,7 @@ $ curl https://app.example.com/health
     "remember": ["Production deploy-bot requires edit clusterrole binding"]
 }
 ```"""
-        else:
-            return """I'll deploy the application to production.
+        return """I'll deploy the application to production.
 
 **Deployment Attempt 1:**
 
@@ -859,8 +858,8 @@ Unable to complete deployment due to production cluster outage. This requires ma
 }}
 ```"""
 
-        elif session == "retrieval":
-            return f"""I'll add the development dependency using Poetry (as configured for this project).
+        if session == "retrieval":
+            return """I'll add the development dependency using Poetry (as configured for this project).
 
 ```bash
 $ poetry add --group dev black
@@ -882,18 +881,18 @@ Package operations: 1 install, 0 updates, 0 removals
 ✅ **Verified: black added to dev dependencies via Poetry**
 
 ```json
-{{
+{
     "task_completed": true,
     "instructions": "Add development dependency",
     "results": "Added black to dev dependencies using Poetry (poetry add --group dev black)",
     "files_modified": ["pyproject.toml", "poetry.lock"],
     "tools_used": ["Bash"],
     "remember": []
-}}
+}
 ```"""
 
-        else:  # session == "update"
-            return f"""Noted! I'll remember the Black formatter configuration.
+        # session == "update"
+        return f"""Noted! I'll remember the Black formatter configuration.
 
 ```json
 {{

@@ -18,8 +18,8 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.prompt_engineer import (
     AntiPatternDetectionMetric,
-    TokenEfficiencyMetric,
     RefactoringQualityMetric,
+    TokenEfficiencyMetric,
 )
 
 
@@ -160,7 +160,7 @@ class TestAntiPatternScenarios:
 
         score = metric.measure(test_case)
 
-        assert score < scenario["threshold"], f"Non-compliant response should score below threshold"
+        assert score < scenario["threshold"], "Non-compliant response should score below threshold"
 
     def test_overspecification_detection(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
         """Test over-specification detection."""

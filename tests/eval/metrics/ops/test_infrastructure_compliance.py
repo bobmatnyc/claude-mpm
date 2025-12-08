@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.ops.infrastructure_compliance_metric import (
     InfrastructureComplianceMetric,
-    create_infrastructure_compliance_metric
+    create_infrastructure_compliance_metric,
 )
 
 

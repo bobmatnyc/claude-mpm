@@ -13,7 +13,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.qa.process_management_metric import (
     ProcessManagementMetric,
-    create_process_management_metric
+    create_process_management_metric,
 )
 
 

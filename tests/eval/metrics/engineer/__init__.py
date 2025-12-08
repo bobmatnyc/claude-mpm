@@ -39,24 +39,24 @@ Usage:
     score = code_min.measure(test_case)
 """
 
+from tests.eval.metrics.engineer.anti_pattern_detection_metric import (
+    AntiPatternDetectionMetric,
+    create_anti_pattern_detection_metric,
+)
 from tests.eval.metrics.engineer.code_minimization_metric import (
     CodeMinimizationMetric,
-    create_code_minimization_metric
+    create_code_minimization_metric,
 )
 from tests.eval.metrics.engineer.consolidation_metric import (
     ConsolidationMetric,
-    create_consolidation_metric
-)
-from tests.eval.metrics.engineer.anti_pattern_detection_metric import (
-    AntiPatternDetectionMetric,
-    create_anti_pattern_detection_metric
+    create_consolidation_metric,
 )
 
 __all__ = [
-    "CodeMinimizationMetric",
-    "create_code_minimization_metric",
-    "ConsolidationMetric",
-    "create_consolidation_metric",
     "AntiPatternDetectionMetric",
+    "CodeMinimizationMetric",
+    "ConsolidationMetric",
     "create_anti_pattern_detection_metric",
+    "create_code_minimization_metric",
+    "create_consolidation_metric",
 ]

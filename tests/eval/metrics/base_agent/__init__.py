@@ -10,20 +10,20 @@ Available Metrics:
 - MemoryProtocolMetric: JSON response format and memory management compliance
 """
 
-from .verification_compliance import (
-    VerificationComplianceMetric,
-    StrictVerificationComplianceMetric,
-    create_verification_compliance_metric,
-)
 from .memory_protocol_metric import (
     MemoryProtocolMetric,
     create_memory_protocol_metric,
 )
+from .verification_compliance import (
+    StrictVerificationComplianceMetric,
+    VerificationComplianceMetric,
+    create_verification_compliance_metric,
+)
 
 __all__ = [
-    "VerificationComplianceMetric",
-    "StrictVerificationComplianceMetric",
-    "create_verification_compliance_metric",
     "MemoryProtocolMetric",
+    "StrictVerificationComplianceMetric",
+    "VerificationComplianceMetric",
     "create_memory_protocol_metric",
+    "create_verification_compliance_metric",
 ]

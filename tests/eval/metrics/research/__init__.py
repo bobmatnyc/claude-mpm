@@ -20,7 +20,7 @@ from .sampling_strategy_metric import (
 
 __all__ = [
     "MemoryEfficiencyMetric",
-    "create_memory_efficiency_metric",
     "SamplingStrategyMetric",
+    "create_memory_efficiency_metric",
     "create_sampling_strategy_metric",
 ]

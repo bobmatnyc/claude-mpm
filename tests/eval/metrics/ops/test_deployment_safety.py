@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.ops.deployment_safety_metric import (
     DeploymentSafetyMetric,
-    create_deployment_safety_metric
+    create_deployment_safety_metric,
 )
 
 

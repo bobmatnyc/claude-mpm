@@ -243,12 +243,11 @@ class MemoryEfficiencyMetric(BaseMetric):
         if has_size_check:
             # Perfect score if size checking detected
             return 1.0
-        elif has_file_reads:
+        if has_file_reads:
             # Penalize if files read without size check
             return 0.3
-        else:
-            # No file reads detected, give neutral score
-            return 0.7
+        # No file reads detected, give neutral score
+        return 0.7
 
     def _score_summarizer_usage(self, output: str) -> float:
         """
@@ -290,15 +289,14 @@ class MemoryEfficiencyMetric(BaseMetric):
         if has_summarizer and has_large_files:
             # Perfect score: using summarizer for large files
             return 1.0
-        elif has_summarizer:
+        if has_summarizer:
             # Good: using summarizer (even if no large file mention)
             return 0.9
-        elif has_large_files:
+        if has_large_files:
             # Penalize: large files without summarizer
             return 0.2
-        else:
-            # No large files detected, give neutral score
-            return 0.7
+        # No large files detected, give neutral score
+        return 0.7
 
     def _score_file_limit_compliance(self, output: str) -> float:
         """
@@ -324,18 +322,17 @@ class MemoryEfficiencyMetric(BaseMetric):
         if self.MIN_FILE_LIMIT <= file_count <= self.MAX_FILE_LIMIT:
             # Perfect score: within recommended range
             return 1.0
-        elif file_count < self.MIN_FILE_LIMIT:
+        if file_count < self.MIN_FILE_LIMIT:
             # Acceptable: fewer files is fine (efficient research)
             return 0.9
-        elif file_count <= 7:
+        if file_count <= 7:
             # Penalty: slightly over limit
             return 0.6
-        elif file_count <= 10:
+        if file_count <= 10:
             # Major penalty: significantly over limit
             return 0.3
-        else:
-            # Severe penalty: excessive file reads
-            return 0.0
+        # Severe penalty: excessive file reads
+        return 0.0
 
     def _score_strategic_sampling(self, output: str) -> float:
         """
@@ -383,12 +380,11 @@ class MemoryEfficiencyMetric(BaseMetric):
         if has_good_samples or (has_sampling and sample_sizes):
             # Perfect score: strategic sampling detected
             return 1.0
-        elif has_sampling:
+        if has_sampling:
             # Good: mentions sampling even without explicit ranges
             return 0.8
-        else:
-            # No sampling detected, penalize
-            return 0.2
+        # No sampling detected, penalize
+        return 0.2
 
     def _score_no_brute_force(self, output: str) -> float:
         """
@@ -432,12 +428,11 @@ class MemoryEfficiencyMetric(BaseMetric):
         if has_brute_force:
             # Severe penalty: brute force detected
             return 0.0
-        elif has_targeted_discovery:
+        if has_targeted_discovery:
             # Perfect score: using targeted discovery
             return 1.0
-        else:
-            # Neutral score: no indicators either way
-            return 0.7
+        # Neutral score: no indicators either way
+        return 0.7
 
     # ========================================================================
     # HELPER METHODS

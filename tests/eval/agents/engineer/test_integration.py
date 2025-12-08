@@ -31,17 +31,17 @@ Test Strategy:
 """
 
 import json
-import pytest
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
+import pytest
 from deepeval.test_case import LLMTestCase
 
 # Import Engineer Agent custom metrics
 from tests.eval.metrics.engineer import (
+    AntiPatternDetectionMetric,
     CodeMinimizationMetric,
     ConsolidationMetric,
-    AntiPatternDetectionMetric,
 )
 
 # Path to Engineer scenarios JSON
@@ -469,7 +469,7 @@ class TestScenarioFileIntegrity:
             assert metrics, f"Scenario {scenario_id} has no metrics defined"
 
             # Check metric names are valid
-            for metric_name in metrics.keys():
+            for metric_name in metrics:
                 assert metric_name in valid_metrics, (
                     f"Scenario {scenario_id} references invalid metric: {metric_name}"
                 )

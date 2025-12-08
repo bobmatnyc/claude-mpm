@@ -38,7 +38,7 @@ def load_scenarios(category: str) -> list[dict[str, Any]]:
     if not scenario_file.exists():
         raise FileNotFoundError(f"Scenario file not found: {scenario_file}")
 
-    with open(scenario_file, "r", encoding="utf-8") as f:
+    with open(scenario_file, encoding="utf-8") as f:
         data = json.load(f)
 
     return data.get("scenarios", [])
@@ -83,8 +83,8 @@ def get_scenario_by_id(scenario_id: str) -> dict[str, Any] | None:
 
 
 __all__ = [
-    "load_scenarios",
     "get_all_scenarios",
-    "get_scenarios_by_priority",
     "get_scenario_by_id",
+    "get_scenarios_by_priority",
+    "load_scenarios",
 ]

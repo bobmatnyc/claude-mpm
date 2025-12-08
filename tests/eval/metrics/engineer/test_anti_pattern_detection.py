@@ -13,7 +13,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.engineer.anti_pattern_detection_metric import (
     AntiPatternDetectionMetric,
-    create_anti_pattern_detection_metric
+    create_anti_pattern_detection_metric,
 )
 
 

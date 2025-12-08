@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.engineer.consolidation_metric import (
     ConsolidationMetric,
-    create_consolidation_metric
+    create_consolidation_metric,
 )
 
 

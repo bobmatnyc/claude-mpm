@@ -303,9 +303,8 @@ class MemoryProtocolMetric(BaseMetric):
                 if any(isinstance(value, t) if t is not type(None) else value is None
                        for t in expected_type):
                     score += 1.0 / field_count
-            else:
-                if isinstance(value, expected_type):
-                    score += 1.0 / field_count
+            elif isinstance(value, expected_type):
+                score += 1.0 / field_count
 
         return score
 
@@ -359,13 +358,12 @@ class MemoryProtocolMetric(BaseMetric):
         if has_trigger and not is_user_specific and not is_obvious:
             # MUST capture memory
             return 1.0 if has_memory else 0.0
-        elif is_user_specific or is_obvious:
+        if is_user_specific or is_obvious:
             # SHOULD NOT capture memory
             return 0.0 if has_memory else 1.0
-        else:
-            # No trigger, optional memory capture
-            # Give partial credit regardless of choice
-            return 0.7
+        # No trigger, optional memory capture
+        # Give partial credit regardless of choice
+        return 0.7
 
     def _score_memory_quality(
         self,
@@ -488,7 +486,7 @@ class MemoryProtocolMetric(BaseMetric):
                 reasons.append("Cannot validate fields - JSON invalid")
             else:
                 missing_fields = [
-                    field for field in self.REQUIRED_FIELDS.keys()
+                    field for field in self.REQUIRED_FIELDS
                     if field not in json_data
                 ]
                 if missing_fields:

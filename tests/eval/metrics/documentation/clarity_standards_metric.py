@@ -275,12 +275,11 @@ class ClarityStandardsMetric(BaseMetric):
         # Score based on ratio
         if active_ratio >= 0.9:
             return 1.0  # >90% active voice
-        elif active_ratio >= 0.7:
+        if active_ratio >= 0.7:
             return 0.8  # 70-90% active voice
-        elif active_ratio >= 0.5:
+        if active_ratio >= 0.5:
             return 0.6  # 50-70% active voice
-        else:
-            return 0.3  # <50% active voice (passive dominates)
+        return 0.3  # <50% active voice (passive dominates)
 
     def _score_jargon_handling(self, output: str) -> float:
         """
@@ -317,18 +316,16 @@ class ClarityStandardsMetric(BaseMetric):
             # No jargon handling detected
             if potential_acronyms > 0:
                 return 0.0  # Acronyms present but not defined
-            else:
-                return 0.7  # No acronyms, neutral
+            return 0.7  # No acronyms, neutral
 
         # Score based on handling coverage
         if total_jargon_handling >= 5:
             return 1.0  # Excellent jargon handling
-        elif total_jargon_handling >= 3:
+        if total_jargon_handling >= 3:
             return 0.85  # Good jargon handling
-        elif total_jargon_handling >= 2:
+        if total_jargon_handling >= 2:
             return 0.7  # Acceptable jargon handling
-        else:
-            return 0.5  # Minimal jargon handling
+        return 0.5  # Minimal jargon handling
 
     def _score_code_examples(self, output: str) -> float:
         """
@@ -363,12 +360,11 @@ class ClarityStandardsMetric(BaseMetric):
         # Score based on example coverage
         if total_examples >= 5:
             return 1.0  # Multiple comprehensive examples
-        elif total_examples >= 3:
+        if total_examples >= 3:
             return 0.85  # Good example coverage
-        elif total_examples >= 2:
+        if total_examples >= 2:
             return 0.7  # Acceptable examples
-        else:
-            return 0.5  # Minimal examples
+        return 0.5  # Minimal examples
 
     def _score_conciseness(self, output: str) -> float:
         """
@@ -397,18 +393,17 @@ class ClarityStandardsMetric(BaseMetric):
         # Penalize redundant phrases heavily
         if redundant_matches >= 5:
             return 0.3  # Very verbose
-        elif redundant_matches >= 3:
+        if redundant_matches >= 3:
             return 0.6  # Somewhat verbose
-        elif redundant_matches >= 1:
+        if redundant_matches >= 1:
             return 0.8  # Minor redundancy
 
         # Reward direct language
         if direct_language_matches >= 5:
             return 1.0  # Very concise and structured
-        elif direct_language_matches >= 3:
+        if direct_language_matches >= 3:
             return 0.9  # Well-structured
-        else:
-            return 0.8  # Acceptable structure
+        return 0.8  # Acceptable structure
 
     def _score_completeness(self, output: str) -> float:
         """
@@ -436,12 +431,11 @@ class ClarityStandardsMetric(BaseMetric):
 
         if section_count == 5:
             return 0.15  # All required sections
-        elif section_count == 4:
+        if section_count == 4:
             return 0.10  # Most sections
-        elif section_count == 3:
+        if section_count == 3:
             return 0.05  # Some sections
-        else:
-            return 0.0  # Few or no sections
+        return 0.0  # Few or no sections
 
     # ========================================================================
     # HELPER METHODS

@@ -14,16 +14,16 @@ Usage:
 
 from tests.eval.metrics.ops.deployment_safety_metric import (
     DeploymentSafetyMetric,
-    create_deployment_safety_metric
+    create_deployment_safety_metric,
 )
 from tests.eval.metrics.ops.infrastructure_compliance_metric import (
     InfrastructureComplianceMetric,
-    create_infrastructure_compliance_metric
+    create_infrastructure_compliance_metric,
 )
 
 __all__ = [
     'DeploymentSafetyMetric',
-    'create_deployment_safety_metric',
     'InfrastructureComplianceMetric',
+    'create_deployment_safety_metric',
     'create_infrastructure_compliance_metric',
 ]

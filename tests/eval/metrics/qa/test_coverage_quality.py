@@ -13,7 +13,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.qa.coverage_quality_metric import (
     CoverageQualityMetric,
-    create_coverage_quality_metric
+    create_coverage_quality_metric,
 )
 
 

@@ -278,15 +278,14 @@ class TestExecutionSafetyMetric(BaseMetric):
         if early_preflight and len(preflight_matches) >= 2:
             # Perfect: multiple pre-flight checks early
             return 1.0
-        elif early_preflight:
+        if early_preflight:
             # Good: pre-flight done early
             return 0.9
-        elif len(preflight_matches) >= 2:
+        if len(preflight_matches) >= 2:
             # Acceptable: multiple checks but later
             return 0.7
-        else:
-            # Minimal: single check mentioned
-            return 0.5
+        # Minimal: single check mentioned
+        return 0.5
 
     def _score_ci_mode_usage(self, output: str) -> float:
         """
@@ -317,9 +316,8 @@ class TestExecutionSafetyMetric(BaseMetric):
         if len(ci_mode_matches) >= 2:
             # Perfect: multiple CI mode indicators
             return 1.0
-        else:
-            # Good: CI mode used
-            return 0.8
+        # Good: CI mode used
+        return 0.8
 
     def _score_cleanup_verification(self, output: str) -> float:
         """
@@ -351,12 +349,11 @@ class TestExecutionSafetyMetric(BaseMetric):
         if cleanup_count >= 3:
             # Perfect: comprehensive cleanup verification
             return 1.0
-        elif cleanup_count == 2:
+        if cleanup_count == 2:
             # Good: some cleanup checks
             return 0.8
-        else:
-            # Minimal: cleanup mentioned
-            return 0.5
+        # Minimal: cleanup mentioned
+        return 0.5
 
     # ========================================================================
     # HELPER METHODS

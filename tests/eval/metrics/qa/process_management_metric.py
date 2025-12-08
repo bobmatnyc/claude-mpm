@@ -221,15 +221,14 @@ class ProcessManagementMetric(BaseMetric):
         if early_preflight and len(preflight_matches) >= 3:
             # Perfect: comprehensive pre-flight early in workflow
             return 1.0
-        elif early_preflight and len(preflight_matches) >= 2:
+        if early_preflight and len(preflight_matches) >= 2:
             # Good: pre-flight done early
             return 0.9
-        elif len(preflight_matches) >= 2:
+        if len(preflight_matches) >= 2:
             # Acceptable: multiple checks but later
             return 0.7
-        else:
-            # Minimal: single check mentioned
-            return 0.5
+        # Minimal: single check mentioned
+        return 0.5
 
     def _score_post_execution_verification(self, output: str) -> float:
         """
@@ -262,12 +261,11 @@ class ProcessManagementMetric(BaseMetric):
         if verification_count >= 3:
             # Perfect: comprehensive post-execution verification
             return 1.0
-        elif verification_count == 2:
+        if verification_count == 2:
             # Good: some verification done
             return 0.8
-        else:
-            # Minimal: verification mentioned
-            return 0.5
+        # Minimal: verification mentioned
+        return 0.5
 
     def _score_hanging_detection(self, output: str) -> float:
         """
@@ -299,9 +297,8 @@ class ProcessManagementMetric(BaseMetric):
         if detection_count >= 2:
             # Perfect: explicit hanging detection
             return 1.0
-        else:
-            # Good: hanging detection mentioned
-            return 0.7
+        # Good: hanging detection mentioned
+        return 0.7
 
     def _score_cleanup(self, output: str) -> float:
         """
@@ -333,9 +330,8 @@ class ProcessManagementMetric(BaseMetric):
         if cleanup_count >= 2:
             # Perfect: active cleanup performed
             return 1.0
-        else:
-            # Good: cleanup mentioned
-            return 0.7
+        # Good: cleanup mentioned
+        return 0.7
 
     # ========================================================================
     # HELPER METHODS

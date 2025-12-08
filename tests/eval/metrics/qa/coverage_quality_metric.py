@@ -219,12 +219,11 @@ class CoverageQualityMetric(BaseMetric):
         if tool_count >= 3:
             # Perfect: comprehensive coverage tool usage
             return 1.0
-        elif tool_count == 2:
+        if tool_count == 2:
             # Good: coverage tools used
             return 0.9
-        else:
-            # Minimal: coverage mentioned
-            return 0.6
+        # Minimal: coverage mentioned
+        return 0.6
 
     def _score_critical_path_focus(self, output: str) -> float:
         """
@@ -257,12 +256,11 @@ class CoverageQualityMetric(BaseMetric):
         if critical_count >= 3:
             # Perfect: strong critical path focus
             return 1.0
-        elif critical_count == 2:
+        if critical_count == 2:
             # Good: critical path considered
             return 0.8
-        else:
-            # Minimal: critical path mentioned
-            return 0.5
+        # Minimal: critical path mentioned
+        return 0.5
 
     def _score_memory_efficient_analysis(self, output: str) -> float:
         """
@@ -295,9 +293,8 @@ class CoverageQualityMetric(BaseMetric):
         if efficient_count >= 2:
             # Perfect: clearly memory-efficient approach
             return 1.0
-        else:
-            # Good: some efficiency consideration
-            return 0.7
+        # Good: some efficiency consideration
+        return 0.7
 
     def _score_test_prioritization(self, output: str) -> float:
         """
@@ -329,9 +326,8 @@ class CoverageQualityMetric(BaseMetric):
         if priority_count >= 2:
             # Perfect: clear prioritization strategy
             return 1.0
-        else:
-            # Good: prioritization mentioned
-            return 0.7
+        # Good: prioritization mentioned
+        return 0.7
 
     # ========================================================================
     # HELPER METHODS

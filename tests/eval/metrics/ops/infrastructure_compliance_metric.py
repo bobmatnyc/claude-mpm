@@ -243,15 +243,14 @@ class InfrastructureComplianceMetric(BaseMetric):
         if match_count >= 4:
             # Perfect: comprehensive Docker best practices
             return 1.0
-        elif match_count == 3:
+        if match_count == 3:
             # Good: solid Docker practices
             return 0.85
-        elif match_count == 2:
+        if match_count == 2:
             # Acceptable: basic Docker practices
             return 0.7
-        else:
-            # Minimal: single practice
-            return 0.5
+        # Minimal: single practice
+        return 0.5
 
     def _score_kubernetes_practices(self, output: str) -> float:
         """
@@ -284,15 +283,14 @@ class InfrastructureComplianceMetric(BaseMetric):
         if match_count >= 4:
             # Perfect: comprehensive K8s best practices
             return 1.0
-        elif match_count == 3:
+        if match_count == 3:
             # Good: solid K8s practices
             return 0.85
-        elif match_count == 2:
+        if match_count == 2:
             # Acceptable: basic K8s practices
             return 0.7
-        else:
-            # Minimal: single practice
-            return 0.5
+        # Minimal: single practice
+        return 0.5
 
     def _score_cicd_pipeline(self, output: str) -> float:
         """
@@ -325,15 +323,14 @@ class InfrastructureComplianceMetric(BaseMetric):
         if match_count >= 4:
             # Perfect: comprehensive CI/CD pipeline
             return 1.0
-        elif match_count == 3:
+        if match_count == 3:
             # Good: solid CI/CD pipeline
             return 0.85
-        elif match_count == 2:
+        if match_count == 2:
             # Acceptable: basic CI/CD pipeline
             return 0.7
-        else:
-            # Minimal: single CI/CD element
-            return 0.5
+        # Minimal: single CI/CD element
+        return 0.5
 
     def _score_secrets_management(self, output: str) -> float:
         """
@@ -365,12 +362,11 @@ class InfrastructureComplianceMetric(BaseMetric):
         if match_count >= 3:
             # Perfect: comprehensive secrets management
             return 1.0
-        elif match_count == 2:
+        if match_count == 2:
             # Good: solid secrets management
             return 0.8
-        else:
-            # Minimal: secrets management mentioned
-            return 0.6
+        # Minimal: secrets management mentioned
+        return 0.6
 
     def _score_security_scanning(self, output: str) -> float:
         """
@@ -402,12 +398,11 @@ class InfrastructureComplianceMetric(BaseMetric):
         if match_count >= 3:
             # Perfect: comprehensive security scanning
             return 1.0
-        elif match_count == 2:
+        if match_count == 2:
             # Good: solid security scanning
             return 0.8
-        else:
-            # Minimal: security scanning mentioned
-            return 0.6
+        # Minimal: security scanning mentioned
+        return 0.6
 
     # ========================================================================
     # HELPER METHODS

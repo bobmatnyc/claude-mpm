@@ -14,7 +14,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.engineer.code_minimization_metric import (
     CodeMinimizationMetric,
-    create_code_minimization_metric
+    create_code_minimization_metric,
 )
 
 

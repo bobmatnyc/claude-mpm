@@ -15,7 +15,7 @@ from deepeval.test_case import LLMTestCase
 
 from tests.eval.metrics.qa.test_execution_safety_metric import (
     TestExecutionSafetyMetric,
-    create_test_execution_safety_metric
+    create_test_execution_safety_metric,
 )
 
 

@@ -6,10 +6,9 @@ Run this to see the metric in action with example agent responses.
 """
 
 from deepeval.test_case import LLMTestCase
-
 from verification_compliance import (
-    VerificationComplianceMetric,
     StrictVerificationComplianceMetric,
+    VerificationComplianceMetric,
     create_verification_compliance_metric,
 )
 

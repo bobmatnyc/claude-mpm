@@ -7,8 +7,8 @@ This module contains scenario definitions for testing BASE_AGENT compliance acro
 - Tool orchestration
 """
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 SCENARIO_DIR = Path(__file__).parent
 
@@ -36,4 +36,4 @@ def get_all_scenarios() -> list[dict]:
     return load_scenarios("all")
 
 
-__all__ = ["load_scenarios", "get_all_scenarios"]
+__all__ = ["get_all_scenarios", "load_scenarios"]

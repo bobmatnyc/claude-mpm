@@ -227,10 +227,9 @@ class SamplingStrategyMetric(BaseMetric):
         # 1 pattern = partial score
         if matches >= 2:
             return 1.0
-        elif matches == 1:
+        if matches == 1:
             return 0.5
-        else:
-            return 0.0
+        return 0.0
 
     def _score_pattern_extraction(self, output: str) -> float:
         """
@@ -255,10 +254,9 @@ class SamplingStrategyMetric(BaseMetric):
         # 1 indicator = partial score
         if matches >= 2:
             return 1.0
-        elif matches == 1:
+        if matches == 1:
             return 0.6
-        else:
-            return 0.0
+        return 0.0
 
     def _score_strategic_sampling(self, output: str) -> float:
         """
@@ -283,10 +281,9 @@ class SamplingStrategyMetric(BaseMetric):
         # 1 indicator = partial score
         if matches >= 2:
             return 1.0
-        elif matches == 1:
+        if matches == 1:
             return 0.6
-        else:
-            return 0.0
+        return 0.0
 
     def _score_executive_summary(self, output: str) -> float:
         """
@@ -311,8 +308,7 @@ class SamplingStrategyMetric(BaseMetric):
         # (Summaries often use same keywords multiple times)
         if matches >= 1:
             return 1.0
-        else:
-            return 0.0
+        return 0.0
 
     def _detect_anti_patterns(self, output: str) -> float:
         """

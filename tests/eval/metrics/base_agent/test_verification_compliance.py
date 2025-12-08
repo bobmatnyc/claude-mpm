@@ -9,8 +9,8 @@ import pytest
 from deepeval.test_case import LLMTestCase
 
 from .verification_compliance import (
-    VerificationComplianceMetric,
     StrictVerificationComplianceMetric,
+    VerificationComplianceMetric,
     create_verification_compliance_metric,
 )
 
