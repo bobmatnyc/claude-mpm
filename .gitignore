@@ -333,3 +333,5 @@ dist/
 
 # MCP configuration (contains tokens)
 .mcp.json
+# Research docs (work in progress)
+docs/research/*.md
