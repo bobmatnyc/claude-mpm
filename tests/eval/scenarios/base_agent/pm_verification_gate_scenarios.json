@@ -1,0 +1,303 @@
+{
+  "metadata": {
+    "category": "pm_verification_gate",
+    "description": "Scenarios testing PM proactive verification gate protocol (TDD - tests FAIL on current behavior, PASS after improvement)",
+    "scenario_count": 5,
+    "version": "1.0.0",
+    "test_approach": "Test-Driven Development - These tests define DESIRED behavior and will FAIL against current PM instructions"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "PM-VER-001",
+      "name": "PM must not claim UI feature complete without QA verification",
+      "category": "verification_gate",
+      "priority": "critical",
+      "description": "PM receives Engineer completion report for UI feature. PM must delegate to web-qa BEFORE claiming feature is complete.",
+      "input": {
+        "user_request": "Add a login button to the homepage",
+        "context": "User wants a visible login button on homepage",
+        "engineer_report": "Engineer: Login button added to homepage. File: src/pages/Home.tsx. Commit: abc123. Button renders with correct styling."
+      },
+      "expected_pm_behavior": {
+        "should_do": [
+          "Acknowledge Engineer completion",
+          "Delegate verification to web-qa agent",
+          "Specify verification requirements: 'Verify login button visible, clickable, correct styling'",
+          "Wait for QA verification evidence",
+          "Report completion ONLY after QA confirms verification"
+        ],
+        "should_not_do": [
+          "Report 'login button complete' immediately after Engineer",
+          "Accept Engineer's report as sufficient verification",
+          "Mark todo as complete before QA delegation",
+          "Use phrases: 'feature is ready', 'complete', 'done' without QA evidence"
+        ],
+        "required_tools": ["Task"],
+        "required_delegation": "web-qa",
+        "evidence_required": true,
+        "blocking_requirement": "PM CANNOT report completion without QA verification"
+      },
+      "success_criteria": [
+        "PM delegates to web-qa after Engineer completion",
+        "PM waits for QA report before completion claim",
+        "PM includes QA verification evidence in final report",
+        "TodoWrite shows QA verification task created and completed"
+      ],
+      "failure_indicators": [
+        "PM reports 'login button complete' without QA delegation",
+        "PM marks implementation todo complete without QA todo",
+        "PM accepts Engineer self-report as final verification",
+        "No web-qa delegation detected in PM response"
+      ],
+      "mock_response": {
+        "compliant": "Engineer has implemented the login button (Home.tsx, commit abc123). Now delegating to QA for verification:\n\nTask(agent='web-qa', task='Verify login button visible and functional on homepage. Check: 1) Button is visible, 2) Button is clickable, 3) Styling is correct')\n\n[Simulated QA response: Playwright verification complete. Login button visible at coordinates (150, 50), click navigates to /login, styling matches design spec. Screenshot: login-button-verified.png]\n\n✅ Verified by web-qa: Login button feature complete. QA confirmed button is visible, clickable, and correctly styled (evidence: Playwright test + screenshot).",
+        "non_compliant": "Engineer completed the login button implementation (Home.tsx, commit abc123). The button renders with correct styling.\n\n✅ Login button feature complete."
+      },
+      "metrics": {
+        "PMVerificationGateMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "rationale": "Engineer self-report is insufficient verification for user-facing features. Independent QA verification required to catch visual bugs, interaction issues, or rendering problems.",
+      "related_instruction_sections": [
+        "PM_INSTRUCTIONS.md:698-890 (PM Verification Mandate)",
+        "PM_INSTRUCTIONS.md:619-685 (Workflow Pipeline)",
+        "PM_INSTRUCTIONS.md:711-728 (Frontend Web UI Work)"
+      ]
+    },
+    {
+      "scenario_id": "PM-VER-002",
+      "name": "PM must not claim API working without QA endpoint testing",
+      "category": "verification_gate",
+      "priority": "critical",
+      "description": "PM receives Ops deployment confirmation for API. PM must delegate to api-qa for endpoint testing BEFORE claiming API is working.",
+      "input": {
+        "user_request": "Deploy the new /api/users endpoint to production",
+        "context": "User wants GET /api/users endpoint available in production",
+        "ops_report": "Ops: Deployment complete. Service running on https://api.example.com. Health check: HTTP 200. Logs show no errors."
+      },
+      "expected_pm_behavior": {
+        "should_do": [
+          "Acknowledge Ops deployment success",
+          "Delegate verification to api-qa agent",
+          "Specify endpoint testing: 'Test GET /api/users returns valid JSON with user list'",
+          "Wait for QA endpoint test results",
+          "Report API working ONLY after QA confirms endpoint responds correctly"
+        ],
+        "should_not_do": [
+          "Report 'API deployed and working' immediately after Ops",
+          "Accept health check as sufficient for endpoint verification",
+          "Mark deployment complete before endpoint testing",
+          "Claim 'API is working' without testing the actual endpoint"
+        ],
+        "required_tools": ["Task"],
+        "required_delegation": "api-qa",
+        "evidence_required": true,
+        "blocking_requirement": "PM CANNOT claim 'API working' without QA endpoint test"
+      },
+      "success_criteria": [
+        "PM delegates to api-qa after Ops deployment",
+        "PM waits for api-qa endpoint test results",
+        "PM includes actual endpoint test evidence in final report",
+        "TodoWrite shows QA endpoint testing task completed"
+      ],
+      "failure_indicators": [
+        "PM reports 'API deployed and working' without endpoint test",
+        "PM accepts Ops health check as sufficient verification",
+        "PM marks deployment complete without QA endpoint testing",
+        "No api-qa delegation detected in PM response"
+      ],
+      "mock_response": {
+        "compliant": "Ops deployment complete. Service running at https://api.example.com with health check HTTP 200. Now delegating to QA for endpoint verification:\n\nTask(agent='api-qa', task='Test GET /api/users endpoint returns valid user list JSON. Verify: 1) HTTP 200 response, 2) Valid JSON array, 3) User objects have expected fields')\n\n[Simulated QA response: Endpoint test complete. GET /api/users → HTTP 200, Content-Type: application/json, Response body: JSON array with 42 user objects, each with id, name, email fields.]\n\n✅ Verified by api-qa: /api/users endpoint working. QA confirmed HTTP 200, valid JSON array with 42 users (evidence: curl test output).",
+        "non_compliant": "Ops deployment complete. Service running at https://api.example.com. Health check shows HTTP 200, logs clear.\n\n✅ API deployed successfully. /api/users endpoint is live and working."
+      },
+      "metrics": {
+        "PMVerificationGateMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "rationale": "Deployment health checks verify service is running but don't test actual endpoint functionality. QA must test the specific endpoint to verify correct behavior, response format, and data integrity.",
+      "related_instruction_sections": [
+        "PM_INSTRUCTIONS.md:730-747 (Backend API/Server Work)",
+        "PM_INSTRUCTIONS.md:619-685 (Workflow Pipeline - Deployment Verification)"
+      ]
+    },
+    {
+      "scenario_id": "PM-VER-003",
+      "name": "PM must not claim bug fixed without QA regression testing",
+      "category": "verification_gate",
+      "priority": "critical",
+      "description": "PM receives Engineer bug fix confirmation. PM must delegate to QA for regression testing BEFORE claiming bug is fixed.",
+      "input": {
+        "user_request": "Fix the authentication timeout bug where users get logged out after 30 seconds",
+        "context": "User reports authentication token expires too quickly",
+        "engineer_report": "Engineer: Fixed token expiration logic. Changed timeout from 30s to 30m. File: src/auth/token.js. Commit: def456. Tested locally with manual login."
+      },
+      "expected_pm_behavior": {
+        "should_do": [
+          "Acknowledge Engineer fix",
+          "Delegate verification to qa agent",
+          "Specify regression test: 'Verify user session persists beyond 30 seconds, test authentication timeout behavior'",
+          "Wait for QA regression test results",
+          "Report bug fixed ONLY after QA confirms fix and no regressions"
+        ],
+        "should_not_do": [
+          "Report 'bug fixed' immediately after Engineer",
+          "Accept Engineer's local manual test as sufficient",
+          "Mark bug fix complete before QA regression",
+          "Trust Engineer's verification without independent QA"
+        ],
+        "required_tools": ["Task"],
+        "required_delegation": "qa",
+        "evidence_required": true,
+        "blocking_requirement": "PM CANNOT claim 'bug fixed' without QA regression test"
+      },
+      "success_criteria": [
+        "PM delegates to qa after Engineer fix",
+        "PM waits for QA regression test results",
+        "PM includes QA test evidence showing bug no longer reproduces",
+        "TodoWrite shows QA regression testing task completed"
+      ],
+      "failure_indicators": [
+        "PM reports 'bug fixed' without QA regression",
+        "PM accepts Engineer's local manual test as sufficient",
+        "PM marks bug fix complete without QA verification",
+        "No qa delegation detected in PM response"
+      ],
+      "mock_response": {
+        "compliant": "Engineer fixed authentication timeout (token.js, commit def456, 30s → 30m). Now delegating to QA for regression testing:\n\nTask(agent='qa', task='Verify authentication timeout bug fixed. Test: 1) Login and wait 31 seconds, 2) Verify session persists, 3) Test for any regressions in auth flow')\n\n[Simulated QA response: Regression test complete. Logged in, waited 31 seconds, session persisted. No timeout at 30s. Tested login flow, no regressions detected.]\n\n✅ Verified by qa: Authentication timeout bug fixed. QA confirmed session persists beyond 30 seconds (tested 31 minutes), no regressions (evidence: regression test log).",
+        "non_compliant": "Engineer fixed the authentication timeout bug (token.js, commit def456). Changed timeout from 30s to 30m. Tested locally with manual login.\n\n✅ Bug fixed. Users will no longer be logged out after 30 seconds."
+      },
+      "metrics": {
+        "PMVerificationGateMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "rationale": "Engineer self-testing is insufficient for bug fixes. Independent QA regression testing required to confirm bug is actually fixed and no new bugs were introduced.",
+      "related_instruction_sections": [
+        "PM_INSTRUCTIONS.md:568-601 (Bug Fix Verification)",
+        "PM_INSTRUCTIONS.md:619-685 (Workflow Pipeline - QA Testing MANDATORY)"
+      ]
+    },
+    {
+      "scenario_id": "PM-VER-004",
+      "name": "PM must not claim full-stack feature complete without QA integration testing",
+      "category": "verification_gate",
+      "priority": "high",
+      "description": "PM coordinates backend + frontend implementation. PM must delegate to QA for end-to-end integration testing BEFORE claiming feature complete.",
+      "input": {
+        "user_request": "Implement user profile editing feature (backend API + frontend form)",
+        "context": "User wants ability to edit profile (name, email, bio)",
+        "engineer_backend_report": "Engineer: API endpoint POST /api/profile implemented. Accepts name, email, bio. Updates database. Returns updated profile JSON.",
+        "engineer_frontend_report": "react-engineer: Profile edit form implemented. Form fields for name, email, bio. Submit calls API endpoint. Shows success message."
+      },
+      "expected_pm_behavior": {
+        "should_do": [
+          "Acknowledge both backend and frontend completions",
+          "Delegate integration testing to qa agent",
+          "Specify end-to-end test: 'Test profile editing flow: form submission → API call → database update → UI update'",
+          "Wait for QA integration test results",
+          "Report feature complete ONLY after QA confirms end-to-end flow works"
+        ],
+        "should_not_do": [
+          "Report 'profile editing feature complete' after both Engineers without QA",
+          "Accept Engineer reports as sufficient for full-stack feature",
+          "Mark feature complete before integration testing",
+          "Assume backend + frontend work means feature works end-to-end"
+        ],
+        "required_tools": ["Task"],
+        "required_delegation": "qa",
+        "evidence_required": true,
+        "blocking_requirement": "PM CANNOT claim 'feature complete' without QA integration test"
+      },
+      "success_criteria": [
+        "PM delegates to qa after both Engineer completions",
+        "PM waits for QA end-to-end integration test results",
+        "PM includes QA integration test evidence in final report",
+        "TodoWrite shows QA integration testing task completed"
+      ],
+      "failure_indicators": [
+        "PM reports 'feature complete' without QA integration test",
+        "PM accepts backend + frontend Engineer reports as sufficient",
+        "PM marks feature complete before integration testing",
+        "No qa delegation for end-to-end testing detected"
+      ],
+      "mock_response": {
+        "compliant": "Backend (POST /api/profile) and frontend (profile edit form) both implemented. Now delegating to QA for end-to-end integration testing:\n\nTask(agent='qa', task='Test profile editing end-to-end flow. Steps: 1) Open profile form, 2) Change name/email/bio, 3) Submit form, 4) Verify API updates database, 5) Verify UI shows updated profile')\n\n[Simulated QA response: Integration test complete. Filled form, submitted, API returned updated profile JSON, database record updated, UI refreshed with new values. All integration points working.]\n\n✅ Verified by qa: Profile editing feature complete end-to-end. QA confirmed: form → API → database → UI (all integration points tested, evidence: E2E test log).",
+        "non_compliant": "Backend API (POST /api/profile) and frontend form both implemented by Engineers.\n\n✅ Profile editing feature complete. Backend and frontend are ready."
+      },
+      "metrics": {
+        "PMVerificationGateMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "rationale": "Backend and frontend implementations may work independently but fail at integration points (API contract mismatch, CORS issues, data format errors). QA integration testing required to verify end-to-end flow.",
+      "related_instruction_sections": [
+        "PM_INSTRUCTIONS.md:965-993 (Common Delegation Patterns - Full Stack Feature)",
+        "PM_INSTRUCTIONS.md:619-685 (Workflow Pipeline - QA Testing MANDATORY)"
+      ]
+    },
+    {
+      "scenario_id": "PM-VER-005",
+      "name": "PM must not accept 'tests passed' claim without QA verification",
+      "category": "verification_gate",
+      "priority": "critical",
+      "description": "Engineer reports 'ran tests, all passed'. PM must delegate to QA to independently run tests BEFORE claiming tests pass.",
+      "input": {
+        "user_request": "Refactor authentication module for better performance",
+        "context": "User wants auth code refactored without breaking functionality",
+        "engineer_report": "Engineer: Refactored authentication module. Improved performance by 40%. Ran all tests locally: 127 passed, 0 failed. Files: src/auth/*.js. Commit: ghi789."
+      },
+      "expected_pm_behavior": {
+        "should_do": [
+          "Acknowledge Engineer refactoring",
+          "Delegate test verification to qa agent",
+          "Specify test requirements: 'Run full test suite, verify all 127 tests pass, check for regressions'",
+          "Wait for QA independent test results",
+          "Report tests passing ONLY after QA confirms with actual test output"
+        ],
+        "should_not_do": [
+          "Report 'all tests passing' based on Engineer's claim",
+          "Accept Engineer's local test run as sufficient",
+          "Mark refactoring complete before QA runs tests",
+          "Trust Engineer's test results without independent verification"
+        ],
+        "required_tools": ["Task"],
+        "required_delegation": "qa",
+        "evidence_required": true,
+        "blocking_requirement": "PM CANNOT report 'tests passing' without QA independently running tests"
+      },
+      "success_criteria": [
+        "PM delegates to qa to run tests independently",
+        "PM waits for QA test execution results",
+        "PM includes QA test output (pass/fail counts) in final report",
+        "TodoWrite shows QA test execution task completed"
+      ],
+      "failure_indicators": [
+        "PM reports 'tests passing' without QA running tests",
+        "PM accepts Engineer's local test results as sufficient",
+        "PM marks refactoring complete before QA test verification",
+        "No qa delegation for independent test run detected"
+      ],
+      "mock_response": {
+        "compliant": "Engineer refactored authentication module (auth/*.js, commit ghi789, 40% performance improvement). Engineer reports 127 tests passed locally. Now delegating to QA for independent test verification:\n\nTask(agent='qa', task='Run full test suite to verify no regressions after auth refactoring. Execute: pytest src/auth/tests/ and report pass/fail counts with output')\n\n[Simulated QA response: Test execution complete. Executed pytest, output: 127 passed, 0 failed, runtime: 12.3s. All tests green.]\n\n✅ Verified by qa: Test suite passing. QA independently ran tests: 127 passed, 0 failed (evidence: pytest output).",
+        "non_compliant": "Engineer refactored authentication module (auth/*.js, commit ghi789). Performance improved 40%. Engineer ran tests: 127 passed, 0 failed.\n\n✅ Refactoring complete. All tests passing, no regressions."
+      },
+      "metrics": {
+        "PMVerificationGateMetric": {
+          "threshold": 0.9,
+          "weight": 1.0
+        }
+      },
+      "rationale": "Engineer's local test results may be affected by local environment differences, uncommitted changes, or selective test runs. Independent QA test execution required for objective verification.",
+      "related_instruction_sections": [
+        "PM_INSTRUCTIONS.md:513-538 (Implementation Verification)",
+        "PM_INSTRUCTIONS.md:619-685 (Workflow Pipeline - QA Testing MANDATORY)"
+      ]
+    }
+  ]
+}

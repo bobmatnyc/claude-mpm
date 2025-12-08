@@ -82,6 +82,16 @@ def orchestration_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
+def pm_verification_gate_scenarios(load_scenarios: Callable) -> List[Dict[str, Any]]:
+    """Load PM verification gate scenarios.
+
+    Returns:
+        List of PM verification gate test scenarios (PM-VER-001 to PM-VER-005)
+    """
+    return load_scenarios("pm_verification_gate_scenarios.json")["scenarios"]
+
+
+@pytest.fixture
 def get_scenario_by_id() -> Callable[[List[Dict], str], Dict[str, Any]]:
     """Create helper function to get scenario by ID.
 
