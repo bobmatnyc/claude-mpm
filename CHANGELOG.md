@@ -12,6 +12,19 @@
 
 ### Security
 
+## [5.1.5] - 2025-12-08
+
+### Added
+- PM Proactive Verification test suite for evaluating mandatory verification gates
+- Comprehensive test coverage for PM behavioral compliance
+
+### Changed
+- Enforced mandatory QA verification gate in PM instructions
+
+### Fixed
+- CI test failures by adding pytest-timeout to eval dependencies
+- Code quality issues with linting and formatting across eval test suite
+
 ## [5.1.4] - 2025-12-08
 
 ### Added
