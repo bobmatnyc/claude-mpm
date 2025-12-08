@@ -24,6 +24,7 @@ Technical documentation for Claude MPM contributors and extenders.
 - **[Code Navigation](code-navigation/)** - Detailed codebase navigation guides
 - **[Internals](internals/)** - Internal implementation details and mechanisms
 - **[Troubleshooting](troubleshooting/)** - Development troubleshooting guides
+- **[Testing](testing/)** - Testing framework, evaluation system, and QA processes
 
 ## Quick Links
 

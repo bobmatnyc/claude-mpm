@@ -899,7 +899,7 @@ with open("custom-resume.json", "w") as f:
 
 - [Session Management](../user-guide.md#session-management) - Pause/resume workflows
 - [Developer Architecture](../developer/resume-log-architecture.md) - Technical implementation
-- [Configuration Reference](../configuration.md) - Complete config options
+- [Configuration Reference](../configuration/reference.md) - Complete config options
 - [Examples](../examples/resume-log-examples.md) - Real-world examples
 
 ## Summary

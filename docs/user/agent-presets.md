@@ -54,7 +54,7 @@ Presets are pre-configured collections of agents optimized for specific technolo
 - ⚠️ Learning which agents are available
 - ⚠️ Project needs differ from standard setups
 
-**See**: [Auto-Configuration Guide](auto-configuration.md) for comparison
+**See**: [Auto-Configuration Guide](../getting-started/auto-configuration.md) for comparison
 
 ---
 
@@ -977,14 +977,14 @@ claude-mpm agents recommend --preview
 claude-mpm agents deploy ops/platform/railway-ops
 ```
 
-**See**: [Auto-Configuration Guide](auto-configuration.md) for detailed comparison
+**See**: [Auto-Configuration Guide](../getting-started/auto-configuration.md) for detailed comparison
 
 ---
 
 ## Related Documentation
 
 ### User Guides
-- **[Auto-Configuration Guide](auto-configuration.md)** - Automatic stack detection and agent deployment
+- **[Auto-Configuration Guide](../getting-started/auto-configuration.md)** - Automatic stack detection and agent deployment
 - **[Agent Sources Guide](agent-sources.md)** - Managing agent repositories and custom agents
 - **[Getting Started](getting-started.md)** - First steps with Claude MPM
 

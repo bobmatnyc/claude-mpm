@@ -93,7 +93,7 @@ claude-mpm run --resume
 claude-mpm search "authentication logic"
 ```
 
-See [Getting Started](../user/getting-started.md) for complete usage.
+See [Getting Started](../getting-started/) for complete usage.
 
 ### What are agents and how do they work?
 
@@ -387,7 +387,7 @@ See [Configuration Reference](../configuration.md) for all options.
 
 ## See Also
 
-- **[Getting Started Guide](../user/getting-started.md)** - Installation and first steps
+- **[Getting Started Guide](../getting-started/)** - Installation and first steps
 - **[User Guide](../user/user-guide.md)** - Complete feature documentation
 - **[Troubleshooting Guide](../user/troubleshooting.md)** - Common issues and solutions
 - **[Developer Guide](../developer/README.md)** - Technical documentation

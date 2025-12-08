@@ -1123,7 +1123,7 @@ context_management:
 
 - **Detailed Guide**: [resume-logs.md](resume-logs.md) - Complete documentation
 - **Examples**: [../examples/resume-log-examples.md](../examples/resume-log-examples.md) - Tutorials and examples
-- **Configuration**: [../configuration.md](../configuration.md) - Configuration reference
+- **Configuration**: [../configuration/reference.md](../configuration/reference.md) - Configuration reference
 - **Architecture**: [../developer/resume-log-architecture.md](../developer/resume-log-architecture.md) - Technical details
 
 ## Real-Time Monitoring

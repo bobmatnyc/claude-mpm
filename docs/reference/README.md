@@ -21,7 +21,7 @@ Claude MPM now uses **git-first architecture** for agent deployment:
 - **[Agent Source Commands CLI Reference](cli-agent-source.md)** - ⭐ Complete CLI reference for `agent-source` commands (v4.5.0+)
 - **[Agent Sources API](agent-sources-api.md)** - ⭐ Technical API reference for git-first agent system (v4.5.0+)
 - **[Doctor Command CLI Reference](cli-doctor.md)** - Complete CLI reference for doctor command
-- **[Configuration](configuration.md)** - Complete configuration reference for Claude MPM
+- **[Configuration](../configuration/reference.md)** - Complete configuration reference for Claude MPM
 - **[Deployment Guide](DEPLOY.md)** - Complete deployment procedures and release management
 - **[Slash Commands Reference](slash-commands.md)** - Complete slash commands reference
 - **[Project Structure](STRUCTURE.md)** - Codebase organization and file placement
@@ -46,7 +46,7 @@ Claude MPM now uses **git-first architecture** for agent deployment:
 - [Architecture Overview](../developer/ARCHITECTURE.md) - System design
 
 **Operations:**
-- [Configuration](configuration.md) - Configuration options and settings
+- [Configuration](../configuration/reference.md) - Configuration options and settings
 - [Deployment Guide](DEPLOY.md) - Release procedures
 - [Memory System](MEMORY.md) - Context management
 - [Testing Guide](QA.md) - Quality standards

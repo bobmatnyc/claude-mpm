@@ -28,26 +28,46 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 
 ## Documentation
 
-### For Users
-- **[Getting Started](user/getting-started.md)** - Installation, setup, and first steps
+### 🚀 Getting Started
+- **[Installation](getting-started/installation.md)** - Install Claude MPM and Claude Code CLI
+- **[Quick Start](getting-started/quick-start.md)** - Get running in 5 minutes
+- **[Auto-Configuration](getting-started/auto-configuration.md)** - Automatic project setup and agent deployment
+
+### 👥 For Users
 - **[User Guide](user/user-guide.md)** - Features, workflows, and best practices
-- **[Single-Tier Agent System](guides/single-tier-agent-system.md)** - Git-based agent management (NEW in v5.0)
 - **[Resume Log System](user/resume-logs.md)** - Proactive context management guide
-- **[Configuration Reference](configuration.md)** - Complete configuration options
 - **[Troubleshooting](user/troubleshooting.md)** - Common issues and solutions
+- **[FAQ](guides/FAQ.md)** - Frequently asked questions
 
-### For Developers
-- **[Architecture](developer/ARCHITECTURE.md)** - System design and core concepts
+### 📖 Guides & How-To
+- **[Single-Tier Agent System](guides/single-tier-agent-system.md)** - Git-based agent management (NEW in v5.0)
+- **[Monitoring](guides/monitoring.md)** - Real-time agent monitoring
+- **[Ticketing Workflows](guides/ticketing-workflows.md)** - Project management integration
+
+### 🔧 Configuration & Deployment
+- **[Configuration Reference](configuration/reference.md)** - Complete configuration options
+- **[Deployment Overview](deployment/overview.md)** - Deployment strategies and operations
+
+### 🏗️ Architecture & Design
+- **[Architecture Overview](architecture/overview.md)** - High-level system design
 - **[Single-Tier Design](architecture/single-tier-design.md)** - Agent system architecture (NEW in v5.0)
-- **[Agent Sources API](reference/agent-sources-api.md)** - Technical API reference (NEW in v5.0)
-- **[Resume Log Architecture](developer/resume-log-architecture.md)** - Technical implementation details
-- **[Extending](developer/extending.md)** - Build custom agents, hooks, and services
-- **[API Reference](developer/api-reference.md)** - Complete API documentation
+- **[Design Decisions](design/)** - Feature designs and rationale
 
-### For Agent Creators
+### 🤖 Agent System
+- **[Agent Overview](reference/agents-overview.md)** - Multi-agent orchestration concepts
 - **[PM Workflow](agents/pm-workflow.md)** - Project Manager agent patterns
 - **[Agent Patterns](agents/agent-patterns.md)** - Creating effective agents
 - **[Creating Agents](agents/creating-agents.md)** - Step-by-step agent development
+
+### 🔍 Reference
+- **[API Reference](reference/api-overview.md)** - Complete API documentation
+- **[CLI Reference](reference/cli-agents.md)** - Command-line interface
+- **[Agent Sources API](reference/agent-sources-api.md)** - Technical API reference (NEW in v5.0)
+
+### 🛠️ For Developers
+- **[Developer Architecture](developer/ARCHITECTURE.md)** - System design and core concepts
+- **[Extending](developer/extending.md)** - Build custom agents, hooks, and services
+- **[Contributing](developer/)** - Development setup and contribution guidelines
 
 ### Examples & Tutorials
 - **[Resume Log Examples](examples/resume-log-examples.md)** - Real-world resume log workflows and tutorials
@@ -111,4 +131,4 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 
 ---
 
-**Quick Tip**: Start with [user/getting-started.md](user/getting-started.md) if you're new, or jump to [developer/architecture.md](developer/architecture.md) for system internals.
+**Quick Tip**: Start with [Getting Started](getting-started/) if you're new, or jump to [Architecture](architecture/overview.md) for system internals.

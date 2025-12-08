@@ -1150,7 +1150,7 @@ Based on comprehensive testing:
 
 - [User Guide](../user/resume-logs.md) - End-user documentation
 - [Examples](../examples/resume-log-examples.md) - Real-world examples
-- [Configuration Reference](../configuration.md) - Complete config options
+- [Configuration Reference](../configuration/reference.md) - Complete config options
 - [Testing Guide](./testing-guide.md) - Testing best practices
 
 ## Summary

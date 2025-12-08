@@ -1391,7 +1391,7 @@ claude-mpm auto-configure
 - **[Skills Versioning Guide](/Users/masa/Projects/claude-mpm/docs/user/skills-versioning.md)** - Comprehensive versioning documentation
 - **[SKILL.md Format Specification](/Users/masa/Projects/claude-mpm/docs/design/SKILL-MD-FORMAT-SPECIFICATION.md)** - Complete format requirements
 - **[User Guide](/Users/masa/Projects/claude-mpm/docs/user/user-guide.md)** - Full Claude MPM documentation
-- **[Architecture](/Users/masa/Projects/claude-mpm/docs/ARCHITECTURE.md)** - System architecture details
+- **[Architecture](../architecture/overview.md)** - System architecture details
 
 ### Using Bundled Skills
 

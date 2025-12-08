@@ -531,7 +531,7 @@ Validation warnings are logged but don't block deployment.
 
 ### User Guides
 
-- **[Getting Started](../user/getting-started.md)** - First steps with Claude MPM
+- **[Getting Started](../getting-started/)** - First steps with Claude MPM
 - **[Agent Sources Guide](../user/agent-sources.md)** - Managing agent repositories
 - **[User Guide](../user/user-guide.md)** - Complete user documentation
 - **[Troubleshooting](../user/troubleshooting.md)** - Common issues and solutions
