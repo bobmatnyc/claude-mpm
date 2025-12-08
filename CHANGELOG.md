@@ -12,6 +12,24 @@
 
 ### Security
 
+## [5.1.4] - 2025-12-08
+
+### Added
+- DeepEval Phase 2 Complete: All 8 agent testing sprints at 100% pass rate
+  - Engineer Agent: 36/36 tests passing (#109)
+  - QA Agent: 30/30 tests passing (#110)
+  - Ops Agent: 28/28 tests passing (#111)
+  - Documentation Agent: 20/20 tests passing (#112)
+- Total test coverage: 352 DeepEval tests across all agents
+
+### Changed
+- Calibrated all scenario mock responses for comprehensive pattern detection
+- Enhanced workflow integration tests for better agent behavior validation
+
+### Fixed
+- Floating-point epsilon handling in test assertions
+- Test harness reliability improvements
+
 ## [5.1.3] - 2025-12-07
 
 ### Added
