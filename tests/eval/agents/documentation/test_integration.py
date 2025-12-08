@@ -347,9 +347,9 @@ class TestScenarioFileIntegrity:
             f"Expected 12 total Documentation scenarios, "
             f"got {all_scenarios['total_scenarios']}"
         )
-        assert len(all_scenarios["scenarios"]) == 12, (
-            f"Expected 12 scenarios in list, got {len(all_scenarios['scenarios'])}"
-        )
+        assert (
+            len(all_scenarios["scenarios"]) == 12
+        ), f"Expected 12 scenarios in list, got {len(all_scenarios['scenarios'])}"
 
     def test_category_counts(self, all_scenarios: Dict[str, Any]):
         """Verify each category has expected scenario count."""

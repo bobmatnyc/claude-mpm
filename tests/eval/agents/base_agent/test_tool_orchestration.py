@@ -87,9 +87,9 @@ class TestToolOrchestration:
         )
 
         score = self.metric.measure(test_case)
-        assert score >= 0.9, (
-            f"Error recovery should pass, got {score}\nReason: {self.metric.reason}"
-        )
+        assert (
+            score >= 0.9
+        ), f"Error recovery should pass, got {score}\nReason: {self.metric.reason}"
         assert self.metric.is_successful()
 
     def test_error_recovery_non_compliant(
