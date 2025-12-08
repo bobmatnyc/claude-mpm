@@ -56,52 +56,52 @@ class ProcessManagementMetric(BaseMetric):
 
     # Pre-flight check patterns
     PREFLIGHT_PATTERNS: List[str] = [
-        r'package\.json',
-        r'test\s+script',
-        r'before\s+running',
-        r'inspect(?:ed|ing)',
-        r'check(?:ed|ing).*(?:package\.json|test\s+command)',
-        r'verif(?:y|ied|ying).*(?:test\s+script|command)',
-        r'review(?:ed|ing).*package\.json',
-        r'safe.*mode',
-        r'non-interactive'
+        r"package\.json",
+        r"test\s+script",
+        r"before\s+running",
+        r"inspect(?:ed|ing)",
+        r"check(?:ed|ing).*(?:package\.json|test\s+command)",
+        r"verif(?:y|ied|ying).*(?:test\s+script|command)",
+        r"review(?:ed|ing).*package\.json",
+        r"safe.*mode",
+        r"non-interactive",
     ]
 
     # Post-execution verification patterns
     POST_EXECUTION_PATTERNS: List[str] = [
-        r'ps\s+aux',
-        r'verif(?:y|ied|ying)',
-        r'clean',
-        r'no\s+hanging',
-        r'after\s+tests?',
-        r'process\s+state',
-        r'check(?:ed|ing).*process',
-        r'no\s+orphaned',
-        r'tests?\s+complete.*verif(?:y|ied|ying)'
+        r"ps\s+aux",
+        r"verif(?:y|ied|ying)",
+        r"clean",
+        r"no\s+hanging",
+        r"after\s+tests?",
+        r"process\s+state",
+        r"check(?:ed|ing).*process",
+        r"no\s+orphaned",
+        r"tests?\s+complete.*verif(?:y|ied|ying)",
     ]
 
     # Hanging process detection patterns
     HANGING_DETECTION_PATTERNS: List[str] = [
-        r'hanging',
-        r'stuck',
-        r'timeout',
-        r'not\s+responding',
-        r'detect(?:ed|ing).*hang',
-        r'check(?:ed|ing).*hanging',
-        r'no\s+hanging\s+process',
-        r'still\s+running'
+        r"hanging",
+        r"stuck",
+        r"timeout",
+        r"not\s+responding",
+        r"detect(?:ed|ing).*hang",
+        r"check(?:ed|ing).*hanging",
+        r"no\s+hanging\s+process",
+        r"still\s+running",
     ]
 
     # Cleanup patterns
     CLEANUP_PATTERNS: List[str] = [
-        r'killed?',
-        r'terminat(?:e|ed|ing)',
-        r'clean(?:ed)?\s+up',
-        r'orphaned',
-        r'pkill',
-        r'kill.*process',
-        r'removed?\s+orphaned',
-        r'cleanup'
+        r"killed?",
+        r"terminat(?:e|ed|ing)",
+        r"clean(?:ed)?\s+up",
+        r"orphaned",
+        r"pkill",
+        r"kill.*process",
+        r"removed?\s+orphaned",
+        r"cleanup",
     ]
 
     def __init__(self, threshold: float = 0.9):
@@ -156,10 +156,10 @@ class ProcessManagementMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            preflight_score * 0.40 +
-            post_execution_score * 0.35 +
-            hanging_detection_score * 0.15 +
-            cleanup_score * 0.10
+            preflight_score * 0.40
+            + post_execution_score * 0.35
+            + hanging_detection_score * 0.15
+            + cleanup_score * 0.10
         )
 
         # Store results
@@ -169,7 +169,7 @@ class ProcessManagementMetric(BaseMetric):
             post_execution_score,
             hanging_detection_score,
             cleanup_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -201,7 +201,8 @@ class ProcessManagementMetric(BaseMetric):
         """
         # Check for pre-flight patterns
         preflight_matches = [
-            pattern for pattern in self.PREFLIGHT_PATTERNS
+            pattern
+            for pattern in self.PREFLIGHT_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -209,8 +210,8 @@ class ProcessManagementMetric(BaseMetric):
             return 0.0
 
         # Check if pre-flight happens early (first 40% of output)
-        output_lines = output.split('\n')
-        first_section = '\n'.join(output_lines[:int(len(output_lines) * 0.4)])
+        output_lines = output.split("\n")
+        first_section = "\n".join(output_lines[: int(len(output_lines) * 0.4)])
 
         early_preflight = any(
             re.search(pattern, first_section, re.IGNORECASE)
@@ -248,7 +249,8 @@ class ProcessManagementMetric(BaseMetric):
         """
         # Check for post-execution patterns
         post_execution_matches = [
-            pattern for pattern in self.POST_EXECUTION_PATTERNS
+            pattern
+            for pattern in self.POST_EXECUTION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -284,7 +286,8 @@ class ProcessManagementMetric(BaseMetric):
         """
         # Check for hanging detection patterns
         hanging_matches = [
-            pattern for pattern in self.HANGING_DETECTION_PATTERNS
+            pattern
+            for pattern in self.HANGING_DETECTION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -317,7 +320,8 @@ class ProcessManagementMetric(BaseMetric):
         """
         # Check for cleanup patterns
         cleanup_matches = [
-            pattern for pattern in self.CLEANUP_PATTERNS
+            pattern
+            for pattern in self.CLEANUP_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -343,7 +347,7 @@ class ProcessManagementMetric(BaseMetric):
         post_execution_score: float,
         hanging_detection_score: float,
         cleanup_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.

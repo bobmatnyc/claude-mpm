@@ -32,7 +32,7 @@ class TestSamplingStrategyMetric:
 
         test_case = LLMTestCase(
             input="Analyze the architecture of this codebase",
-            actual_output='''I'll analyze the codebase architecture strategically.
+            actual_output="""I'll analyze the codebase architecture strategically.
 
 First, I'll use Glob to discover Python files:
 Found 45 files across src/, tests/, and scripts/ directories.
@@ -56,11 +56,13 @@ Executive Summary:
 The codebase follows a clean architecture with three main layers:
 controllers (presentation), services (business logic), and repositories
 (data access). Dependency injection is used throughout for testability.
-'''
+""",
         )
 
         score = metric.measure(test_case)
-        assert score >= 0.85, f"Perfect strategic research should score >= 0.85, got {score}"
+        assert (
+            score >= 0.85
+        ), f"Perfect strategic research should score >= 0.85, got {score}"
         assert metric.is_successful()
         assert "Excellent strategic research" in metric.reason
 
@@ -74,12 +76,12 @@ controllers (presentation), services (business logic), and repositories
 
         test_case = LLMTestCase(
             input="Find all test files",
-            actual_output='''Using Glob to find test files: **/*test*.py
+            actual_output="""Using Glob to find test files: **/*test*.py
 Found 50 test files.
 
 Using Grep to search for test patterns: "def test_"
 Identified 250 test functions.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -93,14 +95,16 @@ Identified 250 test functions.
 
         test_case = LLMTestCase(
             input="Search for configuration files",
-            actual_output='''Searching for config files in the repository.
+            actual_output="""Searching for config files in the repository.
 Found config.yaml and settings.json in the config/ directory.
-'''
+""",
         )
 
         score = metric.measure(test_case)
         # Should get partial discovery score (0.5 * 0.30 = 0.15)
-        assert score >= 0.15, f"Single discovery tool should get partial score, got {score}"
+        assert (
+            score >= 0.15
+        ), f"Single discovery tool should get partial score, got {score}"
 
     def test_discovery_tools_none(self):
         """Test no discovery tools used."""
@@ -108,9 +112,9 @@ Found config.yaml and settings.json in the config/ directory.
 
         test_case = LLMTestCase(
             input="Analyze codebase",
-            actual_output='''I read the files and found some code.
+            actual_output="""I read the files and found some code.
 There are classes and functions.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -125,9 +129,9 @@ There are classes and functions.
 
         test_case = LLMTestCase(
             input="Find files",
-            actual_output='''Using GLOB to discover files.
+            actual_output="""Using GLOB to discover files.
 Using grep to SEARCH for patterns.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -144,7 +148,7 @@ Using grep to SEARCH for patterns.
 
         test_case = LLMTestCase(
             input="What patterns are used?",
-            actual_output='''Analyzing the codebase structure and architecture.
+            actual_output="""Analyzing the codebase structure and architecture.
 
 Key patterns identified:
 1. Factory pattern for object creation
@@ -152,7 +156,7 @@ Key patterns identified:
 3. Strategy pattern for algorithm selection
 
 The architecture follows a layered design with clear separation.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -166,14 +170,16 @@ The architecture follows a layered design with clear separation.
 
         test_case = LLMTestCase(
             input="Describe structure",
-            actual_output='''The codebase has a clear structure with modules organized by feature.
+            actual_output="""The codebase has a clear structure with modules organized by feature.
 Files are grouped logically.
-'''
+""",
         )
 
         score = metric.measure(test_case)
         # Should get partial pattern score (0.6 * 0.25 = 0.15)
-        assert score >= 0.10, f"Single pattern indicator should get partial score, got {score}"
+        assert (
+            score >= 0.10
+        ), f"Single pattern indicator should get partial score, got {score}"
 
     def test_pattern_extraction_none(self):
         """Test no pattern extraction."""
@@ -181,9 +187,9 @@ Files are grouped logically.
 
         test_case = LLMTestCase(
             input="Analyze code",
-            actual_output='''I found some files with code in them.
+            actual_output="""I found some files with code in them.
 The code does various things.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -197,9 +203,9 @@ The code does various things.
 
         test_case = LLMTestCase(
             input="Describe architecture",
-            actual_output='''The architecture is based on microservices design pattern.
+            actual_output="""The architecture is based on microservices design pattern.
 Each service follows a clean architecture approach.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -215,14 +221,14 @@ Each service follows a clean architecture approach.
 
         test_case = LLMTestCase(
             input="Give examples",
-            actual_output='''I focused on key files that represent the architecture.
+            actual_output="""I focused on key files that represent the architecture.
 
 Representative sample files:
 - user_service.py (service layer)
 - auth_middleware.py (middleware pattern)
 
 Selected strategically to demonstrate core patterns.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -236,10 +242,10 @@ Selected strategically to demonstrate core patterns.
 
         test_case = LLMTestCase(
             input="Show examples",
-            actual_output='''Here are some representative samples from the codebase:
+            actual_output="""Here are some representative samples from the codebase:
 - example1.py
 - example2.py
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -252,9 +258,9 @@ Selected strategically to demonstrate core patterns.
 
         test_case = LLMTestCase(
             input="Analyze files",
-            actual_output='''I looked at the files and they contain code.
+            actual_output="""I looked at the files and they contain code.
 The code has functions and classes.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -268,10 +274,10 @@ The code has functions and classes.
 
         test_case = LLMTestCase(
             input="Show key files",
-            actual_output='''Key examples that illustrate the pattern:
+            actual_output="""Key examples that illustrate the pattern:
 - main.py (entry point)
 - config.py (configuration)
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -287,12 +293,12 @@ The code has functions and classes.
 
         test_case = LLMTestCase(
             input="Summarize findings",
-            actual_output='''Analysis of codebase...
+            actual_output="""Analysis of codebase...
 
 Executive Summary:
 The codebase is well-structured with clear separation of concerns.
 Main components include services, repositories, and controllers.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -306,9 +312,9 @@ Main components include services, repositories, and controllers.
 
         test_case = LLMTestCase(
             input="Give overview",
-            actual_output='''Overview:
+            actual_output="""Overview:
 The project follows standard Python conventions with pytest for testing.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -320,11 +326,11 @@ The project follows standard Python conventions with pytest for testing.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Detailed analysis...
+            actual_output="""Detailed analysis...
 
 Conclusion:
 The architecture is solid with room for improvement in testing coverage.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -336,8 +342,8 @@ The architecture is solid with room for improvement in testing coverage.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''I found files. The files have code.
-'''
+            actual_output="""I found files. The files have code.
+""",
         )
 
         score = metric.measure(test_case)
@@ -355,7 +361,7 @@ The architecture is solid with room for improvement in testing coverage.
 
         test_case = LLMTestCase(
             input="Analyze codebase",
-            actual_output='''I'm reading all the files in the repository.
+            actual_output="""I'm reading all the files in the repository.
 Processing every single file to get complete coverage.
 
 Using Glob and Grep for discovery.
@@ -363,14 +369,16 @@ Identified patterns in the code.
 Focused on representative samples.
 
 Summary: Architecture is good.
-'''
+""",
         )
 
         score = metric.measure(test_case)
         # Base score would be high, but penalty should reduce it
         # Anti-patterns: "reading all" + "every single" = 2 * 0.2 = 0.4 penalty
         # Penalty reduces score by up to 50%
-        assert score < 0.85, f"Anti-patterns should reduce score below threshold, got {score}"
+        assert (
+            score < 0.85
+        ), f"Anti-patterns should reduce score below threshold, got {score}"
         assert not metric.is_successful()
         assert "Anti-patterns detected" in metric.reason
 
@@ -380,14 +388,14 @@ Summary: Architecture is good.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Performing exhaustive analysis of all files.
+            actual_output="""Performing exhaustive analysis of all files.
 
 Using Glob to find files.
 Identified patterns.
 Sample files shown.
 
 Summary: Complete analysis done.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -401,14 +409,14 @@ Summary: Complete analysis done.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Strategic analysis using discovery tools.
+            actual_output="""Strategic analysis using discovery tools.
 
 Using Glob and Grep for targeted discovery.
 Identified key patterns.
 Focused on representative samples.
 
 Summary: Clean architecture with good practices.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -427,17 +435,19 @@ Summary: Clean architecture with good practices.
         # Missing strategic sampling (25%)
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Using Glob and Grep for discovery.
+            actual_output="""Using Glob and Grep for discovery.
 Identified architecture patterns and structure.
 
 Summary: Good architecture overall.
-'''
+""",
         )
 
         score = metric.measure(test_case)
         # Discovery (30%) + Pattern (25%) + Summary (20%) = 75%
         # Missing sampling (25%), should fail threshold
-        assert score < 0.85, f"Missing component should fail 0.85 threshold, got {score}"
+        assert (
+            score < 0.85
+        ), f"Missing component should fail 0.85 threshold, got {score}"
         assert not metric.is_successful()
 
     def test_all_components_partial_scores(self):
@@ -446,11 +456,11 @@ Summary: Good architecture overall.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Searching for files in the repository.
+            actual_output="""Searching for files in the repository.
 Found some structure in the code.
 Here's a sample file: main.py
 Overview: Code is organized.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -482,10 +492,7 @@ Overview: Code is organized.
         """Test handling of empty output."""
         metric = SamplingStrategyMetric(threshold=0.85)
 
-        test_case = LLMTestCase(
-            input="Analyze",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Analyze", actual_output="")
 
         score = metric.measure(test_case)
         assert score == 0.0, f"Empty output should score 0.0, got {score}"
@@ -495,10 +502,7 @@ Overview: Code is organized.
         """Test handling of minimal output."""
         metric = SamplingStrategyMetric(threshold=0.85)
 
-        test_case = LLMTestCase(
-            input="Analyze",
-            actual_output="Done."
-        )
+        test_case = LLMTestCase(input="Analyze", actual_output="Done.")
 
         score = metric.measure(test_case)
         assert score == 0.0, f"Minimal output should score 0.0, got {score}"
@@ -510,11 +514,11 @@ Overview: Code is organized.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Using Glob and Grep to discover files.
+            actual_output="""Using Glob and Grep to discover files.
 Identified patterns and architecture.
 Focused on representative samples.
 Summary: Clean architecture.
-'''
+""",
         )
 
         score = metric.measure(test_case)
@@ -528,10 +532,7 @@ Summary: Clean architecture.
         """Test reason generation when all components missing."""
         metric = SamplingStrategyMetric(threshold=0.85)
 
-        test_case = LLMTestCase(
-            input="Analyze",
-            actual_output="I looked at files."
-        )
+        test_case = LLMTestCase(input="Analyze", actual_output="I looked at files.")
 
         score = metric.measure(test_case)
         assert score == 0.0, f"No components should score 0.0, got {score}"
@@ -548,11 +549,11 @@ Summary: Clean architecture.
 
         test_case = LLMTestCase(
             input="Analyze",
-            actual_output='''Using Glob and Grep for discovery.
+            actual_output="""Using Glob and Grep for discovery.
 Identified patterns and architecture.
 Focused on representative sample files.
 Summary: Clean architecture with good separation of concerns.
-'''
+""",
         )
 
         score = metric.measure(test_case)

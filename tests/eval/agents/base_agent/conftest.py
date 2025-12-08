@@ -27,6 +27,7 @@ def load_scenarios(scenarios_dir: Path) -> Callable[[str], Dict[str, Any]]:
     Returns:
         Function that loads scenario JSON files
     """
+
     def _load(filename: str) -> Dict[str, Any]:
         """Load scenario file by name.
 
@@ -38,6 +39,7 @@ def load_scenarios(scenarios_dir: Path) -> Callable[[str], Dict[str, Any]]:
         """
         with open(scenarios_dir / filename) as f:
             return json.load(f)
+
     return _load
 
 
@@ -98,6 +100,7 @@ def get_scenario_by_id() -> Callable[[List[Dict], str], Dict[str, Any]]:
     Returns:
         Function that finds scenario by scenario_id
     """
+
     def _get(scenarios: List[Dict[str, Any]], scenario_id: str) -> Dict[str, Any]:
         """Get scenario by ID.
 
@@ -115,4 +118,5 @@ def get_scenario_by_id() -> Callable[[List[Dict], str], Dict[str, Any]]:
             if scenario["scenario_id"] == scenario_id:
                 return scenario
         raise ValueError(f"Scenario {scenario_id} not found")
+
     return _get

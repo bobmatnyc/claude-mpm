@@ -88,7 +88,7 @@ class TestInfrastructureComplianceMetric:
             Dependency scan complete: All packages up-to-date
             Vulnerability report generated
             Remediation: Upgrade lodash to 4.17.21
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -121,7 +121,7 @@ class TestInfrastructureComplianceMetric:
             - Multi-stage build for smaller image
             - Non-root user configured
             - .dockerignore created
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -164,7 +164,7 @@ class TestInfrastructureComplianceMetric:
             - Resource limits configured
             - Liveness and readiness probes
             - Security context with non-root user
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -212,7 +212,7 @@ class TestInfrastructureComplianceMetric:
             - Security scanning with Snyk
             - Manual approval for production
             - Rollback on failure
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -240,7 +240,7 @@ class TestInfrastructureComplianceMetric:
             - .env files in .gitignore
             - Pre-commit hook for secret scanning
             - Encrypted secrets in transit and at rest
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -271,7 +271,7 @@ class TestInfrastructureComplianceMetric:
             - High severity issues require immediate fix
             - Remediation steps: npm update lodash, upgrade base image
             - Security findings documented in SECURITY.md
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -337,7 +337,7 @@ class TestInfrastructureComplianceMetric:
             Trivy image scan performed
             npm audit: 0 vulnerabilities
             Dependency scan complete
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -421,7 +421,7 @@ class TestInfrastructureComplianceMetric:
             npm audit: 0 vulnerabilities
             Image scan complete
             Dependency vulnerability check performed
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -438,7 +438,7 @@ class TestInfrastructureComplianceMetric:
             Deploying application...
             Deployment complete.
             Done.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -468,7 +468,7 @@ class TestInfrastructureComplianceMetric:
                 path: /health
             securityContext:
               runAsNonRoot: true
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -505,7 +505,7 @@ class TestInfrastructureComplianceMetric:
             CI/CD: automated testing, security scanning
             Secrets: AWS Secrets Manager, no git secrets
             Security: npm audit, trivy scan
-            """
+            """,
         )
 
         async def run_async_test():
@@ -540,7 +540,7 @@ class TestInfrastructureComplianceMetric:
             CI/CD: npm test, CodeQL, manual approval
             Secrets: AWS Secrets Manager
             Security: npm audit, trivy scan
-            """
+            """,
         )
 
         # Latest tag (BAD)
@@ -555,7 +555,7 @@ class TestInfrastructureComplianceMetric:
             CI/CD: npm test, CodeQL, manual approval
             Secrets: AWS Secrets Manager
             Security: npm audit, trivy scan
-            """
+            """,
         )
 
         specific_score = metric.measure(specific_case)
@@ -585,7 +585,7 @@ class TestInfrastructureComplianceMetric:
 
             CI/CD: automated testing, security scan
             Security: npm audit, trivy scan
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -617,7 +617,7 @@ class TestInfrastructureComplianceMetric:
             - Remediation: Upgrade lodash to version 4.17.21
             - Remediation: Update base image to node:20.11-alpine
             - Fix applied: npm update lodash
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -667,7 +667,7 @@ class TestInfrastructureComplianceMetric:
             - npm audit: 0 vulnerabilities
             - Dependency scan complete
             - Vulnerability report generated
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -705,7 +705,7 @@ class TestInfrastructureComplianceMetric:
             CI/CD: automated testing, security scan
             Secrets: vault secret manager
             Security: dependency scan, image scan
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -732,7 +732,7 @@ class TestInfrastructureComplianceMetric:
 
             CI/CD: npm test, security scanning
             Security: npm audit, trivy scan
-            """
+            """,
         )
 
         score = metric.measure(test_case)

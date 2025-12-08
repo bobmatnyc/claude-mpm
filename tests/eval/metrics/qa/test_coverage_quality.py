@@ -44,7 +44,7 @@ class TestCoverageQualityMetric:
             1. Auth tests (most important for security)
             2. Payment tests (critical business logic)
             3. Registration tests (essential user flow)
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -63,7 +63,7 @@ class TestCoverageQualityMetric:
             Running vitest --coverage to generate coverage report.
             Coverage analysis complete using istanbul.
             Overall coverage: 82%
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -82,7 +82,7 @@ class TestCoverageQualityMetric:
             Focusing on critical path analysis.
             Identifying uncovered important functions.
             Prioritizing high-priority areas for testing.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -108,7 +108,7 @@ class TestCoverageQualityMetric:
 
             Focusing on critical paths in auth and payment modules.
             Prioritizing high-impact tests for these areas.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -133,7 +133,7 @@ class TestCoverageQualityMetric:
 
             Focusing on critical paths in uncovered areas.
             Using grep to efficiently locate test gaps.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -151,7 +151,7 @@ class TestCoverageQualityMetric:
             Tests are running successfully.
             All tests pass.
             No issues detected.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -176,7 +176,7 @@ class TestCoverageQualityMetric:
             Focusing on critical uncovered paths.
             Using grep for efficient file discovery.
             Prioritizing high-impact test additions.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -202,7 +202,7 @@ class TestCoverageQualityMetric:
             Not chasing 100% coverage, focusing on critical paths.
             Prioritizing high-impact areas over completeness.
             Using grep to efficiently find uncovered critical functions.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -230,7 +230,7 @@ class TestCoverageQualityMetric:
             Coverage: 80%. Focusing on critical paths.
             Using grep for efficient analysis.
             Prioritizing high-impact tests.
-            """
+            """,
         )
 
         async def run_async_test():
@@ -261,7 +261,7 @@ class TestCoverageQualityMetric:
             Focusing on uncovered critical paths.
             Important functions need testing.
             Critical business logic requires coverage.
-            """
+            """,
         )
 
         score = metric.measure(partial_case)
@@ -286,7 +286,7 @@ class TestCoverageQualityMetric:
             This avoids reading all files into memory.
             Focusing on critical uncovered paths.
             Prioritizing high-impact test additions.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -313,7 +313,7 @@ class TestCoverageQualityMetric:
             These critical paths are priority, not trivial utility functions.
             Using grep to efficiently locate uncovered critical code.
             Prioritizing high-impact tests.
-            """
+            """,
         )
 
         score = metric.measure(test_case)

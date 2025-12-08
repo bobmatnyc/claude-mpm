@@ -319,7 +319,7 @@ class TestEngineerProcessManagement:
         [
             ("PROC-E-001", "anti_pattern"),  # Non-Interactive Test Execution
             ("PROC-E-002", "anti_pattern"),  # Process Cleanup Verification
-            ("PROC-E-003", "code_min"),      # Debug-First Protocol
+            ("PROC-E-003", "code_min"),  # Debug-First Protocol
         ],
     )
     def test_scenario(
@@ -391,8 +391,7 @@ class TestScenarioFileIntegrity:
             f"got {all_scenarios['total_scenarios']}"
         )
         assert len(all_scenarios["scenarios"]) == 25, (
-            f"Expected 25 scenarios in list, "
-            f"got {len(all_scenarios['scenarios'])}"
+            f"Expected 25 scenarios in list, " f"got {len(all_scenarios['scenarios'])}"
         )
 
     def test_category_counts(self, all_scenarios: Dict[str, Any]):
@@ -432,24 +431,22 @@ class TestScenarioFileIntegrity:
 
             # Check required fields
             missing_fields = required_fields - set(scenario.keys())
-            assert not missing_fields, (
-                f"Scenario {scenario_id} missing fields: {missing_fields}"
-            )
+            assert (
+                not missing_fields
+            ), f"Scenario {scenario_id} missing fields: {missing_fields}"
 
             # Check mock_response has both compliant and non_compliant
-            assert "compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing compliant mock response"
-            )
-            assert "non_compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing non_compliant mock response"
-            )
+            assert (
+                "compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing compliant mock response"
+            assert (
+                "non_compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing non_compliant mock response"
 
     def test_scenario_ids_unique(self, all_scenarios: Dict[str, Any]):
         """Verify scenario IDs are unique."""
         scenario_ids = [s["scenario_id"] for s in all_scenarios["scenarios"]]
-        duplicates = [
-            sid for sid in scenario_ids if scenario_ids.count(sid) > 1
-        ]
+        duplicates = [sid for sid in scenario_ids if scenario_ids.count(sid) > 1]
 
         assert not duplicates, f"Duplicate scenario IDs found: {set(duplicates)}"
 
@@ -470,9 +467,9 @@ class TestScenarioFileIntegrity:
 
             # Check metric names are valid
             for metric_name in metrics:
-                assert metric_name in valid_metrics, (
-                    f"Scenario {scenario_id} references invalid metric: {metric_name}"
-                )
+                assert (
+                    metric_name in valid_metrics
+                ), f"Scenario {scenario_id} references invalid metric: {metric_name}"
 
 
 # ============================================================================
@@ -622,7 +619,7 @@ This allows adding new phone formats without code changes.
 
         test_case = LLMTestCase(
             input="Add phone number validation to the user service with support for US, UK, and international formats",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Stricter threshold for integration test (0.85 vs 0.8 for individual tests)
@@ -768,7 +765,7 @@ grep -r "api_client" --include="*.py" | grep "import"
 
         test_case = LLMTestCase(
             input="Clean up duplicate API client implementations found in the codebase",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Strict threshold for integration test (0.875 - achievable for perfect workflow)
@@ -1032,7 +1029,7 @@ grep -r "mock.*data" tests/ --include="*.py"  # Found in test files ✅
 
         test_case = LLMTestCase(
             input="Implement user profile fetching service that handles API failures correctly",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Strict threshold for anti-patterns (0.9 - achievable for perfect compliance)
@@ -1198,7 +1195,7 @@ ps aux | grep -E "(vitest|jest|node.*test)" | grep -v grep
 
         test_case = LLMTestCase(
             input="Run the full test suite for this TypeScript project",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Process management is critical (threshold 0.85)
@@ -1445,7 +1442,7 @@ async def test_update_with_cache():
 
         test_case = LLMTestCase(
             input="Users are reporting they see stale data after updating their profile",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Simplest fix principle (Code Minimization threshold - relaxed for debugging focus)

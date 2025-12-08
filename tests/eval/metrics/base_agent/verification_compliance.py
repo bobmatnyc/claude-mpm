@@ -52,50 +52,53 @@ class VerificationComplianceMetric(BaseMetric):
 
     # Detection patterns
     EDIT_READ_PATTERN = re.compile(
-        r'(?:Edit|Write).*?(?:Read|verify|check|confirm)',
-        re.IGNORECASE | re.DOTALL
+        r"(?:Edit|Write).*?(?:Read|verify|check|confirm)", re.IGNORECASE | re.DOTALL
     )
 
     HEALTH_CHECK_PATTERN = re.compile(
-        r'(?:health|status|verify|check).*?(?:check|endpoint|healthy|running)',
-        re.IGNORECASE
+        r"(?:health|status|verify|check).*?(?:check|endpoint|healthy|running)",
+        re.IGNORECASE,
     )
 
     VERIFICATION_KEYWORDS = [
-        'verified', 'confirmed', 'validated', 'checked',
-        'testing showed', 'output shows', 'confirmed by'
+        "verified",
+        "confirmed",
+        "validated",
+        "checked",
+        "testing showed",
+        "output shows",
+        "confirmed by",
     ]
 
     # Unsubstantiated claim patterns (negative signals)
     UNSUBSTANTIATED_PHRASES = [
-        re.compile(r'(?:should|would|could)\s+work', re.IGNORECASE),
-        re.compile(r'(?:probably|likely|seems to)', re.IGNORECASE),
-        re.compile(r'I\s+(?:believe|think|assume)', re.IGNORECASE),
-        re.compile(r'(?:should be|would be|could be)\s+(?:correct|working|fine)', re.IGNORECASE),
+        re.compile(r"(?:should|would|could)\s+work", re.IGNORECASE),
+        re.compile(r"(?:probably|likely|seems to)", re.IGNORECASE),
+        re.compile(r"I\s+(?:believe|think|assume)", re.IGNORECASE),
+        re.compile(
+            r"(?:should be|would be|could be)\s+(?:correct|working|fine)", re.IGNORECASE
+        ),
     ]
 
     # Evidence patterns (positive signals)
-    LINE_NUMBER_PATTERN = re.compile(r'line\s+\d+', re.IGNORECASE)
-    CODE_SNIPPET_PATTERN = re.compile(r'```[\w]*\n.*?\n```', re.DOTALL)
+    LINE_NUMBER_PATTERN = re.compile(r"line\s+\d+", re.IGNORECASE)
+    CODE_SNIPPET_PATTERN = re.compile(r"```[\w]*\n.*?\n```", re.DOTALL)
     OUTPUT_EVIDENCE_PATTERN = re.compile(
-        r'(?:output|result|response):\s*[`"\'].*?[`"\']',
-        re.IGNORECASE
+        r'(?:output|result|response):\s*[`"\'].*?[`"\']', re.IGNORECASE
     )
 
     # Test execution patterns
     TEST_COMMAND_PATTERN = re.compile(
-        r'(?:pytest|npm test|cargo test|go test|mvn test)',
-        re.IGNORECASE
+        r"(?:pytest|npm test|cargo test|go test|mvn test)", re.IGNORECASE
     )
     TEST_RESULT_PATTERN = re.compile(
-        r'(?:\d+\s+passed|\d+\s+failed|all tests pass)',
-        re.IGNORECASE
+        r"(?:\d+\s+passed|\d+\s+failed|all tests pass)", re.IGNORECASE
     )
 
     # Quality gate patterns
-    TYPE_CHECK_PATTERN = re.compile(r'(?:mypy|pyright|tsc|flow)', re.IGNORECASE)
-    LINT_PATTERN = re.compile(r'(?:ruff|eslint|pylint|flake8)', re.IGNORECASE)
-    COVERAGE_PATTERN = re.compile(r'coverage|--cov', re.IGNORECASE)
+    TYPE_CHECK_PATTERN = re.compile(r"(?:mypy|pyright|tsc|flow)", re.IGNORECASE)
+    LINT_PATTERN = re.compile(r"(?:ruff|eslint|pylint|flake8)", re.IGNORECASE)
+    COVERAGE_PATTERN = re.compile(r"coverage|--cov", re.IGNORECASE)
 
     def __init__(self, threshold: float = 0.9, strict_mode: bool = False):
         """
@@ -151,10 +154,10 @@ class VerificationComplianceMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            tool_verification_score * 0.4 +
-            assertion_evidence_score * 0.3 +
-            test_execution_score * 0.2 +
-            quality_gates_score * 0.1
+            tool_verification_score * 0.4
+            + assertion_evidence_score * 0.3
+            + test_execution_score * 0.2
+            + quality_gates_score * 0.1
         )
 
         # Strict mode: fail on any unsubstantiated claim
@@ -168,7 +171,7 @@ class VerificationComplianceMetric(BaseMetric):
             assertion_evidence_score,
             test_execution_score,
             quality_gates_score,
-            output
+            output,
         )
         self._success = final_score >= self.threshold
 
@@ -198,8 +201,10 @@ class VerificationComplianceMetric(BaseMetric):
         score = 0.0
 
         # Detect Edit/Write operations
-        edit_count = len(re.findall(r'\b(Edit|Write)\b', output, re.IGNORECASE))
-        read_after_edit = len(re.findall(r'(?:Edit|Write).*?Read', output, re.IGNORECASE | re.DOTALL))
+        edit_count = len(re.findall(r"\b(Edit|Write)\b", output, re.IGNORECASE))
+        read_after_edit = len(
+            re.findall(r"(?:Edit|Write).*?Read", output, re.IGNORECASE | re.DOTALL)
+        )
 
         # Edit→Read verification pattern (40%)
         if edit_count > 0:
@@ -212,7 +217,9 @@ class VerificationComplianceMetric(BaseMetric):
 
         # Health check patterns (30%)
         health_check_matches = len(self.HEALTH_CHECK_PATTERN.findall(output))
-        deploy_count = len(re.findall(r'\b(deploy|start|launch)\b', output, re.IGNORECASE))
+        deploy_count = len(
+            re.findall(r"\b(deploy|start|launch)\b", output, re.IGNORECASE)
+        )
 
         if deploy_count > 0:
             health_ratio = min(1.0, health_check_matches / deploy_count)
@@ -223,7 +230,8 @@ class VerificationComplianceMetric(BaseMetric):
 
         # Verification keywords (30%)
         keyword_count = sum(
-            1 for keyword in self.VERIFICATION_KEYWORDS
+            1
+            for keyword in self.VERIFICATION_KEYWORDS
             if keyword.lower() in output.lower()
         )
         # At least 2 keywords for full score
@@ -285,7 +293,9 @@ class VerificationComplianceMetric(BaseMetric):
         score = 0.0
 
         # Check if this response involves code changes
-        has_code_changes = bool(re.search(r'\b(Edit|Write|implement|fix|refactor)\b', output, re.IGNORECASE))
+        has_code_changes = bool(
+            re.search(r"\b(Edit|Write|implement|fix|refactor)\b", output, re.IGNORECASE)
+        )
 
         if not has_code_changes:
             # No code changes = no tests required
@@ -318,7 +328,9 @@ class VerificationComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         # Check if this response involves code changes
-        has_code_changes = bool(re.search(r'\b(Edit|Write|implement|fix|refactor)\b', output, re.IGNORECASE))
+        has_code_changes = bool(
+            re.search(r"\b(Edit|Write|implement|fix|refactor)\b", output, re.IGNORECASE)
+        )
 
         if not has_code_changes:
             # No code changes = quality gates not required
@@ -351,10 +363,7 @@ class VerificationComplianceMetric(BaseMetric):
         Returns:
             True if unsubstantiated phrases detected
         """
-        return any(
-            pattern.search(output)
-            for pattern in self.UNSUBSTANTIATED_PHRASES
-        )
+        return any(pattern.search(output) for pattern in self.UNSUBSTANTIATED_PHRASES)
 
     def _generate_reason(
         self,
@@ -362,7 +371,7 @@ class VerificationComplianceMetric(BaseMetric):
         evidence_score: float,
         test_score: float,
         quality_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -381,14 +390,13 @@ class VerificationComplianceMetric(BaseMetric):
 
         # Tool verification issues
         if tool_score < 0.9:
-            edit_count = len(re.findall(r'\b(Edit|Write)\b', output, re.IGNORECASE))
+            edit_count = len(re.findall(r"\b(Edit|Write)\b", output, re.IGNORECASE))
             if edit_count > 0:
                 reasons.append(
                     f"Edit→Read verification incomplete ({edit_count} edits detected)"
                 )
             verification_keywords = sum(
-                1 for kw in self.VERIFICATION_KEYWORDS
-                if kw.lower() in output.lower()
+                1 for kw in self.VERIFICATION_KEYWORDS if kw.lower() in output.lower()
             )
             if verification_keywords < 2:
                 reasons.append(
@@ -461,8 +469,7 @@ class StrictVerificationComplianceMetric(VerificationComplianceMetric):
 
 
 def create_verification_compliance_metric(
-    threshold: float = 0.9,
-    strict: bool = False
+    threshold: float = 0.9, strict: bool = False
 ) -> VerificationComplianceMetric:
     """
     Factory function to create verification compliance metric.

@@ -60,10 +60,7 @@ class TestBaseAgentIntegration:
         response = self._create_template_inheritance_response()
 
         # Create test case
-        test_case = LLMTestCase(
-            input=user_request,
-            actual_output=response
-        )
+        test_case = LLMTestCase(input=user_request, actual_output=response)
 
         # Test verification compliance (BASE_AGENT pattern)
         verification_score = self.verification_metric.measure(test_case)
@@ -83,12 +80,12 @@ class TestBaseAgentIntegration:
         )
 
         # Verify specialized agent patterns are preserved
-        assert "type hints" in response.lower(), (
-            "Python Engineer specialization should include type hints"
-        )
-        assert "pytest" in response.lower(), (
-            "Python Engineer specialization should include testing"
-        )
+        assert (
+            "type hints" in response.lower()
+        ), "Python Engineer specialization should include type hints"
+        assert (
+            "pytest" in response.lower()
+        ), "Python Engineer specialization should include testing"
 
         # Verify BASE_AGENT + specialized agent coexistence
         assert "```python" in response, "Code snippets should be present"
@@ -116,10 +113,7 @@ class TestBaseAgentIntegration:
         )
         response = self._create_multi_step_workflow_response()
 
-        test_case = LLMTestCase(
-            input=user_request,
-            actual_output=response
-        )
+        test_case = LLMTestCase(input=user_request, actual_output=response)
 
         # Test verification compliance
         verification_score = self.verification_metric.measure(test_case)
@@ -134,24 +128,24 @@ class TestBaseAgentIntegration:
         assert len(steps) >= 4, f"Should have 4+ steps, got {len(steps)}"
 
         # Verify each critical operation is present
-        assert "read" in response.lower() and "auth.py" in response.lower(), (
-            "Should read file first"
-        )
-        assert "edit" in response.lower() or "updating" in response.lower(), (
-            "Should edit file"
-        )
-        assert "pytest" in response.lower() or "test" in response.lower(), (
-            "Should run tests"
-        )
+        assert (
+            "read" in response.lower() and "auth.py" in response.lower()
+        ), "Should read file first"
+        assert (
+            "edit" in response.lower() or "updating" in response.lower()
+        ), "Should edit file"
+        assert (
+            "pytest" in response.lower() or "test" in response.lower()
+        ), "Should run tests"
         assert "deploy" in response.lower(), "Should deploy"
 
         # Verify verification keywords present after each step
         verification_count = response.lower().count("verified")
         verification_count += response.lower().count("confirmed")
         verification_count += response.lower().count("✅")
-        assert verification_count >= 3, (
-            f"Should have 3+ verification confirmations, got {verification_count}"
-        )
+        assert (
+            verification_count >= 3
+        ), f"Should have 3+ verification confirmations, got {verification_count}"
 
     # =========================================================================
     # Test 3: Error Recovery and Escalation
@@ -172,28 +166,25 @@ class TestBaseAgentIntegration:
         """
         # Scenario A: Successful recovery
         user_request_success = "Deploy the application to production"
-        response_success = self._create_error_recovery_response(
-            recovery_succeeded=True
-        )
+        response_success = self._create_error_recovery_response(recovery_succeeded=True)
 
         test_case_success = LLMTestCase(
-            input=user_request_success,
-            actual_output=response_success
+            input=user_request_success, actual_output=response_success
         )
 
         # Verify error detection and recovery documented
         assert "error" in response_success.lower(), "Error should be detected"
-        assert "retry" in response_success.lower() or "attempt" in response_success.lower(), (
-            "Recovery attempt should be documented"
-        )
+        assert (
+            "retry" in response_success.lower() or "attempt" in response_success.lower()
+        ), "Recovery attempt should be documented"
         assert "success" in response_success.lower(), "Success should be reported"
 
         # Parse JSON and verify task completed
         json_block = self._extract_json_block(response_success)
         assert json_block is not None, "Should have JSON block"
-        assert json_block.get("task_completed") is True, (
-            "Task should be completed after successful recovery"
-        )
+        assert (
+            json_block.get("task_completed") is True
+        ), "Task should be completed after successful recovery"
 
         # Scenario B: Failed recovery → escalation
         user_request_failure = "Deploy the application to production"
@@ -202,25 +193,25 @@ class TestBaseAgentIntegration:
         )
 
         test_case_failure = LLMTestCase(
-            input=user_request_failure,
-            actual_output=response_failure
+            input=user_request_failure, actual_output=response_failure
         )
 
         # Verify error detection and escalation
         assert "error" in response_failure.lower(), "Error should be detected"
-        assert "failed" in response_failure.lower() or "unable" in response_failure.lower(), (
-            "Failure should be documented"
-        )
-        assert "escalat" in response_failure.lower() or "manual" in response_failure.lower(), (
-            "Escalation should be indicated"
-        )
+        assert (
+            "failed" in response_failure.lower() or "unable" in response_failure.lower()
+        ), "Failure should be documented"
+        assert (
+            "escalat" in response_failure.lower()
+            or "manual" in response_failure.lower()
+        ), "Escalation should be indicated"
 
         # Parse JSON and verify task NOT completed
         json_block_failure = self._extract_json_block(response_failure)
         assert json_block_failure is not None, "Should have JSON block"
-        assert json_block_failure.get("task_completed") is False, (
-            "Task should NOT be completed when escalating"
-        )
+        assert (
+            json_block_failure.get("task_completed") is False
+        ), "Task should NOT be completed when escalating"
 
     # =========================================================================
     # Test 4: Memory Persistence Workflow
@@ -245,13 +236,12 @@ class TestBaseAgentIntegration:
             session="initial",
             memory_content=[
                 "Project uses Poetry for dependency management",
-                "Project uses pytest for testing"
-            ]
+                "Project uses pytest for testing",
+            ],
         )
 
         test_case_session1 = LLMTestCase(
-            input=session1_request,
-            actual_output=session1_response
+            input=session1_request, actual_output=session1_response
         )
 
         # Verify memory capture compliance
@@ -273,13 +263,13 @@ class TestBaseAgentIntegration:
         session2_request = "Add a new development dependency to the project"
         session2_response = self._create_memory_response(
             session="retrieval",
-            recalled_memory="Project uses Poetry for dependency management"
+            recalled_memory="Project uses Poetry for dependency management",
         )
 
         # Verify memory was recalled and used
-        assert "poetry add" in session2_response.lower(), (
-            "Should use Poetry based on recalled memory"
-        )
+        assert (
+            "poetry add" in session2_response.lower()
+        ), "Should use Poetry based on recalled memory"
 
         # Session 3: Memory update
         session3_request = (
@@ -287,14 +277,11 @@ class TestBaseAgentIntegration:
         )
         session3_response = self._create_memory_response(
             session="update",
-            memory_content=[
-                "Project uses Black formatter with line length 100"
-            ]
+            memory_content=["Project uses Black formatter with line length 100"],
         )
 
         test_case_session3 = LLMTestCase(
-            input=session3_request,
-            actual_output=session3_response
+            input=session3_request, actual_output=session3_response
         )
 
         # Verify memory update compliance
@@ -327,8 +314,7 @@ class TestBaseAgentIntegration:
         response_good = self._create_well_formed_response()
 
         test_case_good = LLMTestCase(
-            input=user_request_good,
-            actual_output=response_good
+            input=user_request_good, actual_output=response_good
         )
 
         # Test both metrics pass
@@ -349,10 +335,7 @@ class TestBaseAgentIntegration:
         user_request_bad = "Update config.py and remember the change"
         response_bad = self._create_poorly_formed_response()
 
-        test_case_bad = LLMTestCase(
-            input=user_request_bad,
-            actual_output=response_bad
-        )
+        test_case_bad = LLMTestCase(input=user_request_bad, actual_output=response_bad)
 
         # Test at least one metric fails
         verification_score_bad = self.verification_metric.measure(test_case_bad)
@@ -367,14 +350,14 @@ class TestBaseAgentIntegration:
 
         # Verify metrics provide specific violation reasons
         if verification_score_bad < 0.9:
-            assert len(self.verification_metric.reason) > 0, (
-                "Verification metric should explain failure"
-            )
+            assert (
+                len(self.verification_metric.reason) > 0
+            ), "Verification metric should explain failure"
 
         if memory_score_bad < 0.999:
-            assert len(self.memory_metric.reason) > 0, (
-                "Memory metric should explain failure"
-            )
+            assert (
+                len(self.memory_metric.reason) > 0
+            ), "Memory metric should explain failure"
 
     # =========================================================================
     # Helper Methods
@@ -835,7 +818,7 @@ Unable to complete deployment due to production cluster outage. This requires ma
         self,
         session: str,
         memory_content: Optional[List[str]] = None,
-        recalled_memory: Optional[str] = None
+        recalled_memory: Optional[str] = None,
     ) -> str:
         """Generate memory-enabled response for different session types.
 
@@ -995,7 +978,8 @@ The file should now point to the production database."""
 
         # Look for step markers (Step 1:, Step 2:, etc.)
         import re
-        step_pattern = re.compile(r'\*\*Step \d+: (.+?)\*\*', re.IGNORECASE)
+
+        step_pattern = re.compile(r"\*\*Step \d+: (.+?)\*\*", re.IGNORECASE)
 
         for match in step_pattern.finditer(response):
             step_name = match.group(1).strip()
@@ -1008,16 +992,18 @@ The file should now point to the production database."""
 
             # Check if verification present in this section
             has_verification = bool(
-                re.search(r'✅.*verified', section, re.IGNORECASE) or
-                re.search(r'confirmed', section, re.IGNORECASE) or
-                re.search(r'verified:', section, re.IGNORECASE)
+                re.search(r"✅.*verified", section, re.IGNORECASE)
+                or re.search(r"confirmed", section, re.IGNORECASE)
+                or re.search(r"verified:", section, re.IGNORECASE)
             )
 
-            steps.append({
-                "name": step_name,
-                "has_verification": has_verification,
-                "section": section
-            })
+            steps.append(
+                {
+                    "name": step_name,
+                    "has_verification": has_verification,
+                    "section": section,
+                }
+            )
 
         return steps
 
@@ -1033,7 +1019,7 @@ The file should now point to the production database."""
         import re
 
         # Find JSON code block
-        json_pattern = re.compile(r'```json\s*\n(.*?)\n```', re.DOTALL)
+        json_pattern = re.compile(r"```json\s*\n(.*?)\n```", re.DOTALL)
         match = json_pattern.search(response)
 
         if not match:

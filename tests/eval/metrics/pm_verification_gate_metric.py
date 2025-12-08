@@ -38,13 +38,7 @@ class PMVerificationGateMetric(BaseMetric):
     """
 
     # QA agent names that satisfy verification requirement
-    QA_AGENTS = {
-        "web-qa",
-        "api-qa",
-        "qa",
-        "test-qa",
-        "quality-assurance"
-    }
+    QA_AGENTS = {"web-qa", "api-qa", "qa", "test-qa", "quality-assurance"}
 
     # Completion claim phrases that require QA verification first
     # These are specific PM completion claims, not mentions in QA evidence
@@ -61,14 +55,14 @@ class PMVerificationGateMetric(BaseMetric):
         r"Engineer (?:reports?|says?|confirms?).{0,100}(?:complete|done|ready|working)",
         r"Ops (?:reports?|says?|confirms?).{0,100}(?:deployed|running|working)",
         r"(?:all )?tests? (?:pass|passing|passed).{0,50}(?:complete|done)",
-        r"(?:feature|bug|endpoint|API).{0,50}(?:is|are) (?:complete|ready|working)"
+        r"(?:feature|bug|endpoint|API).{0,50}(?:is|are) (?:complete|ready|working)",
     ]
 
     def __init__(
         self,
         threshold: float = 0.9,
         require_qa_delegation: bool = True,
-        require_qa_evidence: bool = True
+        require_qa_evidence: bool = True,
     ):
         """
         Initialize PMVerificationGateMetric.
@@ -146,10 +140,7 @@ class PMVerificationGateMetric(BaseMetric):
         self.score = score
         self.success = score >= self.threshold
         self.reason = self._build_reason(
-            violations,
-            qa_delegated,
-            completion_claimed,
-            qa_evidence_present
+            violations, qa_delegated, completion_claimed, qa_evidence_present
         )
 
         return score
@@ -209,7 +200,7 @@ class PMVerificationGateMetric(BaseMetric):
             r"screenshot|test output|test log",
             r"\d+ (?:passed|tests?)",
             r"regression test",
-            r"end-to-end (?:test|flow)"
+            r"end-to-end (?:test|flow)",
         ]
 
         for pattern in qa_evidence_patterns:
@@ -243,7 +234,9 @@ class PMVerificationGateMetric(BaseMetric):
         """
         # Find position of QA delegation first
         qa_delegation_pos = None
-        task_pattern = r"Task\s*\([^)]*agent\s*=\s*['\"](?:" + "|".join(self.QA_AGENTS) + ")['\"]"
+        task_pattern = (
+            r"Task\s*\([^)]*agent\s*=\s*['\"](?:" + "|".join(self.QA_AGENTS) + ")['\"]"
+        )
         match = re.search(task_pattern, output, re.IGNORECASE)
         if match:
             qa_delegation_pos = match.start()
@@ -253,7 +246,7 @@ class PMVerificationGateMetric(BaseMetric):
         completion_pos = None
         pm_completion_patterns = [
             r"✅\s*(?:Verified by|Feature|Bug|API|Tests?|Deployment).*\b(?:complete|done|ready|working|fixed|passing)\b",
-            r"^\s*✅.*$"  # Any line starting with checkmark
+            r"^\s*✅.*$",  # Any line starting with checkmark
         ]
 
         for pattern in pm_completion_patterns:
@@ -288,7 +281,7 @@ class PMVerificationGateMetric(BaseMetric):
             r"\[Simulated QA response:",  # Simulated QA evidence
             r"(?:web-qa|api-qa|qa) (?:verified|confirmed|tested|reports?)",
             r"Playwright verification",
-            r"✅ Verified by (?:web-qa|api-qa|qa)"
+            r"✅ Verified by (?:web-qa|api-qa|qa)",
         ]
 
         for pattern in qa_evidence_patterns:
@@ -302,7 +295,7 @@ class PMVerificationGateMetric(BaseMetric):
         completion_pos = None
         pm_completion_patterns = [
             r"✅\s*(?:Verified by|Feature|Bug|API|Tests?|Deployment).*\b(?:complete|done|ready|working|fixed|passing)\b",
-            r"✅.*(?:feature|bug|API|endpoint|tests?).*\b(?:complete|done|ready|working|fixed|passing)\b"
+            r"✅.*(?:feature|bug|API|endpoint|tests?).*\b(?:complete|done|ready|working|fixed|passing)\b",
         ]
 
         for pattern in pm_completion_patterns:
@@ -323,7 +316,7 @@ class PMVerificationGateMetric(BaseMetric):
         violations: List[str],
         qa_delegated: bool,
         completion_claimed: bool,
-        qa_evidence_present: bool
+        qa_evidence_present: bool,
     ) -> str:
         """Build human-readable reason for score.
 
@@ -347,7 +340,7 @@ class PMVerificationGateMetric(BaseMetric):
             f"  Completion Claimed: {'⚠️ Yes' if completion_claimed else '✅ No'}",
             f"  QA Evidence Present: {'✅ Yes' if qa_evidence_present else '❌ No'}",
             "",
-            "Violations/Observations:"
+            "Violations/Observations:",
         ]
 
         for violation in violations:

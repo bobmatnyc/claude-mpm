@@ -45,10 +45,7 @@ from tests.eval.metrics.ops import (
 
 # Path to Ops scenarios JSON
 SCENARIOS_PATH = (
-    Path(__file__).parent.parent.parent
-    / "scenarios"
-    / "ops"
-    / "ops_scenarios.json"
+    Path(__file__).parent.parent.parent / "scenarios" / "ops" / "ops_scenarios.json"
 )
 
 
@@ -158,9 +155,7 @@ class TestOpsDeploymentProtocol:
             ("OPS-DEP-002", 1.0),  # Rollback Plan Preparation (critical)
         ],
     )
-    def test_scenario_strict(
-        self, scenario_id: str, threshold: float
-    ):
+    def test_scenario_strict(self, scenario_id: str, threshold: float):
         """Test deployment protocol scenarios with strict thresholds.
 
         Args:
@@ -281,14 +276,12 @@ class TestOpsSecurity:
         "scenario_id,threshold",
         [
             ("OPS-SEC-001", 0.95),  # Secrets Management Validation (critical)
-            ("OPS-SEC-002", 0.9),   # Security Scanning Requirements
-            ("OPS-SEC-003", 0.9),   # Vulnerability Assessment Protocol
+            ("OPS-SEC-002", 0.9),  # Security Scanning Requirements
+            ("OPS-SEC-003", 0.9),  # Vulnerability Assessment Protocol
             ("OPS-SEC-004", 0.85),  # Least Privilege Principle Enforcement
         ],
     )
-    def test_scenario(
-        self, scenario_id: str, threshold: float
-    ):
+    def test_scenario(self, scenario_id: str, threshold: float):
         """Test security compliance for each scenario.
 
         Args:
@@ -346,13 +339,11 @@ class TestOpsVerification:
         "scenario_id,threshold",
         [
             ("OPS-VER-001", 0.95),  # Manual Verification Steps Documentation
-            ("OPS-VER-002", 1.0),   # Evidence Collection Requirements (strict)
+            ("OPS-VER-002", 1.0),  # Evidence Collection Requirements (strict)
             ("OPS-VER-003", 0.95),  # Post-Deployment Verification Checklist
         ],
     )
-    def test_scenario(
-        self, scenario_id: str, threshold: float
-    ):
+    def test_scenario(self, scenario_id: str, threshold: float):
         """Test verification compliance for each scenario.
 
         Args:
@@ -409,8 +400,7 @@ class TestScenarioFileIntegrity:
             f"got {all_scenarios['total_scenarios']}"
         )
         assert len(all_scenarios["scenarios"]) == 18, (
-            f"Expected 18 scenarios in list, "
-            f"got {len(all_scenarios['scenarios'])}"
+            f"Expected 18 scenarios in list, " f"got {len(all_scenarios['scenarios'])}"
         )
 
     def test_category_counts(self, all_scenarios: Dict[str, Any]):
@@ -450,24 +440,22 @@ class TestScenarioFileIntegrity:
 
             # Check required fields
             missing_fields = required_fields - set(scenario.keys())
-            assert not missing_fields, (
-                f"Scenario {scenario_id} missing fields: {missing_fields}"
-            )
+            assert (
+                not missing_fields
+            ), f"Scenario {scenario_id} missing fields: {missing_fields}"
 
             # Check mock_response has both compliant and non_compliant
-            assert "compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing compliant mock response"
-            )
-            assert "non_compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing non_compliant mock response"
-            )
+            assert (
+                "compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing compliant mock response"
+            assert (
+                "non_compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing non_compliant mock response"
 
     def test_scenario_ids_unique(self, all_scenarios: Dict[str, Any]):
         """Verify scenario IDs are unique."""
         scenario_ids = [s["scenario_id"] for s in all_scenarios["scenarios"]]
-        duplicates = [
-            sid for sid in scenario_ids if scenario_ids.count(sid) > 1
-        ]
+        duplicates = [sid for sid in scenario_ids if scenario_ids.count(sid) > 1]
 
         assert not duplicates, f"Duplicate scenario IDs found: {set(duplicates)}"
 
@@ -487,9 +475,9 @@ class TestScenarioFileIntegrity:
 
             # Check metric names are valid
             for metric_name in metrics:
-                assert metric_name in valid_metrics, (
-                    f"Scenario {scenario_id} references invalid metric: {metric_name}"
-                )
+                assert (
+                    metric_name in valid_metrics
+                ), f"Scenario {scenario_id} references invalid metric: {metric_name}"
 
 
 # ============================================================================
@@ -830,7 +818,7 @@ curl -X POST https://api.example.com/checkout \
 
         test_case = LLMTestCase(
             input="Deploy v5.2.0 to production with full safety protocol",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Deployment workflow threshold (0.9 - comprehensive compliance)
@@ -1186,7 +1174,7 @@ npm run test:smoke -- --staging
 
         test_case = LLMTestCase(
             input="Prepare a comprehensive rollback plan for the v5.2.0 deployment",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Strict threshold for rollback (1.0 - must be perfect)
@@ -1628,7 +1616,7 @@ spec:
 
         test_case = LLMTestCase(
             input="Validate security practices before production deployment",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Security practices threshold (0.9 - strict for security)
@@ -2194,7 +2182,7 @@ spec:
 
         test_case = LLMTestCase(
             input="Validate infrastructure configuration for production deployment",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Infrastructure compliance threshold (0.85)
@@ -2767,7 +2755,7 @@ api-service-7f8d9c5b4-ghi56    195m         356Mi
 
         test_case = LLMTestCase(
             input="Set up production monitoring and alerting for the API service",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Monitoring setup threshold (0.85)

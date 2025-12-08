@@ -22,9 +22,7 @@ class TestVerificationPatterns:
         self.metric = VerificationComplianceMetric(threshold=0.9)
 
     def test_file_edit_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant Edit→Read pattern scores high.
 
@@ -35,7 +33,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful(), "Metric should report success"
 
     def test_file_edit_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that non-compliant edit (no verification) fails.
 
@@ -59,7 +55,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_test_execution_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant test execution with results scores high.
 
@@ -83,7 +77,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_test_execution_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that claiming tests pass without running them fails.
 
@@ -107,7 +99,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_api_call_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that API call with response verification scores high.
 
@@ -131,7 +121,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -142,9 +132,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_api_call_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that claiming API success without response data fails.
 
@@ -155,7 +143,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -166,9 +154,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_assertion_evidence_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that assertions with evidence score high.
 
@@ -179,7 +165,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -190,9 +176,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_assertion_evidence_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that assertions without evidence fail.
 
@@ -203,7 +187,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -214,9 +198,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_quality_gate_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that quality gate verification scores high.
 
@@ -227,7 +209,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -238,9 +220,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_quality_gate_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that skipping quality checks fails.
 
@@ -251,7 +231,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -262,9 +242,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_error_handling_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that error handling with verification scores high.
 
@@ -275,7 +253,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -286,9 +264,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_error_handling_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that untested error handling fails.
 
@@ -299,7 +275,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -310,9 +286,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_deployment_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that deployment verification scores high.
 
@@ -323,7 +297,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -334,9 +308,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_deployment_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that unverified deployment claims fail.
 
@@ -347,7 +319,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -358,9 +330,7 @@ class TestVerificationPatterns:
         assert not self.metric.is_successful()
 
     def test_code_review_verification_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code review with verification scores high.
 
@@ -371,7 +341,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -382,9 +352,7 @@ class TestVerificationPatterns:
         assert self.metric.is_successful()
 
     def test_code_review_verification_non_compliant(
-        self,
-        verification_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, verification_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code review without reading files fails.
 
@@ -395,7 +363,7 @@ class TestVerificationPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

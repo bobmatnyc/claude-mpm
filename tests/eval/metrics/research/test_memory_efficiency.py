@@ -47,8 +47,7 @@ on the most relevant authentication implementation details.
 """
 
         test_case = LLMTestCase(
-            input="Research the authentication implementation",
-            actual_output=output
+            input="Research the authentication implementation", actual_output=output
         )
 
         score = metric.measure(test_case)
@@ -58,7 +57,10 @@ on the most relevant authentication implementation details.
         epsilon = 1e-9
         assert score >= (0.9 - epsilon), f"Expected score >= 0.9, got {score}"
         assert metric.is_successful()
-        assert "perfect" in metric.reason.lower() or "all protocols followed" in metric.reason.lower()
+        assert (
+            "perfect" in metric.reason.lower()
+            or "all protocols followed" in metric.reason.lower()
+        )
 
     def test_file_size_check_present(self):
         """Test detection of file size checking patterns."""
@@ -71,10 +73,7 @@ Checking file size before reading...
 - validators.py: 8KB
 """
 
-        test_case = LLMTestCase(
-            input="Research files",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research files", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -92,10 +91,7 @@ Reading config.py...
 Reading validators.py...
 """
 
-        test_case = LLMTestCase(
-            input="Research files",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research files", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -112,10 +108,7 @@ File size: 45KB - this is a large file.
 Using document_summarizer to analyze the file efficiently...
 """
 
-        test_case = LLMTestCase(
-            input="Analyze large file",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Analyze large file", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -131,10 +124,7 @@ Using document_summarizer to analyze the file efficiently...
 Reading large file (55KB)... analyzing entire contents.
 """
 
-        test_case = LLMTestCase(
-            input="Analyze file",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Analyze file", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -154,10 +144,7 @@ Reading middleware.py...
 Reading tokens.py...
 """
 
-        test_case = LLMTestCase(
-            input="Research authentication",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research authentication", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -183,10 +170,7 @@ Reading file10.py...
 Reading file11.py...
 """
 
-        test_case = LLMTestCase(
-            input="Research codebase",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research codebase", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -206,10 +190,7 @@ Sampling auth.py:
 Reading first 150 lines of config.py for configuration analysis.
 """
 
-        test_case = LLMTestCase(
-            input="Sample files",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Sample files", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -226,10 +207,7 @@ Reading entire file contents...
 Analyzing all lines...
 """
 
-        test_case = LLMTestCase(
-            input="Analyze file",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Analyze file", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -247,10 +225,7 @@ Filtering results with glob pattern '**/*auth*.py'...
 Located 3 relevant files for analysis.
 """
 
-        test_case = LLMTestCase(
-            input="Find auth files",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Find auth files", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -268,10 +243,7 @@ Scanning entire repository for authentication patterns...
 Checking every file to ensure completeness...
 """
 
-        test_case = LLMTestCase(
-            input="Research codebase",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research codebase", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -298,10 +270,7 @@ Using document_summarizer for large file analysis...
 Sampling lines 100-200...
 """
 
-        test_case = LLMTestCase(
-            input="Research auth",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research auth", actual_output=output)
 
         # Run async measure
         async def run_async():
@@ -322,10 +291,7 @@ Reading all files in the codebase without checking sizes...
 No summarization used...
 """
 
-        test_case = LLMTestCase(
-            input="Research",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -356,16 +322,17 @@ Analyzing entire codebase to ensure completeness...
 Reading all files without sampling...
 """
 
-        test_case = LLMTestCase(
-            input="Research",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Research", actual_output=output)
 
         score = metric.measure(test_case)
 
         # Reason should mention multiple issues
         reason = metric.reason
-        assert "file" in reason.lower() or "limit" in reason.lower() or "sampling" in reason.lower()
+        assert (
+            "file" in reason.lower()
+            or "limit" in reason.lower()
+            or "sampling" in reason.lower()
+        )
         assert len(reason) > 20, "Reason should be descriptive"
 
     def test_score_properties_initialized(self):
@@ -387,10 +354,7 @@ Using document_summarizer...
 Sampling lines 100-200...
 """
 
-        test_case1 = LLMTestCase(
-            input="Research",
-            actual_output=compliant_output
-        )
+        test_case1 = LLMTestCase(input="Research", actual_output=compliant_output)
 
         score1 = metric.measure(test_case1)
         assert score1 >= 0.9
@@ -401,10 +365,7 @@ Sampling lines 100-200...
 Reading all files without size checks...
 """
 
-        test_case2 = LLMTestCase(
-            input="Research",
-            actual_output=non_compliant_output
-        )
+        test_case2 = LLMTestCase(input="Research", actual_output=non_compliant_output)
 
         score2 = metric.measure(test_case2)
         assert score2 < 0.9

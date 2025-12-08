@@ -31,7 +31,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember that this project uses pytest for testing",
-            actual_output='''I've noted that information.
+            actual_output="""I've noted that information.
 
 ```json
 {
@@ -42,7 +42,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["Project uses pytest for testing"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -56,7 +56,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="What is the current configuration?",
-            actual_output='''The configuration is set to debug mode.
+            actual_output="""The configuration is set to debug mode.
 
 ```json
 {
@@ -67,7 +67,7 @@ class TestMemoryProtocolMetric:
     "tools_used": ["Read"],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -86,7 +86,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test request",
-            actual_output='''Response text.
+            actual_output="""Response text.
 
 ```json
 {
@@ -97,7 +97,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -111,7 +111,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test request",
-            actual_output='''Response text.
+            actual_output="""Response text.
 
 {
     "task_completed": true,
@@ -120,7 +120,7 @@ class TestMemoryProtocolMetric:
     "files_modified": [],
     "tools_used": [],
     "remember": null
-}'''
+}""",
         )
 
         score = metric.measure(test_case)
@@ -134,7 +134,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test request",
-            actual_output='''Response text.
+            actual_output="""Response text.
 
 ```json
 {
@@ -145,7 +145,7 @@ class TestMemoryProtocolMetric:
     "tools_used": []
     // Missing remember field and trailing comma
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -159,8 +159,7 @@ class TestMemoryProtocolMetric:
         metric = MemoryProtocolMetric(threshold=1.0)
 
         test_case = LLMTestCase(
-            input="Test request",
-            actual_output="Response text without any JSON block."
+            input="Test request", actual_output="Response text without any JSON block."
         )
 
         score = metric.measure(test_case)
@@ -178,7 +177,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test",
-            actual_output='''Done.
+            actual_output="""Done.
 
 ```json
 {
@@ -189,7 +188,7 @@ class TestMemoryProtocolMetric:
     "tools_used": ["Edit", "Read"],
     "remember": ["Important fact"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -203,7 +202,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test",
-            actual_output='''Done.
+            actual_output="""Done.
 
 ```json
 {
@@ -213,7 +212,7 @@ class TestMemoryProtocolMetric:
     "files_modified": [],
     "tools_used": []
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -228,7 +227,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test",
-            actual_output='''Done.
+            actual_output="""Done.
 
 ```json
 {
@@ -239,7 +238,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -254,7 +253,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="What is X?",
-            actual_output='''X is Y.
+            actual_output="""X is Y.
 
 ```json
 {
@@ -265,7 +264,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -279,7 +278,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember this fact",
-            actual_output='''Noted.
+            actual_output="""Noted.
 
 ```json
 {
@@ -290,7 +289,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["This is the fact"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -308,7 +307,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Don't forget that we use TypeScript for backend",
-            actual_output='''I'll remember that.
+            actual_output="""I'll remember that.
 
 ```json
 {
@@ -319,11 +318,13 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["Backend uses TypeScript"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
-        assert abs(score - 1.0) < 0.01, f"Memory trigger should be captured, got {score}"
+        assert (
+            abs(score - 1.0) < 0.01
+        ), f"Memory trigger should be captured, got {score}"
         assert metric.is_successful()
 
     def test_memory_capture_with_trigger_not_captured(self):
@@ -332,7 +333,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember that this is important",
-            actual_output='''Okay.
+            actual_output="""Okay.
 
 ```json
 {
@@ -343,7 +344,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -358,7 +359,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="I prefer using tabs instead of spaces",
-            actual_output='''Noted your preference.
+            actual_output="""Noted your preference.
 
 ```json
 {
@@ -369,12 +370,14 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
         # Should NOT capture user preference
-        assert abs(score - 1.0) < 0.01, f"User preference should not be captured, got {score}"
+        assert (
+            abs(score - 1.0) < 0.01
+        ), f"User preference should not be captured, got {score}"
         assert metric.is_successful()
 
     def test_memory_capture_user_specific_incorrectly_captured(self):
@@ -383,7 +386,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="I like using single quotes for strings",
-            actual_output='''Noted.
+            actual_output="""Noted.
 
 ```json
 {
@@ -394,7 +397,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["User prefers single quotes"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -408,7 +411,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="The code is in the src directory",
-            actual_output='''Understood.
+            actual_output="""Understood.
 
 ```json
 {
@@ -419,12 +422,14 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
         # Should NOT capture obvious fact
-        assert abs(score - 1.0) < 0.01, f"Obvious fact should not be captured, got {score}"
+        assert (
+            abs(score - 1.0) < 0.01
+        ), f"Obvious fact should not be captured, got {score}"
         assert metric.is_successful()
 
     # ========================================================================
@@ -437,7 +442,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember X and Y",
-            actual_output='''Noted.
+            actual_output="""Noted.
 
 ```json
 {
@@ -448,11 +453,13 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["Fact X", "Fact Y"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
-        assert abs(score - 1.0) < 0.01, f"Concise entries should score perfectly, got {score}"
+        assert (
+            abs(score - 1.0) < 0.01
+        ), f"Concise entries should score perfectly, got {score}"
         assert metric.is_successful()
 
     def test_memory_quality_verbose_entries(self):
@@ -463,7 +470,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember this",
-            actual_output=f'''Noted.
+            actual_output=f"""Noted.
 
 ```json
 {{
@@ -474,7 +481,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["{verbose_entry}"]
 }}
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -488,7 +495,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Note that",
-            actual_output='''Noted.
+            actual_output="""Noted.
 
 ```json
 {
@@ -499,7 +506,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["Always use best practices", "Never use global variables"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -513,7 +520,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Remember this",
-            actual_output='''Noted.
+            actual_output="""Noted.
 
 ```json
 {
@@ -524,7 +531,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": ["Project uses pytest", "Project uses pytest"]
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -538,7 +545,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="What is X?",
-            actual_output='''X is Y.
+            actual_output="""X is Y.
 
 ```json
 {
@@ -549,7 +556,7 @@ class TestMemoryProtocolMetric:
     "tools_used": [],
     "remember": []
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -577,7 +584,7 @@ class TestMemoryProtocolMetric:
 
         test_case = LLMTestCase(
             input="Test",
-            actual_output='''First response.
+            actual_output="""First response.
 
 ```json
 {
@@ -601,7 +608,7 @@ Second response.
     "tools_used": [],
     "remember": null
 }
-```'''
+```""",
         )
 
         score = metric.measure(test_case)
@@ -617,7 +624,7 @@ Second response.
 
         test_case = LLMTestCase(
             input="Test",
-            actual_output=f'''```json
+            actual_output=f"""```json
 {{
     "task_completed": true,
     "instructions": "Test",
@@ -628,7 +635,7 @@ Second response.
 }}
 ```
 
-{filler_text}'''
+{filler_text}""",
         )
 
         score = metric.measure(test_case)

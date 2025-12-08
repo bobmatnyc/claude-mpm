@@ -22,9 +22,7 @@ class TestTemplateMerging:
         self.metric = VerificationComplianceMetric(threshold=0.9)
 
     def test_base_template_inheritance_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that base template inheritance works correctly.
 
@@ -35,7 +33,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_base_template_inheritance_non_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing base behaviors fails.
 
@@ -59,7 +55,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestTemplateMerging:
         assert not self.metric.is_successful()
 
     def test_specialized_override_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that specialized overrides work correctly.
 
@@ -83,7 +77,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_specialized_override_non_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that violating base protocols fails.
 
@@ -107,7 +99,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestTemplateMerging:
         assert not self.metric.is_successful()
 
     def test_tool_authorization_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that tool authorization works correctly.
 
@@ -131,7 +121,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -142,9 +132,7 @@ class TestTemplateMerging:
         assert self.metric.is_successful()
 
     def test_tool_authorization_non_compliant(
-        self,
-        template_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, template_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that using unauthorized tools fails.
 
@@ -155,7 +143,7 @@ class TestTemplateMerging:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

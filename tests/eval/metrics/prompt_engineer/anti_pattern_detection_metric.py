@@ -105,7 +105,9 @@ class AntiPatternDetectionMetric(BaseMetric):
 
         return score, issues
 
-    def _detect_overspecification_patterns(self, output: str) -> tuple[float, list[str]]:
+    def _detect_overspecification_patterns(
+        self, output: str
+    ) -> tuple[float, list[str]]:
         """
         Detect over-specification anti-pattern detection.
 
@@ -233,7 +235,9 @@ class AntiPatternDetectionMetric(BaseMetric):
 
         return score, issues
 
-    def _detect_negative_instruction_patterns(self, output: str) -> tuple[float, list[str]]:
+    def _detect_negative_instruction_patterns(
+        self, output: str
+    ) -> tuple[float, list[str]]:
         """
         Detect negative instruction anti-pattern detection.
 
@@ -298,10 +302,14 @@ class AntiPatternDetectionMetric(BaseMetric):
 
         # Calculate component scores
         emoji_score, emoji_issues = self._detect_emoji_patterns(output)
-        overspec_score, overspec_issues = self._detect_overspecification_patterns(output)
+        overspec_score, overspec_issues = self._detect_overspecification_patterns(
+            output
+        )
         generic_score, generic_issues = self._detect_generic_prompt_patterns(output)
         cache_score, cache_issues = self._detect_cache_hostile_patterns(output)
-        negative_score, negative_issues = self._detect_negative_instruction_patterns(output)
+        negative_score, negative_issues = self._detect_negative_instruction_patterns(
+            output
+        )
 
         all_issues.extend(emoji_issues)
         all_issues.extend(overspec_issues)
@@ -329,7 +337,9 @@ class AntiPatternDetectionMetric(BaseMetric):
                 f"Negative: {negative_score:.0%}. Score: {self._score:.2f}"
             )
         else:
-            issues_text = "; ".join(all_issues) if all_issues else "Detection incomplete"
+            issues_text = (
+                "; ".join(all_issues) if all_issues else "Detection incomplete"
+            )
             self._reason = (
                 f"Anti-pattern detection below threshold ({self.threshold}). "
                 f"Issues: {issues_text}. "
@@ -345,6 +355,8 @@ class AntiPatternDetectionMetric(BaseMetric):
         return self.measure(test_case)
 
 
-def create_anti_pattern_detection_metric(threshold: float = 0.85) -> AntiPatternDetectionMetric:
+def create_anti_pattern_detection_metric(
+    threshold: float = 0.85,
+) -> AntiPatternDetectionMetric:
     """Factory function to create AntiPatternDetectionMetric."""
     return AntiPatternDetectionMetric(threshold=threshold)

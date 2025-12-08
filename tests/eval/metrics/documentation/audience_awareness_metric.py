@@ -72,107 +72,107 @@ class AudienceAwarenessMetric(BaseMetric):
 
     # Audience targeting patterns (35% weight)
     AUDIENCE_STATEMENT_PATTERNS: List[str] = [
-        r'\*\*Audience\*\*:',
-        r'This (?:guide|documentation|doc) is for',
-        r'Intended for',
-        r'Target audience:',
-        r'For (?:developers|engineers|users|administrators)',
-        r'Skill Level:',
+        r"\*\*Audience\*\*:",
+        r"This (?:guide|documentation|doc) is for",
+        r"Intended for",
+        r"Target audience:",
+        r"For (?:developers|engineers|users|administrators)",
+        r"Skill Level:",
     ]
 
     # Technical depth indicators - developer-focused
     DEVELOPER_DEPTH_PATTERNS: List[str] = [
-        r'## Architecture',
-        r'Design Decision',
-        r'Trade-offs?:',
-        r'```(?:typescript|python|go|rust|java|c\+\+)',
-        r'class \w+',
-        r'function \w+',
-        r'interface \w+',
-        r'RFC \d+',
-        r'algorithm:',
-        r'complexity:',
-        r'O\(\w+\)',  # Big-O notation
+        r"## Architecture",
+        r"Design Decision",
+        r"Trade-offs?:",
+        r"```(?:typescript|python|go|rust|java|c\+\+)",
+        r"class \w+",
+        r"function \w+",
+        r"interface \w+",
+        r"RFC \d+",
+        r"algorithm:",
+        r"complexity:",
+        r"O\(\w+\)",  # Big-O notation
     ]
 
     # Technical depth indicators - user-focused
     USER_DEPTH_PATTERNS: List[str] = [
-        r'Step \d+:',
-        r'Click (?:the|on)',
-        r'Navigate to',
-        r'!\[Screenshot\]',
-        r'Select (?:the|from)',
-        r'Choose',
-        r'How to',
-        r'button',
-        r'menu',
-        r'dropdown',
+        r"Step \d+:",
+        r"Click (?:the|on)",
+        r"Navigate to",
+        r"!\[Screenshot\]",
+        r"Select (?:the|from)",
+        r"Choose",
+        r"How to",
+        r"button",
+        r"menu",
+        r"dropdown",
     ]
 
     # Context adaptation - internal references (negative for public docs)
     INTERNAL_CONTEXT_PATTERNS: List[str] = [
-        r'k8s-(?:prod|staging)',
-        r'#oncall-',
-        r'#team-',
-        r'\.internal\b',
-        r'JIRA:',
-        r'Runbook:',
-        r'Slack channel:',
-        r'our team',
-        r'internal tool',
-        r'company\s+(?:wiki|docs)',
-        r'@company\.com',
+        r"k8s-(?:prod|staging)",
+        r"#oncall-",
+        r"#team-",
+        r"\.internal\b",
+        r"JIRA:",
+        r"Runbook:",
+        r"Slack channel:",
+        r"our team",
+        r"internal tool",
+        r"company\s+(?:wiki|docs)",
+        r"@company\.com",
     ]
 
     # Context adaptation - public references (positive for public docs)
     PUBLIC_CONTEXT_PATTERNS: List[str] = [
-        r'Contact (?:support|sales)@',
-        r'https://(?:docs|api|developer)\.example\.com',
-        r'GitHub Issues:',
-        r'community forum',
-        r'Stack Overflow',
-        r'public API',
-        r'open[- ]source',
+        r"Contact (?:support|sales)@",
+        r"https://(?:docs|api|developer)\.example\.com",
+        r"GitHub Issues:",
+        r"community forum",
+        r"Stack Overflow",
+        r"public API",
+        r"open[- ]source",
     ]
 
     # Prerequisite patterns (15% weight)
     PREREQUISITE_PATTERNS: List[str] = [
-        r'\*\*Prerequisites\*\*:',
-        r'## Prerequisites',
-        r'Required Knowledge:',
-        r'You should (?:know|understand|be familiar with)',
-        r'Familiarity with',
-        r'Before you begin',
-        r'Assumes knowledge of',
-        r'This guide assumes',
+        r"\*\*Prerequisites\*\*:",
+        r"## Prerequisites",
+        r"Required Knowledge:",
+        r"You should (?:know|understand|be familiar with)",
+        r"Familiarity with",
+        r"Before you begin",
+        r"Assumes knowledge of",
+        r"This guide assumes",
     ]
 
     PREREQUISITE_LINKS_PATTERNS: List[str] = [
-        r'\[.*\]\(http.*\)',  # Markdown links
-        r'See \[.*\]',
-        r'Learn more:',
-        r'Reference:',
+        r"\[.*\]\(http.*\)",  # Markdown links
+        r"See \[.*\]",
+        r"Learn more:",
+        r"Reference:",
     ]
 
     # Maintenance patterns (bonus +10%)
     VERSION_INFO_PATTERNS: List[str] = [
-        r'\*\*Version\*\*:',
-        r'## Version',
-        r'Last Updated:',
-        r'Updated:',
-        r'Tested with:',
-        r'Since v\d+\.\d+',
-        r'API Version:',
-        r'v\d+\.\d+\.\d+',
+        r"\*\*Version\*\*:",
+        r"## Version",
+        r"Last Updated:",
+        r"Updated:",
+        r"Tested with:",
+        r"Since v\d+\.\d+",
+        r"API Version:",
+        r"v\d+\.\d+\.\d+",
     ]
 
     DEPRECATION_PATTERNS: List[str] = [
-        r'⚠️\s*Deprecated',
-        r'DEPRECATED',
-        r'Removed in v\d+',
-        r'Legacy',
-        r'No longer supported',
-        r'Migration Guide:',
+        r"⚠️\s*Deprecated",
+        r"DEPRECATED",
+        r"Removed in v\d+",
+        r"Legacy",
+        r"No longer supported",
+        r"Migration Guide:",
     ]
 
     def __init__(self, threshold: float = 0.80):
@@ -228,10 +228,10 @@ class AudienceAwarenessMetric(BaseMetric):
 
         # Weighted average (base score)
         base_score = (
-            audience_targeting_score * 0.35 +
-            technical_depth_score * 0.30 +
-            context_adaptation_score * 0.20 +
-            prerequisites_score * 0.15
+            audience_targeting_score * 0.35
+            + technical_depth_score * 0.30
+            + context_adaptation_score * 0.20
+            + prerequisites_score * 0.15
         )
 
         # Add maintenance bonus (up to +10%)
@@ -248,7 +248,7 @@ class AudienceAwarenessMetric(BaseMetric):
             context_adaptation_score,
             prerequisites_score,
             maintenance_bonus,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = capped_score >= (self.threshold - epsilon)
@@ -286,13 +286,15 @@ class AudienceAwarenessMetric(BaseMetric):
 
         # Check for developer indicators
         dev_indicators = sum(
-            1 for pattern in self.DEVELOPER_DEPTH_PATTERNS
+            1
+            for pattern in self.DEVELOPER_DEPTH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
         # Check for user indicators
         user_indicators = sum(
-            1 for pattern in self.USER_DEPTH_PATTERNS
+            1
+            for pattern in self.USER_DEPTH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
@@ -328,23 +330,25 @@ class AudienceAwarenessMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         dev_indicators = sum(
-            1 for pattern in self.DEVELOPER_DEPTH_PATTERNS
+            1
+            for pattern in self.DEVELOPER_DEPTH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
         user_indicators = sum(
-            1 for pattern in self.USER_DEPTH_PATTERNS
+            1
+            for pattern in self.USER_DEPTH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         # Check if audience is explicitly stated
         is_developer_doc = any(
-            re.search(r'(?:developer|engineer|architect)', output, re.IGNORECASE)
+            re.search(r"(?:developer|engineer|architect)", output, re.IGNORECASE)
             for _ in [1]  # Check once
         )
 
         is_user_doc = any(
-            re.search(r'(?:user|end[- ]user|customer)', output, re.IGNORECASE)
+            re.search(r"(?:user|end[- ]user|customer)", output, re.IGNORECASE)
             for _ in [1]
         )
 
@@ -383,12 +387,14 @@ class AudienceAwarenessMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         internal_matches = sum(
-            1 for pattern in self.INTERNAL_CONTEXT_PATTERNS
+            1
+            for pattern in self.INTERNAL_CONTEXT_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         public_matches = sum(
-            1 for pattern in self.PUBLIC_CONTEXT_PATTERNS
+            1
+            for pattern in self.PUBLIC_CONTEXT_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
@@ -407,9 +413,7 @@ class AudienceAwarenessMetric(BaseMetric):
         if internal_matches > 0:
             # Internal doc - check if it's marked as such
             is_marked_internal = re.search(
-                r'(?:internal|private|team-only)',
-                output,
-                re.IGNORECASE
+                r"(?:internal|private|team-only)", output, re.IGNORECASE
             )
             if is_marked_internal:
                 return 1.0  # Correctly marked internal
@@ -435,12 +439,14 @@ class AudienceAwarenessMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         prereq_statements = sum(
-            1 for pattern in self.PREREQUISITE_PATTERNS
+            1
+            for pattern in self.PREREQUISITE_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
         prereq_links = sum(
-            1 for pattern in self.PREREQUISITE_LINKS_PATTERNS
+            1
+            for pattern in self.PREREQUISITE_LINKS_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
@@ -470,12 +476,14 @@ class AudienceAwarenessMetric(BaseMetric):
             Bonus score from 0.0 to 0.10
         """
         version_matches = sum(
-            1 for pattern in self.VERSION_INFO_PATTERNS
+            1
+            for pattern in self.VERSION_INFO_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         deprecation_matches = sum(
-            1 for pattern in self.DEPRECATION_PATTERNS
+            1
+            for pattern in self.DEPRECATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
@@ -498,7 +506,7 @@ class AudienceAwarenessMetric(BaseMetric):
         context_adaptation_score: float,
         prerequisites_score: float,
         maintenance_bonus: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -569,7 +577,9 @@ class AudienceAwarenessMetric(BaseMetric):
         return "; ".join(reasons)
 
 
-def create_audience_awareness_metric(threshold: float = 0.80) -> AudienceAwarenessMetric:
+def create_audience_awareness_metric(
+    threshold: float = 0.80,
+) -> AudienceAwarenessMetric:
     """
     Factory function to create audience awareness metric.
 

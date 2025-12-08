@@ -24,7 +24,7 @@ class TestToolOrchestration:
     def test_parallel_execution_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that parallel tool execution works correctly.
 
@@ -35,7 +35,7 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -48,7 +48,7 @@ class TestToolOrchestration:
     def test_parallel_execution_non_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that sequential execution of independent ops fails.
 
@@ -59,7 +59,7 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -72,7 +72,7 @@ class TestToolOrchestration:
     def test_error_recovery_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that error recovery works correctly.
 
@@ -83,20 +83,19 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
         assert score >= 0.9, (
-            f"Error recovery should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Error recovery should pass, got {score}\n" f"Reason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
     def test_error_recovery_non_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that poor error handling fails.
 
@@ -107,7 +106,7 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -120,7 +119,7 @@ class TestToolOrchestration:
     def test_cascading_workflows_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that cascading workflows work correctly.
 
@@ -131,7 +130,7 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -144,7 +143,7 @@ class TestToolOrchestration:
     def test_cascading_workflows_non_compliant(
         self,
         orchestration_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that incorrect workflow order fails.
 
@@ -155,7 +154,7 @@ class TestToolOrchestration:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

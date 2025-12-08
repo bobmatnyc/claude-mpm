@@ -55,67 +55,67 @@ class MemoryEfficiencyMetric(BaseMetric):
 
     # File size check patterns
     SIZE_CHECK_PATTERNS: List[str] = [
-        r'file\s+size\s*[:\-]?\s*\d+',
-        r'(\d+)\s*(KB|MB|bytes)',
-        r'checking\s+size',
-        r'size\s+check',
-        r'file\s+is\s+\d+',
-        r'(\d+)\s*KB\s+file',
-        r'large\s+file.*\d+\s*KB'
+        r"file\s+size\s*[:\-]?\s*\d+",
+        r"(\d+)\s*(KB|MB|bytes)",
+        r"checking\s+size",
+        r"size\s+check",
+        r"file\s+is\s+\d+",
+        r"(\d+)\s*KB\s+file",
+        r"large\s+file.*\d+\s*KB",
     ]
 
     # Summarizer usage patterns
     SUMMARIZER_PATTERNS: List[str] = [
-        r'document_summarizer',
-        r'summariz(?:e|ing|ed)',
-        r'summary\s+of\s+file',
-        r'using\s+summarizer',
-        r'summarization\s+tool'
+        r"document_summarizer",
+        r"summariz(?:e|ing|ed)",
+        r"summary\s+of\s+file",
+        r"using\s+summarizer",
+        r"summarization\s+tool",
     ]
 
     # File read detection (Read tool usage)
     # Matches patterns like "Reading auth.py", "read config.py", "Read `validators.py`"
-    FILE_READ_PATTERN = r'(?:Read|read|reading)\s+[`\']?([a-zA-Z0-9_/\-\.]+\.[a-z]+)'
+    FILE_READ_PATTERN = r"(?:Read|read|reading)\s+[`\']?([a-zA-Z0-9_/\-\.]+\.[a-z]+)"
 
     # Strategic sampling patterns
     SAMPLING_PATTERNS: List[str] = [
-        r'lines?\s+(\d+)\s*[-–to]+\s*(\d+)',
-        r'sampling',
-        r'excerpt',
-        r'first\s+\d+\s+lines',
-        r'last\s+\d+\s+lines',
-        r'lines?\s+\d+\s*-\s*\d+',
-        r'reading\s+\d+\s+lines',
-        r'100[-\s]200\s+line'
+        r"lines?\s+(\d+)\s*[-–to]+\s*(\d+)",
+        r"sampling",
+        r"excerpt",
+        r"first\s+\d+\s+lines",
+        r"last\s+\d+\s+lines",
+        r"lines?\s+\d+\s*-\s*\d+",
+        r"reading\s+\d+\s+lines",
+        r"100[-\s]200\s+line",
     ]
 
     # Brute force anti-patterns
     # These indicate exhaustive, inefficient searches
     BRUTE_FORCE_PATTERNS: List[str] = [
-        r'\bread(?:ing)?\s+all\s+files\b',
-        r'\bscan(?:ning)?\s+entire\s+codebase\b',
-        r'\bcheck(?:ing)?\s+every\s+file\b',
-        r'\bexhaustive\s+search\b',
-        r'\bscan(?:ning)?\s+all\s+files\b',
-        r'\biterat(?:e|ing)\s+through\s+all\b'
+        r"\bread(?:ing)?\s+all\s+files\b",
+        r"\bscan(?:ning)?\s+entire\s+codebase\b",
+        r"\bcheck(?:ing)?\s+every\s+file\b",
+        r"\bexhaustive\s+search\b",
+        r"\bscan(?:ning)?\s+all\s+files\b",
+        r"\biterat(?:e|ing)\s+through\s+all\b",
     ]
 
     # Negation patterns (good - these AVOID brute force)
     BRUTE_FORCE_NEGATIONS: List[str] = [
-        r'\bavoid(?:s|ing)?\s+.*(?:all\s+files|entire\s+codebase|every\s+file)',
-        r'\bwithout\s+.*(?:all\s+files|entire\s+codebase|every\s+file)',
-        r'\bnot\s+.*(?:all\s+files|entire\s+codebase|every\s+file)'
+        r"\bavoid(?:s|ing)?\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
+        r"\bwithout\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
+        r"\bnot\s+.*(?:all\s+files|entire\s+codebase|every\s+file)",
     ]
 
     # Targeted discovery patterns (positive indicators)
     TARGETED_DISCOVERY_PATTERNS: List[str] = [
-        r'grep',
-        r'glob',
-        r'search\s+for',
-        r'find\s+files',
-        r'locate',
-        r'filter',
-        r'pattern\s+match'
+        r"grep",
+        r"glob",
+        r"search\s+for",
+        r"find\s+files",
+        r"locate",
+        r"filter",
+        r"pattern\s+match",
     ]
 
     # Large file threshold (in KB)
@@ -182,11 +182,11 @@ class MemoryEfficiencyMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            size_check_score * 0.25 +
-            summarizer_score * 0.25 +
-            file_limit_score * 0.20 +
-            sampling_score * 0.20 +
-            brute_force_score * 0.10
+            size_check_score * 0.25
+            + summarizer_score * 0.25
+            + file_limit_score * 0.20
+            + sampling_score * 0.20
+            + brute_force_score * 0.10
         )
 
         # Store results
@@ -197,7 +197,7 @@ class MemoryEfficiencyMetric(BaseMetric):
             file_limit_score,
             sampling_score,
             brute_force_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -273,17 +273,14 @@ class MemoryEfficiencyMetric(BaseMetric):
         )
 
         # Check for large file mentions
-        large_file_pattern = r'(\d+)\s*(KB|MB)'
+        large_file_pattern = r"(\d+)\s*(KB|MB)"
         large_file_matches = re.findall(large_file_pattern, output, re.IGNORECASE)
 
         has_large_files = any(
             int(size) >= self.LARGE_FILE_THRESHOLD
             for size, unit in large_file_matches
-            if unit.upper() == 'KB'
-        ) or any(
-            unit.upper() == 'MB'
-            for _, unit in large_file_matches
-        )
+            if unit.upper() == "KB"
+        ) or any(unit.upper() == "MB" for _, unit in large_file_matches)
 
         # Scoring logic
         if has_summarizer and has_large_files:
@@ -358,7 +355,7 @@ class MemoryEfficiencyMetric(BaseMetric):
         )
 
         # Check for line range patterns
-        line_range_pattern = r'lines?\s+(\d+)\s*[-–to]+\s*(\d+)'
+        line_range_pattern = r"lines?\s+(\d+)\s*[-–to]+\s*(\d+)"
         line_ranges = re.findall(line_range_pattern, output, re.IGNORECASE)
 
         # Calculate sample sizes
@@ -445,7 +442,7 @@ class MemoryEfficiencyMetric(BaseMetric):
         file_limit_score: float,
         sampling_score: float,
         brute_force_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -473,12 +470,10 @@ class MemoryEfficiencyMetric(BaseMetric):
 
         # Summarizer usage issues
         if summarizer_score < 0.7:
-            large_file_pattern = r'(\d+)\s*(KB|MB)'
+            large_file_pattern = r"(\d+)\s*(KB|MB)"
             large_file_matches = re.findall(large_file_pattern, output, re.IGNORECASE)
             if large_file_matches:
-                reasons.append(
-                    "Large files detected but no summarizer usage found"
-                )
+                reasons.append("Large files detected but no summarizer usage found")
 
         # File limit issues
         file_reads = re.findall(self.FILE_READ_PATTERN, output, re.IGNORECASE)
@@ -497,7 +492,8 @@ class MemoryEfficiencyMetric(BaseMetric):
         # Brute force issues
         if brute_force_score < 0.5:
             brute_force_matches = [
-                pattern for pattern in self.BRUTE_FORCE_PATTERNS
+                pattern
+                for pattern in self.BRUTE_FORCE_PATTERNS
                 if re.search(pattern, output, re.IGNORECASE)
             ]
             if brute_force_matches:

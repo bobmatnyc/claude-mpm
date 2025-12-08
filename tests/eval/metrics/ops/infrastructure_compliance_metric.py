@@ -59,74 +59,74 @@ class InfrastructureComplianceMetric(BaseMetric):
 
     # Docker best practices patterns
     DOCKER_PATTERNS: List[str] = [
-        r'FROM\s+[\w/-]+:[\d\.]+-[\w]+',  # Specific tag (not latest)
-        r'FROM\s+node:20\.[\d]+-alpine',   # Example specific tag
-        r'FROM.*AS\s+\w+',                # Multi-stage build
-        r'USER\s+(?!root)\w+',            # Non-root user
-        r'HEALTHCHECK',                   # Health check
-        r'\.dockerignore',                # .dockerignore file
-        r'multi-stage\s+build',           # Multi-stage build mention
-        r'non-root\s+user',               # Non-root user mention
-        r'specific.*tag',                 # Specific tag mention
-        r'not.*latest'                    # Avoid latest tag
+        r"FROM\s+[\w/-]+:[\d\.]+-[\w]+",  # Specific tag (not latest)
+        r"FROM\s+node:20\.[\d]+-alpine",  # Example specific tag
+        r"FROM.*AS\s+\w+",  # Multi-stage build
+        r"USER\s+(?!root)\w+",  # Non-root user
+        r"HEALTHCHECK",  # Health check
+        r"\.dockerignore",  # .dockerignore file
+        r"multi-stage\s+build",  # Multi-stage build mention
+        r"non-root\s+user",  # Non-root user mention
+        r"specific.*tag",  # Specific tag mention
+        r"not.*latest",  # Avoid latest tag
     ]
 
     # Kubernetes best practices patterns
     K8S_PATTERNS: List[str] = [
-        r'resources:\s*\n\s*(?:limits|requests)',
-        r'resource\s+limit',
-        r'livenessProbe:',
-        r'readinessProbe:',
-        r'liveness.*probe',
-        r'readiness.*probe',
-        r'securityContext:.*runAsNonRoot',
-        r'security\s+context',
-        r'secretKeyRef:',
-        r'rolling\s+update',
-        r'Pod\s+Disruption\s+Budget'
+        r"resources:\s*\n\s*(?:limits|requests)",
+        r"resource\s+limit",
+        r"livenessProbe:",
+        r"readinessProbe:",
+        r"liveness.*probe",
+        r"readiness.*probe",
+        r"securityContext:.*runAsNonRoot",
+        r"security\s+context",
+        r"secretKeyRef:",
+        r"rolling\s+update",
+        r"Pod\s+Disruption\s+Budget",
     ]
 
     # CI/CD pipeline patterns
     CICD_PATTERNS: List[str] = [
-        r'(?:npm test|pytest|cargo test)',
-        r'automated\s+test',
-        r'(?:CodeQL|Snyk|Trivy)',
-        r'security\s+scan',
-        r'(?:npm audit|safety check)',
-        r'vulnerability\s+check',
-        r'(?:environment|approval)',
-        r'manual\s+approval',
-        r'rollback.*on.*fail',
-        r'automated\s+rollback',
-        r'GitHub\s+Actions|Jenkins|GitLab\s+CI'
+        r"(?:npm test|pytest|cargo test)",
+        r"automated\s+test",
+        r"(?:CodeQL|Snyk|Trivy)",
+        r"security\s+scan",
+        r"(?:npm audit|safety check)",
+        r"vulnerability\s+check",
+        r"(?:environment|approval)",
+        r"manual\s+approval",
+        r"rollback.*on.*fail",
+        r"automated\s+rollback",
+        r"GitHub\s+Actions|Jenkins|GitLab\s+CI",
     ]
 
     # Secrets management patterns
     SECRETS_PATTERNS: List[str] = [
-        r'(?:aws-secretsmanager|vault|secrets-manager)',
-        r'secret\s+manager',
-        r'git\s+secrets\s+--scan',
-        r'no.*secrets?.*(?:in|commit)',
-        r'rotation\s+(?:policy|interval)',
-        r'secret\s+rotation',
-        r'(?:environment|env).*(?:variable|var)',
-        r'not.*commit.*secret',
-        r'encrypted',
-        r'AWS\s+Secrets\s+Manager|HashiCorp\s+Vault'
+        r"(?:aws-secretsmanager|vault|secrets-manager)",
+        r"secret\s+manager",
+        r"git\s+secrets\s+--scan",
+        r"no.*secrets?.*(?:in|commit)",
+        r"rotation\s+(?:policy|interval)",
+        r"secret\s+rotation",
+        r"(?:environment|env).*(?:variable|var)",
+        r"not.*commit.*secret",
+        r"encrypted",
+        r"AWS\s+Secrets\s+Manager|HashiCorp\s+Vault",
     ]
 
     # Security scanning patterns
     SECURITY_SCAN_PATTERNS: List[str] = [
-        r'(?:npm audit|safety|snyk test)',
-        r'dependency\s+scan',
-        r'(?:trivy|grype|clair)',
-        r'image\s+scan',
-        r'(?:critical|high).*vulnerabilit',
-        r'vulnerability\s+report',
-        r'(?:fix|upgrade|update).*(?:to|version)',
-        r'remediation',
-        r'CVE-\d{4}-\d{4,}',
-        r'security\s+(?:findings|issues)'
+        r"(?:npm audit|safety|snyk test)",
+        r"dependency\s+scan",
+        r"(?:trivy|grype|clair)",
+        r"image\s+scan",
+        r"(?:critical|high).*vulnerabilit",
+        r"vulnerability\s+report",
+        r"(?:fix|upgrade|update).*(?:to|version)",
+        r"remediation",
+        r"CVE-\d{4}-\d{4,}",
+        r"security\s+(?:findings|issues)",
     ]
 
     def __init__(self, threshold: float = 0.85):
@@ -182,11 +182,11 @@ class InfrastructureComplianceMetric(BaseMetric):
 
         # Weighted average (equal weights)
         final_score = (
-            docker_score * 0.20 +
-            k8s_score * 0.20 +
-            cicd_score * 0.20 +
-            secrets_score * 0.20 +
-            security_scan_score * 0.20
+            docker_score * 0.20
+            + k8s_score * 0.20
+            + cicd_score * 0.20
+            + secrets_score * 0.20
+            + security_scan_score * 0.20
         )
 
         # Store results
@@ -197,7 +197,7 @@ class InfrastructureComplianceMetric(BaseMetric):
             cicd_score,
             secrets_score,
             security_scan_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -230,7 +230,8 @@ class InfrastructureComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         docker_matches = [
-            pattern for pattern in self.DOCKER_PATTERNS
+            pattern
+            for pattern in self.DOCKER_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         ]
 
@@ -270,7 +271,8 @@ class InfrastructureComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         k8s_matches = [
-            pattern for pattern in self.K8S_PATTERNS
+            pattern
+            for pattern in self.K8S_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         ]
 
@@ -310,7 +312,8 @@ class InfrastructureComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         cicd_matches = [
-            pattern for pattern in self.CICD_PATTERNS
+            pattern
+            for pattern in self.CICD_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -349,7 +352,8 @@ class InfrastructureComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         secrets_matches = [
-            pattern for pattern in self.SECRETS_PATTERNS
+            pattern
+            for pattern in self.SECRETS_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -385,7 +389,8 @@ class InfrastructureComplianceMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         security_matches = [
-            pattern for pattern in self.SECURITY_SCAN_PATTERNS
+            pattern
+            for pattern in self.SECURITY_SCAN_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -415,7 +420,7 @@ class InfrastructureComplianceMetric(BaseMetric):
         cicd_score: float,
         secrets_score: float,
         security_scan_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -470,7 +475,9 @@ class InfrastructureComplianceMetric(BaseMetric):
         return "; ".join(reasons)
 
 
-def create_infrastructure_compliance_metric(threshold: float = 0.85) -> InfrastructureComplianceMetric:
+def create_infrastructure_compliance_metric(
+    threshold: float = 0.85,
+) -> InfrastructureComplianceMetric:
     """
     Factory function to create infrastructure compliance metric.
 

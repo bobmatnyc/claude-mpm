@@ -22,9 +22,7 @@ class TestMemoryProtocol:
         self.metric = MemoryEfficiencyMetric(threshold=0.9)
 
     def test_file_size_check_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant file size checking scores high.
 
@@ -35,7 +33,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_file_size_check_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing file size check fails.
 
@@ -59,7 +55,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_summarizer_usage_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that document summarizer usage scores high.
 
@@ -83,7 +77,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_summarizer_usage_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing summarizer usage fails.
 
@@ -107,7 +99,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_file_read_limit_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that 3-5 file limit compliance scores high.
 
@@ -131,7 +121,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -141,9 +131,7 @@ class TestMemoryProtocol:
         )
 
     def test_file_read_limit_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that excessive file reads fail.
 
@@ -154,7 +142,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -164,9 +152,7 @@ class TestMemoryProtocol:
         )
 
     def test_line_sampling_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that strategic line sampling scores high.
 
@@ -177,19 +163,16 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Line sampling should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Line sampling should pass, got {score}\n" f"Reason: {self.metric.reason}"
         )
 
     def test_line_sampling_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that full file reads fail.
 
@@ -200,7 +183,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -210,9 +193,7 @@ class TestMemoryProtocol:
         )
 
     def test_no_full_codebase_reads_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that discovery-based approach scores high.
 
@@ -223,7 +204,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -234,9 +215,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_no_full_codebase_reads_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that brute force reads fail.
 
@@ -247,7 +226,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -258,9 +237,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_strategic_sampling_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that strategic sampling scores high.
 
@@ -271,7 +248,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -282,9 +259,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_strategic_sampling_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that exhaustive analysis fails.
 
@@ -295,7 +270,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

@@ -348,8 +348,7 @@ class TestScenarioFileIntegrity:
             f"got {all_scenarios['total_scenarios']}"
         )
         assert len(all_scenarios["scenarios"]) == 12, (
-            f"Expected 12 scenarios in list, "
-            f"got {len(all_scenarios['scenarios'])}"
+            f"Expected 12 scenarios in list, " f"got {len(all_scenarios['scenarios'])}"
         )
 
     def test_category_counts(self, all_scenarios: Dict[str, Any]):
@@ -389,24 +388,22 @@ class TestScenarioFileIntegrity:
 
             # Check required fields
             missing_fields = required_fields - set(scenario.keys())
-            assert not missing_fields, (
-                f"Scenario {scenario_id} missing fields: {missing_fields}"
-            )
+            assert (
+                not missing_fields
+            ), f"Scenario {scenario_id} missing fields: {missing_fields}"
 
             # Check mock_response has both compliant and non_compliant
-            assert "compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing compliant mock response"
-            )
-            assert "non_compliant" in scenario["mock_response"], (
-                f"Scenario {scenario_id} missing non_compliant mock response"
-            )
+            assert (
+                "compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing compliant mock response"
+            assert (
+                "non_compliant" in scenario["mock_response"]
+            ), f"Scenario {scenario_id} missing non_compliant mock response"
 
     def test_scenario_ids_unique(self, all_scenarios: Dict[str, Any]):
         """Verify scenario IDs are unique."""
         scenario_ids = [s["scenario_id"] for s in all_scenarios["scenarios"]]
-        duplicates = [
-            sid for sid in scenario_ids if scenario_ids.count(sid) > 1
-        ]
+        duplicates = [sid for sid in scenario_ids if scenario_ids.count(sid) > 1]
 
         assert not duplicates, f"Duplicate scenario IDs found: {set(duplicates)}"
 
@@ -426,9 +423,9 @@ class TestScenarioFileIntegrity:
 
             # Check metric names are valid
             for metric_name in metrics:
-                assert metric_name in valid_metrics, (
-                    f"Scenario {scenario_id} references invalid metric: {metric_name}"
-                )
+                assert (
+                    metric_name in valid_metrics
+                ), f"Scenario {scenario_id} references invalid metric: {metric_name}"
 
 
 # ============================================================================
@@ -656,7 +653,7 @@ curl -X POST https://api.example.com/v2/auth/refresh \\
 
         test_case = LLMTestCase(
             input="Create comprehensive authentication documentation with clarity best practices",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Clarity workflow threshold (0.85 - comprehensive compliance)
@@ -879,7 +876,7 @@ class WebSocketConnectionPool {
 
         test_case = LLMTestCase(
             input="Document WebSocket architecture for senior engineers with full technical depth",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Audience workflow threshold (0.80)
@@ -1154,7 +1151,7 @@ curl -X POST https://api.example.com/auth/login \\
 
         test_case = LLMTestCase(
             input="Update authentication documentation after breaking API change from /auth/login to /v2/auth/login",
-            actual_output=workflow_response
+            actual_output=workflow_response,
         )
 
         # Test with both metrics

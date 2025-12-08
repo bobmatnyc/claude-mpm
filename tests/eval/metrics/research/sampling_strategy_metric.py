@@ -67,56 +67,56 @@ class SamplingStrategyMetric(BaseMetric):
 
     # Discovery tool patterns (30% weight)
     DISCOVERY_PATTERNS = [
-        r'\b(?:grep|Grep)\b',
-        r'\b(?:glob|Glob)\b',
-        r'search(?:ing|ed)?\s+for',
-        r'find(?:ing)?\s+files',
-        r'discover(?:ing|ed)?',
-        r'scan(?:ning|ned)?',
+        r"\b(?:grep|Grep)\b",
+        r"\b(?:glob|Glob)\b",
+        r"search(?:ing|ed)?\s+for",
+        r"find(?:ing)?\s+files",
+        r"discover(?:ing|ed)?",
+        r"scan(?:ning|ned)?",
     ]
 
     # Pattern extraction indicators (25% weight)
     PATTERN_EXTRACTION = [
-        r'pattern\s*(?:s|:)',
-        r'structure',
-        r'architecture',
-        r'design\s+pattern',
-        r'identified\s+(?:the\s+)?(?:following|patterns)',
-        r'key\s+(?:patterns|structures)',
-        r'common\s+(?:pattern|approach)',
+        r"pattern\s*(?:s|:)",
+        r"structure",
+        r"architecture",
+        r"design\s+pattern",
+        r"identified\s+(?:the\s+)?(?:following|patterns)",
+        r"key\s+(?:patterns|structures)",
+        r"common\s+(?:pattern|approach)",
     ]
 
     # Strategic sampling indicators (25% weight)
     STRATEGIC_PATTERNS = [
-        r'representative\s+sample',
-        r'key\s+(?:files|examples)',
-        r'strategic(?:ally)?',
-        r'focused\s+on',
-        r'selected\s+(?:files|examples)',
-        r'sample\s+(?:files|from)',
-        r'example\s+(?:files|implementation)',
+        r"representative\s+sample",
+        r"key\s+(?:files|examples)",
+        r"strategic(?:ally)?",
+        r"focused\s+on",
+        r"selected\s+(?:files|examples)",
+        r"sample\s+(?:files|from)",
+        r"example\s+(?:files|implementation)",
     ]
 
     # Executive summary indicators (20% weight)
     SUMMARY_PATTERNS = [
-        r'(?:executive\s+)?summary',
-        r'overview',
-        r'key\s+findings',
-        r'conclusion',
-        r'in\s+summary',
-        r'to\s+summarize',
-        r'overall',
-        r'high-level',
+        r"(?:executive\s+)?summary",
+        r"overview",
+        r"key\s+findings",
+        r"conclusion",
+        r"in\s+summary",
+        r"to\s+summarize",
+        r"overall",
+        r"high-level",
     ]
 
     # Anti-patterns (negative signals)
     ANTI_PATTERNS = [
-        r'reading\s+all',
-        r'exhaustive',
-        r'every\s+single',
-        r'complete\s+list\s+of\s+all',
-        r'processed\s+all\s+files',
-        r'read\s+(?:all|every)',
+        r"reading\s+all",
+        r"exhaustive",
+        r"every\s+single",
+        r"complete\s+list\s+of\s+all",
+        r"processed\s+all\s+files",
+        r"read\s+(?:all|every)",
     ]
 
     def __init__(self, threshold: float = 0.85):
@@ -172,10 +172,10 @@ class SamplingStrategyMetric(BaseMetric):
 
         # Weighted average with anti-pattern penalty
         base_score = (
-            discovery_score * 0.30 +
-            pattern_score * 0.25 +
-            sampling_score * 0.25 +
-            summary_score * 0.20
+            discovery_score * 0.30
+            + pattern_score * 0.25
+            + sampling_score * 0.25
+            + summary_score * 0.20
         )
 
         # Apply penalty (reduce by up to 50% if anti-patterns detected)
@@ -188,7 +188,7 @@ class SamplingStrategyMetric(BaseMetric):
             pattern_score,
             sampling_score,
             summary_score,
-            anti_pattern_penalty
+            anti_pattern_penalty,
         )
 
         epsilon = 1e-9
@@ -341,7 +341,7 @@ class SamplingStrategyMetric(BaseMetric):
         pattern_score: float,
         sampling_score: float,
         summary_score: float,
-        anti_pattern_penalty: float
+        anti_pattern_penalty: float,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -367,13 +367,17 @@ class SamplingStrategyMetric(BaseMetric):
 
         if pattern_score < 1.0:
             if pattern_score == 0.0:
-                reasons.append("No pattern extraction detected (missing structure/architecture analysis)")
+                reasons.append(
+                    "No pattern extraction detected (missing structure/architecture analysis)"
+                )
             else:
                 reasons.append("Limited pattern extraction (expected 2+ indicators)")
 
         if sampling_score < 1.0:
             if sampling_score == 0.0:
-                reasons.append("No strategic sampling detected (missing representative samples)")
+                reasons.append(
+                    "No strategic sampling detected (missing representative samples)"
+                )
             else:
                 reasons.append("Limited strategic sampling (expected 2+ indicators)")
 

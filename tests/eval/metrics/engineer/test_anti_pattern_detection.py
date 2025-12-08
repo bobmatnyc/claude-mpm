@@ -42,7 +42,7 @@ def fetch_user_data(user_id: int) -> UserData:
 
 # Configuration defaults (documented)
 API_TIMEOUT = int(os.getenv("API_TIMEOUT", "30"))  # Default: 30 seconds
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -72,7 +72,7 @@ def test_user_login():
     }
     result = authenticate(mock_user)
     assert result.is_authenticated
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -100,7 +100,7 @@ def get_api_credentials():
 def authenticate_user(user_id):
     mock_token = "placeholder_token_abc"
     return {"token": mock_token, "user_id": user_id}
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -130,7 +130,7 @@ def process_item(item):
         return result
     except Exception:
         pass  # Swallowing errors silently
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -158,13 +158,15 @@ def process_payment(payment_data):
     except ValidationError as e:
         logger.exception(f"Invalid payment data: {e}")
         raise
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score well: explicit error propagation
-        assert score >= 0.7, f"Expected score >= 0.7 with error propagation, got {score}"
+        assert (
+            score >= 0.7
+        ), f"Expected score >= 0.7 with error propagation, got {score}"
 
     def test_acceptable_fallback_justification(self):
         """Test acceptable fallback patterns."""
@@ -184,13 +186,15 @@ def get_avatar(user_id):
     except CDNError as e:
         logger.warning(f"CDN unavailable for user {user_id}, using default: {e}")
         return "/static/default_avatar.png"  # Documented fallback
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score well: acceptable justified fallbacks
-        assert score >= 0.8, f"Expected score >= 0.8 with justified fallbacks, got {score}"
+        assert (
+            score >= 0.8
+        ), f"Expected score >= 0.8 with justified fallbacks, got {score}"
 
     def test_no_error_handling_neutral(self):
         """Test neutral score when no error handling present."""
@@ -206,7 +210,7 @@ def calculate_total(items):
 def format_name(first, last):
     '''Format user name.'''
     return f"{first} {last}".strip()
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -228,7 +232,7 @@ def fetch_config():
     except FileNotFoundError as e:
         logger.error(f"Config file not found: {e}")
         return {}  # Return empty config
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -261,14 +265,16 @@ def func3():
         third_operation()
     except:
         return {}
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score very poorly: multiple silent failures
         # Actual: 0.62 (3+ silent fallbacks gets 0.0*0.30, but other components score neutrally)
-        assert score < 0.7, f"Expected score < 0.7 for multiple silent fallbacks, got {score}"
+        assert (
+            score < 0.7
+        ), f"Expected score < 0.7 for multiple silent fallbacks, got {score}"
 
     def test_threshold_enforcement(self):
         """Test threshold pass/fail logic."""
@@ -283,7 +289,7 @@ def fetch_data(url):
     except RequestException as e:
         logger.error(f"Request failed: {e}")
         raise APIError("Fetch failed") from e
-"""
+""",
         )
         score_pass = metric_pass.measure(test_case_pass)
         assert metric_pass.is_successful() or score_pass >= 0.85
@@ -295,7 +301,7 @@ def fetch_data(url):
             actual_output="""
 def get_api_key():
     return "mock_key_12345"  # Anti-pattern!
-"""
+""",
         )
         score_fail = metric_fail.measure(test_case_fail)
         assert not metric_fail.is_successful()
@@ -316,10 +322,7 @@ class TestAntiPatternEdgeCases:
         """Test metric with empty output."""
         metric = AntiPatternDetectionMetric(threshold=0.9)
 
-        test_case = LLMTestCase(
-            input="Test",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Test", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -339,7 +342,7 @@ def cleanup():
         remove_temp_files()
     except FileNotFoundError:
         pass  # OK if files already removed
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -369,7 +372,7 @@ def fetch_profile(user_id):
         return api.get_profile(user_id)
     except:
         return None  # Silent failure
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -393,7 +396,7 @@ async function fetchData(url) {
         throw new APIError("Failed to fetch data");
     }
 }
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -420,7 +423,7 @@ class Config:
 
     if not SECRET_KEY:
         raise ConfigurationError("SECRET_KEY environment variable required")
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -452,13 +455,15 @@ def authenticate(username, password):
         return False  # Silent failure
 
     return True
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score very poorly: multiple anti-patterns
-        assert score < 0.5, f"Expected score < 0.5 for multiple anti-patterns, got {score}"
+        assert (
+            score < 0.5
+        ), f"Expected score < 0.5 for multiple anti-patterns, got {score}"
         assert not metric.is_successful()
 
 

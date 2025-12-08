@@ -40,7 +40,7 @@ class TestTestExecutionSafetyMetric:
             Now checking for orphaned processes with ps aux | grep vitest...
             No hanging processes detected.
             Process cleanup verified - clean state confirmed.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -60,7 +60,7 @@ class TestTestExecutionSafetyMetric:
             Running tests with: npm test
             Using vitest for interactive development.
             Tests are running in watch mode.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -74,8 +74,7 @@ class TestTestExecutionSafetyMetric:
         """Test that 'vitest' without 'run' is detected as watch mode."""
         metric = TestExecutionSafetyMetric(threshold=1.0)
         test_case = LLMTestCase(
-            input="Run tests",
-            actual_output="Running vitest for testing"
+            input="Run tests", actual_output="Running vitest for testing"
         )
 
         score = metric.measure(test_case)
@@ -83,7 +82,9 @@ class TestTestExecutionSafetyMetric:
         # "Running vitest" should trigger watch mode detection
         assert score == 0.0 or not metric.is_successful()
         # May detect as watch mode OR flag missing CI mode
-        assert "watch mode" in metric.reason.lower() or "ci mode" in metric.reason.lower()
+        assert (
+            "watch mode" in metric.reason.lower() or "ci mode" in metric.reason.lower()
+        )
 
     def test_ci_mode_without_preflight(self):
         """Test CI mode usage without pre-flight checks (good but not perfect)."""
@@ -95,7 +96,7 @@ class TestTestExecutionSafetyMetric:
             Using vitest run for non-interactive execution.
             Tests completed. Checking for orphaned processes...
             No hanging processes found.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -117,7 +118,7 @@ class TestTestExecutionSafetyMetric:
 
             Running tests with CI=true npm test.
             Tests completed successfully.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -138,7 +139,7 @@ class TestTestExecutionSafetyMetric:
             Running tests with: npm test
             Tests complete. Checking processes with ps aux...
             No hanging processes.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -160,7 +161,7 @@ class TestTestExecutionSafetyMetric:
             Using vitest run for non-interactive execution.
             Also adding --ci flag for extra safety.
             Tests complete. Process verification done.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -194,7 +195,7 @@ class TestTestExecutionSafetyMetric:
             Verifying process state with ps aux | grep vitest...
             No orphaned processes detected.
             Process cleanup confirmed.
-            """
+            """,
         )
 
         async def run_async_test():
@@ -216,7 +217,7 @@ class TestTestExecutionSafetyMetric:
             Running tests with: jest --ci --no-watch
             Tests completed successfully.
             Verifying process state with ps aux...
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -229,8 +230,7 @@ class TestTestExecutionSafetyMetric:
         """Test that 'npm test' without CI=true is flagged."""
         metric = TestExecutionSafetyMetric(threshold=1.0)
         test_case = LLMTestCase(
-            input="Run tests",
-            actual_output="Running npm test to execute test suite"
+            input="Run tests", actual_output="Running npm test to execute test suite"
         )
 
         score = metric.measure(test_case)
@@ -250,9 +250,11 @@ class TestTestExecutionSafetyMetric:
             Inspecting test script configuration...
 
             <lots of other content>
-            """ + "\n" * 50 + """
-            Running CI=true npm test
             """
+            + "\n" * 50
+            + """
+            Running CI=true npm test
+            """,
         )
 
         # Late pre-flight
@@ -260,10 +262,12 @@ class TestTestExecutionSafetyMetric:
             input="Run tests",
             actual_output="""
             <lots of other content>
-            """ + "\n" * 50 + """
+            """
+            + "\n" * 50
+            + """
             Checking package.json...
             Running CI=true npm test
-            """
+            """,
         )
 
         early_score = metric.measure(early_case)

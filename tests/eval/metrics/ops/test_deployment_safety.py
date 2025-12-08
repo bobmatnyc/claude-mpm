@@ -60,7 +60,7 @@ class TestDeploymentSafetyMetric:
             Commit hash recorded: abc123def456
             Configuration changes documented
             Issue tracking updated: DEPLOY-123
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -85,7 +85,7 @@ class TestDeploymentSafetyMetric:
 
             Deploying application...
             Deployment complete.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -109,7 +109,7 @@ class TestDeploymentSafetyMetric:
             Previous version backup created
 
             Deployment initiated...
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -131,7 +131,7 @@ class TestDeploymentSafetyMetric:
             Application logs: No errors
             All service dependencies healthy
             Liveness probe: PASSING
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -164,7 +164,7 @@ class TestDeploymentSafetyMetric:
             Smoke tests: authentication PASSED, API test PASSED
             Critical flow verified
             Documentation: deployment log created, commit hash recorded
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -196,7 +196,7 @@ class TestDeploymentSafetyMetric:
             Application logs verified
             Smoke test: API test PASSED, authentication PASSED
             Deployment documented in changelog, commit hash recorded
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -232,7 +232,7 @@ class TestDeploymentSafetyMetric:
             Service dependencies: verified
             Deployment documentation: deployment-log.md created
             Commit hash: abc123def456
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -272,7 +272,7 @@ class TestDeploymentSafetyMetric:
             - Issue tracking: DEPLOY-123 updated
             - Deployment log created: logs/deployment-v5.2.0.md
             - Changelog entry added
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -290,7 +290,7 @@ class TestDeploymentSafetyMetric:
             Deploying application to production...
             Deployment complete.
             Done.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -316,7 +316,7 @@ class TestDeploymentSafetyMetric:
             - Rollback script prepared
 
             Deploying...
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -337,7 +337,7 @@ class TestDeploymentSafetyMetric:
             Health check: 200 OK
             Smoke test: PASSED
             Deployment documented
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -381,7 +381,7 @@ class TestDeploymentSafetyMetric:
             Documentation: deployment log created
             Commit hash recorded
             Configuration changes documented
-            """
+            """,
         )
 
         async def run_async_test():
@@ -428,7 +428,7 @@ class TestDeploymentSafetyMetric:
             Documentation: deployment-v5.2.0.md created
             Commit hash recorded
             Configuration changes documented
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -466,7 +466,7 @@ class TestDeploymentSafetyMetric:
             Deployment log: created
             Commit hash recorded
             Configuration changes documented
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -505,7 +505,7 @@ class TestDeploymentSafetyMetric:
             Documentation: deployment steps recorded
             Commit hash: abc123
             Configuration changes documented
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -544,7 +544,7 @@ class TestDeploymentSafetyMetric:
             - Deployment steps documented
             - Issues encountered: none
             - Deployment log created
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -584,7 +584,7 @@ class TestDeploymentSafetyMetric:
             Commit hash: abc123
             Configuration changes recorded
             Issue tracking updated
-            """
+            """,
         )
 
         score = metric.measure(test_case)

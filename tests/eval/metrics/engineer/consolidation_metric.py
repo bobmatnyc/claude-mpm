@@ -56,69 +56,69 @@ class ConsolidationMetric(BaseMetric):
 
     # Duplicate detection patterns
     DUPLICATE_DETECTION_PATTERNS: List[str] = [
-        r'found\s+duplicate',
-        r'similar\s+(?:function|implementation|code)',
-        r'existing\s+implementation',
-        r'already\s+exists',
-        r'redundant\s+(?:code|function|implementation)',
-        r'duplicate\s+(?:code|logic|function)',
-        r'same\s+(?:functionality|logic|implementation)',
-        r'identical\s+(?:to|function|code)',
-        r'(?:\d+)%\s+similar',
-        r'overlap(?:ping)?.*(?:code|functionality)',
-        r'vector\s+search.*found\s+(?:similar|existing)'
+        r"found\s+duplicate",
+        r"similar\s+(?:function|implementation|code)",
+        r"existing\s+implementation",
+        r"already\s+exists",
+        r"redundant\s+(?:code|function|implementation)",
+        r"duplicate\s+(?:code|logic|function)",
+        r"same\s+(?:functionality|logic|implementation)",
+        r"identical\s+(?:to|function|code)",
+        r"(?:\d+)%\s+similar",
+        r"overlap(?:ping)?.*(?:code|functionality)",
+        r"vector\s+search.*found\s+(?:similar|existing)",
     ]
 
     # Consolidation decision patterns
     DECISION_PATTERNS: List[str] = [
-        r'>?\s*80%\s+(?:similar|similarity)',
-        r'>?\s*50%\s+(?:shared|similar)',
-        r'same\s+domain',
-        r'different\s+domain',
-        r'consolidat(?:e|ing)',
-        r'merge\s+(?:into|with)',
-        r'extract\s+common',
-        r'shared\s+(?:utility|abstraction)',
-        r'decision.*consolidat',
-        r'should\s+(?:consolidate|merge|combine)'
+        r">?\s*80%\s+(?:similar|similarity)",
+        r">?\s*50%\s+(?:shared|similar)",
+        r"same\s+domain",
+        r"different\s+domain",
+        r"consolidat(?:e|ing)",
+        r"merge\s+(?:into|with)",
+        r"extract\s+common",
+        r"shared\s+(?:utility|abstraction)",
+        r"decision.*consolidat",
+        r"should\s+(?:consolidate|merge|combine)",
     ]
 
     # Implementation quality patterns
     IMPLEMENTATION_PATTERNS: List[str] = [
-        r'consolidat(?:ed|ing)',
-        r'merged.*into',
-        r'single\s+implementation',
-        r'unified',
-        r'update(?:d|ing)?\s+(?:references|imports|calls)',
-        r'removed?\s+(?:obsolete|deprecated|old)',
-        r'canonical\s+(?:version|implementation)',
-        r'extract(?:ed|ing)\s+(?:common|shared)',
-        r'shared\s+(?:utility|helper|module)',
-        r'consolidation\s+(?:complete|done)'
+        r"consolidat(?:ed|ing)",
+        r"merged.*into",
+        r"single\s+implementation",
+        r"unified",
+        r"update(?:d|ing)?\s+(?:references|imports|calls)",
+        r"removed?\s+(?:obsolete|deprecated|old)",
+        r"canonical\s+(?:version|implementation)",
+        r"extract(?:ed|ing)\s+(?:common|shared)",
+        r"shared\s+(?:utility|helper|module)",
+        r"consolidation\s+(?:complete|done)",
     ]
 
     # Single-path enforcement patterns
     SINGLE_PATH_PATTERNS: List[str] = [
-        r'(?:one|single|only)\s+implementation',
-        r'single\s+(?:path|source|canonical)',
-        r'removed?\s+(?:duplicate|old|alternate)',
-        r'deleted?\s+(?:redundant|duplicate)',
-        r'only\s+(?:one|single)\s+(?:way|path|implementation)',
-        r'canonical\s+(?:implementation|version)',
-        r'eliminated\s+(?:alternate|duplicate)\s+path',
-        r'no\s+(?:duplicate|alternate)\s+paths?'
+        r"(?:one|single|only)\s+implementation",
+        r"single\s+(?:path|source|canonical)",
+        r"removed?\s+(?:duplicate|old|alternate)",
+        r"deleted?\s+(?:redundant|duplicate)",
+        r"only\s+(?:one|single)\s+(?:way|path|implementation)",
+        r"canonical\s+(?:implementation|version)",
+        r"eliminated\s+(?:alternate|duplicate)\s+path",
+        r"no\s+(?:duplicate|alternate)\s+paths?",
     ]
 
     # Session artifact cleanup patterns
     CLEANUP_PATTERNS: List[str] = [
-        r'removed?\s+_old',
-        r'deleted?\s+_v\d+',
-        r'removed?\s+_backup',
-        r'cleanup\s+(?:old|obsolete|deprecated)',
-        r'deleted?\s+(?:orphaned|stale|old)',
-        r'removed?\s+(?:legacy|deprecated)',
-        r'cleanup\s+(?:complete|done)',
-        r'no\s+(?:orphaned|stale)\s+files?'
+        r"removed?\s+_old",
+        r"deleted?\s+_v\d+",
+        r"removed?\s+_backup",
+        r"cleanup\s+(?:old|obsolete|deprecated)",
+        r"deleted?\s+(?:orphaned|stale|old)",
+        r"removed?\s+(?:legacy|deprecated)",
+        r"cleanup\s+(?:complete|done)",
+        r"no\s+(?:orphaned|stale)\s+files?",
     ]
 
     def __init__(self, threshold: float = 0.85):
@@ -174,11 +174,11 @@ class ConsolidationMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            detection_score * 0.35 +
-            decision_score * 0.30 +
-            implementation_score * 0.20 +
-            single_path_score * 0.10 +
-            cleanup_score * 0.05
+            detection_score * 0.35
+            + decision_score * 0.30
+            + implementation_score * 0.20
+            + single_path_score * 0.10
+            + cleanup_score * 0.05
         )
 
         # Store results
@@ -189,7 +189,7 @@ class ConsolidationMetric(BaseMetric):
             implementation_score,
             single_path_score,
             cleanup_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -221,7 +221,8 @@ class ConsolidationMetric(BaseMetric):
         """
         # Count duplicate detection patterns
         detection_matches = [
-            pattern for pattern in self.DUPLICATE_DETECTION_PATTERNS
+            pattern
+            for pattern in self.DUPLICATE_DETECTION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -231,11 +232,11 @@ class ConsolidationMetric(BaseMetric):
 
         # Check for search tools used
         search_tool_patterns = [
-            r'vector\s+search',
-            r'search_code',
-            r'grep',
-            r'find.*similar',
-            r'search(?:ing|ed)?\s+for\s+(?:duplicate|similar|existing)'
+            r"vector\s+search",
+            r"search_code",
+            r"grep",
+            r"find.*similar",
+            r"search(?:ing|ed)?\s+for\s+(?:duplicate|similar|existing)",
         ]
 
         has_search_tools = any(
@@ -270,7 +271,8 @@ class ConsolidationMetric(BaseMetric):
         """
         # Check for decision patterns
         decision_matches = [
-            pattern for pattern in self.DECISION_PATTERNS
+            pattern
+            for pattern in self.DECISION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -279,26 +281,20 @@ class ConsolidationMetric(BaseMetric):
 
         # Check for proper similarity thresholds
         similarity_patterns = [
-            r'>?\s*80%\s+(?:similar|similarity)',
-            r'>?\s*50%\s+(?:shared|similar)',
-            r'(\d+)%\s+(?:similar|similarity)'
+            r">?\s*80%\s+(?:similar|similarity)",
+            r">?\s*50%\s+(?:shared|similar)",
+            r"(\d+)%\s+(?:similar|similarity)",
         ]
 
         has_similarity_analysis = any(
-            re.search(pattern, output, re.IGNORECASE)
-            for pattern in similarity_patterns
+            re.search(pattern, output, re.IGNORECASE) for pattern in similarity_patterns
         )
 
         # Check for domain analysis
-        domain_patterns = [
-            r'same\s+domain',
-            r'different\s+domain',
-            r'cross-domain'
-        ]
+        domain_patterns = [r"same\s+domain", r"different\s+domain", r"cross-domain"]
 
         has_domain_analysis = any(
-            re.search(pattern, output, re.IGNORECASE)
-            for pattern in domain_patterns
+            re.search(pattern, output, re.IGNORECASE) for pattern in domain_patterns
         )
 
         # Scoring logic
@@ -331,7 +327,8 @@ class ConsolidationMetric(BaseMetric):
         """
         # Count implementation patterns
         implementation_matches = [
-            pattern for pattern in self.IMPLEMENTATION_PATTERNS
+            pattern
+            for pattern in self.IMPLEMENTATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -340,9 +337,9 @@ class ConsolidationMetric(BaseMetric):
 
         # Check for reference updates
         reference_update_patterns = [
-            r'update(?:d|ing)?\s+(?:references|imports|calls)',
-            r'changed?\s+(?:imports|references)',
-            r'modified?\s+(?:calls|imports)'
+            r"update(?:d|ing)?\s+(?:references|imports|calls)",
+            r"changed?\s+(?:imports|references)",
+            r"modified?\s+(?:calls|imports)",
         ]
 
         has_reference_updates = any(
@@ -377,7 +374,8 @@ class ConsolidationMetric(BaseMetric):
         """
         # Check for single-path patterns
         single_path_matches = [
-            pattern for pattern in self.SINGLE_PATH_PATTERNS
+            pattern
+            for pattern in self.SINGLE_PATH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -409,7 +407,8 @@ class ConsolidationMetric(BaseMetric):
         """
         # Check for cleanup patterns
         cleanup_matches = [
-            pattern for pattern in self.CLEANUP_PATTERNS
+            pattern
+            for pattern in self.CLEANUP_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -431,7 +430,7 @@ class ConsolidationMetric(BaseMetric):
         implementation_score: float,
         single_path_score: float,
         cleanup_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.

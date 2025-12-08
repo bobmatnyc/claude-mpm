@@ -22,9 +22,7 @@ class TestDiscoveryPatterns:
         self.metric = SamplingStrategyMetric(threshold=0.85)
 
     def test_grep_glob_discovery_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that grep/glob usage scores high.
 
@@ -35,7 +33,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_grep_glob_discovery_non_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that sequential file reading fails.
 
@@ -59,7 +55,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_pattern_extraction_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that pattern extraction scores high.
 
@@ -83,7 +77,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_pattern_extraction_non_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw enumeration fails.
 
@@ -107,7 +99,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_findings_synthesis_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that findings synthesis scores high.
 
@@ -131,7 +121,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -142,9 +132,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_findings_synthesis_non_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw observations fail.
 
@@ -155,7 +143,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -166,9 +154,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_executive_summary_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that executive summary scores high.
 
@@ -179,7 +165,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -190,9 +176,7 @@ class TestDiscoveryPatterns:
         assert self.metric.is_successful()
 
     def test_executive_summary_non_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing summary fails.
 
@@ -203,7 +187,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -214,9 +198,7 @@ class TestDiscoveryPatterns:
         assert not self.metric.is_successful()
 
     def test_code_examples_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that code examples score high.
 
@@ -227,20 +209,17 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
         assert score >= 0.85, (
-            f"Code examples should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Code examples should pass, got {score}\n" f"Reason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
     def test_code_examples_non_compliant(
-        self,
-        discovery_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, discovery_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague descriptions fail.
 
@@ -251,7 +230,7 @@ class TestDiscoveryPatterns:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

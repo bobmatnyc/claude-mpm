@@ -102,7 +102,9 @@ class TokenEfficiencyMetric(BaseMetric):
             ]
             if any(re.search(p, output.lower()) for p in optim_patterns):
                 score = 0.5
-                issues.append("General optimization mentioned but no specific reduction metrics")
+                issues.append(
+                    "General optimization mentioned but no specific reduction metrics"
+                )
             else:
                 score = 0.2
                 issues.append("No token reduction awareness found")
@@ -153,7 +155,9 @@ class TokenEfficiencyMetric(BaseMetric):
             ]
             if any(re.search(p, output.lower()) for p in related_patterns):
                 score = 0.4
-                issues.append("Performance mentioned but no cache optimization specifics")
+                issues.append(
+                    "Performance mentioned but no cache optimization specifics"
+                )
             else:
                 score = 0.2
                 issues.append("No cache optimization awareness found")
@@ -195,7 +199,9 @@ class TokenEfficiencyMetric(BaseMetric):
             ]
             if any(re.search(p, output.lower()) for p in consolidate_patterns):
                 score = 0.5
-                issues.append("Simplification mentioned but no redundancy elimination specifics")
+                issues.append(
+                    "Simplification mentioned but no redundancy elimination specifics"
+                )
             else:
                 score = 0.2
                 issues.append("No redundancy elimination awareness found")
@@ -245,7 +251,9 @@ class TokenEfficiencyMetric(BaseMetric):
             ]
             if any(re.search(p, output.lower()) for p in format_patterns):
                 score = 0.4
-                issues.append("Formatting mentioned but no structural optimization specifics")
+                issues.append(
+                    "Formatting mentioned but no structural optimization specifics"
+                )
             else:
                 score = 0.2
                 issues.append("No structural optimization awareness found")
@@ -276,8 +284,12 @@ class TokenEfficiencyMetric(BaseMetric):
         # Calculate component scores
         reduction_score, reduction_issues = self._evaluate_token_reduction(output)
         cache_score, cache_issues = self._evaluate_cache_optimization(output)
-        redundancy_score, redundancy_issues = self._evaluate_redundancy_elimination(output)
-        structure_score, structure_issues = self._evaluate_structural_optimization(output)
+        redundancy_score, redundancy_issues = self._evaluate_redundancy_elimination(
+            output
+        )
+        structure_score, structure_issues = self._evaluate_structural_optimization(
+            output
+        )
 
         all_issues.extend(reduction_issues)
         all_issues.extend(cache_issues)
@@ -303,7 +315,9 @@ class TokenEfficiencyMetric(BaseMetric):
                 f"Score: {self._score:.2f}"
             )
         else:
-            issues_text = "; ".join(all_issues) if all_issues else "Optimization incomplete"
+            issues_text = (
+                "; ".join(all_issues) if all_issues else "Optimization incomplete"
+            )
             self._reason = (
                 f"Token efficiency below threshold ({self.threshold}). "
                 f"Issues: {issues_text}. "

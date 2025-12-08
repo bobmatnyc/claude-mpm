@@ -63,49 +63,45 @@ class MemoryProtocolMetric(BaseMetric):
 
     # Required fields with expected types
     REQUIRED_FIELDS: Dict[str, Union[type, Tuple[type, ...]]] = {
-        'task_completed': bool,
-        'instructions': str,
-        'results': str,
-        'files_modified': list,
-        'tools_used': list,
-        'remember': (list, type(None))  # List[str] or null
+        "task_completed": bool,
+        "instructions": str,
+        "results": str,
+        "files_modified": list,
+        "tools_used": list,
+        "remember": (list, type(None)),  # List[str] or null
     }
 
     # Memory trigger patterns (MUST capture when present in user input)
     MEMORY_TRIGGERS: List[str] = [
-        'remember',
+        "remember",
         "don't forget",
-        'memorize',
-        'note that',
-        'keep in mind'
+        "memorize",
+        "note that",
+        "keep in mind",
     ]
 
     # User-specific patterns (SHOULD NOT capture - too personal)
     USER_SPECIFIC_KEYWORDS: List[str] = [
-        'i prefer',
-        'my style',
-        'i like',
-        'user preference'
+        "i prefer",
+        "my style",
+        "i like",
+        "user preference",
     ]
 
     # Obvious facts patterns (SHOULD NOT capture - not valuable)
     OBVIOUS_KEYWORDS: List[str] = [
-        'code is in',
-        'file is located',
-        'standard practice',
-        'common pattern',
-        'well-known'
+        "code is in",
+        "file is located",
+        "standard practice",
+        "common pattern",
+        "well-known",
     ]
 
     # JSON extraction patterns
     JSON_FENCED_PATTERN = re.compile(
-        r'```(?:json)?\s*(\{[^`]*?\})\s*```',
-        re.DOTALL | re.IGNORECASE
+        r"```(?:json)?\s*(\{[^`]*?\})\s*```", re.DOTALL | re.IGNORECASE
     )
-    JSON_RAW_PATTERN = re.compile(
-        r'\{[^{}]*"task_completed"[^{}]*\}',
-        re.DOTALL
-    )
+    JSON_RAW_PATTERN = re.compile(r'\{[^{}]*"task_completed"[^{}]*\}', re.DOTALL)
 
     def __init__(self, threshold: float = 1.0):
         """
@@ -159,18 +155,16 @@ class MemoryProtocolMetric(BaseMetric):
         json_format_score = self._score_json_format(output, json_valid)
         required_fields_score = self._score_required_fields(json_data, json_valid)
         memory_capture_score = self._score_memory_capture(
-            user_input,
-            json_data,
-            json_valid
+            user_input, json_data, json_valid
         )
         memory_quality_score = self._score_memory_quality(json_data, json_valid)
 
         # Weighted average
         final_score = (
-            json_format_score * 0.30 +
-            required_fields_score * 0.30 +
-            memory_capture_score * 0.25 +
-            memory_quality_score * 0.15
+            json_format_score * 0.30
+            + required_fields_score * 0.30
+            + memory_capture_score * 0.25
+            + memory_quality_score * 0.15
         )
 
         # Store results
@@ -182,7 +176,7 @@ class MemoryProtocolMetric(BaseMetric):
             memory_quality_score,
             json_data,
             json_valid,
-            user_input
+            user_input,
         )
         # Use epsilon comparison to handle floating-point precision issues
         epsilon = 1e-9
@@ -260,16 +254,15 @@ class MemoryProtocolMetric(BaseMetric):
 
         # Check if JSON is at the end (good practice)
         search_text = output[-2000:]
-        if self.JSON_FENCED_PATTERN.search(search_text) or \
-           self.JSON_RAW_PATTERN.search(search_text):
+        if self.JSON_FENCED_PATTERN.search(search_text) or self.JSON_RAW_PATTERN.search(
+            search_text
+        ):
             return 1.0
 
         return 0.5  # JSON found but not ideally positioned
 
     def _score_required_fields(
-        self,
-        json_data: Optional[Dict[str, Any]],
-        json_valid: bool
+        self, json_data: Optional[Dict[str, Any]], json_valid: bool
     ) -> float:
         """
         Score required fields presence and type correctness (30% weight).
@@ -300,8 +293,10 @@ class MemoryProtocolMetric(BaseMetric):
 
             # Handle union types (e.g., list or None)
             if isinstance(expected_type, tuple):
-                if any(isinstance(value, t) if t is not type(None) else value is None
-                       for t in expected_type):
+                if any(
+                    isinstance(value, t) if t is not type(None) else value is None
+                    for t in expected_type
+                ):
                     score += 1.0 / field_count
             elif isinstance(value, expected_type):
                 score += 1.0 / field_count
@@ -309,10 +304,7 @@ class MemoryProtocolMetric(BaseMetric):
         return score
 
     def _score_memory_capture(
-        self,
-        user_input: str,
-        json_data: Optional[Dict[str, Any]],
-        json_valid: bool
+        self, user_input: str, json_data: Optional[Dict[str, Any]], json_valid: bool
     ) -> float:
         """
         Score memory capture appropriateness (25% weight).
@@ -335,8 +327,7 @@ class MemoryProtocolMetric(BaseMetric):
 
         # Check if user input contains memory triggers
         has_trigger = any(
-            trigger.lower() in user_input.lower()
-            for trigger in self.MEMORY_TRIGGERS
+            trigger.lower() in user_input.lower() for trigger in self.MEMORY_TRIGGERS
         )
 
         # Check if user input contains user-specific or obvious keywords
@@ -345,14 +336,15 @@ class MemoryProtocolMetric(BaseMetric):
             for keyword in self.USER_SPECIFIC_KEYWORDS
         )
         is_obvious = any(
-            keyword.lower() in user_input.lower()
-            for keyword in self.OBVIOUS_KEYWORDS
+            keyword.lower() in user_input.lower() for keyword in self.OBVIOUS_KEYWORDS
         )
 
-        remember_field = json_data.get('remember')
-        has_memory = remember_field is not None and \
-                     isinstance(remember_field, list) and \
-                     len(remember_field) > 0
+        remember_field = json_data.get("remember")
+        has_memory = (
+            remember_field is not None
+            and isinstance(remember_field, list)
+            and len(remember_field) > 0
+        )
 
         # Scoring logic
         if has_trigger and not is_user_specific and not is_obvious:
@@ -366,9 +358,7 @@ class MemoryProtocolMetric(BaseMetric):
         return 0.7
 
     def _score_memory_quality(
-        self,
-        json_data: Optional[Dict[str, Any]],
-        json_valid: bool
+        self, json_data: Optional[Dict[str, Any]], json_valid: bool
     ) -> float:
         """
         Score memory quality (15% weight).
@@ -388,7 +378,7 @@ class MemoryProtocolMetric(BaseMetric):
         if not json_valid or json_data is None:
             return 0.0
 
-        remember_field = json_data.get('remember')
+        remember_field = json_data.get("remember")
 
         # If no memory or null, full score (quality N/A)
         if remember_field is None or not isinstance(remember_field, list):
@@ -404,21 +394,22 @@ class MemoryProtocolMetric(BaseMetric):
 
         # Check conciseness
         all_concise = all(
-            isinstance(entry, str) and len(entry) < 100
-            for entry in entries
+            isinstance(entry, str) and len(entry) < 100 for entry in entries
         )
         if all_concise:
             passes += 1
 
         # Check for generic patterns
         generic_patterns = [
-            r'(?:always|never|should|must)\s+(?:use|do|be)',
-            r'best practice',
-            r'general rule',
-            r'common approach'
+            r"(?:always|never|should|must)\s+(?:use|do|be)",
+            r"best practice",
+            r"general rule",
+            r"common approach",
         ]
         has_generic = any(
-            any(re.search(pattern, entry, re.IGNORECASE) for pattern in generic_patterns)
+            any(
+                re.search(pattern, entry, re.IGNORECASE) for pattern in generic_patterns
+            )
             for entry in entries
             if isinstance(entry, str)
         )
@@ -454,7 +445,7 @@ class MemoryProtocolMetric(BaseMetric):
         memory_quality_score: float,
         json_data: Optional[Dict[str, Any]],
         json_valid: bool,
-        user_input: str
+        user_input: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -486,11 +477,12 @@ class MemoryProtocolMetric(BaseMetric):
                 reasons.append("Cannot validate fields - JSON invalid")
             else:
                 missing_fields = [
-                    field for field in self.REQUIRED_FIELDS
-                    if field not in json_data
+                    field for field in self.REQUIRED_FIELDS if field not in json_data
                 ]
                 if missing_fields:
-                    reasons.append(f"Missing required fields: {', '.join(missing_fields)}")
+                    reasons.append(
+                        f"Missing required fields: {', '.join(missing_fields)}"
+                    )
 
                 # Check type mismatches
                 type_errors = []
@@ -499,7 +491,11 @@ class MemoryProtocolMetric(BaseMetric):
                         value = json_data[field_name]
                         if isinstance(expected_type, tuple):
                             valid = any(
-                                isinstance(value, t) if t is not type(None) else value is None
+                                (
+                                    isinstance(value, t)
+                                    if t is not type(None)
+                                    else value is None
+                                )
                                 for t in expected_type
                             )
                         else:
@@ -519,10 +515,12 @@ class MemoryProtocolMetric(BaseMetric):
                 trigger.lower() in user_input.lower()
                 for trigger in self.MEMORY_TRIGGERS
             )
-            remember_field = json_data.get('remember') if json_data else None
-            has_memory = remember_field is not None and \
-                         isinstance(remember_field, list) and \
-                         len(remember_field) > 0
+            remember_field = json_data.get("remember") if json_data else None
+            has_memory = (
+                remember_field is not None
+                and isinstance(remember_field, list)
+                and len(remember_field) > 0
+            )
 
             if has_trigger and not has_memory:
                 reasons.append(
@@ -540,13 +538,18 @@ class MemoryProtocolMetric(BaseMetric):
 
         # Memory quality issues
         if memory_quality_score < 1.0 and json_data:
-            remember_field = json_data.get('remember')
-            if remember_field and isinstance(remember_field, list) and len(remember_field) > 0:
+            remember_field = json_data.get("remember")
+            if (
+                remember_field
+                and isinstance(remember_field, list)
+                and len(remember_field) > 0
+            ):
                 quality_issues = []
 
                 # Check conciseness
                 verbose_entries = [
-                    entry for entry in remember_field
+                    entry
+                    for entry in remember_field
                     if isinstance(entry, str) and len(entry) >= 100
                 ]
                 if verbose_entries:
@@ -556,13 +559,15 @@ class MemoryProtocolMetric(BaseMetric):
 
                 # Check for generic patterns
                 generic_patterns = [
-                    r'(?:always|never|should|must)\s+(?:use|do|be)',
-                    r'best practice',
-                    r'general rule'
+                    r"(?:always|never|should|must)\s+(?:use|do|be)",
+                    r"best practice",
+                    r"general rule",
                 ]
                 generic_count = sum(
-                    1 for entry in remember_field
-                    if isinstance(entry, str) and any(
+                    1
+                    for entry in remember_field
+                    if isinstance(entry, str)
+                    and any(
                         re.search(pattern, entry, re.IGNORECASE)
                         for pattern in generic_patterns
                     )
@@ -583,12 +588,12 @@ class MemoryProtocolMetric(BaseMetric):
                         seen.add(normalized)
 
                 if duplicates:
-                    quality_issues.append(
-                        f"{len(duplicates)} duplicate entries"
-                    )
+                    quality_issues.append(f"{len(duplicates)} duplicate entries")
 
                 if quality_issues:
-                    reasons.append(f"Memory quality issues: {'; '.join(quality_issues)}")
+                    reasons.append(
+                        f"Memory quality issues: {'; '.join(quality_issues)}"
+                    )
 
         # Success message
         if not reasons:

@@ -71,63 +71,63 @@ class DeploymentSafetyMetric(BaseMetric):
 
     # Environment validation patterns
     ENV_VALIDATION_PATTERNS: List[str] = [
-        r'(?:read|cat|check|inspect).*(?:\.env|config)',
-        r'environment\s+variable',
-        r'connectivity\s+(?:check|test|verify)',
-        r'prerequisite.*(?:check|validation)',
-        r'DATABASE_URL|API_KEY|REDIS_URL',
-        r'target\s+environment',
-        r'staging\.env|production\.env',
-        r'env\s+var'
+        r"(?:read|cat|check|inspect).*(?:\.env|config)",
+        r"environment\s+variable",
+        r"connectivity\s+(?:check|test|verify)",
+        r"prerequisite.*(?:check|validation)",
+        r"DATABASE_URL|API_KEY|REDIS_URL",
+        r"target\s+environment",
+        r"staging\.env|production\.env",
+        r"env\s+var",
     ]
 
     # Rollback preparation patterns
     ROLLBACK_PATTERNS: List[str] = [
-        r'rollback\s+(?:plan|procedure|script)',
-        r'current\s+(?:version|commit)',
-        r'git\s+(?:tag|checkout)',
-        r'database\s+migration.*rollback',
-        r'previous\s+version',
-        r'revert',
-        r'backup',
-        r'restore'
+        r"rollback\s+(?:plan|procedure|script)",
+        r"current\s+(?:version|commit)",
+        r"git\s+(?:tag|checkout)",
+        r"database\s+migration.*rollback",
+        r"previous\s+version",
+        r"revert",
+        r"backup",
+        r"restore",
     ]
 
     # Health check patterns
     HEALTH_CHECK_PATTERNS: List[str] = [
-        r'/health',
-        r'curl.*(?:health|status)',
-        r'application\s+logs',
-        r'service.*(?:health|status)',
-        r'healthz',
-        r'readiness',
-        r'liveness',
-        r'endpoint.*(?:verify|check)',
-        r'200\s+OK'
+        r"/health",
+        r"curl.*(?:health|status)",
+        r"application\s+logs",
+        r"service.*(?:health|status)",
+        r"healthz",
+        r"readiness",
+        r"liveness",
+        r"endpoint.*(?:verify|check)",
+        r"200\s+OK",
     ]
 
     # Smoke test patterns
     SMOKE_TEST_PATTERNS: List[str] = [
-        r'smoke\s+test',
-        r'critical\s+(?:flow|path)',
-        r'authentication.*test',
-        r'API.*(?:test|verify)',
-        r'user\s+(?:login|flow)',
-        r'checkout.*test',
-        r'performance.*(?:metric|validation)',
-        r'response\s+time'
+        r"smoke\s+test",
+        r"critical\s+(?:flow|path)",
+        r"authentication.*test",
+        r"API.*(?:test|verify)",
+        r"user\s+(?:login|flow)",
+        r"checkout.*test",
+        r"performance.*(?:metric|validation)",
+        r"response\s+time",
     ]
 
     # Documentation patterns
     DOCUMENTATION_PATTERNS: List[str] = [
-        r'(?:document|record).*deployment',
-        r'commit\s+hash',
-        r'configuration\s+change',
-        r'deployment\s+(?:timestamp|log)',
-        r'issue.*(?:track|record)',
-        r'deployment\s+steps',
-        r'changelog',
-        r'deployment.*(?:note|doc)'
+        r"(?:document|record).*deployment",
+        r"commit\s+hash",
+        r"configuration\s+change",
+        r"deployment\s+(?:timestamp|log)",
+        r"issue.*(?:track|record)",
+        r"deployment\s+steps",
+        r"changelog",
+        r"deployment.*(?:note|doc)",
     ]
 
     def __init__(self, threshold: float = 0.9):
@@ -183,11 +183,11 @@ class DeploymentSafetyMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            env_validation_score * 0.25 +
-            rollback_score * 0.25 +
-            health_check_score * 0.20 +
-            smoke_test_score * 0.15 +
-            documentation_score * 0.15
+            env_validation_score * 0.25
+            + rollback_score * 0.25
+            + health_check_score * 0.20
+            + smoke_test_score * 0.15
+            + documentation_score * 0.15
         )
 
         # Store results
@@ -198,7 +198,7 @@ class DeploymentSafetyMetric(BaseMetric):
             health_check_score,
             smoke_test_score,
             documentation_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -230,7 +230,8 @@ class DeploymentSafetyMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         env_matches = [
-            pattern for pattern in self.ENV_VALIDATION_PATTERNS
+            pattern
+            for pattern in self.ENV_VALIDATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -269,7 +270,8 @@ class DeploymentSafetyMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         rollback_matches = [
-            pattern for pattern in self.ROLLBACK_PATTERNS
+            pattern
+            for pattern in self.ROLLBACK_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -308,7 +310,8 @@ class DeploymentSafetyMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         health_matches = [
-            pattern for pattern in self.HEALTH_CHECK_PATTERNS
+            pattern
+            for pattern in self.HEALTH_CHECK_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -343,7 +346,8 @@ class DeploymentSafetyMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         smoke_test_matches = [
-            pattern for pattern in self.SMOKE_TEST_PATTERNS
+            pattern
+            for pattern in self.SMOKE_TEST_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -378,7 +382,8 @@ class DeploymentSafetyMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         doc_matches = [
-            pattern for pattern in self.DOCUMENTATION_PATTERNS
+            pattern
+            for pattern in self.DOCUMENTATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -408,7 +413,7 @@ class DeploymentSafetyMetric(BaseMetric):
         health_check_score: float,
         smoke_test_score: float,
         documentation_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.

@@ -324,11 +324,11 @@ class PMResponseCapture:
                 result[key] = self._redact_dict(value, redact_fn)
             elif isinstance(value, list):
                 result[key] = [
-                    self._redact_dict(item, redact_fn)
-                    if isinstance(item, dict)
-                    else redact_fn(item)
-                    if isinstance(item, str)
-                    else item
+                    (
+                        self._redact_dict(item, redact_fn)
+                        if isinstance(item, dict)
+                        else redact_fn(item) if isinstance(item, str) else item
+                    )
                     for item in value
                 ]
             else:

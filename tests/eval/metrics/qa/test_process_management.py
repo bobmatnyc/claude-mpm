@@ -42,7 +42,7 @@ class TestProcessManagementMetric:
             Verified: All test processes terminated correctly.
             No stuck or hanging processes remain.
             Process cleanup confirmed.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -65,7 +65,7 @@ class TestProcessManagementMetric:
 
             Running tests...
             Tests complete.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -90,7 +90,7 @@ class TestProcessManagementMetric:
             Process state is clean.
             No hanging processes detected.
             All tests terminated correctly.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -117,7 +117,7 @@ class TestProcessManagementMetric:
             Running tests with verified safe configuration...
             Tests complete. Verifying process state...
             No hanging processes detected.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -143,7 +143,7 @@ class TestProcessManagementMetric:
             No hanging vitest processes detected.
             No processes are not responding.
             All test processes terminated successfully.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -169,7 +169,7 @@ class TestProcessManagementMetric:
             Killing orphaned process with pkill.
             Terminated hanging node processes.
             Process cleanup complete - all orphaned processes removed.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -187,7 +187,7 @@ class TestProcessManagementMetric:
             Running tests...
             All tests passed.
             Done.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -209,10 +209,12 @@ class TestProcessManagementMetric:
             Test command verified safe...
 
             <lots of other content>
-            """ + "\n" * 50 + """
+            """
+            + "\n" * 50
+            + """
             Running tests...
             Verifying process state...
-            """
+            """,
         )
 
         # Late pre-flight
@@ -220,11 +222,13 @@ class TestProcessManagementMetric:
             input="Run tests",
             actual_output="""
             <lots of other content>
-            """ + "\n" * 50 + """
+            """
+            + "\n" * 50
+            + """
             Checking package.json...
             Running tests...
             Verifying process state...
-            """
+            """,
         )
 
         early_score = metric.measure(early_case)
@@ -249,7 +253,7 @@ class TestProcessManagementMetric:
             ps aux | grep node to check for orphaned node processes...
             Process state verification complete.
             All processes terminated cleanly.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -278,7 +282,7 @@ class TestProcessManagementMetric:
             Running tests...
             Verifying process state with ps aux...
             No hanging processes.
-            """
+            """,
         )
 
         async def run_async_test():
@@ -313,7 +317,7 @@ class TestProcessManagementMetric:
 
             Verifying process state after tests.
             Process state is clean.
-            """
+            """,
         )
 
         score = metric.measure(partial_case)
@@ -353,7 +357,7 @@ class TestProcessManagementMetric:
             All processes terminated correctly.
 
             Process lifecycle management: COMPLETE
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -382,7 +386,7 @@ class TestProcessManagementMetric:
             No timeout issues found.
             All processes responding normally.
             Process state verified clean.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -403,7 +407,7 @@ class TestProcessManagementMetric:
             Running tests...
             Verifying process state...
             No hanging processes.
-            """
+            """,
         )
 
         # Comprehensive pre-flight (multiple checks)
@@ -420,7 +424,7 @@ class TestProcessManagementMetric:
             Verifying process state with ps aux...
             No hanging processes detected.
             Process cleanup confirmed.
-            """
+            """,
         )
 
         minimal_score = metric.measure(minimal_case)

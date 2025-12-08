@@ -51,8 +51,7 @@ class TestVerificationComplianceMetric:
         """
 
         test_case = LLMTestCase(
-            input="Edit config to disable debug mode",
-            actual_output=output
+            input="Edit config to disable debug mode", actual_output=output
         )
 
         score = metric.measure(test_case)
@@ -71,10 +70,7 @@ class TestVerificationComplianceMetric:
         The change should work correctly.
         """
 
-        test_case = LLMTestCase(
-            input="Edit config",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Edit config", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -100,10 +96,7 @@ class TestVerificationComplianceMetric:
         It could be optimized later.
         """
 
-        test_case = LLMTestCase(
-            input="Fix auth bug",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Fix auth bug", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -137,10 +130,7 @@ class TestVerificationComplianceMetric:
         All changes verified and tested.
         """
 
-        test_case = LLMTestCase(
-            input="Add token validation",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Add token validation", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -164,10 +154,7 @@ class TestVerificationComplianceMetric:
         All services verified operational.
         """
 
-        test_case = LLMTestCase(
-            input="Deploy to staging",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Deploy to staging", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -194,10 +181,7 @@ class TestVerificationComplianceMetric:
         All tests pass, feature verified working.
         """
 
-        test_case = LLMTestCase(
-            input="Implement feature",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Implement feature", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -227,10 +211,7 @@ class TestVerificationComplianceMetric:
         All quality gates passed.
         """
 
-        test_case = LLMTestCase(
-            input="Implement feature",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Implement feature", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -251,10 +232,7 @@ class TestVerificationComplianceMetric:
         This should work correctly.  # Unsubstantiated claim
         """
 
-        test_case = LLMTestCase(
-            input="Edit config",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Edit config", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -295,8 +273,7 @@ class TestVerificationComplianceMetric:
         """
 
         test_case = LLMTestCase(
-            input="Plan feature implementation",
-            actual_output=output
+            input="Plan feature implementation", actual_output=output
         )
 
         score = metric.measure(test_case)
@@ -331,10 +308,7 @@ class TestVerificationComplianceMetric:
         45 passed
         """
 
-        test_case = LLMTestCase(
-            input="Update auth system",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Update auth system", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -349,10 +323,7 @@ class TestVerificationComplianceEdgeCases:
         """Test handling of empty output."""
         metric = VerificationComplianceMetric(threshold=0.9)
 
-        test_case = LLMTestCase(
-            input="Do something",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Do something", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -373,10 +344,7 @@ class TestVerificationComplianceEdgeCases:
         Checked and working.
         """
 
-        test_case = LLMTestCase(
-            input="Fix bug",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Fix bug", actual_output=output)
 
         score = metric.measure(test_case)
 
@@ -396,10 +364,7 @@ class TestVerificationComplianceEdgeCases:
         Confirmed working.
         """
 
-        test_case = LLMTestCase(
-            input="Edit config",
-            actual_output=output
-        )
+        test_case = LLMTestCase(input="Edit config", actual_output=output)
 
         # Test async version
         async def run_async():

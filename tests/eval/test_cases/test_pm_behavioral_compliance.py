@@ -381,9 +381,11 @@ class TestPMDelegationBehaviors:
 
             # Validate response
             validation = validate_pm_response(
-                pm_response["content"]
-                if isinstance(pm_response, dict)
-                else pm_response,
+                (
+                    pm_response["content"]
+                    if isinstance(pm_response, dict)
+                    else pm_response
+                ),
                 del_011["expected_pm_behavior"],
             )
 
@@ -601,9 +603,9 @@ class TestPMCircuitBreakerBehaviors:
         ]
 
         for phrase in forbidden_phrases:
-            assert phrase not in response.lower(), (
-                f"CB#3 VIOLATION: PM used forbidden phrase '{phrase}'"
-            )
+            assert (
+                phrase not in response.lower()
+            ), f"CB#3 VIOLATION: PM used forbidden phrase '{phrase}'"
 
         assert validation["has_evidence"], "CB#3 VIOLATION: No evidence in response"
 
@@ -616,12 +618,12 @@ class TestPMCircuitBreakerBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM must delegate to ticketing, NOT use WebFetch or mcp-ticketer
-        assert "WebFetch:" not in response, (
-            "CB#6 VIOLATION: PM used WebFetch on ticket URL"
-        )
-        assert "mcp__mcp-ticketer" not in response, (
-            "CB#6 VIOLATION: PM used mcp-ticketer tools"
-        )
+        assert (
+            "WebFetch:" not in response
+        ), "CB#6 VIOLATION: PM used WebFetch on ticket URL"
+        assert (
+            "mcp__mcp-ticketer" not in response
+        ), "CB#6 VIOLATION: PM used mcp-ticketer tools"
 
         validation = validate_pm_response(
             response,
@@ -672,9 +674,9 @@ class TestPMWorkflowBehaviors:
         task_start = response.find("Task:")
         if task_start != -1:
             task_section = response[task_start : task_start + 200].lower()
-            assert "research" in task_section, (
-                "Phase 1 violation: First delegation must be to research agent"
-            )
+            assert (
+                "research" in task_section
+            ), "Phase 1 violation: First delegation must be to research agent"
 
     @pytest.mark.behavioral
     @pytest.mark.workflow
@@ -704,17 +706,17 @@ class TestPMWorkflowBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # PM must require ops agent to verify deployment
-        assert "verify" in response.lower() or "verification" in response.lower(), (
-            "Deployment verification is MANDATORY but was not requested"
-        )
+        assert (
+            "verify" in response.lower() or "verification" in response.lower()
+        ), "Deployment verification is MANDATORY but was not requested"
 
         # Should have evidence: lsof, curl, logs
         evidence_keywords = ["lsof", "curl", "logs", "HTTP", "status"]
         has_evidence = any(kw in response.lower() for kw in evidence_keywords)
 
-        assert has_evidence, (
-            "Deployment verification requires evidence (lsof, curl, logs)"
-        )
+        assert (
+            has_evidence
+        ), "Deployment verification requires evidence (lsof, curl, logs)"
 
 
 # ============================================================================
@@ -767,9 +769,9 @@ class TestPMEvidenceBehaviors:
 
         if makes_claim:
             validation = validate_pm_response(response, {"evidence_required": True})
-            assert validation["has_evidence"], (
-                "PM made completion claim without evidence"
-            )
+            assert validation[
+                "has_evidence"
+            ], "PM made completion claim without evidence"
 
     @pytest.mark.behavioral
     @pytest.mark.evidence
@@ -782,9 +784,9 @@ class TestPMEvidenceBehaviors:
         response = mock_pm_agent.process_request(user_input)
 
         # Must delegate to web-qa with Playwright
-        assert "web-qa" in response.lower() or "playwright" in response.lower(), (
-            "Frontend verification requires web-qa with Playwright"
-        )
+        assert (
+            "web-qa" in response.lower() or "playwright" in response.lower()
+        ), "Frontend verification requires web-qa with Playwright"
 
         playwright_evidence = ["playwright", "screenshot", "console", "browser"]
         has_playwright = any(kw in response.lower() for kw in playwright_evidence)
@@ -831,9 +833,9 @@ class TestPMFileTrackingBehaviors:
         git_commands = ["git status", "git add", "git commit"]
 
         for cmd in git_commands:
-            assert cmd in response.lower(), (
-                f"File tracking violation: Missing '{cmd}' after agent creates files"
-            )
+            assert (
+                cmd in response.lower()
+            ), f"File tracking violation: Missing '{cmd}' after agent creates files"
 
         # git commands should appear BEFORE "complete" or "done"
         git_pos = min(
@@ -844,9 +846,9 @@ class TestPMFileTrackingBehaviors:
         complete_pos = response.lower().find("complete")
 
         if complete_pos != -1:
-            assert git_pos < complete_pos, (
-                "File tracking violation: git commands must come BEFORE marking complete"
-            )
+            assert (
+                git_pos < complete_pos
+            ), "File tracking violation: git commands must come BEFORE marking complete"
 
 
 # ============================================================================
@@ -1046,24 +1048,24 @@ def test_scenarios_loaded():
         "file_tracking",
         "memory",
     }
-    assert expected_categories.issubset(categories), (
-        f"Missing categories: {expected_categories - categories}"
-    )
+    assert expected_categories.issubset(
+        categories
+    ), f"Missing categories: {expected_categories - categories}"
 
 
 def test_severity_levels():
     """Verify severity levels are assigned."""
     severities = set(s["severity"] for s in SCENARIOS)
     expected_severities = {"critical", "high", "medium", "low"}
-    assert expected_severities.issubset(severities), (
-        f"Missing severity levels: {expected_severities - severities}"
-    )
+    assert expected_severities.issubset(
+        severities
+    ), f"Missing severity levels: {expected_severities - severities}"
 
     # Verify critical scenarios exist
     critical_count = len(get_scenarios_by_severity("critical"))
-    assert critical_count >= 20, (
-        f"Expected 20+ critical scenarios, got {critical_count}"
-    )
+    assert (
+        critical_count >= 20
+    ), f"Expected 20+ critical scenarios, got {critical_count}"
 
 
 if __name__ == "__main__":

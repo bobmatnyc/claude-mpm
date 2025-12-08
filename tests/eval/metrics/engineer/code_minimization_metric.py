@@ -56,75 +56,75 @@ class CodeMinimizationMetric(BaseMetric):
 
     # Search-first patterns
     SEARCH_PATTERNS: List[str] = [
-        r'vector\s+search',
-        r'search_code',
-        r'mcp__mcp-vector-search',
-        r'grep\s+(?:for|.*pattern)',
-        r'search(?:ing|ed)?\s+(?:for|existing|codebase)',
-        r'find.*existing',
-        r'looked\s+for',
-        r'checking\s+for\s+existing',
-        r'before\s+implementing',
-        r'first.*search',
-        r'discover(?:ing|ed)?\s+existing'
+        r"vector\s+search",
+        r"search_code",
+        r"mcp__mcp-vector-search",
+        r"grep\s+(?:for|.*pattern)",
+        r"search(?:ing|ed)?\s+(?:for|existing|codebase)",
+        r"find.*existing",
+        r"looked\s+for",
+        r"checking\s+for\s+existing",
+        r"before\s+implementing",
+        r"first.*search",
+        r"discover(?:ing|ed)?\s+existing",
     ]
 
     # LOC delta patterns
     LOC_DELTA_PATTERNS: List[str] = [
-        r'net\s+(?:LOC|lines)',
-        r'added\s+\d+\s+lines?',
-        r'removed\s+\d+\s+lines?',
-        r'LOC\s+delta',
-        r'negative\s+delta',
-        r'zero\s+net\s+lines?',
-        r'\+\d+/-\d+\s+lines?',
-        r'[-+]\d+\s+lines?',
-        r'no\s+new\s+lines?',
-        r'reduced.*lines?',
-        r'eliminated.*lines?'
+        r"net\s+(?:LOC|lines)",
+        r"added\s+\d+\s+lines?",
+        r"removed\s+\d+\s+lines?",
+        r"LOC\s+delta",
+        r"negative\s+delta",
+        r"zero\s+net\s+lines?",
+        r"\+\d+/-\d+\s+lines?",
+        r"[-+]\d+\s+lines?",
+        r"no\s+new\s+lines?",
+        r"reduced.*lines?",
+        r"eliminated.*lines?",
     ]
 
     # Reuse patterns
     REUSE_PATTERNS: List[str] = [
-        r'extend(?:ed|ing)?',
-        r'leverage\s+existing',
-        r'reuse',
-        r'build\s+on',
-        r'enhance\s+existing',
-        r'modify\s+existing',
-        r'use\s+existing',
-        r'found\s+(?:and\s+)?(?:used|reused)',
-        r'already\s+(?:has|have|exists)',
-        r'share(?:d)?\s+(?:utility|function|code)',
-        r'common\s+(?:code|logic|function)'
+        r"extend(?:ed|ing)?",
+        r"leverage\s+existing",
+        r"reuse",
+        r"build\s+on",
+        r"enhance\s+existing",
+        r"modify\s+existing",
+        r"use\s+existing",
+        r"found\s+(?:and\s+)?(?:used|reused)",
+        r"already\s+(?:has|have|exists)",
+        r"share(?:d)?\s+(?:utility|function|code)",
+        r"common\s+(?:code|logic|function)",
     ]
 
     # Consolidation patterns
     CONSOLIDATION_PATTERNS: List[str] = [
-        r'consolidat(?:e|ed|ing)',
-        r'merge(?:d|ing)?',
-        r'combine(?:d|ing)?',
-        r'eliminate\s+duplicate',
-        r'remove(?:d|ing)?\s+(?:redundant|duplicate|old)',
-        r'unified',
-        r'single\s+implementation',
-        r'deleted\s+(?:old|duplicate|redundant)',
-        r'extract(?:ed|ing)?\s+common',
-        r'shared\s+(?:utility|helper|function)'
+        r"consolidat(?:e|ed|ing)",
+        r"merge(?:d|ing)?",
+        r"combine(?:d|ing)?",
+        r"eliminate\s+duplicate",
+        r"remove(?:d|ing)?\s+(?:redundant|duplicate|old)",
+        r"unified",
+        r"single\s+implementation",
+        r"deleted\s+(?:old|duplicate|redundant)",
+        r"extract(?:ed|ing)?\s+common",
+        r"shared\s+(?:utility|helper|function)",
     ]
 
     # Config vs code patterns
     CONFIG_PATTERNS: List[str] = [
-        r'configuration',
-        r'config\s+file',
-        r'settings',
-        r'environment\s+variable',
-        r'\.env',
-        r'config\.(?:json|yaml|yml|toml)',
-        r'data-driven',
-        r'configurable',
-        r'setting\s+in\s+config',
-        r'through\s+configuration'
+        r"configuration",
+        r"config\s+file",
+        r"settings",
+        r"environment\s+variable",
+        r"\.env",
+        r"config\.(?:json|yaml|yml|toml)",
+        r"data-driven",
+        r"configurable",
+        r"setting\s+in\s+config",
+        r"through\s+configuration",
     ]
 
     def __init__(self, threshold: float = 0.8):
@@ -180,11 +180,11 @@ class CodeMinimizationMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            search_score * 0.30 +
-            loc_delta_score * 0.25 +
-            reuse_score * 0.20 +
-            consolidation_score * 0.15 +
-            config_score * 0.10
+            search_score * 0.30
+            + loc_delta_score * 0.25
+            + reuse_score * 0.20
+            + consolidation_score * 0.15
+            + config_score * 0.10
         )
 
         # Store results
@@ -195,7 +195,7 @@ class CodeMinimizationMetric(BaseMetric):
             reuse_score,
             consolidation_score,
             config_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -227,7 +227,8 @@ class CodeMinimizationMetric(BaseMetric):
         """
         # Check for search patterns
         search_matches = [
-            pattern for pattern in self.SEARCH_PATTERNS
+            pattern
+            for pattern in self.SEARCH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -235,8 +236,8 @@ class CodeMinimizationMetric(BaseMetric):
             return 0.0
 
         # Check if search happens early (first 30% of output)
-        output_lines = output.split('\n')
-        first_third = '\n'.join(output_lines[:len(output_lines)//3])
+        output_lines = output.split("\n")
+        first_third = "\n".join(output_lines[: len(output_lines) // 3])
 
         early_search = any(
             re.search(pattern, first_third, re.IGNORECASE)
@@ -282,12 +283,12 @@ class CodeMinimizationMetric(BaseMetric):
 
         # Check for negative delta (removed more than added)
         negative_delta_patterns = [
-            r'negative\s+delta',
-            r'removed\s+\d+\s+lines?',
-            r'reduced.*\d+\s+lines?',
-            r'eliminated.*\d+\s+lines?',
-            r'net.*-\d+',
-            r'zero\s+net\s+lines?'
+            r"negative\s+delta",
+            r"removed\s+\d+\s+lines?",
+            r"reduced.*\d+\s+lines?",
+            r"eliminated.*\d+\s+lines?",
+            r"net.*-\d+",
+            r"zero\s+net\s+lines?",
         ]
 
         has_negative_delta = any(
@@ -319,7 +320,8 @@ class CodeMinimizationMetric(BaseMetric):
         """
         # Count reuse patterns
         reuse_matches = [
-            pattern for pattern in self.REUSE_PATTERNS
+            pattern
+            for pattern in self.REUSE_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -355,7 +357,8 @@ class CodeMinimizationMetric(BaseMetric):
         """
         # Check for consolidation patterns
         consolidation_matches = [
-            pattern for pattern in self.CONSOLIDATION_PATTERNS
+            pattern
+            for pattern in self.CONSOLIDATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -410,7 +413,7 @@ class CodeMinimizationMetric(BaseMetric):
         reuse_score: float,
         consolidation_score: float,
         config_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -454,9 +457,7 @@ class CodeMinimizationMetric(BaseMetric):
 
         # Config issues (only flag if truly missing, not neutral)
         if config_score < 0.5 and config_score > 0.0:
-            reasons.append(
-                "Could consider configuration-driven approach"
-            )
+            reasons.append("Could consider configuration-driven approach")
 
         # Success message
         if not reasons:

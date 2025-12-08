@@ -168,9 +168,9 @@ class TestPMAgentPerformance:
             )
 
         # Absolute threshold
-        assert response_time_ms < 5000, (
-            f"PM response too slow: {response_time_ms:.2f}ms > 5000ms"
-        )
+        assert (
+            response_time_ms < 5000
+        ), f"PM response too slow: {response_time_ms:.2f}ms > 5000ms"
 
         print(f"\nPM Response Time (simple): {response_time_ms:.2f}ms")
 
@@ -208,13 +208,13 @@ class TestPMAgentPerformance:
         baseline = performance_tracker.get_baseline("pm_response_complex", "pm_agent")
         if baseline:
             regression_threshold = baseline * 1.5
-            assert response_time_ms < regression_threshold, (
-                f"Performance regression: {response_time_ms:.2f}ms"
-            )
+            assert (
+                response_time_ms < regression_threshold
+            ), f"Performance regression: {response_time_ms:.2f}ms"
 
-        assert response_time_ms < 10000, (
-            f"PM response too slow: {response_time_ms:.2f}ms"
-        )
+        assert (
+            response_time_ms < 10000
+        ), f"PM response too slow: {response_time_ms:.2f}ms"
 
         print(f"\nPM Response Time (complex): {response_time_ms:.2f}ms")
 
@@ -261,9 +261,9 @@ class TestPMAgentPerformance:
         baseline = performance_tracker.get_baseline("pm_throughput", "pm_agent")
         if baseline:
             regression_threshold = baseline * 0.7  # 30% slower = regression
-            assert throughput > regression_threshold, (
-                f"Throughput regression: {throughput:.2f} req/s < {regression_threshold:.2f}"
-            )
+            assert (
+                throughput > regression_threshold
+            ), f"Throughput regression: {throughput:.2f} req/s < {regression_threshold:.2f}"
 
         print(f"\nPM Throughput: {throughput:.2f} requests/sec")
 
@@ -323,9 +323,9 @@ class TestEvaluationMetricPerformance:
         )
 
         # Check performance
-        assert avg_time_ms < 100, (
-            f"Metric evaluation too slow: {avg_time_ms:.2f}ms > 100ms"
-        )
+        assert (
+            avg_time_ms < 100
+        ), f"Metric evaluation too slow: {avg_time_ms:.2f}ms > 100ms"
 
         print(f"\nDelegation Metric: {avg_time_ms:.2f}ms ± {std_dev_ms:.2f}ms")
 
@@ -419,9 +419,9 @@ class TestEvaluationMetricPerformance:
             },
         )
 
-        assert pipeline_time_ms < 500, (
-            f"Full pipeline too slow: {pipeline_time_ms:.2f}ms"
-        )
+        assert (
+            pipeline_time_ms < 500
+        ), f"Full pipeline too slow: {pipeline_time_ms:.2f}ms"
 
         print(f"\nFull Evaluation Pipeline: {pipeline_time_ms:.2f}ms")
 

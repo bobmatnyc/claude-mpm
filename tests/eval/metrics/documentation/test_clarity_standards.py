@@ -65,7 +65,7 @@ class TestClarityStandardsMetric:
             ## Changelog
             - v2.0.0: Added JWT support
             - v1.0.0: Initial release
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -98,7 +98,7 @@ class TestClarityStandardsMetric:
             Run the setup command to verify installation.
             Create a configuration file in your project root.
             Update the environment variables with your credentials.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -120,7 +120,7 @@ class TestClarityStandardsMetric:
             The database should be migrated before the application is started.
             Backups should be created before any changes are made.
             The deployment process is performed by the CI/CD pipeline.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -128,7 +128,9 @@ class TestClarityStandardsMetric:
         # Should penalize passive voice
         assert score < 0.85
         assert not metric.is_successful()
-        assert "Passive voice" in metric.reason or "active voice" in metric.reason.lower()
+        assert (
+            "Passive voice" in metric.reason or "active voice" in metric.reason.lower()
+        )
 
     def test_jargon_with_definitions(self):
         """Test jargon handling with proper definitions."""
@@ -153,7 +155,7 @@ class TestClarityStandardsMetric:
             # Authenticate with OAuth2
             curl -X POST /oauth/token
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -175,7 +177,7 @@ class TestClarityStandardsMetric:
 
             Use the IdP for authentication. Configure the SSO integration.
             Set up the MFA flow using TOTP.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -216,7 +218,7 @@ class TestClarityStandardsMetric:
             ```typescript
             const user = await client.getUser('123');
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -238,14 +240,17 @@ class TestClarityStandardsMetric:
 
             Authentication is required for all endpoints.
             Use your API key in the Authorization header.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
 
         # Should penalize missing code examples heavily (30% weight)
         assert score < 0.85
-        assert "code example" in metric.reason.lower() or "example" in metric.reason.lower()
+        assert (
+            "code example" in metric.reason.lower()
+            or "example" in metric.reason.lower()
+        )
 
     def test_concise_writing(self):
         """Test concise, direct writing style."""
@@ -268,7 +273,7 @@ class TestClarityStandardsMetric:
             2. Restore database backup
 
             Use the deployment script to automate these steps.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -295,7 +300,7 @@ class TestClarityStandardsMetric:
 
             Due to the fact that the application requires a database, you will need to
             set up PostgreSQL. At this point in time, we support PostgreSQL 12 and above.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -332,7 +337,7 @@ class TestClarityStandardsMetric:
             ## Changelog
             - v2.0.0: Added new features
             - v1.0.0: Initial release
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -354,14 +359,17 @@ class TestClarityStandardsMetric:
 
             ## API
             Some API details.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
 
         # Should miss completeness bonus
         # Missing Quick Start, Troubleshooting, Changelog
-        assert "required sections" in metric.reason.lower() or "section" in metric.reason.lower()
+        assert (
+            "required sections" in metric.reason.lower()
+            or "section" in metric.reason.lower()
+        )
 
     def test_comprehensive_documentation(self):
         """Test comprehensive documentation with all components."""
@@ -437,7 +445,7 @@ class TestClarityStandardsMetric:
             ### v2.0.0 (2025-11-01)
             - Breaking: Updated authentication
             - Added webhook support
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -479,7 +487,7 @@ class TestClarityStandardsMetric:
 
             ## Troubleshooting
             - 401: Invalid credentials
-            """
+            """,
         )
 
         async def run_async_test():
@@ -506,7 +514,7 @@ class TestClarityStandardsMetric:
             Backups are created automatically by the system.
 
             Verify the deployment using the health check endpoint.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -546,7 +554,7 @@ class TestClarityStandardsMetric:
             except APIError as e:
                 print(f"Error: {e}")
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -571,7 +579,7 @@ class TestClarityStandardsMetric:
             **MFA** (Multi-Factor Authentication) can be enabled in settings.
 
             See our PCI-DSS (Payment Card Industry Data Security Standard) compliance documentation.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -599,7 +607,7 @@ class TestClarityStandardsMetric:
             1. Node.js 18+
             2. PostgreSQL 14+
             3. Redis 6+
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -635,7 +643,7 @@ class TestClarityStandardsMetric:
             ```javascript
             await api.updateUser('123', { name: 'Bob' });
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)

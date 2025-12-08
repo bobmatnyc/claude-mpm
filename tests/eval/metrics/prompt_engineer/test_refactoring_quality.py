@@ -67,7 +67,7 @@ class TestRefactoringQualityMetric:
             - Emoji removal improves professional tone (research shows 40% better reception)
             - Token reduction leads to faster inference (therefore lower latency)
             - Structure improves comprehension (based on cognitive load studies)
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -86,7 +86,7 @@ class TestRefactoringQualityMetric:
 
             Original was unfocused, new version is streamlined.
             Reduced from 1000 tokens to 400 tokens.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -104,7 +104,7 @@ class TestRefactoringQualityMetric:
             - Was 800 tokens, now 300 tokens
             - Reduced by 62.5%
             - From 40 lines to 15 lines
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -130,7 +130,7 @@ class TestRefactoringQualityMetric:
             8. Maintainability: 5/5 - Easy to update
 
             Average score: 4.5/5
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -152,7 +152,7 @@ class TestRefactoringQualityMetric:
 
             Must-have changes first, nice-to-have later.
             Most important improvements at the top.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -174,7 +174,7 @@ class TestRefactoringQualityMetric:
             - Direct communication style
             - No emojis in output
             - 2025 modern patterns
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -197,7 +197,7 @@ class TestRefactoringQualityMetric:
             Based on research, structured prompts perform better.
             According to best practices, this approach works.
             The reason for each change is documented.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -213,7 +213,7 @@ class TestRefactoringQualityMetric:
             actual_output="""
             Made some changes to the prompt.
             It should work better now.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -231,7 +231,7 @@ class TestRefactoringQualityMetric:
             After: Shorter prompt
 
             Improved clarity and specificity.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -258,7 +258,7 @@ class TestRefactoringQualityMetric:
             After: 200 lines
             Improved clarity and specificity.
             Because shorter is better.
-            """
+            """,
         )
 
         async def run_async():
@@ -271,10 +271,7 @@ class TestRefactoringQualityMetric:
     def test_empty_output(self):
         """Test handling of empty output."""
         metric = RefactoringQualityMetric(threshold=0.80)
-        test_case = LLMTestCase(
-            input="Refactor",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Refactor", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -293,7 +290,7 @@ class TestRefactoringQualityMetric:
             - Priority: 1. High impact, 2. Medium, 3. Low
             - Claude 4.5: Extended thinking, parallel tools, no emojis
             - Rationale: because each change improves efficiency
-            """
+            """,
         )
 
         metric.measure(test_case)
@@ -303,10 +300,7 @@ class TestRefactoringQualityMetric:
     def test_reason_generation_failure(self):
         """Test reason generation for failed refactoring."""
         metric = RefactoringQualityMetric(threshold=0.80)
-        test_case = LLMTestCase(
-            input="Basic check",
-            actual_output="Made changes."
-        )
+        test_case = LLMTestCase(input="Basic check", actual_output="Made changes.")
 
         metric.measure(test_case)
 
@@ -367,7 +361,7 @@ class TestRefactoringQualityMetric:
             - According to studies, users prefer concise prompts
             - The reason for removal: reduces cognitive load
             - Hence the final result is superior
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -388,8 +382,7 @@ class TestRefactoringQualityMetric:
 
         for phrase in phrases:
             test_case = LLMTestCase(
-                input="Check",
-                actual_output=f"Changes: {phrase} in the prompt."
+                input="Check", actual_output=f"Changes: {phrase} in the prompt."
             )
             score = metric.measure(test_case)
             # Should detect comparison patterns
@@ -413,7 +406,7 @@ class TestRefactoringQualityMetric:
         for criterion in criteria:
             test_case = LLMTestCase(
                 input="Evaluate",
-                actual_output=f"Improved {criterion} by restructuring the prompt."
+                actual_output=f"Improved {criterion} by restructuring the prompt.",
             )
             score = metric.measure(test_case)
             # Should contribute to rubric score
@@ -430,7 +423,7 @@ class TestRefactoringQualityMetric:
             2. Second, add structure
             3. Third, reduce length
             4. Finally, polish wording
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -454,9 +447,8 @@ class TestRefactoringQualityMetric:
         for keyword in keywords:
             test_case = LLMTestCase(
                 input="Justify",
-                actual_output=f"Made this change {keyword} it improves clarity."
+                actual_output=f"Made this change {keyword} it improves clarity.",
             )
             score = metric.measure(test_case)
             # Should detect justification
             assert score >= 0.05, f"Failed for keyword: {keyword}"
-

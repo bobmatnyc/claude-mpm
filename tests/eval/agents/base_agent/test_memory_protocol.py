@@ -22,9 +22,7 @@ class TestMemoryProtocol:
         self.metric = MemoryProtocolMetric(threshold=0.9)
 
     def test_json_response_format_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that compliant JSON response format scores high.
 
@@ -35,7 +33,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_json_response_format_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing JSON response format fails.
 
@@ -59,7 +55,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_trigger_detection_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory trigger detection works correctly.
 
@@ -83,7 +77,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_trigger_detection_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing memory trigger detection fails.
 
@@ -107,7 +99,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_avoidance_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that obvious facts are not stored in memory.
 
@@ -131,7 +121,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -142,9 +132,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_avoidance_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that storing obvious facts fails.
 
@@ -155,7 +143,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -166,9 +154,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_consolidation_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory consolidation works correctly.
 
@@ -179,7 +165,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -190,9 +176,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_consolidation_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that fragmented memories fail.
 
@@ -203,7 +187,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -214,9 +198,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_update_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory updates work correctly.
 
@@ -227,20 +209,17 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
         assert score >= 0.9, (
-            f"Memory update should pass, got {score}\n"
-            f"Reason: {self.metric.reason}"
+            f"Memory update should pass, got {score}\n" f"Reason: {self.metric.reason}"
         )
         assert self.metric.is_successful()
 
     def test_memory_update_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that creating duplicates instead of updating fails.
 
@@ -251,7 +230,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -262,9 +241,7 @@ class TestMemoryProtocol:
         assert not self.metric.is_successful()
 
     def test_memory_size_limits_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that memory size limits are respected.
 
@@ -275,7 +252,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -286,9 +263,7 @@ class TestMemoryProtocol:
         assert self.metric.is_successful()
 
     def test_memory_size_limits_non_compliant(
-        self,
-        memory_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, memory_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that overly verbose memories fail.
 
@@ -299,7 +274,7 @@ class TestMemoryProtocol:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

@@ -48,7 +48,7 @@ class TestTokenEfficiencyMetric:
             - XML tags for complex structured sections
             - Markdown headers for navigation
             - Bullet points for concise lists
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -68,7 +68,7 @@ class TestTokenEfficiencyMetric:
             - Reduction: 60% fewer tokens
 
             Cut length by removing verbose explanations.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -87,7 +87,7 @@ class TestTokenEfficiencyMetric:
             - Static system prompts separated from dynamic content
             - Achieved 95% cache hit rate
             - Variable data moved to user messages
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -107,7 +107,7 @@ class TestTokenEfficiencyMetric:
             - Applied DRY principle
             - Single source of truth for guidelines
             - Merged repeated warnings
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -140,7 +140,7 @@ class TestTokenEfficiencyMetric:
             Bullet points for clarity:
             - Point 1
             - Point 2
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -156,7 +156,7 @@ class TestTokenEfficiencyMetric:
             actual_output="""
             The prompt looks fine. No changes needed.
             Everything appears to be working correctly.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -175,7 +175,7 @@ class TestTokenEfficiencyMetric:
             - Reduced from 400 to 200 lines
 
             Could further improve caching.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -201,7 +201,7 @@ class TestTokenEfficiencyMetric:
             Optimized with 50% token reduction.
             Cache-efficient structure.
             Removed redundant sections.
-            """
+            """,
         )
 
         async def run_async():
@@ -214,10 +214,7 @@ class TestTokenEfficiencyMetric:
     def test_empty_output(self):
         """Test handling of empty output."""
         metric = TokenEfficiencyMetric(threshold=0.80)
-        test_case = LLMTestCase(
-            input="Optimize",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Optimize", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -235,7 +232,7 @@ class TestTokenEfficiencyMetric:
             - 92% cache hit rate
             - Removed all redundant duplicate content
             - XML structured output with markdown headers
-            """
+            """,
         )
 
         metric.measure(test_case)
@@ -245,10 +242,7 @@ class TestTokenEfficiencyMetric:
     def test_reason_generation_failure(self):
         """Test reason generation for failed optimization."""
         metric = TokenEfficiencyMetric(threshold=0.80)
-        test_case = LLMTestCase(
-            input="Basic check",
-            actual_output="Looks good."
-        )
+        test_case = LLMTestCase(input="Basic check", actual_output="Looks good.")
 
         metric.measure(test_case)
 
@@ -294,7 +288,7 @@ class TestTokenEfficiencyMetric:
             ```python
             example()
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -315,8 +309,7 @@ class TestTokenEfficiencyMetric:
 
         for phrase in phrases:
             test_case = LLMTestCase(
-                input="Check",
-                actual_output=f"Improvement: {phrase} in the prompt."
+                input="Check", actual_output=f"Improvement: {phrase} in the prompt."
             )
             score = metric.measure(test_case)
             # Should detect reduction-related content
@@ -331,7 +324,7 @@ class TestTokenEfficiencyMetric:
         for rate in rates:
             test_case = LLMTestCase(
                 input="Check cache",
-                actual_output=f"Achieved {rate} cache hit rate with optimized structure."
+                actual_output=f"Achieved {rate} cache hit rate with optimized structure.",
             )
             score = metric.measure(test_case)
             # Should detect cache optimization
@@ -346,7 +339,7 @@ class TestTokenEfficiencyMetric:
             Applied DRY (Don't Repeat Yourself) principle:
             - Single source of truth for all rules
             - No duplicate instructions
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -369,11 +362,10 @@ class TestTokenEfficiencyMetric:
             ## Section Header
 
             Both formats optimized for clarity.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
 
         # Should detect both structure types
         assert score >= 0.15
-

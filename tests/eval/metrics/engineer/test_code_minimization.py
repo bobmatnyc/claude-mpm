@@ -47,7 +47,7 @@ Consolidation opportunities identified:
 Using configuration-driven approach:
 - JWT secret from environment variable (JWT_SECRET)
 - Token expiry configurable in config.json
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -67,7 +67,7 @@ Using configuration-driven approach:
 Searching for existing email validation...
 Used vector search and grep to find similar implementations.
 Found validators.py with email regex, will extend it.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -87,7 +87,7 @@ Refactored authentication module:
 - Added 20 lines for new OAuth support
 - Removed 30 lines of duplicate code
 - Net LOC delta: -10 lines (negative delta achieved)
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -107,7 +107,7 @@ Leveraging existing crypto utilities:
 - Extended existing hash_password function
 - Reused salt generation from common.crypto module
 - Built on existing password validation logic
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -127,7 +127,7 @@ Consolidation completed:
 - Merged duplicate string helpers into shared utility
 - Combined three similar validation functions
 - Eliminated redundant date formatters
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -147,14 +147,16 @@ Implemented through configuration:
 - Added FEATURE_ENABLED to environment variables
 - Feature controlled via config.yaml settings
 - No hardcoded feature logic
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score well on config component
         # Actual: config=1.0*0.10 = 0.10
-        assert score >= 0.08, f"Expected score >= 0.08 with config approach, got {score}"
+        assert (
+            score >= 0.08
+        ), f"Expected score >= 0.08 with config approach, got {score}"
 
     def test_no_search_penalty(self):
         """Test penalty for missing search-first workflow."""
@@ -166,7 +168,7 @@ Implemented through configuration:
 Created new authentication module from scratch.
 Added 200 lines of code.
 Implemented JWT validation, password hashing, session management.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -186,7 +188,7 @@ Implemented JWT validation, password hashing, session management.
 Implemented new logging system.
 Added comprehensive logging throughout the application.
 All modules now have proper logging.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -209,7 +211,7 @@ Grep revealed common validation utilities.
 Now implementing based on existing patterns...
 Extended existing validator class.
 Net LOC delta: -3 lines.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -223,7 +225,7 @@ Net LOC delta: -3 lines.
         metric_pass = CodeMinimizationMetric(threshold=0.8)
         test_case_pass = LLMTestCase(
             input="Test",
-            actual_output="Vector search found existing code. Reused. Net LOC: -5."
+            actual_output="Vector search found existing code. Reused. Net LOC: -5.",
         )
         score_pass = metric_pass.measure(test_case_pass)
         # Actual: search=0.5, loc=1.0, reuse=0.5 → 0.55
@@ -233,7 +235,7 @@ Net LOC delta: -3 lines.
         metric_fail = CodeMinimizationMetric(threshold=0.8)
         test_case_fail = LLMTestCase(
             input="Test",
-            actual_output="Created new implementation with 200 lines of code."
+            actual_output="Created new implementation with 200 lines of code.",
         )
         score_fail = metric_fail.measure(test_case_fail)
         assert not metric_fail.is_successful()
@@ -254,10 +256,7 @@ class TestCodeMinimizationEdgeCases:
         """Test metric with empty output."""
         metric = CodeMinimizationMetric(threshold=0.8)
 
-        test_case = LLMTestCase(
-            input="Test",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Test", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -269,10 +268,7 @@ class TestCodeMinimizationEdgeCases:
         """Test metric with minimal output."""
         metric = CodeMinimizationMetric(threshold=0.8)
 
-        test_case = LLMTestCase(
-            input="Test",
-            actual_output="Done."
-        )
+        test_case = LLMTestCase(input="Test", actual_output="Done.")
 
         score = metric.measure(test_case)
 
@@ -290,7 +286,7 @@ class TestCodeMinimizationEdgeCases:
 First searching with vector search for similar implementations.
 Then using grep to find specific patterns.
 Also checked existing codebase for duplicates.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -305,12 +301,11 @@ Also checked existing codebase for duplicates.
 
         test_case_negative = LLMTestCase(
             input="Test",
-            actual_output="Refactored code. Net LOC delta: -50 lines (negative delta)."
+            actual_output="Refactored code. Net LOC delta: -50 lines (negative delta).",
         )
 
         test_case_positive = LLMTestCase(
-            input="Test",
-            actual_output="Added feature. Net LOC delta: +50 lines."
+            input="Test", actual_output="Added feature. Net LOC delta: +50 lines."
         )
 
         score_negative = metric.measure(test_case_negative)

@@ -22,9 +22,7 @@ class TestOutputRequirements:
         self.metric = SamplingStrategyMetric(threshold=0.85)
 
     def test_file_list_inclusion_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that file list inclusion scores high.
 
@@ -35,7 +33,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -46,9 +44,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_file_list_inclusion_non_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that missing file list fails.
 
@@ -59,7 +55,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -70,9 +66,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_pattern_analysis_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that pattern analysis scores high.
 
@@ -83,7 +77,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -94,9 +88,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_pattern_analysis_non_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that raw observations fail.
 
@@ -107,7 +99,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,9 +110,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_representative_samples_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that representative samples score high.
 
@@ -131,7 +121,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -142,9 +132,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_representative_samples_non_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague descriptions fail.
 
@@ -155,7 +143,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -166,9 +154,7 @@ class TestOutputRequirements:
         assert not self.metric.is_successful()
 
     def test_actionable_recommendations_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that actionable recommendations score high.
 
@@ -179,7 +165,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -190,9 +176,7 @@ class TestOutputRequirements:
         assert self.metric.is_successful()
 
     def test_actionable_recommendations_non_compliant(
-        self,
-        output_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        self, output_scenarios: List[Dict[str, Any]], get_scenario_by_id: Callable
     ) -> None:
         """Test that vague suggestions fail.
 
@@ -203,7 +187,7 @@ class TestOutputRequirements:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

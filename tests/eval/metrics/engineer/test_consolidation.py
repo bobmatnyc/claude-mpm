@@ -45,7 +45,7 @@ Consolidation process:
 
 Result: Single canonical implementation at auth.py
 Verified: No duplicate authentication paths remain
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -67,7 +67,7 @@ Vector search revealed duplicate implementations:
 - Found similar function in helpers.py (90% similar)
 - Existing implementation in utils.py overlaps
 - Redundant code detected in validators.py
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -92,7 +92,7 @@ Shared logic extraction:
 - common_validators.py vs user_validators.py: 55% shared
 - Different domains (common vs user-specific)
 - Decision: Extract common logic into shared utility
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -113,7 +113,7 @@ Consolidation implementation:
 3. Changed imports across 7 files
 4. Removed obsolete duplicate_handler.py
 5. Established canonical implementation at utils/handlers.py
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -134,7 +134,7 @@ Single implementation path established:
 - Removed duplicate implementation from helpers.py
 - Deleted alternate path from legacy_auth.py
 - Canonical version documented in auth.py
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -155,7 +155,7 @@ Cleanup completed:
 - Deleted validators_v2.py
 - Removed backup files: utils_backup.py
 - Cleaned up test_helper_old.py
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -174,7 +174,7 @@ Cleanup completed:
 Implemented new authentication module.
 Created auth.py with JWT validation.
 Added password hashing functionality.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -193,7 +193,7 @@ Added password hashing functionality.
             actual_output="""
 Found duplicate code in helpers.py.
 Merged files together.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -213,7 +213,7 @@ Similarity analysis:
 - Module A vs Module B: 82% similar
 - Exceeds 80% threshold for same domain
 - Decision: Consolidate into single implementation
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -236,14 +236,16 @@ Domain analysis:
 - user_validator.py: user domain
 - common_validator.py: common utilities domain
 - Different domains, 60% shared → Extract common abstraction
-"""
+""",
         )
 
         score = metric.measure(test_case)
 
         # Should score well with domain analysis
         # Actual: 0.58 (detection=0.5, decision=0.8, impl=0.5)
-        assert score >= 0.55, f"Expected score >= 0.55 with domain analysis, got {score}"
+        assert (
+            score >= 0.55
+        ), f"Expected score >= 0.55 with domain analysis, got {score}"
 
     def test_threshold_enforcement(self):
         """Test threshold pass/fail logic."""
@@ -256,7 +258,7 @@ Found duplicate (85% similar, same domain).
 Consolidated into single implementation.
 Updated references, removed old file.
 Single canonical path established.
-"""
+""",
         )
         score_pass = metric_pass.measure(test_case_pass)
         assert score_pass >= 0.8 or metric_pass.is_successful()
@@ -264,8 +266,7 @@ Single canonical path established.
         # Test failing case
         metric_fail = ConsolidationMetric(threshold=0.85)
         test_case_fail = LLMTestCase(
-            input="Test",
-            actual_output="Created new implementation."
+            input="Test", actual_output="Created new implementation."
         )
         score_fail = metric_fail.measure(test_case_fail)
         assert not metric_fail.is_successful()
@@ -286,10 +287,7 @@ class TestConsolidationEdgeCases:
         """Test metric with empty output."""
         metric = ConsolidationMetric(threshold=0.85)
 
-        test_case = LLMTestCase(
-            input="Test",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Test", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -307,7 +305,7 @@ class TestConsolidationEdgeCases:
 Searched for duplicates using vector search and grep.
 No similar implementations found.
 Proceeding with new implementation as no consolidation needed.
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -340,7 +338,7 @@ Step 4: Verification
 - Only ONE authentication implementation remains
 - No duplicate paths
 - Cleanup complete
-"""
+""",
         )
 
         score = metric.measure(test_case)
@@ -359,7 +357,7 @@ Step 4: Verification
             actual_output="""
 Found duplicate code (85% similar).
 Merged files together.
-"""
+""",
         )
 
         score = metric.measure(test_case)

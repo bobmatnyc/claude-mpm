@@ -175,7 +175,8 @@ def main():
 
 def print_usage_examples():
     """Print helpful usage examples."""
-    print("""
+    print(
+        """
 Common Usage Patterns:
 
 1. Quick Validation (default)
@@ -197,7 +198,8 @@ Common Usage Patterns:
 5. CI/CD Integration
    python tests/eval/run_pm_validation.py --pytest-args "--tb=short"
    → Concise output for automated pipelines
-""")
+"""
+    )
 
 
 if __name__ == "__main__":

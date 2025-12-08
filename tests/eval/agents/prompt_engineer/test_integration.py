@@ -27,7 +27,12 @@ from tests.eval.metrics.prompt_engineer import (
 @pytest.fixture
 def scenarios_path() -> Path:
     """Return path to scenarios JSON file."""
-    return Path(__file__).parent.parent.parent / "scenarios" / "prompt_engineer" / "prompt_engineer_scenarios.json"
+    return (
+        Path(__file__).parent.parent.parent
+        / "scenarios"
+        / "prompt_engineer"
+        / "prompt_engineer_scenarios.json"
+    )
 
 
 @pytest.fixture
@@ -76,7 +81,9 @@ class TestScenarioFileIntegrity:
 
     def test_scenario_count(self, all_scenarios: list[dict]):
         """Verify expected number of scenarios."""
-        assert len(all_scenarios) == 16, f"Expected 16 scenarios, got {len(all_scenarios)}"
+        assert (
+            len(all_scenarios) == 16
+        ), f"Expected 16 scenarios, got {len(all_scenarios)}"
 
     def test_category_counts(
         self,
@@ -87,7 +94,9 @@ class TestScenarioFileIntegrity:
     ):
         """Verify scenario counts per category."""
         assert len(anti_pattern_scenarios) == 5, "Expected 5 anti-pattern scenarios"
-        assert len(token_efficiency_scenarios) == 4, "Expected 4 token efficiency scenarios"
+        assert (
+            len(token_efficiency_scenarios) == 4
+        ), "Expected 4 token efficiency scenarios"
         assert len(refactoring_scenarios) == 3, "Expected 3 refactoring scenarios"
         assert len(claude45_scenarios) == 4, "Expected 4 Claude 4.5 scenarios"
 
@@ -108,7 +117,9 @@ class TestScenarioFileIntegrity:
 
         for scenario in all_scenarios:
             for field in required_fields:
-                assert field in scenario, f"Missing {field} in scenario {scenario.get('id', 'unknown')}"
+                assert (
+                    field in scenario
+                ), f"Missing {field} in scenario {scenario.get('id', 'unknown')}"
 
     def test_unique_scenario_ids(self, all_scenarios: list[dict]):
         """Verify all scenario IDs are unique."""
@@ -124,9 +135,9 @@ class TestScenarioFileIntegrity:
         ]
 
         for scenario in all_scenarios:
-            assert scenario["metric"] in valid_metrics, (
-                f"Invalid metric {scenario['metric']} in {scenario['id']}"
-            )
+            assert (
+                scenario["metric"] in valid_metrics
+            ), f"Invalid metric {scenario['metric']} in {scenario['id']}"
 
 
 class TestAntiPatternScenarios:
@@ -137,7 +148,9 @@ class TestAntiPatternScenarios:
         """Create anti-pattern detection metric."""
         return AntiPatternDetectionMetric(threshold=0.85)
 
-    def test_emoji_detection_compliant(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_emoji_detection_compliant(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test emoji detection with compliant response."""
         scenario = next(s for s in anti_pattern_scenarios if "Emoji" in s["name"])
         test_case = LLMTestCase(
@@ -147,10 +160,14 @@ class TestAntiPatternScenarios:
 
         score = metric.measure(test_case)
 
-        assert score >= scenario["threshold"], f"Score {score} below threshold {scenario['threshold']}"
+        assert (
+            score >= scenario["threshold"]
+        ), f"Score {score} below threshold {scenario['threshold']}"
         assert metric.is_successful()
 
-    def test_emoji_detection_non_compliant(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_emoji_detection_non_compliant(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test emoji detection with non-compliant response."""
         scenario = next(s for s in anti_pattern_scenarios if "Emoji" in s["name"])
         test_case = LLMTestCase(
@@ -160,11 +177,17 @@ class TestAntiPatternScenarios:
 
         score = metric.measure(test_case)
 
-        assert score < scenario["threshold"], "Non-compliant response should score below threshold"
+        assert (
+            score < scenario["threshold"]
+        ), "Non-compliant response should score below threshold"
 
-    def test_overspecification_detection(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_overspecification_detection(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test over-specification detection."""
-        scenario = next(s for s in anti_pattern_scenarios if "Over-Specification" in s["name"])
+        scenario = next(
+            s for s in anti_pattern_scenarios if "Over-Specification" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -174,7 +197,9 @@ class TestAntiPatternScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_generic_prompt_detection(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_generic_prompt_detection(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test generic prompt detection."""
         scenario = next(s for s in anti_pattern_scenarios if "Generic" in s["name"])
         test_case = LLMTestCase(
@@ -186,7 +211,9 @@ class TestAntiPatternScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_cache_hostile_detection(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_cache_hostile_detection(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test cache-hostile pattern detection."""
         scenario = next(s for s in anti_pattern_scenarios if "Cache" in s["name"])
         test_case = LLMTestCase(
@@ -198,7 +225,9 @@ class TestAntiPatternScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_negative_instruction_detection(self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric):
+    def test_negative_instruction_detection(
+        self, anti_pattern_scenarios: list[dict], metric: AntiPatternDetectionMetric
+    ):
         """Test negative instruction detection."""
         scenario = next(s for s in anti_pattern_scenarios if "Negative" in s["name"])
         test_case = LLMTestCase(
@@ -219,9 +248,13 @@ class TestTokenEfficiencyScenarios:
         """Create token efficiency metric."""
         return TokenEfficiencyMetric(threshold=0.80)
 
-    def test_token_reduction_compliant(self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric):
+    def test_token_reduction_compliant(
+        self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric
+    ):
         """Test token reduction with compliant response."""
-        scenario = next(s for s in token_efficiency_scenarios if "Reduction" in s["name"])
+        scenario = next(
+            s for s in token_efficiency_scenarios if "Reduction" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -231,9 +264,13 @@ class TestTokenEfficiencyScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_cache_optimization(self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric):
+    def test_cache_optimization(
+        self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric
+    ):
         """Test cache optimization."""
-        scenario = next(s for s in token_efficiency_scenarios if "Cache Optimization" in s["name"])
+        scenario = next(
+            s for s in token_efficiency_scenarios if "Cache Optimization" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -243,9 +280,13 @@ class TestTokenEfficiencyScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_redundancy_elimination(self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric):
+    def test_redundancy_elimination(
+        self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric
+    ):
         """Test redundancy elimination."""
-        scenario = next(s for s in token_efficiency_scenarios if "Redundancy" in s["name"])
+        scenario = next(
+            s for s in token_efficiency_scenarios if "Redundancy" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -255,9 +296,13 @@ class TestTokenEfficiencyScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_structural_optimization(self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric):
+    def test_structural_optimization(
+        self, token_efficiency_scenarios: list[dict], metric: TokenEfficiencyMetric
+    ):
         """Test structural optimization."""
-        scenario = next(s for s in token_efficiency_scenarios if "Structural" in s["name"])
+        scenario = next(
+            s for s in token_efficiency_scenarios if "Structural" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -276,7 +321,9 @@ class TestRefactoringScenarios:
         """Create refactoring quality metric."""
         return RefactoringQualityMetric(threshold=0.80)
 
-    def test_before_after_comparison(self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_before_after_comparison(
+        self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test before/after comparison."""
         scenario = next(s for s in refactoring_scenarios if "Before/After" in s["name"])
         test_case = LLMTestCase(
@@ -288,7 +335,9 @@ class TestRefactoringScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_quality_rubric(self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_quality_rubric(
+        self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test quality rubric application."""
         scenario = next(s for s in refactoring_scenarios if "Rubric" in s["name"])
         test_case = LLMTestCase(
@@ -300,9 +349,13 @@ class TestRefactoringScenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_prioritization(self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_prioritization(
+        self, refactoring_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test improvement prioritization."""
-        scenario = next(s for s in refactoring_scenarios if "Prioritization" in s["name"])
+        scenario = next(
+            s for s in refactoring_scenarios if "Prioritization" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -321,9 +374,13 @@ class TestClaude45Scenarios:
         """Create refactoring quality metric for Claude 4.5 tests."""
         return RefactoringQualityMetric(threshold=0.80)
 
-    def test_extended_thinking(self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_extended_thinking(
+        self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test extended thinking configuration."""
-        scenario = next(s for s in claude45_scenarios if "Extended Thinking" in s["name"])
+        scenario = next(
+            s for s in claude45_scenarios if "Extended Thinking" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -333,7 +390,9 @@ class TestClaude45Scenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_parallel_tools(self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_parallel_tools(
+        self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test parallel tool execution."""
         scenario = next(s for s in claude45_scenarios if "Parallel" in s["name"])
         test_case = LLMTestCase(
@@ -345,9 +404,13 @@ class TestClaude45Scenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_structured_output(self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_structured_output(
+        self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test structured output enforcement."""
-        scenario = next(s for s in claude45_scenarios if "Structured Output" in s["name"])
+        scenario = next(
+            s for s in claude45_scenarios if "Structured Output" in s["name"]
+        )
         test_case = LLMTestCase(
             input=scenario["input"],
             actual_output=scenario["compliant_mock_response"],
@@ -357,7 +420,9 @@ class TestClaude45Scenarios:
 
         assert score >= scenario["threshold"]
 
-    def test_professional_style(self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric):
+    def test_professional_style(
+        self, claude45_scenarios: list[dict], metric: RefactoringQualityMetric
+    ):
         """Test professional communication style."""
         scenario = next(s for s in claude45_scenarios if "Professional" in s["name"])
         test_case = LLMTestCase(
@@ -564,4 +629,3 @@ class TestPromptEngineerWorkflows:
 
         assert score >= 0.80
         assert metric.is_successful()
-

@@ -57,7 +57,7 @@ class TestAudienceAwarenessMetric:
             **Version**: 2.1.0
             **Last Updated**: December 6, 2025
             **Tested with**: Node.js 20.x
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -111,7 +111,7 @@ class TestAudienceAwarenessMetric:
 
             **Version**: 2.0
             **Last Updated**: December 6, 2025
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -140,7 +140,7 @@ class TestAudienceAwarenessMetric:
               headers: { 'Authorization': 'Bearer ' + token }
             });
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -163,7 +163,7 @@ class TestAudienceAwarenessMetric:
             - Data processing
             - Analytics dashboard
             - Export functionality
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -216,7 +216,7 @@ class TestAudienceAwarenessMetric:
 
             **References**:
             - See [Cache-Aside Pattern](https://example.com/patterns/cache-aside)
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -258,7 +258,7 @@ class TestAudienceAwarenessMetric:
             **Troubleshooting**:
             - **Can't find the gear icon?** Look in the top-right corner of any page
             - **Changes not saving?** Try refreshing the page
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -290,7 +290,7 @@ class TestAudienceAwarenessMetric:
 
             Click "Download" when ready. The architecture uses a distributed
             task queue for scalability.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -317,7 +317,7 @@ class TestAudienceAwarenessMetric:
             Monitor metrics in internal.example.com/grafana.
 
             Contact @platform.team@company.com for support.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -351,7 +351,7 @@ class TestAudienceAwarenessMetric:
             - **Open Source SDK**: https://github.com/example/sdk
 
             This is a public API available to all developers.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -386,7 +386,7 @@ class TestAudienceAwarenessMetric:
             - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
             See the [glossary](#glossary) for term definitions.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -413,7 +413,7 @@ class TestAudienceAwarenessMetric:
             ```
 
             Analyze query plans using EXPLAIN ANALYZE.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -448,7 +448,7 @@ class TestAudienceAwarenessMetric:
             // Current (v2.x)
             const token = await auth.getToken();
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -477,7 +477,7 @@ class TestAudienceAwarenessMetric:
             ```javascript
             const user = await api.createUser({ name: 'Alice' });
             ```
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -514,7 +514,7 @@ class TestAudienceAwarenessMetric:
             from sdk import Client
             client = Client(api_key='key')
             ```
-            """
+            """,
         )
 
         async def run_async_test():
@@ -552,7 +552,7 @@ class TestAudienceAwarenessMetric:
             **Monitoring**: https://grafana.internal.example.com
 
             Contact platform.team@company.com for issues.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -597,7 +597,7 @@ class TestAudienceAwarenessMetric:
             1. Choose date range
             2. Click "Export" button
             3. Select format (CSV, JSON, Excel)
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -625,7 +625,7 @@ class TestAudienceAwarenessMetric:
             Navigate to https://nodejs.org and download the installer.
 
             Click "Install" and follow the prompts.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -666,7 +666,7 @@ class TestAudienceAwarenessMetric:
             **References**:
             - [Microservices Patterns](https://microservices.io/patterns)
             - [RFC 7519: JWT](https://tools.ietf.org/html/rfc7519)
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -702,7 +702,7 @@ class TestAudienceAwarenessMetric:
 
             **Version**: 2.5.0
             **Last Updated**: December 6, 2025
-            """
+            """,
         )
 
         score = metric.measure(test_case)

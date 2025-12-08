@@ -15,4 +15,4 @@ Usage:
     pytest tests/eval/agents/ops/test_integration.py -v
 """
 
-__all__ = ['test_integration']
+__all__ = ["test_integration"]

@@ -56,7 +56,7 @@ class TestPMVerificationGate:
     def test_ui_feature_verification_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that compliant UI feature verification scores high.
 
@@ -70,7 +70,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -85,7 +85,7 @@ class TestPMVerificationGate:
     def test_ui_feature_verification_non_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that non-compliant UI feature claim (no QA) fails.
 
@@ -99,7 +99,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -118,7 +118,7 @@ class TestPMVerificationGate:
     def test_api_deployment_verification_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that compliant API deployment verification scores high.
 
@@ -132,7 +132,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -147,7 +147,7 @@ class TestPMVerificationGate:
     def test_api_deployment_verification_non_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that claiming API working without endpoint test fails.
 
@@ -161,7 +161,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -180,7 +180,7 @@ class TestPMVerificationGate:
     def test_bug_fix_verification_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that compliant bug fix verification scores high.
 
@@ -194,7 +194,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -209,7 +209,7 @@ class TestPMVerificationGate:
     def test_bug_fix_verification_non_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that claiming bug fixed without QA regression fails.
 
@@ -223,7 +223,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -242,7 +242,7 @@ class TestPMVerificationGate:
     def test_fullstack_feature_verification_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that compliant full-stack feature verification scores high.
 
@@ -256,7 +256,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -271,7 +271,7 @@ class TestPMVerificationGate:
     def test_fullstack_feature_verification_non_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that claiming feature complete without integration test fails.
 
@@ -285,7 +285,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -304,7 +304,7 @@ class TestPMVerificationGate:
     def test_test_execution_verification_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that compliant test execution verification scores high.
 
@@ -318,7 +318,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["compliant"]
+            actual_output=scenario["mock_response"]["compliant"],
         )
 
         score = self.metric.measure(test_case)
@@ -333,7 +333,7 @@ class TestPMVerificationGate:
     def test_test_execution_verification_non_compliant(
         self,
         pm_verification_gate_scenarios: List[Dict[str, Any]],
-        get_scenario_by_id: Callable
+        get_scenario_by_id: Callable,
     ) -> None:
         """Test that accepting 'tests passed' claim without QA fails.
 
@@ -347,7 +347,7 @@ class TestPMVerificationGate:
 
         test_case = LLMTestCase(
             input=scenario["input"]["user_request"],
-            actual_output=scenario["mock_response"]["non_compliant"]
+            actual_output=scenario["mock_response"]["non_compliant"],
         )
 
         score = self.metric.measure(test_case)

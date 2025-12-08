@@ -13,7 +13,9 @@ from verification_compliance import (
 )
 
 
-def print_result(name: str, test_case: LLMTestCase, metric: VerificationComplianceMetric):
+def print_result(
+    name: str, test_case: LLMTestCase, metric: VerificationComplianceMetric
+):
     """Print metric evaluation result."""
     score = metric.measure(test_case)
     passed = "✓ PASS" if metric.is_successful() else "✗ FAIL"
@@ -61,8 +63,7 @@ def demo_perfect_compliance():
     """
 
     test_case = LLMTestCase(
-        input="Edit config to disable debug mode",
-        actual_output=output
+        input="Edit config to disable debug mode", actual_output=output
     )
 
     print_result("Perfect Compliance", test_case, metric)
@@ -77,10 +78,7 @@ def demo_edit_without_verification():
     The change should work correctly.
     """
 
-    test_case = LLMTestCase(
-        input="Edit config",
-        actual_output=output
-    )
+    test_case = LLMTestCase(input="Edit config", actual_output=output)
 
     print_result("Edit Without Verification", test_case, metric)
 
@@ -98,10 +96,7 @@ def demo_unsubstantiated_claims():
     It could be optimized later.
     """
 
-    test_case = LLMTestCase(
-        input="Fix auth bug",
-        actual_output=output
-    )
+    test_case = LLMTestCase(input="Fix auth bug", actual_output=output)
 
     print_result("Unsubstantiated Claims", test_case, metric)
 
@@ -121,10 +116,7 @@ def demo_deployment_health_check():
     All services verified operational.
     """
 
-    test_case = LLMTestCase(
-        input="Deploy to staging",
-        actual_output=output
-    )
+    test_case = LLMTestCase(input="Deploy to staging", actual_output=output)
 
     print_result("Deployment with Health Check", test_case, metric)
 
@@ -141,10 +133,7 @@ def demo_strict_mode():
     This should work correctly.
     """
 
-    test_case = LLMTestCase(
-        input="Edit config",
-        actual_output=output
-    )
+    test_case = LLMTestCase(input="Edit config", actual_output=output)
 
     print_result("Strict Mode (Zero Tolerance)", test_case, metric)
 

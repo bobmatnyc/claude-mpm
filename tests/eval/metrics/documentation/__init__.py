@@ -19,5 +19,5 @@ __all__ = [
     "AudienceAwarenessMetric",
     "ClarityStandardsMetric",
     "create_audience_awareness_metric",
-    "create_clarity_standards_metric"
+    "create_clarity_standards_metric",
 ]

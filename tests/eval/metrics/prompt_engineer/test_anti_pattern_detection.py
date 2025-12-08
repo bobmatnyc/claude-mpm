@@ -48,7 +48,7 @@ class TestAntiPatternDetectionMetric:
             ### Negative Instructions
             Found "Don't X" patterns - convert to positive framing with "Do Y instead".
             Negative instructions should be rewritten as affirmative guidance.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -65,7 +65,7 @@ class TestAntiPatternDetectionMetric:
             Emoji anti-pattern detected. Remove all decorative emojis from the prompt.
             Professional communication should be emoji-free. Avoid using emojis
             as they reduce clarity and professionalism.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -77,7 +77,7 @@ class TestAntiPatternDetectionMetric:
         metric = AntiPatternDetectionMetric(threshold=0.85)
         test_case = LLMTestCase(
             input="Analyze the prompt",
-            actual_output="Great job! The prompt looks good."
+            actual_output="Great job! The prompt looks good.",
         )
 
         score = metric.measure(test_case)
@@ -96,7 +96,7 @@ class TestAntiPatternDetectionMetric:
             Reduce verbosity from 700 lines to under 200 lines.
             Consolidate redundant step-by-step instructions.
             Too verbose - needs streamlining.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -114,7 +114,7 @@ class TestAntiPatternDetectionMetric:
             lack specific context and measurable criteria.
             Need to add concrete requirements and clear success metrics.
             Make the prompt more specific with actionable goals.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -132,7 +132,7 @@ class TestAntiPatternDetectionMetric:
             causes cache invalidation. Separate static and dynamic content
             to achieve 90% cache hit rates. Move timestamps and user-specific
             data out of the system prompt for cache efficiency.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -150,7 +150,7 @@ class TestAntiPatternDetectionMetric:
             positive framing with "Do Y instead". Use affirmative language
             to tell the model what to do, not what to avoid.
             Rewrite all negative instructions as constructive guidance.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -166,7 +166,7 @@ class TestAntiPatternDetectionMetric:
             actual_output="""
             The prompt looks fine. No issues found.
             Everything is working correctly.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -183,7 +183,7 @@ class TestAntiPatternDetectionMetric:
             Found some issues:
             - Remove emojis from the prompt (emoji anti-pattern)
             - The prompt is too verbose, consider streamlining
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -209,7 +209,7 @@ class TestAntiPatternDetectionMetric:
             Emoji detection: remove all decorative emojis.
             Over-specification: reduce verbose instructions.
             Cache-hostile: separate variable data.
-            """
+            """,
         )
 
         async def run_async():
@@ -222,10 +222,7 @@ class TestAntiPatternDetectionMetric:
     def test_empty_output(self):
         """Test handling of empty output."""
         metric = AntiPatternDetectionMetric(threshold=0.85)
-        test_case = LLMTestCase(
-            input="Analyze",
-            actual_output=""
-        )
+        test_case = LLMTestCase(input="Analyze", actual_output="")
 
         score = metric.measure(test_case)
 
@@ -244,7 +241,7 @@ class TestAntiPatternDetectionMetric:
             3. Generic prompt: Add specific measurable criteria
             4. Cache-hostile: Achieve 90% cache hit with static separation
             5. Negative instructions: Convert "Don't X" to positive framing
-            """
+            """,
         )
 
         metric.measure(test_case)
@@ -254,10 +251,7 @@ class TestAntiPatternDetectionMetric:
     def test_reason_generation_failure(self):
         """Test reason generation for failed detection."""
         metric = AntiPatternDetectionMetric(threshold=0.85)
-        test_case = LLMTestCase(
-            input="Basic check",
-            actual_output="Looks good to me."
-        )
+        test_case = LLMTestCase(input="Basic check", actual_output="Looks good to me.")
 
         metric.measure(test_case)
 
@@ -290,7 +284,7 @@ class TestAntiPatternDetectionMetric:
 
             NEGATIVE: Converted all "Don't X" patterns to positive "Do Y" framing.
             Affirmative instruction style throughout.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
@@ -311,8 +305,7 @@ class TestAntiPatternDetectionMetric:
 
         for phrase in phrases:
             test_case = LLMTestCase(
-                input="Check",
-                actual_output=f"Found issue: {phrase} from the prompt."
+                input="Check", actual_output=f"Found issue: {phrase} from the prompt."
             )
             score = metric.measure(test_case)
             # Should detect emoji-related content
@@ -328,11 +321,10 @@ class TestAntiPatternDetectionMetric:
             - Original: 700+ lines
             - Target: Under 200 lines
             Reduce verbosity by consolidating instructions.
-            """
+            """,
         )
 
         score = metric.measure(test_case)
 
         # Should detect the line count as over-specification
         assert score >= 0.15
-

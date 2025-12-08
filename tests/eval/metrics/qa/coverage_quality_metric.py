@@ -56,57 +56,57 @@ class CoverageQualityMetric(BaseMetric):
 
     # Coverage tool patterns
     COVERAGE_TOOL_PATTERNS: List[str] = [
-        r'coverage',
-        r'nyc',
-        r'istanbul',
-        r'c8',
-        r'--coverage',
-        r'coverage\s+report',
-        r'vitest.*--coverage',
-        r'jest.*--coverage',
-        r'npm\s+run\s+coverage',
-        r'coverage\s+analysis'
+        r"coverage",
+        r"nyc",
+        r"istanbul",
+        r"c8",
+        r"--coverage",
+        r"coverage\s+report",
+        r"vitest.*--coverage",
+        r"jest.*--coverage",
+        r"npm\s+run\s+coverage",
+        r"coverage\s+analysis",
     ]
 
     # Critical path focus patterns
     CRITICAL_PATH_PATTERNS: List[str] = [
-        r'critical\s+path',
-        r'uncovered',
-        r'high\s+priority',
-        r'important\s+functions?',
-        r'key\s+functionality',
-        r'core\s+logic',
-        r'business\s+critical',
-        r'focus(?:ed|ing)?\s+on',
-        r'prioritiz(?:e|ed|ing)',
-        r'most\s+important'
+        r"critical\s+path",
+        r"uncovered",
+        r"high\s+priority",
+        r"important\s+functions?",
+        r"key\s+functionality",
+        r"core\s+logic",
+        r"business\s+critical",
+        r"focus(?:ed|ing)?\s+on",
+        r"prioritiz(?:e|ed|ing)",
+        r"most\s+important",
     ]
 
     # Memory-efficient analysis patterns
     MEMORY_EFFICIENT_PATTERNS: List[str] = [
-        r'grep',
-        r'limited?',
-        r'sample',
-        r'\d+-\d+\s+files?',
-        r'representative',
-        r'select(?:ed|ing)',
-        r'targeted',
-        r'specific\s+files?',
-        r'avoid(?:ed|ing)\s+reading\s+all',
-        r'efficient\s+analysis'
+        r"grep",
+        r"limited?",
+        r"sample",
+        r"\d+-\d+\s+files?",
+        r"representative",
+        r"select(?:ed|ing)",
+        r"targeted",
+        r"specific\s+files?",
+        r"avoid(?:ed|ing)\s+reading\s+all",
+        r"efficient\s+analysis",
     ]
 
     # High-impact test prioritization patterns
     PRIORITIZATION_PATTERNS: List[str] = [
-        r'high-impact',
-        r'prioritiz(?:e|ed|ing)',
-        r'focus\s+on',
-        r'most\s+important',
-        r'critical\s+tests?',
-        r'essential\s+tests?',
-        r'key\s+tests?',
-        r'important\s+tests?',
-        r'priority\s+tests?'
+        r"high-impact",
+        r"prioritiz(?:e|ed|ing)",
+        r"focus\s+on",
+        r"most\s+important",
+        r"critical\s+tests?",
+        r"essential\s+tests?",
+        r"key\s+tests?",
+        r"important\s+tests?",
+        r"priority\s+tests?",
     ]
 
     def __init__(self, threshold: float = 0.85):
@@ -161,10 +161,10 @@ class CoverageQualityMetric(BaseMetric):
 
         # Weighted average
         final_score = (
-            coverage_tool_score * 0.35 +
-            critical_path_score * 0.30 +
-            memory_efficient_score * 0.20 +
-            prioritization_score * 0.15
+            coverage_tool_score * 0.35
+            + critical_path_score * 0.30
+            + memory_efficient_score * 0.20
+            + prioritization_score * 0.15
         )
 
         # Store results
@@ -174,7 +174,7 @@ class CoverageQualityMetric(BaseMetric):
             critical_path_score,
             memory_efficient_score,
             prioritization_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -206,7 +206,8 @@ class CoverageQualityMetric(BaseMetric):
         """
         # Check for coverage tool patterns
         tool_matches = [
-            pattern for pattern in self.COVERAGE_TOOL_PATTERNS
+            pattern
+            for pattern in self.COVERAGE_TOOL_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -243,7 +244,8 @@ class CoverageQualityMetric(BaseMetric):
         """
         # Check for critical path patterns
         critical_matches = [
-            pattern for pattern in self.CRITICAL_PATH_PATTERNS
+            pattern
+            for pattern in self.CRITICAL_PATH_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -280,7 +282,8 @@ class CoverageQualityMetric(BaseMetric):
         """
         # Check for memory-efficient patterns
         efficient_matches = [
-            pattern for pattern in self.MEMORY_EFFICIENT_PATTERNS
+            pattern
+            for pattern in self.MEMORY_EFFICIENT_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -313,7 +316,8 @@ class CoverageQualityMetric(BaseMetric):
         """
         # Check for prioritization patterns
         priority_matches = [
-            pattern for pattern in self.PRIORITIZATION_PATTERNS
+            pattern
+            for pattern in self.PRIORITIZATION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
@@ -339,7 +343,7 @@ class CoverageQualityMetric(BaseMetric):
         critical_path_score: float,
         memory_efficient_score: float,
         prioritization_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -376,9 +380,7 @@ class CoverageQualityMetric(BaseMetric):
 
         # Prioritization issues
         if prioritization_score < 0.5:
-            reasons.append(
-                "No test prioritization (should focus on high-impact tests)"
-            )
+            reasons.append("No test prioritization (should focus on high-impact tests)")
 
         # Success message
         if not reasons:

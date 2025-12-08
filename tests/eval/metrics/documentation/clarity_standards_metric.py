@@ -70,85 +70,85 @@ class ClarityStandardsMetric(BaseMetric):
 
     # Active voice patterns (25% weight)
     ACTIVE_VOICE_PATTERNS: List[str] = [
-        r'\b(?:Run|Execute|Send|Configure|Install|Create|Delete|Update|Add|Remove)\b',
-        r'\bYou (?:can|should|must|will|need to)\b',
-        r'^\s*(?:To|For) \w+',  # Imperative mood
-        r'\b(?:Use|Set|Get|Make|Call|Start|Stop)\b',
-        r'\b(?:Click|Navigate|Select|Choose|Enter)\b',
+        r"\b(?:Run|Execute|Send|Configure|Install|Create|Delete|Update|Add|Remove)\b",
+        r"\bYou (?:can|should|must|will|need to)\b",
+        r"^\s*(?:To|For) \w+",  # Imperative mood
+        r"\b(?:Use|Set|Get|Make|Call|Start|Stop)\b",
+        r"\b(?:Click|Navigate|Select|Choose|Enter)\b",
     ]
 
     # Passive voice anti-patterns (negative scoring)
     PASSIVE_VOICE_PATTERNS: List[str] = [
-        r'(?:can|should|must|will) be \w+ed',
-        r'(?:is|are|was|were) \w+ed\b',
-        r'(?:is|are|was|were) (?:used|created|configured|performed)',
-        r'should be',
-        r'will be',
+        r"(?:can|should|must|will) be \w+ed",
+        r"(?:is|are|was|were) \w+ed\b",
+        r"(?:is|are|was|were) (?:used|created|configured|performed)",
+        r"should be",
+        r"will be",
     ]
 
     # Jargon handling patterns (20% weight)
     ACRONYM_DEFINITION_PATTERNS: List[str] = [
-        r'\b[A-Z]{2,}\s*\([^)]+\)',  # "PKCE (Proof Key...)"
-        r'\b\w+\s*\(([A-Z]{2,})\)',  # "Proof Key (PKCE)"
-        r'\b[A-Z]{2,}:\s*\w+',  # "JWT: JSON Web Token"
-        r'stands for',
-        r'means\s+(?:that|the)',
+        r"\b[A-Z]{2,}\s*\([^)]+\)",  # "PKCE (Proof Key...)"
+        r"\b\w+\s*\(([A-Z]{2,})\)",  # "Proof Key (PKCE)"
+        r"\b[A-Z]{2,}:\s*\w+",  # "JWT: JSON Web Token"
+        r"stands for",
+        r"means\s+(?:that|the)",
     ]
 
     GLOSSARY_PATTERNS: List[str] = [
-        r'glossary',
-        r'defined as',
-        r'\*\*\w+\*\*:\s',  # **Term**: definition
-        r'## (?:Glossary|Terms|Definitions)',
-        r'See\s+\[.*\]\(',  # Links to definitions
+        r"glossary",
+        r"defined as",
+        r"\*\*\w+\*\*:\s",  # **Term**: definition
+        r"## (?:Glossary|Terms|Definitions)",
+        r"See\s+\[.*\]\(",  # Links to definitions
     ]
 
     # Code example patterns (30% weight)
     CODE_BLOCK_PATTERNS: List[str] = [
-        r'```(?:python|javascript|typescript|bash|sh|go|rust|java|c\+\+|ruby|php|sql)',
-        r'```\w+\n',  # Any code block with language
+        r"```(?:python|javascript|typescript|bash|sh|go|rust|java|c\+\+|ruby|php|sql)",
+        r"```\w+\n",  # Any code block with language
     ]
 
     EXAMPLE_PATTERNS: List[str] = [
-        r'## (?:Example|Usage|Quick Start)',
-        r'### Example:',
-        r'For example[,:]',
-        r'Example:',
-        r'Usage:',
-        r'Code snippet:',
-        r'Sample:',
+        r"## (?:Example|Usage|Quick Start)",
+        r"### Example:",
+        r"For example[,:]",
+        r"Example:",
+        r"Usage:",
+        r"Code snippet:",
+        r"Sample:",
     ]
 
     # Conciseness anti-patterns (25% weight - negative scoring)
     REDUNDANT_PHRASES: List[str] = [
-        r'in order to',
-        r'it should be noted that',
-        r'it is important to note',
-        r'generally speaking',
-        r'for the purpose of',
-        r'in the event that',
-        r'due to the fact that',
-        r'at this point in time',
-        r'in a timely manner',
-        r'as a matter of fact',
-        r'the fact that',
-        r'in actual fact',
+        r"in order to",
+        r"it should be noted that",
+        r"it is important to note",
+        r"generally speaking",
+        r"for the purpose of",
+        r"in the event that",
+        r"due to the fact that",
+        r"at this point in time",
+        r"in a timely manner",
+        r"as a matter of fact",
+        r"the fact that",
+        r"in actual fact",
     ]
 
     DIRECT_LANGUAGE_PATTERNS: List[str] = [
-        r'^\s*\d+\.\s+',  # Numbered lists
-        r'^\s*[-*]\s+',   # Bullet points
-        r'## \w+',  # Clear headings
-        r'\*\*\w+\*\*:',  # Bold terms
+        r"^\s*\d+\.\s+",  # Numbered lists
+        r"^\s*[-*]\s+",  # Bullet points
+        r"## \w+",  # Clear headings
+        r"\*\*\w+\*\*:",  # Bold terms
     ]
 
     # Completeness patterns (bonus +15%)
     REQUIRED_SECTIONS: List[str] = [
-        r'## (?:Overview|Purpose|Introduction)',
-        r'## (?:Quick Start|Getting Started|Installation)',
-        r'## (?:Reference|API|Configuration|Detailed)',
-        r'## Troubleshooting',
-        r'## (?:Changelog|Version History|Changes)',
+        r"## (?:Overview|Purpose|Introduction)",
+        r"## (?:Quick Start|Getting Started|Installation)",
+        r"## (?:Reference|API|Configuration|Detailed)",
+        r"## Troubleshooting",
+        r"## (?:Changelog|Version History|Changes)",
     ]
 
     def __init__(self, threshold: float = 0.85):
@@ -204,10 +204,10 @@ class ClarityStandardsMetric(BaseMetric):
 
         # Weighted average (base score)
         base_score = (
-            active_voice_score * 0.25 +
-            jargon_handling_score * 0.20 +
-            code_examples_score * 0.30 +
-            conciseness_score * 0.25
+            active_voice_score * 0.25
+            + jargon_handling_score * 0.20
+            + code_examples_score * 0.30
+            + conciseness_score * 0.25
         )
 
         # Add completeness bonus (up to +15%)
@@ -224,7 +224,7 @@ class ClarityStandardsMetric(BaseMetric):
             code_examples_score,
             conciseness_score,
             completeness_bonus,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = capped_score >= (self.threshold - epsilon)
@@ -254,12 +254,14 @@ class ClarityStandardsMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         active_matches = sum(
-            1 for pattern in self.ACTIVE_VOICE_PATTERNS
+            1
+            for pattern in self.ACTIVE_VOICE_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
         passive_matches = sum(
-            1 for pattern in self.PASSIVE_VOICE_PATTERNS
+            1
+            for pattern in self.PASSIVE_VOICE_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
@@ -297,12 +299,14 @@ class ClarityStandardsMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         acronym_matches = sum(
-            1 for pattern in self.ACRONYM_DEFINITION_PATTERNS
+            1
+            for pattern in self.ACRONYM_DEFINITION_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         glossary_matches = sum(
-            1 for pattern in self.GLOSSARY_PATTERNS
+            1
+            for pattern in self.GLOSSARY_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
@@ -310,7 +314,7 @@ class ClarityStandardsMetric(BaseMetric):
 
         # Check for presence of undefined acronyms (basic check)
         # Count 2+ consecutive capital letters not in code blocks
-        potential_acronyms = len(re.findall(r'\b[A-Z]{2,}\b', output))
+        potential_acronyms = len(re.findall(r"\b[A-Z]{2,}\b", output))
 
         if total_jargon_handling == 0:
             # No jargon handling detected
@@ -343,12 +347,14 @@ class ClarityStandardsMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         code_block_matches = sum(
-            1 for pattern in self.CODE_BLOCK_PATTERNS
+            1
+            for pattern in self.CODE_BLOCK_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         example_section_matches = sum(
-            1 for pattern in self.EXAMPLE_PATTERNS
+            1
+            for pattern in self.EXAMPLE_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         )
 
@@ -381,12 +387,14 @@ class ClarityStandardsMetric(BaseMetric):
             Score from 0.0 to 1.0
         """
         redundant_matches = sum(
-            1 for pattern in self.REDUNDANT_PHRASES
+            1
+            for pattern in self.REDUNDANT_PHRASES
             if re.search(pattern, output, re.IGNORECASE)
         )
 
         direct_language_matches = sum(
-            1 for pattern in self.DIRECT_LANGUAGE_PATTERNS
+            1
+            for pattern in self.DIRECT_LANGUAGE_PATTERNS
             if re.search(pattern, output, re.MULTILINE)
         )
 
@@ -423,7 +431,8 @@ class ClarityStandardsMetric(BaseMetric):
             Bonus score from 0.0 to 0.15
         """
         section_matches = [
-            pattern for pattern in self.REQUIRED_SECTIONS
+            pattern
+            for pattern in self.REQUIRED_SECTIONS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         ]
 
@@ -448,7 +457,7 @@ class ClarityStandardsMetric(BaseMetric):
         code_examples_score: float,
         conciseness_score: float,
         completeness_bonus: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -472,9 +481,7 @@ class ClarityStandardsMetric(BaseMetric):
                 "Passive voice dominates (should use active voice: 'Run the command' vs 'The command should be run')"
             )
         elif active_voice_score < 0.7:
-            reasons.append(
-                "Mixed voice usage (increase active voice percentage)"
-            )
+            reasons.append("Mixed voice usage (increase active voice percentage)")
 
         # Jargon handling issues
         if jargon_handling_score < 0.5:
@@ -482,9 +489,7 @@ class ClarityStandardsMetric(BaseMetric):
                 "Acronyms/jargon not explained (define on first use: 'JWT (JSON Web Token)')"
             )
         elif jargon_handling_score < 0.7:
-            reasons.append(
-                "Limited jargon explanations (define more technical terms)"
-            )
+            reasons.append("Limited jargon explanations (define more technical terms)")
 
         # Code examples issues
         if code_examples_score < 0.5:
@@ -492,9 +497,7 @@ class ClarityStandardsMetric(BaseMetric):
                 "Missing code examples (include runnable examples with language hints: ```python)"
             )
         elif code_examples_score < 0.7:
-            reasons.append(
-                "Few code examples (add more practical usage examples)"
-            )
+            reasons.append("Few code examples (add more practical usage examples)")
 
         # Conciseness issues
         if conciseness_score < 0.5:
@@ -512,9 +515,7 @@ class ClarityStandardsMetric(BaseMetric):
                 "Missing required sections (should include: Overview, Quick Start, Reference, Troubleshooting, Changelog)"
             )
         elif completeness_bonus < 0.10:
-            reasons.append(
-                "Some required sections missing (need 4-5 sections)"
-            )
+            reasons.append("Some required sections missing (need 4-5 sections)")
 
         # Success message
         if not reasons:

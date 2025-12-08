@@ -252,7 +252,9 @@ class RefactoringQualityMetric(BaseMetric):
             ]
             if any(re.search(p, output.lower()) for p in general_patterns):
                 score = 0.3
-                issues.append("General best practices mentioned but no Claude 4.5 specifics")
+                issues.append(
+                    "General best practices mentioned but no Claude 4.5 specifics"
+                )
             else:
                 score = 0.2
                 issues.append("No Claude 4.5 alignment awareness found")
@@ -368,6 +370,8 @@ class RefactoringQualityMetric(BaseMetric):
         return self.measure(test_case)
 
 
-def create_refactoring_quality_metric(threshold: float = 0.80) -> RefactoringQualityMetric:
+def create_refactoring_quality_metric(
+    threshold: float = 0.80,
+) -> RefactoringQualityMetric:
     """Factory function to create RefactoringQualityMetric."""
     return RefactoringQualityMetric(threshold=threshold)

@@ -337,18 +337,21 @@ def mock_docker_env(temp_project_dir):
     """
     # Create Dockerfile
     dockerfile = temp_project_dir / "Dockerfile"
-    dockerfile.write_text("""FROM node:18-alpine
+    dockerfile.write_text(
+        """FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --production
 COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
-""")
+"""
+    )
 
     # Create docker-compose.yml
     compose = temp_project_dir / "docker-compose.yml"
-    compose.write_text("""version: '3.8'
+    compose.write_text(
+        """version: '3.8'
 services:
   api:
     build: .
@@ -360,7 +363,8 @@ services:
     image: postgres:15
     environment:
       - POSTGRES_DB=myapp
-""")
+"""
+    )
 
     return {
         "root": str(temp_project_dir),

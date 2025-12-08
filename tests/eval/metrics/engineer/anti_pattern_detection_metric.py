@@ -57,10 +57,10 @@ class AntiPatternDetectionMetric(BaseMetric):
 
     # Mock data anti-patterns (NEGATIVE - flag if found in production)
     MOCK_DATA_PATTERNS: List[str] = [
-        r'\bmock_\w+\s*=',
-        r'\bdummy_\w+\s*=',
-        r'\bplaceholder_\w+\s*=',
-        r'\bfake_\w+\s*=',
+        r"\bmock_\w+\s*=",
+        r"\bdummy_\w+\s*=",
+        r"\bplaceholder_\w+\s*=",
+        r"\bfake_\w+\s*=",
         r'return\s+\{.*["\']mock["\']',
         r'return\s+\{.*["\']dummy["\']',
         r'return\s+\{.*["\']placeholder["\']',
@@ -68,77 +68,77 @@ class AntiPatternDetectionMetric(BaseMetric):
         r'return.*"dummy_\w+"',
         r'api_key.*=.*["\']mock',
         r'token.*=.*["\']fake',
-        r'password.*=.*["\']test'
+        r'password.*=.*["\']test',
     ]
 
     # Production code indicators
     PRODUCTION_CODE_PATTERNS: List[str] = [
-        r'def\s+\w+\s*\(',  # Function definition
-        r'class\s+\w+',  # Class definition
-        r'async\s+def',  # Async function
-        r'import\s+',  # Import statements
-        r'from\s+.*import'
+        r"def\s+\w+\s*\(",  # Function definition
+        r"class\s+\w+",  # Class definition
+        r"async\s+def",  # Async function
+        r"import\s+",  # Import statements
+        r"from\s+.*import",
     ]
 
     # Test file indicators (mock data OK in tests)
     TEST_FILE_PATTERNS: List[str] = [
-        r'test_\w+\.py',
-        r'conftest\.py',
-        r'@pytest',
-        r'@mock',
-        r'unittest\.TestCase',
-        r'describe\s*\(',
-        r'it\s*\(',
-        r'def\s+test_'
+        r"test_\w+\.py",
+        r"conftest\.py",
+        r"@pytest",
+        r"@mock",
+        r"unittest\.TestCase",
+        r"describe\s*\(",
+        r"it\s*\(",
+        r"def\s+test_",
     ]
 
     # Silent fallback anti-patterns
     SILENT_FALLBACK_PATTERNS: List[str] = [
-        r'except.*:\s*pass',
-        r'except.*:\s*return\s+None',
-        r'except.*:\s*return\s+\{\}',
-        r'except.*:\s*return\s+\[\]',
+        r"except.*:\s*pass",
+        r"except.*:\s*return\s+None",
+        r"except.*:\s*return\s+\{\}",
+        r"except.*:\s*return\s+\[\]",
         r'except.*:\s*return\s+""',
-        r'except.*:\s*return\s+False',
-        r'if\s+.*error.*:\s*return\s+None',
-        r'if\s+.*fail.*:\s*return\s+None',
-        r'try.*except.*pass(?!\s*#)',  # Allow pass with comment
-        r'except.*:\s*continue'
+        r"except.*:\s*return\s+False",
+        r"if\s+.*error.*:\s*return\s+None",
+        r"if\s+.*fail.*:\s*return\s+None",
+        r"try.*except.*pass(?!\s*#)",  # Allow pass with comment
+        r"except.*:\s*continue",
     ]
 
     # Explicit error propagation patterns (POSITIVE)
     ERROR_PROPAGATION_PATTERNS: List[str] = [
-        r'raise\s+\w+Error',
-        r'raise\s+.*from\s+',
-        r'logger\.error\(',
-        r'logger\.exception\(',
-        r'log\.error\(',
-        r'logging\.error\(',
-        r'raise\s+(?!.*#\s*type:)',  # Generic raise (not type comment)
-        r'throw\s+new\s+Error',  # JavaScript
-        r'throw\s+\w+Error'  # JavaScript
+        r"raise\s+\w+Error",
+        r"raise\s+.*from\s+",
+        r"logger\.error\(",
+        r"logger\.exception\(",
+        r"log\.error\(",
+        r"logging\.error\(",
+        r"raise\s+(?!.*#\s*type:)",  # Generic raise (not type comment)
+        r"throw\s+new\s+Error",  # JavaScript
+        r"throw\s+\w+Error",  # JavaScript
     ]
 
     # Acceptable fallback patterns (POSITIVE - justified fallbacks)
     ACCEPTABLE_FALLBACK_PATTERNS: List[str] = [
         r'(?:config|default).*=.*getenv\(.*,\s*["\']?\w+',  # Config with default
-        r'default\s*=',
-        r'graceful\s+degradation',
-        r'documented\s+fallback',
-        r'documented\s+default',
-        r'feature\s+flag',
-        r'A/B\s+test',
-        r'fallback.*(?:logged|documented|explicit)',
-        r'(?:if|when)\s+.*unavailable.*(?:use|return)\s+default'
+        r"default\s*=",
+        r"graceful\s+degradation",
+        r"documented\s+fallback",
+        r"documented\s+default",
+        r"feature\s+flag",
+        r"A/B\s+test",
+        r"fallback.*(?:logged|documented|explicit)",
+        r"(?:if|when)\s+.*unavailable.*(?:use|return)\s+default",
     ]
 
     # Logging patterns (required for fallbacks)
     LOGGING_PATTERNS: List[str] = [
-        r'logger\.\w+\(',
-        r'logging\.\w+\(',
-        r'log\.\w+\(',
-        r'console\.(?:log|warn|error)\(',
-        r'print\(.*(?:error|warning|fail)'
+        r"logger\.\w+\(",
+        r"logging\.\w+\(",
+        r"log\.\w+\(",
+        r"console\.(?:log|warn|error)\(",
+        r"print\(.*(?:error|warning|fail)",
     ]
 
     def __init__(self, threshold: float = 0.9):
@@ -189,14 +189,16 @@ class AntiPatternDetectionMetric(BaseMetric):
         mock_data_score = self._score_no_mock_data_in_production(output)
         silent_fallback_score = self._score_no_silent_fallbacks(output)
         error_propagation_score = self._score_explicit_error_propagation(output)
-        fallback_justification_score = self._score_acceptable_fallback_justification(output)
+        fallback_justification_score = self._score_acceptable_fallback_justification(
+            output
+        )
 
         # Weighted average
         final_score = (
-            mock_data_score * 0.40 +
-            silent_fallback_score * 0.30 +
-            error_propagation_score * 0.20 +
-            fallback_justification_score * 0.10
+            mock_data_score * 0.40
+            + silent_fallback_score * 0.30
+            + error_propagation_score * 0.20
+            + fallback_justification_score * 0.10
         )
 
         # Store results
@@ -206,7 +208,7 @@ class AntiPatternDetectionMetric(BaseMetric):
             silent_fallback_score,
             error_propagation_score,
             fallback_justification_score,
-            output
+            output,
         )
         epsilon = 1e-9
         self._success = final_score >= (self.threshold - epsilon)
@@ -244,7 +246,8 @@ class AntiPatternDetectionMetric(BaseMetric):
 
         # Check for mock data patterns
         mock_data_matches = [
-            pattern for pattern in self.MOCK_DATA_PATTERNS
+            pattern
+            for pattern in self.MOCK_DATA_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         ]
 
@@ -284,7 +287,8 @@ class AntiPatternDetectionMetric(BaseMetric):
         """
         # Check for silent fallback patterns
         silent_fallback_matches = [
-            pattern for pattern in self.SILENT_FALLBACK_PATTERNS
+            pattern
+            for pattern in self.SILENT_FALLBACK_PATTERNS
             if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
         ]
 
@@ -324,7 +328,8 @@ class AntiPatternDetectionMetric(BaseMetric):
         """
         # Check for error propagation patterns
         error_propagation_matches = [
-            pattern for pattern in self.ERROR_PROPAGATION_PATTERNS
+            pattern
+            for pattern in self.ERROR_PROPAGATION_PATTERNS
             if re.search(pattern, output, re.MULTILINE)
         ]
 
@@ -364,13 +369,14 @@ class AntiPatternDetectionMetric(BaseMetric):
         """
         # Check for acceptable fallback patterns
         acceptable_fallback_matches = [
-            pattern for pattern in self.ACCEPTABLE_FALLBACK_PATTERNS
+            pattern
+            for pattern in self.ACCEPTABLE_FALLBACK_PATTERNS
             if re.search(pattern, output, re.IGNORECASE)
         ]
 
         # Check if fallbacks are present at all
         has_fallbacks = bool(
-            re.search(r'fallback|default|degradation', output, re.IGNORECASE)
+            re.search(r"fallback|default|degradation", output, re.IGNORECASE)
         )
 
         # Scoring logic
@@ -393,7 +399,7 @@ class AntiPatternDetectionMetric(BaseMetric):
         silent_fallback_score: float,
         error_propagation_score: float,
         fallback_justification_score: float,
-        output: str
+        output: str,
     ) -> str:
         """
         Generate human-readable reason for the score.
@@ -413,7 +419,8 @@ class AntiPatternDetectionMetric(BaseMetric):
         # Mock data issues
         if mock_data_score < 0.5:
             mock_matches = [
-                pattern for pattern in self.MOCK_DATA_PATTERNS
+                pattern
+                for pattern in self.MOCK_DATA_PATTERNS
                 if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
             ]
             if mock_matches:
@@ -424,7 +431,8 @@ class AntiPatternDetectionMetric(BaseMetric):
         # Silent fallback issues
         if silent_fallback_score < 0.5:
             silent_matches = [
-                pattern for pattern in self.SILENT_FALLBACK_PATTERNS
+                pattern
+                for pattern in self.SILENT_FALLBACK_PATTERNS
                 if re.search(pattern, output, re.IGNORECASE | re.MULTILINE)
             ]
             if silent_matches:
@@ -451,7 +459,9 @@ class AntiPatternDetectionMetric(BaseMetric):
         return "; ".join(reasons)
 
 
-def create_anti_pattern_detection_metric(threshold: float = 0.9) -> AntiPatternDetectionMetric:
+def create_anti_pattern_detection_metric(
+    threshold: float = 0.9,
+) -> AntiPatternDetectionMetric:
     """
     Factory function to create anti-pattern detection metric.
 
