@@ -331,7 +331,8 @@ dist/
 *.optimized
 *.backup
 
-# MCP configuration (contains tokens)
+# MCP configuration (contains user-specific paths and tokens)
 .mcp.json
+.claude.json
 # Research docs (work in progress)
 docs/research/*.md
