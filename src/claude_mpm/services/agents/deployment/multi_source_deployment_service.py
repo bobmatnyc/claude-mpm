@@ -51,6 +51,63 @@ class MultiSourceAgentDeploymentService:
         self.logger = get_logger(__name__)
         self.version_manager = AgentVersionManager()
 
+    def _build_canonical_id_for_agent(self, agent_info: Dict[str, Any]) -> str:
+        """Build or retrieve canonical_id for an agent.
+
+        NEW: Supports enhanced agent matching via canonical_id.
+
+        Priority:
+        1. Use existing canonical_id from agent_info if present
+        2. Generate from collection_id + agent_id if available
+        3. Fallback to legacy:{filename} for backward compatibility
+
+        Args:
+            agent_info: Agent dictionary with metadata
+
+        Returns:
+            Canonical ID string for matching
+
+        Example:
+            Remote agent: "bobmatnyc/claude-mpm-agents:pm"
+            Legacy agent: "legacy:custom-agent"
+        """
+        # Priority 1: Existing canonical_id
+        if "canonical_id" in agent_info:
+            return agent_info["canonical_id"]
+
+        # Priority 2: Generate from collection_id + agent_id
+        collection_id = agent_info.get("collection_id")
+        agent_id = agent_info.get("agent_id")
+
+        if collection_id and agent_id:
+            canonical_id = f"{collection_id}:{agent_id}"
+            # Cache it in agent_info for future use
+            agent_info["canonical_id"] = canonical_id
+            return canonical_id
+
+        # Priority 3: Fallback to legacy format
+        # Use filename or agent name
+        agent_name = agent_info.get("name") or agent_info.get("metadata", {}).get(
+            "name", "unknown"
+        )
+
+        # Extract filename from path
+        path_str = (
+            agent_info.get("path")
+            or agent_info.get("file_path")
+            or agent_info.get("source_file")
+        )
+
+        if path_str:
+            filename = Path(path_str).stem
+            canonical_id = f"legacy:{filename}"
+        else:
+            canonical_id = f"legacy:{agent_name}"
+
+        # Cache it
+        agent_info["canonical_id"] = canonical_id
+        return canonical_id
+
     def discover_agents_from_all_sources(
         self,
         system_templates_dir: Optional[Path] = None,
@@ -156,11 +213,19 @@ class MultiSourceAgentDeploymentService:
                     agent_info["source"] = source_name
                     agent_info["source_dir"] = str(source_dir)
 
-                    # Initialize list if this is the first occurrence of this agent
-                    if agent_name not in agents_by_name:
-                        agents_by_name[agent_name] = []
+                    # NEW: Build canonical_id for enhanced matching
+                    canonical_id = self._build_canonical_id_for_agent(agent_info)
 
-                    agents_by_name[agent_name].append(agent_info)
+                    # Group by canonical_id (PRIMARY) for enhanced matching
+                    # This allows matching agents from different sources with same canonical_id
+                    # while maintaining backward compatibility with name-based matching
+                    matching_key = canonical_id
+
+                    # Initialize list if this is the first occurrence of this agent
+                    if matching_key not in agents_by_name:
+                        agents_by_name[matching_key] = []
+
+                    agents_by_name[matching_key].append(agent_info)
 
                 # Use more specific log message
                 self.logger.info(
@@ -188,6 +253,48 @@ class MultiSourceAgentDeploymentService:
             )
 
         return agents_by_name
+
+    def get_agents_by_collection(
+        self,
+        collection_id: str,
+        remote_agents_dir: Optional[Path] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get all agents from a specific collection.
+
+        NEW: Enables collection-based agent selection.
+
+        Args:
+            collection_id: Collection identifier (e.g., "bobmatnyc/claude-mpm-agents")
+            remote_agents_dir: Directory containing remote agents cache
+
+        Returns:
+            List of agent dictionaries from the specified collection
+
+        Example:
+            >>> service = MultiSourceAgentDeploymentService()
+            >>> agents = service.get_agents_by_collection("bobmatnyc/claude-mpm-agents")
+            >>> len(agents)
+            45
+        """
+        if not remote_agents_dir:
+            cache_dir = Path.home() / ".claude-mpm" / "cache"
+            remote_agents_dir = cache_dir / "remote-agents"
+
+        if not remote_agents_dir.exists():
+            self.logger.warning(
+                f"Remote agents directory not found: {remote_agents_dir}"
+            )
+            return []
+
+        # Use RemoteAgentDiscoveryService to get collection agents
+        remote_service = RemoteAgentDiscoveryService(remote_agents_dir)
+        collection_agents = remote_service.get_agents_by_collection(collection_id)
+
+        self.logger.info(
+            f"Retrieved {len(collection_agents)} agents from collection '{collection_id}'"
+        )
+
+        return collection_agents
 
     def select_highest_version_agents(
         self, agents_by_name: Dict[str, List[Dict[str, Any]]]

@@ -143,6 +143,10 @@ class FrontmatterValidator:
             "dependencies",
             "capabilities",
             "color",
+            # NEW: Collection-based identification fields
+            "collection_id",
+            "source_path",
+            "canonical_id",
         }
 
     def validate_and_correct(self, frontmatter: Dict[str, Any]) -> ValidationResult:
@@ -176,6 +180,8 @@ class FrontmatterValidator:
         self._validate_author_field(corrected, errors, warnings)
         self._validate_tags_field(corrected, errors, warnings)
         self._validate_numeric_fields(corrected, errors, warnings)
+        # NEW: Validate collection-based identification fields
+        self._validate_collection_fields(corrected, field_corrections, errors, warnings)
 
         # Determine if valid
         is_valid = len(errors) == 0
@@ -463,6 +469,68 @@ class FrontmatterValidator:
                 warnings.append(
                     f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]"
                 )
+
+    def _validate_collection_fields(
+        self,
+        corrected: Dict[str, Any],
+        field_corrections: Dict[str, Any],
+        errors: List[str],
+        warnings: List[str],
+    ) -> None:
+        """Validate collection-based identification fields.
+
+        NEW: Validates collection_id, source_path, and canonical_id fields.
+
+        These fields are auto-populated by RemoteAgentDiscoveryService for remote agents
+        and should follow specific formats:
+        - collection_id: "owner/repo-name" (e.g., "bobmatnyc/claude-mpm-agents")
+        - source_path: Relative path in repo (e.g., "agents/pm.md")
+        - canonical_id: "collection_id:agent_id" or "legacy:filename"
+        """
+        # Validate collection_id format (optional field)
+        if "collection_id" in corrected:
+            collection_id = corrected["collection_id"]
+            if not isinstance(collection_id, str):
+                errors.append(
+                    f"Field 'collection_id' must be a string, got {type(collection_id).__name__}"
+                )
+            elif "/" not in collection_id:
+                warnings.append(
+                    f"Field 'collection_id' should be in format 'owner/repo-name', got '{collection_id}'"
+                )
+
+        # Validate source_path format (optional field)
+        if "source_path" in corrected:
+            source_path = corrected["source_path"]
+            if not isinstance(source_path, str):
+                errors.append(
+                    f"Field 'source_path' must be a string, got {type(source_path).__name__}"
+                )
+
+        # Validate canonical_id format (optional field)
+        if "canonical_id" in corrected:
+            canonical_id = corrected["canonical_id"]
+            if not isinstance(canonical_id, str):
+                errors.append(
+                    f"Field 'canonical_id' must be a string, got {type(canonical_id).__name__}"
+                )
+            elif ":" not in canonical_id:
+                warnings.append(
+                    f"Field 'canonical_id' should be in format 'collection:agent_id' or 'legacy:filename', got '{canonical_id}'"
+                )
+
+        # Auto-generate canonical_id if collection_id is present but canonical_id is missing
+        if "collection_id" in corrected and "canonical_id" not in corrected:
+            collection_id = corrected["collection_id"]
+            agent_id = corrected.get("name", "unknown")
+
+            # Generate canonical_id
+            canonical_id = f"{collection_id}:{agent_id}"
+            corrected["canonical_id"] = canonical_id
+            field_corrections["canonical_id"] = canonical_id
+            warnings.append(
+                f"Auto-generated canonical_id: '{canonical_id}' from collection_id and name"
+            )
 
     def _normalize_model(self, model: str) -> str:
         """

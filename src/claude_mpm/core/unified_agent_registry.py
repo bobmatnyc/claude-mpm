@@ -84,6 +84,12 @@ class AgentMetadata:
     version: str = "1.0.0"
     author: str = ""
     tags: List[str] = None
+    # NEW: Collection-based identification fields
+    collection_id: Optional[str] = None  # Format: owner/repo-name
+    source_path: Optional[str] = None  # Relative path in repo
+    canonical_id: Optional[str] = (
+        None  # Format: collection_id:agent_id or legacy:filename
+    )
 
     def __post_init__(self):
         """Initialize default values for mutable fields."""
@@ -690,6 +696,111 @@ class UnifiedAgentRegistry:
         """Get all memory-aware agents."""
         return self.list_agents(agent_type=AgentType.MEMORY_AWARE)
 
+    def get_agents_by_collection(self, collection_id: str) -> List[AgentMetadata]:
+        """Get all agents from a specific collection.
+
+        NEW: Enables collection-based agent selection.
+
+        Args:
+            collection_id: Collection identifier (e.g., "bobmatnyc/claude-mpm-agents")
+
+        Returns:
+            List of agents from the specified collection
+
+        Example:
+            >>> registry = get_agent_registry()
+            >>> agents = registry.get_agents_by_collection("bobmatnyc/claude-mpm-agents")
+            >>> len(agents)
+            45
+        """
+        if not self.registry:
+            self.discover_agents()
+
+        collection_agents = [
+            agent
+            for agent in self.registry.values()
+            if agent.collection_id == collection_id
+        ]
+
+        return sorted(collection_agents, key=lambda a: a.name)
+
+    def list_collections(self) -> List[Dict[str, Any]]:
+        """List all available collections with agent counts.
+
+        NEW: Provides overview of available collections.
+
+        Returns:
+            List of collection info dictionaries with:
+            - collection_id: Collection identifier
+            - agent_count: Number of agents in collection
+            - agents: List of agent names in collection
+
+        Example:
+            >>> registry = get_agent_registry()
+            >>> collections = registry.list_collections()
+            >>> collections
+            [
+                {
+                    "collection_id": "bobmatnyc/claude-mpm-agents",
+                    "agent_count": 45,
+                    "agents": ["pm", "engineer", "qa", ...]
+                }
+            ]
+        """
+        if not self.registry:
+            self.discover_agents()
+
+        # Group agents by collection_id
+        collections_map: Dict[str, List[str]] = {}
+
+        for agent in self.registry.values():
+            if not agent.collection_id:
+                # Skip agents without collection (legacy or local)
+                continue
+
+            if agent.collection_id not in collections_map:
+                collections_map[agent.collection_id] = []
+
+            collections_map[agent.collection_id].append(agent.name)
+
+        # Convert to list format
+        collections = [
+            {
+                "collection_id": coll_id,
+                "agent_count": len(agent_names),
+                "agents": sorted(agent_names),
+            }
+            for coll_id, agent_names in collections_map.items()
+        ]
+
+        return sorted(collections, key=lambda c: c["collection_id"])
+
+    def get_agent_by_canonical_id(self, canonical_id: str) -> Optional[AgentMetadata]:
+        """Get agent by canonical ID (primary matching key).
+
+        NEW: Primary matching method using canonical_id.
+
+        Args:
+            canonical_id: Canonical identifier (e.g., "bobmatnyc/claude-mpm-agents:pm")
+
+        Returns:
+            AgentMetadata if found, None otherwise
+
+        Example:
+            >>> registry = get_agent_registry()
+            >>> agent = registry.get_agent_by_canonical_id("bobmatnyc/claude-mpm-agents:pm")
+            >>> agent.name
+            'Project Manager Agent'
+        """
+        if not self.registry:
+            self.discover_agents()
+
+        for agent in self.registry.values():
+            if agent.canonical_id == canonical_id:
+                return agent
+
+        return None
+
     def add_discovery_path(self, path: Union[str, Path]) -> None:
         """Add a new path for agent discovery."""
         path = Path(path)
@@ -809,6 +920,21 @@ def get_registry_stats() -> Dict[str, Any]:
     return get_agent_registry().get_registry_stats()
 
 
+def get_agents_by_collection(collection_id: str) -> List[AgentMetadata]:
+    """Get all agents from a specific collection."""
+    return get_agent_registry().get_agents_by_collection(collection_id)
+
+
+def list_collections() -> List[Dict[str, Any]]:
+    """List all available collections."""
+    return get_agent_registry().list_collections()
+
+
+def get_agent_by_canonical_id(canonical_id: str) -> Optional[AgentMetadata]:
+    """Get agent by canonical ID."""
+    return get_agent_registry().get_agent_by_canonical_id(canonical_id)
+
+
 # Legacy function names for backward compatibility
 def listAgents() -> List[str]:
     """Legacy function: Get list of agent names."""
@@ -838,14 +964,16 @@ __all__ = [
     "discover_agents",
     "discover_agents_sync",
     "get_agent",
+    "get_agent_by_canonical_id",
     "get_agent_names",
     "get_agent_registry",
+    "get_agents_by_collection",
     "get_core_agents",
     "get_project_agents",
     "get_registry_stats",
     "get_specialized_agents",
-    # Legacy compatibility
     "listAgents",
     "list_agents",
     "list_agents_all",
+    "list_collections",
 ]

@@ -167,6 +167,10 @@ class AgentsCommand(AgentCommand):
                 "available": self._list_available_from_sources,
                 # Agent discovery with rich filtering (Phase 1: Discovery & Browsing)
                 "discover": self._discover_agents,
+                # NEW: Collection-based agent management
+                "list-collections": self._list_collections,
+                "deploy-collection": self._deploy_collection,
+                "list-by-collection": self._list_by_collection,
                 # Cache git management commands
                 "cache-status": self._cache_status,
                 "cache-pull": self._cache_pull,
@@ -2156,6 +2160,171 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error in auto-configure: {e}", exc_info=True)
             return CommandResult.error_result(f"Error in auto-configure: {e}")
+
+    def _list_collections(self, args) -> CommandResult:
+        """List all available agent collections.
+
+        NEW: Shows all collections with agent counts and metadata.
+        Enables discovery of available agent collections before deployment.
+        """
+        try:
+            from pathlib import Path
+
+            from ...services.agents.deployment.remote_agent_discovery_service import (
+                RemoteAgentDiscoveryService,
+            )
+
+            # Get remote agents cache directory
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+
+            if not cache_dir.exists():
+                return CommandResult.error_result(
+                    "No remote agent collections found. Run 'claude-mpm agents deploy' first."
+                )
+
+            # Use RemoteAgentDiscoveryService to list collections
+            remote_service = RemoteAgentDiscoveryService(cache_dir)
+            collections = remote_service.list_collections()
+
+            if not collections:
+                return CommandResult.success_result(
+                    "No agent collections found in cache.", data={"collections": []}
+                )
+
+            # Format output
+            output_lines = ["Available Agent Collections:\n"]
+            for collection in collections:
+                output_lines.append(
+                    f"  • {collection['collection_id']} ({collection['agent_count']} agents)"
+                )
+
+            return CommandResult.success_result(
+                "\n".join(output_lines), data={"collections": collections}
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error listing collections: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing collections: {e}")
+
+    def _deploy_collection(self, args) -> CommandResult:
+        """Deploy all agents from a specific collection.
+
+        NEW: Enables bulk deployment of all agents from a named collection.
+        Useful for deploying entire agent sets at once.
+        """
+        try:
+            from pathlib import Path
+
+            from ...services.agents.deployment.multi_source_deployment_service import (
+                MultiSourceAgentDeploymentService,
+            )
+
+            collection_id = args.collection_id
+
+            # Get agents from collection
+            service = MultiSourceAgentDeploymentService()
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            agents = service.get_agents_by_collection(collection_id, cache_dir)
+
+            if not agents:
+                return CommandResult.error_result(
+                    f"No agents found in collection '{collection_id}'"
+                )
+
+            # Dry run mode
+            if getattr(args, "dry_run", False):
+                agent_names = [
+                    agent.get("metadata", {}).get("name", "Unknown") for agent in agents
+                ]
+                output = f"Would deploy {len(agents)} agents from collection '{collection_id}':\n"
+                for name in agent_names:
+                    output += f"  • {name}\n"
+                return CommandResult.success_result(
+                    output,
+                    data={"collection_id": collection_id, "agent_count": len(agents)},
+                )
+
+            # Deploy agents
+            # TODO: Implement actual deployment logic using deployment service
+            # For now, show what would be deployed
+            return CommandResult.success_result(
+                f"Deployment of collection '{collection_id}' would deploy {len(agents)} agents.\n"
+                f"(Full deployment implementation pending)",
+                data={
+                    "collection_id": collection_id,
+                    "agent_count": len(agents),
+                    "status": "pending_implementation",
+                },
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error deploying collection: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error deploying collection: {e}")
+
+    def _list_by_collection(self, args) -> CommandResult:
+        """List agents from a specific collection.
+
+        NEW: Shows detailed information about agents in a collection.
+        Supports multiple output formats (table, json, yaml).
+        """
+        try:
+            import json as json_lib
+            from pathlib import Path
+
+            from ...services.agents.deployment.multi_source_deployment_service import (
+                MultiSourceAgentDeploymentService,
+            )
+
+            collection_id = args.collection_id
+            output_format = getattr(args, "format", "table")
+
+            # Get agents from collection
+            service = MultiSourceAgentDeploymentService()
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            agents = service.get_agents_by_collection(collection_id, cache_dir)
+
+            if not agents:
+                return CommandResult.error_result(
+                    f"No agents found in collection '{collection_id}'"
+                )
+
+            # Format output based on requested format
+            if output_format == "json":
+                return CommandResult.success_result(
+                    json_lib.dumps(agents, indent=2),
+                    data={"collection_id": collection_id, "agents": agents},
+                )
+            if output_format == "yaml":
+                try:
+                    import yaml
+
+                    return CommandResult.success_result(
+                        yaml.dump(agents, default_flow_style=False),
+                        data={"collection_id": collection_id, "agents": agents},
+                    )
+                except ImportError:
+                    return CommandResult.error_result(
+                        "YAML support not available (install PyYAML)"
+                    )
+
+            # Table format (default)
+            output_lines = [f"Agents in collection '{collection_id}':\n"]
+            for agent in agents:
+                metadata = agent.get("metadata", {})
+                name = metadata.get("name", "Unknown")
+                description = metadata.get("description", "No description")
+                version = agent.get("version", "unknown")
+                output_lines.append(f"  • {name} (v{version})")
+                output_lines.append(f"    {description}\n")
+
+            return CommandResult.success_result(
+                "\n".join(output_lines),
+                data={"collection_id": collection_id, "agent_count": len(agents)},
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error listing collection agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing collection agents: {e}")
 
     def _cache_status(self, args) -> CommandResult:
         """Show git status of agent cache.

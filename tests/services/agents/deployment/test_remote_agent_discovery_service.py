@@ -18,16 +18,21 @@ from claude_mpm.services.agents.deployment.remote_agent_discovery_service import
 
 @pytest.fixture
 def temp_remote_agents_dir(tmp_path):
-    """Create a temporary remote agents directory."""
+    """Create a temporary remote agents directory with /agents/ subdirectory."""
     remote_dir = tmp_path / "remote-agents"
     remote_dir.mkdir()
+    # Create /agents/ subdirectory (expected by implementation)
+    agents_dir = remote_dir / "agents"
+    agents_dir.mkdir()
     return remote_dir
 
 
 @pytest.fixture
 def sample_remote_agent_md(temp_remote_agents_dir):
-    """Create a sample remote agent Markdown file."""
-    agent_md = temp_remote_agents_dir / "test_agent.md"
+    """Create a sample remote agent Markdown file in /agents/ subdirectory."""
+    # Create agent in /agents/ subdirectory (Bug #4 fix)
+    agents_dir = temp_remote_agents_dir / "agents"
+    agent_md = agents_dir / "test_agent.md"
     agent_md.write_text(
         """# Test Agent
 
@@ -47,8 +52,10 @@ This is a test agent for remote discovery.
 
 @pytest.fixture
 def sample_remote_agent_with_metadata(temp_remote_agents_dir):
-    """Create a remote agent with metadata file."""
-    agent_md = temp_remote_agents_dir / "with_meta.md"
+    """Create a remote agent with metadata file in /agents/ subdirectory."""
+    # Create agent in /agents/ subdirectory (Bug #4 fix)
+    agents_dir = temp_remote_agents_dir / "agents"
+    agent_md = agents_dir / "with_meta.md"
     agent_md.write_text(
         """# Agent With Metadata
 
@@ -61,7 +68,7 @@ Agent with cache metadata
     )
 
     # Create corresponding metadata file
-    meta_file = temp_remote_agents_dir / "with_meta.md.meta.json"
+    meta_file = agents_dir / "with_meta.md.meta.json"
     meta_file.write_text(
         json.dumps(
             {
@@ -125,7 +132,9 @@ def test_discover_remote_agents_empty_directory(temp_remote_agents_dir):
 
 def test_parse_markdown_agent_missing_name(temp_remote_agents_dir):
     """Test parsing Markdown agent without name heading."""
-    invalid_md = temp_remote_agents_dir / "invalid.md"
+    # Create agent in /agents/ subdirectory
+    agents_dir = temp_remote_agents_dir / "agents"
+    invalid_md = agents_dir / "invalid.md"
     invalid_md.write_text("No heading here\n\nJust some content")
 
     service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
@@ -136,7 +145,9 @@ def test_parse_markdown_agent_missing_name(temp_remote_agents_dir):
 
 def test_parse_markdown_agent_minimal(temp_remote_agents_dir):
     """Test parsing minimal Markdown agent with only name."""
-    minimal_md = temp_remote_agents_dir / "minimal.md"
+    # Create agent in /agents/ subdirectory
+    agents_dir = temp_remote_agents_dir / "agents"
+    minimal_md = agents_dir / "minimal.md"
     minimal_md.write_text("# Minimal Agent\n\nMinimal description")
 
     service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
@@ -201,7 +212,9 @@ def test_get_remote_agent_metadata_not_found(temp_remote_agents_dir):
 
 def test_parse_markdown_agent_complex_keywords(temp_remote_agents_dir):
     """Test parsing agent with complex keyword lists."""
-    complex_md = temp_remote_agents_dir / "complex.md"
+    # Create agent in /agents/ subdirectory
+    agents_dir = temp_remote_agents_dir / "agents"
+    complex_md = agents_dir / "complex.md"
     complex_md.write_text(
         """# Complex Agent
 
@@ -229,9 +242,10 @@ Complex description
 
 def test_discover_multiple_agents(temp_remote_agents_dir):
     """Test discovering multiple remote agents."""
-    # Create multiple agents
+    # Create multiple agents in /agents/ subdirectory
+    agents_dir = temp_remote_agents_dir / "agents"
     for i in range(3):
-        agent_md = temp_remote_agents_dir / f"agent_{i}.md"
+        agent_md = agents_dir / f"agent_{i}.md"
         agent_md.write_text(
             f"""# Agent {i}
 
@@ -257,9 +271,9 @@ Description for agent {i}
 def test_agent_id_generation(temp_remote_agents_dir):
     """Test agent_id is correctly generated from file path.
 
-    Bug #3 fix: Agent IDs are now hierarchical based on file paths,
-    not normalized from the heading name. This enables category-based
-    filtering and preset matching.
+    Bug #4 fix: Agent IDs are now based on file paths relative to /agents/ subdirectory.
+    Files must be in /agents/ subdirectory for hierarchical IDs.
+    If not in /agents/, falls back to filename stem only.
     """
     test_cases = [
         ("Simple Agent", "simple-agent.md", "simple-agent"),
@@ -277,8 +291,12 @@ def test_agent_id_generation(temp_remote_agents_dir):
         ("QA/Test Agent", "qa/test-agent.md", "qa/test-agent"),
     ]
 
+    # All test cases create files in /agents/ subdirectory
+    agents_dir = temp_remote_agents_dir / "agents"
+
     for name, filename, expected_id in test_cases:
-        agent_path = temp_remote_agents_dir / filename
+        # Create file in /agents/ subdirectory with proper hierarchy
+        agent_path = agents_dir / filename
         agent_path.parent.mkdir(parents=True, exist_ok=True)
         agent_path.write_text(f"# {name}\n\nDescription")
 
@@ -287,15 +305,13 @@ def test_agent_id_generation(temp_remote_agents_dir):
 
         assert result is not None
         assert result["agent_id"] == expected_id, (
-            f"Failed for name: {name}, filename: {filename}"
+            f"Failed for name: {name}, filename: {filename}, got: {result['agent_id']}"
         )
 
         # Clean up for next iteration
         agent_path.unlink()
         # Clean up empty directories
-        if agent_path.parent != temp_remote_agents_dir and not list(
-            agent_path.parent.iterdir()
-        ):
+        if agent_path.parent != agents_dir and not list(agent_path.parent.iterdir()):
             agent_path.parent.rmdir()
 
 

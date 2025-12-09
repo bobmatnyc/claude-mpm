@@ -103,6 +103,10 @@ class AgentMetadata:
     author: Optional[str] = None
     tags: List[str] = field(default_factory=list)
     specializations: List[str] = field(default_factory=list)
+    # NEW: Collection metadata for enhanced agent matching
+    collection_id: Optional[str] = None  # Format: owner/repo-name
+    source_path: Optional[str] = None  # Relative path in repository
+    canonical_id: Optional[str] = None  # Format: collection_id:agent_id
 
     def increment_serial_version(self) -> None:
         """Increment the patch version number.
@@ -181,6 +185,9 @@ class AgentDefinition:
                 "author": self.metadata.author,
                 "tags": self.metadata.tags,
                 "specializations": self.metadata.specializations,
+                "collection_id": self.metadata.collection_id,
+                "source_path": self.metadata.source_path,
+                "canonical_id": self.metadata.canonical_id,
             },
             "primary_role": self.primary_role,
             "when_to_use": self.when_to_use,

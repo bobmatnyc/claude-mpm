@@ -32,6 +32,9 @@ class RemoteAgentMetadata:
     routing_priority: int
     source_file: Path
     version: str  # SHA-256 hash from cache metadata
+    collection_id: Optional[str] = None  # Format: owner/repo-name
+    source_path: Optional[str] = None  # Relative path in repo
+    canonical_id: Optional[str] = None  # Format: collection_id:agent_id
 
 
 class RemoteAgentDiscoveryService:
@@ -64,6 +67,91 @@ class RemoteAgentDiscoveryService:
         """
         self.remote_agents_dir = remote_agents_dir
         self.logger = get_logger(__name__)
+
+    def _extract_collection_id_from_path(self, file_path: Path) -> Optional[str]:
+        """Extract collection_id from repository path structure.
+
+        Collection ID is derived from the repository path structure:
+        ~/.claude-mpm/cache/remote-agents/{owner}/{repo}/agents/...
+
+        Args:
+            file_path: Absolute path to agent Markdown file
+
+        Returns:
+            Collection ID in format "owner/repo-name" or None if not found
+
+        Example:
+            Input:  ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/pm.md
+            Output: "bobmatnyc/claude-mpm-agents"
+        """
+        try:
+            # Find "remote-agents" in the path
+            path_parts = file_path.parts
+            remote_agents_idx = -1
+
+            for i, part in enumerate(path_parts):
+                if part == "remote-agents":
+                    remote_agents_idx = i
+                    break
+
+            if remote_agents_idx == -1 or remote_agents_idx + 2 >= len(path_parts):
+                self.logger.debug(
+                    f"Could not extract collection_id from path: {file_path}"
+                )
+                return None
+
+            # Extract owner and repo (next two parts after "remote-agents")
+            owner = path_parts[remote_agents_idx + 1]
+            repo = path_parts[remote_agents_idx + 2]
+
+            collection_id = f"{owner}/{repo}"
+            self.logger.debug(f"Extracted collection_id: {collection_id}")
+            return collection_id
+
+        except Exception as e:
+            self.logger.warning(
+                f"Failed to extract collection_id from {file_path}: {e}"
+            )
+            return None
+
+    def _extract_source_path_from_file(self, file_path: Path) -> Optional[str]:
+        """Extract relative source path within repository.
+
+        Source path is relative to the repository root (not the agents subdirectory).
+
+        Args:
+            file_path: Absolute path to agent Markdown file
+
+        Returns:
+            Relative path from repo root, or None if not found
+
+        Example:
+            Input:  ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/pm.md
+            Output: "agents/pm.md"
+        """
+        try:
+            # Find "remote-agents" in the path
+            path_parts = file_path.parts
+            remote_agents_idx = -1
+
+            for i, part in enumerate(path_parts):
+                if part == "remote-agents":
+                    remote_agents_idx = i
+                    break
+
+            if remote_agents_idx == -1 or remote_agents_idx + 3 >= len(path_parts):
+                return None
+
+            # Path after owner/repo is the source path
+            # remote-agents/{owner}/{repo}/{source_path}
+            repo_root_idx = remote_agents_idx + 3
+            source_parts = path_parts[repo_root_idx:]
+
+            return "/".join(source_parts)
+
+        except Exception as e:
+            self.logger.warning(f"Failed to extract source_path from {file_path}: {e}")
+            return None
 
     def _generate_hierarchical_id(self, file_path: Path) -> str:
         """Generate hierarchical agent ID from file path.
@@ -275,17 +363,34 @@ class RemoteAgentDiscoveryService:
         # Bug #1 fix: Detect category from directory path
         category = self._detect_category_from_path(md_file)
 
+        # NEW: Extract collection metadata from path
+        collection_id = self._extract_collection_id_from_path(md_file)
+        source_path = self._extract_source_path_from_file(md_file)
+
+        # NEW: Generate canonical_id (collection_id:agent_id)
+        if collection_id:
+            canonical_id = f"{collection_id}:{agent_id}"
+        else:
+            # Fallback for legacy agents without collection
+            canonical_id = f"legacy:{agent_id}"
+
         # Convert to JSON template format and return
         # IMPORTANT: Include 'path' field for compatibility with deployment validation (ticket 1M-480)
         # Git-sourced agents must have 'path' field to match structure from AgentDiscoveryService
         return {
             "agent_id": agent_id,
+            "canonical_id": canonical_id,  # NEW: Primary matching key
+            "collection_id": collection_id,  # NEW: Collection identifier
+            "source_path": source_path,  # NEW: Path within repository
             "metadata": {
                 "name": name,
                 "description": description,
                 "version": version,
                 "author": "remote",  # Mark as remote agent
                 "category": category,  # Use detected category from path
+                "collection_id": collection_id,  # NEW: Also in metadata
+                "source_path": source_path,  # NEW: Also in metadata
+                "canonical_id": canonical_id,  # NEW: Also in metadata
             },
             "model": model,
             "source": "remote",  # Mark as remote agent
@@ -347,7 +452,12 @@ class RemoteAgentDiscoveryService:
         Returns:
             RemoteAgentMetadata if found, None otherwise
         """
-        for md_file in self.remote_agents_dir.glob("*.md"):
+        # Bug #4 fix: Search in /agents/ subdirectory, not root directory
+        agents_dir = self.remote_agents_dir / "agents"
+        if not agents_dir.exists():
+            return None
+
+        for md_file in agents_dir.rglob("*.md"):
             agent_dict = self._parse_markdown_agent(md_file)
             if agent_dict and agent_dict["metadata"]["name"] == agent_name:
                 return RemoteAgentMetadata(
@@ -359,5 +469,89 @@ class RemoteAgentDiscoveryService:
                     routing_priority=agent_dict["routing"]["priority"],
                     source_file=Path(agent_dict["source_file"]),
                     version=agent_dict["version"],
+                    collection_id=agent_dict.get("collection_id"),
+                    source_path=agent_dict.get("source_path"),
+                    canonical_id=agent_dict.get("canonical_id"),
                 )
         return None
+
+    def get_agents_by_collection(self, collection_id: str) -> List[Dict[str, Any]]:
+        """Get all agents belonging to a specific collection.
+
+        Args:
+            collection_id: Collection identifier in format "owner/repo-name"
+
+        Returns:
+            List of agent dictionaries from the specified collection
+
+        Example:
+            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/remote-agents"))
+            >>> agents = service.get_agents_by_collection("bobmatnyc/claude-mpm-agents")
+            >>> len(agents)
+            45
+        """
+        all_agents = self.discover_remote_agents()
+
+        # Filter by collection_id
+        collection_agents = [
+            agent for agent in all_agents if agent.get("collection_id") == collection_id
+        ]
+
+        self.logger.info(
+            f"Found {len(collection_agents)} agents in collection '{collection_id}'"
+        )
+
+        return collection_agents
+
+    def list_collections(self) -> List[Dict[str, Any]]:
+        """List all available collections with agent counts.
+
+        Returns:
+            List of collection info dictionaries with:
+            - collection_id: Collection identifier
+            - agent_count: Number of agents in collection
+            - agents: List of agent IDs in collection
+
+        Example:
+            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/remote-agents"))
+            >>> collections = service.list_collections()
+            >>> collections
+            [
+                {
+                    "collection_id": "bobmatnyc/claude-mpm-agents",
+                    "agent_count": 45,
+                    "agents": ["pm", "engineer", "qa", ...]
+                }
+            ]
+        """
+        all_agents = self.discover_remote_agents()
+
+        # Group by collection_id
+        collections_map: Dict[str, List[str]] = {}
+
+        for agent in all_agents:
+            collection_id = agent.get("collection_id")
+            if not collection_id:
+                # Skip agents without collection (legacy)
+                continue
+
+            if collection_id not in collections_map:
+                collections_map[collection_id] = []
+
+            agent_id = agent.get("agent_id", agent.get("metadata", {}).get("name"))
+            if agent_id:
+                collections_map[collection_id].append(agent_id)
+
+        # Convert to list format
+        collections = [
+            {
+                "collection_id": coll_id,
+                "agent_count": len(agent_ids),
+                "agents": sorted(agent_ids),
+            }
+            for coll_id, agent_ids in collections_map.items()
+        ]
+
+        self.logger.info(f"Found {len(collections)} collections")
+
+        return collections

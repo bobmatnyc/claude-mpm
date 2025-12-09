@@ -445,6 +445,60 @@ Available commands:
     )
 
     # ============================================================================
+    # Collection-Based Agent Management Commands
+    # ============================================================================
+    # Purpose: Enable collection-based agent selection and deployment
+    # Commands: list-collections, deploy-collection, list-by-collection
+    # NEW: Enhanced agent matching with collection_id support
+    # ============================================================================
+
+    # list-collections: List all available agent collections
+    agents_subparsers.add_parser(
+        "list-collections",
+        help="List all available agent collections",
+        description="Display all agent collections with agent counts and collection metadata",
+    )
+
+    # deploy-collection: Deploy all agents from a specific collection
+    deploy_collection_parser = agents_subparsers.add_parser(
+        "deploy-collection",
+        help="Deploy all agents from a specific collection",
+        description="Deploy all agents from a named collection (e.g., 'bobmatnyc/claude-mpm-agents')",
+    )
+    deploy_collection_parser.add_argument(
+        "collection_id",
+        help="Collection ID in format 'owner/repo-name' (e.g., 'bobmatnyc/claude-mpm-agents')",
+    )
+    deploy_collection_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Force redeployment even if agents are already deployed",
+    )
+    deploy_collection_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be deployed without actually deploying",
+    )
+
+    # list-by-collection: List agents filtered by collection
+    list_by_collection_parser = agents_subparsers.add_parser(
+        "list-by-collection",
+        help="List agents from a specific collection",
+        description="Display agents from a specific collection with metadata",
+    )
+    list_by_collection_parser.add_argument(
+        "collection_id",
+        help="Collection ID to filter by (e.g., 'bobmatnyc/claude-mpm-agents')",
+    )
+    list_by_collection_parser.add_argument(
+        "--format",
+        choices=["table", "json", "yaml"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+    # ============================================================================
     # Cache Git Management Commands (claude-mpm Issue 1M-442 Phase 2)
     # ============================================================================
     # Purpose: Enable git workflow for agent cache management
