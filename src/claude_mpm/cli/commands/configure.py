@@ -1393,9 +1393,47 @@ class ConfigureCommand(BaseCommand):
             to_deploy = (
                 current_selection - deployed_full_paths
             )  # Selected but not originally deployed
-            to_remove = (
-                deployed_full_paths - current_selection
-            )  # Originally deployed but not selected
+
+            # For removal, verify files actually exist before adding to the set
+            # This prevents "Not found" warnings when multiple agents share leaf names
+            to_remove = set()
+            for agent_id in deployed_full_paths - current_selection:
+                # Extract leaf name to check file existence
+                leaf_name = agent_id.split("/")[-1] if "/" in agent_id else agent_id
+
+                # Check all possible locations
+                paths_to_check = [
+                    Path.cwd() / ".claude-mpm" / "agents" / f"{leaf_name}.md",
+                    Path.cwd() / ".claude" / "agents" / f"{leaf_name}.md",
+                    Path.home() / ".claude" / "agents" / f"{leaf_name}.md",
+                ]
+
+                # Also check virtual deployment state
+                state_exists = False
+                deployment_state_paths = [
+                    Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
+                    Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
+                ]
+
+                for state_path in deployment_state_paths:
+                    if state_path.exists():
+                        try:
+                            import json
+
+                            with state_path.open() as f:
+                                state = json.load(f)
+                            agents_in_state = state.get("last_check_results", {}).get(
+                                "agents", {}
+                            )
+                            if leaf_name in agents_in_state:
+                                state_exists = True
+                                break
+                        except (json.JSONDecodeError, KeyError):
+                            continue
+
+                # Only add to removal set if file or state entry actually exists
+                if any(p.exists() for p in paths_to_check) or state_exists:
+                    to_remove.add(agent_id)
 
             if not to_deploy and not to_remove:
                 self.console.print(
