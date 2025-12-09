@@ -387,20 +387,14 @@ class ConfigureCommand(BaseCommand):
                 self.console.print(f"[red]Error discovering agents: {e}[/red]")
                 self.logger.error(f"Agent discovery failed: {e}", exc_info=True)
 
-            # Step 3: Menu options with arrow-key navigation
+            # Step 3: Simplified menu - only "Select Agents" option
             self.console.print()
             self.logger.debug("About to show agent management menu")
             try:
                 choice = questionary.select(
                     "Agent Management:",
                     choices=[
-                        "Manage sources (add/remove repositories)",
                         "Select Agents",
-                        "Select recommended (auto-detect for this project)",
-                        "Install preset (predefined sets)",
-                        "Remove agents",
-                        "View agent details",
-                        "Toggle agents (legacy enable/disable)",
                         questionary.Separator(),
                         "← Back to main menu",
                     ],
@@ -413,21 +407,9 @@ class ConfigureCommand(BaseCommand):
                 agents_var = agents if "agents" in locals() else []
 
                 # Map selection to action
-                if choice == "Manage sources (add/remove repositories)":
-                    self._manage_sources()
-                elif choice == "Select Agents":
+                if choice == "Select Agents":
                     self.logger.debug("User selected 'Select Agents' from menu")
-                    self._deploy_agents_individual(agents_var)
-                elif choice == "Select recommended (auto-detect for this project)":
-                    self._select_recommended_agents(agents_var)
-                elif choice == "Install preset (predefined sets)":
-                    self._deploy_agents_preset()
-                elif choice == "Remove agents":
-                    self._remove_agents(agents_var)
-                elif choice == "View agent details":
-                    self._view_agent_details_enhanced(agents_var)
-                elif choice == "Toggle agents (legacy enable/disable)":
-                    self._toggle_agents_interactive(agents_var)
+                    self._deploy_agents_unified(agents_var)
 
             except KeyboardInterrupt:
                 self.console.print("\n[yellow]Operation cancelled[/yellow]")
@@ -1204,8 +1186,353 @@ class ConfigureCommand(BaseCommand):
         self.console.print("  claude-mpm agent-source list")
         Prompt.ask("\nPress Enter to continue")
 
+    def _deploy_agents_unified(self, agents: List[AgentConfig]) -> None:
+        """Unified agent selection with inline controls for recommended, presets, and collections.
+
+        Design:
+        - Single nested checkbox list with grouped agents by source/category
+        - Inline controls at top: Select all, Select recommended, Select presets
+        - Asterisk (*) marks recommended agents
+        - Visual hierarchy: Source → Category → Individual agents
+        """
+        if not agents:
+            self.console.print("[yellow]No agents available[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        from claude_mpm.utils.agent_filters import (
+            filter_base_agents,
+            get_deployed_agent_ids,
+        )
+
+        # Filter BASE_AGENT but keep deployed agents visible
+        all_agents = filter_base_agents(
+            [
+                {
+                    "agent_id": a.name,
+                    "name": a.name,
+                    "description": a.description,
+                    "deployed": getattr(a, "is_deployed", False),
+                }
+                for a in agents
+            ]
+        )
+
+        if not all_agents:
+            self.console.print("[yellow]No agents available[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Get deployed agent IDs and recommended agents
+        deployed_ids = get_deployed_agent_ids()
+
+        try:
+            recommended_agent_ids = self.recommendation_service.get_recommended_agents(
+                str(self.project_dir)
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to get recommended agents: {e}")
+            recommended_agent_ids = set()
+
+        # Build mapping: leaf name -> full path for deployed agents
+        deployed_full_paths = set()
+        for agent in agents:
+            agent_leaf_name = agent.name.split("/")[-1]
+            if agent_leaf_name in deployed_ids:
+                deployed_full_paths.add(agent.name)
+
+        # Track current selection state
+        current_selection = deployed_full_paths.copy()
+
+        # Group agents by source/collection
+        agent_map = {}
+        collections = defaultdict(list)
+
+        for agent in agents:
+            if agent.name in {a["agent_id"] for a in all_agents}:
+                # Determine collection ID
+                source_type = getattr(agent, "source_type", "local")
+                if source_type == "remote":
+                    source_dict = getattr(agent, "source_dict", {})
+                    repo_url = source_dict.get("source", "")
+                    if "/" in repo_url:
+                        parts = repo_url.rstrip("/").split("/")
+                        if len(parts) >= 2:
+                            # Use more readable collection name
+                            if "bobmatnyc/claude-mpm" in repo_url or "claude-mpm" in repo_url.lower():
+                                collection_id = "MPM Agents"
+                            else:
+                                collection_id = f"{parts[-2]}/{parts[-1]}"
+                        else:
+                            collection_id = "Community Agents"
+                    else:
+                        collection_id = "Community Agents"
+                else:
+                    collection_id = "Local Agents"
+
+                collections[collection_id].append(agent)
+                agent_map[agent.name] = agent
+
+        # Build unified checkbox choices with inline controls
+        choices = []
+
+        for collection_id in sorted(collections.keys()):
+            agents_in_collection = collections[collection_id]
+
+            # Count selected/total agents in collection
+            selected_count = sum(
+                1 for agent in agents_in_collection
+                if agent.name in current_selection
+            )
+            total_count = len(agents_in_collection)
+
+            # Add collection header
+            choices.append(
+                Separator(f"\n── {collection_id} ({selected_count}/{total_count} selected) ──")
+            )
+
+            # Add inline control: Select all from this collection
+            choices.append(
+                Choice(
+                    f"  [Select all from {collection_id}]",
+                    value=f"__SELECT_ALL_{collection_id}__",
+                    checked=False,
+                )
+            )
+
+            # Add inline control: Select recommended from this collection
+            recommended_in_collection = [
+                a for a in agents_in_collection
+                if any(
+                    a.name == rec_id or a.name.split("/")[-1] == rec_id.split("/")[-1]
+                    for rec_id in recommended_agent_ids
+                )
+            ]
+            if recommended_in_collection:
+                choices.append(
+                    Choice(
+                        f"  [Select recommended ({len(recommended_in_collection)} agents)]",
+                        value=f"__SELECT_REC_{collection_id}__",
+                        checked=False,
+                    )
+                )
+
+            # Add separator before individual agents
+            choices.append(Separator())
+
+            # Group agents by category within collection (if hierarchical)
+            category_groups = defaultdict(list)
+            for agent in sorted(agents_in_collection, key=lambda a: a.name):
+                # Extract category from hierarchical path (e.g., "engineer/backend/python-engineer")
+                parts = agent.name.split("/")
+                if len(parts) > 1:
+                    category = "/".join(parts[:-1])  # e.g., "engineer/backend"
+                else:
+                    category = ""  # No category
+                category_groups[category].append(agent)
+
+            # Display agents grouped by category
+            for category in sorted(category_groups.keys()):
+                agents_in_category = category_groups[category]
+
+                # Add category separator if hierarchical
+                if category:
+                    choices.append(Separator(f"  {category}/"))
+
+                # Add individual agents
+                for agent in agents_in_category:
+                    agent_leaf_name = agent.name.split("/")[-1]
+                    display_name = getattr(agent, "display_name", agent_leaf_name)
+
+                    # Check if recommended
+                    is_recommended = any(
+                        agent.name == rec_id or agent_leaf_name == rec_id.split("/")[-1]
+                        for rec_id in recommended_agent_ids
+                    )
+
+                    # Format choice text with asterisk for recommended
+                    choice_text = f"    {display_name}"
+                    if is_recommended:
+                        choice_text += " *"
+
+                    is_selected = agent.name in current_selection
+
+                    choices.append(
+                        Choice(
+                            title=choice_text,
+                            value=agent.name,
+                            checked=is_selected,
+                        )
+                    )
+
+        # Monkey-patch questionary symbols for better visibility
+        questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
+        questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
+
+        self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
+        self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
+        self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
+        self.console.print("[dim]* = Recommended for this project[/dim]")
+        self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
+
+        try:
+            selected_values = questionary.checkbox(
+                "Select agents:",
+                choices=choices,
+                instruction="(Space to toggle, Enter to continue)",
+                style=self.QUESTIONARY_STYLE,
+            ).ask()
+        except Exception as e:
+            import sys
+            self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
+            self.console.print("[red]Error: Could not display interactive menu[/red]")
+            self.console.print(f"[dim]Reason: {e}[/dim]")
+            if not sys.stdin.isatty():
+                self.console.print("[dim]Interactive terminal required. Use:[/dim]")
+                self.console.print("[dim]  --list-agents to see available agents[/dim]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        if selected_values is None:
+            self.console.print("[yellow]No changes made[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Process special inline control selections
+        final_selection = set()
+        for value in selected_values:
+            if value.startswith("__SELECT_ALL_"):
+                # Extract collection ID
+                collection_id = value.replace("__SELECT_ALL_", "").replace("__", "")
+                # Add all agents from this collection
+                for agent in collections[collection_id]:
+                    final_selection.add(agent.name)
+            elif value.startswith("__SELECT_REC_"):
+                # Extract collection ID
+                collection_id = value.replace("__SELECT_REC_", "").replace("__", "")
+                # Add only recommended agents from this collection
+                for agent in collections[collection_id]:
+                    if any(
+                        agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                        for rec_id in recommended_agent_ids
+                    ):
+                        final_selection.add(agent.name)
+            else:
+                # Regular agent selection
+                final_selection.add(value)
+
+        # Determine changes
+        to_deploy = final_selection - deployed_full_paths
+        to_remove = deployed_full_paths - final_selection
+
+        if not to_deploy and not to_remove:
+            self.console.print("[yellow]No changes needed[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Show what will happen
+        self.console.print("\n[bold]Changes to apply:[/bold]")
+        if to_deploy:
+            self.console.print(f"[green]Install {len(to_deploy)} agent(s)[/green]")
+            for agent_id in to_deploy:
+                self.console.print(f"  + {agent_id}")
+        if to_remove:
+            self.console.print(f"[red]Remove {len(to_remove)} agent(s)[/red]")
+            for agent_id in to_remove:
+                self.console.print(f"  - {agent_id}")
+
+        # Confirm
+        if not Confirm.ask("\nApply these changes?", default=True):
+            self.console.print("[yellow]Changes cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Execute changes
+        deploy_success = 0
+        deploy_fail = 0
+        remove_success = 0
+        remove_fail = 0
+
+        # Install new agents
+        for agent_id in to_deploy:
+            agent = agent_map.get(agent_id)
+            if agent and self._deploy_single_agent(agent, show_feedback=False):
+                deploy_success += 1
+                self.console.print(f"[green]✓ Installed: {agent_id}[/green]")
+            else:
+                deploy_fail += 1
+                self.console.print(f"[red]✗ Failed to install: {agent_id}[/red]")
+
+        # Remove agents
+        for agent_id in to_remove:
+            try:
+                import json
+
+                # Extract leaf name to match deployed filename
+                leaf_name = agent_id.split("/")[-1] if "/" in agent_id else agent_id
+
+                # Remove from all possible locations
+                paths_to_check = [
+                    Path.cwd() / ".claude-mpm" / "agents" / f"{leaf_name}.md",
+                    Path.cwd() / ".claude" / "agents" / f"{leaf_name}.md",
+                    Path.home() / ".claude" / "agents" / f"{leaf_name}.md",
+                ]
+
+                removed = False
+                for path in paths_to_check:
+                    if path.exists():
+                        path.unlink()
+                        removed = True
+
+                # Also remove from virtual deployment state
+                deployment_state_paths = [
+                    Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
+                    Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
+                ]
+
+                for state_path in deployment_state_paths:
+                    if state_path.exists():
+                        try:
+                            with state_path.open() as f:
+                                state = json.load(f)
+                            agents_in_state = state.get("last_check_results", {}).get("agents", {})
+                            if leaf_name in agents_in_state:
+                                del agents_in_state[leaf_name]
+                                removed = True
+                                with state_path.open("w") as f:
+                                    json.dump(state, f, indent=2)
+                        except (json.JSONDecodeError, KeyError):
+                            pass
+
+                if removed:
+                    remove_success += 1
+                    self.console.print(f"[green]✓ Removed: {agent_id}[/green]")
+                else:
+                    remove_fail += 1
+                    self.console.print(f"[yellow]⚠ Not found: {agent_id}[/yellow]")
+            except Exception as e:
+                remove_fail += 1
+                self.console.print(f"[red]✗ Failed to remove {agent_id}: {e}[/red]")
+
+        # Show summary
+        self.console.print()
+        if deploy_success > 0:
+            self.console.print(f"[green]✓ Installed {deploy_success} agent(s)[/green]")
+        if deploy_fail > 0:
+            self.console.print(f"[red]✗ Failed to install {deploy_fail} agent(s)[/red]")
+        if remove_success > 0:
+            self.console.print(f"[green]✓ Removed {remove_success} agent(s)[/green]")
+        if remove_fail > 0:
+            self.console.print(f"[red]✗ Failed to remove {remove_fail} agent(s)[/red]")
+
+        Prompt.ask("\nPress Enter to continue")
+
     def _deploy_agents_individual(self, agents: List[AgentConfig]) -> None:
-        """Manage agent installation state (unified install/remove interface)."""
+        """Manage agent installation state (unified install/remove interface).
+
+        DEPRECATED: Use _deploy_agents_unified instead.
+        This method is kept for backward compatibility but should not be used.
+        """
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
             Prompt.ask("\nPress Enter to continue")
