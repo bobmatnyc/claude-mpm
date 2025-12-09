@@ -1171,6 +1171,7 @@ class ConfigureCommand(BaseCommand):
         )
 
         # Get deployed agent IDs (original state - for calculating final changes)
+        # NOTE: deployed_ids contains LEAF NAMES (e.g., "python-engineer")
         deployed_ids = get_deployed_agent_ids()
 
         if not all_agents:
@@ -1178,8 +1179,16 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Track current selection state (starts with deployed, updated after each iteration)
-        current_selection = set(deployed_ids)
+        # Build mapping: leaf name -> full path for deployed agents
+        # This allows comparing deployed_ids (leaf names) with agent.name (full paths)
+        deployed_full_paths = set()
+        for agent in agents:
+            agent_leaf_name = agent.name.split("/")[-1]
+            if agent_leaf_name in deployed_ids:
+                deployed_full_paths.add(agent.name)
+
+        # Track current selection state (starts with deployed full paths, updated after each iteration)
+        current_selection = deployed_full_paths.copy()
 
         # Loop to allow adjusting selection
         while True:
@@ -1191,10 +1200,9 @@ class ConfigureCommand(BaseCommand):
                 if agent.name in {a["agent_id"] for a in all_agents}:
                     display_name = getattr(agent, "display_name", agent.name)
 
-                    # Pre-check based on current_selection (not deployed_ids)
-                    # Extract leaf name from full path for comparison
-                    agent_leaf_name = agent.name.split("/")[-1]
-                    is_selected = agent_leaf_name in current_selection
+                    # Pre-check based on current_selection (full paths)
+                    # current_selection contains full paths like "engineer/backend/python-engineer"
+                    is_selected = agent.name in current_selection
 
                     # Simple format: "agent/path - Display Name"
                     # Checkbox state (checked/unchecked) indicates installed status
@@ -1279,15 +1287,16 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            # Update current_selection based on user's choices
+            # Update current_selection based on user's choices (full paths)
             current_selection = set(selected_agent_ids)
 
-            # Determine actions based on ORIGINAL deployed_ids
+            # Determine actions based on ORIGINAL deployed state
+            # Compare full paths to full paths (deployed_full_paths was built from deployed_ids)
             to_deploy = (
-                current_selection - deployed_ids
+                current_selection - deployed_full_paths
             )  # Selected but not originally deployed
             to_remove = (
-                deployed_ids - current_selection
+                deployed_full_paths - current_selection
             )  # Originally deployed but not selected
 
             if not to_deploy and not to_remove:
