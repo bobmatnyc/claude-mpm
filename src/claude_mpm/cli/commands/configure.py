@@ -377,6 +377,7 @@ class ConfigureCommand(BaseCommand):
 
             # Step 3: Menu options with arrow-key navigation
             self.console.print()
+            self.logger.debug("About to show agent management menu")
             try:
                 choice = questionary.select(
                     "Agent Management:",
@@ -402,6 +403,7 @@ class ConfigureCommand(BaseCommand):
                 if choice == "Manage sources (add/remove repositories)":
                     self._manage_sources()
                 elif choice == "Select Agents":
+                    self.logger.debug("User selected 'Select Agents' from menu")
                     self._deploy_agents_individual(agents_var)
                 elif choice == "Install preset (predefined sets)":
                     self._deploy_agents_preset()
@@ -414,6 +416,19 @@ class ConfigureCommand(BaseCommand):
 
             except KeyboardInterrupt:
                 self.console.print("\n[yellow]Operation cancelled[/yellow]")
+                break
+            except Exception as e:
+                # Handle questionary menu failure
+                import sys
+                self.logger.error(f"Agent management menu failed: {e}", exc_info=True)
+                self.console.print(f"[red]Error: Interactive menu failed[/red]")
+                self.console.print(f"[dim]Reason: {e}[/dim]")
+                if not sys.stdin.isatty():
+                    self.console.print("[dim]Interactive terminal required for this operation[/dim]")
+                    self.console.print("[dim]Use command-line options instead:[/dim]")
+                    self.console.print("[dim]  claude-mpm configure --list-agents[/dim]")
+                    self.console.print("[dim]  claude-mpm configure --enable-agent <id>[/dim]")
+                Prompt.ask("\nPress Enter to continue")
                 break
 
     def _display_agents_table(self, agents: List[AgentConfig]) -> None:
@@ -1201,9 +1216,26 @@ class ConfigureCommand(BaseCommand):
             questionary.constants.INDICATOR_UNSELECTED = "[ ]"
 
             # Pre-selection via checked=True on Choice objects
-            selected_agent_ids = questionary.checkbox(
-                "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
-            ).ask()
+            self.logger.debug("About to show checkbox selection with %d agents", len(agent_choices))
+
+            try:
+                selected_agent_ids = questionary.checkbox(
+                    "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
+                ).ask()
+            except Exception as e:
+                # Handle questionary failure (non-TTY, broken pipe, keyboard interrupt, etc.)
+                import sys
+                self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
+                self.console.print(f"[red]Error: Could not display interactive menu[/red]")
+                self.console.print(f"[dim]Reason: {e}[/dim]")
+                if not sys.stdin.isatty():
+                    self.console.print("[dim]Interactive terminal required. Use:[/dim]")
+                    self.console.print("[dim]  --list-agents to see available agents[/dim]")
+                    self.console.print("[dim]  --enable-agent/--disable-agent for scripting[/dim]")
+                else:
+                    self.console.print("[dim]This might be a terminal compatibility issue.[/dim]")
+                Prompt.ask("\nPress Enter to continue")
+                return
 
             # Handle Esc OR non-interactive terminal
             if selected_agent_ids is None:
