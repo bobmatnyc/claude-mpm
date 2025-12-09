@@ -321,71 +321,19 @@ class ConfigureCommand(BaseCommand):
             self.navigation.display_header()
             self.console.print("\n[bold blue]═══ Agent Management ═══[/bold blue]\n")
 
-            # Step 1: Show configured sources
-            self.console.print("[bold white]═══ Agent Sources ═══[/bold white]\n")
+            # Load all agents with spinner (don't show partial state)
+            agents = self._load_agents_with_spinner()
 
-            sources = self._get_configured_sources()
-            if sources:
-                from rich.table import Table
-
-                sources_table = Table(show_header=True, header_style="bold white")
-                sources_table.add_column(
-                    "Source",
-                    style="bright_yellow",
-                    width=40,
-                    no_wrap=True,
-                    overflow="ellipsis",
-                )
-                sources_table.add_column(
-                    "Status", style="green", width=15, no_wrap=True
-                )
-                sources_table.add_column(
-                    "Agents", style="yellow", width=10, no_wrap=True
-                )
-
-                for source in sources:
-                    status = "✓ Active" if source.get("enabled", True) else "Disabled"
-                    agent_count = source.get("agent_count", "?")
-                    sources_table.add_row(
-                        source["identifier"], status, str(agent_count)
-                    )
-
-                self.console.print(sources_table)
-            else:
-                self.console.print("[yellow]No agent sources configured[/yellow]")
+            if not agents:
+                self.console.print("[yellow]No agents found[/yellow]")
                 self.console.print(
-                    "[dim]Default source 'bobmatnyc/claude-mpm-agents' will be used[/dim]\n"
+                    "[dim]Configure sources with 'claude-mpm agent-source add'[/dim]\n"
                 )
+                Prompt.ask("\nPress Enter to continue")
+                break
 
-            # Step 2: Discover and display available agents
-            self.console.print("\n[bold white]═══ Available Agents ═══[/bold white]\n")
-
-            try:
-                # Discover agents (includes both local and remote)
-                agents = self.agent_manager.discover_agents(include_remote=True)
-
-                # Set deployment status on each agent for display
-                deployed_ids = get_deployed_agent_ids()
-                for agent in agents:
-                    # Extract leaf name for comparison
-                    agent_leaf_name = agent.name.split("/")[-1]
-                    agent.is_deployed = agent_leaf_name in deployed_ids
-
-                # Filter BASE_AGENT from display (1M-502 Phase 1)
-                agents = self._filter_agent_configs(agents, filter_deployed=False)
-
-                if not agents:
-                    self.console.print("[yellow]No agents found[/yellow]")
-                    self.console.print(
-                        "[dim]Configure sources with 'claude-mpm agent-source add'[/dim]\n"
-                    )
-                else:
-                    # Display agents in a table (already filtered at line 339)
-                    self._display_agents_with_source_info(agents)
-
-            except Exception as e:
-                self.console.print(f"[red]Error discovering agents: {e}[/red]")
-                self.logger.error(f"Agent discovery failed: {e}", exc_info=True)
+            # Now display everything at once (after all data loaded)
+            self._display_agent_sources_and_list(agents)
 
             # Step 3: Simplified menu - only "Select Agents" option
             self.console.print()
@@ -404,12 +352,11 @@ class ConfigureCommand(BaseCommand):
                 if choice is None or choice == "← Back to main menu":
                     break
 
-                agents_var = agents if "agents" in locals() else []
-
                 # Map selection to action
                 if choice == "Select Agents":
                     self.logger.debug("User selected 'Select Agents' from menu")
-                    self._deploy_agents_unified(agents_var)
+                    self._deploy_agents_unified(agents)
+                    # Loop back to show updated state after deployment
 
             except KeyboardInterrupt:
                 self.console.print("\n[yellow]Operation cancelled[/yellow]")
@@ -434,6 +381,87 @@ class ConfigureCommand(BaseCommand):
                     )
                 Prompt.ask("\nPress Enter to continue")
                 break
+
+    def _load_agents_with_spinner(self) -> List[AgentConfig]:
+        """Load agents with loading indicator, don't show partial state.
+
+        Returns:
+            List of discovered agents with deployment status set.
+        """
+        from rich.spinner import Spinner
+
+        agents = []
+        with self.console.status("[bold blue]Loading agents...[/bold blue]", spinner="dots"):
+            try:
+                # Discover agents (includes both local and remote)
+                agents = self.agent_manager.discover_agents(include_remote=True)
+
+                # Set deployment status on each agent for display
+                deployed_ids = get_deployed_agent_ids()
+                for agent in agents:
+                    # Extract leaf name for comparison
+                    agent_leaf_name = agent.name.split("/")[-1]
+                    agent.is_deployed = agent_leaf_name in deployed_ids
+
+                # Filter BASE_AGENT from display (1M-502 Phase 1)
+                agents = self._filter_agent_configs(agents, filter_deployed=False)
+
+            except Exception as e:
+                self.console.print(f"[red]Error discovering agents: {e}[/red]")
+                self.logger.error(f"Agent discovery failed: {e}", exc_info=True)
+                agents = []
+
+        return agents
+
+    def _display_agent_sources_and_list(self, agents: List[AgentConfig]) -> None:
+        """Display agent sources and agent list (only after all data loaded).
+
+        Args:
+            agents: List of discovered agents with deployment status.
+        """
+        from rich.table import Table
+
+        # Step 1: Show configured sources
+        self.console.print("[bold white]═══ Agent Sources ═══[/bold white]\n")
+
+        sources = self._get_configured_sources()
+        if sources:
+            sources_table = Table(show_header=True, header_style="bold white")
+            sources_table.add_column(
+                "Source",
+                style="bright_yellow",
+                width=40,
+                no_wrap=True,
+                overflow="ellipsis",
+            )
+            sources_table.add_column(
+                "Status", style="green", width=15, no_wrap=True
+            )
+            sources_table.add_column(
+                "Agents", style="yellow", width=10, no_wrap=True
+            )
+
+            for source in sources:
+                status = "✓ Active" if source.get("enabled", True) else "Disabled"
+                agent_count = source.get("agent_count", "?")
+                sources_table.add_row(
+                    source["identifier"], status, str(agent_count)
+                )
+
+            self.console.print(sources_table)
+        else:
+            self.console.print("[yellow]No agent sources configured[/yellow]")
+            self.console.print(
+                "[dim]Default source 'bobmatnyc/claude-mpm-agents' will be used[/dim]\n"
+            )
+
+        # Step 2: Display available agents
+        self.console.print("\n[bold white]═══ Available Agents ═══[/bold white]\n")
+
+        if agents:
+            self._display_agents_with_source_info(agents)
+        else:
+            self.console.print("[yellow]No agents available[/yellow]")
 
     def _display_agents_table(self, agents: List[AgentConfig]) -> None:
         """Display a table of available agents."""
