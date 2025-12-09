@@ -1193,11 +1193,10 @@ class ConfigureCommand(BaseCommand):
 
         # Loop to allow adjusting selection
         while True:
-            # Build checkbox choices with pre-selection based on current_selection
+            # Build agent mapping and collections
             agent_map = {}  # For lookup after selection
-
-            # Group agents by collection/source
             collections = defaultdict(list)
+
             for agent in agents:
                 if agent.name in {a["agent_id"] for a in all_agents}:
                     # Determine collection ID
@@ -1220,71 +1219,51 @@ class ConfigureCommand(BaseCommand):
                     collections[collection_id].append(agent)
                     agent_map[agent.name] = agent
 
-            # Build grouped choices with separators and "Select All" options
-            agent_choices = []
+            # STEP 1: Collection-level selection
+            self.console.print("\n[bold cyan]Select Agent Collections[/bold cyan]")
+            self.console.print(
+                "[dim]Choose entire collections to install/remove[/dim]\n"
+            )
+
+            collection_choices = []
             for collection_id in sorted(collections.keys()):
                 agents_in_collection = collections[collection_id]
 
-                # Add collection header separator
-                agent_choices.append(
-                    Separator(
-                        f"\n  ── {collection_id} ({len(agents_in_collection)} agents) ──"
-                    )
+                # Check if ALL agents in this collection are currently selected
+                all_selected = all(
+                    agent.name in current_selection for agent in agents_in_collection
                 )
 
-                # Add "Toggle All" option for this collection
-                select_all_value = f"__SELECT_ALL__{collection_id}"
-                agent_choices.append(
+                collection_choices.append(
                     Choice(
-                        f"  [ Toggle All ({len(agents_in_collection)} agents) ]",
-                        value=select_all_value,
-                        checked=False,
+                        f"{collection_id} ({len(agents_in_collection)} agents)",
+                        value=collection_id,
+                        checked=all_selected,
                     )
                 )
 
-                # Add individual agents from this collection
-                for agent in sorted(agents_in_collection, key=lambda a: a.name):
-                    display_name = getattr(agent, "display_name", agent.name)
-
-                    # Pre-check based on current_selection (full paths)
-                    is_selected = agent.name in current_selection
-
-                    # Simple format: "  agent/path - Display Name" (indented)
-                    choice_text = f"  {agent.name}"
-                    if display_name and display_name != agent.name:
-                        choice_text += f" - {display_name}"
-
-                    agent_choices.append(
-                        Choice(title=choice_text, value=agent.name, checked=is_selected)
-                    )
-
-            # Multi-select with pre-selection
-            self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
-            self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
-            self.console.print(
-                "[dim][ ] Unchecked = Available (check to install)[/dim]"
-            )
-            self.console.print(
-                "[dim]Use arrow keys to navigate, space to toggle, "
-                "Enter to apply changes[/dim]\n"
+            # Add option to fine-tune individual agents
+            collection_choices.append(Separator())
+            collection_choices.append(
+                Choice(
+                    "→ Fine-tune individual agents...",
+                    value="__INDIVIDUAL__",
+                    checked=False,
+                )
             )
 
             # Monkey-patch questionary symbols for better visibility
-            # Must patch common module directly since it imports constants at load time
             questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
             questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
 
-            # Pre-selection via checked=True on Choice objects
-            self.logger.debug(
-                "About to show checkbox selection with %d agents", len(agent_choices)
-            )
-
             try:
-                selected_agent_ids = questionary.checkbox(
-                    "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
+                selected_collections = questionary.checkbox(
+                    "Select agent collections to deploy:",
+                    choices=collection_choices,
+                    instruction="(Space to toggle, Enter to continue)",
+                    style=self.QUESTIONARY_STYLE,
                 ).ask()
             except Exception as e:
-                # Handle questionary failure (non-TTY, broken pipe, keyboard interrupt, etc.)
                 import sys
 
                 self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
@@ -1307,9 +1286,8 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            # Handle Esc OR non-interactive terminal
-            if selected_agent_ids is None:
-                # Check if we're in a non-interactive environment
+            # Handle cancellation
+            if selected_collections is None:
                 import sys
 
                 if not sys.stdin.isatty():
@@ -1327,32 +1305,88 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            # Expand "Toggle All" selections (toggle behavior)
-            final_selections = set(selected_agent_ids)
+            # STEP 2: Check if user wants individual selection
+            if "__INDIVIDUAL__" in selected_collections:
+                # Remove the __INDIVIDUAL__ marker
+                selected_collections = [
+                    c for c in selected_collections if c != "__INDIVIDUAL__"
+                ]
 
-            for selection in list(selected_agent_ids):
-                if selection.startswith("__SELECT_ALL__"):
-                    # Extract collection_id from the selection value
-                    collection_id = selection.replace("__SELECT_ALL__", "")
-                    collection_agents = {
-                        agent.name for agent in collections[collection_id]
-                    }
+                # Build individual agent choices with grouping
+                agent_choices = []
+                for collection_id in sorted(collections.keys()):
+                    agents_in_collection = collections[collection_id]
 
-                    # Check if any agents from this collection are currently selected
-                    currently_selected = final_selections & collection_agents
+                    # Add collection header separator
+                    agent_choices.append(
+                        Separator(
+                            f"\n── {collection_id} ({len(agents_in_collection)} agents) ──"
+                        )
+                    )
 
-                    # Remove the __SELECT_ALL__ marker from final selections
-                    final_selections.discard(selection)
+                    # Add individual agents from this collection
+                    for agent in sorted(agents_in_collection, key=lambda a: a.name):
+                        display_name = getattr(agent, "display_name", agent.name)
+                        is_selected = agent.name in current_selection
 
-                    if len(currently_selected) == 0:
-                        # None selected -> Select all
-                        final_selections.update(collection_agents)
-                    else:
-                        # Some/all selected -> Deselect all
-                        final_selections -= collection_agents
+                        choice_text = f"{agent.name}"
+                        if display_name and display_name != agent.name:
+                            choice_text += f" - {display_name}"
 
-            # Update current_selection based on user's choices (full paths)
-            current_selection = final_selections
+                        agent_choices.append(
+                            Choice(
+                                title=choice_text, value=agent.name, checked=is_selected
+                            )
+                        )
+
+                self.console.print(
+                    "\n[bold cyan]Fine-tune Individual Agents[/bold cyan]"
+                )
+                self.console.print(
+                    "[dim][✓] Checked = Installed (uncheck to remove)[/dim]"
+                )
+                self.console.print(
+                    "[dim][ ] Unchecked = Available (check to install)[/dim]"
+                )
+                self.console.print(
+                    "[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n"
+                )
+
+                try:
+                    selected_agent_ids = questionary.checkbox(
+                        "Select individual agents:",
+                        choices=agent_choices,
+                        style=self.QUESTIONARY_STYLE,
+                    ).ask()
+                except Exception as e:
+                    import sys
+
+                    self.logger.error(
+                        f"Questionary checkbox failed: {e}", exc_info=True
+                    )
+                    self.console.print(
+                        "[red]Error: Could not display interactive menu[/red]"
+                    )
+                    self.console.print(f"[dim]Reason: {e}[/dim]")
+                    Prompt.ask("\nPress Enter to continue")
+                    return
+
+                if selected_agent_ids is None:
+                    self.console.print("[yellow]No changes made[/yellow]")
+                    Prompt.ask("\nPress Enter to continue")
+                    return
+
+                # Update current_selection with individual selections
+                current_selection = set(selected_agent_ids)
+            else:
+                # Apply collection-level selections directly
+                final_selections = set()
+                for collection_id in selected_collections:
+                    for agent in collections[collection_id]:
+                        final_selections.add(agent.name)
+
+                # Update current_selection
+                current_selection = final_selections
 
             # Determine actions based on ORIGINAL deployed state
             # Compare full paths to full paths (deployed_full_paths was built from deployed_ids)
