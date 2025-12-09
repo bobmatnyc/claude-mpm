@@ -1359,12 +1359,20 @@ class ConfigureCommand(BaseCommand):
                     import json
                     from pathlib import Path
 
+                    # Extract leaf name to match deployed filename
+                    # agent_id may be hierarchical (e.g., "engineer/mobile/tauri-engineer")
+                    # but deployed files use flattened leaf names (e.g., "tauri-engineer.md")
+                    if "/" in agent_id:
+                        leaf_name = agent_id.split("/")[-1]
+                    else:
+                        leaf_name = agent_id
+
                     # Remove from project, legacy, and user locations
                     project_path = (
-                        Path.cwd() / ".claude-mpm" / "agents" / f"{agent_id}.md"
+                        Path.cwd() / ".claude-mpm" / "agents" / f"{leaf_name}.md"
                     )
-                    legacy_path = Path.cwd() / ".claude" / "agents" / f"{agent_id}.md"
-                    user_path = Path.home() / ".claude" / "agents" / f"{agent_id}.md"
+                    legacy_path = Path.cwd() / ".claude" / "agents" / f"{leaf_name}.md"
+                    user_path = Path.home() / ".claude" / "agents" / f"{leaf_name}.md"
 
                     removed = False
                     for path in [project_path, legacy_path, user_path]:
@@ -1385,11 +1393,12 @@ class ConfigureCommand(BaseCommand):
                                     state = json.load(f)
 
                                 # Remove agent from deployment state
+                                # Deployment state uses leaf names, not full hierarchical paths
                                 agents = state.get("last_check_results", {}).get(
                                     "agents", {}
                                 )
-                                if agent_id in agents:
-                                    del agents[agent_id]
+                                if leaf_name in agents:
+                                    del agents[leaf_name]
                                     removed = True
 
                                     # Save updated state
