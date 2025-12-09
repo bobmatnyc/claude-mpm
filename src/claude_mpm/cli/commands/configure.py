@@ -1493,7 +1493,7 @@ class ConfigureCommand(BaseCommand):
             for agent_id in to_remove:
                 try:
                     import json
-                    from pathlib import Path
+                    # Note: Path is already imported at module level (line 17)
 
                     # Extract leaf name to match deployed filename
                     # agent_id may be hierarchical (e.g., "engineer/mobile/tauri-engineer")
