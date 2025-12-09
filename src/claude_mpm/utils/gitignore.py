@@ -212,6 +212,9 @@ def ensure_claude_mpm_gitignore(project_dir: str = ".") -> dict:
         entries_to_add = [
             ".claude-mpm/",
             ".claude/agents/",
+            ".mcp.json",
+            ".claude.json",
+            ".claude/",
         ]
 
         added, existing = manager.ensure_entries(entries_to_add)

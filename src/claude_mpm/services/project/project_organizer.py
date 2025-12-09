@@ -58,6 +58,10 @@ class ProjectOrganizer:
         ".mcp-vector-search/",
         ".kuzu-memory/",
         "kuzu-memories/",  # kuzu-memory database directory
+        # User-specific config files (should NOT be committed)
+        ".mcp.json",
+        ".claude.json",
+        ".claude/",
         # Python artifacts
         "__pycache__/",
         "*.py[cod]",
