@@ -5,6 +5,7 @@ This module handles:
 2. Output style extraction from framework instructions
 3. One-time deployment to Claude Code >= 1.0.83 at startup
 4. Fallback injection for older versions
+5. Support for multiple output styles (professional and teaching modes)
 
 The output style is set once at startup and not monitored or enforced after that.
 Users can change it if they want, and the system will respect their choice.
@@ -14,7 +15,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Literal, Optional, TypedDict, cast
 
 from ..utils.imports import safe_import
 
@@ -25,22 +26,56 @@ get_logger = safe_import("claude_mpm.core.logger", "core.logger", ["get_logger"]
 _CACHED_CLAUDE_VERSION: Optional[str] = None
 _VERSION_DETECTED: bool = False
 
+# Output style types
+OutputStyleType = Literal["professional", "teaching"]
+
+
+class StyleConfig(TypedDict):
+    """Configuration for an output style."""
+
+    source: Path
+    target: Path
+    name: str
+
 
 class OutputStyleManager:
-    """Manages output style deployment and version-based handling."""
+    """Manages output style deployment and version-based handling.
 
-    def __init__(self):
+    Supports two output styles:
+    - professional: Default Claude MPM style (claude-mpm.md)
+    - teaching: Adaptive teaching mode (claude-mpm-teach.md)
+    """
+
+    def __init__(self) -> None:
         """Initialize the output style manager."""
-        self.logger = get_logger("output_style_manager")
+        self.logger = get_logger("output_style_manager")  # type: ignore[misc]
         self.claude_version = self._detect_claude_version()
-        self.output_style_dir = Path.home() / ".claude" / "output-styles"
-        self.output_style_path = self.output_style_dir / "claude-mpm.md"
+
+        # Deploy to ~/.claude/styles/ directory (NOT output-styles/)
+        self.output_style_dir = Path.home() / ".claude" / "styles"
         self.settings_file = Path.home() / ".claude" / "settings.json"
 
-        # Cache the output style content path
-        self.mpm_output_style_path = (
-            Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
-        )
+        # Style definitions
+        self.styles: Dict[str, StyleConfig] = {
+            "professional": StyleConfig(
+                source=Path(__file__).parent.parent
+                / "agents"
+                / "CLAUDE_MPM_OUTPUT_STYLE.md",
+                target=self.output_style_dir / "claude-mpm.md",
+                name="claude-mpm",
+            ),
+            "teaching": StyleConfig(
+                source=Path(__file__).parent.parent
+                / "agents"
+                / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md",
+                target=self.output_style_dir / "claude-mpm-teach.md",
+                name="claude-mpm-teach",
+            ),
+        }
+
+        # Default style path (for backward compatibility)
+        self.output_style_path = self.styles["professional"]["target"]
+        self.mpm_output_style_path = self.styles["professional"]["source"]
 
     def _detect_claude_version(self) -> Optional[str]:
         """
@@ -158,56 +193,77 @@ class OutputStyleManager:
         """
         return not self.supports_output_styles()
 
-    def extract_output_style_content(self, framework_loader=None) -> str:
+    def extract_output_style_content(
+        self, framework_loader: Any = None, style: OutputStyleType = "professional"
+    ) -> str:
         """
-        Read output style content from OUTPUT_STYLE.md.
+        Read output style content from style source file.
 
         Args:
             framework_loader: Optional framework loader (kept for compatibility, not used)
+            style: Style type to extract ("professional" or "teaching")
 
         Returns:
             Complete output style content from file
         """
-        # Always read from the complete OUTPUT_STYLE.md file
-        if self.mpm_output_style_path.exists():
-            content = self.mpm_output_style_path.read_text()
-            self.logger.info(f"Read OUTPUT_STYLE.md directly ({len(content)} chars)")
+        style_config = self.styles[style]
+        source_path = style_config["source"]
+
+        if source_path.exists():
+            content = source_path.read_text()
+            self.logger.info(
+                f"Read {style} style from {source_path.name} ({len(content)} chars)"
+            )
             return content
+
         # Fallback error
-        error_msg = f"OUTPUT_STYLE.md not found at {self.mpm_output_style_path}"
+        error_msg = f"{style} style not found at {source_path}"
         self.logger.error(error_msg)
         raise FileNotFoundError(error_msg)
 
-    def save_output_style(self, content: str) -> Path:
+    def save_output_style(
+        self, content: str, style: OutputStyleType = "professional"
+    ) -> Path:
         """
-        Save output style content to OUTPUT_STYLE.md.
+        Save output style content to source file.
 
         Args:
             content: The formatted output style content
+            style: Style type to save ("professional" or "teaching")
 
         Returns:
             Path to the saved file
         """
         try:
+            style_config = self.styles[style]
+            source_path = style_config["source"]
+
             # Ensure the parent directory exists
-            self.mpm_output_style_path.parent.mkdir(parents=True, exist_ok=True)
+            source_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write the content
-            self.mpm_output_style_path.write_text(content, encoding="utf-8")
-            self.logger.info(f"Saved output style to {self.mpm_output_style_path}")
+            source_path.write_text(content, encoding="utf-8")
+            self.logger.info(f"Saved {style} style to {source_path}")
 
-            return self.mpm_output_style_path
+            return source_path
         except Exception as e:
-            self.logger.error(f"Failed to save output style: {e}")
+            self.logger.error(f"Failed to save {style} style: {e}")
             raise
 
-    def deploy_output_style(self, content: str) -> bool:
+    def deploy_output_style(
+        self,
+        content: Optional[str] = None,
+        style: OutputStyleType = "professional",
+        activate: bool = True,
+    ) -> bool:
         """
         Deploy output style to Claude Code if version >= 1.0.83.
-        Deploys the style file and activates it once.
+        Deploys the style file and optionally activates it.
 
         Args:
-            content: The output style content to deploy
+            content: The output style content to deploy (if None, reads from source)
+            style: Style type to deploy ("professional" or "teaching")
+            activate: Whether to activate the style after deployment
 
         Returns:
             True if deployed successfully, False otherwise
@@ -219,26 +275,37 @@ class OutputStyleManager:
             return False
 
         try:
-            # Ensure output-styles directory exists
+            style_config = self.styles[style]
+            target_path = style_config["target"]
+            style_name = style_config["name"]
+
+            # If content not provided, read from source
+            if content is None:
+                content = self.extract_output_style_content(style=style)
+
+            # Ensure styles directory exists
             self.output_style_dir.mkdir(parents=True, exist_ok=True)
 
             # Write the output style file
-            self.output_style_path.write_text(content, encoding="utf-8")
-            self.logger.info(f"Deployed output style to {self.output_style_path}")
+            target_path.write_text(content, encoding="utf-8")
+            self.logger.info(f"Deployed {style} style to {target_path}")
 
-            # Activate the claude-mpm style
-            self._activate_output_style()
+            # Activate the style if requested
+            if activate:
+                self._activate_output_style(style_name)
 
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to deploy output style: {e}")
+            self.logger.error(f"Failed to deploy {style} style: {e}")
             return False
 
-    def _activate_output_style(self) -> bool:
+    def _activate_output_style(self, style_name: str = "claude-mpm") -> bool:
         """
-        Update Claude Code settings to activate the claude-mpm output style.
-        Sets activeOutputStyle to "claude-mpm" once at startup.
+        Update Claude Code settings to activate a specific output style.
+
+        Args:
+            style_name: Name of the style to activate (e.g., "claude-mpm", "claude-mpm-teach")
 
         Returns:
             True if activated successfully, False otherwise
@@ -257,9 +324,9 @@ class OutputStyleManager:
             # Check current active style
             current_style = settings.get("activeOutputStyle")
 
-            # Update active output style to claude-mpm if not already set
-            if current_style != "claude-mpm":
-                settings["activeOutputStyle"] = "claude-mpm"
+            # Update active output style if different
+            if current_style != style_name:
+                settings["activeOutputStyle"] = style_name
 
                 # Ensure settings directory exists
                 self.settings_file.parent.mkdir(parents=True, exist_ok=True)
@@ -270,10 +337,10 @@ class OutputStyleManager:
                 )
 
                 self.logger.info(
-                    f"✅ Activated claude-mpm output style (was: {current_style or 'none'})"
+                    f"✅ Activated {style_name} output style (was: {current_style or 'none'})"
                 )
             else:
-                self.logger.debug("Claude MPM output style already active")
+                self.logger.debug(f"{style_name} output style already active")
 
             return True
 
@@ -319,7 +386,9 @@ class OutputStyleManager:
 
         return status
 
-    def get_injectable_content(self, framework_loader=None) -> str:
+    def get_injectable_content(
+        self, framework_loader: Any = None, style: OutputStyleType = "professional"
+    ) -> str:
         """
         Get output style content for injection into instructions (for Claude < 1.0.83).
 
@@ -328,12 +397,13 @@ class OutputStyleManager:
 
         Args:
             framework_loader: Optional FrameworkLoader instance to reuse loaded content
+            style: Style type to extract ("professional" or "teaching")
 
         Returns:
             Simplified output style content for injection
         """
         # Extract the same content but without YAML frontmatter
-        full_content = self.extract_output_style_content(framework_loader)
+        full_content = self.extract_output_style_content(framework_loader, style=style)
 
         # Remove YAML frontmatter
         lines = full_content.split("\n")
@@ -351,3 +421,63 @@ class OutputStyleManager:
 
         # If no frontmatter found, return as-is
         return full_content
+
+    def deploy_all_styles(self, activate_default: bool = True) -> Dict[str, bool]:
+        """
+        Deploy all available output styles to Claude Code.
+
+        Args:
+            activate_default: Whether to activate the professional style after deployment
+
+        Returns:
+            Dictionary mapping style names to deployment success status
+        """
+        results: Dict[str, bool] = {}
+
+        for style_type_key in self.styles:
+            # Deploy without activation
+            # Cast is safe because we know self.styles keys are OutputStyleType
+            style_type = cast("OutputStyleType", style_type_key)
+            success = self.deploy_output_style(style=style_type, activate=False)
+            results[style_type] = success
+
+        # Activate the default style if requested
+        if activate_default and results.get("professional", False):
+            self._activate_output_style("claude-mpm")
+
+        return results
+
+    def deploy_teaching_style(self, activate: bool = False) -> bool:
+        """
+        Deploy the teaching style specifically.
+
+        Args:
+            activate: Whether to activate the teaching style after deployment
+
+        Returns:
+            True if deployed successfully, False otherwise
+        """
+        return self.deploy_output_style(style="teaching", activate=activate)
+
+    def list_available_styles(self) -> Dict[str, Dict[str, str]]:
+        """
+        List all available output styles with their metadata.
+
+        Returns:
+            Dictionary mapping style types to their configuration
+        """
+        available_styles = {}
+
+        for style_type, config in self.styles.items():
+            source_exists = config["source"].exists()
+            target_exists = config["target"].exists()
+
+            available_styles[style_type] = {
+                "name": config["name"],
+                "source_path": str(config["source"]),
+                "target_path": str(config["target"]),
+                "source_exists": str(source_exists),
+                "deployed": str(target_exists),
+            }
+
+        return available_styles
