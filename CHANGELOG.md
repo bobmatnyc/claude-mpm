@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.1.9] - 2025-12-09
+
+### Fixed
+- Patch release for minor fixes and improvements
+
 ## [5.1.8] - 2025-12-09
 
 ### Fixed
