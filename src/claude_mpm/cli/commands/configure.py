@@ -421,7 +421,7 @@ class ConfigureCommand(BaseCommand):
                 # Handle questionary menu failure
                 import sys
                 self.logger.error(f"Agent management menu failed: {e}", exc_info=True)
-                self.console.print(f"[red]Error: Interactive menu failed[/red]")
+                self.console.print("[red]Error: Interactive menu failed[/red]")
                 self.console.print(f"[dim]Reason: {e}[/dim]")
                 if not sys.stdin.isatty():
                     self.console.print("[dim]Interactive terminal required for this operation[/dim]")
@@ -1226,7 +1226,7 @@ class ConfigureCommand(BaseCommand):
                 # Handle questionary failure (non-TTY, broken pipe, keyboard interrupt, etc.)
                 import sys
                 self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
-                self.console.print(f"[red]Error: Could not display interactive menu[/red]")
+                self.console.print("[red]Error: Could not display interactive menu[/red]")
                 self.console.print(f"[dim]Reason: {e}[/dim]")
                 if not sys.stdin.isatty():
                     self.console.print("[dim]Interactive terminal required. Use:[/dim]")
