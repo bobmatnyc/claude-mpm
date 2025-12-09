@@ -131,7 +131,12 @@ def test_discover_remote_agents_empty_directory(temp_remote_agents_dir):
 
 
 def test_parse_markdown_agent_missing_name(temp_remote_agents_dir):
-    """Test parsing Markdown agent without name heading."""
+    """Test parsing Markdown agent without name heading uses filename fallback.
+
+    MISMATCH FIX: Parser now includes fallback behavior for resilience.
+    When no heading is found, uses filename stem as name (converted to title case).
+    This ensures agents can be discovered even with minimal markdown formatting.
+    """
     # Create agent in /agents/ subdirectory
     agents_dir = temp_remote_agents_dir / "agents"
     invalid_md = agents_dir / "invalid.md"
@@ -140,7 +145,11 @@ def test_parse_markdown_agent_missing_name(temp_remote_agents_dir):
     service = RemoteAgentDiscoveryService(temp_remote_agents_dir)
     result = service._parse_markdown_agent(invalid_md)
 
-    assert result is None
+    # MISMATCH FIX: Should not return None, uses filename fallback
+    assert result is not None
+    # Fallback name comes from filename (invalid -> "Invalid")
+    assert result["metadata"]["name"] == "Invalid"
+    assert result["agent_id"] == "invalid"
 
 
 def test_parse_markdown_agent_minimal(temp_remote_agents_dir):
@@ -269,32 +278,46 @@ Description for agent {i}
 
 
 def test_agent_id_generation(temp_remote_agents_dir):
-    """Test agent_id is correctly generated from file path.
+    """Test agent_id is correctly generated as leaf name from filename.
 
-    Bug #4 fix: Agent IDs are now based on file paths relative to /agents/ subdirectory.
-    Files must be in /agents/ subdirectory for hierarchical IDs.
-    If not in /agents/, falls back to filename stem only.
+    MISMATCH FIX: Agent IDs are now LEAF NAMES (from filename stem), not hierarchical paths.
+    Hierarchical path information is stored separately in 'hierarchical_path' field.
+    This ensures deployed agent IDs match remote agent IDs for deployment status detection.
+
+    Test cases verify:
+    1. agent_id is always the leaf filename stem (no slashes)
+    2. hierarchical_path preserves directory structure
+    3. Files in subdirectories still get leaf-name IDs
     """
     test_cases = [
-        ("Simple Agent", "simple-agent.md", "simple-agent"),
+        # (name, filename, expected_agent_id, expected_hierarchical_path)
+        ("Simple Agent", "simple-agent.md", "simple-agent", "simple-agent"),
         (
             "Agent With Numbers 123",
             "agent-with-numbers-123.md",
             "agent-with-numbers-123",
+            "agent-with-numbers-123",
         ),
-        ("UPPERCASE AGENT", "uppercase-agent.md", "uppercase-agent"),
+        ("UPPERCASE AGENT", "uppercase-agent.md", "uppercase-agent", "uppercase-agent"),
+        # MISMATCH FIX: Hierarchical files get LEAF NAME as agent_id
         (
             "Backend/Python Engineer",
             "backend/python-engineer.md",
-            "backend/python-engineer",
+            "python-engineer",  # LEAF NAME (not "backend/python-engineer")
+            "backend/python-engineer",  # Hierarchical path preserved separately
         ),
-        ("QA/Test Agent", "qa/test-agent.md", "qa/test-agent"),
+        (
+            "QA/Test Agent",
+            "qa/test-agent.md",
+            "test-agent",  # LEAF NAME (not "qa/test-agent")
+            "qa/test-agent",  # Hierarchical path preserved separately
+        ),
     ]
 
     # All test cases create files in /agents/ subdirectory
     agents_dir = temp_remote_agents_dir / "agents"
 
-    for name, filename, expected_id in test_cases:
+    for name, filename, expected_id, expected_hierarchical in test_cases:
         # Create file in /agents/ subdirectory with proper hierarchy
         agent_path = agents_dir / filename
         agent_path.parent.mkdir(parents=True, exist_ok=True)
@@ -304,8 +327,18 @@ def test_agent_id_generation(temp_remote_agents_dir):
         result = service._parse_markdown_agent(agent_path)
 
         assert result is not None
+
+        # MISMATCH FIX: Verify agent_id is LEAF NAME
         assert result["agent_id"] == expected_id, (
-            f"Failed for name: {name}, filename: {filename}, got: {result['agent_id']}"
+            f"Failed for name: {name}, filename: {filename}, "
+            f"expected agent_id: {expected_id}, got: {result['agent_id']}"
+        )
+
+        # MISMATCH FIX: Verify hierarchical path is stored separately
+        assert result["hierarchical_path"] == expected_hierarchical, (
+            f"Failed for name: {name}, filename: {filename}, "
+            f"expected hierarchical_path: {expected_hierarchical}, "
+            f"got: {result['hierarchical_path']}"
         )
 
         # Clean up for next iteration

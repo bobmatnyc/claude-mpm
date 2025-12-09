@@ -11,6 +11,7 @@ multi-tier discovery system.
 
 import json
 import re
+import yaml
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -153,6 +154,99 @@ class RemoteAgentDiscoveryService:
             self.logger.warning(f"Failed to extract source_path from {file_path}: {e}")
             return None
 
+    def _parse_yaml_frontmatter(self, content: str) -> Optional[Dict[str, Any]]:
+        """Parse YAML frontmatter from Markdown content.
+
+        Extracts YAML frontmatter delimited by --- markers at the start of the file.
+        Uses a tolerant approach: attempts full YAML parsing first, falls back to
+        simple key-value extraction for malformed YAML.
+
+        Design Decision: Tolerant YAML Parsing
+
+        Rationale: Some agent markdown files have malformed YAML (incorrect indentation
+        in nested structures). Rather than failing completely, we:
+        1. Try full YAML parsing first (handles well-formed YAML)
+        2. Fall back to regex extraction for critical fields (agent_id, name, etc.)
+        3. Log warnings but continue processing
+
+        This ensures we can still extract agent_id even if complex nested structures
+        (like template_changelog) have indentation issues.
+
+        Args:
+            content: Full Markdown file content
+
+        Returns:
+            Dictionary of parsed YAML frontmatter, or None if not found
+
+        Example:
+            Input:
+                ---
+                agent_id: python-engineer
+                name: Python Engineer
+                version: 2.3.0
+                ---
+                # Agent content...
+
+            Output:
+                {"agent_id": "python-engineer", "name": "Python Engineer", "version": "2.3.0"}
+        """
+        try:
+            # Check if content starts with YAML frontmatter
+            if not content.startswith('---'):
+                self.logger.debug("No YAML frontmatter found (doesn't start with ---)")
+                return None
+
+            # Extract frontmatter content between --- markers
+            frontmatter_match = re.match(r'^---\n(.*?)\n---\s*\n', content, re.DOTALL)
+            if not frontmatter_match:
+                self.logger.debug("No closing --- marker found for YAML frontmatter")
+                return None
+
+            yaml_content = frontmatter_match.group(1)
+
+            # Try full YAML parsing first
+            try:
+                parsed = yaml.safe_load(yaml_content)
+                if isinstance(parsed, dict):
+                    return parsed
+                else:
+                    self.logger.warning(f"YAML frontmatter is not a dictionary: {type(parsed)}")
+            except yaml.YAMLError as e:
+                # Malformed YAML (e.g., indentation errors) - fall back to regex extraction
+                self.logger.debug(f"Full YAML parse failed, using fallback extraction: {e}")
+
+                # Extract key fields using regex (tolerant of malformed nested structures)
+                result = {}
+
+                # Extract simple key-value pairs (no nested structures)
+                simple_keys = [
+                    'agent_id', 'name', 'description', 'version', 'model',
+                    'agent_type', 'category', 'author', 'schema_version'
+                ]
+
+                for key in simple_keys:
+                    # Match key: value on a line (not indented, so it's top-level)
+                    pattern = rf'^{key}:\s*(.+?)$'
+                    match = re.search(pattern, yaml_content, re.MULTILINE)
+                    if match:
+                        value = match.group(1).strip()
+                        # Remove quotes if present
+                        if value.startswith(("'", '"')) and value.endswith(("'", '"')):
+                            value = value[1:-1]
+                        result[key] = value
+
+                if result:
+                    self.logger.debug(f"Extracted {len(result)} fields using fallback method")
+                    return result
+                else:
+                    return None
+
+        except Exception as e:
+            self.logger.warning(f"Unexpected error parsing frontmatter: {e}")
+            return None
+
+        return None
+
     def _generate_hierarchical_id(self, file_path: Path) -> str:
         """Generate hierarchical agent ID from file path.
 
@@ -288,8 +382,14 @@ class RemoteAgentDiscoveryService:
     def _parse_markdown_agent(self, md_file: Path) -> Optional[Dict[str, Any]]:
         """Parse Markdown agent file and convert to JSON template format.
 
-        Expected Markdown format:
+        Expected Markdown format with YAML frontmatter:
         ```markdown
+        ---
+        agent_id: python-engineer
+        name: Python Engineer
+        version: 2.3.0
+        model: sonnet
+        ---
         # Agent Name
 
         Description paragraph (first paragraph after heading)
@@ -302,6 +402,11 @@ class RemoteAgentDiscoveryService:
         - Keywords: keyword1, keyword2
         - Paths: /path1/, /path2/
         ```
+
+        Agent ID Priority (Mismatch Fix):
+        1. Use agent_id from YAML frontmatter if present (e.g., "python-engineer")
+        2. Fall back to leaf filename if no YAML frontmatter (e.g., "python-engineer.md" -> "python-engineer")
+        3. Store hierarchical path separately as category_path for categorization
 
         Args:
             md_file: Path to Markdown agent file
@@ -320,22 +425,48 @@ class RemoteAgentDiscoveryService:
             self.logger.error(f"Failed to read file {md_file}: {e}")
             return None
 
-        # Extract agent name from first heading
+        # MISMATCH FIX: Parse YAML frontmatter to extract agent_id
+        frontmatter = self._parse_yaml_frontmatter(content)
+
+        # MISMATCH FIX: Use agent_id from YAML frontmatter if present, otherwise fall back to filename
+        if frontmatter and "agent_id" in frontmatter:
+            agent_id = frontmatter["agent_id"]
+            self.logger.debug(f"Using agent_id from YAML frontmatter: {agent_id}")
+        else:
+            # Fallback: Use leaf filename without extension
+            agent_id = md_file.stem
+            self.logger.debug(f"No agent_id in YAML, using filename: {agent_id}")
+
+        # Store hierarchical path separately for categorization (not as primary ID)
+        hierarchical_path = self._generate_hierarchical_id(md_file)
+
+        # Extract agent name from first heading (fallback to frontmatter or filename)
         name_match = re.search(r"^#\s+(.+?)$", content, re.MULTILINE)
-        if not name_match:
-            self.logger.debug(f"No agent name heading found in {md_file.name}")
-            return None
-        name = name_match.group(1).strip()
+        if name_match:
+            name = name_match.group(1).strip()
+        elif frontmatter and "name" in frontmatter:
+            name = frontmatter["name"]
+        else:
+            # Fallback to filename if no heading or frontmatter
+            name = md_file.stem.replace("-", " ").replace("_", " ").title()
 
         # Extract description (first paragraph after heading, before next heading)
         desc_match = re.search(
             r"^#.+?\n\n(.+?)(?:\n\n##|\Z)", content, re.DOTALL | re.MULTILINE
         )
-        description = desc_match.group(1).strip() if desc_match else ""
+        if desc_match:
+            description = desc_match.group(1).strip()
+        elif frontmatter and "description" in frontmatter:
+            description = frontmatter["description"]
+        else:
+            description = ""
 
-        # Extract model from Configuration section
-        model_match = re.search(r"Model:\s*(\w+)", content, re.IGNORECASE)
-        model = model_match.group(1) if model_match else "sonnet"
+        # Extract model from YAML frontmatter or Configuration section
+        if frontmatter and "model" in frontmatter:
+            model = frontmatter["model"]
+        else:
+            model_match = re.search(r"Model:\s*(\w+)", content, re.IGNORECASE)
+            model = model_match.group(1) if model_match else "sonnet"
 
         # Extract priority from Configuration section
         priority_match = re.search(r"Priority:\s*(\d+)", content, re.IGNORECASE)
@@ -353,12 +484,11 @@ class RemoteAgentDiscoveryService:
         if paths_match:
             paths = [p.strip() for p in paths_match.group(1).split(",")]
 
-        # Get version (SHA-256 hash) from cache metadata
-        version = self._get_agent_version(md_file)
-
-        # Bug #3 fix: Generate hierarchical agent_id from file path
-        # This preserves directory structure for category filtering and preset matching
-        agent_id = self._generate_hierarchical_id(md_file)
+        # Get version (SHA-256 hash) from cache metadata or YAML frontmatter
+        if frontmatter and "version" in frontmatter:
+            version = frontmatter["version"]
+        else:
+            version = self._get_agent_version(md_file)
 
         # Bug #1 fix: Detect category from directory path
         category = self._detect_category_from_path(md_file)
@@ -368,6 +498,7 @@ class RemoteAgentDiscoveryService:
         source_path = self._extract_source_path_from_file(md_file)
 
         # NEW: Generate canonical_id (collection_id:agent_id)
+        # Use leaf agent_id (not hierarchical path) for canonical_id
         if collection_id:
             canonical_id = f"{collection_id}:{agent_id}"
         else:
@@ -378,8 +509,9 @@ class RemoteAgentDiscoveryService:
         # IMPORTANT: Include 'path' field for compatibility with deployment validation (ticket 1M-480)
         # Git-sourced agents must have 'path' field to match structure from AgentDiscoveryService
         return {
-            "agent_id": agent_id,
-            "canonical_id": canonical_id,  # NEW: Primary matching key
+            "agent_id": agent_id,  # MISMATCH FIX: Use leaf name from YAML, not hierarchical path
+            "hierarchical_path": hierarchical_path,  # Store hierarchical path separately
+            "canonical_id": canonical_id,  # NEW: Primary matching key (uses leaf agent_id)
             "collection_id": collection_id,  # NEW: Collection identifier
             "source_path": source_path,  # NEW: Path within repository
             "metadata": {
@@ -388,6 +520,7 @@ class RemoteAgentDiscoveryService:
                 "version": version,
                 "author": "remote",  # Mark as remote agent
                 "category": category,  # Use detected category from path
+                "hierarchical_path": hierarchical_path,  # For categorization/filtering
                 "collection_id": collection_id,  # NEW: Also in metadata
                 "source_path": source_path,  # NEW: Also in metadata
                 "canonical_id": canonical_id,  # NEW: Also in metadata
