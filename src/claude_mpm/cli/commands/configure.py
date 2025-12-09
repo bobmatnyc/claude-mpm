@@ -1341,7 +1341,7 @@ class ConfigureCommand(BaseCommand):
                     # Add individual agents from this collection
                     for agent in sorted(agents_in_collection, key=lambda a: a.name):
                         display_name = getattr(agent, "display_name", agent.name)
-                        is_selected = agent.name in current_selection
+                        is_selected = agent.name in deployed_full_paths
 
                         choice_text = f"{agent.name}"
                         if display_name and display_name != agent.name:
