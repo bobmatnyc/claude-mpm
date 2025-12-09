@@ -4,10 +4,14 @@ Agent filtering utilities for claude-mpm.
 WHY: This module provides centralized filtering logic to remove non-deployable
 agents (BASE_AGENT) and already-deployed agents from user-facing displays.
 
+ARCHITECTURE:
+- SOURCE: ~/.claude-mpm/cache/remote-agents/ (git repository cache)
+- DEPLOYMENT: .claude/agents/ (project-level deployment location)
+
 DESIGN DECISIONS:
 - BASE_AGENT is a build tool, not a deployable agent - filter everywhere
-- Deployed agent detection supports both new (.claude-mpm/agents/) and
-  legacy (.claude/agents/)
+- Deployed agent detection checks .claude/agents/ for all deployed agents
+- Supports both virtual (.mpm_deployment_state) and physical (.md files) detection
 - Case-insensitive BASE_AGENT detection for robustness
 - Pure functions for easy testing and reuse
 
@@ -102,10 +106,11 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
 
     Design Rationale:
         - Primary detection: Virtual deployment state (.mpm_deployment_state)
-        - Fallback detection: Physical .md files (.claude-mpm/agents/, .claude/agents/)
+        - Fallback detection: Physical .md files in .claude/agents/
         - Returns leaf names for consistent comparison with agent_id formats
         - Combines both detection methods for complete coverage
         - Graceful error handling for malformed or missing state files
+        - Only checks project-level deployment (simplified architecture)
 
     Related:
         - Fixes checkbox interface showing all agents as "○ [Available]" instead of "● [Installed]"
@@ -122,16 +127,10 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
 
     # NEW: Check virtual deployment state (primary method)
     # This is the current deployment model used by Claude Code
+    # Only checking project-level deployment in simplified architecture
     deployment_state_paths = [
         project_dir / ".claude" / "agents" / ".mpm_deployment_state",
     ]
-
-    # Only check user-level state if using default project directory
-    # This prevents test isolation issues when explicit project_dir is provided
-    if not explicit_project_dir:
-        deployment_state_paths.append(
-            Path.home() / ".claude" / "agents" / ".mpm_deployment_state"
-        )
 
     for state_path in deployment_state_paths:
         if state_path.exists():
@@ -162,42 +161,18 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
                 continue
 
     # EXISTING: Check physical .md files (fallback for backward compatibility)
-    # Check new architecture
-    new_agents_dir = project_dir / ".claude-mpm" / "agents"
-    if new_agents_dir.exists():
-        for file in new_agents_dir.glob("*.md"):
+    # Check project deployment location (.claude/agents/)
+    agents_dir = project_dir / ".claude" / "agents"
+    if agents_dir.exists():
+        for file in agents_dir.glob("*.md"):
             if file.stem not in {"BASE-AGENT", ".DS_Store"}:
                 deployed.add(file.stem)
 
-    # Check legacy architecture
-    legacy_agents_dir = project_dir / ".claude" / "agents"
-    if legacy_agents_dir.exists():
-        for file in legacy_agents_dir.glob("*.md"):
-            if file.stem not in {"BASE-AGENT", ".DS_Store"}:
-                deployed.add(file.stem)
+    # NOTE: .claude/templates/ contains PM instruction templates, NOT deployed agents
+    # It should NOT be checked here. Agents are deployed to:
+    # - .mpm_deployment_state (virtual deployment)
+    # - .claude/agents/*.md (project deployment)
 
-    # Check .claude/templates/ directory (where agents are actually deployed)
-    templates_dir = project_dir / ".claude" / "templates"
-    if templates_dir.exists():
-        for file in templates_dir.glob("*.md"):
-            if file.stem not in {
-                "BASE-AGENT",
-                ".DS_Store",
-                "README",
-                "circuit-breakers",
-            }:
-                # Skip template/example files
-                if not any(x in file.stem for x in ["example", "template", "pm-"]):
-                    deployed.add(file.stem)
-
-    # Check user-level directory only if using default project directory
-    # This prevents test isolation issues when explicit project_dir is provided
-    if not explicit_project_dir:
-        user_agents_dir = Path.home() / ".claude" / "agents"
-        if user_agents_dir.exists():
-            for file in user_agents_dir.glob("*.md"):
-                if file.stem not in {"BASE-AGENT", ".DS_Store"}:
-                    deployed.add(file.stem)
 
     return deployed
 

@@ -174,25 +174,15 @@ class UnifiedAgentRegistry:
         if project_path.exists():
             self.discovery_paths.append(project_path)
 
-        # Also check for local JSON templates in .claude-mpm/agents/
-        local_project_path = self.path_manager.project_root / ".claude-mpm" / "agents"
-        if (
-            local_project_path.exists()
-            and local_project_path not in self.discovery_paths
-        ):
-            self.discovery_paths.append(local_project_path)
-            logger.debug(f"Added local project templates path: {local_project_path}")
+        # NOTE: .claude-mpm/agents/ is deprecated in the simplified architecture
+        # Source agents come from ~/.claude-mpm/cache/remote-agents/
+        # Deployed agents go to .claude/agents/
 
-        # User-level agents
+        # User-level agents (deprecated in simplified architecture)
+        # Keeping for backward compatibility but not actively used
         user_path = self.path_manager.get_user_agents_dir()
         if user_path.exists():
             self.discovery_paths.append(user_path)
-
-        # Also check for user JSON templates in ~/.claude-mpm/agents/
-        local_user_path = Path.home() / ".claude-mpm" / "agents"
-        if local_user_path.exists() and local_user_path not in self.discovery_paths:
-            self.discovery_paths.append(local_user_path)
-            logger.debug(f"Added local user templates path: {local_user_path}")
 
         # System-level agents (includes templates as a subdirectory)
         system_path = self.path_manager.get_system_agents_dir()

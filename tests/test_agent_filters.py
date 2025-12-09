@@ -166,10 +166,10 @@ class TestGetDeployedAgentIds:
     """Test deployed agent detection from filesystem."""
 
     def test_new_architecture_detection(self):
-        """Agents in .claude-mpm/agents/ should be detected."""
+        """Agents in .claude/agents/ should be detected (simplified architecture)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
 
             # Create deployed agent files
@@ -182,7 +182,7 @@ class TestGetDeployedAgentIds:
             assert len(deployed) == 2
 
     def test_legacy_architecture_detection(self):
-        """Agents in .claude/agents/ should be detected."""
+        """Test for legacy .claude/agents/ detection (same as new architecture now)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
             agents_dir = project_dir / ".claude" / "agents"
@@ -198,19 +198,15 @@ class TestGetDeployedAgentIds:
             assert len(deployed) == 2
 
     def test_both_architectures_detection(self):
-        """Agents in both directories should be detected (union)."""
+        """Multiple agents in single deployment directory should be detected."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
 
-            # New architecture
-            new_agents_dir = project_dir / ".claude-mpm" / "agents"
-            new_agents_dir.mkdir(parents=True)
-            (new_agents_dir / "ENGINEER.md").write_text("# Engineer")
-
-            # Legacy architecture
-            legacy_agents_dir = project_dir / ".claude" / "agents"
-            legacy_agents_dir.mkdir(parents=True)
-            (legacy_agents_dir / "PM.md").write_text("# PM")
+            # Simplified architecture - single deployment location
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "ENGINEER.md").write_text("# Engineer")
+            (agents_dir / "PM.md").write_text("# PM")
 
             deployed = get_deployed_agent_ids(project_dir)
             assert "ENGINEER" in deployed
@@ -218,19 +214,14 @@ class TestGetDeployedAgentIds:
             assert len(deployed) == 2
 
     def test_duplicate_across_architectures(self):
-        """Same agent in both directories should only appear once."""
+        """Same agent should only be counted once (simplified architecture)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
 
-            # New architecture
-            new_agents_dir = project_dir / ".claude-mpm" / "agents"
-            new_agents_dir.mkdir(parents=True)
-            (new_agents_dir / "ENGINEER.md").write_text("# Engineer")
-
-            # Legacy architecture (same agent)
-            legacy_agents_dir = project_dir / ".claude" / "agents"
-            legacy_agents_dir.mkdir(parents=True)
-            (legacy_agents_dir / "ENGINEER.md").write_text("# Engineer")
+            # Single deployment location
+            agents_dir = project_dir / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "ENGINEER.md").write_text("# Engineer")
 
             deployed = get_deployed_agent_ids(project_dir)
             assert "ENGINEER" in deployed
@@ -241,8 +232,7 @@ class TestGetDeployedAgentIds:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
 
-            # Create directories but no files
-            (project_dir / ".claude-mpm" / "agents").mkdir(parents=True)
+            # Create directory but no files
             (project_dir / ".claude" / "agents").mkdir(parents=True)
 
             deployed = get_deployed_agent_ids(project_dir)
@@ -267,7 +257,7 @@ class TestGetDeployedAgentIds:
         """Only .md files should be counted as agents."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
 
             # Create files with different extensions
@@ -372,7 +362,7 @@ class TestFilterDeployedAgents:
         """Deployed agents should be filtered out."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
             (agents_dir / "ENGINEER.md").write_text("# Engineer")
 
@@ -392,7 +382,7 @@ class TestFilterDeployedAgents:
         """Non-deployed agents should be preserved."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
             # No agents deployed
 
@@ -409,7 +399,7 @@ class TestFilterDeployedAgents:
         """All deployed agents should return empty list."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
             (agents_dir / "ENGINEER.md").write_text("# Engineer")
             (agents_dir / "PM.md").write_text("# PM")
@@ -442,7 +432,7 @@ class TestApplyAllFilters:
         """Deployed filtering alone should work."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
             (agents_dir / "ENGINEER.md").write_text("# Engineer")
 
@@ -461,7 +451,7 @@ class TestApplyAllFilters:
         """Both filters should work together."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
-            agents_dir = project_dir / ".claude-mpm" / "agents"
+            agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
             (agents_dir / "ENGINEER.md").write_text("# Engineer")
 

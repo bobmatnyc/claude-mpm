@@ -272,9 +272,9 @@ class SimpleAgentManager:
             True if agent is deployed, False otherwise
         """
         # Check virtual deployment state (primary method)
+        # Only checking project-level deployment in simplified architecture
         deployment_state_paths = [
             Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state",
-            Path.home() / ".claude" / "agents" / ".mpm_deployment_state",
         ]
 
         for state_path in deployment_state_paths:
@@ -319,22 +319,11 @@ class SimpleAgentManager:
             leaf_name = agent_id.split("/")[-1]
             agent_file_names.append(f"{leaf_name}.md")
 
-        # Check .claude-mpm/agents/ directory (project level)
-        project_agents_dir = Path.cwd() / ".claude-mpm" / "agents"
+        # Check .claude/agents/ directory (project deployment)
+        project_agents_dir = Path.cwd() / ".claude" / "agents"
         if project_agents_dir.exists():
             for agent_file_name in agent_file_names:
                 agent_file = project_agents_dir / agent_file_name
-                if agent_file.exists():
-                    self.logger.debug(
-                        f"Agent {agent_id} found as physical file: {agent_file}"
-                    )
-                    return True
-
-        # Check ~/.claude/agents/ directory (user level)
-        user_agents_dir = Path.home() / ".claude" / "agents"
-        if user_agents_dir.exists():
-            for agent_file_name in agent_file_names:
-                agent_file = user_agents_dir / agent_file_name
                 if agent_file.exists():
                     self.logger.debug(
                         f"Agent {agent_id} found as physical file: {agent_file}"

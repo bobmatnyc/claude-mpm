@@ -102,33 +102,27 @@ def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     """
     Get directories containing agent JSON files across all tiers.
 
-    Returns a dictionary mapping tiers to their agent directories:
-    - PROJECT: .claude-mpm/agents in the current working directory
-    - USER: ~/.claude-mpm/agents
-    - SYSTEM: Built-in agents relative to this module
+    SIMPLIFIED ARCHITECTURE:
+    - SOURCE: ~/.claude-mpm/cache/remote-agents/ (git cache from GitHub)
+    - DEPLOYMENT: .claude/agents/ (project-level Claude Code discovery)
 
-    WHY: We support multiple tiers to allow project-specific customization
-    while maintaining backward compatibility with system agents.
+    This function is kept for backward compatibility but the tier-based
+    system is being phased out in favor of the simplified architecture.
 
     Returns:
         Dict mapping AgentTier to Path (or None if not available)
     """
     dirs = {}
 
-    # PROJECT tier - ALWAYS check current working directory dynamically
-    # This ensures we pick up project agents even if CWD changes
-    project_dir = Path.cwd() / get_path_manager().CONFIG_DIR / "agents"
+    # PROJECT tier - Deprecated in simplified architecture
+    # Agents are now deployed to .claude/agents/ directly
+    project_dir = Path.cwd() / ".claude" / "agents"
     if project_dir.exists():
         dirs[AgentTier.PROJECT] = project_dir
         logger.debug(f"Found PROJECT agents at: {project_dir}")
 
-    # USER tier - check user home directory
-    user_config_dir = get_path_manager().get_user_config_dir()
-    if user_config_dir:
-        user_agents_dir = user_config_dir / "agents"
-        if user_agents_dir.exists():
-            dirs[AgentTier.USER] = user_agents_dir
-            logger.debug(f"Found USER agents at: {user_agents_dir}")
+    # USER tier - Deprecated in simplified architecture
+    # (Kept for backward compatibility but not actively used)
 
     # SYSTEM tier - built-in agents
     system_dir = Path(__file__).parent / "templates"

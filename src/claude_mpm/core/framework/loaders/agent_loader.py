@@ -115,7 +115,11 @@ class AgentLoader:
         return agents
 
     def discover_local_json_templates(self) -> Dict[str, Dict[str, Any]]:
-        """Discover local JSON agent templates from .claude-mpm/agents/ directories.
+        """Discover local JSON agent templates.
+
+        NOTE: This method is kept for backward compatibility but is deprecated.
+        The new architecture uses SOURCE (~/.claude-mpm/cache/remote-agents/)
+        and DEPLOYMENT (.claude/agents/) locations only.
 
         Returns:
             Dictionary mapping agent IDs to agent metadata
@@ -125,11 +129,12 @@ class AgentLoader:
         local_agents = {}
 
         # Check for local JSON templates in priority order
+        # NOTE: These directories are deprecated in the simplified architecture
         template_dirs = [
             Path.cwd()
             / ".claude-mpm"
-            / "agents",  # Project local agents (highest priority)
-            Path.home() / ".claude-mpm" / "agents",  # User local agents
+            / "agents",  # Deprecated: Project local agents
+            Path.home() / ".claude-mpm" / "agents",  # Deprecated: User local agents
         ]
 
         for priority, template_dir in enumerate(template_dirs):
