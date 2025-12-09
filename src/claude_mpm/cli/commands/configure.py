@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import questionary
+import questionary.constants  # For checkbox symbol customization
 from questionary import Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
@@ -1220,8 +1221,6 @@ class ConfigureCommand(BaseCommand):
             )
 
             # Monkey-patch questionary symbols for better visibility
-            import questionary.constants
-
             questionary.constants.INDICATOR_SELECTED = "[✓]"
             questionary.constants.INDICATOR_UNSELECTED = "[ ]"
 
