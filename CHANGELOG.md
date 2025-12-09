@@ -12,6 +12,15 @@
 
 ### Security
 
+## [5.1.7] - 2025-12-09
+
+### Fixed
+- Improved agent configurator checkbox visibility with [✓]/[ ] markers
+- Fixed state tracking when adjusting agent selections
+- Added error handling for non-interactive terminals in configure command
+- Removed user-specific .mcp.json/.claude.json from git tracking
+- Auto-gitignore user config files during mpm-init
+
 ## [5.1.6] - 2025-12-08
 
 ### Fixed
