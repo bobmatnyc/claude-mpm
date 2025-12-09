@@ -1098,7 +1098,15 @@ class ConfigureCommand(BaseCommand):
             )
 
         self.console.print(agents_table)
-        self.console.print(f"\n[dim]Total: {len(agents)} agents available[/dim]")
+
+        # Show installed vs available count
+        installed_count = sum(1 for a in agents if getattr(a, 'is_deployed', False))
+        available_count = len(agents) - installed_count
+        self.console.print(
+            f"\n[green]✓ {installed_count} installed[/green] | "
+            f"[dim]{available_count} available[/dim] | "
+            f"[dim]Total: {len(agents)}[/dim]"
+        )
 
     def _manage_sources(self) -> None:
         """Interactive source management."""
@@ -1197,9 +1205,16 @@ class ConfigureCommand(BaseCommand):
                 "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
             ).ask()
 
-            # Handle Esc
+            # Handle Esc OR non-interactive terminal
             if selected_agent_ids is None:
-                self.console.print("[yellow]No changes made[/yellow]")
+                # Check if we're in a non-interactive environment
+                import sys
+                if not sys.stdin.isatty():
+                    self.console.print("[red]Error: Interactive terminal required for agent selection[/red]")
+                    self.console.print("[dim]Use --list-agents to see available agents[/dim]")
+                    self.console.print("[dim]Use --enable-agent/--disable-agent for non-interactive mode[/dim]")
+                else:
+                    self.console.print("[yellow]No changes made[/yellow]")
                 Prompt.ask("\nPress Enter to continue")
                 return
 
@@ -1211,7 +1226,9 @@ class ConfigureCommand(BaseCommand):
             to_remove = deployed_ids - current_selection  # Originally deployed but not selected
 
             if not to_deploy and not to_remove:
-                self.console.print("[yellow]No changes made[/yellow]")
+                self.console.print(
+                    "[yellow]No changes needed - all selected agents are already installed[/yellow]"
+                )
                 Prompt.ask("\nPress Enter to continue")
                 return
 
