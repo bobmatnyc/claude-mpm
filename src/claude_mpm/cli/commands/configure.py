@@ -13,13 +13,14 @@ DESIGN DECISIONS:
 
 import json
 import shutil
+from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional
 
 import questionary
 import questionary.constants
 import questionary.prompts.common  # For checkbox symbol customization
-from questionary import Style
+from questionary import Choice, Separator, Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.text import Text
@@ -1193,30 +1194,69 @@ class ConfigureCommand(BaseCommand):
         # Loop to allow adjusting selection
         while True:
             # Build checkbox choices with pre-selection based on current_selection
-            agent_choices = []
             agent_map = {}  # For lookup after selection
 
+            # Group agents by collection/source
+            collections = defaultdict(list)
             for agent in agents:
                 if agent.name in {a["agent_id"] for a in all_agents}:
+                    # Determine collection ID
+                    source_type = getattr(agent, "source_type", "local")
+                    if source_type == "remote":
+                        source_dict = getattr(agent, "source_dict", {})
+                        repo_url = source_dict.get("source", "")
+                        # Extract repository name from URL
+                        if "/" in repo_url:
+                            parts = repo_url.rstrip("/").split("/")
+                            if len(parts) >= 2:
+                                collection_id = f"{parts[-2]}/{parts[-1]}"
+                            else:
+                                collection_id = "remote"
+                        else:
+                            collection_id = "remote"
+                    else:
+                        collection_id = "local"
+
+                    collections[collection_id].append(agent)
+                    agent_map[agent.name] = agent
+
+            # Build grouped choices with separators and "Select All" options
+            agent_choices = []
+            for collection_id in sorted(collections.keys()):
+                agents_in_collection = collections[collection_id]
+
+                # Add collection header separator
+                agent_choices.append(
+                    Separator(
+                        f"\n  ── {collection_id} ({len(agents_in_collection)} agents) ──"
+                    )
+                )
+
+                # Add "Select All" option for this collection
+                select_all_value = f"__SELECT_ALL__{collection_id}"
+                agent_choices.append(
+                    Choice(
+                        f"  [ Select All ({len(agents_in_collection)} agents) ]",
+                        value=select_all_value,
+                        checked=False,
+                    )
+                )
+
+                # Add individual agents from this collection
+                for agent in sorted(agents_in_collection, key=lambda a: a.name):
                     display_name = getattr(agent, "display_name", agent.name)
 
                     # Pre-check based on current_selection (full paths)
-                    # current_selection contains full paths like "engineer/backend/python-engineer"
                     is_selected = agent.name in current_selection
 
-                    # Simple format: "agent/path - Display Name"
-                    # Checkbox state (checked/unchecked) indicates installed status
-                    choice_text = f"{agent.name}"
+                    # Simple format: "  agent/path - Display Name" (indented)
+                    choice_text = f"  {agent.name}"
                     if display_name and display_name != agent.name:
                         choice_text += f" - {display_name}"
 
-                    # Create choice with checked based on current_selection
-                    choice = questionary.Choice(
-                        title=choice_text, value=agent.name, checked=is_selected
+                    agent_choices.append(
+                        Choice(title=choice_text, value=agent.name, checked=is_selected)
                     )
-
-                    agent_choices.append(choice)
-                    agent_map[agent.name] = agent
 
             # Multi-select with pre-selection
             self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
@@ -1287,8 +1327,21 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
+            # Expand "Select All" selections
+            final_selections = set()
+            for selection in selected_agent_ids:
+                if selection.startswith("__SELECT_ALL__"):
+                    # Extract collection_id from the selection value
+                    collection_id = selection.replace("__SELECT_ALL__", "")
+                    # Add all agents from this collection
+                    for agent in collections[collection_id]:
+                        final_selections.add(agent.name)
+                else:
+                    # Regular agent selection
+                    final_selections.add(selection)
+
             # Update current_selection based on user's choices (full paths)
-            current_selection = set(selected_agent_ids)
+            current_selection = final_selections
 
             # Determine actions based on ORIGINAL deployed state
             # Compare full paths to full paths (deployed_full_paths was built from deployed_ids)
