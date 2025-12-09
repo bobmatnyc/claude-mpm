@@ -1194,6 +1194,7 @@ class ConfigureCommand(BaseCommand):
         - Inline controls at top: Select all, Select recommended, Select presets
         - Asterisk (*) marks recommended agents
         - Visual hierarchy: Source → Category → Individual agents
+        - Loop with visual feedback: Controls update checkmarks immediately
         """
         if not agents:
             self.console.print("[yellow]No agents available[/yellow]")
@@ -1241,7 +1242,7 @@ class ConfigureCommand(BaseCommand):
             if agent_leaf_name in deployed_ids:
                 deployed_full_paths.add(agent.name)
 
-        # Track current selection state
+        # Track current selection state (starts with deployed, updated in loop)
         current_selection = deployed_full_paths.copy()
 
         # Group agents by source/collection
@@ -1273,153 +1274,199 @@ class ConfigureCommand(BaseCommand):
                 collections[collection_id].append(agent)
                 agent_map[agent.name] = agent
 
-        # Build unified checkbox choices with inline controls
-        choices = []
-
-        for collection_id in sorted(collections.keys()):
-            agents_in_collection = collections[collection_id]
-
-            # Count selected/total agents in collection
-            selected_count = sum(
-                1 for agent in agents_in_collection
-                if agent.name in current_selection
-            )
-            total_count = len(agents_in_collection)
-
-            # Add collection header
-            choices.append(
-                Separator(f"\n── {collection_id} ({selected_count}/{total_count} selected) ──")
-            )
-
-            # Add inline control: Select all from this collection
-            choices.append(
-                Choice(
-                    f"  [Select all from {collection_id}]",
-                    value=f"__SELECT_ALL_{collection_id}__",
-                    checked=False,
-                )
-            )
-
-            # Add inline control: Select recommended from this collection
-            recommended_in_collection = [
-                a for a in agents_in_collection
-                if any(
-                    a.name == rec_id or a.name.split("/")[-1] == rec_id.split("/")[-1]
-                    for rec_id in recommended_agent_ids
-                )
-            ]
-            if recommended_in_collection:
-                choices.append(
-                    Choice(
-                        f"  [Select recommended ({len(recommended_in_collection)} agents)]",
-                        value=f"__SELECT_REC_{collection_id}__",
-                        checked=False,
-                    )
-                )
-
-            # Add separator before individual agents
-            choices.append(Separator())
-
-            # Group agents by category within collection (if hierarchical)
-            category_groups = defaultdict(list)
-            for agent in sorted(agents_in_collection, key=lambda a: a.name):
-                # Extract category from hierarchical path (e.g., "engineer/backend/python-engineer")
-                parts = agent.name.split("/")
-                if len(parts) > 1:
-                    category = "/".join(parts[:-1])  # e.g., "engineer/backend"
-                else:
-                    category = ""  # No category
-                category_groups[category].append(agent)
-
-            # Display agents grouped by category
-            for category in sorted(category_groups.keys()):
-                agents_in_category = category_groups[category]
-
-                # Add category separator if hierarchical
-                if category:
-                    choices.append(Separator(f"  {category}/"))
-
-                # Add individual agents
-                for agent in agents_in_category:
-                    agent_leaf_name = agent.name.split("/")[-1]
-                    display_name = getattr(agent, "display_name", agent_leaf_name)
-
-                    # Check if recommended
-                    is_recommended = any(
-                        agent.name == rec_id or agent_leaf_name == rec_id.split("/")[-1]
-                        for rec_id in recommended_agent_ids
-                    )
-
-                    # Format choice text with asterisk for recommended
-                    choice_text = f"    {display_name}"
-                    if is_recommended:
-                        choice_text += " *"
-
-                    is_selected = agent.name in current_selection
-
-                    choices.append(
-                        Choice(
-                            title=choice_text,
-                            value=agent.name,
-                            checked=is_selected,
-                        )
-                    )
-
         # Monkey-patch questionary symbols for better visibility
         questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
         questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
 
-        self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
-        self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
-        self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
-        self.console.print("[dim]* = Recommended for this project[/dim]")
-        self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
+        # MAIN LOOP: Re-display UI when controls are used
+        while True:
+            # Build unified checkbox choices with inline controls
+            choices = []
 
-        try:
-            selected_values = questionary.checkbox(
-                "Select agents:",
-                choices=choices,
-                instruction="(Space to toggle, Enter to continue)",
-                style=self.QUESTIONARY_STYLE,
-            ).ask()
-        except Exception as e:
-            import sys
-            self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
-            self.console.print("[red]Error: Could not display interactive menu[/red]")
-            self.console.print(f"[dim]Reason: {e}[/dim]")
-            if not sys.stdin.isatty():
-                self.console.print("[dim]Interactive terminal required. Use:[/dim]")
-                self.console.print("[dim]  --list-agents to see available agents[/dim]")
-            Prompt.ask("\nPress Enter to continue")
-            return
+            for collection_id in sorted(collections.keys()):
+                agents_in_collection = collections[collection_id]
 
-        if selected_values is None:
-            self.console.print("[yellow]No changes made[/yellow]")
-            Prompt.ask("\nPress Enter to continue")
-            return
+                # Count selected/total agents in collection
+                selected_count = sum(
+                    1 for agent in agents_in_collection
+                    if agent.name in current_selection
+                )
+                total_count = len(agents_in_collection)
 
-        # Process special inline control selections
-        final_selection = set()
-        for value in selected_values:
-            if value.startswith("__SELECT_ALL_"):
-                # Extract collection ID
-                collection_id = value.replace("__SELECT_ALL_", "").replace("__", "")
-                # Add all agents from this collection
-                for agent in collections[collection_id]:
-                    final_selection.add(agent.name)
-            elif value.startswith("__SELECT_REC_"):
-                # Extract collection ID
-                collection_id = value.replace("__SELECT_REC_", "").replace("__", "")
-                # Add only recommended agents from this collection
-                for agent in collections[collection_id]:
+                # Add collection header
+                choices.append(
+                    Separator(f"\n── {collection_id} ({selected_count}/{total_count} selected) ──")
+                )
+
+                # Determine if all agents in collection are selected
+                all_selected = selected_count == total_count
+
+                # Add inline control: Select/Deselect all from this collection
+                if all_selected:
+                    choices.append(
+                        Choice(
+                            f"  [Deselect all from {collection_id}]",
+                            value=f"__DESELECT_ALL_{collection_id}__",
+                            checked=False,
+                        )
+                    )
+                else:
+                    choices.append(
+                        Choice(
+                            f"  [Select all from {collection_id}]",
+                            value=f"__SELECT_ALL_{collection_id}__",
+                            checked=False,
+                        )
+                    )
+
+                # Add inline control: Select recommended from this collection
+                recommended_in_collection = [
+                    a for a in agents_in_collection
                     if any(
-                        agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                        a.name == rec_id or a.name.split("/")[-1] == rec_id.split("/")[-1]
                         for rec_id in recommended_agent_ids
-                    ):
-                        final_selection.add(agent.name)
-            else:
-                # Regular agent selection
-                final_selection.add(value)
+                    )
+                ]
+                if recommended_in_collection:
+                    recommended_selected = sum(
+                        1 for a in recommended_in_collection
+                        if a.name in current_selection
+                    )
+                    if recommended_selected == len(recommended_in_collection):
+                        choices.append(
+                            Choice(
+                                f"  [Deselect recommended ({len(recommended_in_collection)} agents)]",
+                                value=f"__DESELECT_REC_{collection_id}__",
+                                checked=False,
+                            )
+                        )
+                    else:
+                        choices.append(
+                            Choice(
+                                f"  [Select recommended ({len(recommended_in_collection)} agents)]",
+                                value=f"__SELECT_REC_{collection_id}__",
+                                checked=False,
+                            )
+                        )
+
+                # Add separator before individual agents
+                choices.append(Separator())
+
+                # Group agents by category within collection (if hierarchical)
+                category_groups = defaultdict(list)
+                for agent in sorted(agents_in_collection, key=lambda a: a.name):
+                    # Extract category from hierarchical path (e.g., "engineer/backend/python-engineer")
+                    parts = agent.name.split("/")
+                    if len(parts) > 1:
+                        category = "/".join(parts[:-1])  # e.g., "engineer/backend"
+                    else:
+                        category = ""  # No category
+                    category_groups[category].append(agent)
+
+                # Display agents grouped by category
+                for category in sorted(category_groups.keys()):
+                    agents_in_category = category_groups[category]
+
+                    # Add category separator if hierarchical
+                    if category:
+                        choices.append(Separator(f"  {category}/"))
+
+                    # Add individual agents
+                    for agent in agents_in_category:
+                        agent_leaf_name = agent.name.split("/")[-1]
+                        display_name = getattr(agent, "display_name", agent_leaf_name)
+
+                        # Check if recommended
+                        is_recommended = any(
+                            agent.name == rec_id or agent_leaf_name == rec_id.split("/")[-1]
+                            for rec_id in recommended_agent_ids
+                        )
+
+                        # Format choice text with asterisk for recommended
+                        choice_text = f"    {display_name}"
+                        if is_recommended:
+                            choice_text += " *"
+
+                        is_selected = agent.name in current_selection
+
+                        choices.append(
+                            Choice(
+                                title=choice_text,
+                                value=agent.name,
+                                checked=is_selected,
+                            )
+                        )
+
+            self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
+            self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
+            self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
+            self.console.print("[dim]* = Recommended for this project[/dim]")
+            self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
+
+            try:
+                selected_values = questionary.checkbox(
+                    "Select agents:",
+                    choices=choices,
+                    instruction="(Space to toggle, Enter to continue)",
+                    style=self.QUESTIONARY_STYLE,
+                ).ask()
+            except Exception as e:
+                import sys
+                self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
+                self.console.print("[red]Error: Could not display interactive menu[/red]")
+                self.console.print(f"[dim]Reason: {e}[/dim]")
+                if not sys.stdin.isatty():
+                    self.console.print("[dim]Interactive terminal required. Use:[/dim]")
+                    self.console.print("[dim]  --list-agents to see available agents[/dim]")
+                Prompt.ask("\nPress Enter to continue")
+                return
+
+            if selected_values is None:
+                self.console.print("[yellow]No changes made[/yellow]")
+                Prompt.ask("\nPress Enter to continue")
+                return
+
+            # Check for inline control selections
+            controls_selected = [v for v in selected_values if v.startswith("__")]
+
+            if controls_selected:
+                # Process controls and update current_selection
+                for control in controls_selected:
+                    if control.startswith("__SELECT_ALL_"):
+                        collection_id = control.replace("__SELECT_ALL_", "").replace("__", "")
+                        # Add all agents from this collection to current_selection
+                        for agent in collections[collection_id]:
+                            current_selection.add(agent.name)
+                    elif control.startswith("__DESELECT_ALL_"):
+                        collection_id = control.replace("__DESELECT_ALL_", "").replace("__", "")
+                        # Remove all agents from this collection
+                        for agent in collections[collection_id]:
+                            current_selection.discard(agent.name)
+                    elif control.startswith("__SELECT_REC_"):
+                        collection_id = control.replace("__SELECT_REC_", "").replace("__", "")
+                        # Add all recommended agents from this collection
+                        for agent in collections[collection_id]:
+                            if any(
+                                agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                for rec_id in recommended_agent_ids
+                            ):
+                                current_selection.add(agent.name)
+                    elif control.startswith("__DESELECT_REC_"):
+                        collection_id = control.replace("__DESELECT_REC_", "").replace("__", "")
+                        # Remove all recommended agents from this collection
+                        for agent in collections[collection_id]:
+                            if any(
+                                agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                for rec_id in recommended_agent_ids
+                            ):
+                                current_selection.discard(agent.name)
+
+                # Loop back to re-display with updated selections
+                continue
+
+            # No controls selected - use the individual selections as final
+            final_selection = set(selected_values)
+            break
 
         # Determine changes
         to_deploy = final_selection - deployed_full_paths
