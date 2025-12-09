@@ -420,14 +420,21 @@ class ConfigureCommand(BaseCommand):
             except Exception as e:
                 # Handle questionary menu failure
                 import sys
+
                 self.logger.error(f"Agent management menu failed: {e}", exc_info=True)
                 self.console.print("[red]Error: Interactive menu failed[/red]")
                 self.console.print(f"[dim]Reason: {e}[/dim]")
                 if not sys.stdin.isatty():
-                    self.console.print("[dim]Interactive terminal required for this operation[/dim]")
+                    self.console.print(
+                        "[dim]Interactive terminal required for this operation[/dim]"
+                    )
                     self.console.print("[dim]Use command-line options instead:[/dim]")
-                    self.console.print("[dim]  claude-mpm configure --list-agents[/dim]")
-                    self.console.print("[dim]  claude-mpm configure --enable-agent <id>[/dim]")
+                    self.console.print(
+                        "[dim]  claude-mpm configure --list-agents[/dim]"
+                    )
+                    self.console.print(
+                        "[dim]  claude-mpm configure --enable-agent <id>[/dim]"
+                    )
                 Prompt.ask("\nPress Enter to continue")
                 break
 
@@ -1115,7 +1122,7 @@ class ConfigureCommand(BaseCommand):
         self.console.print(agents_table)
 
         # Show installed vs available count
-        installed_count = sum(1 for a in agents if getattr(a, 'is_deployed', False))
+        installed_count = sum(1 for a in agents if getattr(a, "is_deployed", False))
         available_count = len(agents) - installed_count
         self.console.print(
             f"\n[green]✓ {installed_count} installed[/green] | "
@@ -1204,7 +1211,9 @@ class ConfigureCommand(BaseCommand):
             # Multi-select with pre-selection
             self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
             self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
-            self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
+            self.console.print(
+                "[dim][ ] Unchecked = Available (check to install)[/dim]"
+            )
             self.console.print(
                 "[dim]Use arrow keys to navigate, space to toggle, "
                 "Enter to apply changes[/dim]\n"
@@ -1212,11 +1221,14 @@ class ConfigureCommand(BaseCommand):
 
             # Monkey-patch questionary symbols for better visibility
             import questionary.constants
+
             questionary.constants.INDICATOR_SELECTED = "[✓]"
             questionary.constants.INDICATOR_UNSELECTED = "[ ]"
 
             # Pre-selection via checked=True on Choice objects
-            self.logger.debug("About to show checkbox selection with %d agents", len(agent_choices))
+            self.logger.debug(
+                "About to show checkbox selection with %d agents", len(agent_choices)
+            )
 
             try:
                 selected_agent_ids = questionary.checkbox(
@@ -1225,15 +1237,24 @@ class ConfigureCommand(BaseCommand):
             except Exception as e:
                 # Handle questionary failure (non-TTY, broken pipe, keyboard interrupt, etc.)
                 import sys
+
                 self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
-                self.console.print("[red]Error: Could not display interactive menu[/red]")
+                self.console.print(
+                    "[red]Error: Could not display interactive menu[/red]"
+                )
                 self.console.print(f"[dim]Reason: {e}[/dim]")
                 if not sys.stdin.isatty():
                     self.console.print("[dim]Interactive terminal required. Use:[/dim]")
-                    self.console.print("[dim]  --list-agents to see available agents[/dim]")
-                    self.console.print("[dim]  --enable-agent/--disable-agent for scripting[/dim]")
+                    self.console.print(
+                        "[dim]  --list-agents to see available agents[/dim]"
+                    )
+                    self.console.print(
+                        "[dim]  --enable-agent/--disable-agent for scripting[/dim]"
+                    )
                 else:
-                    self.console.print("[dim]This might be a terminal compatibility issue.[/dim]")
+                    self.console.print(
+                        "[dim]This might be a terminal compatibility issue.[/dim]"
+                    )
                 Prompt.ask("\nPress Enter to continue")
                 return
 
@@ -1241,10 +1262,17 @@ class ConfigureCommand(BaseCommand):
             if selected_agent_ids is None:
                 # Check if we're in a non-interactive environment
                 import sys
+
                 if not sys.stdin.isatty():
-                    self.console.print("[red]Error: Interactive terminal required for agent selection[/red]")
-                    self.console.print("[dim]Use --list-agents to see available agents[/dim]")
-                    self.console.print("[dim]Use --enable-agent/--disable-agent for non-interactive mode[/dim]")
+                    self.console.print(
+                        "[red]Error: Interactive terminal required for agent selection[/red]"
+                    )
+                    self.console.print(
+                        "[dim]Use --list-agents to see available agents[/dim]"
+                    )
+                    self.console.print(
+                        "[dim]Use --enable-agent/--disable-agent for non-interactive mode[/dim]"
+                    )
                 else:
                     self.console.print("[yellow]No changes made[/yellow]")
                 Prompt.ask("\nPress Enter to continue")
@@ -1254,8 +1282,12 @@ class ConfigureCommand(BaseCommand):
             current_selection = set(selected_agent_ids)
 
             # Determine actions based on ORIGINAL deployed_ids
-            to_deploy = current_selection - deployed_ids  # Selected but not originally deployed
-            to_remove = deployed_ids - current_selection  # Originally deployed but not selected
+            to_deploy = (
+                current_selection - deployed_ids
+            )  # Selected but not originally deployed
+            to_remove = (
+                deployed_ids - current_selection
+            )  # Originally deployed but not selected
 
             if not to_deploy and not to_remove:
                 self.console.print(
