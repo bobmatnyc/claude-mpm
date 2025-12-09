@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import questionary
-import questionary.constants  # For checkbox symbol customization
+import questionary.constants
+import questionary.prompts.common  # For checkbox symbol customization
 from questionary import Style
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
@@ -1221,8 +1222,9 @@ class ConfigureCommand(BaseCommand):
             )
 
             # Monkey-patch questionary symbols for better visibility
-            questionary.constants.INDICATOR_SELECTED = "[✓]"
-            questionary.constants.INDICATOR_UNSELECTED = "[ ]"
+            # Must patch common module directly since it imports constants at load time
+            questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
+            questionary.prompts.common.INDICATOR_UNSELECTED = "[ ]"
 
             # Pre-selection via checked=True on Choice objects
             self.logger.debug(
