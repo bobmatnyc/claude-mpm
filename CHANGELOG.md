@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.1.8] - 2025-12-09
+
+### Fixed
+- Fixed Python 3.13 import scoping issue in questionary checkbox symbols
+
 ## [5.1.7] - 2025-12-09
 
 ### Fixed
