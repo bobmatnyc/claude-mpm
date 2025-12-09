@@ -12,6 +12,20 @@
 
 ### Security
 
+## [5.1.10] - 2025-12-09
+
+### Changed
+- Simplified agent architecture to 2-location model (source + deployment)
+- Unified agent selection UI with single "Select Agents" option
+- Added recommended agents feature with asterisk (*) markers
+- Added visual feedback loop for bulk selection controls
+- Fixed menu reload after agent selection to show updated state
+- Fixed loading spinner to prevent partial state display
+
+### Fixed
+- Fixed agent ID mismatch between hierarchical paths and leaf names
+- Fixed deployment status detection for installed agents
+
 ## [5.1.9] - 2025-12-09
 
 ### Fixed
