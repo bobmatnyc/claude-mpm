@@ -1138,7 +1138,7 @@ class ConfigureCommand(BaseCommand):
             ]
         )
 
-        # Get deployed agent IDs
+        # Get deployed agent IDs (original state - for calculating final changes)
         deployed_ids = get_deployed_agent_ids()
 
         if not all_agents:
@@ -1146,9 +1146,12 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
+        # Track current selection state (starts with deployed, updated after each iteration)
+        current_selection = set(deployed_ids)
+
         # Loop to allow adjusting selection
         while True:
-            # Build checkbox choices with pre-selection
+            # Build checkbox choices with pre-selection based on current_selection
             agent_choices = []
             agent_map = {}  # For lookup after selection
 
@@ -1156,10 +1159,10 @@ class ConfigureCommand(BaseCommand):
                 if agent.name in {a["agent_id"] for a in all_agents}:
                     display_name = getattr(agent, "display_name", agent.name)
 
-                    # Pre-check if deployed
-                    # Extract leaf name from full path for comparison with deployed_ids
+                    # Pre-check based on current_selection (not deployed_ids)
+                    # Extract leaf name from full path for comparison
                     agent_leaf_name = agent.name.split("/")[-1]
-                    is_deployed = agent_leaf_name in deployed_ids
+                    is_selected = agent_leaf_name in current_selection
 
                     # Simple format: "agent/path - Display Name"
                     # Checkbox state (checked/unchecked) indicates installed status
@@ -1167,11 +1170,9 @@ class ConfigureCommand(BaseCommand):
                     if display_name and display_name != agent.name:
                         choice_text += f" - {display_name}"
 
-                    # Create choice with checked=True for deployed agents
-                    # Note: questionary's default param is for single-select only
-                    # For multi-select, must use checked=True on Choice objects
+                    # Create choice with checked based on current_selection
                     choice = questionary.Choice(
-                        title=choice_text, value=agent.name, checked=is_deployed
+                        title=choice_text, value=agent.name, checked=is_selected
                     )
 
                     agent_choices.append(choice)
@@ -1179,15 +1180,19 @@ class ConfigureCommand(BaseCommand):
 
             # Multi-select with pre-selection
             self.console.print("\n[bold cyan]Manage Agent Installation[/bold cyan]")
-            self.console.print("[dim]✓ Checked = Installed (uncheck to remove)[/dim]")
-            self.console.print("[dim]○ Unchecked = Available (check to install)[/dim]")
+            self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
+            self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
             self.console.print(
                 "[dim]Use arrow keys to navigate, space to toggle, "
                 "Enter to apply changes[/dim]\n"
             )
 
+            # Monkey-patch questionary symbols for better visibility
+            import questionary.constants
+            questionary.constants.INDICATOR_SELECTED = "[✓]"
+            questionary.constants.INDICATOR_UNSELECTED = "[ ]"
+
             # Pre-selection via checked=True on Choice objects
-            # (questionary's default param is for single-select only)
             selected_agent_ids = questionary.checkbox(
                 "Agents:", choices=agent_choices, style=self.QUESTIONARY_STYLE
             ).ask()
@@ -1198,13 +1203,12 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            # Convert to sets for comparison
-            selected_set = set(selected_agent_ids)
-            deployed_set = deployed_ids
+            # Update current_selection based on user's choices
+            current_selection = set(selected_agent_ids)
 
-            # Determine actions
-            to_deploy = selected_set - deployed_set  # Selected but not deployed
-            to_remove = deployed_set - selected_set  # Deployed but not selected
+            # Determine actions based on ORIGINAL deployed_ids
+            to_deploy = current_selection - deployed_ids  # Selected but not originally deployed
+            to_remove = deployed_ids - current_selection  # Originally deployed but not selected
 
             if not to_deploy and not to_remove:
                 self.console.print("[yellow]No changes made[/yellow]")
@@ -1239,7 +1243,7 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
             if action == "adjust":
-                # Loop back to agent selection
+                # current_selection is already updated, loop will use it
                 continue
 
             # Execute changes
