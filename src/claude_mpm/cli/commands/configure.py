@@ -26,6 +26,7 @@ from rich.prompt import Confirm, Prompt
 from rich.text import Text
 
 from ...core.config import Config
+from ...services.agents.agent_recommendation_service import AgentRecommendationService
 from ...services.version_service import VersionService
 from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
 from ...utils.console import console as default_console
@@ -77,6 +78,7 @@ class ConfigureCommand(BaseCommand):
         self._navigation = None  # Lazy-initialized
         self._template_editor = None  # Lazy-initialized
         self._startup_manager = None  # Lazy-initialized
+        self._recommendation_service = None  # Lazy-initialized
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -152,6 +154,13 @@ class ConfigureCommand(BaseCommand):
                 self._display_header,
             )
         return self._startup_manager
+
+    @property
+    def recommendation_service(self) -> AgentRecommendationService:
+        """Lazy-initialize recommendation service."""
+        if self._recommendation_service is None:
+            self._recommendation_service = AgentRecommendationService()
+        return self._recommendation_service
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -387,6 +396,7 @@ class ConfigureCommand(BaseCommand):
                     choices=[
                         "Manage sources (add/remove repositories)",
                         "Select Agents",
+                        "Select recommended (auto-detect for this project)",
                         "Install preset (predefined sets)",
                         "Remove agents",
                         "View agent details",
@@ -408,6 +418,8 @@ class ConfigureCommand(BaseCommand):
                 elif choice == "Select Agents":
                     self.logger.debug("User selected 'Select Agents' from menu")
                     self._deploy_agents_individual(agents_var)
+                elif choice == "Select recommended (auto-detect for this project)":
+                    self._select_recommended_agents(agents_var)
                 elif choice == "Install preset (predefined sets)":
                     self._deploy_agents_preset()
                 elif choice == "Remove agents":
@@ -1043,6 +1055,15 @@ class ConfigureCommand(BaseCommand):
         """Display agents table with source information and installation status."""
         from rich.table import Table
 
+        # Get recommended agents for this project
+        try:
+            recommended_agents = self.recommendation_service.get_recommended_agents(
+                str(self.project_dir)
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to get recommended agents: {e}")
+            recommended_agents = set()
+
         # Get terminal width and calculate dynamic column widths
         terminal_width = shutil.get_terminal_size().columns
         min_widths = {
@@ -1080,6 +1101,7 @@ class ConfigureCommand(BaseCommand):
             "Status", style="white", width=widths["Status"], no_wrap=True
         )
 
+        recommended_count = 0
         for idx, agent in enumerate(agents, 1):
             # Determine source with repo name
             source_type = getattr(agent, "source_type", "local")
@@ -1114,15 +1136,51 @@ class ConfigureCommand(BaseCommand):
             else:
                 status = "Available"
 
+            # Check if agent is recommended
+            # Handle both hierarchical paths (e.g., "engineer/backend/python-engineer")
+            # and leaf names (e.g., "python-engineer")
+            agent_full_path = agent.name
+            agent_leaf_name = agent_full_path.split("/")[-1] if "/" in agent_full_path else agent_full_path
+
+            is_recommended = False
+            for recommended_id in recommended_agents:
+                # Check if the recommended_id matches either the full path or just the leaf name
+                recommended_leaf = recommended_id.split("/")[-1] if "/" in recommended_id else recommended_id
+                if agent_full_path == recommended_id or agent_leaf_name == recommended_leaf:
+                    is_recommended = True
+                    recommended_count += 1
+                    break
+
+            # Add asterisk to agent ID if recommended
+            agent_id_display = agent.name
+            if is_recommended:
+                agent_id_display += " *"
+
             # Get display name (for remote agents, use display_name instead of agent_id)
             display_name = getattr(agent, "display_name", agent.name)
             # Let overflow="ellipsis" handle truncation automatically
 
             agents_table.add_row(
-                str(idx), agent.name, display_name, source_label, status
+                str(idx), agent_id_display, display_name, source_label, status
             )
 
         self.console.print(agents_table)
+
+        # Show legend if there are recommended agents
+        if recommended_count > 0:
+            # Get detection summary for context
+            try:
+                summary = self.recommendation_service.get_detection_summary(
+                    str(self.project_dir)
+                )
+                detected_langs = ", ".join(summary.get("detected_languages", [])) or "None"
+                detected_fws = ", ".join(summary.get("detected_frameworks", [])) or "None"
+                self.console.print(
+                    f"\n[dim]* = recommended for this project "
+                    f"(detected: {detected_langs})[/dim]"
+                )
+            except Exception:
+                self.console.print("\n[dim]* = recommended for this project[/dim]")
 
         # Show installed vs available count
         installed_count = sum(1 for a in agents if getattr(a, "is_deployed", False))
@@ -1130,6 +1188,7 @@ class ConfigureCommand(BaseCommand):
         self.console.print(
             f"\n[green]✓ {installed_count} installed[/green] | "
             f"[dim]{available_count} available[/dim] | "
+            f"[yellow]{recommended_count} recommended[/yellow] | "
             f"[dim]Total: {len(agents)}[/dim]"
         )
 
@@ -1674,6 +1733,141 @@ class ConfigureCommand(BaseCommand):
             self.console.print(f"[red]Error installing preset: {e}[/red]")
             self.logger.error(f"Preset installation failed: {e}", exc_info=True)
             Prompt.ask("\nPress Enter to continue")
+
+    def _select_recommended_agents(self, agents: List[AgentConfig]) -> None:
+        """Select and install recommended agents based on toolchain detection."""
+        if not agents:
+            self.console.print("[yellow]No agents available[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        self.console.clear()
+        self.console.print("\n[bold white]═══ Recommended Agents for This Project ═══[/bold white]\n")
+
+        # Get recommended agent IDs
+        try:
+            recommended_agent_ids = self.recommendation_service.get_recommended_agents(
+                str(self.project_dir)
+            )
+        except Exception as e:
+            self.console.print(f"[red]Error detecting toolchain: {e}[/red]")
+            self.logger.error(f"Toolchain detection failed: {e}", exc_info=True)
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        if not recommended_agent_ids:
+            self.console.print("[yellow]No recommended agents found[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Get detection summary
+        try:
+            summary = self.recommendation_service.get_detection_summary(
+                str(self.project_dir)
+            )
+
+            self.console.print("[bold]Detected Project Stack:[/bold]")
+            if summary.get("detected_languages"):
+                self.console.print(f"  Languages: [cyan]{', '.join(summary['detected_languages'])}[/cyan]")
+            if summary.get("detected_frameworks"):
+                self.console.print(f"  Frameworks: [cyan]{', '.join(summary['detected_frameworks'])}[/cyan]")
+            self.console.print(f"  Detection Quality: [{'green' if summary.get('detection_quality') == 'high' else 'yellow'}]{summary.get('detection_quality', 'unknown')}[/]")
+            self.console.print()
+        except Exception:
+            pass
+
+        # Build mapping: agent_id -> AgentConfig
+        agent_map = {agent.name: agent for agent in agents}
+
+        # Also check leaf names for matching
+        for agent in agents:
+            leaf_name = agent.name.split("/")[-1] if "/" in agent.name else agent.name
+            if leaf_name not in agent_map:
+                agent_map[leaf_name] = agent
+
+        # Find matching agents from available agents
+        matched_agents = []
+        for recommended_id in recommended_agent_ids:
+            # Try full path match first
+            if recommended_id in agent_map:
+                matched_agents.append(agent_map[recommended_id])
+            else:
+                # Try leaf name match
+                recommended_leaf = recommended_id.split("/")[-1] if "/" in recommended_id else recommended_id
+                if recommended_leaf in agent_map:
+                    matched_agents.append(agent_map[recommended_leaf])
+
+        if not matched_agents:
+            self.console.print("[yellow]No matching agents found in available sources[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Display recommended agents
+        self.console.print(f"[bold]Recommended Agents ({len(matched_agents)}):[/bold]\n")
+
+        from rich.table import Table
+        rec_table = Table(show_header=True, header_style="bold white")
+        rec_table.add_column("#", style="dim", width=4)
+        rec_table.add_column("Agent ID", style="cyan", width=40)
+        rec_table.add_column("Status", style="white", width=15)
+
+        for idx, agent in enumerate(matched_agents, 1):
+            is_installed = getattr(agent, "is_deployed", False)
+            status = "[green]Already Installed[/green]" if is_installed else "[yellow]Not Installed[/yellow]"
+            rec_table.add_row(str(idx), agent.name, status)
+
+        self.console.print(rec_table)
+
+        # Count how many need installation
+        to_install = [a for a in matched_agents if not getattr(a, "is_deployed", False)]
+        already_installed = len(matched_agents) - len(to_install)
+
+        self.console.print()
+        if already_installed > 0:
+            self.console.print(f"[green]✓ {already_installed} already installed[/green]")
+        if to_install:
+            self.console.print(f"[yellow]⚠ {len(to_install)} need installation[/yellow]")
+        else:
+            self.console.print("[green]✓ All recommended agents are already installed![/green]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Ask for confirmation
+        self.console.print()
+        if not Confirm.ask(
+            f"Install {len(to_install)} recommended agent(s)?",
+            default=True
+        ):
+            self.console.print("[yellow]Installation cancelled[/yellow]")
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Install agents
+        self.console.print("\n[bold]Installing recommended agents...[/bold]\n")
+
+        success_count = 0
+        fail_count = 0
+
+        for agent in to_install:
+            try:
+                if self._deploy_single_agent(agent, show_feedback=False):
+                    success_count += 1
+                    self.console.print(f"[green]✓ Installed: {agent.name}[/green]")
+                else:
+                    fail_count += 1
+                    self.console.print(f"[red]✗ Failed: {agent.name}[/red]")
+            except Exception as e:
+                fail_count += 1
+                self.console.print(f"[red]✗ Failed: {agent.name} - {e}[/red]")
+
+        # Show summary
+        self.console.print()
+        if success_count > 0:
+            self.console.print(f"[green]✓ Successfully installed {success_count} agent(s)[/green]")
+        if fail_count > 0:
+            self.console.print(f"[red]✗ Failed to install {fail_count} agent(s)[/red]")
+
+        Prompt.ask("\nPress Enter to continue")
 
     def _deploy_single_agent(
         self, agent: AgentConfig, show_feedback: bool = True
