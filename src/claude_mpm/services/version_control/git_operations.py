@@ -18,6 +18,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+# Privileged users who can push directly to main branch
+# All other users must use feature branches and PRs
+PRIVILEGED_GIT_USERS = ["bobmatnyc@users.noreply.github.com"]
+PROTECTED_BRANCHES = ["main", "master"]
+
 
 @dataclass
 class GitBranchInfo:
@@ -100,6 +105,94 @@ class GitOperationsManager:
         # Validate Git repository
         if not self._is_git_repository():
             raise GitOperationError(f"Not a Git repository: {project_root}")
+
+    def _get_current_git_user(self) -> str:
+        """
+        Get the current Git user email.
+
+        Returns:
+            Git user email configured in repository or globally
+
+        Raises:
+            GitOperationError: If git user.email is not configured
+        """
+        try:
+            result = self._run_git_command(["config", "user.email"])
+            email = result.stdout.strip()
+            if not email:
+                raise GitOperationError(
+                    "Git user.email is not configured. "
+                    "Please configure it with: git config user.email 'your@email.com'"
+                )
+            return email
+        except GitOperationError as e:
+            raise GitOperationError(
+                "Git user.email is not configured. "
+                "Please configure it with: git config user.email 'your@email.com'"
+            ) from e
+
+    def _is_privileged_user(self) -> bool:
+        """
+        Check if the current Git user is privileged to push to protected branches.
+
+        Returns:
+            True if user email is in PRIVILEGED_GIT_USERS, False otherwise
+        """
+        try:
+            current_user = self._get_current_git_user()
+            return current_user in PRIVILEGED_GIT_USERS
+        except GitOperationError:
+            # If we can't determine user, assume not privileged
+            return False
+
+    def _enforce_branch_protection(
+        self, target_branch: str, operation: str
+    ) -> Optional[GitOperationResult]:
+        """
+        Enforce branch protection rules for protected branches.
+
+        Args:
+            target_branch: Branch being operated on
+            operation: Operation being performed (e.g., "push", "merge")
+
+        Returns:
+            GitOperationResult with error if protection violated, None if allowed
+        """
+        # Check if target branch is protected
+        if target_branch not in PROTECTED_BRANCHES:
+            return None
+
+        # Check if user is privileged
+        if self._is_privileged_user():
+            return None
+
+        # Get current user for error message
+        try:
+            current_user = self._get_current_git_user()
+        except GitOperationError:
+            current_user = "unknown"
+
+        # Build helpful error message
+        error_message = (
+            f"Direct {operation} to '{target_branch}' branch is restricted.\n"
+            f"Only {', '.join(PRIVILEGED_GIT_USERS)} can {operation} directly to protected branches.\n"
+            f"Current user: {current_user}\n\n"
+            f"Please use the feature branch workflow:\n"
+            f"  1. git checkout -b feature/your-feature-name\n"
+            f"  2. Make your changes and commit\n"
+            f"  3. git push -u origin feature/your-feature-name\n"
+            f"  4. Create a Pull Request on GitHub for review"
+        )
+
+        return GitOperationResult(
+            success=False,
+            operation=f"{operation}_branch_protection",
+            message=f"Branch protection: {operation} to '{target_branch}' denied",
+            error=error_message,
+            branch_before=self.get_current_branch(),
+            branch_after=self.get_current_branch(),
+            execution_time=0.0,
+        )
 
     def _is_git_repository(self) -> bool:
         """Check if the directory is a Git repository."""
@@ -503,6 +596,11 @@ class GitOperationsManager:
         start_time = datetime.now(timezone.utc)
         current_branch = self.get_current_branch()
 
+        # Enforce branch protection for target branch
+        protection_result = self._enforce_branch_protection(target_branch, "merge")
+        if protection_result:
+            return protection_result
+
         try:
             # Switch to target branch
             if current_branch != target_branch:
@@ -658,6 +756,11 @@ class GitOperationsManager:
 
         if not branch_name:
             branch_name = current_branch
+
+        # Enforce branch protection
+        protection_result = self._enforce_branch_protection(branch_name, "push")
+        if protection_result:
+            return protection_result
 
         try:
             # Build push command

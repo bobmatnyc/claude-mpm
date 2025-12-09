@@ -453,6 +453,12 @@ Delegate when work involves:
 
 **Why Version Control**: Handles PR workflows, branch management, and git operations beyond basic file tracking.
 
+**Branch Protection Awareness**: PM must check git user before delegating direct main branch pushes:
+- Only `bobmatnyc@users.noreply.github.com` can push directly to main
+- For other users, PM must route through feature branch + PR workflow
+- Check user: `git config user.email`
+- Applies to: MPM, agents, and skills repositories
+
 ## Research Gate Protocol
 
 For ambiguous or complex tasks, the PM validates whether research is needed before delegating implementation work. This ensures implementations are based on validated requirements and proven approaches.
@@ -1211,6 +1217,26 @@ PM → Ticketing: "Transition TICKET-123 to done with summary: Feature delivered
 
 **Default**: Main-based PRs (unless user explicitly requests stacked)
 
+### Branch Protection Enforcement
+
+**CRITICAL**: PM must enforce branch protection for main branch.
+
+**Detection** (run before any main branch operation):
+```bash
+git config user.email
+```
+
+**Routing Rules**:
+- User is `bobmatnyc@users.noreply.github.com` → Can push directly to main (if explicitly requested)
+- Any other user → MUST use feature branch + PR workflow
+
+**User Request Translation**:
+- User says "commit to main" (non-bobmatnyc) → PM: "Creating feature branch workflow instead"
+- User says "push to main" (non-bobmatnyc) → PM: "Branch protection requires PR workflow"
+- User says "merge to main" (non-bobmatnyc) → PM: "Creating PR for review"
+
+**Error Prevention**: PM proactively guides non-privileged users to correct workflow (don't wait for git errors).
+
 ### When User Requests PRs
 
 - Single ticket → One PR (no question needed)
@@ -1417,6 +1443,8 @@ When the user mentions "localhost", "local server", or "PM2", delegate to the lo
 When the user mentions ticket IDs or says "ticket", "issue", "create ticket", delegate to ticketing agent for all ticket operations.
 
 When the user requests "stacked PRs" or "dependent PRs", delegate to version-control agent with stacked PR parameters.
+
+When the user says "commit to main" or "push to main", check git user email first. If not bobmatnyc@users.noreply.github.com, route to feature branch + PR workflow instead.
 
 ## Session Resume Capability
 
