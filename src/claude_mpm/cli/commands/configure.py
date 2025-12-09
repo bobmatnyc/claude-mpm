@@ -1222,23 +1222,37 @@ class ConfigureCommand(BaseCommand):
             # STEP 1: Collection-level selection
             self.console.print("\n[bold cyan]Select Agent Collections[/bold cyan]")
             self.console.print(
-                "[dim]Choose entire collections to install/remove[/dim]\n"
+                "[dim]Checking a collection installs ALL agents in that collection[/dim]"
+            )
+            self.console.print(
+                "[dim]Unchecking a collection removes ALL agents in that collection[/dim]"
+            )
+            self.console.print(
+                "[dim]For partial deployment, use 'Fine-tune individual agents'[/dim]\n"
             )
 
             collection_choices = []
             for collection_id in sorted(collections.keys()):
                 agents_in_collection = collections[collection_id]
 
-                # Check if ALL agents in this collection are currently selected
-                all_selected = all(
+                # Check if ANY agent in this collection is currently deployed
+                # This reflects actual deployment state, not just selection
+                any_deployed = any(
                     agent.name in current_selection for agent in agents_in_collection
+                )
+
+                # Count deployed agents for display
+                deployed_count = sum(
+                    1
+                    for agent in agents_in_collection
+                    if agent.name in current_selection
                 )
 
                 collection_choices.append(
                     Choice(
-                        f"{collection_id} ({len(agents_in_collection)} agents)",
+                        f"{collection_id} ({deployed_count}/{len(agents_in_collection)} deployed)",
                         value=collection_id,
-                        checked=all_selected,
+                        checked=any_deployed,
                     )
                 )
 
@@ -1379,13 +1393,16 @@ class ConfigureCommand(BaseCommand):
                 # Update current_selection with individual selections
                 current_selection = set(selected_agent_ids)
             else:
-                # Apply collection-level selections directly
+                # Apply collection-level selections
+                # For each collection, if it's selected, include ALL its agents
+                # If it's not selected, exclude ALL its agents
                 final_selections = set()
                 for collection_id in selected_collections:
                     for agent in collections[collection_id]:
                         final_selections.add(agent.name)
 
                 # Update current_selection
+                # This replaces the previous selection entirely with the new collection selections
                 current_selection = final_selections
 
             # Determine actions based on ORIGINAL deployed state
