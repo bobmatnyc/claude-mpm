@@ -1232,11 +1232,11 @@ class ConfigureCommand(BaseCommand):
                     )
                 )
 
-                # Add "Select All" option for this collection
+                # Add "Toggle All" option for this collection
                 select_all_value = f"__SELECT_ALL__{collection_id}"
                 agent_choices.append(
                     Choice(
-                        f"  [ Select All ({len(agents_in_collection)} agents) ]",
+                        f"  [ Toggle All ({len(agents_in_collection)} agents) ]",
                         value=select_all_value,
                         checked=False,
                     )
@@ -1327,18 +1327,29 @@ class ConfigureCommand(BaseCommand):
                 Prompt.ask("\nPress Enter to continue")
                 return
 
-            # Expand "Select All" selections
-            final_selections = set()
-            for selection in selected_agent_ids:
+            # Expand "Toggle All" selections (toggle behavior)
+            final_selections = set(selected_agent_ids)
+
+            for selection in list(selected_agent_ids):
                 if selection.startswith("__SELECT_ALL__"):
                     # Extract collection_id from the selection value
                     collection_id = selection.replace("__SELECT_ALL__", "")
-                    # Add all agents from this collection
-                    for agent in collections[collection_id]:
-                        final_selections.add(agent.name)
-                else:
-                    # Regular agent selection
-                    final_selections.add(selection)
+                    collection_agents = {
+                        agent.name for agent in collections[collection_id]
+                    }
+
+                    # Check if any agents from this collection are currently selected
+                    currently_selected = final_selections & collection_agents
+
+                    # Remove the __SELECT_ALL__ marker from final selections
+                    final_selections.discard(selection)
+
+                    if len(currently_selected) == 0:
+                        # None selected -> Select all
+                        final_selections.update(collection_agents)
+                    else:
+                        # Some/all selected -> Deselect all
+                        final_selections -= collection_agents
 
             # Update current_selection based on user's choices (full paths)
             current_selection = final_selections
