@@ -5,11 +5,12 @@ and always-recommended core agents. Helps users discover and install the
 most relevant agents for their project without manual selection.
 
 DESIGN DECISION: Uses toolchain analysis to map detected languages/frameworks
-to specific engineer agents, plus always includes universal/core agents.
+to specific engineer agents, plus always includes core agents.
 
 Architecture:
 - Toolchain-based recommendations: Python → python-engineer, etc.
-- Always-recommended agents: universal/*, claude-mpm/*, essential ops agents
+- Core agents (always recommended): qa-agent, research-agent, documentation-agent,
+  ticketing, local-ops-agent, version-control, security
 - Confidence-based filtering: Only recommend high-confidence detections
 """
 
@@ -29,26 +30,17 @@ class AgentRecommendationService:
     Can be used by CLI, API, or future auto-configuration features.
     """
 
-    # Always recommend these agents for ALL projects
+    # Core agents always included - matches ToolchainDetector.CORE_AGENTS
+    # Uses exact agent IDs from repository for consistency
     CORE_AGENTS = {
-        # Universal agents
-        "universal/code-analyzer",
-        "universal/content-agent",
-        "universal/memory-manager",
-        "universal/product-owner",
-        "universal/project-organizer",
-        "universal/research",
-
-        # Claude MPM agents
-        "claude-mpm/mpm-agent-manager",
-        "claude-mpm/mpm-skills-manager",
-
-        # Essential agents for development
-        "ops/core/ops",
-        "documentation/documentation",
-        "documentation/ticketing",
-        "version-control/version-control",
-        "security/security",
+        "qa-agent",
+        "research-agent",
+        "documentation-agent",
+        "ticketing",
+        "local-ops-agent",
+        # Keep version-control and security as universal recommended agents
+        "version-control",
+        "security",
     }
 
     # Map detected languages to recommended engineer agents
@@ -173,12 +165,12 @@ class AgentRecommendationService:
                                  Only include detected components above this threshold.
 
         Returns:
-            Set of recommended agent IDs (e.g., {"universal/code-analyzer", ...})
+            Set of recommended agent IDs (e.g., {"qa-agent", "research-agent", ...})
 
         Example:
             >>> service = AgentRecommendationService()
             >>> recommended = service.get_recommended_agents()
-            >>> "universal/code-analyzer" in recommended
+            >>> "qa-agent" in recommended
             True
             >>> # For Python project:
             >>> "engineer/backend/python-engineer" in recommended
