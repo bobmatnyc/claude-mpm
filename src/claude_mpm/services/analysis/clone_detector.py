@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, ClassVar
 
-from pylint.checkers.similar import Similar
+from pylint.checkers.symilar import Symilar
 
 
 logger = logging.getLogger(__name__)
@@ -179,8 +179,8 @@ class CloneDetector:
         """
         clones: list[CloneReport] = []
 
-        # Create Similar instance with our minimum line threshold
-        similar = Similar(
+        # Create Symilar instance with our minimum line threshold
+        similar = Symilar(
             min_lines=self.min_lines,
             ignore_comments=True,
             ignore_docstrings=True,
