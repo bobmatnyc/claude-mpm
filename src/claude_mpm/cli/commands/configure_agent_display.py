@@ -59,12 +59,15 @@ class AgentDisplay:
         Shows:
         - Agent ID (for selection)
         - Name and description
-        - Enable/disable status
+        - Installed/Available status
         - Model or tools information
 
         Args:
             agents: List of agent configurations to display
         """
+        from ...utils.agent_filters import get_deployed_agent_ids
+        from pathlib import Path
+
         table = Table(
             title=f"Available Agents ({len(agents)} total)",
             box=ROUNDED,
@@ -77,11 +80,17 @@ class AgentDisplay:
         table.add_column("Description", style="bold", width=45)
         table.add_column("Model/Tools", style="dim", width=20)
 
+        # Get deployed agent IDs
+        deployed_ids = get_deployed_agent_ids()
+
         for idx, agent in enumerate(agents, 1):
-            # Check if agent is enabled
-            is_enabled = self.agent_manager.is_agent_enabled(agent.name)
+            # Check if agent is deployed to .claude/agents/
+            agent_leaf_name = agent.name.split("/")[-1]
+            is_deployed = agent_leaf_name in deployed_ids
+
+            # Show "Installed" for deployed agents, "Available" otherwise
             status = (
-                "[green]✓ Enabled[/green]" if is_enabled else "[red]✗ Disabled[/red]"
+                "[green]Installed[/green]" if is_deployed else "Available"
             )
 
             # Format tools/dependencies - show first 2 tools

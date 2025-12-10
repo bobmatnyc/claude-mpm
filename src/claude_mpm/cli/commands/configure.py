@@ -1411,10 +1411,8 @@ class ConfigureCommand(BaseCommand):
                         # Check if agent is deployed (exists in .claude/agents/)
                         is_deployed = agent.name in deployed_full_paths
 
-                        # Format choice text with asterisk for deployed
+                        # Format choice text (no asterisk needed)
                         choice_text = f"    {display_name}"
-                        if is_deployed:
-                            choice_text += " *"
 
                         is_selected = agent.name in current_selection
 
@@ -1429,7 +1427,6 @@ class ConfigureCommand(BaseCommand):
             self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
             self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
             self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
-            self.console.print("[dim]* = Already deployed to .claude/agents/[/dim]")
             self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
 
             try:
