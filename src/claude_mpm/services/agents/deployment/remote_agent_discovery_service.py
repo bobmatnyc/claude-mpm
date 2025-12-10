@@ -11,10 +11,11 @@ multi-tier discovery system.
 
 import json
 import re
-import yaml
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 from claude_mpm.core.logging_config import get_logger
 
@@ -209,8 +210,7 @@ class RemoteAgentDiscoveryService:
                 parsed = yaml.safe_load(yaml_content)
                 if isinstance(parsed, dict):
                     return parsed
-                else:
-                    self.logger.warning(f"YAML frontmatter is not a dictionary: {type(parsed)}")
+                self.logger.warning(f"YAML frontmatter is not a dictionary: {type(parsed)}")
             except yaml.YAMLError as e:
                 # Malformed YAML (e.g., indentation errors) - fall back to regex extraction
                 self.logger.debug(f"Full YAML parse failed, using fallback extraction: {e}")
@@ -238,8 +238,7 @@ class RemoteAgentDiscoveryService:
                 if result:
                     self.logger.debug(f"Extracted {len(result)} fields using fallback method")
                     return result
-                else:
-                    return None
+                return None
 
         except Exception as e:
             self.logger.warning(f"Unexpected error parsing frontmatter: {e}")

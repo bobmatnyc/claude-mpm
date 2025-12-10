@@ -388,7 +388,6 @@ class ConfigureCommand(BaseCommand):
         Returns:
             List of discovered agents with deployment status set.
         """
-        from rich.spinner import Spinner
 
         agents = []
         with self.console.status("[bold blue]Loading agents...[/bold blue]", spinner="dots"):
@@ -1216,12 +1215,10 @@ class ConfigureCommand(BaseCommand):
             agent_full_path = agent.name
             agent_leaf_name = agent_full_path.split("/")[-1] if "/" in agent_full_path else agent_full_path
 
-            is_recommended = False
             for recommended_id in recommended_agents:
                 # Check if the recommended_id matches either the full path or just the leaf name
                 recommended_leaf = recommended_id.split("/")[-1] if "/" in recommended_id else recommended_id
                 if agent_full_path == recommended_id or agent_leaf_name == recommended_leaf:
-                    is_recommended = True
                     recommended_count += 1
                     break
 
@@ -1246,7 +1243,7 @@ class ConfigureCommand(BaseCommand):
                     str(self.project_dir)
                 )
                 detected_langs = ", ".join(summary.get("detected_languages", [])) or "None"
-                detected_fws = ", ".join(summary.get("detected_frameworks", [])) or "None"
+                ", ".join(summary.get("detected_frameworks", [])) or "None"
                 self.console.print(
                     f"\n[dim]* = recommended for this project "
                     f"(detected: {detected_langs})[/dim]"
@@ -1467,7 +1464,6 @@ class ConfigureCommand(BaseCommand):
                         display_name = getattr(agent, "display_name", agent_leaf_name)
 
                         # Check if agent is deployed (exists in .claude/agents/)
-                        is_deployed = agent.name in deployed_full_paths
 
                         # Format choice text (no asterisk needed)
                         choice_text = f"    {display_name}"

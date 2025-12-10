@@ -120,7 +120,6 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     deployed = set()
 
     # Track if project_dir was explicitly provided
-    explicit_project_dir = project_dir is not None
 
     if project_dir is None:
         project_dir = Path.cwd()

@@ -139,7 +139,7 @@ def main():
 
     # Summary
     print("-" * 80)
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Updated: {len(updated_files)} files")
     print(f"  Skipped: {len(skipped_files)} files (no change needed)")
 

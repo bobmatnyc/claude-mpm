@@ -65,8 +65,8 @@ class AgentDisplay:
         Args:
             agents: List of agent configurations to display
         """
+
         from ...utils.agent_filters import get_deployed_agent_ids
-        from pathlib import Path
 
         table = Table(
             title=f"Available Agents ({len(agents)} total)",

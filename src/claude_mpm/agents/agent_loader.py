@@ -45,7 +45,6 @@ from claude_mpm.core.logging_utils import get_logger
 
 # Import modular components
 from claude_mpm.core.unified_agent_registry import AgentTier, get_agent_registry
-from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 from ..core.agent_name_normalizer import AgentNameNormalizer
