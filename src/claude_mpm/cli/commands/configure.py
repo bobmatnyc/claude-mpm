@@ -524,6 +524,9 @@ class ConfigureCommand(BaseCommand):
                 if self.agent_manager.has_pending_changes():
                     self.agent_manager.commit_deferred_changes()
                     self.console.print("[green]✓ Changes saved successfully![/green]")
+
+                    # Auto-deploy enabled agents to .claude/agents/
+                    self._auto_deploy_enabled_agents(agents)
                 else:
                     self.console.print("[yellow]No changes to save.[/yellow]")
                 Prompt.ask("Press Enter to continue")
@@ -550,6 +553,60 @@ class ConfigureCommand(BaseCommand):
                         self.agent_manager.set_agent_enabled_deferred(
                             agent.name, not current
                         )
+
+    def _auto_deploy_enabled_agents(self, agents: List[AgentConfig]) -> None:
+        """Auto-deploy enabled agents after saving configuration.
+
+        WHY: When users enable agents, they expect them to be deployed
+        automatically to .claude/agents/ so they're available for use.
+        """
+        try:
+            # Get list of enabled agents from states
+            enabled_agents = [
+                agent
+                for agent in agents
+                if self.agent_manager.is_agent_enabled(agent.name)
+            ]
+
+            if not enabled_agents:
+                return
+
+            # Show deployment progress
+            self.console.print(
+                f"\n[bold blue]Deploying {len(enabled_agents)} enabled agent(s)...[/bold blue]"
+            )
+
+            # Deploy each enabled agent
+            success_count = 0
+            failed_count = 0
+
+            for agent in enabled_agents:
+                # Deploy to .claude/agents/ (project-level)
+                try:
+                    if self._deploy_single_agent(agent, show_feedback=False):
+                        success_count += 1
+                        self.console.print(f"[green]✓ Deployed: {agent.name}[/green]")
+                    else:
+                        failed_count += 1
+                        self.console.print(f"[yellow]⚠ Skipped: {agent.name}[/yellow]")
+                except Exception as e:
+                    failed_count += 1
+                    self.logger.error(f"Failed to deploy {agent.name}: {e}")
+                    self.console.print(f"[red]✗ Failed: {agent.name}[/red]")
+
+            # Show summary
+            if success_count > 0:
+                self.console.print(
+                    f"\n[green]✓ Successfully deployed {success_count} agent(s) to .claude/agents/[/green]"
+                )
+            if failed_count > 0:
+                self.console.print(
+                    f"[yellow]⚠ {failed_count} agent(s) failed or were skipped[/yellow]"
+                )
+
+        except Exception as e:
+            self.logger.error(f"Auto-deployment failed: {e}", exc_info=True)
+            self.console.print(f"[red]✗ Auto-deployment error: {e}[/red]")
 
     def _customize_agent_template(self, agents: List[AgentConfig]) -> None:
         """Customize agent JSON template."""
