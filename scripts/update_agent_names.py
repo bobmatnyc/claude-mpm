@@ -27,30 +27,30 @@ def convert_to_display_name(internal_name: str) -> str:
         gcp-ops -> GCP Ops
     """
     # Replace underscores and hyphens with spaces
-    name = internal_name.replace('_', ' ').replace('-', ' ')
+    name = internal_name.replace("_", " ").replace("-", " ")
 
     # Remove '_agent' or 'agent' suffix if present
-    name = re.sub(r'\s+agent$', '', name, flags=re.IGNORECASE)
+    name = re.sub(r"\s+agent$", "", name, flags=re.IGNORECASE)
 
     # Split into words
     words = name.split()
 
     # Special case mappings for abbreviations
     special_cases = {
-        'qa': 'QA',
-        'api': 'API',
-        'ui': 'UI',
-        'mpm': 'MPM',
-        'gcp': 'GCP',
-        'aws': 'AWS',
-        'id': 'ID',
-        'url': 'URL',
-        'http': 'HTTP',
-        'html': 'HTML',
-        'css': 'CSS',
-        'js': 'JS',
-        'ts': 'TS',
-        'sql': 'SQL',
+        "qa": "QA",
+        "api": "API",
+        "ui": "UI",
+        "mpm": "MPM",
+        "gcp": "GCP",
+        "aws": "AWS",
+        "id": "ID",
+        "url": "URL",
+        "http": "HTTP",
+        "html": "HTML",
+        "css": "CSS",
+        "js": "JS",
+        "ts": "TS",
+        "sql": "SQL",
     }
 
     # Process each word
@@ -62,7 +62,7 @@ def convert_to_display_name(internal_name: str) -> str:
         else:
             processed_words.append(word.capitalize())
 
-    return ' '.join(processed_words)
+    return " ".join(processed_words)
 
 
 def update_agent_file(file_path: Path) -> tuple[bool, str, str]:
@@ -90,11 +90,7 @@ def update_agent_file(file_path: Path) -> tuple[bool, str, str]:
 
     # Replace the name field
     updated_content = re.sub(
-        pattern,
-        rf'\1{new_name}',
-        content,
-        count=1,
-        flags=re.MULTILINE
+        pattern, rf"\1{new_name}", content, count=1, flags=re.MULTILINE
     )
 
     # Write back to file
@@ -106,7 +102,15 @@ def update_agent_file(file_path: Path) -> tuple[bool, str, str]:
 def main():
     """Update all agent markdown files in the cache directory."""
     # Agent cache directory
-    cache_dir = Path.home() / '.claude-mpm' / 'cache' / 'remote-agents' / 'bobmatnyc' / 'claude-mpm-agents' / 'agents'
+    cache_dir = (
+        Path.home()
+        / ".claude-mpm"
+        / "cache"
+        / "remote-agents"
+        / "bobmatnyc"
+        / "claude-mpm-agents"
+        / "agents"
+    )
 
     if not cache_dir.exists():
         print(f"Error: Cache directory not found: {cache_dir}")
@@ -114,8 +118,9 @@ def main():
 
     # Find all markdown files (exclude BASE-AGENT.md backup files)
     md_files = [
-        f for f in cache_dir.rglob('*.md')
-        if not f.name.endswith('.backup') and not f.name.endswith('.migrated')
+        f
+        for f in cache_dir.rglob("*.md")
+        if not f.name.endswith(".backup") and not f.name.endswith(".migrated")
     ]
 
     print(f"Found {len(md_files)} agent files to process")
@@ -150,5 +155,5 @@ def main():
             print(f"  - {relative_path}: '{old_name}' → '{new_name}'")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

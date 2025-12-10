@@ -89,9 +89,7 @@ class AgentDisplay:
             is_deployed = agent_leaf_name in deployed_ids
 
             # Show "Installed" for deployed agents, "Available" otherwise
-            status = (
-                "[green]Installed[/green]" if is_deployed else "Available"
-            )
+            status = "[green]Installed[/green]" if is_deployed else "Available"
 
             # Format tools/dependencies - show first 2 tools
             tools_display = ""

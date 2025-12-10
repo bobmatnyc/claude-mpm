@@ -193,12 +193,12 @@ class RemoteAgentDiscoveryService:
         """
         try:
             # Check if content starts with YAML frontmatter
-            if not content.startswith('---'):
+            if not content.startswith("---"):
                 self.logger.debug("No YAML frontmatter found (doesn't start with ---)")
                 return None
 
             # Extract frontmatter content between --- markers
-            frontmatter_match = re.match(r'^---\n(.*?)\n---\s*\n', content, re.DOTALL)
+            frontmatter_match = re.match(r"^---\n(.*?)\n---\s*\n", content, re.DOTALL)
             if not frontmatter_match:
                 self.logger.debug("No closing --- marker found for YAML frontmatter")
                 return None
@@ -210,23 +210,34 @@ class RemoteAgentDiscoveryService:
                 parsed = yaml.safe_load(yaml_content)
                 if isinstance(parsed, dict):
                     return parsed
-                self.logger.warning(f"YAML frontmatter is not a dictionary: {type(parsed)}")
+                self.logger.warning(
+                    f"YAML frontmatter is not a dictionary: {type(parsed)}"
+                )
             except yaml.YAMLError as e:
                 # Malformed YAML (e.g., indentation errors) - fall back to regex extraction
-                self.logger.debug(f"Full YAML parse failed, using fallback extraction: {e}")
+                self.logger.debug(
+                    f"Full YAML parse failed, using fallback extraction: {e}"
+                )
 
                 # Extract key fields using regex (tolerant of malformed nested structures)
                 result = {}
 
                 # Extract simple key-value pairs (no nested structures)
                 simple_keys = [
-                    'agent_id', 'name', 'description', 'version', 'model',
-                    'agent_type', 'category', 'author', 'schema_version'
+                    "agent_id",
+                    "name",
+                    "description",
+                    "version",
+                    "model",
+                    "agent_type",
+                    "category",
+                    "author",
+                    "schema_version",
                 ]
 
                 for key in simple_keys:
                     # Match key: value on a line (not indented, so it's top-level)
-                    pattern = rf'^{key}:\s*(.+?)$'
+                    pattern = rf"^{key}:\s*(.+?)$"
                     match = re.search(pattern, yaml_content, re.MULTILINE)
                     if match:
                         value = match.group(1).strip()
@@ -236,7 +247,9 @@ class RemoteAgentDiscoveryService:
                         result[key] = value
 
                 if result:
-                    self.logger.debug(f"Extracted {len(result)} fields using fallback method")
+                    self.logger.debug(
+                        f"Extracted {len(result)} fields using fallback method"
+                    )
                     return result
                 return None
 

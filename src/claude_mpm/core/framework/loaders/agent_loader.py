@@ -131,9 +131,7 @@ class AgentLoader:
         # Check for local JSON templates in priority order
         # NOTE: These directories are deprecated in the simplified architecture
         template_dirs = [
-            Path.cwd()
-            / ".claude-mpm"
-            / "agents",  # Deprecated: Project local agents
+            Path.cwd() / ".claude-mpm" / "agents",  # Deprecated: Project local agents
             Path.home() / ".claude-mpm" / "agents",  # Deprecated: User local agents
         ]
 

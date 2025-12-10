@@ -172,7 +172,6 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     # - .mpm_deployment_state (virtual deployment)
     # - .claude/agents/*.md (project deployment)
 
-
     return deployed
 
 

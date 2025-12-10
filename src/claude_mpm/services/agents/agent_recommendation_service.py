@@ -101,7 +101,6 @@ class AgentRecommendationService:
         "angular": [
             "engineer/frontend/angular-engineer",
         ],
-
         # Backend frameworks
         "fastapi": [
             "engineer/backend/python-engineer",
@@ -123,7 +122,6 @@ class AgentRecommendationService:
             "engineer/backend/javascript-engineer",
             "qa/api-qa",
         ],
-
         # Mobile frameworks
         "flutter": [
             "engineer/mobile/dart-engineer",
@@ -132,7 +130,6 @@ class AgentRecommendationService:
             "engineer/frontend/react-engineer",
             "engineer/mobile/react-native-engineer",
         ],
-
         # Desktop frameworks
         "tauri": [
             "engineer/mobile/tauri-engineer",
@@ -244,7 +241,8 @@ class AgentRecommendationService:
             if analysis.language_detection:
                 languages.append(analysis.language_detection.primary_language)
                 languages.extend(
-                    comp.name for comp in analysis.language_detection.secondary_languages
+                    comp.name
+                    for comp in analysis.language_detection.secondary_languages
                 )
 
             # Extract frameworks
@@ -258,11 +256,10 @@ class AgentRecommendationService:
                 "high": "high",
                 "medium": "medium",
                 "low": "low",
-                "very_low": "low"
+                "very_low": "low",
             }
             quality = confidence_map.get(
-                str(analysis.overall_confidence).lower(),
-                "unknown"
+                str(analysis.overall_confidence).lower(), "unknown"
             )
 
             return {

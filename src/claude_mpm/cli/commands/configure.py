@@ -390,7 +390,9 @@ class ConfigureCommand(BaseCommand):
         """
 
         agents = []
-        with self.console.status("[bold blue]Loading agents...[/bold blue]", spinner="dots"):
+        with self.console.status(
+            "[bold blue]Loading agents...[/bold blue]", spinner="dots"
+        ):
             try:
                 # Discover agents (includes both local and remote)
                 agents = self.agent_manager.discover_agents(include_remote=True)
@@ -433,19 +435,13 @@ class ConfigureCommand(BaseCommand):
                 no_wrap=True,
                 overflow="ellipsis",
             )
-            sources_table.add_column(
-                "Status", style="green", width=15, no_wrap=True
-            )
-            sources_table.add_column(
-                "Agents", style="yellow", width=10, no_wrap=True
-            )
+            sources_table.add_column("Status", style="green", width=15, no_wrap=True)
+            sources_table.add_column("Agents", style="yellow", width=10, no_wrap=True)
 
             for source in sources:
                 status = "✓ Active" if source.get("enabled", True) else "Disabled"
                 agent_count = source.get("agent_count", "?")
-                sources_table.add_row(
-                    source["identifier"], status, str(agent_count)
-                )
+                sources_table.add_row(source["identifier"], status, str(agent_count))
 
             self.console.print(sources_table)
         else:
@@ -1213,12 +1209,23 @@ class ConfigureCommand(BaseCommand):
             # Handle both hierarchical paths (e.g., "engineer/backend/python-engineer")
             # and leaf names (e.g., "python-engineer")
             agent_full_path = agent.name
-            agent_leaf_name = agent_full_path.split("/")[-1] if "/" in agent_full_path else agent_full_path
+            agent_leaf_name = (
+                agent_full_path.split("/")[-1]
+                if "/" in agent_full_path
+                else agent_full_path
+            )
 
             for recommended_id in recommended_agents:
                 # Check if the recommended_id matches either the full path or just the leaf name
-                recommended_leaf = recommended_id.split("/")[-1] if "/" in recommended_id else recommended_id
-                if agent_full_path == recommended_id or agent_leaf_name == recommended_leaf:
+                recommended_leaf = (
+                    recommended_id.split("/")[-1]
+                    if "/" in recommended_id
+                    else recommended_id
+                )
+                if (
+                    agent_full_path == recommended_id
+                    or agent_leaf_name == recommended_leaf
+                ):
                     recommended_count += 1
                     break
 
@@ -1242,7 +1249,9 @@ class ConfigureCommand(BaseCommand):
                 summary = self.recommendation_service.get_detection_summary(
                     str(self.project_dir)
                 )
-                detected_langs = ", ".join(summary.get("detected_languages", [])) or "None"
+                detected_langs = (
+                    ", ".join(summary.get("detected_languages", [])) or "None"
+                )
                 ", ".join(summary.get("detected_frameworks", [])) or "None"
                 self.console.print(
                     f"\n[dim]* = recommended for this project "
@@ -1347,7 +1356,10 @@ class ConfigureCommand(BaseCommand):
                         parts = repo_url.rstrip("/").split("/")
                         if len(parts) >= 2:
                             # Use more readable collection name
-                            if "bobmatnyc/claude-mpm" in repo_url or "claude-mpm" in repo_url.lower():
+                            if (
+                                "bobmatnyc/claude-mpm" in repo_url
+                                or "claude-mpm" in repo_url.lower()
+                            ):
                                 collection_id = "MPM Agents"
                             else:
                                 collection_id = f"{parts[-2]}/{parts[-1]}"
@@ -1375,14 +1387,17 @@ class ConfigureCommand(BaseCommand):
 
                 # Count selected/total agents in collection
                 selected_count = sum(
-                    1 for agent in agents_in_collection
+                    1
+                    for agent in agents_in_collection
                     if agent.name in current_selection
                 )
                 total_count = len(agents_in_collection)
 
                 # Add collection header
                 choices.append(
-                    Separator(f"\n── {collection_id} ({selected_count}/{total_count} selected) ──")
+                    Separator(
+                        f"\n── {collection_id} ({selected_count}/{total_count} selected) ──"
+                    )
                 )
 
                 # Determine if all agents in collection are selected
@@ -1408,15 +1423,18 @@ class ConfigureCommand(BaseCommand):
 
                 # Add inline control: Select recommended from this collection
                 recommended_in_collection = [
-                    a for a in agents_in_collection
+                    a
+                    for a in agents_in_collection
                     if any(
-                        a.name == rec_id or a.name.split("/")[-1] == rec_id.split("/")[-1]
+                        a.name == rec_id
+                        or a.name.split("/")[-1] == rec_id.split("/")[-1]
                         for rec_id in recommended_agent_ids
                     )
                 ]
                 if recommended_in_collection:
                     recommended_selected = sum(
-                        1 for a in recommended_in_collection
+                        1
+                        for a in recommended_in_collection
                         if a.name in current_selection
                     )
                     if recommended_selected == len(recommended_in_collection):
@@ -1480,8 +1498,12 @@ class ConfigureCommand(BaseCommand):
 
             self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
             self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
-            self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
-            self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
+            self.console.print(
+                "[dim][ ] Unchecked = Available (check to install)[/dim]"
+            )
+            self.console.print(
+                "[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n"
+            )
 
             try:
                 selected_values = questionary.checkbox(
@@ -1492,12 +1514,17 @@ class ConfigureCommand(BaseCommand):
                 ).ask()
             except Exception as e:
                 import sys
+
                 self.logger.error(f"Questionary checkbox failed: {e}", exc_info=True)
-                self.console.print("[red]Error: Could not display interactive menu[/red]")
+                self.console.print(
+                    "[red]Error: Could not display interactive menu[/red]"
+                )
                 self.console.print(f"[dim]Reason: {e}[/dim]")
                 if not sys.stdin.isatty():
                     self.console.print("[dim]Interactive terminal required. Use:[/dim]")
-                    self.console.print("[dim]  --list-agents to see available agents[/dim]")
+                    self.console.print(
+                        "[dim]  --list-agents to see available agents[/dim]"
+                    )
                 Prompt.ask("\nPress Enter to continue")
                 return
 
@@ -1513,30 +1540,40 @@ class ConfigureCommand(BaseCommand):
                 # Process controls and update current_selection
                 for control in controls_selected:
                     if control.startswith("__SELECT_ALL_"):
-                        collection_id = control.replace("__SELECT_ALL_", "").replace("__", "")
+                        collection_id = control.replace("__SELECT_ALL_", "").replace(
+                            "__", ""
+                        )
                         # Add all agents from this collection to current_selection
                         for agent in collections[collection_id]:
                             current_selection.add(agent.name)
                     elif control.startswith("__DESELECT_ALL_"):
-                        collection_id = control.replace("__DESELECT_ALL_", "").replace("__", "")
+                        collection_id = control.replace("__DESELECT_ALL_", "").replace(
+                            "__", ""
+                        )
                         # Remove all agents from this collection
                         for agent in collections[collection_id]:
                             current_selection.discard(agent.name)
                     elif control.startswith("__SELECT_REC_"):
-                        collection_id = control.replace("__SELECT_REC_", "").replace("__", "")
+                        collection_id = control.replace("__SELECT_REC_", "").replace(
+                            "__", ""
+                        )
                         # Add all recommended agents from this collection
                         for agent in collections[collection_id]:
                             if any(
-                                agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                agent.name == rec_id
+                                or agent.name.split("/")[-1] == rec_id.split("/")[-1]
                                 for rec_id in recommended_agent_ids
                             ):
                                 current_selection.add(agent.name)
                     elif control.startswith("__DESELECT_REC_"):
-                        collection_id = control.replace("__DESELECT_REC_", "").replace("__", "")
+                        collection_id = control.replace("__DESELECT_REC_", "").replace(
+                            "__", ""
+                        )
                         # Remove all recommended agents from this collection
                         for agent in collections[collection_id]:
                             if any(
-                                agent.name == rec_id or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                agent.name == rec_id
+                                or agent.name.split("/")[-1] == rec_id.split("/")[-1]
                                 for rec_id in recommended_agent_ids
                             ):
                                 current_selection.discard(agent.name)
@@ -1622,7 +1659,9 @@ class ConfigureCommand(BaseCommand):
                         try:
                             with state_path.open() as f:
                                 state = json.load(f)
-                            agents_in_state = state.get("last_check_results", {}).get("agents", {})
+                            agents_in_state = state.get("last_check_results", {}).get(
+                                "agents", {}
+                            )
                             if leaf_name in agents_in_state:
                                 del agents_in_state[leaf_name]
                                 removed = True
@@ -2196,7 +2235,9 @@ class ConfigureCommand(BaseCommand):
             return
 
         self.console.clear()
-        self.console.print("\n[bold white]═══ Recommended Agents for This Project ═══[/bold white]\n")
+        self.console.print(
+            "\n[bold white]═══ Recommended Agents for This Project ═══[/bold white]\n"
+        )
 
         # Get recommended agent IDs
         try:
@@ -2222,10 +2263,16 @@ class ConfigureCommand(BaseCommand):
 
             self.console.print("[bold]Detected Project Stack:[/bold]")
             if summary.get("detected_languages"):
-                self.console.print(f"  Languages: [cyan]{', '.join(summary['detected_languages'])}[/cyan]")
+                self.console.print(
+                    f"  Languages: [cyan]{', '.join(summary['detected_languages'])}[/cyan]"
+                )
             if summary.get("detected_frameworks"):
-                self.console.print(f"  Frameworks: [cyan]{', '.join(summary['detected_frameworks'])}[/cyan]")
-            self.console.print(f"  Detection Quality: [{'green' if summary.get('detection_quality') == 'high' else 'yellow'}]{summary.get('detection_quality', 'unknown')}[/]")
+                self.console.print(
+                    f"  Frameworks: [cyan]{', '.join(summary['detected_frameworks'])}[/cyan]"
+                )
+            self.console.print(
+                f"  Detection Quality: [{'green' if summary.get('detection_quality') == 'high' else 'yellow'}]{summary.get('detection_quality', 'unknown')}[/]"
+            )
             self.console.print()
         except Exception:
             pass
@@ -2247,19 +2294,28 @@ class ConfigureCommand(BaseCommand):
                 matched_agents.append(agent_map[recommended_id])
             else:
                 # Try leaf name match
-                recommended_leaf = recommended_id.split("/")[-1] if "/" in recommended_id else recommended_id
+                recommended_leaf = (
+                    recommended_id.split("/")[-1]
+                    if "/" in recommended_id
+                    else recommended_id
+                )
                 if recommended_leaf in agent_map:
                     matched_agents.append(agent_map[recommended_leaf])
 
         if not matched_agents:
-            self.console.print("[yellow]No matching agents found in available sources[/yellow]")
+            self.console.print(
+                "[yellow]No matching agents found in available sources[/yellow]"
+            )
             Prompt.ask("\nPress Enter to continue")
             return
 
         # Display recommended agents
-        self.console.print(f"[bold]Recommended Agents ({len(matched_agents)}):[/bold]\n")
+        self.console.print(
+            f"[bold]Recommended Agents ({len(matched_agents)}):[/bold]\n"
+        )
 
         from rich.table import Table
+
         rec_table = Table(show_header=True, header_style="bold white")
         rec_table.add_column("#", style="dim", width=4)
         rec_table.add_column("Agent ID", style="cyan", width=40)
@@ -2267,7 +2323,11 @@ class ConfigureCommand(BaseCommand):
 
         for idx, agent in enumerate(matched_agents, 1):
             is_installed = getattr(agent, "is_deployed", False)
-            status = "[green]Already Installed[/green]" if is_installed else "[yellow]Not Installed[/yellow]"
+            status = (
+                "[green]Already Installed[/green]"
+                if is_installed
+                else "[yellow]Not Installed[/yellow]"
+            )
             rec_table.add_row(str(idx), agent.name, status)
 
         self.console.print(rec_table)
@@ -2278,19 +2338,24 @@ class ConfigureCommand(BaseCommand):
 
         self.console.print()
         if already_installed > 0:
-            self.console.print(f"[green]✓ {already_installed} already installed[/green]")
+            self.console.print(
+                f"[green]✓ {already_installed} already installed[/green]"
+            )
         if to_install:
-            self.console.print(f"[yellow]⚠ {len(to_install)} need installation[/yellow]")
+            self.console.print(
+                f"[yellow]⚠ {len(to_install)} need installation[/yellow]"
+            )
         else:
-            self.console.print("[green]✓ All recommended agents are already installed![/green]")
+            self.console.print(
+                "[green]✓ All recommended agents are already installed![/green]"
+            )
             Prompt.ask("\nPress Enter to continue")
             return
 
         # Ask for confirmation
         self.console.print()
         if not Confirm.ask(
-            f"Install {len(to_install)} recommended agent(s)?",
-            default=True
+            f"Install {len(to_install)} recommended agent(s)?", default=True
         ):
             self.console.print("[yellow]Installation cancelled[/yellow]")
             Prompt.ask("\nPress Enter to continue")
@@ -2317,7 +2382,9 @@ class ConfigureCommand(BaseCommand):
         # Show summary
         self.console.print()
         if success_count > 0:
-            self.console.print(f"[green]✓ Successfully installed {success_count} agent(s)[/green]")
+            self.console.print(
+                f"[green]✓ Successfully installed {success_count} agent(s)[/green]"
+            )
         if fail_count > 0:
             self.console.print(f"[red]✗ Failed to install {fail_count} agent(s)[/red]")
 
