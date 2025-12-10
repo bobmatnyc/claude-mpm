@@ -1141,18 +1141,18 @@ class ConfigureCommand(BaseCommand):
         }
         widths = self._calculate_column_widths(terminal_width, min_widths)
 
-        agents_table = Table(show_header=True, header_style="bold white")
-        agents_table.add_column("#", style="dim", width=widths["#"], no_wrap=True)
+        agents_table = Table(show_header=True, header_style="bold cyan")
+        agents_table.add_column("#", style="bright_black", width=widths["#"], no_wrap=True)
         agents_table.add_column(
             "Agent ID",
-            style="white",
+            style="bright_white",
             width=widths["Agent ID"],
             no_wrap=True,
             overflow="ellipsis",
         )
         agents_table.add_column(
             "Name",
-            style="white",
+            style="bright_cyan",
             width=widths["Name"],
             no_wrap=True,
             overflow="ellipsis",
@@ -1164,7 +1164,7 @@ class ConfigureCommand(BaseCommand):
             no_wrap=True,
         )
         agents_table.add_column(
-            "Status", style="white", width=widths["Status"], no_wrap=True
+            "Status", style="bright_white", width=widths["Status"], no_wrap=True
         )
 
         # FIX 3: Get deployed agent IDs once, before the loop (efficiency)

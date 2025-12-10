@@ -152,7 +152,7 @@ class SimpleAgentManager:
 
                     # Get metadata for display info
                     metadata = template_data.get("metadata", {})
-                    metadata.get("name", agent_id)
+                    display_name = metadata.get("name", agent_id)
                     description = metadata.get(
                         "description", "No description available"
                     )
@@ -182,9 +182,10 @@ class SimpleAgentManager:
                         dependencies=display_tools,
                     )
 
-                    # Set deployment status
+                    # Set deployment status and display name
                     agent_config.is_deployed = is_deployed
                     agent_config.source_type = "local"
+                    agent_config.display_name = display_name
 
                     agents.append(agent_config)
 
