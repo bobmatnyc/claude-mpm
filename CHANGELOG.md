@@ -12,6 +12,12 @@
 
 ### Security
 
+## [5.2.1] - 2025-12-10
+
+### Fixed
+- Fixed agent deployment path issue affecting 128 deployment tests
+- Updated test suite to verify correct agent deployment locations
+
 ## [5.2.0] - 2025-12-10
 
 ### Added
