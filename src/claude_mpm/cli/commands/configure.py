@@ -1159,7 +1159,9 @@ class ConfigureCommand(BaseCommand):
         widths = self._calculate_column_widths(terminal_width, min_widths)
 
         agents_table = Table(show_header=True, header_style="bold cyan")
-        agents_table.add_column("#", style="bright_black", width=widths["#"], no_wrap=True)
+        agents_table.add_column(
+            "#", style="bright_black", width=widths["#"], no_wrap=True
+        )
         agents_table.add_column(
             "Agent ID",
             style="bright_black",
