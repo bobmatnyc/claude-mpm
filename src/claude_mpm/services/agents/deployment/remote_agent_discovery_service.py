@@ -271,13 +271,19 @@ class RemoteAgentDiscoveryService:
         - Preset matching against AUTO-DEPLOY-INDEX.md
         - Multi-level organization without name collisions
 
-        Bug #4 Fix: Calculate relative to /agents/ subdirectory, not repository root
-        This ensures agent IDs are based on their position within the agents directory.
+        Supports both cache structures:
+        1. Git repo: Calculate relative to /agents/ subdirectory
+        2. Flattened cache: Calculate relative to remote_agents_dir directly
 
-        Example:
+        Example (Git repo):
             Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
             Root:   /cache/bobmatnyc/claude-mpm-agents/agents
             Output: engineer/backend/python-engineer
+
+        Example (Flattened cache):
+            Input:  /cache/remote-agents/engineer/python-engineer.md
+            Root:   /cache/remote-agents
+            Output: engineer/python-engineer
 
         Args:
             file_path: Absolute path to agent Markdown file
@@ -286,16 +292,30 @@ class RemoteAgentDiscoveryService:
             Hierarchical agent ID with forward slashes
         """
         try:
-            # Calculate relative to /agents/ subdirectory (Bug #4 fix)
+            # Try git repo structure first: /agents/ subdirectory
             agents_dir = self.remote_agents_dir / "agents"
-            relative_path = file_path.relative_to(agents_dir)
+            if agents_dir.exists():
+                try:
+                    relative_path = file_path.relative_to(agents_dir)
+                    return str(relative_path.with_suffix("")).replace("\\", "/")
+                except ValueError:
+                    pass  # Not under agents_dir, try flattened structure
 
-            # Remove .md extension and convert to forward slashes
-            return str(relative_path.with_suffix("")).replace("\\", "/")
-        except ValueError:
-            # File is not under agents subdirectory, fall back to filename
+            # Try flattened cache structure: calculate relative to remote_agents_dir
+            try:
+                relative_path = file_path.relative_to(self.remote_agents_dir)
+                return str(relative_path.with_suffix("")).replace("\\", "/")
+            except ValueError:
+                pass  # Not under remote_agents_dir either
+
+            # Fall back to filename
             self.logger.warning(
-                f"File {file_path} not under agents directory, using filename"
+                f"File {file_path} not under expected directories, using filename"
+            )
+            return file_path.stem
+        except Exception as e:
+            self.logger.warning(
+                f"Error generating hierarchical ID for {file_path}: {e}"
             )
             return file_path.stem
 
@@ -305,13 +325,19 @@ class RemoteAgentDiscoveryService:
         Extracts category from directory structure. Category is the path
         from agents subdirectory to the file, excluding the filename.
 
-        Bug #4 Fix: Calculate relative to /agents/ subdirectory, not repository root
-        This ensures categories are based on agent organization within /agents/.
+        Supports both cache structures:
+        1. Git repo: Calculate relative to /agents/ subdirectory
+        2. Flattened cache: Calculate relative to remote_agents_dir directly
 
-        Example:
+        Example (Git repo):
             Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
             Root:   /cache/bobmatnyc/claude-mpm-agents/agents
             Output: engineer/backend
+
+        Example (Flattened cache):
+            Input:  /cache/remote-agents/engineer/python-engineer.md
+            Root:   /cache/remote-agents
+            Output: engineer
 
         Args:
             file_path: Absolute path to agent Markdown file
@@ -320,12 +346,26 @@ class RemoteAgentDiscoveryService:
             Category path with forward slashes, or "universal" if in root
         """
         try:
-            # Calculate relative to /agents/ subdirectory (Bug #4 fix)
+            # Try git repo structure first: /agents/ subdirectory
             agents_dir = self.remote_agents_dir / "agents"
-            relative_path = file_path.relative_to(agents_dir)
-            parts = relative_path.parts[:-1]  # Exclude filename
-            return "/".join(parts) if parts else "universal"
-        except ValueError:
+            if agents_dir.exists():
+                try:
+                    relative_path = file_path.relative_to(agents_dir)
+                    parts = relative_path.parts[:-1]  # Exclude filename
+                    return "/".join(parts) if parts else "universal"
+                except ValueError:
+                    pass  # Not under agents_dir, try flattened structure
+
+            # Try flattened cache structure: calculate relative to remote_agents_dir
+            try:
+                relative_path = file_path.relative_to(self.remote_agents_dir)
+                parts = relative_path.parts[:-1]  # Exclude filename
+                return "/".join(parts) if parts else "universal"
+            except ValueError:
+                pass  # Not under remote_agents_dir either
+
+            return "universal"
+        except Exception:
             return "universal"
 
     def discover_remote_agents(self) -> List[Dict[str, Any]]:
@@ -334,8 +374,12 @@ class RemoteAgentDiscoveryService:
         Scans the remote agents directory for *.md files recursively and converts each
         to JSON template format. Skips files that can't be parsed.
 
-        Bug #4 Fix: Only scan /agents/ subdirectory, not entire repository
-        This prevents README.md, CHANGELOG.md, etc. from being treated as agents.
+        Supports two cache structures:
+        1. Git repo path: {path}/agents/ - has /agents/ subdirectory
+        2. Flattened cache: {path}/ - directly contains category directories
+
+        Bug #4 Fix: Only scan /agents/ subdirectory when it exists to prevent
+        README.md, CHANGELOG.md, etc. from being treated as agents.
 
         Returns:
             List of agent dictionaries in JSON template format
@@ -356,20 +400,84 @@ class RemoteAgentDiscoveryService:
             )
             return agents
 
-        # Bug #4 Fix: Only scan /agents/ subdirectory, not entire repository
-        # This prevents non-agent files (README.md, CHANGELOG.md, etc.) from polluting results
+        # Support both cache structures:
+        # 1. Git repo path: {path}/agents/ - has /agents/ subdirectory
+        # 2. Flattened cache: {path}/ - directly contains category directories (universal, engineer, etc.)
         agents_dir = self.remote_agents_dir / "agents"
 
-        if not agents_dir.exists():
-            self.logger.warning(
-                f"Agents subdirectory not found: {agents_dir}. "
-                f"Expected agents to be in /agents/ subdirectory."
+        if agents_dir.exists():
+            # Git repo structure - scan /agents/ subdirectory
+            self.logger.debug(f"Using git repo structure: {agents_dir}")
+            scan_dir = agents_dir
+        else:
+            # Flattened cache structure - scan root directly
+            # Check if this looks like the flattened cache (has category subdirectories)
+            category_dirs = [
+                "universal",
+                "engineer",
+                "ops",
+                "qa",
+                "security",
+                "documentation",
+            ]
+            has_categories = any(
+                (self.remote_agents_dir / cat).exists() for cat in category_dirs
             )
-            return agents
 
-        # Find all Markdown files recursively in /agents/ subdirectory only
-        md_files = list(agents_dir.rglob("*.md"))
-        self.logger.debug(f"Found {len(md_files)} Markdown files in {agents_dir}")
+            if has_categories:
+                self.logger.debug(
+                    f"Using flattened cache structure: {self.remote_agents_dir}"
+                )
+                scan_dir = self.remote_agents_dir
+            else:
+                self.logger.warning(
+                    f"Agents subdirectory not found: {agents_dir}. "
+                    f"And no category directories found in {self.remote_agents_dir}. "
+                    f"Expected agents to be in /agents/ subdirectory or category directories."
+                )
+                return agents
+
+        # Find all Markdown files recursively
+        md_files = list(scan_dir.rglob("*.md"))
+
+        # Filter out non-agent files and git repository files
+        excluded_files = {
+            "README.md",
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "LICENSE.md",
+            "BASE-AGENT.md",
+            "SUMMARY.md",
+            "IMPLEMENTATION-SUMMARY.md",
+            "REFACTORING_REPORT.md",
+            "REORGANIZATION-PLAN.md",
+            "AUTO-DEPLOY-INDEX.md",
+            "PHASE1_COMPLETE.md",
+            "AGENTS.md",
+        }
+        md_files = [f for f in md_files if f.name not in excluded_files]
+
+        # In flattened cache mode, also exclude files from git repository subdirectories
+        # (files under directories that contain .git folder)
+        if scan_dir == self.remote_agents_dir:
+            filtered_files = []
+            for f in md_files:
+                # Check if this file is inside a git repository (has .git in path)
+                # Git repos are at {remote_agents_dir}/{owner}/{repo}/.git
+                path_parts = f.relative_to(self.remote_agents_dir).parts
+                if len(path_parts) >= 2:
+                    # Check if this looks like a git repo path (owner/repo)
+                    potential_repo = (
+                        self.remote_agents_dir / path_parts[0] / path_parts[1]
+                    )
+                    if (potential_repo / ".git").exists():
+                        # This file is in a git repo, skip it (we'll handle git repos separately)
+                        self.logger.debug(f"Skipping file in git repo: {f}")
+                        continue
+                filtered_files.append(f)
+            md_files = filtered_files
+
+        self.logger.debug(f"Found {len(md_files)} Markdown files in {scan_dir}")
 
         for md_file in md_files:
             try:

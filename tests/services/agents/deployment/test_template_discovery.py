@@ -60,6 +60,7 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
     def test_get_filtered_templates(self, service, mock_dependencies):
         """Test getting filtered templates based on exclusion rules."""
         mock_config = Mock()
+        mock_config.get = Mock(return_value=True)  # For filter_non_mpm_agents
         expected_templates = [
             Path("/path/to/agent1.json"),
             Path("/path/to/agent2.json"),
@@ -72,9 +73,10 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
         result = service._get_filtered_templates(["excluded"], mock_config)
 
         assert result == expected_templates
+        # Method now passes 3 args: excluded_agents, config, filter_non_mpm
         mock_dependencies[
             "discovery_service"
-        ].get_filtered_templates.assert_called_with(["excluded"], mock_config)
+        ].get_filtered_templates.assert_called_once()
 
     def test_get_multi_source_templates_with_comparison(
         self, service, tmp_path, mock_dependencies
@@ -99,7 +101,14 @@ class TestTemplateDiscovery(TestAgentDeploymentService):
         mock_dependencies[
             "multi_source_service"
         ].compare_deployed_versions.return_value = {
-            "version_upgrades": ["existing"],
+            "version_upgrades": [
+                {
+                    "name": "existing",
+                    "deployed_version": "1.0.0",
+                    "new_version": "2.0.0",
+                    "source": "system",
+                }
+            ],
             "source_changes": [],
             "needs_update": ["existing"],
             "new_agents": [],

@@ -971,7 +971,8 @@ class GitSourceSyncService:
         """
         import shutil
 
-        deployment_dir = project_dir / ".claude-mpm" / "agents"
+        # Deploy to .claude/agents/ where Claude Code expects them
+        deployment_dir = project_dir / ".claude" / "agents"
         deployment_dir.mkdir(parents=True, exist_ok=True)
 
         results = {

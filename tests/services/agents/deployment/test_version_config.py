@@ -19,12 +19,14 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         target_file = tmp_path / "agent.md"
         template_file = tmp_path / "agent.json"
 
-        needs_update, is_migration, _reason = service._check_update_status(
-            target_file=target_file,
-            template_file=template_file,
-            base_agent_version=(1, 0, 0),
-            force_rebuild=True,
-            deployment_mode="update",
+        needs_update, is_migration, _reason = (
+            service.single_agent_deployer._check_update_status(
+                target_file=target_file,
+                template_file=template_file,
+                base_agent_version=(1, 0, 0),
+                force_rebuild=True,
+                deployment_mode="update",
+            )
         )
 
         assert needs_update is True
@@ -38,12 +40,14 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
         target_file.write_text("---\nname: agent\n---\nContent")
         template_file = tmp_path / "agent.json"
 
-        needs_update, _is_migration, _reason = service._check_update_status(
-            target_file=target_file,
-            template_file=template_file,
-            base_agent_version=(1, 0, 0),
-            force_rebuild=False,
-            deployment_mode="project",
+        needs_update, _is_migration, _reason = (
+            service.single_agent_deployer._check_update_status(
+                target_file=target_file,
+                template_file=template_file,
+                base_agent_version=(1, 0, 0),
+                force_rebuild=False,
+                deployment_mode="project",
+            )
         )
 
         assert needs_update is True
@@ -61,12 +65,14 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
             "migration needed from serial to semantic",
         )
 
-        needs_update, is_migration, reason = service._check_update_status(
-            target_file=target_file,
-            template_file=template_file,
-            base_agent_version=(1, 0, 0),
-            force_rebuild=False,
-            deployment_mode="update",
+        needs_update, is_migration, reason = (
+            service.single_agent_deployer._check_update_status(
+                target_file=target_file,
+                template_file=template_file,
+                base_agent_version=(1, 0, 0),
+                force_rebuild=False,
+                deployment_mode="update",
+            )
         )
 
         assert needs_update is True
@@ -86,12 +92,14 @@ class TestVersionAndConfiguration(TestAgentDeploymentService):
             "version current",
         )
 
-        needs_update, is_migration, _reason = service._check_update_status(
-            target_file=target_file,
-            template_file=template_file,
-            base_agent_version=(1, 0, 0),
-            force_rebuild=False,
-            deployment_mode="update",
+        needs_update, is_migration, _reason = (
+            service.single_agent_deployer._check_update_status(
+                target_file=target_file,
+                template_file=template_file,
+                base_agent_version=(1, 0, 0),
+                force_rebuild=False,
+                deployment_mode="update",
+            )
         )
 
         assert needs_update is False

@@ -113,7 +113,9 @@ Agent content"""
         agents_dir = tmp_path / ".claude" / "agents"
         start_time = 1234567890.0
 
-        results = service._initialize_deployment_results(agents_dir, start_time)
+        results = service.results_manager.initialize_deployment_results(
+            agents_dir, start_time
+        )
 
         assert results["target_dir"] == str(agents_dir)
         assert results["deployed"] == []
@@ -125,9 +127,9 @@ Agent content"""
 
     def test_record_agent_deployment_new(self, service, tmp_path):
         """Test recording a new agent deployment."""
-        results = service._initialize_deployment_results(tmp_path, 0)
+        results = service.results_manager.initialize_deployment_results(tmp_path, 0)
 
-        service._record_agent_deployment(
+        service.results_manager.record_agent_deployment(
             agent_name="new_agent",
             template_file=tmp_path / "new_agent.json",
             target_file=tmp_path / "new_agent.md",
@@ -143,9 +145,9 @@ Agent content"""
 
     def test_record_agent_deployment_update(self, service, tmp_path):
         """Test recording an agent update."""
-        results = service._initialize_deployment_results(tmp_path, 0)
+        results = service.results_manager.initialize_deployment_results(tmp_path, 0)
 
-        service._record_agent_deployment(
+        service.results_manager.record_agent_deployment(
             agent_name="updated_agent",
             template_file=tmp_path / "updated_agent.json",
             target_file=tmp_path / "updated_agent.md",
@@ -161,9 +163,9 @@ Agent content"""
 
     def test_record_agent_deployment_migration(self, service, tmp_path):
         """Test recording an agent migration."""
-        results = service._initialize_deployment_results(tmp_path, 0)
+        results = service.results_manager.initialize_deployment_results(tmp_path, 0)
 
-        service._record_agent_deployment(
+        service.results_manager.record_agent_deployment(
             agent_name="migrated_agent",
             template_file=tmp_path / "migrated_agent.json",
             target_file=tmp_path / "migrated_agent.md",
@@ -180,19 +182,15 @@ Agent content"""
 
     def test_get_deployment_metrics(self, service, mock_dependencies):
         """Test getting deployment metrics."""
-        expected_metrics = {
-            "total_deployments": 10,
-            "successful_deployments": 8,
-            "failed_deployments": 2,
-        }
-
-        mock_dependencies[
-            "metrics_collector"
-        ].get_deployment_metrics.return_value = expected_metrics
-
+        # The service.get_deployment_metrics() calls results_manager.get_deployment_metrics()
+        # which returns the internal _deployment_metrics dict
         result = service.get_deployment_metrics()
 
-        assert result == expected_metrics
+        # Check that the result has the expected structure (initialized to 0)
+        assert "total_deployments" in result
+        assert "successful_deployments" in result
+        assert "failed_deployments" in result
+        assert result["total_deployments"] == 0  # Fresh instance starts at 0
 
     def test_get_deployment_status(self, service, mock_dependencies):
         """Test getting deployment status."""
@@ -212,6 +210,16 @@ Agent content"""
 
     def test_reset_metrics(self, service, mock_dependencies):
         """Test resetting deployment metrics."""
+        # First, update some metrics
+        service.results_manager.update_deployment_metrics(True)
+
+        # Verify metrics were updated
+        metrics = service.get_deployment_metrics()
+        assert metrics["total_deployments"] == 1
+
+        # Now reset
         service.reset_metrics()
 
-        mock_dependencies["metrics_collector"].reset_metrics.assert_called_once()
+        # Verify metrics were reset
+        metrics = service.get_deployment_metrics()
+        assert metrics["total_deployments"] == 0

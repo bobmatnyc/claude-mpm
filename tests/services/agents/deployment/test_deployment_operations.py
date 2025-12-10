@@ -168,6 +168,12 @@ class TestDeploymentOperations(TestAgentDeploymentService):
         """Test deploying a single agent."""
         target_dir = tmp_path / ".claude" / "agents"
 
+        # Create template as .md file (v4.26.0+ format)
+        template_file = service.templates_dir / "test_agent.md"
+        template_file.write_text(
+            "---\nname: test_agent\nversion: 2.0.0\n---\nAgent content"
+        )
+
         # Setup mocks
         mock_dependencies["version_manager"].check_agent_needs_update.return_value = (
             True,
@@ -199,6 +205,12 @@ class TestDeploymentOperations(TestAgentDeploymentService):
         """Test force rebuilding a single agent."""
         target_dir = tmp_path / ".claude" / "agents"
         target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create template as .md file
+        template_file = service.templates_dir / "test_agent.md"
+        template_file.write_text(
+            "---\nname: test_agent\nversion: 2.0.0\n---\nTemplate content"
+        )
 
         # Create existing agent
         existing_agent = target_dir / "test_agent.md"

@@ -96,12 +96,22 @@ class TestErrorHandling(TestAgentDeploymentService):
         """Test handling AgentDeploymentError in single agent deployment."""
         target_dir = tmp_path / ".claude" / "agents"
 
+        # Create a .md template file (v4.26.0+ format) so it can be found
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir(parents=True, exist_ok=True)
+        template_file = templates_dir / "test_agent.md"
+        template_file.write_text(
+            "---\nname: test_agent\nversion: 1.0.0\n---\n\n# Test Agent"
+        )
+        service.templates_dir = templates_dir
+
         mock_dependencies[
             "template_builder"
         ].build_agent_markdown.side_effect = AgentDeploymentError(
             "Custom deployment error", context={"agent": "test_agent"}
         )
 
+        # AgentDeploymentError propagates up from deploy_agent
         with pytest.raises(AgentDeploymentError) as exc_info:
             service.deploy_agent("test_agent", target_dir)
 

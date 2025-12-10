@@ -410,8 +410,8 @@ def sync_remote_agents_on_startup():
                         show_counter=True,
                     )
 
-                    # Deploy agents with progress callback
-                    deploy_target = Path.home() / ".claude" / "agents"
+                    # Deploy agents to project-level directory where Claude Code expects them
+                    deploy_target = Path.cwd() / ".claude" / "agents"
                     deployment_result = deployment_service.deploy_agents(
                         target_dir=deploy_target,
                         force_rebuild=False,  # Only deploy if versions differ

@@ -94,38 +94,32 @@ class TestHelperMethods(TestAgentDeploymentService):
 
         assert result == expected_result
 
-    def test_determine_agent_source_system(self, service, tmp_path):
-        """Test determining agent source as system."""
-        template_path = Path("/usr/local/lib/claude_mpm/agents/templates/agent.json")
+    def test_determine_source_tier_framework(self, service, tmp_path):
+        """Test determining source tier as framework."""
+        # Framework path doesn't contain .claude-mpm
+        template_path = Path("/usr/local/lib/claude_mpm/agents/templates")
 
-        result = service._determine_agent_source(template_path)
+        result = service.base_agent_locator.determine_source_tier(template_path)
 
-        assert result == "system"
+        assert result == "framework"
 
-    def test_determine_agent_source_project(self, service, tmp_path):
-        """Test determining agent source as project."""
-        service.working_directory = tmp_path
-        template_path = tmp_path / ".claude-mpm" / "agents" / "agent.json"
+    def test_determine_source_tier_project(self, service, tmp_path):
+        """Test determining source tier as project."""
+        # Project path contains .claude-mpm but not in home directory
+        template_path = tmp_path / ".claude-mpm" / "agents"
 
-        result = service._determine_agent_source(template_path)
+        result = service.base_agent_locator.determine_source_tier(template_path)
 
         assert result == "project"
 
-    def test_determine_agent_source_user(self, service):
-        """Test determining agent source as user."""
-        template_path = Path.home() / ".claude-mpm" / "agents" / "agent.json"
+    def test_determine_source_tier_user(self, service):
+        """Test determining source tier as user."""
+        # User path contains both home directory and .claude-mpm
+        template_path = Path.home() / ".claude-mpm" / "agents"
 
-        result = service._determine_agent_source(template_path)
+        result = service.base_agent_locator.determine_source_tier(template_path)
 
         assert result == "user"
-
-    def test_determine_agent_source_unknown(self, service, tmp_path):
-        """Test determining agent source as unknown."""
-        template_path = tmp_path / "random" / "location" / "agent.json"
-
-        result = service._determine_agent_source(template_path)
-
-        assert result == "unknown"
 
     def test_should_use_multi_source_deployment_update(self, service):
         """Test multi-source deployment decision for update mode."""

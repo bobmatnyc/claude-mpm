@@ -12,7 +12,6 @@ Test Coverage:
 - Legacy BASE_{TYPE}.md fallback
 """
 
-import json
 import tempfile
 from pathlib import Path
 
@@ -48,9 +47,25 @@ def create_base_template(path: Path, content: str):
 
 
 def create_agent_template(path: Path, template_data: dict):
-    """Helper to create an agent template JSON file."""
+    """Helper to create an agent template Markdown file with YAML frontmatter."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(template_data, indent=2))
+
+    # Extract instructions and create proper markdown format
+    instructions = template_data.get("instructions", "")
+
+    # Build YAML frontmatter with all required fields
+    frontmatter_lines = ["---"]
+    frontmatter_lines.append(f"name: {template_data.get('name', 'unnamed')}")
+    frontmatter_lines.append(f"version: {template_data.get('version', '1.0.0')}")
+    if "description" in template_data:
+        frontmatter_lines.append(f"description: {template_data['description']}")
+    if "agent_type" in template_data:
+        frontmatter_lines.append(f"agent_type: {template_data['agent_type']}")
+    frontmatter_lines.append("---")
+
+    # Combine frontmatter and instructions
+    content = "\n".join(frontmatter_lines) + "\n\n" + instructions
+    path.write_text(content)
 
 
 class TestBaseAgentDiscovery:
