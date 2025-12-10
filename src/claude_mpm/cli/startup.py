@@ -221,81 +221,76 @@ def discover_and_link_runtime_skills():
 
 def deploy_output_style_on_startup():
     """
-    Deploy claude-mpm output styles to Claude Code on CLI startup.
+    Deploy claude-mpm output styles to PROJECT-LEVEL directory on CLI startup.
 
-    WHY: Automatically deploy and activate the output style to ensure consistent,
-    professional communication without emojis and exclamation points. This ensures
-    the style is available even when using Claude Code directly (not via chat command).
+    WHY: Automatically deploy output styles to ensure consistent, professional
+    communication without emojis and exclamation points. Styles are project-specific
+    to allow different projects to have different communication styles.
 
-    DESIGN DECISION: This is non-blocking and idempotent. It uses OutputStyleManager
-    which handles version detection, file deployment, and settings activation.
-    Only works for Claude Code >= 1.0.83.
+    DESIGN DECISION: This is non-blocking and idempotent. Deploys to project-level
+    directory (.claude/settings/output-styles/) instead of user-level to maintain
+    project isolation.
 
     Deploys two styles:
-    - claude-mpm-style.md (professional mode, activated by default)
-    - claude-mpm-teacher.md (teaching mode, available but not activated)
+    - claude-mpm-style.md (professional mode)
+    - claude-mpm-teacher.md (teaching mode)
     """
     try:
+        import shutil
         from pathlib import Path
 
-        from ..core.output_style_manager import OutputStyleManager
+        # Source files (in framework package)
+        package_dir = Path(__file__).parent.parent / "agents"
+        professional_source = package_dir / "CLAUDE_MPM_OUTPUT_STYLE.md"
+        teacher_source = package_dir / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md"
 
-        # Create OutputStyleManager instance
-        output_style_manager = OutputStyleManager()
+        # Target directory (PROJECT-LEVEL, not user-level)
+        project_dir = Path.cwd()
+        output_styles_dir = project_dir / ".claude" / "settings" / "output-styles"
+        professional_target = output_styles_dir / "claude-mpm-style.md"
+        teacher_target = output_styles_dir / "claude-mpm-teacher.md"
 
-        # Check if Claude Code supports output styles
-        if not output_style_manager.supports_output_styles():
-            # Silently skip - version too old or Claude not installed
+        # Create directory if it doesn't exist
+        output_styles_dir.mkdir(parents=True, exist_ok=True)
+
+        # Check if already deployed (both files exist and have content)
+        already_deployed = (
+            professional_target.exists()
+            and teacher_target.exists()
+            and professional_target.stat().st_size > 0
+            and teacher_target.stat().st_size > 0
+        )
+
+        if already_deployed:
+            # Show feedback that output styles are ready
+            print("✓ Output styles ready", flush=True)
             return
 
-        # Check if already deployed and active
-        settings_file = Path.home() / ".claude" / "settings.json"
-        # Use correct directory: ~/.claude/styles/ (NOT output-styles/)
-        professional_style_file = Path.home() / ".claude" / "styles" / "claude-mpm.md"
-        teaching_style_file = Path.home() / ".claude" / "styles" / "claude-mpm-teach.md"
+        # Deploy both styles
+        deployed_count = 0
+        if professional_source.exists():
+            shutil.copy2(professional_source, professional_target)
+            deployed_count += 1
 
-        already_configured = False
-        if settings_file.exists() and professional_style_file.exists():
-            try:
-                import json
+        if teacher_source.exists():
+            shutil.copy2(teacher_source, teacher_target)
+            deployed_count += 1
 
-                # Check if file has content (bug fix: was skipping empty files)
-                if professional_style_file.stat().st_size == 0:
-                    # File is empty, need to redeploy with content
-                    pass  # Fall through to deployment below
-                else:
-                    # File has content, check if already active
-                    settings = json.loads(settings_file.read_text())
-                    if settings.get("activeOutputStyle") == "claude-mpm":
-                        # Already deployed and active with content
-                        already_configured = True
-            except Exception:
-                pass  # Continue with deployment if we can't read settings
-
-        if already_configured:
-            # Show feedback that output style is ready
-            print("✓ Output style configured", flush=True)
-            return
-
-        # Deploy all styles (professional and teaching)
-        # This will deploy both files but only activate professional by default
-        deployment_results = output_style_manager.deploy_all_styles(activate_default=True)
-
-        # Check if deployment succeeded
-        if deployment_results.get("professional", False):
-            print("✓ Output style configured", flush=True)
+        if deployed_count > 0:
+            print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
         else:
-            # Failed to deploy, but don't block startup
+            # Source files missing - log but don't fail
             from ..core.logger import get_logger
+
             logger = get_logger("cli")
-            logger.debug("Failed to deploy professional output style")
+            logger.debug("Output style source files not found")
 
     except Exception as e:
         # Non-critical - log but don't fail startup
         from ..core.logger import get_logger
 
         logger = get_logger("cli")
-        logger.debug(f"Failed to deploy output style: {e}")
+        logger.debug(f"Failed to deploy output styles: {e}")
         # Continue execution - output style deployment shouldn't block startup
 
 
