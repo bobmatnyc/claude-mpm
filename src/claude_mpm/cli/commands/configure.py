@@ -2352,8 +2352,8 @@ class ConfigureCommand(BaseCommand):
                 else:
                     target_name = full_agent_id + ".md"
 
-                # Deploy to user-level agents directory
-                target_dir = Path.home() / ".claude" / "agents"
+                # Deploy to project-level agents directory
+                target_dir = self.project_dir / ".claude" / "agents"
                 target_dir.mkdir(parents=True, exist_ok=True)
                 target_file = target_dir / target_name
 
