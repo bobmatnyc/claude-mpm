@@ -1115,6 +1115,9 @@ class ConfigureCommand(BaseCommand):
             "Status", style="white", width=widths["Status"], no_wrap=True
         )
 
+        # FIX 3: Get deployed agent IDs once, before the loop (efficiency)
+        deployed_ids = get_deployed_agent_ids()
+
         recommended_count = 0
         for idx, agent in enumerate(agents, 1):
             # Determine source with repo name
@@ -1143,8 +1146,8 @@ class ConfigureCommand(BaseCommand):
             else:
                 source_label = "Local"
 
-            # Determine installation status (removed symbols for cleaner look)
-            is_installed = getattr(agent, "is_deployed", False)
+            # FIX 2: Check actual deployment status from .claude/agents/ directory
+            is_installed = agent.name in deployed_ids
             if is_installed:
                 status = "[green]Installed[/green]"
             else:
@@ -1165,10 +1168,8 @@ class ConfigureCommand(BaseCommand):
                     recommended_count += 1
                     break
 
-            # Add asterisk to agent ID if recommended
+            # FIX 1: Removed asterisk - using Status column instead
             agent_id_display = agent.name
-            if is_recommended:
-                agent_id_display += " *"
 
             # Get display name (for remote agents, use display_name instead of agent_id)
             display_name = getattr(agent, "display_name", agent.name)
@@ -1196,8 +1197,8 @@ class ConfigureCommand(BaseCommand):
             except Exception:
                 self.console.print("\n[dim]* = recommended for this project[/dim]")
 
-        # Show installed vs available count
-        installed_count = sum(1 for a in agents if getattr(a, "is_deployed", False))
+        # Show installed vs available count (use deployed_ids for accuracy)
+        installed_count = sum(1 for a in agents if a.name in deployed_ids)
         available_count = len(agents) - installed_count
         self.console.print(
             f"\n[green]✓ {installed_count} installed[/green] | "
