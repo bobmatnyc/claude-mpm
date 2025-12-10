@@ -1117,6 +1117,23 @@ class ConfigureCommand(BaseCommand):
         # Terminal too narrow, use minimum widths
         return columns.copy()
 
+    def _format_display_name(self, name: str) -> str:
+        """Format internal agent name to human-readable display name.
+
+        Converts underscores/hyphens to spaces and title-cases.
+        Examples:
+            agentic_coder_optimizer -> Agentic Coder Optimizer
+            python-engineer -> Python Engineer
+            api_qa_agent -> Api Qa Agent
+
+        Args:
+            name: Internal agent name (may contain underscores, hyphens)
+
+        Returns:
+            Human-readable display name
+        """
+        return name.replace("_", " ").replace("-", " ").title()
+
     def _display_agents_with_source_info(self, agents: List[AgentConfig]) -> None:
         """Display agents table with source information and installation status."""
         from rich.table import Table
@@ -1145,7 +1162,7 @@ class ConfigureCommand(BaseCommand):
         agents_table.add_column("#", style="bright_black", width=widths["#"], no_wrap=True)
         agents_table.add_column(
             "Agent ID",
-            style="bright_white",
+            style="bright_black",
             width=widths["Agent ID"],
             no_wrap=True,
             overflow="ellipsis",
@@ -1164,7 +1181,7 @@ class ConfigureCommand(BaseCommand):
             no_wrap=True,
         )
         agents_table.add_column(
-            "Status", style="bright_white", width=widths["Status"], no_wrap=True
+            "Status", style="bright_black", width=widths["Status"], no_wrap=True
         )
 
         # FIX 3: Get deployed agent IDs once, before the loop (efficiency)
@@ -1232,9 +1249,10 @@ class ConfigureCommand(BaseCommand):
             # FIX 1: Removed asterisk - using Status column instead
             agent_id_display = agent.name
 
-            # Get display name (for remote agents, use display_name instead of agent_id)
-            display_name = getattr(agent, "display_name", agent.name)
-            # Let overflow="ellipsis" handle truncation automatically
+            # Get display name and format it properly
+            # Raw display_name from YAML may contain underscores (e.g., "agentic_coder_optimizer")
+            raw_display_name = getattr(agent, "display_name", agent.name)
+            display_name = self._format_display_name(raw_display_name)
 
             agents_table.add_row(
                 str(idx), agent_id_display, display_name, source_label, status
