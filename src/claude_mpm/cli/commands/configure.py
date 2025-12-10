@@ -459,7 +459,11 @@ class ConfigureCommand(BaseCommand):
         self.console.print("\n[bold white]═══ Available Agents ═══[/bold white]\n")
 
         if agents:
-            self._display_agents_with_source_info(agents)
+            # Show progress spinner while recommendation service processes agents
+            with self.console.status(
+                "[bold blue]Preparing agent list...[/bold blue]", spinner="dots"
+            ):
+                self._display_agents_with_source_info(agents)
         else:
             self.console.print("[yellow]No agents available[/yellow]")
 
@@ -956,14 +960,14 @@ class ConfigureCommand(BaseCommand):
                 identifier = repo.identifier
 
                 # Count agents in cache
+                # Note: identifier already includes subdirectory path (e.g., "bobmatnyc/claude-mpm-agents/agents")
                 cache_dir = (
                     Path.home() / ".claude-mpm" / "cache" / "remote-agents" / identifier
                 )
                 agent_count = 0
                 if cache_dir.exists():
-                    agents_dir = cache_dir / "agents"
-                    if agents_dir.exists():
-                        agent_count = len(list(agents_dir.rglob("*.md")))
+                    # cache_dir IS the agents directory - no need to append /agents
+                    agent_count = len(list(cache_dir.rglob("*.md")))
 
                 sources.append(
                     {
