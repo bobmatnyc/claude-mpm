@@ -1408,15 +1408,12 @@ class ConfigureCommand(BaseCommand):
                         agent_leaf_name = agent.name.split("/")[-1]
                         display_name = getattr(agent, "display_name", agent_leaf_name)
 
-                        # Check if recommended
-                        is_recommended = any(
-                            agent.name == rec_id or agent_leaf_name == rec_id.split("/")[-1]
-                            for rec_id in recommended_agent_ids
-                        )
+                        # Check if agent is deployed (exists in .claude/agents/)
+                        is_deployed = agent.name in deployed_full_paths
 
-                        # Format choice text with asterisk for recommended
+                        # Format choice text with asterisk for deployed
                         choice_text = f"    {display_name}"
-                        if is_recommended:
+                        if is_deployed:
                             choice_text += " *"
 
                         is_selected = agent.name in current_selection
@@ -1432,7 +1429,7 @@ class ConfigureCommand(BaseCommand):
             self.console.print("\n[bold cyan]Select Agents to Install[/bold cyan]")
             self.console.print("[dim][✓] Checked = Installed (uncheck to remove)[/dim]")
             self.console.print("[dim][ ] Unchecked = Available (check to install)[/dim]")
-            self.console.print("[dim]* = Recommended for this project[/dim]")
+            self.console.print("[dim]* = Already deployed to .claude/agents/[/dim]")
             self.console.print("[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n")
 
             try:
