@@ -440,26 +440,32 @@ class RemoteAgentDiscoveryService:
         # Store hierarchical path separately for categorization (not as primary ID)
         hierarchical_path = self._generate_hierarchical_id(md_file)
 
-        # Extract agent name from first heading (fallback to frontmatter or filename)
-        name_match = re.search(r"^#\s+(.+?)$", content, re.MULTILINE)
-        if name_match:
-            name = name_match.group(1).strip()
-        elif frontmatter and "name" in frontmatter:
+        # Extract agent name - prioritize frontmatter over markdown heading
+        # Frontmatter is intentional metadata, headings may be arbitrary content
+        if frontmatter and "name" in frontmatter:
             name = frontmatter["name"]
         else:
-            # Fallback to filename if no heading or frontmatter
-            name = md_file.stem.replace("-", " ").replace("_", " ").title()
+            # Fallback to first heading or filename
+            name_match = re.search(r"^#\s+(.+?)$", content, re.MULTILINE)
+            if name_match:
+                name = name_match.group(1).strip()
+            else:
+                # Last resort: derive from filename
+                name = md_file.stem.replace("-", " ").replace("_", " ").title()
 
-        # Extract description (first paragraph after heading, before next heading)
-        desc_match = re.search(
-            r"^#.+?\n\n(.+?)(?:\n\n##|\Z)", content, re.DOTALL | re.MULTILINE
-        )
-        if desc_match:
-            description = desc_match.group(1).strip()
-        elif frontmatter and "description" in frontmatter:
+        # Extract description - prioritize frontmatter over markdown content
+        # Frontmatter is intentional metadata, paragraphs may be arbitrary content
+        if frontmatter and "description" in frontmatter:
             description = frontmatter["description"]
         else:
-            description = ""
+            # Fallback to first paragraph after heading
+            desc_match = re.search(
+                r"^#.+?\n\n(.+?)(?:\n\n##|\Z)", content, re.DOTALL | re.MULTILINE
+            )
+            if desc_match:
+                description = desc_match.group(1).strip()
+            else:
+                description = ""
 
         # Extract model from YAML frontmatter or Configuration section
         if frontmatter and "model" in frontmatter:
