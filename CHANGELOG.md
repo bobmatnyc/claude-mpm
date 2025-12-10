@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.1.11] - 2025-12-10
+
+### Fixed
+- Auto-fixed linting errors and code formatting issues
+
 ## [5.1.10] - 2025-12-09
 
 ### Changed
