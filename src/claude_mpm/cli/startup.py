@@ -221,7 +221,7 @@ def discover_and_link_runtime_skills():
 
 def deploy_output_style_on_startup():
     """
-    Deploy claude-mpm output style to Claude Code on CLI startup.
+    Deploy claude-mpm output styles to Claude Code on CLI startup.
 
     WHY: Automatically deploy and activate the output style to ensure consistent,
     professional communication without emojis and exclamation points. This ensures
@@ -230,6 +230,10 @@ def deploy_output_style_on_startup():
     DESIGN DECISION: This is non-blocking and idempotent. It uses OutputStyleManager
     which handles version detection, file deployment, and settings activation.
     Only works for Claude Code >= 1.0.83.
+
+    Deploys two styles:
+    - claude-mpm-style.md (professional mode, activated by default)
+    - claude-mpm-teacher.md (teaching mode, available but not activated)
     """
     try:
         from pathlib import Path
@@ -246,15 +250,17 @@ def deploy_output_style_on_startup():
 
         # Check if already deployed and active
         settings_file = Path.home() / ".claude" / "settings.json"
-        output_style_file = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
+        # Use correct directory: ~/.claude/styles/ (NOT output-styles/)
+        professional_style_file = Path.home() / ".claude" / "styles" / "claude-mpm.md"
+        teaching_style_file = Path.home() / ".claude" / "styles" / "claude-mpm-teach.md"
 
         already_configured = False
-        if settings_file.exists() and output_style_file.exists():
+        if settings_file.exists() and professional_style_file.exists():
             try:
                 import json
 
                 # Check if file has content (bug fix: was skipping empty files)
-                if output_style_file.stat().st_size == 0:
+                if professional_style_file.stat().st_size == 0:
                     # File is empty, need to redeploy with content
                     pass  # Fall through to deployment below
                 else:
@@ -271,18 +277,18 @@ def deploy_output_style_on_startup():
             print("✓ Output style configured", flush=True)
             return
 
-        # Read OUTPUT_STYLE.md content
-        output_style_path = Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
+        # Deploy all styles (professional and teaching)
+        # This will deploy both files but only activate professional by default
+        deployment_results = output_style_manager.deploy_all_styles(activate_default=True)
 
-        if not output_style_path.exists():
-            # No output style file to deploy
-            return
-
-        output_style_content = output_style_path.read_text()
-
-        # Deploy the output style (deploys file and activates it)
-        output_style_manager.deploy_output_style(output_style_content)
-        print("✓ Output style configured", flush=True)
+        # Check if deployment succeeded
+        if deployment_results.get("professional", False):
+            print("✓ Output style configured", flush=True)
+        else:
+            # Failed to deploy, but don't block startup
+            from ..core.logger import get_logger
+            logger = get_logger("cli")
+            logger.debug("Failed to deploy professional output style")
 
     except Exception as e:
         # Non-critical - log but don't fail startup
