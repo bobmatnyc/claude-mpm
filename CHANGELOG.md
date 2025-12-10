@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.1.12] - 2025-12-10
+
+### Changed
+- Patch release with code formatting fixes
+
 ## [5.1.11] - 2025-12-10
 
 ### Fixed
