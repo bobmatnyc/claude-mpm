@@ -124,7 +124,7 @@ def calculate_total(items):
             file1.write_text("test")
             file2.write_text("test")
 
-            with pytest.raises(ValueError, match="Both files must be Python files"):
+            with pytest.raises(ValueError, match="Unsupported file types"):
                 detector.find_similar_functions(file1, file2)
 
     def test_find_similar_functions_simple(self, detector: CloneDetector) -> None:
@@ -433,3 +433,147 @@ def process_item_{i}(item_id):
             except Exception as e:
                 # Some errors are expected if pylint isn't configured properly
                 pytest.skip(f"Clone detection requires pylint configuration: {e}")
+
+
+class TestCloneDetectorMultiLanguage:
+    """Tests for multi-language clone detection using tree-sitter."""
+
+    def test_language_detection(self) -> None:
+        """Test language detection from file extensions."""
+        detector = CloneDetector()
+
+        assert detector._detect_language(Path("test.py")) == "python"
+        assert detector._detect_language(Path("test.js")) == "javascript"
+        assert detector._detect_language(Path("test.ts")) == "typescript"
+        assert detector._detect_language(Path("test.go")) == "go"
+        assert detector._detect_language(Path("test.rs")) == "rust"
+        assert detector._detect_language(Path("test.java")) == "java"
+        assert detector._detect_language(Path("test.rb")) == "ruby"
+        assert detector._detect_language(Path("test.php")) == "php"
+        assert detector._detect_language(Path("test.c")) == "c"
+        assert detector._detect_language(Path("test.cpp")) == "cpp"
+        assert detector._detect_language(Path("test.txt")) is None
+
+    def test_detect_clones_with_language_filter(self) -> None:
+        """Test detect_clones with language filtering."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_path = Path(tmpdir)
+
+            # Create Python file
+            py_file = project_path / "test.py"
+            py_file.write_text("def hello(): pass")
+
+            # Create JS file
+            js_file = project_path / "test.js"
+            js_file.write_text("function hello() {}")
+
+            detector = CloneDetector()
+
+            # Test Python only
+            clones = detector.detect_clones(project_path, languages=["python"])
+            assert isinstance(clones, list)
+
+            # Test JavaScript only (may return empty if parser not available)
+            clones = detector.detect_clones(project_path, languages=["javascript"])
+            assert isinstance(clones, list)
+
+    def test_find_similar_functions_javascript(self) -> None:
+        """Test finding similar functions in JavaScript files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file1 = Path(tmpdir) / "test1.js"
+            file2 = Path(tmpdir) / "test2.js"
+
+            file1.write_text(
+                """
+function processUser(userId) {
+    const user = fetchUser(userId);
+    if (!user) {
+        throw new Error("User not found");
+    }
+    validateUser(user);
+    saveUser(user);
+    return user;
+}
+"""
+            )
+
+            file2.write_text(
+                """
+function processAdmin(adminId) {
+    const admin = fetchAdmin(adminId);
+    if (!admin) {
+        throw new Error("Admin not found");
+    }
+    validateAdmin(admin);
+    saveAdmin(admin);
+    return admin;
+}
+"""
+            )
+
+            detector = CloneDetector(min_similarity=0.60)
+
+            # Only run test if JavaScript parser is available
+            if "javascript" in detector._parsers:
+                report = detector.find_similar_functions(file1, file2)
+                assert isinstance(report, SimilarityReport)
+                assert report.file1 == file1
+                assert report.file2 == file2
+                # Should detect similarity if parser is working
+            else:
+                pytest.skip("JavaScript parser not available")
+
+    def test_find_similar_functions_typescript(self) -> None:
+        """Test finding similar functions in TypeScript files."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file1 = Path(tmpdir) / "test1.ts"
+            file2 = Path(tmpdir) / "test2.ts"
+
+            file1.write_text(
+                """
+function add(a: number, b: number): number {
+    return a + b;
+}
+
+function subtract(a: number, b: number): number {
+    return a - b;
+}
+"""
+            )
+
+            file2.write_text(
+                """
+function sum(x: number, y: number): number {
+    return x + y;
+}
+
+function multiply(x: number, y: number): number {
+    return x * y;
+}
+"""
+            )
+
+            detector = CloneDetector(min_similarity=0.60)
+
+            # Only run test if TypeScript parser is available
+            if "typescript" in detector._parsers:
+                report = detector.find_similar_functions(file1, file2)
+                assert isinstance(report, SimilarityReport)
+                assert report.file1 == file1
+                assert report.file2 == file2
+            else:
+                pytest.skip("TypeScript parser not available")
+
+    def test_cross_language_comparison_fails(self) -> None:
+        """Test that comparing files of different languages fails."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            py_file = Path(tmpdir) / "test.py"
+            js_file = Path(tmpdir) / "test.js"
+
+            py_file.write_text("def hello(): pass")
+            js_file.write_text("function hello() {}")
+
+            detector = CloneDetector()
+
+            with pytest.raises(ValueError, match="Cannot compare different languages"):
+                detector.find_similar_functions(py_file, js_file)

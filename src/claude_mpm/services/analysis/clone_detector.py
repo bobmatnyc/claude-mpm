@@ -2,10 +2,15 @@
 
 This module provides functionality to detect code clones (duplicated or similar code)
 across Python codebases and suggest refactoring opportunities.
+
+Extended to support multi-language clone detection using tree-sitter for:
+JavaScript, TypeScript, Go, Rust, Java, Ruby, PHP, C, C++
 """
 
 import ast
 import difflib
+import hashlib
+import importlib.util
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,6 +20,11 @@ from pylint.checkers.symilar import Symilar
 
 
 logger = logging.getLogger(__name__)
+
+# Check for tree-sitter availability
+TREE_SITTER_AVAILABLE = importlib.util.find_spec("tree_sitter") is not None
+if TREE_SITTER_AVAILABLE:
+    import tree_sitter  # type: ignore[import-not-found]
 
 
 @dataclass
@@ -103,6 +113,7 @@ class CloneDetector:
     - Exact clone detection (Type-1): Identical code blocks
     - Renamed clone detection (Type-2): Same structure, different identifiers
     - Modified clone detection (Type-3): Similar logic with minor changes
+    - Multi-language support: Python, JavaScript, TypeScript, Go, Rust, Java, Ruby, PHP, C, C++
     """
 
     # Similarity thresholds for clone classification
@@ -112,6 +123,34 @@ class CloneDetector:
 
     # Minimum lines for clone detection
     MIN_CLONE_LINES: ClassVar[int] = 4
+
+    # Language extension mapping
+    LANGUAGE_EXTENSIONS: ClassVar[dict[str, list[str]]] = {
+        "python": [".py"],
+        "javascript": [".js", ".jsx", ".mjs"],
+        "typescript": [".ts", ".tsx"],
+        "go": [".go"],
+        "rust": [".rs"],
+        "java": [".java"],
+        "ruby": [".rb"],
+        "php": [".php"],
+        "c": [".c", ".h"],
+        "cpp": [".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"],
+    }
+
+    # Tree-sitter language module names
+    TREE_SITTER_LANGUAGES: ClassVar[dict[str, str]] = {
+        "python": "tree_sitter_python",
+        "javascript": "tree_sitter_javascript",
+        "typescript": "tree_sitter_typescript",
+        "go": "tree_sitter_go",
+        "rust": "tree_sitter_rust",
+        "java": "tree_sitter_java",
+        "ruby": "tree_sitter_ruby",
+        "php": "tree_sitter_php",
+        "c": "tree_sitter_c",
+        "cpp": "tree_sitter_cpp",
+    }
 
     def __init__(self, min_similarity: float = 0.60, min_lines: int = 4) -> None:
         """Initialize clone detector.
@@ -127,15 +166,68 @@ class CloneDetector:
 
         self.min_similarity = min_similarity
         self.min_lines = min_lines
+        self._parsers: dict[str, Any] = {}
+        self._init_tree_sitter_parsers()
 
-    def detect_clones(self, project_path: Path) -> list[CloneReport]:
+    def _init_tree_sitter_parsers(self) -> None:
+        """Initialize tree-sitter parsers for supported languages."""
+        if not TREE_SITTER_AVAILABLE:
+            logger.debug("tree-sitter not available - multi-language support disabled")
+            return
+
+        for lang, module_name in self.TREE_SITTER_LANGUAGES.items():
+            try:
+                # Try to import language module
+                spec = importlib.util.find_spec(module_name)
+                if spec is None:
+                    continue
+
+                # Dynamic import
+                module = importlib.import_module(module_name)
+
+                # Create parser with language
+                parser = tree_sitter.Parser()
+
+                # Handle different tree-sitter API versions
+                if hasattr(module, "language"):
+                    lang_obj = tree_sitter.Language(module.language())
+                    if hasattr(parser, "set_language"):
+                        parser.set_language(lang_obj)
+                    else:
+                        # Newer API - create parser with language
+                        parser = tree_sitter.Parser(lang_obj)
+
+                self._parsers[lang] = parser
+                logger.debug(f"Initialized tree-sitter parser for {lang}")
+
+            except (ImportError, AttributeError) as e:
+                logger.debug(f"Could not load parser for {lang}: {e}")
+                continue
+
+    def _detect_language(self, file_path: Path) -> str | None:
+        """Detect programming language from file extension.
+
+        Args:
+            file_path: Path to source file
+
+        Returns:
+            Language name or None if not supported
+        """
+        ext = file_path.suffix.lower()
+        for lang, extensions in self.LANGUAGE_EXTENSIONS.items():
+            if ext in extensions:
+                return lang
+        return None
+
+    def detect_clones(self, project_path: Path, languages: list[str] | None = None) -> list[CloneReport]:
         """Detect code clones in a project directory.
 
-        Uses pylint's duplicate-code checker (R0801) to find similar code blocks
-        across Python files.
+        Supports multi-language detection using tree-sitter for non-Python languages
+        and pylint for Python files.
 
         Args:
             project_path: Root directory of project to analyze
+            languages: List of languages to analyze (None = all supported languages)
 
         Returns:
             List of CloneReport objects describing detected clones
@@ -150,23 +242,51 @@ class CloneDetector:
 
         logger.info("Detecting clones in project: %s", project_path)
 
-        # Find all Python files in project
-        python_files = list(project_path.rglob("*.py"))
-        if not python_files:
-            logger.warning("No Python files found in %s", project_path)
+        # Determine which languages to analyze
+        target_languages = languages if languages else list(self.LANGUAGE_EXTENSIONS.keys())
+
+        # Collect files by language
+        files_by_language: dict[str, list[Path]] = {lang: [] for lang in target_languages}
+
+        # Scan project for files
+        for lang in target_languages:
+            extensions = self.LANGUAGE_EXTENSIONS.get(lang, [])
+            for ext in extensions:
+                files_by_language[lang].extend(project_path.rglob(f"*{ext}"))
+
+        # Remove empty language groups
+        files_by_language = {
+            lang: files for lang, files in files_by_language.items() if files
+        }
+
+        if not files_by_language:
+            logger.warning("No supported files found in %s", project_path)
             return []
 
-        logger.info("Found %d Python files to analyze", len(python_files))
+        total_files = sum(len(files) for files in files_by_language.values())
+        logger.info("Found %d files across %d languages", total_files, len(files_by_language))
 
-        # Use pylint's Similar checker for duplicate detection
-        clones: list[CloneReport] = []
-        try:
-            clones = self._detect_with_pylint(python_files)
-        except Exception as e:
-            logger.error("Error detecting clones with pylint: %s", e)
+        # Detect clones per language
+        all_clones: list[CloneReport] = []
 
-        logger.info("Detected %d clones", len(clones))
-        return clones
+        for lang, files in files_by_language.items():
+            logger.info("Analyzing %d %s files", len(files), lang)
+            try:
+                if lang == "python":
+                    # Use pylint for Python
+                    clones = self._detect_with_pylint(files)
+                else:
+                    # Use tree-sitter for other languages
+                    clones = self._detect_with_tree_sitter(files, lang)
+
+                all_clones.extend(clones)
+                logger.info("Found %d clones in %s files", len(clones), lang)
+
+            except Exception as e:
+                logger.error("Error detecting clones in %s files: %s", lang, e)
+
+        logger.info("Detected %d total clones", len(all_clones))
+        return all_clones
 
     def _detect_with_pylint(self, files: list[Path]) -> list[CloneReport]:
         """Detect clones using pylint's Similar checker.
@@ -240,6 +360,213 @@ class CloneDetector:
 
         return clones
 
+    def _detect_with_tree_sitter(self, files: list[Path], language: str) -> list[CloneReport]:
+        """Detect clones using tree-sitter for non-Python languages.
+
+        Args:
+            files: List of source files to analyze
+            language: Programming language
+
+        Returns:
+            List of CloneReport objects
+        """
+        if language not in self._parsers:
+            logger.warning("No parser available for %s", language)
+            return []
+
+        parser = self._parsers[language]
+        clones: list[CloneReport] = []
+
+        # Extract code blocks from all files
+        file_blocks: dict[Path, list[tuple[int, int, str, str]]] = {}
+
+        for file_path in files:
+            try:
+                blocks = self._extract_code_blocks(file_path, parser, language)
+                if blocks:
+                    file_blocks[file_path] = blocks
+            except Exception as e:
+                logger.warning("Error extracting blocks from %s: %s", file_path, e)
+
+        # Compare all block pairs across files
+        file_paths = list(file_blocks.keys())
+        for i, file1 in enumerate(file_paths):
+            for file2 in file_paths[i + 1:]:
+                clones.extend(self._compare_file_blocks(
+                    file1, file_blocks[file1],
+                    file2, file_blocks[file2]
+                ))
+
+        return clones
+
+    def _extract_code_blocks(
+        self,
+        file_path: Path,
+        parser: Any,
+        language: str
+    ) -> list[tuple[int, int, str, str]]:
+        """Extract code blocks from a file using tree-sitter.
+
+        Args:
+            file_path: Path to source file
+            parser: Tree-sitter parser for the language
+            language: Programming language
+
+        Returns:
+            List of tuples: (start_line, end_line, code_text, normalized_ast)
+        """
+        try:
+            with open(file_path, "rb") as f:
+                source = f.read()
+
+            tree = parser.parse(source)
+            blocks: list[tuple[int, int, str, str]] = []
+
+            # Extract function/method blocks
+            self._walk_tree_for_blocks(tree.root_node, source, language, blocks)
+
+            return blocks
+
+        except Exception as e:
+            logger.debug("Error parsing %s: %s", file_path, e)
+            return []
+
+    def _walk_tree_for_blocks(
+        self,
+        node: Any,
+        source: bytes,
+        language: str,
+        blocks: list[tuple[int, int, str, str]]
+    ) -> None:
+        """Recursively walk tree-sitter AST to extract code blocks.
+
+        Args:
+            node: Tree-sitter node
+            source: Source code bytes
+            language: Programming language
+            blocks: Output list to append blocks to
+        """
+        # Define function/method node types per language
+        function_types = {
+            "javascript": ["function_declaration", "arrow_function", "method_definition"],
+            "typescript": ["function_declaration", "arrow_function", "method_definition"],
+            "go": ["function_declaration", "method_declaration"],
+            "rust": ["function_item", "impl_item"],
+            "java": ["method_declaration", "constructor_declaration"],
+            "ruby": ["method", "singleton_method"],
+            "php": ["function_definition", "method_declaration"],
+            "c": ["function_definition"],
+            "cpp": ["function_definition"],
+        }
+
+        target_types = function_types.get(language, ["function_declaration"])
+
+        # Check if this node is a function/method
+        if node.type in target_types:
+            # Extract code block
+            start_line = node.start_point[0] + 1
+            end_line = node.end_point[0] + 1
+            line_count = end_line - start_line + 1
+
+            # Only consider blocks meeting minimum line threshold
+            if line_count >= self.min_lines:
+                code_text = source[node.start_byte:node.end_byte].decode("utf-8", errors="ignore")
+                normalized = self._normalize_ast(node, source, language)
+
+                blocks.append((start_line, end_line, code_text, normalized))
+
+        # Recursively process children
+        for child in node.children:
+            self._walk_tree_for_blocks(child, source, language, blocks)
+
+    def _normalize_ast(self, node: Any, source: bytes, language: str) -> str:
+        """Normalize AST to detect Type-2 clones (renamed identifiers).
+
+        Replaces variable names, function names with generic tokens to detect
+        structural similarity even when identifiers differ.
+
+        Args:
+            node: Tree-sitter node
+            source: Source code bytes
+            language: Programming language
+
+        Returns:
+            Normalized AST representation as string
+        """
+        # Build normalized representation by replacing identifiers
+        # This allows detecting clones where only variable names differ
+
+        def normalize_node(n: Any) -> str:
+            # Replace identifier nodes with generic token
+            if n.type == "identifier":
+                return "<ID>"
+            elif n.type in ("string", "string_literal", "char_literal"):
+                return "<STR>"
+            elif n.type in ("number", "integer", "float"):
+                return "<NUM>"
+            elif n.type == "comment":
+                return ""  # Ignore comments
+            elif not n.children:
+                # Leaf node - use actual text
+                try:
+                    return source[n.start_byte:n.end_byte].decode("utf-8", errors="ignore")
+                except Exception:
+                    return n.type
+            else:
+                # Non-leaf - recursively normalize children
+                parts = [normalize_node(child) for child in n.children]
+                return f"({n.type} {' '.join(p for p in parts if p)})"
+
+        return normalize_node(node)
+
+    def _compare_file_blocks(
+        self,
+        file1: Path,
+        blocks1: list[tuple[int, int, str, str]],
+        file2: Path,
+        blocks2: list[tuple[int, int, str, str]]
+    ) -> list[CloneReport]:
+        """Compare code blocks between two files.
+
+        Args:
+            file1: First file path
+            blocks1: Code blocks from first file
+            file2: Second file path
+            blocks2: Code blocks from second file
+
+        Returns:
+            List of detected clones
+        """
+        clones: list[CloneReport] = []
+
+        for start1, end1, code1, norm1 in blocks1:
+            for start2, end2, code2, norm2 in blocks2:
+                # Calculate similarity using both raw text and normalized AST
+                text_similarity = self._calculate_similarity(code1, code2)
+                ast_similarity = self._calculate_similarity(norm1, norm2)
+
+                # Use max of both similarities to catch Type-2 clones
+                similarity = max(text_similarity, ast_similarity)
+
+                if similarity >= self.min_similarity:
+                    clone_type = self._classify_clone_type(similarity)
+
+                    clone = CloneReport(
+                        file1=file1,
+                        file2=file2,
+                        line_start1=start1,
+                        line_end1=end1,
+                        line_start2=start2,
+                        line_end2=end2,
+                        similarity=similarity,
+                        clone_type=clone_type,
+                        code_snippet1=code1,
+                        code_snippet2=code2,
+                    )
+                    clones.append(clone)
+
+        return clones
+
     def _read_lines(self, file_path: Path, start_line: int, end_line: int) -> str:
         """Read specific lines from a file.
 
@@ -296,25 +623,49 @@ class CloneDetector:
         """Find similar functions between two files.
 
         Uses AST analysis to compare function structures and identify similar
-        implementations.
+        implementations. Supports multi-language comparison using tree-sitter.
 
         Args:
-            file1: First Python file path
-            file2: Second Python file path
+            file1: First source file path
+            file2: Second source file path
 
         Returns:
             SimilarityReport with function-level similarity analysis
 
         Raises:
-            ValueError: If files don't exist or aren't Python files
+            ValueError: If files don't exist or have incompatible languages
         """
         if not file1.exists() or not file2.exists():
             raise ValueError("Both files must exist")
-        if file1.suffix != ".py" or file2.suffix != ".py":
-            raise ValueError("Both files must be Python files (.py)")
 
-        logger.info("Analyzing function similarity between %s and %s", file1, file2)
+        # Detect languages
+        lang1 = self._detect_language(file1)
+        lang2 = self._detect_language(file2)
 
+        if lang1 is None or lang2 is None:
+            raise ValueError(f"Unsupported file types: {file1.suffix}, {file2.suffix}")
+
+        if lang1 != lang2:
+            raise ValueError(f"Cannot compare different languages: {lang1} vs {lang2}")
+
+        logger.info("Analyzing function similarity between %s and %s (%s)", file1, file2, lang1)
+
+        # Use language-specific analysis
+        if lang1 == "python":
+            return self._find_similar_functions_python(file1, file2)
+        else:
+            return self._find_similar_functions_tree_sitter(file1, file2, lang1)
+
+    def _find_similar_functions_python(self, file1: Path, file2: Path) -> SimilarityReport:
+        """Find similar functions in Python files using AST.
+
+        Args:
+            file1: First Python file
+            file2: Second Python file
+
+        Returns:
+            SimilarityReport with function comparisons
+        """
         # Parse AST for both files
         try:
             tree1 = self._parse_file(file1)
@@ -339,6 +690,62 @@ class CloneDetector:
                     similar_functions.append((name1, name2, similarity))
 
         # Calculate overall file similarity
+        overall_similarity = 0.0
+        if similar_functions:
+            overall_similarity = sum(s for _, _, s in similar_functions) / len(
+                similar_functions
+            )
+
+        return SimilarityReport(
+            file1=file1,
+            file2=file2,
+            similar_functions=similar_functions,
+            overall_similarity=overall_similarity,
+        )
+
+    def _find_similar_functions_tree_sitter(
+        self, file1: Path, file2: Path, language: str
+    ) -> SimilarityReport:
+        """Find similar functions using tree-sitter.
+
+        Args:
+            file1: First source file
+            file2: Second source file
+            language: Programming language
+
+        Returns:
+            SimilarityReport with function comparisons
+        """
+        if language not in self._parsers:
+            logger.warning("No parser for %s", language)
+            return SimilarityReport(file1=file1, file2=file2)
+
+        parser = self._parsers[language]
+
+        # Extract blocks from both files
+        blocks1 = self._extract_code_blocks(file1, parser, language)
+        blocks2 = self._extract_code_blocks(file2, parser, language)
+
+        logger.debug("Found %d blocks in %s", len(blocks1), file1)
+        logger.debug("Found %d blocks in %s", len(blocks2), file2)
+
+        # Compare all block pairs
+        similar_functions: list[tuple[str, str, float]] = []
+
+        for i, (start1, end1, code1, norm1) in enumerate(blocks1):
+            for j, (start2, end2, code2, norm2) in enumerate(blocks2):
+                # Calculate similarity
+                text_sim = self._calculate_similarity(code1, code2)
+                ast_sim = self._calculate_similarity(norm1, norm2)
+                similarity = max(text_sim, ast_sim)
+
+                if similarity >= self.min_similarity:
+                    # Use line numbers as function identifiers
+                    name1 = f"block_{start1}-{end1}"
+                    name2 = f"block_{start2}-{end2}"
+                    similar_functions.append((name1, name2, similarity))
+
+        # Calculate overall similarity
         overall_similarity = 0.0
         if similar_functions:
             overall_similarity = sum(s for _, _, s in similar_functions) / len(
