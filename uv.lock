@@ -1086,6 +1086,7 @@ agents = [
     { name = "prometheus-client" },
     { name = "psycopg2-binary" },
     { name = "pyarrow" },
+    { name = "pycode-similar" },
     { name = "pydantic" },
     { name = "pydriller" },
     { name = "pygments" },
@@ -1277,6 +1278,7 @@ requires-dist = [
     { name = "psycopg2-binary", marker = "extra == 'data-processing'", specifier = ">=2.9.0" },
     { name = "pyarrow", marker = "extra == 'agents'", specifier = ">=14.0.0" },
     { name = "pyarrow", marker = "extra == 'data-processing'", specifier = ">=14.0.0" },
+    { name = "pycode-similar", marker = "extra == 'agents'", specifier = ">=1.3.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic", marker = "extra == 'agents'", specifier = ">=2.6.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
@@ -6233,6 +6235,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0e/c5/38c6aba28678c4a4db49312a6b8171b93a0ffe9f21362cf4c0f325caa850/pybase64-1.4.2-pp311-pypy311_pp73-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:7d943bc5dad8388971494554b97f22ae06a46cc7779ad0de3d4bfdf7d0bbea30", size = 41281, upload-time = "2025-07-27T13:08:07.395Z" },
     { url = "https://files.pythonhosted.org/packages/e5/23/5927bd9e59714e4e8cefd1d21ccd7216048bb1c6c3e7104b1b200afdc63d/pybase64-1.4.2-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:10b99182c561d86422c5de4265fd1f8f172fb38efaed9d72c71fb31e279a7f94", size = 35433, upload-time = "2025-07-27T13:08:10.551Z" },
     { url = "https://files.pythonhosted.org/packages/01/0f/fab7ed5bf4926523c3b39f7621cea3e0da43f539fbc2270e042f1afccb79/pybase64-1.4.2-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:bb082c1114f046e59fcbc4f2be13edc93b36d7b54b58605820605be948f8fdf6", size = 36131, upload-time = "2025-07-27T13:08:13.777Z" },
+]
+
+[[package]]
+name = "pycode-similar"
+version = "1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/aa/406aedb4e1f9deadeee077585a5e17d3d33b4371b35832f08c31d2e6ae2a/pycode_similar-1.4.tar.gz", hash = "sha256:41c25bc9804a80c750fcbed1be6b8acc25cf88939933779d2d0f9ef47a2a99db", size = 15593, upload-time = "2020-08-08T06:37:13.444Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/1b/7c41caaa9f45decb755adce1efed6826b93ef91770a0def9c61c09c245be/pycode_similar-1.4-py2.py3-none-any.whl", hash = "sha256:d3f8cb2dc7233147af6b70a0aea009b541e1dc13e608b6e2bfba6b3c5f1e677a", size = 9982, upload-time = "2020-08-08T06:37:10.862Z" },
 ]
 
 [[package]]

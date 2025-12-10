@@ -12,6 +12,16 @@
 
 ### Security
 
+## [5.2.0] - 2025-12-10
+
+### Added
+- Multi-language clone detection support using tree-sitter for JavaScript, TypeScript, Go, Rust, Java, Ruby, PHP, C, and C++
+- Code clone detection integration in code-analyzer agent
+
+### Fixed
+- Fixed pylint API usage for duplicate detection
+- Applied ruff linting and formatting fixes
+
 ## [5.1.12] - 2025-12-10
 
 ### Changed
