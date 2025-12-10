@@ -80,7 +80,9 @@ def calculate_total(items):
 
     def test_initialization_invalid_similarity(self) -> None:
         """Test CloneDetector initialization with invalid similarity."""
-        with pytest.raises(ValueError, match="min_similarity must be between 0.0 and 1.0"):
+        with pytest.raises(
+            ValueError, match="min_similarity must be between 0.0 and 1.0"
+        ):
             CloneDetector(min_similarity=1.5)
 
     def test_initialization_invalid_min_lines(self) -> None:
@@ -134,23 +136,23 @@ def calculate_total(items):
             file2 = Path(tmpdir) / "test2.py"
 
             file1.write_text(
-                '''
+                """
 def add(a, b):
     return a + b
 
 def subtract(a, b):
     return a - b
-'''
+"""
             )
 
             file2.write_text(
-                '''
+                """
 def sum_numbers(x, y):
     return x + y
 
 def multiply(x, y):
     return x * y
-'''
+"""
             )
 
             report = detector.find_similar_functions(file1, file2)
@@ -183,7 +185,9 @@ def multiply(x, y):
             assert clone.similarity == 0.85
 
             # Invalid similarity
-            with pytest.raises(ValueError, match="Similarity must be between 0.0 and 1.0"):
+            with pytest.raises(
+                ValueError, match="Similarity must be between 0.0 and 1.0"
+            ):
                 CloneReport(
                     file1=file1,
                     file2=file2,
@@ -339,7 +343,9 @@ def multiply(x, y):
     def test_create_code_template(self, detector: CloneDetector) -> None:
         """Test code template creation."""
         template = detector._create_code_template(
-            "test_function", ["param1", "param2"], "    result = param1 + param2\n    return result"
+            "test_function",
+            ["param1", "param2"],
+            "    result = param1 + param2\n    return result",
         )
 
         assert "def test_function(param1, param2):" in template

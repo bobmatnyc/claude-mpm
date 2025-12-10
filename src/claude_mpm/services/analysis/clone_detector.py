@@ -9,15 +9,13 @@ JavaScript, TypeScript, Go, Rust, Java, Ruby, PHP, C, C++
 
 import ast
 import difflib
-import hashlib
 import importlib.util
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, ClassVar
+from typing import Any, ClassVar
 
 from pylint.checkers.symilar import Symilar
-
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +56,9 @@ class CloneReport:
     def __post_init__(self) -> None:
         """Validate clone report fields."""
         if not 0.0 <= self.similarity <= 1.0:
-            raise ValueError(f"Similarity must be between 0.0 and 1.0, got {self.similarity}")
+            raise ValueError(
+                f"Similarity must be between 0.0 and 1.0, got {self.similarity}"
+            )
         if self.clone_type not in ("exact", "renamed", "modified"):
             raise ValueError(
                 f"Clone type must be 'exact', 'renamed', or 'modified', got {self.clone_type}"
@@ -160,7 +160,9 @@ class CloneDetector:
             min_lines: Minimum number of lines to consider for clones
         """
         if not 0.0 <= min_similarity <= 1.0:
-            raise ValueError(f"min_similarity must be between 0.0 and 1.0, got {min_similarity}")
+            raise ValueError(
+                f"min_similarity must be between 0.0 and 1.0, got {min_similarity}"
+            )
         if min_lines < 1:
             raise ValueError(f"min_lines must be >= 1, got {min_lines}")
 
@@ -219,7 +221,9 @@ class CloneDetector:
                 return lang
         return None
 
-    def detect_clones(self, project_path: Path, languages: list[str] | None = None) -> list[CloneReport]:
+    def detect_clones(
+        self, project_path: Path, languages: list[str] | None = None
+    ) -> list[CloneReport]:
         """Detect code clones in a project directory.
 
         Supports multi-language detection using tree-sitter for non-Python languages
@@ -243,10 +247,14 @@ class CloneDetector:
         logger.info("Detecting clones in project: %s", project_path)
 
         # Determine which languages to analyze
-        target_languages = languages if languages else list(self.LANGUAGE_EXTENSIONS.keys())
+        target_languages = (
+            languages if languages else list(self.LANGUAGE_EXTENSIONS.keys())
+        )
 
         # Collect files by language
-        files_by_language: dict[str, list[Path]] = {lang: [] for lang in target_languages}
+        files_by_language: dict[str, list[Path]] = {
+            lang: [] for lang in target_languages
+        }
 
         # Scan project for files
         for lang in target_languages:
@@ -264,7 +272,9 @@ class CloneDetector:
             return []
 
         total_files = sum(len(files) for files in files_by_language.values())
-        logger.info("Found %d files across %d languages", total_files, len(files_by_language))
+        logger.info(
+            "Found %d files across %d languages", total_files, len(files_by_language)
+        )
 
         # Detect clones per language
         all_clones: list[CloneReport] = []
@@ -322,7 +332,7 @@ class CloneDetector:
 
             # Extract clone information from Similar instance
             # Similar stores results in linesets which we need to process
-            for duplicate in similar._compute_sims():  # noqa: SLF001
+            for duplicate in similar._compute_sims():
                 # Each duplicate is ((file1, start1, end1), (file2, start2, end2))
                 if len(duplicate) >= 2:
                     loc1, loc2 = duplicate[0], duplicate[1]
@@ -360,7 +370,9 @@ class CloneDetector:
 
         return clones
 
-    def _detect_with_tree_sitter(self, files: list[Path], language: str) -> list[CloneReport]:
+    def _detect_with_tree_sitter(
+        self, files: list[Path], language: str
+    ) -> list[CloneReport]:
         """Detect clones using tree-sitter for non-Python languages.
 
         Args:
@@ -391,19 +403,17 @@ class CloneDetector:
         # Compare all block pairs across files
         file_paths = list(file_blocks.keys())
         for i, file1 in enumerate(file_paths):
-            for file2 in file_paths[i + 1:]:
-                clones.extend(self._compare_file_blocks(
-                    file1, file_blocks[file1],
-                    file2, file_blocks[file2]
-                ))
+            for file2 in file_paths[i + 1 :]:
+                clones.extend(
+                    self._compare_file_blocks(
+                        file1, file_blocks[file1], file2, file_blocks[file2]
+                    )
+                )
 
         return clones
 
     def _extract_code_blocks(
-        self,
-        file_path: Path,
-        parser: Any,
-        language: str
+        self, file_path: Path, parser: Any, language: str
     ) -> list[tuple[int, int, str, str]]:
         """Extract code blocks from a file using tree-sitter.
 
@@ -436,7 +446,7 @@ class CloneDetector:
         node: Any,
         source: bytes,
         language: str,
-        blocks: list[tuple[int, int, str, str]]
+        blocks: list[tuple[int, int, str, str]],
     ) -> None:
         """Recursively walk tree-sitter AST to extract code blocks.
 
@@ -448,8 +458,16 @@ class CloneDetector:
         """
         # Define function/method node types per language
         function_types = {
-            "javascript": ["function_declaration", "arrow_function", "method_definition"],
-            "typescript": ["function_declaration", "arrow_function", "method_definition"],
+            "javascript": [
+                "function_declaration",
+                "arrow_function",
+                "method_definition",
+            ],
+            "typescript": [
+                "function_declaration",
+                "arrow_function",
+                "method_definition",
+            ],
             "go": ["function_declaration", "method_declaration"],
             "rust": ["function_item", "impl_item"],
             "java": ["method_declaration", "constructor_declaration"],
@@ -470,7 +488,9 @@ class CloneDetector:
 
             # Only consider blocks meeting minimum line threshold
             if line_count >= self.min_lines:
-                code_text = source[node.start_byte:node.end_byte].decode("utf-8", errors="ignore")
+                code_text = source[node.start_byte : node.end_byte].decode(
+                    "utf-8", errors="ignore"
+                )
                 normalized = self._normalize_ast(node, source, language)
 
                 blocks.append((start_line, end_line, code_text, normalized))
@@ -500,16 +520,18 @@ class CloneDetector:
             # Replace identifier nodes with generic token
             if n.type == "identifier":
                 return "<ID>"
-            elif n.type in ("string", "string_literal", "char_literal"):
+            if n.type in ("string", "string_literal", "char_literal"):
                 return "<STR>"
-            elif n.type in ("number", "integer", "float"):
+            if n.type in ("number", "integer", "float"):
                 return "<NUM>"
-            elif n.type == "comment":
+            if n.type == "comment":
                 return ""  # Ignore comments
-            elif not n.children:
+            if not n.children:
                 # Leaf node - use actual text
                 try:
-                    return source[n.start_byte:n.end_byte].decode("utf-8", errors="ignore")
+                    return source[n.start_byte : n.end_byte].decode(
+                        "utf-8", errors="ignore"
+                    )
                 except Exception:
                     return n.type
             else:
@@ -524,7 +546,7 @@ class CloneDetector:
         file1: Path,
         blocks1: list[tuple[int, int, str, str]],
         file2: Path,
-        blocks2: list[tuple[int, int, str, str]]
+        blocks2: list[tuple[int, int, str, str]],
     ) -> list[CloneReport]:
         """Compare code blocks between two files.
 
@@ -612,14 +634,11 @@ class CloneDetector:
         """
         if similarity >= self.EXACT_THRESHOLD:
             return "exact"
-        elif similarity >= self.RENAMED_THRESHOLD:
+        if similarity >= self.RENAMED_THRESHOLD:
             return "renamed"
-        else:
-            return "modified"
+        return "modified"
 
-    def find_similar_functions(
-        self, file1: Path, file2: Path
-    ) -> SimilarityReport:
+    def find_similar_functions(self, file1: Path, file2: Path) -> SimilarityReport:
         """Find similar functions between two files.
 
         Uses AST analysis to compare function structures and identify similar
@@ -648,15 +667,18 @@ class CloneDetector:
         if lang1 != lang2:
             raise ValueError(f"Cannot compare different languages: {lang1} vs {lang2}")
 
-        logger.info("Analyzing function similarity between %s and %s (%s)", file1, file2, lang1)
+        logger.info(
+            "Analyzing function similarity between %s and %s (%s)", file1, file2, lang1
+        )
 
         # Use language-specific analysis
         if lang1 == "python":
             return self._find_similar_functions_python(file1, file2)
-        else:
-            return self._find_similar_functions_tree_sitter(file1, file2, lang1)
+        return self._find_similar_functions_tree_sitter(file1, file2, lang1)
 
-    def _find_similar_functions_python(self, file1: Path, file2: Path) -> SimilarityReport:
+    def _find_similar_functions_python(
+        self, file1: Path, file2: Path
+    ) -> SimilarityReport:
         """Find similar functions in Python files using AST.
 
         Args:
@@ -984,17 +1006,18 @@ class CloneDetector:
 
         # Indent code block
         indented_code = "\n".join(
-            f"{indent}{line}" if line.strip() else ""
-            for line in code.split("\n")
+            f"{indent}{line}" if line.strip() else "" for line in code.split("\n")
         )
 
-        template = f"""def {func_name}({param_str}):
+        return (
+            f"""def {func_name}({param_str}):
     \"\"\"Extracted common logic from multiple locations.
 
     Args:
-{indent}{indent}""" + f"\n{indent}{indent}".join(f"{p}: Parameter" for p in parameters) + f"""
+{indent}{indent}"""
+            + f"\n{indent}{indent}".join(f"{p}: Parameter" for p in parameters)
+            + f"""
     \"\"\"
 {indented_code}
 """
-
-        return template
+        )
