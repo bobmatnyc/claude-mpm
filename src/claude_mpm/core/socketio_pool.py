@@ -55,8 +55,8 @@ class CircuitState(Enum):
 class ConnectionStats:
     """Connection statistics for monitoring."""
 
-    created_at: datetime = field(default_factory=datetime.now)
-    last_used: datetime = field(default_factory=datetime.now)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_used: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     events_sent: int = 0
     errors: int = 0
     consecutive_errors: int = 0
@@ -70,7 +70,7 @@ class BatchEvent:
     namespace: str
     event: str
     data: Dict[str, Any]
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class CircuitBreaker:
