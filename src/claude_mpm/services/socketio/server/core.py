@@ -449,7 +449,9 @@ class SocketIOServerCore:
 
         self.app.router.add_get("/api/health", health_handler)
         self.app.router.add_get("/health", health_handler)  # Alias for convenience
-        self.logger.info("✅ Health check endpoints registered at /api/health and /health")
+        self.logger.info(
+            "✅ Health check endpoints registered at /api/health and /health"
+        )
 
         # Add working directory endpoint
         async def working_directory_handler(request):
