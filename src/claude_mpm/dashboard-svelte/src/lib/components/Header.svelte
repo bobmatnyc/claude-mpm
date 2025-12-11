@@ -3,12 +3,10 @@
 
 	let { selectedStream = $bindable('all') }: { selectedStream: string } = $props();
 
-	let { isConnected, error, streams } = $derived({
-		isConnected: socketStore.isConnected,
-		error: socketStore.error,
-		streams: socketStore.streams
-	});
-
+	// Correct Svelte 5 syntax - separate $derived statements
+	let isConnected = $derived(socketStore.isConnected);
+	let error = $derived(socketStore.error);
+	let streams = $derived(socketStore.streams);
 	let streamOptions = $derived([...streams]);
 </script>
 

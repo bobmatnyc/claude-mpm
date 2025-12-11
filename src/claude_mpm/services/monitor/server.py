@@ -594,6 +594,7 @@ class UnifiedMonitorServer:
                     return web.Response(text="Svelte dashboard not available", status=404)
 
                 self.app.router.add_get("/svelte", svelte_handler)
+                self.app.router.add_get("/svelte/", svelte_handler)  # Handle trailing slash
 
                 # Serve SvelteKit _app assets at /svelte/_app/ (matches base path)
                 svelte_app_dir = svelte_build_dir / "_app"

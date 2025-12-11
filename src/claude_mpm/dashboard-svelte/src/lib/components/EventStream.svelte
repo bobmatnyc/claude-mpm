@@ -12,11 +12,15 @@
 
 	let allEvents = $derived(socketStore.events);
 
-	// Filter events based on selected stream
+	// Filter events based on selected stream (check both snake_case and camelCase)
 	let events = $derived(
 		selectedStream === 'all'
 			? allEvents
-			: allEvents.filter(event => event.sessionId === selectedStream)
+			: allEvents.filter(event =>
+				event.sessionId === selectedStream ||
+				event.session_id === selectedStream ||
+				event.source === selectedStream
+			)
 	);
 
 	function formatTimestamp(timestamp: string): string {
