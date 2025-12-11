@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.2.2] - 2025-12-10
+
+### Fixed
+- Made pylint import optional for clone detection to fix ModuleNotFoundError when pylint is not installed
+
 ## [5.2.1] - 2025-12-10
 
 ### Fixed
