@@ -24,7 +24,6 @@ from claude_mpm.cli.commands.summarize import (
     summarize_command,
 )
 
-
 # Test data
 SAMPLE_CONTENT = """
 Introduction to Python Programming

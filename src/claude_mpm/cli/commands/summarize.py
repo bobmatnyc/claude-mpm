@@ -278,7 +278,7 @@ def format_output(summary: str, output_format: OutputFormat, file_path: Path) ->
     if output_format == OutputFormat.TEXT:
         return summary
 
-    elif output_format == OutputFormat.JSON:
+    if output_format == OutputFormat.JSON:
         result = {
             "file": str(file_path),
             "summary": summary,
@@ -286,7 +286,7 @@ def format_output(summary: str, output_format: OutputFormat, file_path: Path) ->
         }
         return json.dumps(result, indent=2)
 
-    elif output_format == OutputFormat.MARKDOWN:
+    if output_format == OutputFormat.MARKDOWN:
         return f"# Summary: {file_path.name}\n\n{summary}\n"
 
     return summary
