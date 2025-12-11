@@ -6,6 +6,9 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
+		paths: {
+			base: '/svelte'
+		},
 		adapter: adapter({
 			pages: '../dashboard/static/svelte-build',
 			assets: '../dashboard/static/svelte-build',
