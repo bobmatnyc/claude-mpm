@@ -141,6 +141,14 @@ def execute_command(command: str, args) -> int:
         result = agent_source_command(args)
         return result if result is not None else 0
 
+    # Handle summarize command with lazy import
+    if command == "summarize":
+        # Lazy import to avoid loading unless needed
+        from .commands.summarize import summarize_command
+
+        result = summarize_command(args)
+        return result if result is not None else 0
+
     # Handle auto-configure command with lazy import
     if command == "auto-configure":
         # Lazy import to avoid loading unless needed

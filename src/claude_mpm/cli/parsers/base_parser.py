@@ -594,6 +594,11 @@ def create_parser(
             action="store_true",
             help="Skip confirmation prompts",
         )
+
+        # Add summarize command
+        from ..commands.summarize import add_summarize_parser
+
+        add_summarize_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass
