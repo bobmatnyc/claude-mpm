@@ -300,31 +300,72 @@ class SocketIOServerCore:
 
                     normalizer = EventNormalizer()
 
+                    # Map hook event names to dashboard subtypes
+                    # Comprehensive mapping of all known Claude Code hook event types
+                    subtype_map = {
+                        # User interaction events
+                        "UserPromptSubmit": "user_prompt_submit",
+                        "UserPromptCancel": "user_prompt_cancel",
+                        # Tool execution events
+                        "PreToolUse": "pre_tool_use",
+                        "PostToolUse": "post_tool_use",
+                        "ToolStart": "tool_start",
+                        "ToolUse": "tool_use",
+                        # Assistant events
+                        "AssistantResponse": "assistant_response",
+                        # Session lifecycle events
+                        "Start": "start",
+                        "Stop": "stop",
+                        "SessionStart": "session_start",
+                        # Subagent events
+                        "SubagentStart": "subagent_start",
+                        "SubagentStop": "subagent_stop",
+                        "SubagentEvent": "subagent_event",
+                        # Task events
+                        "Task": "task",
+                        "TaskStart": "task_start",
+                        "TaskComplete": "task_complete",
+                        # File operation events
+                        "FileWrite": "file_write",
+                        "Write": "write",
+                        # System events
+                        "Notification": "notification",
+                    }
+
+                    # Helper function to convert PascalCase to snake_case
+                    def to_snake_case(name: str) -> str:
+                        """Convert PascalCase event names to snake_case.
+
+                        Examples:
+                            UserPromptSubmit → user_prompt_submit
+                            PreToolUse → pre_tool_use
+                            TaskComplete → task_complete
+                        """
+                        import re
+
+                        return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+                    # Get hook event name and map to subtype
+                    hook_event_name = event_data.get("hook_event_name", "unknown")
+                    subtype = subtype_map.get(
+                        hook_event_name, to_snake_case(hook_event_name)
+                    )
+
+                    # Debug log for unmapped events to discover new event types
+                    if hook_event_name not in subtype_map and hook_event_name != "unknown":
+                        self.logger.debug(
+                            f"Unmapped hook event: {hook_event_name} → {subtype}"
+                        )
+
                     # Create the format expected by normalizer
                     raw_event = {
                         "type": "hook",
-                        "subtype": event_data.get("hook_event_name", "unknown")
-                        .lower()
-                        .replace("submit", "")
-                        .replace("use", "_use"),
+                        "subtype": subtype,
                         "timestamp": event_data.get("timestamp"),
                         "data": event_data.get("hook_input_data", {}),
                         "source": "claude_hooks",
                         "session_id": event_data.get("session_id"),
                     }
-
-                    # Map hook event names to dashboard subtypes
-                    subtype_map = {
-                        "UserPromptSubmit": "user_prompt",
-                        "PreToolUse": "pre_tool",
-                        "PostToolUse": "post_tool",
-                        "Stop": "stop",
-                        "SubagentStop": "subagent_stop",
-                        "AssistantResponse": "assistant_response",
-                    }
-                    raw_event["subtype"] = subtype_map.get(
-                        event_data.get("hook_event_name"), "unknown"
-                    )
 
                     normalized = normalizer.normalize(raw_event, source="hook")
                     event_data = normalized.to_dict()
