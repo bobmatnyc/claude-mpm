@@ -12,6 +12,24 @@
 
 ### Security
 
+## [5.2.3] - 2025-12-11
+
+### Fixed
+- Agent dependencies are now fully optional via YAML frontmatter
+- Installation no longer fails due to compilation-prone packages like mysqlclient, psycopg2, and lxml
+
+### Changed
+- Removed `[agents]` optional dependency group (~80 packages) from pyproject.toml
+- Removed `[agents-load-testing]` optional dependency group
+- `pip install claude-mpm[agents]` is no longer supported
+- Use `claude-mpm agents deps check` to manage agent dependencies per-agent
+
+### Migration Note
+If you previously used `pip install claude-mpm[agents]`, you can now:
+1. Install just `pip install claude-mpm`
+2. Deploy agents as needed
+3. Install missing dependencies when prompted
+
 ## [5.2.2] - 2025-12-10
 
 ### Fixed
