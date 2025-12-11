@@ -15,9 +15,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar
 
-from pylint.checkers.symilar import Symilar
-
 logger = logging.getLogger(__name__)
+
+# Check for pylint availability (optional dependency for clone detection)
+PYLINT_AVAILABLE = importlib.util.find_spec("pylint") is not None
+Symilar: Any = None
+if PYLINT_AVAILABLE:
+    try:
+        from pylint.checkers.symilar import Symilar
+    except ImportError:
+        PYLINT_AVAILABLE = False
 
 # Check for tree-sitter availability
 TREE_SITTER_AVAILABLE = importlib.util.find_spec("tree_sitter") is not None
