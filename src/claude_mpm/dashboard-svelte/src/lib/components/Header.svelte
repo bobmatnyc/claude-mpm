@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { socketStore } from '$lib/stores/socket.svelte';
 
-	let { isConnected, error } = $derived({
+	let { selectedStream = $bindable('all') }: { selectedStream: string } = $props();
+
+	let { isConnected, error, streams } = $derived({
 		isConnected: socketStore.isConnected,
-		error: socketStore.error
+		error: socketStore.error,
+		streams: socketStore.streams
 	});
+
+	let streamOptions = $derived([...streams]);
 </script>
 
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-4">
@@ -15,6 +20,21 @@
 		</div>
 
 		<div class="flex items-center gap-3">
+			<!-- Stream Filter Dropdown -->
+			<div class="flex items-center gap-2">
+				<label for="stream-filter" class="text-sm text-slate-400">Stream:</label>
+				<select
+					id="stream-filter"
+					bind:value={selectedStream}
+					class="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
+				>
+					<option value="all">All Streams</option>
+					{#each streamOptions as stream}
+						<option value={stream}>{stream}</option>
+					{/each}
+				</select>
+			</div>
+
 			<div class="flex items-center gap-2">
 				<div
 					class="w-3 h-3 rounded-full transition-colors"

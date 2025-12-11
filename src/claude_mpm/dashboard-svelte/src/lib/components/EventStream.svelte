@@ -2,29 +2,80 @@
 	import { socketStore } from '$lib/stores/socket.svelte';
 	import type { ClaudeEvent } from '$lib/types/events';
 
-	let events = $derived(socketStore.events);
+	let {
+		selectedEvent = $bindable(null),
+		selectedStream = 'all'
+	}: {
+		selectedEvent: ClaudeEvent | null;
+		selectedStream: string;
+	} = $props();
+
+	let allEvents = $derived(socketStore.events);
+
+	// Filter events based on selected stream
+	let events = $derived(
+		selectedStream === 'all'
+			? allEvents
+			: allEvents.filter(event => event.sessionId === selectedStream)
+	);
 
 	function formatTimestamp(timestamp: string): string {
 		return new Date(timestamp).toLocaleTimeString();
 	}
 
-	function getEventColor(type: ClaudeEvent['type']): string {
+	function getEventTypeColor(type: ClaudeEvent['type']): string {
 		switch (type) {
 			case 'tool_call':
-				return 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+				return 'text-blue-400';
 			case 'tool_result':
-				return 'bg-green-500/10 border-green-500/30 text-green-400';
+				return 'text-green-400';
 			case 'message':
-				return 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+				return 'text-purple-400';
 			case 'error':
-				return 'bg-red-500/10 border-red-500/30 text-red-400';
+				return 'text-red-400';
 			default:
-				return 'bg-slate-500/10 border-slate-500/30 text-slate-400';
+				return 'text-slate-400';
+		}
+	}
+
+	function getEventBgColor(type: ClaudeEvent['type']): string {
+		switch (type) {
+			case 'tool_call':
+				return 'bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20';
+			case 'tool_result':
+				return 'bg-green-500/5 hover:bg-green-500/10 border-green-500/20';
+			case 'message':
+				return 'bg-purple-500/5 hover:bg-purple-500/10 border-purple-500/20';
+			case 'error':
+				return 'bg-red-500/5 hover:bg-red-500/10 border-red-500/20';
+			default:
+				return 'bg-slate-500/5 hover:bg-slate-500/10 border-slate-500/20';
 		}
 	}
 
 	function clearEvents() {
 		socketStore.clearEvents();
+		selectedEvent = null;
+	}
+
+	function selectEvent(event: ClaudeEvent) {
+		selectedEvent = event;
+	}
+
+	function getEventSummary(event: ClaudeEvent): string {
+		if (event.type === 'tool_call' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			return `${data.tool_name || 'Unknown tool'}`;
+		}
+		if (event.type === 'message' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			return String(data.content || 'Message').slice(0, 60);
+		}
+		if (event.type === 'error' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			return String(data.message || 'Error').slice(0, 60);
+		}
+		return event.type;
 	}
 </script>
 
@@ -42,36 +93,46 @@
 		</div>
 	</div>
 
-	<div class="flex-1 overflow-y-auto p-6 space-y-3">
+	<div class="flex-1 overflow-y-auto">
 		{#if events.length === 0}
 			<div class="text-center py-12 text-slate-500">
+				<svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+				</svg>
 				<p class="text-lg mb-2">No events yet</p>
 				<p class="text-sm">Waiting for Claude activity...</p>
 			</div>
 		{:else}
-			{#each events as event (event.id)}
-				<div class="border rounded-lg p-4 {getEventColor(event.type)}">
-					<div class="flex items-start justify-between mb-2">
-						<div class="flex items-center gap-2">
-							<span class="font-mono text-xs px-2 py-1 rounded bg-black/20">
-								{event.type}
-							</span>
-							{#if event.agent}
-								<span class="text-xs px-2 py-1 rounded bg-black/20">
-									{event.agent}
+			<div class="divide-y divide-slate-700/50">
+				{#each events as event (event.id)}
+					<button
+						onclick={() => selectEvent(event)}
+						class="w-full text-left px-4 py-3 transition-colors border-l-2
+							{selectedEvent?.id === event.id
+								? 'bg-slate-700/30 border-l-cyan-500'
+								: 'border-l-transparent ' + getEventBgColor(event.type)}"
+					>
+						<div class="flex items-center justify-between mb-1.5">
+							<div class="flex items-center gap-2 min-w-0 flex-1">
+								<span class="font-mono text-xs px-2 py-0.5 rounded-md bg-black/30 {getEventTypeColor(event.type)} font-medium">
+									{event.type}
 								</span>
-							{/if}
+								{#if event.agent}
+									<span class="text-xs px-2 py-0.5 rounded-md bg-slate-700/50 text-slate-300 truncate">
+										{event.agent}
+									</span>
+								{/if}
+							</div>
+							<span class="text-xs text-slate-500 ml-2 flex-shrink-0">
+								{formatTimestamp(event.timestamp)}
+							</span>
 						</div>
-						<span class="text-xs opacity-60">
-							{formatTimestamp(event.timestamp)}
-						</span>
-					</div>
-
-					<pre class="text-xs overflow-x-auto bg-black/20 rounded p-3 mt-2">
-{JSON.stringify(event.data, null, 2)}
-					</pre>
-				</div>
-			{/each}
+						<div class="text-sm text-slate-300 truncate">
+							{getEventSummary(event)}
+						</div>
+					</button>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </div>

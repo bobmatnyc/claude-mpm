@@ -5,6 +5,7 @@ class SocketStore {
 	socket = $state<Socket | null>(null);
 	isConnected = $state(false);
 	events = $state<ClaudeEvent[]>([]);
+	streams = $state<Set<string>>(new Set());
 	error = $state<string | null>(null);
 
 	connect(url: string = 'http://localhost:8765') {
@@ -37,6 +38,11 @@ class SocketStore {
 
 		this.socket.on('claude_event', (data: ClaudeEvent) => {
 			this.events = [...this.events, data];
+
+			// Track unique streams (using sessionId as stream identifier)
+			if (data.sessionId) {
+				this.streams = new Set([...this.streams, data.sessionId]);
+			}
 		});
 
 		this.socket.on('agent_event', (data: unknown) => {
