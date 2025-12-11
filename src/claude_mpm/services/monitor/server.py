@@ -595,10 +595,10 @@ class UnifiedMonitorServer:
 
                 self.app.router.add_get("/svelte", svelte_handler)
 
-                # Serve SvelteKit _app assets
+                # Serve SvelteKit _app assets at /svelte/_app/ (matches base path)
                 svelte_app_dir = svelte_build_dir / "_app"
                 if svelte_app_dir.exists():
-                    self.app.router.add_static("/_app/", svelte_app_dir)
+                    self.app.router.add_static("/svelte/_app/", svelte_app_dir)
 
                 self.logger.info(f"✅ Svelte dashboard available at /svelte (build: {svelte_build_dir})")
             else:
