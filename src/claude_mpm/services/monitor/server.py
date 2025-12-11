@@ -581,6 +581,29 @@ class UnifiedMonitorServer:
             if templates_dir.exists():
                 self.app.router.add_static("/templates/", templates_dir)
 
+            # Svelte dashboard (SvelteKit build)
+            svelte_build_dir = static_dir / "svelte-build"
+            if svelte_build_dir.exists():
+                # Serve Svelte index at /svelte route
+                async def svelte_handler(request):
+                    svelte_index = svelte_build_dir / "index.html"
+                    if svelte_index.exists():
+                        with svelte_index.open(encoding="utf-8") as f:
+                            content = f.read()
+                        return web.Response(text=content, content_type="text/html")
+                    return web.Response(text="Svelte dashboard not available", status=404)
+
+                self.app.router.add_get("/svelte", svelte_handler)
+
+                # Serve SvelteKit _app assets
+                svelte_app_dir = svelte_build_dir / "_app"
+                if svelte_app_dir.exists():
+                    self.app.router.add_static("/_app/", svelte_app_dir)
+
+                self.logger.info(f"✅ Svelte dashboard available at /svelte (build: {svelte_build_dir})")
+            else:
+                self.logger.debug(f"Svelte build not found at: {svelte_build_dir}")
+
             self.logger.info("HTTP routes registered successfully")
 
         except Exception as e:

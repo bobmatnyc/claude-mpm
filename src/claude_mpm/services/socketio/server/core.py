@@ -32,6 +32,7 @@ except ImportError:
 # Import VersionService for dynamic version retrieval
 import contextlib
 
+import claude_mpm
 from claude_mpm.services.version_service import VersionService
 
 from ....core.constants import SystemLimits, TimeoutConfig
@@ -695,9 +696,9 @@ class SocketIOServerCore:
                 self.app.router.add_get("/version.json", version_handler)
 
                 # Serve static assets (CSS, JS) from the dashboard static directory
-                dashboard_static_path = (
-                    get_project_root() / "src" / "claude_mpm" / "dashboard" / "static"
-                )
+                # Use package-relative path (works for both dev and installed package)
+                package_root = Path(claude_mpm.__file__).parent
+                dashboard_static_path = package_root / "dashboard" / "static"
                 if dashboard_static_path.exists():
                     self.app.router.add_static(
                         "/static/", dashboard_static_path, name="dashboard_static"
@@ -708,6 +709,33 @@ class SocketIOServerCore:
                 else:
                     self.logger.warning(
                         f"⚠️  Static assets directory not found at: {dashboard_static_path}"
+                    )
+
+                # Serve Svelte dashboard build
+                svelte_build_path = package_root / "dashboard" / "static" / "svelte-build"
+                if svelte_build_path.exists():
+                    # Serve Svelte dashboard at /svelte route
+                    async def svelte_handler(request):
+                        svelte_index = svelte_build_path / "index.html"
+                        if svelte_index.exists():
+                            self.logger.debug(f"Serving Svelte dashboard from: {svelte_index}")
+                            return web.FileResponse(svelte_index)
+                        return web.Response(text="Svelte dashboard not available", status=404)
+
+                    self.app.router.add_get("/svelte", svelte_handler)
+
+                    # Serve Svelte app assets at /_app/ (needed for SvelteKit builds)
+                    svelte_app_path = svelte_build_path / "_app"
+                    if svelte_app_path.exists():
+                        self.app.router.add_static(
+                            "/_app/", svelte_app_path, name="svelte_app"
+                        )
+                        self.logger.info(
+                            f"✅ Svelte dashboard available at /svelte (build: {svelte_build_path})"
+                        )
+                else:
+                    self.logger.debug(
+                        f"Svelte build not found at: {svelte_build_path}"
                     )
 
             else:
