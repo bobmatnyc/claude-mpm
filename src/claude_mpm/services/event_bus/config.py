@@ -52,9 +52,11 @@ class EventBusConfig:
     )
 
     # Relay configuration
+    # DirectSocketIORelay disabled by default - events already emit via direct sio.emit()
+    # Enable with CLAUDE_MPM_RELAY_ENABLED=true if needed for external consumers
     relay_enabled: bool = field(
         default_factory=lambda: os.environ.get(
-            "CLAUDE_MPM_RELAY_ENABLED", "true"
+            "CLAUDE_MPM_RELAY_ENABLED", "false"
         ).lower()
         == "true"
     )
