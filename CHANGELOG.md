@@ -12,6 +12,20 @@
 
 ### Security
 
+## [5.3.0] - 2025-12-11
+
+### Added
+- New `claude-mpm summarize` CLI command for document summarization with multiple output formats (text, JSON, Markdown)
+- Support for various summary styles (concise, detailed, executive, bullet-points, technical)
+
+### Changed
+- **BREAKING**: Deprecated MCP gateway functionality in favor of native Claude Code MCP server integration
+- Socket.IO server improvements with EventBus integration
+- Enhanced health check endpoints with service metrics
+
+### Deprecated
+- MCP gateway (use native Claude Code MCP servers instead)
+
 ## [5.2.4] - 2025-12-11
 
 ### Added
