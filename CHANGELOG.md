@@ -12,6 +12,15 @@
 
 ### Security
 
+## [5.2.4] - 2025-12-11
+
+### Added
+- EventBus integration for POST /api/events - hook events now flow through EventBus for cross-component communication
+- Health check endpoints at GET /api/health and GET /health with service metrics (uptime, connected clients, event stats)
+
+### Changed
+- Enhanced payload handling in /api/events for both direct and wrapped event formats
+
 ## [5.2.3] - 2025-12-11
 
 ### Fixed

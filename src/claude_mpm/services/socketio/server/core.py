@@ -271,7 +271,15 @@ class SocketIOServerCore:
             """Handle POST /api/events from hook handlers."""
             try:
                 # Parse JSON payload
-                event_data = await request.json()
+                payload = await request.json()
+
+                # Extract event data from payload (handles both direct and wrapped formats)
+                # ConnectionManagerService sends: {"namespace": "...", "event": "...", "data": {...}}
+                # Direct hook events may send data directly
+                if "data" in payload and isinstance(payload.get("data"), dict):
+                    event_data = payload["data"]
+                else:
+                    event_data = payload
 
                 # Log receipt with more detail
                 event_type = (
@@ -323,6 +331,20 @@ class SocketIOServerCore:
                     self.logger.debug(
                         f"Normalized event: type={event_data.get('type')}, subtype={event_data.get('subtype')}"
                     )
+
+                # Publish to EventBus for cross-component communication
+                # WHY: This allows other parts of the system to react to hook events
+                # without coupling to Socket.IO directly
+                try:
+                    from claude_mpm.services.event_bus import EventBus
+
+                    event_bus = EventBus.get_instance()
+                    event_type = f"hook.{event_data.get('subtype', 'unknown')}"
+                    event_bus.publish(event_type, event_data)
+                    self.logger.debug(f"Published to EventBus: {event_type}")
+                except Exception as e:
+                    # Non-fatal: EventBus publication failure shouldn't break event flow
+                    self.logger.warning(f"Failed to publish to EventBus: {e}")
 
                 # Broadcast to all connected dashboard clients via SocketIO
                 if self.sio:
@@ -389,6 +411,45 @@ class SocketIOServerCore:
         # Register the HTTP POST endpoint
         self.app.router.add_post("/api/events", api_events_handler)
         self.logger.info("✅ HTTP API endpoint registered at /api/events")
+
+        # Add health check endpoint
+        async def health_handler(request):
+            """Handle GET /api/health for health checks."""
+            try:
+                # Get server status
+                uptime_seconds = 0
+                if self.stats.get("start_time"):
+                    uptime_seconds = int(
+                        (
+                            datetime.now(timezone.utc) - self.stats["start_time"]
+                        ).total_seconds()
+                    )
+
+                health_data = {
+                    "status": "healthy",
+                    "service": "claude-mpm-socketio",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "uptime_seconds": uptime_seconds,
+                    "connected_clients": len(self.connected_clients),
+                    "total_events": self.stats.get("events_sent", 0),
+                    "buffered_events": self.stats.get("events_buffered", 0),
+                }
+
+                return web.json_response(health_data)
+            except Exception as e:
+                self.logger.error(f"Error in health check: {e}")
+                return web.json_response(
+                    {
+                        "status": "unhealthy",
+                        "service": "claude-mpm-socketio",
+                        "error": str(e),
+                    },
+                    status=503,
+                )
+
+        self.app.router.add_get("/api/health", health_handler)
+        self.app.router.add_get("/health", health_handler)  # Alias for convenience
+        self.logger.info("✅ Health check endpoints registered at /api/health and /health")
 
         # Add working directory endpoint
         async def working_directory_handler(request):
