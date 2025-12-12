@@ -156,41 +156,50 @@
 				<p class="text-sm">Waiting for Claude activity...</p>
 			</div>
 		{:else}
-			<div class="divide-y divide-slate-700/50">
-				{#each events as event (event.id)}
+			<!-- Table header -->
+			<div class="grid grid-cols-[100px_120px_110px_80px_1fr] gap-3 px-4 py-2 bg-slate-900 border-b border-slate-700 text-xs font-semibold text-slate-400 sticky top-0">
+				<div>Timestamp</div>
+				<div>Source</div>
+				<div>Type</div>
+				<div>Agent</div>
+				<div>Activity</div>
+			</div>
+
+			<!-- Event rows -->
+			<div>
+				{#each events as event, i (event.id)}
 					<button
 						onclick={() => selectEvent(event)}
-						class="w-full text-left px-4 py-3 transition-colors border-l-2
+						class="w-full text-left px-4 py-2.5 transition-colors border-l-2 grid grid-cols-[100px_120px_110px_80px_1fr] gap-3 items-center text-xs
 							{selectedEvent?.id === event.id
 								? 'bg-slate-700/30 border-l-cyan-500'
-								: 'border-l-transparent ' + getEventBgColor(event.type)}"
+								: `border-l-transparent ${i % 2 === 0 ? 'bg-slate-800/40' : 'bg-slate-800/20'} hover:bg-slate-700/30`}"
 					>
-						<!-- Compact grid layout for 5 fields -->
-						<div class="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-1.5 text-xs">
-							<!-- Row 1: Source, Type, Timestamp -->
-							<div class="text-slate-500">Source:</div>
-							<div class="text-slate-300 truncate font-mono text-[11px]">{getEventSource(event)}</div>
-							<div class="text-slate-500 row-span-3 self-start text-right flex-shrink-0">
-								{formatTimestamp(event.timestamp)}
-							</div>
-
-							<!-- Row 2: Type -->
-							<div class="text-slate-500">Type:</div>
-							<div class="flex items-center gap-2">
-								<span class="font-mono px-2 py-0.5 rounded-md bg-black/30 {getEventTypeColor(event.type)} font-medium">
-									{event.type}
-								</span>
-							</div>
-
-							<!-- Row 3: Agent -->
-							<div class="text-slate-500">Agent:</div>
-							<div class="text-slate-300 truncate">{getCallingEntity(event)}</div>
+						<!-- Timestamp -->
+						<div class="text-slate-400 font-mono text-[11px]">
+							{formatTimestamp(event.timestamp)}
 						</div>
 
-						<!-- Row 4: Activity (full width) -->
-						<div class="mt-1.5 text-xs">
-							<span class="text-slate-500">Activity:</span>
-							<span class="text-slate-300 ml-2">{getActivity(event)}</span>
+						<!-- Source -->
+						<div class="text-slate-300 truncate font-mono text-[11px]">
+							{getEventSource(event)}
+						</div>
+
+						<!-- Type with color coding -->
+						<div>
+							<span class="font-mono px-2 py-0.5 rounded-md bg-black/30 {getEventTypeColor(event.type)} font-medium text-[11px]">
+								{event.type}
+							</span>
+						</div>
+
+						<!-- Agent -->
+						<div class="text-slate-300 truncate">
+							{getCallingEntity(event)}
+						</div>
+
+						<!-- Activity -->
+						<div class="text-slate-300 truncate">
+							{getActivity(event)}
 						</div>
 					</button>
 				{/each}
