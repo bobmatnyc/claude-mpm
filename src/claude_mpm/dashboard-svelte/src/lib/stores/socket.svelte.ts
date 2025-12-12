@@ -64,6 +64,8 @@ function createSocketStore() {
 	}
 
 	function handleEvent(data: any) {
+		console.log('Socket store: handleEvent called with:', data);
+
 		// Ensure event has an ID (generate one if missing)
 		const eventWithId: ClaudeEvent = {
 			...data,
@@ -74,6 +76,7 @@ function createSocketStore() {
 
 		// Add event to list - triggers reactivity
 		events = [...events, eventWithId];
+		console.log('Socket store: Added event, total events:', events.length);
 
 		// Track unique streams
 		// Check multiple possible field names for session/stream ID
@@ -84,9 +87,22 @@ function createSocketStore() {
 			data.data?.sessionId ||
 			data.source;
 
+		console.log('Socket store: Extracted stream ID:', streamId);
+		console.log('Socket store: Checked fields:', {
+			session_id: data.session_id,
+			sessionId: data.sessionId,
+			data_session_id: data.data?.session_id,
+			data_sessionId: data.data?.sessionId,
+			source: data.source
+		});
+
 		if (streamId) {
-			console.log('Adding stream:', streamId);
+			const prevSize = streams.size;
+			console.log('Socket store: Adding stream:', streamId, 'Previous streams:', Array.from(streams));
 			streams = new Set([...streams, streamId]);
+			console.log('Socket store: Updated streams:', Array.from(streams), 'Size changed:', prevSize, '->', streams.size);
+		} else {
+			console.log('Socket store: No stream ID found in event:', JSON.stringify(data, null, 2));
 		}
 	}
 

@@ -6,8 +6,13 @@
 	// Correct Svelte 5 syntax - separate $derived statements
 	let isConnected = $derived(socketStore.isConnected);
 	let error = $derived(socketStore.error);
-	let streams = $derived(socketStore.streams);
-	let streamOptions = $derived([...streams]);
+	// Convert Set to Array in a single derived - Svelte 5 tracks this properly
+	let streamOptions = $derived(Array.from(socketStore.streams));
+
+	// Debug logging
+	$effect(() => {
+		console.log('Header: streamOptions updated:', streamOptions);
+	});
 </script>
 
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-4">
