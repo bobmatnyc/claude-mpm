@@ -25,14 +25,28 @@
 	});
 
 	// Filter events based on selected stream using $derived
+	// Empty string means show all events (before first stream is detected)
+	// Check multiple field locations for session ID (matches socket store extraction logic)
 	let events = $derived(
-		selectedStream === 'all'
+		selectedStream === '' || selectedStream === 'all'
 			? allEvents
-			: allEvents.filter(event =>
-				event.sessionId === selectedStream ||
-				event.session_id === selectedStream ||
-				event.source === selectedStream
-			)
+			: allEvents.filter(event => {
+				// Extract session ID using same logic as socket store (lines 101-106)
+				// Safe property access with type guards
+				const data = event.data;
+				const dataSessionId =
+					data && typeof data === 'object' && !Array.isArray(data)
+						? (data as Record<string, unknown>).session_id ||
+						  (data as Record<string, unknown>).sessionId
+						: null;
+
+				const eventStreamId =
+					event.session_id ||
+					event.sessionId ||
+					dataSessionId ||
+					event.source;
+				return eventStreamId === selectedStream;
+			})
 	);
 
 	function formatTimestamp(timestamp: string): string {
