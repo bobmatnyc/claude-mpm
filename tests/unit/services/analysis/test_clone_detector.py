@@ -81,7 +81,7 @@ def calculate_total(items):
     def test_initialization_invalid_similarity(self) -> None:
         """Test CloneDetector initialization with invalid similarity."""
         with pytest.raises(
-            ValueError, match="min_similarity must be between 0.0 and 1.0"
+            ValueError, match=r"min_similarity must be between 0.0 and 1.0"
         ):
             CloneDetector(min_similarity=1.5)
 
@@ -186,7 +186,7 @@ def multiply(x, y):
 
             # Invalid similarity
             with pytest.raises(
-                ValueError, match="Similarity must be between 0.0 and 1.0"
+                ValueError, match=r"Similarity must be between 0.0 and 1.0"
             ):
                 CloneReport(
                     file1=file1,
