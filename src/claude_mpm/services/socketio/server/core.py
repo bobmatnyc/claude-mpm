@@ -353,7 +353,10 @@ class SocketIOServerCore:
                     )
 
                     # Debug log for unmapped events to discover new event types
-                    if hook_event_name not in subtype_map and hook_event_name != "unknown":
+                    if (
+                        hook_event_name not in subtype_map
+                        and hook_event_name != "unknown"
+                    ):
                         self.logger.debug(
                             f"Unmapped hook event: {hook_event_name} → {subtype}"
                         )
@@ -712,15 +715,21 @@ class SocketIOServerCore:
                     )
 
                 # Serve Svelte dashboard build
-                svelte_build_path = package_root / "dashboard" / "static" / "svelte-build"
+                svelte_build_path = (
+                    package_root / "dashboard" / "static" / "svelte-build"
+                )
                 if svelte_build_path.exists():
                     # Serve Svelte dashboard at /svelte route
                     async def svelte_handler(request):
                         svelte_index = svelte_build_path / "index.html"
                         if svelte_index.exists():
-                            self.logger.debug(f"Serving Svelte dashboard from: {svelte_index}")
+                            self.logger.debug(
+                                f"Serving Svelte dashboard from: {svelte_index}"
+                            )
                             return web.FileResponse(svelte_index)
-                        return web.Response(text="Svelte dashboard not available", status=404)
+                        return web.Response(
+                            text="Svelte dashboard not available", status=404
+                        )
 
                     self.app.router.add_get("/svelte", svelte_handler)
 
@@ -734,9 +743,7 @@ class SocketIOServerCore:
                             f"✅ Svelte dashboard available at /svelte (build: {svelte_build_path})"
                         )
                 else:
-                    self.logger.debug(
-                        f"Svelte build not found at: {svelte_build_path}"
-                    )
+                    self.logger.debug(f"Svelte build not found at: {svelte_build_path}")
 
             else:
                 self.logger.warning("⚠️  No dashboard found, serving fallback response")

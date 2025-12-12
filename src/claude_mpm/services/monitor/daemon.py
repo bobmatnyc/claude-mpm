@@ -78,7 +78,9 @@ class UnifiedMonitorDaemon:
         )
 
         # Core server
-        self.server = UnifiedMonitorServer(host=host, port=port, enable_hot_reload=enable_hot_reload)
+        self.server = UnifiedMonitorServer(
+            host=host, port=port, enable_hot_reload=enable_hot_reload
+        )
 
         # Health monitoring
         self.health_monitor = HealthMonitor(port=port)
@@ -513,7 +515,9 @@ class UnifiedMonitorDaemon:
 
         # Recreate the server and health monitor after stop() sets them to None
         self.logger.info(f"Recreating server components for {self.host}:{self.port}")
-        self.server = UnifiedMonitorServer(host=self.host, port=self.port, enable_hot_reload=self.enable_hot_reload)
+        self.server = UnifiedMonitorServer(
+            host=self.host, port=self.port, enable_hot_reload=self.enable_hot_reload
+        )
         self.health_monitor = HealthMonitor(port=self.port)
 
         # Reset the shutdown event for the new run

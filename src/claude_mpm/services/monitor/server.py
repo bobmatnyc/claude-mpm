@@ -54,7 +54,9 @@ class SvelteBuildWatcher(FileSystemEventHandler):
     hot reload via Socket.IO event emission.
     """
 
-    def __init__(self, sio: socketio.AsyncServer, loop: asyncio.AbstractEventLoop, logger):
+    def __init__(
+        self, sio: socketio.AsyncServer, loop: asyncio.AbstractEventLoop, logger
+    ):
         """Initialize the file watcher.
 
         Args:
@@ -76,30 +78,26 @@ class SvelteBuildWatcher(FileSystemEventHandler):
             event: File system event from watchdog
         """
         # Ignore directory events and temporary files
-        if event.is_directory or event.src_path.endswith(('.tmp', '.swp', '~')):
+        if event.is_directory or event.src_path.endswith((".tmp", ".swp", "~")):
             return
 
-        self.logger.debug(f"File change detected: {event.event_type} - {event.src_path}")
+        self.logger.debug(
+            f"File change detected: {event.event_type} - {event.src_path}"
+        )
 
         # Cancel existing timer
         if self.debounce_timer:
             self.debounce_timer.cancel()
 
         # Schedule reload after debounce delay
-        self.debounce_timer = threading.Timer(
-            self.debounce_delay,
-            self._trigger_reload
-        )
+        self.debounce_timer = threading.Timer(self.debounce_delay, self._trigger_reload)
         self.debounce_timer.start()
 
     def _trigger_reload(self):
         """Trigger hot reload by emitting Socket.IO event."""
         try:
             # Schedule the async emit in the event loop
-            asyncio.run_coroutine_threadsafe(
-                self._emit_reload_event(),
-                self.loop
-            )
+            asyncio.run_coroutine_threadsafe(self._emit_reload_event(), self.loop)
             self.logger.info("Hot reload triggered - Svelte build changed")
         except Exception as e:
             self.logger.error(f"Error triggering reload: {e}")
@@ -107,11 +105,14 @@ class SvelteBuildWatcher(FileSystemEventHandler):
     async def _emit_reload_event(self):
         """Emit the reload event to all connected clients."""
         if self.sio:
-            await self.sio.emit('reload', {
-                'type': 'reload',
-                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
-                'reason': 'svelte-build-updated'
-            })
+            await self.sio.emit(
+                "reload",
+                {
+                    "type": "reload",
+                    "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                    "reason": "svelte-build-updated",
+                },
+            )
 
 
 class UnifiedMonitorServer:
@@ -121,7 +122,9 @@ class UnifiedMonitorServer:
     Replaces multiple competing server implementations with one stable solution.
     """
 
-    def __init__(self, host: str = "localhost", port: int = 8765, enable_hot_reload: bool = False):
+    def __init__(
+        self, host: str = "localhost", port: int = 8765, enable_hot_reload: bool = False
+    ):
         """Initialize the unified monitor server.
 
         Args:
@@ -402,23 +405,17 @@ class UnifiedMonitorServer:
 
             # Create file watcher with Socket.IO reference
             self.file_watcher = SvelteBuildWatcher(
-                sio=self.sio,
-                loop=self.loop,
-                logger=self.logger
+                sio=self.sio, loop=self.loop, logger=self.logger
             )
 
             # Create observer and schedule watching
             self.file_observer = Observer()
             self.file_observer.schedule(
-                self.file_watcher,
-                str(svelte_build_dir),
-                recursive=True
+                self.file_watcher, str(svelte_build_dir), recursive=True
             )
             self.file_observer.start()
 
-            self.logger.info(
-                f"🔥 Hot reload enabled - watching {svelte_build_dir}"
-            )
+            self.logger.info(f"🔥 Hot reload enabled - watching {svelte_build_dir}")
 
         except Exception as e:
             self.logger.error(f"Error setting up file watcher: {e}")
@@ -711,17 +708,23 @@ class UnifiedMonitorServer:
                         with svelte_index.open(encoding="utf-8") as f:
                             content = f.read()
                         return web.Response(text=content, content_type="text/html")
-                    return web.Response(text="Svelte dashboard not available", status=404)
+                    return web.Response(
+                        text="Svelte dashboard not available", status=404
+                    )
 
                 self.app.router.add_get("/svelte", svelte_handler)
-                self.app.router.add_get("/svelte/", svelte_handler)  # Handle trailing slash
+                self.app.router.add_get(
+                    "/svelte/", svelte_handler
+                )  # Handle trailing slash
 
                 # Serve SvelteKit _app assets at /svelte/_app/ (matches base path)
                 svelte_app_dir = svelte_build_dir / "_app"
                 if svelte_app_dir.exists():
                     self.app.router.add_static("/svelte/_app/", svelte_app_dir)
 
-                self.logger.info(f"✅ Svelte dashboard available at /svelte (build: {svelte_build_dir})")
+                self.logger.info(
+                    f"✅ Svelte dashboard available at /svelte (build: {svelte_build_dir})"
+                )
             else:
                 self.logger.debug(f"Svelte build not found at: {svelte_build_dir}")
 

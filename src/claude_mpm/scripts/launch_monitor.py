@@ -49,7 +49,7 @@ def main():
     parser.add_argument(
         "--dev",
         action="store_true",
-        help="Enable development mode with hot reload for Svelte changes"
+        help="Enable development mode with hot reload for Svelte changes",
     )
 
     args = parser.parse_args()
@@ -63,7 +63,9 @@ def main():
 
     # Start the monitor daemon
     if args.dev:
-        logger.info(f"Starting Claude MPM monitor on {args.host}:{actual_port} (DEV MODE - hot reload enabled)")
+        logger.info(
+            f"Starting Claude MPM monitor on {args.host}:{actual_port} (DEV MODE - hot reload enabled)"
+        )
     else:
         logger.info(f"Starting Claude MPM monitor on {args.host}:{actual_port}")
 
@@ -71,7 +73,7 @@ def main():
         host=args.host,
         port=actual_port,
         daemon_mode=args.background,
-        enable_hot_reload=args.dev
+        enable_hot_reload=args.dev,
     )
 
     success = daemon.start()
