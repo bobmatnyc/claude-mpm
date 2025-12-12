@@ -12,6 +12,18 @@
 
 ### Security
 
+## [5.3.1] - 2025-12-11
+
+### Added
+- PM delegation rules for mpm-skills-manager agent
+
+### Changed
+- Improved EventStream table layout with grid-based design
+
+### Fixed
+- Use raw strings for pytest regex patterns to satisfy ruff linter
+- Code formatting in monitor and socketio modules
+
 ## [5.3.0] - 2025-12-11
 
 ### Added

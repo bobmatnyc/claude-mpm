@@ -52,6 +52,8 @@ class SvelteBuildWatcher(FileSystemEventHandler):
 
     Watches for file changes in svelte-build directory and triggers
     hot reload via Socket.IO event emission.
+
+    STABILITY FIX: Added thread lock and stop() method to prevent timer leaks.
     """
 
     def __init__(
@@ -70,6 +72,17 @@ class SvelteBuildWatcher(FileSystemEventHandler):
         self.logger = logger
         self.debounce_timer = None
         self.debounce_delay = 0.5  # Wait 500ms after last change
+        self._timer_lock = threading.Lock()  # STABILITY FIX: Prevent race condition
+
+    def stop(self):
+        """Stop the watcher and cancel any pending timers.
+
+        STABILITY FIX: Ensures timer is cancelled on shutdown.
+        """
+        with self._timer_lock:
+            if self.debounce_timer:
+                self.debounce_timer.cancel()
+                self.debounce_timer = None
 
     def on_any_event(self, event):
         """Handle any file system event.
@@ -85,13 +98,15 @@ class SvelteBuildWatcher(FileSystemEventHandler):
             f"File change detected: {event.event_type} - {event.src_path}"
         )
 
-        # Cancel existing timer
-        if self.debounce_timer:
-            self.debounce_timer.cancel()
+        # STABILITY FIX: Use lock to prevent timer race condition
+        with self._timer_lock:
+            # Cancel existing timer
+            if self.debounce_timer:
+                self.debounce_timer.cancel()
 
-        # Schedule reload after debounce delay
-        self.debounce_timer = threading.Timer(self.debounce_delay, self._trigger_reload)
-        self.debounce_timer.start()
+            # Schedule reload after debounce delay
+            self.debounce_timer = threading.Timer(self.debounce_delay, self._trigger_reload)
+            self.debounce_timer.start()
 
     def _trigger_reload(self):
         """Trigger hot reload by emitting Socket.IO event."""
@@ -261,6 +276,9 @@ class UnifiedMonitorServer:
                         import time
 
                         time.sleep(0.1)
+
+                        # STABILITY FIX: Give tasks more time to clean up before closing
+                        time.sleep(0.5)
 
                         # Clear the event loop from the thread BEFORE closing
                         # This prevents other code from accidentally using it
@@ -839,10 +857,21 @@ class UnifiedMonitorServer:
         """Cleanup async resources."""
         try:
             # Stop file observer if running
+            # STABILITY FIX: Ensure watcher is stopped and verify observer termination
             if self.file_observer:
                 try:
+                    # Stop the watcher first to cancel pending timers
+                    if self.file_watcher:
+                        self.file_watcher.stop()
+
+                    # Stop the observer
                     self.file_observer.stop()
                     self.file_observer.join(timeout=2)
+
+                    # Verify observer actually stopped
+                    if self.file_observer.is_alive():
+                        self.logger.warning("File observer did not stop cleanly")
+
                     self.logger.debug("File observer stopped")
                 except Exception as e:
                     self.logger.debug(f"Error stopping file observer: {e}")
@@ -851,10 +880,13 @@ class UnifiedMonitorServer:
                     self.file_watcher = None
 
             # Cancel heartbeat task if running
+            # STABILITY FIX: Add timeout to prevent infinite wait on cancellation
             if self.heartbeat_task and not self.heartbeat_task.done():
                 self.heartbeat_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await self.heartbeat_task
+                try:
+                    await asyncio.wait_for(self.heartbeat_task, timeout=2.0)
+                except (asyncio.CancelledError, asyncio.TimeoutError):
+                    pass
                 self.logger.debug("Heartbeat task cancelled")
 
             # Close the Socket.IO server first to stop accepting new connections
