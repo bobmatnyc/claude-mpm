@@ -44,6 +44,7 @@ class UnifiedMonitorDaemon:
         daemon_mode: bool = False,
         pid_file: Optional[str] = None,
         log_file: Optional[str] = None,
+        enable_hot_reload: bool = False,
     ):
         """Initialize the unified monitor daemon.
 
@@ -53,10 +54,12 @@ class UnifiedMonitorDaemon:
             daemon_mode: Whether to run as background daemon
             pid_file: Path to PID file for daemon mode
             log_file: Path to log file for daemon mode
+            enable_hot_reload: Enable file watching and hot reload for development
         """
         self.host = host
         self.port = port
         self.daemon_mode = daemon_mode
+        self.enable_hot_reload = enable_hot_reload
         self.logger = get_logger(__name__)
 
         # Use new consolidated DaemonManager for all daemon operations
@@ -75,7 +78,7 @@ class UnifiedMonitorDaemon:
         )
 
         # Core server
-        self.server = UnifiedMonitorServer(host=host, port=port)
+        self.server = UnifiedMonitorServer(host=host, port=port, enable_hot_reload=enable_hot_reload)
 
         # Health monitoring
         self.health_monitor = HealthMonitor(port=port)
@@ -510,7 +513,7 @@ class UnifiedMonitorDaemon:
 
         # Recreate the server and health monitor after stop() sets them to None
         self.logger.info(f"Recreating server components for {self.host}:{self.port}")
-        self.server = UnifiedMonitorServer(host=self.host, port=self.port)
+        self.server = UnifiedMonitorServer(host=self.host, port=self.port, enable_hot_reload=self.enable_hot_reload)
         self.health_monitor = HealthMonitor(port=self.port)
 
         # Reset the shutdown event for the new run

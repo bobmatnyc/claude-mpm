@@ -25,6 +25,8 @@ from typing import Dict, Optional
 
 import socketio
 from aiohttp import web
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 from ...core.enums import ServiceState
 from ...core.logging_config import get_logger
@@ -45,6 +47,73 @@ except ImportError:
     EVENTBUS_AVAILABLE = False
 
 
+class SvelteBuildWatcher(FileSystemEventHandler):
+    """File watcher for Svelte build directory changes.
+
+    Watches for file changes in svelte-build directory and triggers
+    hot reload via Socket.IO event emission.
+    """
+
+    def __init__(self, sio: socketio.AsyncServer, loop: asyncio.AbstractEventLoop, logger):
+        """Initialize the file watcher.
+
+        Args:
+            sio: Socket.IO server instance for emitting events
+            loop: Event loop for async operations
+            logger: Logger instance
+        """
+        super().__init__()
+        self.sio = sio
+        self.loop = loop
+        self.logger = logger
+        self.debounce_timer = None
+        self.debounce_delay = 0.5  # Wait 500ms after last change
+
+    def on_any_event(self, event):
+        """Handle any file system event.
+
+        Args:
+            event: File system event from watchdog
+        """
+        # Ignore directory events and temporary files
+        if event.is_directory or event.src_path.endswith(('.tmp', '.swp', '~')):
+            return
+
+        self.logger.debug(f"File change detected: {event.event_type} - {event.src_path}")
+
+        # Cancel existing timer
+        if self.debounce_timer:
+            self.debounce_timer.cancel()
+
+        # Schedule reload after debounce delay
+        self.debounce_timer = threading.Timer(
+            self.debounce_delay,
+            self._trigger_reload
+        )
+        self.debounce_timer.start()
+
+    def _trigger_reload(self):
+        """Trigger hot reload by emitting Socket.IO event."""
+        try:
+            # Schedule the async emit in the event loop
+            asyncio.run_coroutine_threadsafe(
+                self._emit_reload_event(),
+                self.loop
+            )
+            self.logger.info("Hot reload triggered - Svelte build changed")
+        except Exception as e:
+            self.logger.error(f"Error triggering reload: {e}")
+
+    async def _emit_reload_event(self):
+        """Emit the reload event to all connected clients."""
+        if self.sio:
+            await self.sio.emit('reload', {
+                'type': 'reload',
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z',
+                'reason': 'svelte-build-updated'
+            })
+
+
 class UnifiedMonitorServer:
     """Unified server that combines HTTP dashboard and Socket.IO functionality.
 
@@ -52,15 +121,17 @@ class UnifiedMonitorServer:
     Replaces multiple competing server implementations with one stable solution.
     """
 
-    def __init__(self, host: str = "localhost", port: int = 8765):
+    def __init__(self, host: str = "localhost", port: int = 8765, enable_hot_reload: bool = False):
         """Initialize the unified monitor server.
 
         Args:
             host: Host to bind to
             port: Port to bind to
+            enable_hot_reload: Enable file watching and hot reload for development
         """
         self.host = host
         self.port = port
+        self.enable_hot_reload = enable_hot_reload
         self.logger = get_logger(__name__)
 
         # Core components
@@ -77,6 +148,10 @@ class UnifiedMonitorServer:
 
         # High-performance event emitter
         self.event_emitter = None
+
+        # File watching (optional for dev mode)
+        self.file_observer: Optional[Observer] = None
+        self.file_watcher: Optional[SvelteBuildWatcher] = None
 
         # State
         self.running = False
@@ -229,6 +304,10 @@ class UnifiedMonitorServer:
             self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             self.logger.info("Heartbeat task started (3-minute interval)")
 
+            # Setup file watching for hot reload (if enabled)
+            if self.enable_hot_reload:
+                self._setup_file_watcher()
+
             # Setup HTTP routes
             self._setup_http_routes()
 
@@ -303,6 +382,47 @@ class UnifiedMonitorServer:
         except Exception as e:
             self.logger.error(f"Error setting up event emitter: {e}")
             raise
+
+    def _setup_file_watcher(self):
+        """Setup file watcher for Svelte build directory.
+
+        Watches for changes in svelte-build and triggers hot reload.
+        Only enabled when enable_hot_reload is True.
+        """
+        try:
+            dashboard_dir = Path(__file__).parent.parent.parent / "dashboard"
+            svelte_build_dir = dashboard_dir / "static" / "svelte-build"
+
+            if not svelte_build_dir.exists():
+                self.logger.warning(
+                    f"Svelte build directory not found: {svelte_build_dir}. "
+                    "Hot reload disabled."
+                )
+                return
+
+            # Create file watcher with Socket.IO reference
+            self.file_watcher = SvelteBuildWatcher(
+                sio=self.sio,
+                loop=self.loop,
+                logger=self.logger
+            )
+
+            # Create observer and schedule watching
+            self.file_observer = Observer()
+            self.file_observer.schedule(
+                self.file_watcher,
+                str(svelte_build_dir),
+                recursive=True
+            )
+            self.file_observer.start()
+
+            self.logger.info(
+                f"🔥 Hot reload enabled - watching {svelte_build_dir}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error setting up file watcher: {e}")
+            # Don't raise - hot reload is optional
 
     def _setup_http_routes(self):
         """Setup HTTP routes for the dashboard."""
@@ -715,6 +835,18 @@ class UnifiedMonitorServer:
     async def _cleanup_async(self):
         """Cleanup async resources."""
         try:
+            # Stop file observer if running
+            if self.file_observer:
+                try:
+                    self.file_observer.stop()
+                    self.file_observer.join(timeout=2)
+                    self.logger.debug("File observer stopped")
+                except Exception as e:
+                    self.logger.debug(f"Error stopping file observer: {e}")
+                finally:
+                    self.file_observer = None
+                    self.file_watcher = None
+
             # Cancel heartbeat task if running
             if self.heartbeat_task and not self.heartbeat_task.done():
                 self.heartbeat_task.cancel()

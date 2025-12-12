@@ -46,6 +46,12 @@ def main():
         "--background", action="store_true", help="Run in background daemon mode"
     )
 
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Enable development mode with hot reload for Svelte changes"
+    )
+
     args = parser.parse_args()
 
     # Find available port
@@ -56,10 +62,16 @@ def main():
         logger.info(f"Port {args.port} is in use, using port {actual_port} instead")
 
     # Start the monitor daemon
-    logger.info(f"Starting Claude MPM monitor on {args.host}:{actual_port}")
+    if args.dev:
+        logger.info(f"Starting Claude MPM monitor on {args.host}:{actual_port} (DEV MODE - hot reload enabled)")
+    else:
+        logger.info(f"Starting Claude MPM monitor on {args.host}:{actual_port}")
 
     daemon = UnifiedMonitorDaemon(
-        host=args.host, port=actual_port, daemon_mode=args.background
+        host=args.host,
+        port=actual_port,
+        daemon_mode=args.background,
+        enable_hot_reload=args.dev
     )
 
     success = daemon.start()

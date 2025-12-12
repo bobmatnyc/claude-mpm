@@ -55,6 +55,13 @@ function createSocketStore() {
 			// Heartbeats confirm connection is alive - don't log to reduce noise
 		});
 
+		// Listen for hot reload events (server sends when files change in dev mode)
+		socket.on('reload', (data: any) => {
+			console.log('Hot reload triggered by server:', data);
+			// Reload the page to get latest changes
+			window.location.reload();
+		});
+
 		// Catch-all for debugging
 		socket.onAny((eventName, ...args) => {
 			if (eventName !== 'heartbeat') {
