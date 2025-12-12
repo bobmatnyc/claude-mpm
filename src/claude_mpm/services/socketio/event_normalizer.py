@@ -78,10 +78,13 @@ class NormalizedEvent:
     subtype: str = ""  # Specific event type
     timestamp: str = ""  # ISO format timestamp
     data: Dict[str, Any] = field(default_factory=dict)  # Event payload
+    correlation_id: Optional[str] = (
+        None  # For correlating related events (e.g., pre_tool/post_tool)
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for emission."""
-        return {
+        result = {
             "event": self.event,
             "source": self.source,
             "type": self.type,
@@ -89,6 +92,10 @@ class NormalizedEvent:
             "timestamp": self.timestamp,
             "data": self.data,
         }
+        # Include correlation_id if present
+        if self.correlation_id:
+            result["correlation_id"] = self.correlation_id
+        return result
 
 
 class EventNormalizer:
@@ -218,6 +225,11 @@ class EventNormalizer:
             # Get or generate timestamp
             timestamp = self._extract_timestamp(event_data)
 
+            # Extract correlation_id if present
+            correlation_id = None
+            if isinstance(event_data, dict):
+                correlation_id = event_data.get("correlation_id")
+
             # Create normalized event
             normalized = NormalizedEvent(
                 event="claude_event",
@@ -226,6 +238,7 @@ class EventNormalizer:
                 subtype=subtype,
                 timestamp=timestamp,
                 data=data,
+                correlation_id=correlation_id,
             )
 
             self.stats["normalized"] += 1
@@ -281,6 +294,7 @@ class EventNormalizer:
                 "timestamp", datetime.now(timezone.utc).isoformat()
             ),
             data=event_data.get("data", {}),
+            correlation_id=event_data.get("correlation_id"),
         )
 
     def _extract_event_info(self, event_data: Any) -> Tuple[str, str, Dict[str, Any]]:

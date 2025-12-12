@@ -7,7 +7,7 @@ const config = {
 
 	kit: {
 		paths: {
-			base: '/svelte'
+			base: ''
 		},
 		adapter: adapter({
 			pages: '../dashboard/static/svelte-build',

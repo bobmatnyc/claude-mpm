@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -134,6 +135,9 @@ class EventHandlers:
         tool_name = event.get("tool_name", "")
         tool_input = event.get("tool_input", {})
 
+        # Generate unique tool call ID for correlation with post_tool event
+        tool_call_id = str(uuid.uuid4())
+
         # Extract key parameters based on tool type
         tool_params = extract_tool_parameters(tool_name, tool_input)
 
@@ -144,6 +148,8 @@ class EventHandlers:
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
 
+        timestamp = datetime.now(timezone.utc).isoformat()
+
         pre_tool_data = {
             "tool_name": tool_name,
             "operation_type": operation_type,
@@ -151,14 +157,26 @@ class EventHandlers:
             "session_id": event.get("session_id", ""),
             "working_directory": working_dir,
             "git_branch": git_branch,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": timestamp,
             "parameter_count": len(tool_input) if isinstance(tool_input, dict) else 0,
             "is_file_operation": tool_name
             in ["Write", "Edit", "MultiEdit", "Read", "LS", "Glob"],
             "is_execution": tool_name in ["Bash", "NotebookEdit"],
             "is_delegation": tool_name == "Task",
             "security_risk": assess_security_risk(tool_name, tool_input),
+            "correlation_id": tool_call_id,  # Add correlation_id for pre/post correlation
         }
+
+        # Store tool_call_id using CorrelationManager for cross-process retrieval
+        if session_id:
+            from .correlation_manager import CorrelationManager
+
+            CorrelationManager.store(session_id, tool_call_id, tool_name)
+            if DEBUG:
+                print(
+                    f"  - Generated tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}...",
+                    file=sys.stderr,
+                )
 
         # Add delegation-specific data if this is a Task tool
         if tool_name == "Task" and isinstance(tool_input, dict):
@@ -375,6 +393,7 @@ class EventHandlers:
         """
         tool_name = event.get("tool_name", "")
         exit_code = event.get("exit_code", 0)
+        session_id = event.get("session_id", "")
 
         # Extract result data
         result_data = extract_tool_results(event)
@@ -385,6 +404,16 @@ class EventHandlers:
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
+
+        # Retrieve tool_call_id using CorrelationManager for cross-process correlation
+        from .correlation_manager import CorrelationManager
+
+        tool_call_id = CorrelationManager.retrieve(session_id) if session_id else None
+        if DEBUG and tool_call_id:
+            print(
+                f"  - Retrieved tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}...",
+                file=sys.stderr,
+            )
 
         post_tool_data = {
             "tool_name": tool_name,
@@ -399,7 +428,7 @@ class EventHandlers:
             ),
             "duration_ms": duration,
             "result_summary": result_data,
-            "session_id": event.get("session_id", ""),
+            "session_id": session_id,
             "working_directory": working_dir,
             "git_branch": git_branch,
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -411,6 +440,10 @@ class EventHandlers:
                 else 0
             ),
         }
+
+        # Add correlation_id if available for correlation with pre_tool
+        if tool_call_id:
+            post_tool_data["correlation_id"] = tool_call_id
 
         # Handle Task delegation completion for memory hooks and response tracking
         if tool_name == "Task":

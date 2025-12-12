@@ -304,6 +304,9 @@ class ClaudeHookHandler:
             # Perform periodic cleanup if needed
             if self.state_manager.increment_events_processed():
                 self.state_manager.cleanup_old_entries()
+                # Also cleanup old correlation files
+                from .correlation_manager import CorrelationManager
+                CorrelationManager.cleanup_old()
                 if DEBUG:
                     print(
                         f"🧹 Performed cleanup after {self.state_manager.events_processed} events",

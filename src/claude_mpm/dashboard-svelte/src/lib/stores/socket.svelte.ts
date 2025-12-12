@@ -10,7 +10,9 @@ function createSocketStore() {
 	const isConnected = writable(false);
 	const events = writable<ClaudeEvent[]>([]);
 	const streams = writable<Set<string>>(new Set());
+	const streamMetadata = writable<Map<string, { projectPath: string; projectName: string }>>(new Map());
 	const error = writable<string | null>(null);
+	const selectedStream = writable<string>('');
 
 	function connect(url: string = 'http://localhost:8765') {
 		const currentSocket = get(socket);
@@ -46,10 +48,24 @@ function createSocketStore() {
 			console.error('Socket.IO connection error:', err);
 		});
 
-		// Listen for claude events
-		newSocket.on('claude_event', (data: ClaudeEvent) => {
-			console.log('Received claude_event:', data);
-			handleEvent(data);
+		// Listen for all event types from backend
+		// Backend categorizes events as: claude_event, hook_event, cli_event, system_event, agent_event, build_event
+		const eventTypes = ['claude_event', 'hook_event', 'cli_event', 'system_event', 'agent_event', 'build_event'];
+
+		eventTypes.forEach(eventType => {
+			newSocket.on(eventType, (data: ClaudeEvent) => {
+				console.log(`Received ${eventType}:`, data);
+				// Add the socket event name to the data
+				handleEvent({ ...data, event: eventType });
+			});
+		});
+
+		// Listen for historical events sent on connection
+		newSocket.on('history', (data: { events: ClaudeEvent[], count: number, total_available: number }) => {
+			console.log('Received event history:', data.count, 'events');
+			if (data.events && Array.isArray(data.events)) {
+				data.events.forEach(event => handleEvent(event));
+			}
 		});
 
 		// Listen for heartbeat events (server sends these periodically)
@@ -113,8 +129,37 @@ function createSocketStore() {
 				console.log('Socket store: Adding stream:', streamId, 'Previous streams:', Array.from(s));
 				const newStreams = new Set([...s, streamId]);
 				console.log('Socket store: Updated streams:', Array.from(newStreams), 'Size changed:', prevSize, '->', newStreams.size);
+
+				// Auto-select first stream if no stream selected and this is the first stream
+				const currentSelected = get(selectedStream);
+				if (prevSize === 0 && newStreams.size === 1 && (currentSelected === '' || currentSelected === 'all')) {
+					console.log('Socket store: Auto-selecting first stream:', streamId);
+					selectedStream.set(streamId);
+				}
+
 				return newStreams;
 			});
+
+			// Extract and store project path information
+			// Check multiple possible locations for working directory/cwd
+			const projectPath =
+				data.cwd ||
+				data.data?.working_directory ||
+				data.data?.cwd ||
+				data.metadata?.working_directory ||
+				data.metadata?.cwd;
+
+			if (projectPath) {
+				// Extract project name from path (last directory component)
+				const projectName = projectPath.split('/').filter(Boolean).pop() || projectPath;
+
+				streamMetadata.update(m => {
+					const newMap = new Map(m);
+					newMap.set(streamId, { projectPath, projectName });
+					console.log('Socket store: Updated metadata for stream:', streamId, { projectPath, projectName });
+					return newMap;
+				});
+			}
 		} else {
 			console.log('Socket store: No stream ID found in event:', JSON.stringify(data, null, 2));
 		}
@@ -133,15 +178,22 @@ function createSocketStore() {
 		events.set([]);
 	}
 
+	function setSelectedStream(streamId: string) {
+		selectedStream.set(streamId);
+	}
+
 	return {
 		socket,
 		isConnected,
 		events,
 		streams,
+		streamMetadata,
 		error,
+		selectedStream,
 		connect,
 		disconnect,
-		clearEvents
+		clearEvents,
+		setSelectedStream
 	};
 }
 

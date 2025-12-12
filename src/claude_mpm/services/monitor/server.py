@@ -445,12 +445,13 @@ class UnifiedMonitorServer:
         try:
             # Dashboard static files
             dashboard_dir = Path(__file__).parent.parent.parent / "dashboard"
+            static_dir = dashboard_dir / "static"
 
-            # Main dashboard route
+            # Main dashboard route - serve Svelte dashboard
             async def dashboard_index(request):
-                template_path = dashboard_dir / "templates" / "index.html"
-                if template_path.exists():
-                    with template_path.open() as f:
+                svelte_index = static_dir / "svelte-build" / "index.html"
+                if svelte_index.exists():
+                    with svelte_index.open(encoding="utf-8") as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
                 return web.Response(text="Dashboard not found", status=404)
@@ -682,12 +683,39 @@ class UnifiedMonitorServer:
                 "/monitor/events", lambda r: monitor_page_handler(r)
             )
 
-            # Static files with cache busting headers for development
-            static_dir = dashboard_dir / "static"
+            # Serve Svelte _app assets (compiled JS/CSS)
+            svelte_build_dir = static_dir / "svelte-build"
+            if svelte_build_dir.exists():
+                svelte_app_dir = svelte_build_dir / "_app"
+                if svelte_app_dir.exists():
+                    # Serve _app assets with proper caching
+                    async def app_assets_handler(request):
+                        """Serve Svelte _app assets."""
+                        from aiohttp.web_fileresponse import FileResponse
+
+                        rel_path = request.match_info["filepath"]
+                        file_path = svelte_app_dir / rel_path
+
+                        if not file_path.exists() or not file_path.is_file():
+                            raise web.HTTPNotFound()
+
+                        response = FileResponse(file_path)
+
+                        # Add cache headers for immutable assets
+                        if "/immutable/" in str(rel_path):
+                            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                        else:
+                            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
+                        return response
+
+                    self.app.router.add_get("/_app/{filepath:.*}", app_assets_handler)
+
+            # Legacy static files (for backward compatibility)
             if static_dir.exists():
 
                 async def static_handler(request):
-                    """Serve static files with cache-control headers for development."""
+                    """Serve legacy static files with cache-control headers for development."""
 
                     from aiohttp.web_fileresponse import FileResponse
 
@@ -712,40 +740,13 @@ class UnifiedMonitorServer:
 
                 self.app.router.add_get("/static/{filepath:.*}", static_handler)
 
-            # Templates
-            templates_dir = dashboard_dir / "templates"
-            if templates_dir.exists():
-                self.app.router.add_static("/templates/", templates_dir)
-
-            # Svelte dashboard (SvelteKit build)
-            svelte_build_dir = static_dir / "svelte-build"
+            # Log dashboard availability
             if svelte_build_dir.exists():
-                # Serve Svelte index at /svelte route
-                async def svelte_handler(request):
-                    svelte_index = svelte_build_dir / "index.html"
-                    if svelte_index.exists():
-                        with svelte_index.open(encoding="utf-8") as f:
-                            content = f.read()
-                        return web.Response(text=content, content_type="text/html")
-                    return web.Response(
-                        text="Svelte dashboard not available", status=404
-                    )
-
-                self.app.router.add_get("/svelte", svelte_handler)
-                self.app.router.add_get(
-                    "/svelte/", svelte_handler
-                )  # Handle trailing slash
-
-                # Serve SvelteKit _app assets at /svelte/_app/ (matches base path)
-                svelte_app_dir = svelte_build_dir / "_app"
-                if svelte_app_dir.exists():
-                    self.app.router.add_static("/svelte/_app/", svelte_app_dir)
-
                 self.logger.info(
-                    f"✅ Svelte dashboard available at /svelte (build: {svelte_build_dir})"
+                    f"✅ Svelte dashboard available at / (root) (build: {svelte_build_dir})"
                 )
             else:
-                self.logger.debug(f"Svelte build not found at: {svelte_build_dir}")
+                self.logger.warning(f"Svelte build not found at: {svelte_build_dir}")
 
             self.logger.info("HTTP routes registered successfully")
 

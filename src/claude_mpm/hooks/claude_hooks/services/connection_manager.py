@@ -115,6 +115,9 @@ class ConnectionManagerService:
         - Fallback: HTTP POST for reliability when direct connection fails
         - Eliminates duplicate events from multiple emission paths
         """
+        # Extract tool_call_id from data if present for correlation
+        tool_call_id = data.get("tool_call_id")
+
         # Create event data for normalization
         raw_event = {
             "type": "hook",
@@ -123,6 +126,7 @@ class ConnectionManagerService:
             "data": data,
             "source": "claude_hooks",  # Identify the source
             "session_id": data.get("sessionId"),  # Include session if available
+            "correlation_id": tool_call_id,  # Set from tool_call_id for event correlation
         }
 
         # Normalize the event using EventNormalizer for consistent schema
