@@ -10,13 +10,15 @@
 		selectedStream: string;
 	} = $props();
 
-	let allEvents = $derived(socketStore.events);
+	// Use store subscriptions with $ auto-subscribe
+	const { events: allEventsStore } = socketStore;
 
-	// Filter events based on selected stream (check both snake_case and camelCase)
+	// In Runes mode, we need to reactively filter using $derived
+	// $allEventsStore auto-subscribes, selectedStream is reactive prop
 	let events = $derived(
 		selectedStream === 'all'
-			? allEvents
-			: allEvents.filter(event =>
+			? $allEventsStore
+			: $allEventsStore.filter(event =>
 				event.sessionId === selectedStream ||
 				event.session_id === selectedStream ||
 				event.source === selectedStream

@@ -1,24 +1,26 @@
+import { writable, derived, get } from 'svelte/store';
 import { io, type Socket } from 'socket.io-client';
 import type { ClaudeEvent } from '$lib/types/events';
 
 let eventCounter = 0;
 
-// Svelte 5 runes MUST be at module scope, not in class instances
+// Use traditional Svelte stores - compatible with static adapter + SSR
 function createSocketStore() {
-	let socket = $state<Socket | null>(null);
-	let isConnected = $state(false);
-	let events = $state<ClaudeEvent[]>([]);
-	let streams = $state<Set<string>>(new Set());
-	let error = $state<string | null>(null);
+	const socket = writable<Socket | null>(null);
+	const isConnected = writable(false);
+	const events = writable<ClaudeEvent[]>([]);
+	const streams = writable<Set<string>>(new Set());
+	const error = writable<string | null>(null);
 
 	function connect(url: string = 'http://localhost:8765') {
-		if (socket?.connected) {
+		const currentSocket = get(socket);
+		if (currentSocket?.connected) {
 			return;
 		}
 
 		console.log('Connecting to Socket.IO server:', url);
 
-		socket = io(url, {
+		const newSocket = io(url, {
 			// Use polling first for reliability, then upgrade to websocket
 			transports: ['polling', 'websocket'],
 			upgrade: true,
@@ -28,46 +30,48 @@ function createSocketStore() {
 			timeout: 20000,
 		});
 
-		socket.on('connect', () => {
-			isConnected = true;
-			error = null;
-			console.log('Socket.IO connected, socket id:', socket?.id);
+		newSocket.on('connect', () => {
+			isConnected.set(true);
+			error.set(null);
+			console.log('Socket.IO connected, socket id:', newSocket.id);
 		});
 
-		socket.on('disconnect', (reason) => {
-			isConnected = false;
+		newSocket.on('disconnect', (reason) => {
+			isConnected.set(false);
 			console.log('Socket.IO disconnected, reason:', reason);
 		});
 
-		socket.on('connect_error', (err) => {
-			error = err.message;
+		newSocket.on('connect_error', (err) => {
+			error.set(err.message);
 			console.error('Socket.IO connection error:', err);
 		});
 
 		// Listen for claude events
-		socket.on('claude_event', (data: ClaudeEvent) => {
+		newSocket.on('claude_event', (data: ClaudeEvent) => {
 			console.log('Received claude_event:', data);
 			handleEvent(data);
 		});
 
 		// Listen for heartbeat events (server sends these periodically)
-		socket.on('heartbeat', (data: unknown) => {
+		newSocket.on('heartbeat', (data: unknown) => {
 			// Heartbeats confirm connection is alive - don't log to reduce noise
 		});
 
 		// Listen for hot reload events (server sends when files change in dev mode)
-		socket.on('reload', (data: any) => {
+		newSocket.on('reload', (data: any) => {
 			console.log('Hot reload triggered by server:', data);
 			// Reload the page to get latest changes
 			window.location.reload();
 		});
 
 		// Catch-all for debugging
-		socket.onAny((eventName, ...args) => {
+		newSocket.onAny((eventName, ...args) => {
 			if (eventName !== 'heartbeat') {
 				console.log('Socket event:', eventName, args);
 			}
 		});
+
+		socket.set(newSocket);
 	}
 
 	function handleEvent(data: any) {
@@ -82,8 +86,8 @@ function createSocketStore() {
 		};
 
 		// Add event to list - triggers reactivity
-		events = [...events, eventWithId];
-		console.log('Socket store: Added event, total events:', events.length);
+		events.update(e => [...e, eventWithId]);
+		console.log('Socket store: Added event, total events:', get(events).length);
 
 		// Track unique streams
 		// Check multiple possible field names for session/stream ID
@@ -104,35 +108,37 @@ function createSocketStore() {
 		});
 
 		if (streamId) {
-			const prevSize = streams.size;
-			console.log('Socket store: Adding stream:', streamId, 'Previous streams:', Array.from(streams));
-			streams = new Set([...streams, streamId]);
-			console.log('Socket store: Updated streams:', Array.from(streams), 'Size changed:', prevSize, '->', streams.size);
+			streams.update(s => {
+				const prevSize = s.size;
+				console.log('Socket store: Adding stream:', streamId, 'Previous streams:', Array.from(s));
+				const newStreams = new Set([...s, streamId]);
+				console.log('Socket store: Updated streams:', Array.from(newStreams), 'Size changed:', prevSize, '->', newStreams.size);
+				return newStreams;
+			});
 		} else {
 			console.log('Socket store: No stream ID found in event:', JSON.stringify(data, null, 2));
 		}
 	}
 
 	function disconnect() {
-		if (socket) {
-			socket.disconnect();
-			socket = null;
-			isConnected = false;
+		const currentSocket = get(socket);
+		if (currentSocket) {
+			currentSocket.disconnect();
+			socket.set(null);
+			isConnected.set(false);
 		}
 	}
 
 	function clearEvents() {
-		events = [];
+		events.set([]);
 	}
 
 	return {
-		// Expose reactive state as getters
-		get socket() { return socket; },
-		get isConnected() { return isConnected; },
-		get events() { return events; },
-		get streams() { return streams; },
-		get error() { return error; },
-		// Expose methods
+		socket,
+		isConnected,
+		events,
+		streams,
+		error,
 		connect,
 		disconnect,
 		clearEvents

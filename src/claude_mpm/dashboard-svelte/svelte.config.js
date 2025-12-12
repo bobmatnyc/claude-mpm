@@ -14,7 +14,7 @@ const config = {
 			assets: '../dashboard/static/svelte-build',
 			fallback: 'index.html',
 			precompress: false,
-			strict: true
+			strict: false
 		})
 	}
 };

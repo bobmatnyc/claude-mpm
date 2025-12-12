@@ -1,18 +1,14 @@
 <script lang="ts">
 	import { socketStore } from '$lib/stores/socket.svelte';
+	import { derived } from 'svelte/store';
 
 	let { selectedStream = $bindable('all') }: { selectedStream: string } = $props();
 
-	// Correct Svelte 5 syntax - separate $derived statements
-	let isConnected = $derived(socketStore.isConnected);
-	let error = $derived(socketStore.error);
-	// Convert Set to Array in a single derived - Svelte 5 tracks this properly
-	let streamOptions = $derived(Array.from(socketStore.streams));
+	// Use store subscriptions with $ prefix (auto-subscription)
+	const { isConnected, error, streams } = socketStore;
 
-	// Debug logging
-	$effect(() => {
-		console.log('Header: streamOptions updated:', streamOptions);
-	});
+	// Convert Set to Array for dropdown options
+	const streamOptions = derived(streams, $streams => Array.from($streams));
 </script>
 
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-4">
@@ -32,7 +28,7 @@
 					class="px-3 py-1.5 text-sm bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
 				>
 					<option value="all">All Streams</option>
-					{#each streamOptions as stream}
+					{#each $streamOptions as stream}
 						<option value={stream}>{stream}</option>
 					{/each}
 				</select>
@@ -41,17 +37,17 @@
 			<div class="flex items-center gap-2">
 				<div
 					class="w-3 h-3 rounded-full transition-colors"
-					class:bg-green-500={isConnected}
-					class:bg-red-500={!isConnected}
+					class:bg-green-500={$isConnected}
+					class:bg-red-500={!$isConnected}
 				></div>
 				<span class="text-sm font-medium">
-					{isConnected ? 'Connected' : 'Disconnected'}
+					{$isConnected ? 'Connected' : 'Disconnected'}
 				</span>
 			</div>
 
-			{#if error}
-				<div class="text-xs text-red-400 max-w-xs truncate" title={error}>
-					Error: {error}
+			{#if $error}
+				<div class="text-xs text-red-400 max-w-xs truncate" title={$error}>
+					Error: {$error}
 				</div>
 			{/if}
 		</div>
