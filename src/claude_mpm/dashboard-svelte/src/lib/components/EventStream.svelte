@@ -83,6 +83,43 @@
 		}
 		return event.type;
 	}
+
+	// Get event source (session_id or source field)
+	function getEventSource(event: ClaudeEvent): string {
+		return event.sessionId || event.session_id || event.source || '-';
+	}
+
+	// Get calling entity (agent name or '-')
+	function getCallingEntity(event: ClaudeEvent): string {
+		return event.agent || '-';
+	}
+
+	// Get activity (tool name, message preview, etc.)
+	function getActivity(event: ClaudeEvent): string {
+		if (event.type === 'tool_call' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			return `${data.tool_name || 'Unknown tool'}`;
+		}
+		if (event.type === 'tool_result' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			const toolName = data.tool_name || 'Unknown tool';
+			return `${toolName} result`;
+		}
+		if (event.type === 'message' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			const content = String(data.content || 'Message');
+			return content.length > 50 ? content.slice(0, 50) + '...' : content;
+		}
+		if (event.type === 'error' && typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+			const message = String(data.message || 'Error');
+			return message.length > 50 ? message.slice(0, 50) + '...' : message;
+		}
+		if (event.subtype) {
+			return event.subtype;
+		}
+		return event.type;
+	}
 </script>
 
 <div class="flex flex-col h-full">
@@ -118,23 +155,32 @@
 								? 'bg-slate-700/30 border-l-cyan-500'
 								: 'border-l-transparent ' + getEventBgColor(event.type)}"
 					>
-						<div class="flex items-center justify-between mb-1.5">
-							<div class="flex items-center gap-2 min-w-0 flex-1">
-								<span class="font-mono text-xs px-2 py-0.5 rounded-md bg-black/30 {getEventTypeColor(event.type)} font-medium">
+						<!-- Compact grid layout for 5 fields -->
+						<div class="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-1.5 text-xs">
+							<!-- Row 1: Source, Type, Timestamp -->
+							<div class="text-slate-500">Source:</div>
+							<div class="text-slate-300 truncate font-mono text-[11px]">{getEventSource(event)}</div>
+							<div class="text-slate-500 row-span-3 self-start text-right flex-shrink-0">
+								{formatTimestamp(event.timestamp)}
+							</div>
+
+							<!-- Row 2: Type -->
+							<div class="text-slate-500">Type:</div>
+							<div class="flex items-center gap-2">
+								<span class="font-mono px-2 py-0.5 rounded-md bg-black/30 {getEventTypeColor(event.type)} font-medium">
 									{event.type}
 								</span>
-								{#if event.agent}
-									<span class="text-xs px-2 py-0.5 rounded-md bg-slate-700/50 text-slate-300 truncate">
-										{event.agent}
-									</span>
-								{/if}
 							</div>
-							<span class="text-xs text-slate-500 ml-2 flex-shrink-0">
-								{formatTimestamp(event.timestamp)}
-							</span>
+
+							<!-- Row 3: Agent -->
+							<div class="text-slate-500">Agent:</div>
+							<div class="text-slate-300 truncate">{getCallingEntity(event)}</div>
 						</div>
-						<div class="text-sm text-slate-300 truncate">
-							{getEventSummary(event)}
+
+						<!-- Row 4: Activity (full width) -->
+						<div class="mt-1.5 text-xs">
+							<span class="text-slate-500">Activity:</span>
+							<span class="text-slate-300 ml-2">{getActivity(event)}</span>
 						</div>
 					</button>
 				{/each}
