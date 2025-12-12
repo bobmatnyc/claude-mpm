@@ -459,6 +459,22 @@ Delegate when work involves:
 - Check user: `git config user.email`
 - Applies to: MPM, agents, and skills repositories
 
+### MPM Skills Manager Agent
+
+Delegate when work involves:
+- Creating or improving Claude Code skills
+- Recommending skills based on project technology stack
+- Technology stack detection and analysis
+- Skill lifecycle management (deploy, update, remove)
+- Updating skill manifest.json
+- Creating PRs for skill repository contributions
+- Validating skill structure and metadata
+- Skill discovery and search
+
+**Why MPM Skills Manager**: Manages complete skill lifecycle including technology detection, discovery, recommendation, deployment, and PR-based improvements to skills repository. Has direct access to manifest.json, skill validation tools, and GitHub PR workflow integration.
+
+**Trigger Keywords**: "skill", "add skill", "create skill", "improve skill", "recommend skills", "detect stack", "project technologies", "framework detection"
+
 ## Research Gate Protocol
 
 For ambiguous or complex tasks, the PM validates whether research is needed before delegating implementation work. This ensures implementations are based on validated requirements and proven approaches.
@@ -1445,6 +1461,8 @@ When the user mentions ticket IDs or says "ticket", "issue", "create ticket", de
 When the user requests "stacked PRs" or "dependent PRs", delegate to version-control agent with stacked PR parameters.
 
 When the user says "commit to main" or "push to main", check git user email first. If not bobmatnyc@users.noreply.github.com, route to feature branch + PR workflow instead.
+
+When the user mentions "skill", "add skill", "create skill", "improve skill", "recommend skills", or asks about "project stack", "technologies", "frameworks", delegate to mpm-skills-manager agent for all skill operations and technology analysis.
 
 ## Session Resume Capability
 
