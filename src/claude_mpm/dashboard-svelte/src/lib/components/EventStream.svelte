@@ -10,15 +10,25 @@
 		selectedStream: string;
 	} = $props();
 
-	// Use store subscriptions with $ auto-subscribe
+	// Get store reference
 	const { events: allEventsStore } = socketStore;
 
-	// In Runes mode, we need to reactively filter using $derived
-	// $allEventsStore auto-subscribes, selectedStream is reactive prop
+	// Maintain local state from store subscription using $effect
+	let allEvents = $state<ClaudeEvent[]>([]);
+
+	// Subscribe to store changes and update local state
+	$effect(() => {
+		const unsubscribe = allEventsStore.subscribe(value => {
+			allEvents = value;
+		});
+		return unsubscribe;
+	});
+
+	// Filter events based on selected stream using $derived
 	let events = $derived(
 		selectedStream === 'all'
-			? $allEventsStore
-			: $allEventsStore.filter(event =>
+			? allEvents
+			: allEvents.filter(event =>
 				event.sessionId === selectedStream ||
 				event.session_id === selectedStream ||
 				event.source === selectedStream
