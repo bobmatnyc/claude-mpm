@@ -104,7 +104,9 @@ class SvelteBuildWatcher(FileSystemEventHandler):
                 self.debounce_timer.cancel()
 
             # Schedule reload after debounce delay
-            self.debounce_timer = threading.Timer(self.debounce_delay, self._trigger_reload)
+            self.debounce_timer = threading.Timer(
+                self.debounce_delay, self._trigger_reload
+            )
             self.debounce_timer.start()
 
     def _trigger_reload(self):
