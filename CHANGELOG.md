@@ -1,6 +1,20 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Deprecated
+
+### Removed
+
+### Security
+
+## [5.4.0] - 2025-12-13
+
+### Added
 - Knowledge extractor for mpm-init to analyze project documentation and structure
 - Files tab in dashboard with syntax highlighting and diff viewing
 - Tools view in dashboard with pre/post tool correlation
@@ -14,12 +28,6 @@
 - Dashboard type guards in files.svelte.ts and tools.svelte.ts for safer property access
 - Monitor exit code messaging for daemon termination
 - File path extraction from tool_parameters in hook events
-
-### Deprecated
-
-### Removed
-
-### Security
 
 ## [5.3.1] - 2025-12-11
 
