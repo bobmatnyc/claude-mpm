@@ -1,10 +1,19 @@
 ## [Unreleased]
 
 ### Added
+- Knowledge extractor for mpm-init to analyze project documentation and structure
+- Files tab in dashboard with syntax highlighting and diff viewing
+- Tools view in dashboard with pre/post tool correlation
+- Documentation for mpm-init optimization feature (docs/features/mpm-init-optimization.md)
 
 ### Changed
+- Dashboard now correctly extracts file paths from hook event tool_parameters
+- Agent discovery prioritizes dist/agents/ over source agents/
 
 ### Fixed
+- Dashboard type guards in files.svelte.ts and tools.svelte.ts for safer property access
+- Monitor exit code messaging for daemon termination
+- File path extraction from tool_parameters in hook events
 
 ### Deprecated
 
