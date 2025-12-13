@@ -44,26 +44,37 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
     // Process all events
     $events.forEach(event => {
-      const data = event.data as Record<string, unknown> | null;
-      const eventSubtype = event.subtype || (data?.subtype as string);
+      // Add type guards to prevent runtime errors when event.data is array/string
+      const data = event.data;
+      const dataSubtype =
+        data && typeof data === 'object' && !Array.isArray(data)
+          ? (data as Record<string, unknown>).subtype as string | undefined
+          : undefined;
+      const eventSubtype = event.subtype || dataSubtype;
 
       // Only process pre_tool and post_tool events
       if (eventSubtype !== 'pre_tool' && eventSubtype !== 'post_tool') {
         return;
       }
 
-      const toolName = (data?.tool_name as string) || 'Unknown';
+      const toolName =
+        data && typeof data === 'object' && !Array.isArray(data)
+          ? ((data as Record<string, unknown>).tool_name as string) || 'Unknown'
+          : 'Unknown';
       if (!fileTools.has(toolName)) return;
 
       // Extract file path
       const filePath = extractFilePath(toolName, data);
       if (!filePath) return;
 
-      // Extract correlation ID
+      // Extract correlation ID with type guards
+      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : null;
       const correlationId =
         event.correlation_id ||
-        (data?.correlation_id as string) ||
-        (data?.tool_call_id as string);
+        (dataRecord?.correlation_id as string) ||
+        (dataRecord?.tool_call_id as string);
 
       // Get or create file entry
       let fileEntry = fileMap.get(filePath);
@@ -101,33 +112,42 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       if (eventSubtype === 'pre_tool') {
         operation.pre_event = event;
 
-        // Extract operation-specific data
-        if (toolName === 'Edit') {
-          operation.old_string = data?.old_string as string;
-          operation.new_string = data?.new_string as string;
-        } else if (toolName === 'Grep' || toolName === 'Glob') {
-          operation.pattern = data?.pattern as string;
+        // Extract operation-specific data with type guards
+        if (dataRecord) {
+          if (toolName === 'Edit') {
+            operation.old_string = dataRecord.old_string as string;
+            operation.new_string = dataRecord.new_string as string;
+          } else if (toolName === 'Grep' || toolName === 'Glob') {
+            operation.pattern = dataRecord.pattern as string;
+          }
         }
       } else if (eventSubtype === 'post_tool') {
         operation.post_event = event;
 
-        // Extract results from post event
-        if (toolName === 'Read') {
-          // Content might be in result or output
-          const result = data?.result as Record<string, unknown> | string | null;
-          if (typeof result === 'string') {
-            operation.content = result;
-          } else if (result && typeof result === 'object') {
-            operation.content = result.content as string;
-          }
-        } else if (toolName === 'Write') {
-          // For Write, content is in pre_event
-          const preData = operation.pre_event?.data as Record<string, unknown> | null;
-          operation.written_content = preData?.content as string;
-        } else if (toolName === 'Grep' || toolName === 'Glob') {
-          const result = data?.result as Record<string, unknown> | null;
-          if (result?.matches) {
-            operation.matches = (result.matches as any[]).length;
+        // Extract results from post event with type guards
+        if (dataRecord) {
+          if (toolName === 'Read') {
+            // Content might be in result or output
+            const result = dataRecord.result;
+            if (typeof result === 'string') {
+              operation.content = result;
+            } else if (result && typeof result === 'object' && !Array.isArray(result)) {
+              operation.content = (result as Record<string, unknown>).content as string;
+            }
+          } else if (toolName === 'Write') {
+            // For Write, content is in pre_event
+            const preData = operation.pre_event?.data;
+            if (preData && typeof preData === 'object' && !Array.isArray(preData)) {
+              operation.written_content = (preData as Record<string, unknown>).content as string;
+            }
+          } else if (toolName === 'Grep' || toolName === 'Glob') {
+            const result = dataRecord.result;
+            if (result && typeof result === 'object' && !Array.isArray(result)) {
+              const resultRecord = result as Record<string, unknown>;
+              if (resultRecord.matches && Array.isArray(resultRecord.matches)) {
+                operation.matches = resultRecord.matches.length;
+              }
+            }
           }
         }
       }
@@ -154,19 +174,24 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 /**
  * Extract file path from tool data
  */
-function extractFilePath(toolName: string, data: Record<string, unknown> | null): string | null {
-  if (!data) return null;
+function extractFilePath(toolName: string, data: unknown): string | null {
+  // Add type guard at function entry
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return null;
+  }
+
+  const dataRecord = data as Record<string, unknown>;
 
   switch (toolName) {
     case 'Read':
     case 'Write':
     case 'Edit':
-      return data.file_path as string;
+      return dataRecord.file_path as string;
 
     case 'Grep':
     case 'Glob':
       // For search tools, use the path parameter (directory searched)
-      return data.path as string || null;
+      return dataRecord.path as string || null;
 
     default:
       return null;

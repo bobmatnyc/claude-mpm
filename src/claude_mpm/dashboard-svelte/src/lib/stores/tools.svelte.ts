@@ -8,8 +8,13 @@ function createToolsStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
 		// Filter to tool events only
 		const toolEvents = $events.filter(event => {
-			const data = event.data as Record<string, unknown> | null;
-			const eventSubtype = event.subtype || (data?.subtype as string);
+			// Add type guards to prevent runtime errors when event.data is array/string
+			const data = event.data;
+			const dataSubtype =
+				data && typeof data === 'object' && !Array.isArray(data)
+					? (data as Record<string, unknown>).subtype as string | undefined
+					: undefined;
+			const eventSubtype = event.subtype || dataSubtype;
 			return eventSubtype === 'pre_tool' || eventSubtype === 'post_tool';
 		});
 
@@ -37,17 +42,24 @@ function createToolsStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
 			if (!preEvent) return;
 
-			const data = preEvent.data as Record<string, unknown> | null;
+			// Add type guards for event.data
+			const data = preEvent.data;
+			const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+				? data as Record<string, unknown>
+				: null;
 			const toolName = getToolName({ event: 'pre-tool', timestamp: preEvent.timestamp, session_id: preEvent.session_id, data: preEvent.data });
-			const operation = extractOperation(toolName, data);
+			const operation = extractOperation(toolName, dataRecord);
 
 			// Determine status
 			let status: 'pending' | 'success' | 'error' = 'pending';
 			let duration: number | null = null;
 
 			if (postEvent) {
-				const postData = postEvent.data as Record<string, unknown> | null;
-				const hasError = postData?.error || postData?.is_error;
+				const postData = postEvent.data;
+				const postDataRecord = postData && typeof postData === 'object' && !Array.isArray(postData)
+					? postData as Record<string, unknown>
+					: null;
+				const hasError = postDataRecord?.error || postDataRecord?.is_error;
 				status = hasError ? 'error' : 'success';
 
 				// Calculate duration
