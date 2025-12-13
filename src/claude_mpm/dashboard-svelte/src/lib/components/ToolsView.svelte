@@ -11,18 +11,36 @@
 		selectedStream: string;
 	} = $props();
 
+	// Debug: Log what we receive
+	$effect(() => {
+		console.log('[ToolsView] Props received:', {
+			toolsLength: tools.length,
+			selectedStream,
+			firstTool: tools[0] ? { id: tools[0].id, name: tools[0].toolName } : null
+		});
+	});
+
 	// Filter tools by selected stream
-	let filteredTools = $derived(
-		selectedStream === '' || selectedStream === 'all'
+	let filteredTools = $derived.by(() => {
+		const result = selectedStream === '' || selectedStream === 'all'
 			? tools
 			: tools.filter(tool => {
+				const preEvent = tool.preToolEvent;
+				const preEventData = preEvent.data as Record<string, unknown> | null;
 				const preEventStreamId =
-					tool.preToolEvent.session_id ||
-					tool.preToolEvent.sessionId ||
-					tool.preToolEvent.source;
+					preEvent.session_id ||
+					preEvent.sessionId ||
+					(preEventData?.session_id as string) ||
+					preEvent.source;
 				return preEventStreamId === selectedStream;
-			})
-	);
+			});
+		console.log('[ToolsView] Filtered tools:', {
+			inputLength: tools.length,
+			outputLength: result.length,
+			selectedStream
+		});
+		return result;
+	});
 
 	let toolListContainer = $state<HTMLDivElement | null>(null);
 	let isInitialLoad = $state(true);

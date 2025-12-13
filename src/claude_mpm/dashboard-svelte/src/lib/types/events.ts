@@ -30,5 +30,3 @@ export interface Tool {
 	postToolEvent: ClaudeEvent | null;
 	timestamp: string | number; // From pre_tool event
 }
-
-export type ViewMode = 'events' | 'tools';

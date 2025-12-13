@@ -77,6 +77,60 @@
 				return 'text-slate-700 dark:text-slate-300';
 		}
 	}
+
+	// Helper function to format timestamp
+	function formatTimestamp(timestamp: string | number): string {
+		const date = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
+		return date.toLocaleString();
+	}
+
+	// Helper function to safely get nested property
+	function getNestedValue(obj: any, path: string, defaultValue: string = 'N/A'): string {
+		const value = path.split('.').reduce((acc, part) => acc?.[part], obj);
+		if (value === null || value === undefined) return defaultValue;
+		if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+		return String(value);
+	}
+
+	// Extract pre-tool data for table display
+	function extractPreToolData(tool: Tool) {
+		const preData = tool.preToolEvent?.data as Record<string, any> || {};
+		const toolParams = preData.tool_parameters || {};
+		const paramKeys = preData.param_keys || [];
+
+		return {
+			toolName: tool.toolName,
+			operationType: preData.operation_type || 'N/A',
+			sessionId: tool.preToolEvent?.session_id || preData.session_id || 'N/A',
+			workingDirectory: preData.working_directory || preData.cwd || 'N/A',
+			gitBranch: preData.git_branch || 'N/A',
+			timestamp: tool.preToolEvent?.timestamp ? formatTimestamp(tool.preToolEvent.timestamp) : 'N/A',
+			parameterCount: Object.keys(toolParams).length,
+			securityRisk: preData.security_risk || 'None',
+			correlationId: tool.id,
+			toolParameters: toolParams,
+			paramKeys: Array.isArray(paramKeys) ? paramKeys : []
+		};
+	}
+
+	// Extract post-tool data for table display
+	function extractPostToolData(tool: Tool) {
+		if (!tool.postToolEvent) return null;
+		const postData = tool.postToolEvent?.data as Record<string, any> || {};
+
+		return {
+			exitCode: postData.exit_code ?? 'N/A',
+			success: postData.success !== undefined ? (postData.success ? 'Yes' : 'No') : 'N/A',
+			status: postData.status || tool.status || 'N/A',
+			duration: tool.duration !== null ? `${tool.duration}ms` : 'N/A',
+			hasOutput: postData.output || postData.result ? 'Yes' : 'No',
+			hasError: postData.error || postData.is_error ? 'Yes' : 'No',
+			outputSize: postData.output ? String(postData.output).length + ' chars' : 'N/A',
+			correlationId: tool.id,
+			output: postData.output || postData.result || null,
+			error: postData.error || null
+		};
+	}
 </script>
 
 {#snippet renderValue(value: unknown, path: string, depth: number)}
@@ -137,7 +191,9 @@
 
 <div class="flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 transition-colors">
 	<div class="px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
-		<h3 class="text-sm font-semibold text-slate-900 dark:text-white">JSON Data Explorer</h3>
+		<h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+			{tool ? 'Tool Details' : 'JSON Data Explorer'}
+		</h3>
 	</div>
 
 	<div class="flex-1 overflow-y-auto p-4">
@@ -159,35 +215,153 @@
 				<p class="text-sm">Select an event or tool to view details</p>
 			</div>
 		{:else if tool}
-			<!-- Tool view: Show pre-tool and post-tool events separately -->
-			<div class="font-mono text-xs space-y-6">
+			<!-- Tool view: Show pre-tool and post-tool as tables -->
+			{@const preData = extractPreToolData(tool)}
+			{@const postData = extractPostToolData(tool)}
+
+			<div class="space-y-6">
 				<!-- PRE-TOOL Section -->
 				<div>
-					<div class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 pb-2 border-b border-slate-300 dark:border-slate-600">
-						=== PRE-TOOL ===
-					</div>
-					{#each getEntries(tool.preToolEvent) as [key, value]}
-						<div class="mb-1">
-							<span class="text-cyan-600 dark:text-cyan-400">{key}:</span>
-							{@render renderValue(value, `root.${key}`, 0)}
+					<h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 pb-2 border-b border-slate-300 dark:border-slate-600">
+						Tool Invocation
+					</h4>
+					<table class="w-full text-sm">
+						<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 w-1/3">Tool Name</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.toolName}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Operation Type</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.operationType}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Session ID</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs">{preData.sessionId}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Working Directory</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.workingDirectory}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Git Branch</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.gitBranch}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Timestamp</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.timestamp}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Parameter Count</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.parameterCount}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Security Risk</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{preData.securityRisk}</td>
+							</tr>
+							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Correlation ID</td>
+								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.correlationId}</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<!-- Tool Parameters -->
+					{#if Object.keys(preData.toolParameters).length > 0}
+						<div class="mt-4">
+							<h5 class="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Tool Parameters</h5>
+							<table class="w-full text-sm bg-slate-50 dark:bg-slate-800/50 rounded">
+								<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+									{#each Object.entries(preData.toolParameters) as [key, value]}
+										<tr class="hover:bg-slate-100 dark:hover:bg-slate-700">
+											<td class="py-2 px-3 font-mono text-xs text-cyan-600 dark:text-cyan-400 w-1/3">{key}</td>
+											<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">
+												{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
 						</div>
-					{/each}
+					{/if}
+
+					<!-- Parameter Keys -->
+					{#if preData.paramKeys.length > 0}
+						<div class="mt-4">
+							<h5 class="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Parameter Keys</h5>
+							<div class="bg-slate-50 dark:bg-slate-800/50 rounded p-3">
+								<span class="text-slate-900 dark:text-slate-100 font-mono text-xs">
+									{preData.paramKeys.join(', ')}
+								</span>
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- POST-TOOL Section -->
 				<div>
-					<div class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 pb-2 border-b border-slate-300 dark:border-slate-600">
-						=== POST-TOOL ===
-					</div>
-					{#if tool.postToolEvent}
-						{#each getEntries(tool.postToolEvent) as [key, value]}
-							<div class="mb-1">
-								<span class="text-cyan-600 dark:text-cyan-400">{key}:</span>
-								{@render renderValue(value, `root.${key}`, 0)}
+					<h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 pb-2 border-b border-slate-300 dark:border-slate-600">
+						Tool Result
+					</h4>
+					{#if postData}
+						<table class="w-full text-sm">
+							<tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400 w-1/3">Exit Code</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.exitCode}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Success</td>
+									<td class="py-2 px-3">
+										<span class="px-2 py-1 rounded text-xs font-semibold {postData.success === 'Yes' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : postData.success === 'No' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'}">
+											{postData.success}
+										</span>
+									</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Status</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.status}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Duration</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.duration}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Has Output</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.hasOutput}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Has Error</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.hasError}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Output Size</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100">{postData.outputSize}</td>
+								</tr>
+								<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+									<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Correlation ID</td>
+									<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{postData.correlationId}</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<!-- Output -->
+						{#if postData.output}
+							<div class="mt-4">
+								<h5 class="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Output</h5>
+								<pre class="bg-slate-50 dark:bg-slate-800/50 rounded p-3 text-xs font-mono overflow-x-auto text-slate-900 dark:text-slate-100">{String(postData.output)}</pre>
 							</div>
-						{/each}
+						{/if}
+
+						<!-- Error -->
+						{#if postData.error}
+							<div class="mt-4">
+								<h5 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Error</h5>
+								<pre class="bg-red-50 dark:bg-red-900/20 rounded p-3 text-xs font-mono overflow-x-auto text-red-900 dark:text-red-100">{String(postData.error)}</pre>
+							</div>
+						{/if}
 					{:else}
-						<div class="text-slate-400 dark:text-slate-500 italic">
+						<div class="text-slate-400 dark:text-slate-500 italic py-4 text-center">
 							Waiting for result...
 						</div>
 					{/if}

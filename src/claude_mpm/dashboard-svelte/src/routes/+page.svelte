@@ -2,14 +2,21 @@
 	import Header from '$lib/components/Header.svelte';
 	import EventStream from '$lib/components/EventStream.svelte';
 	import ToolsView from '$lib/components/ToolsView.svelte';
+	import FilesView from '$lib/components/FilesView.svelte';
+	import FileViewer from '$lib/components/FileViewer.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
-	import type { ClaudeEvent, Tool, ViewMode } from '$lib/types/events';
+	import type { ClaudeEvent, Tool } from '$lib/types/events';
+	import type { FileEntry } from '$lib/stores/files.svelte';
 	import { socketStore } from '$lib/stores/socket.svelte';
 	import { createToolsStore } from '$lib/stores/tools.svelte';
+	import { createFilesStore } from '$lib/stores/files.svelte';
 	import { get } from 'svelte/store';
+
+	type ViewMode = 'events' | 'tools' | 'files';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
+	let selectedFile = $state<FileEntry | null>(null);
 	let viewMode = $state<ViewMode>('events');
 	let leftWidth = $state(40); // percentage - 40% event stream, 60% data explorer
 	let isDragging = $state(false);
@@ -17,14 +24,26 @@
 	// Use selectedStream from store
 	const { selectedStream, events: eventsStore } = socketStore;
 
-	// Create tools store
+	// Create tools and files stores
 	const toolsStore = createToolsStore(eventsStore);
+	const filesStore = createFilesStore(eventsStore);
 
 	// Subscribe to tools store
 	let tools = $state<Tool[]>([]);
+
 	$effect(() => {
 		const unsubscribe = toolsStore.subscribe(value => {
 			tools = value;
+		});
+		return unsubscribe;
+	});
+
+	// Subscribe to files store
+	let files = $state<FileEntry[]>([]);
+
+	$effect(() => {
+		const unsubscribe = filesStore.subscribe(value => {
+			files = value;
 		});
 		return unsubscribe;
 	});
@@ -33,8 +52,13 @@
 	$effect(() => {
 		if (viewMode === 'events') {
 			selectedTool = null;
-		} else {
+			selectedFile = null;
+		} else if (viewMode === 'tools') {
 			selectedEvent = null;
+			selectedFile = null;
+		} else if (viewMode === 'files') {
+			selectedEvent = null;
+			selectedTool = null;
 		}
 	});
 
@@ -74,7 +98,7 @@
 	<Header />
 
 	<div class="split-container flex flex-1 min-h-0">
-		<!-- Left Panel: View Selector + EventStream or ToolsView (resizable) -->
+		<!-- Left Panel: View Selector + EventStream or ToolsView or FilesView (resizable) -->
 		<div class="left-panel flex flex-col flex-shrink-0 min-w-0" style="width: {leftWidth}%;">
 			<!-- View Tabs -->
 			<div class="bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
@@ -93,6 +117,13 @@
 					>
 						Tools
 					</button>
+					<button
+						onclick={() => viewMode = 'files'}
+						class="tab"
+						class:active={viewMode === 'files'}
+					>
+						Files
+					</button>
 				</div>
 			</div>
 
@@ -100,8 +131,10 @@
 			<div class="flex-1 min-h-0">
 				{#if viewMode === 'events'}
 					<EventStream bind:selectedEvent selectedStream={$selectedStream} />
-				{:else}
+				{:else if viewMode === 'tools'}
 					<ToolsView {tools} bind:selectedTool selectedStream={$selectedStream} />
+				{:else if viewMode === 'files'}
+					<FilesView {files} bind:selectedFile sessionFilter={$selectedStream} />
 				{/if}
 			</div>
 		</div>
@@ -116,9 +149,13 @@
 			tabindex="0"
 		></div>
 
-		<!-- Right Panel: JSON Explorer (resizable) -->
+		<!-- Right Panel: JSON Explorer or FileViewer (resizable) -->
 		<div class="right-panel flex-1 min-w-0" style="width: {100 - leftWidth}%;">
-			<JSONExplorer event={selectedEvent} tool={selectedTool} />
+			{#if viewMode === 'files'}
+				<FileViewer file={selectedFile} />
+			{:else}
+				<JSONExplorer event={selectedEvent} tool={selectedTool} />
+			{/if}
 		</div>
 	</div>
 </div>
