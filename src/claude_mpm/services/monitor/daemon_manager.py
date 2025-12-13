@@ -34,6 +34,11 @@ from typing import Optional, Tuple
 from ...core.enums import OperationResult
 from ...core.logging_config import get_logger
 
+# Exit code constants for signal handling
+EXIT_NORMAL = 0
+EXIT_SIGKILL = 137  # 128 + SIGKILL(9) - forced termination
+EXIT_SIGTERM = 143  # 128 + SIGTERM(15) - graceful shutdown
+
 
 class DaemonManager:
     """Centralized manager for all daemon lifecycle operations.
@@ -556,7 +561,7 @@ class DaemonManager:
             # Use subprocess for clean daemon startup (v4.2.40)
             # This avoids fork() issues with Python threading
             if self.use_subprocess_daemon():
-                return self.start_daemon_subprocess()
+                return self.start_daemon_subprocess(force_restart=force_restart)
             # Fallback to traditional fork (kept for compatibility)
             return self.daemonize()
 
@@ -574,11 +579,14 @@ class DaemonManager:
         # Otherwise, use subprocess for monitor daemon to avoid threading issues
         return True
 
-    def start_daemon_subprocess(self) -> bool:
+    def start_daemon_subprocess(self, force_restart: bool = False) -> bool:
         """Start daemon using subprocess.Popen for clean process isolation.
 
         This avoids all the fork() + threading issues by starting the monitor
         in a completely fresh process with no inherited threads or locks.
+
+        Args:
+            force_restart: Whether this is a force restart (helps interpret exit codes)
 
         Returns:
             True if daemon started successfully
@@ -652,14 +660,41 @@ class DaemonManager:
                     # Check if process is still running
                     returncode = process.poll()
                     if returncode is not None:
-                        # Process exited - this is the bug we're fixing!
-                        self.logger.error(
-                            f"Monitor daemon subprocess exited prematurely with code {returncode}"
-                        )
-                        self.logger.error(
-                            f"Port {self.port} daemon failed to start. Check {self.log_file} for details."
-                        )
-                        return False
+                        # Process exited - interpret exit code with context
+                        # Exit codes 137 (SIGKILL) and 143 (SIGTERM) are common during daemon replacement
+                        if returncode == EXIT_SIGKILL:
+                            # SIGKILL - process was forcefully terminated
+                            if force_restart:
+                                # This is expected during force restart - old daemon was killed
+                                self.logger.info(
+                                    f"Previous monitor instance replaced (exit {EXIT_SIGKILL}: SIGKILL during force restart)"
+                                )
+                            else:
+                                # Unexpected SIGKILL - something else killed our new daemon
+                                self.logger.warning(
+                                    f"Monitor subprocess terminated unexpectedly (exit {EXIT_SIGKILL}: SIGKILL). "
+                                    f"Check {self.log_file} for details."
+                                )
+                            return False
+                        elif returncode == EXIT_SIGTERM:
+                            # SIGTERM - graceful shutdown requested
+                            self.logger.info(
+                                f"Monitor subprocess cleanly terminated (exit {EXIT_SIGTERM}: SIGTERM, graceful shutdown)"
+                            )
+                            return False
+                        elif returncode == EXIT_NORMAL:
+                            # Normal exit
+                            self.logger.info(f"Monitor subprocess exited normally (exit code {EXIT_NORMAL})")
+                            return False
+                        else:
+                            # Unexpected exit code - this IS an error
+                            self.logger.error(
+                                f"Monitor daemon subprocess exited prematurely with code {returncode}"
+                            )
+                            self.logger.error(
+                                f"Port {self.port} daemon failed to start. Check {self.log_file} for details."
+                            )
+                            return False
 
                     # Check if PID file was written
                     if not pid_file_found and self.pid_file.exists():
