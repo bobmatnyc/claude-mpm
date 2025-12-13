@@ -676,25 +676,26 @@ class DaemonManager:
                                     f"Check {self.log_file} for details."
                                 )
                             return False
-                        elif returncode == EXIT_SIGTERM:
+                        if returncode == EXIT_SIGTERM:
                             # SIGTERM - graceful shutdown requested
                             self.logger.info(
                                 f"Monitor subprocess cleanly terminated (exit {EXIT_SIGTERM}: SIGTERM, graceful shutdown)"
                             )
                             return False
-                        elif returncode == EXIT_NORMAL:
+                        if returncode == EXIT_NORMAL:
                             # Normal exit
-                            self.logger.info(f"Monitor subprocess exited normally (exit code {EXIT_NORMAL})")
-                            return False
-                        else:
-                            # Unexpected exit code - this IS an error
-                            self.logger.error(
-                                f"Monitor daemon subprocess exited prematurely with code {returncode}"
-                            )
-                            self.logger.error(
-                                f"Port {self.port} daemon failed to start. Check {self.log_file} for details."
+                            self.logger.info(
+                                f"Monitor subprocess exited normally (exit code {EXIT_NORMAL})"
                             )
                             return False
+                        # Unexpected exit code - this IS an error
+                        self.logger.error(
+                            f"Monitor daemon subprocess exited prematurely with code {returncode}"
+                        )
+                        self.logger.error(
+                            f"Port {self.port} daemon failed to start. Check {self.log_file} for details."
+                        )
+                        return False
 
                     # Check if PID file was written
                     if not pid_file_found and self.pid_file.exists():

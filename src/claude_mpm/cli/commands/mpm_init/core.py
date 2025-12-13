@@ -24,6 +24,7 @@ from claude_mpm.utils.display_helper import DisplayHelper
 
 # Import from sibling modules in the mpm_init package
 from . import display, git_activity, modes, prompts
+from .knowledge_extractor import ProjectKnowledgeExtractor
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,7 @@ class MPMInitCommand:
     def __init__(self, project_path: Optional[Path] = None):
         """Initialize the MPM-Init command."""
         self.project_path = project_path or Path.cwd()
+        self.claude_mpm_dir = self.project_path / ".claude-mpm"
         self.claude_mpm_script = self._find_claude_mpm_script()
         self.console = Console()
 
@@ -452,6 +454,10 @@ class MPMInitCommand:
             self.project_path, project_type, framework, ast_analysis
         )
 
+    def _is_initialized(self) -> bool:
+        """Check if project is already initialized with .claude-mpm directory."""
+        return self.claude_mpm_dir.exists()
+
     def _build_update_prompt(
         self,
         project_type: Optional[str],
@@ -459,10 +465,65 @@ class MPMInitCommand:
         ast_analysis: bool,
         preserve_custom: bool,
     ) -> str:
-        """Build prompt for update mode."""
+        """Build prompt for update mode with optional knowledge extraction."""
         # Get existing content analysis
         doc_analysis = self.doc_manager.analyze_existing_content()
 
+        # Check if project is initialized (.claude-mpm exists)
+        # If so, use enhanced update mode with knowledge extraction
+        if self._is_initialized():
+            self.console.print(
+                "[cyan]✓ Detected initialized project - activating enhanced update mode[/cyan]"
+            )
+
+            # Extract knowledge from all sources
+            extractor = ProjectKnowledgeExtractor(self.project_path)
+
+            self.console.print("[cyan]✓ Analyzing git history (last 90 days)...[/cyan]")
+            git_insights = extractor.extract_from_git(days=90)
+
+            if git_insights.get("available"):
+                arch_count = len(git_insights.get("architectural_decisions", []))
+                workflow_count = len(git_insights.get("workflow_patterns", []))
+                self.console.print(f"  - Found {arch_count} architectural decisions")
+                self.console.print(f"  - Detected {workflow_count} workflow patterns")
+
+            self.console.print("[cyan]✓ Analyzing session logs...[/cyan]")
+            log_insights = extractor.extract_from_logs()
+
+            if log_insights.get("available"):
+                learning_count = len(log_insights.get("learnings", []))
+                self.console.print(f"  - Found {learning_count} learning entries")
+
+            self.console.print("[cyan]✓ Analyzing memory files...[/cyan]")
+            memory_insights = extractor.extract_from_memory()
+
+            if memory_insights.get("available"):
+                total_insights = (
+                    len(memory_insights.get("architectural_knowledge", []))
+                    + len(memory_insights.get("implementation_guidelines", []))
+                    + len(memory_insights.get("common_mistakes", []))
+                    + len(memory_insights.get("technical_context", []))
+                )
+                self.console.print(f"  - Found {total_insights} accumulated insights")
+
+            self.console.print(
+                "[green]✓ Knowledge extraction complete - building enhanced prompt[/green]\n"
+            )
+
+            # Build enhanced prompt with extracted knowledge
+            return prompts.build_enhanced_update_prompt(
+                self.project_path,
+                doc_analysis,
+                git_insights,
+                log_insights,
+                memory_insights,
+                project_type,
+                framework,
+                ast_analysis,
+                preserve_custom,
+            )
+        # Standard update mode (no .claude-mpm directory)
         return prompts.build_update_prompt(
             self.project_path,
             doc_analysis,
@@ -548,6 +609,11 @@ class MPMInitCommand:
             self.archive_manager,
         )
 
+        # Optimize CLAUDE.md with prompt-engineer if it exists
+        claude_md = self.project_path / "CLAUDE.md"
+        if claude_md.exists():
+            self._optimize_claude_md_with_prompt_engineer()
+
     def _display_results(self, result: Dict, verbose: bool):
         """Display initialization results."""
         display.display_results(self.display, self.console, result, verbose)
@@ -568,6 +634,97 @@ class MPMInitCommand:
     ) -> str:
         """Build structured Research agent delegation prompt from git analysis."""
         return prompts.build_research_context_prompt(git_analysis, days)
+
+    def _optimize_claude_md_with_prompt_engineer(self) -> None:
+        """Optimize CLAUDE.md with prompt-engineer for conciseness and clarity."""
+        claude_md_path = self.project_path / "CLAUDE.md"
+        if not claude_md_path.exists():
+            return
+
+        try:
+            # Read current content
+            original_content = claude_md_path.read_text()
+            original_tokens = self._estimate_tokens(original_content)
+
+            # Create backup
+            backup_path = self.archive_manager.auto_archive_before_update(
+                claude_md_path, update_reason="Before prompt-engineer optimization"
+            )
+
+            if not backup_path:
+                logger.warning("Could not create backup before optimization")
+                self.console.print(
+                    "[yellow]⚠️  Skipping optimization - backup failed[/yellow]"
+                )
+                return
+
+            self.console.print(
+                "\n[cyan]✓ Optimizing CLAUDE.md with prompt-engineer...[/cyan]"
+            )
+            self.console.print(f"  - Original: {original_tokens:,} tokens (estimated)")
+            self.console.print(f"  - Backup created: {backup_path}")
+
+            # Build optimization prompt
+            prompt = prompts.build_prompt_engineer_optimization_prompt(
+                original_content, original_tokens
+            )
+
+            # Run optimization through subprocess
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=self.console,
+            ) as progress:
+                task = progress.add_task(
+                    "[cyan]Running prompt-engineer optimization...", total=None
+                )
+
+                result = self._run_initialization(
+                    prompt, verbose=False, update_mode=True
+                )
+
+                progress.update(task, description="[green]✓ Optimization complete")
+
+            # Check if optimization succeeded
+            if result.get("status") == OperationResult.SUCCESS:
+                # Read optimized content
+                optimized_content = claude_md_path.read_text()
+                optimized_tokens = self._estimate_tokens(optimized_content)
+
+                # Calculate reduction
+                token_reduction = original_tokens - optimized_tokens
+                reduction_percent = (
+                    (token_reduction / original_tokens * 100)
+                    if original_tokens > 0
+                    else 0
+                )
+
+                self.console.print(
+                    f"  - Optimized: {optimized_tokens:,} tokens ({reduction_percent:.1f}% reduction)"
+                )
+                self.console.print("[green]✓ CLAUDE.md optimization complete[/green]\n")
+            # Restore from backup on failure
+            elif backup_path and backup_path.exists():
+                import shutil
+
+                shutil.copy2(backup_path, claude_md_path)
+                self.console.print(
+                    "[yellow]⚠️  Optimization failed - restored from backup[/yellow]\n"
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to optimize CLAUDE.md: {e}")
+            self.console.print(
+                f"[yellow]⚠️  Could not optimize CLAUDE.md: {e}[/yellow]\n"
+            )
+
+    def _estimate_tokens(self, text: str) -> int:
+        """Estimate token count for text (rough approximation).
+
+        Uses a simple heuristic: ~4 characters per token for English text.
+        This is a rough estimate but sufficient for displaying progress.
+        """
+        return len(text) // 4
 
 
 __all__ = ["MPMInitCommand"]

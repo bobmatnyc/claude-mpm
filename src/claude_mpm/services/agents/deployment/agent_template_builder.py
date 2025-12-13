@@ -129,12 +129,13 @@ class AgentTemplateBuilder:
                 base_templates.append(base_agent_file)
                 self.logger.debug(f"Found BASE-AGENT.md at: {base_agent_file}")
 
-            # Stop at git repository root if detected
+            # Stop at git repository root if detected (check AFTER finding BASE-AGENT.md)
             if (current_dir / ".git").exists():
                 self.logger.debug(f"Reached git repository root at: {current_dir}")
                 break
 
-            # Stop at common repository root indicators
+            # Stop at common repository root indicators (check AFTER finding BASE-AGENT.md)
+            # This ensures we check the 'agents' directory before stopping at 'remote-agents'
             if current_dir.name in [".claude-mpm", "remote-agents", "cache"]:
                 self.logger.debug(
                     f"Reached repository root indicator at: {current_dir}"

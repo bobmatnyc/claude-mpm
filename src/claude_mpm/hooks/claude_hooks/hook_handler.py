@@ -306,6 +306,7 @@ class ClaudeHookHandler:
                 self.state_manager.cleanup_old_entries()
                 # Also cleanup old correlation files
                 from .correlation_manager import CorrelationManager
+
                 CorrelationManager.cleanup_old()
                 if DEBUG:
                     print(

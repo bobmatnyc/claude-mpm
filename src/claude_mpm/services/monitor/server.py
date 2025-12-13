@@ -412,7 +412,7 @@ class UnifiedMonitorServer:
         Only enabled when enable_hot_reload is True.
         """
         try:
-            dashboard_dir = Path(__file__).parent.parent.parent / "dashboard"
+            dashboard_dir = Path(__file__).resolve().parent.parent.parent / "dashboard"
             svelte_build_dir = dashboard_dir / "static" / "svelte-build"
 
             if not svelte_build_dir.exists():
@@ -443,8 +443,8 @@ class UnifiedMonitorServer:
     def _setup_http_routes(self):
         """Setup HTTP routes for the dashboard."""
         try:
-            # Dashboard static files
-            dashboard_dir = Path(__file__).parent.parent.parent / "dashboard"
+            # Dashboard static files - use .resolve() for absolute path
+            dashboard_dir = Path(__file__).resolve().parent.parent.parent / "dashboard"
             static_dir = dashboard_dir / "static"
 
             # Main dashboard route - serve Svelte dashboard
@@ -454,7 +454,15 @@ class UnifiedMonitorServer:
                     with svelte_index.open(encoding="utf-8") as f:
                         content = f.read()
                     return web.Response(text=content, content_type="text/html")
-                return web.Response(text="Dashboard not found", status=404)
+
+                # Log error with path details for debugging
+                self.logger.error(
+                    f"Dashboard index.html not found at: {svelte_index.resolve()}"
+                )
+                return web.Response(
+                    text=f"Dashboard not found. Expected location: {svelte_index.resolve()}",
+                    status=404,
+                )
 
             # Health check
             async def health_check(request):
@@ -462,7 +470,8 @@ class UnifiedMonitorServer:
                 version = "1.0.0"
                 try:
                     version_file = (
-                        Path(__file__).parent.parent.parent.parent.parent / "VERSION"
+                        Path(__file__).resolve().parent.parent.parent.parent.parent
+                        / "VERSION"
                     )
                     if version_file.exists():
                         version = version_file.read_text().strip()
@@ -703,9 +712,13 @@ class UnifiedMonitorServer:
 
                         # Add cache headers for immutable assets
                         if "/immutable/" in str(rel_path):
-                            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                            response.headers["Cache-Control"] = (
+                                "public, max-age=31536000, immutable"
+                            )
                         else:
-                            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                            response.headers["Cache-Control"] = (
+                                "no-cache, no-store, must-revalidate"
+                            )
 
                         return response
 

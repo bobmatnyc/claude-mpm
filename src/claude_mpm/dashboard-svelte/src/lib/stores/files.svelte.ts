@@ -173,6 +173,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
 /**
  * Extract file path from tool data
+ *
+ * NOTE: File paths can be in two locations:
+ * 1. Directly in data.file_path (legacy or simplified events)
+ * 2. In data.tool_parameters.file_path (standard hook event structure)
  */
 function extractFilePath(toolName: string, data: unknown): string | null {
   // Add type guard at function entry
@@ -182,16 +186,29 @@ function extractFilePath(toolName: string, data: unknown): string | null {
 
   const dataRecord = data as Record<string, unknown>;
 
+  // Extract tool_parameters if present (standard hook event structure)
+  const toolParams = dataRecord.tool_parameters &&
+                     typeof dataRecord.tool_parameters === 'object' &&
+                     !Array.isArray(dataRecord.tool_parameters)
+    ? dataRecord.tool_parameters as Record<string, unknown>
+    : null;
+
   switch (toolName) {
     case 'Read':
     case 'Write':
     case 'Edit':
-      return dataRecord.file_path as string;
+      // Check both direct field AND tool_parameters (hook events use tool_parameters)
+      return (dataRecord.file_path as string) ||
+             (toolParams?.file_path as string) ||
+             null;
 
     case 'Grep':
     case 'Glob':
       // For search tools, use the path parameter (directory searched)
-      return dataRecord.path as string || null;
+      // Check both direct field AND tool_parameters
+      return (dataRecord.path as string) ||
+             (toolParams?.path as string) ||
+             null;
 
     default:
       return null;
