@@ -1,7 +1,6 @@
 """Cross-process correlation storage using .claude-mpm directory."""
 
 import json
-import os
 import time
 from pathlib import Path
 
@@ -9,7 +8,7 @@ from pathlib import Path
 def get_correlation_dir() -> Path:
     """Get correlation directory in project's .claude-mpm folder."""
     # Use CWD's .claude-mpm directory (where hooks run from)
-    cwd = Path(os.getcwd())
+    cwd = Path.cwd()
     return cwd / ".claude-mpm" / "correlations"
 
 
