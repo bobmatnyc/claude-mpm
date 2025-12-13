@@ -400,17 +400,27 @@ class RemoteAgentDiscoveryService:
             )
             return agents
 
-        # Support both cache structures:
-        # 1. Git repo path: {path}/agents/ - has /agents/ subdirectory
-        # 2. Flattened cache: {path}/ - directly contains category directories (universal, engineer, etc.)
+        # Support three cache structures (PRIORITY ORDER):
+        # 1. Built output: {path}/dist/agents/ - PREFERRED (built with BASE-AGENT composition)
+        # 2. Git repo path: {path}/agents/ - source files (fallback)
+        # 3. Flattened cache: {path}/ - directly contains category directories (legacy)
+
+        # Priority 1: Check for dist/agents/ (built output with BASE-AGENT composition)
+        dist_agents_dir = self.remote_agents_dir / "dist" / "agents"
         agents_dir = self.remote_agents_dir / "agents"
 
-        if agents_dir.exists():
-            # Git repo structure - scan /agents/ subdirectory
-            self.logger.debug(f"Using git repo structure: {agents_dir}")
+        if dist_agents_dir.exists():
+            # PREFERRED: Use built agents from dist/agents/
+            # These have BASE-AGENT.md files properly composed by build-agent.py
+            self.logger.debug(f"Using built agents from dist: {dist_agents_dir}")
+            scan_dir = dist_agents_dir
+        elif agents_dir.exists():
+            # FALLBACK: Git repo structure - scan /agents/ subdirectory (source files)
+            # This path is used when dist/agents/ hasn't been built yet
+            self.logger.debug(f"Using source agents (no dist/ found): {agents_dir}")
             scan_dir = agents_dir
         else:
-            # Flattened cache structure - scan root directly
+            # LEGACY: Flattened cache structure - scan root directly
             # Check if this looks like the flattened cache (has category subdirectories)
             category_dirs = [
                 "universal",
@@ -431,9 +441,9 @@ class RemoteAgentDiscoveryService:
                 scan_dir = self.remote_agents_dir
             else:
                 self.logger.warning(
-                    f"Agents subdirectory not found: {agents_dir}. "
-                    f"And no category directories found in {self.remote_agents_dir}. "
-                    f"Expected agents to be in /agents/ subdirectory or category directories."
+                    f"No agent directories found. Checked: {dist_agents_dir}, {agents_dir}, "
+                    f"and category directories in {self.remote_agents_dir}. "
+                    f"Expected agents in /dist/agents/, /agents/, or category directories."
                 )
                 return agents
 
