@@ -78,24 +78,42 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         ? event.timestamp
         : new Date(event.timestamp).toISOString();
 
-      // Extract file path
+      // Extract file path - check multiple locations
       let filePath: string | undefined;
-      if (typeof eventData.file_path === 'string') {
+
+      // Check tool_parameters first (most common location)
+      const toolParams = eventData.tool_parameters as Record<string, unknown> | undefined;
+      if (toolParams && typeof toolParams.file_path === 'string') {
+        filePath = toolParams.file_path;
+      } else if (toolParams && typeof toolParams.path === 'string') {
+        filePath = toolParams.path;
+      }
+      // Fallback to direct properties
+      else if (typeof eventData.file_path === 'string') {
         filePath = eventData.file_path;
       } else if (typeof eventData.path === 'string') {
         filePath = eventData.path;
       }
+      // Check parameters (for pre_tool events)
+      else {
+        const params = eventData.parameters as Record<string, unknown> | undefined;
+        if (params && typeof params.file_path === 'string') {
+          filePath = params.file_path;
+        }
+      }
 
       if (!filePath) return;
 
-      console.log('[FILES] Found file path:', filePath, 'in event type:', event.type, 'tool:', eventData.tool);
+      // Get tool name from multiple possible locations
+      const toolName = eventData.tool || eventData.tool_name || (toolParams && toolParams.tool);
+      console.log('[FILES] Found file path:', filePath, 'in event type:', event.type, 'tool:', toolName);
 
       // Determine operation type
       let operationType: FileOperation['type'] | undefined;
       let operation: FileOperation | undefined;
 
       // Check for Read operations
-      if (event.type === 'post_tool' && eventData.tool === 'Read') {
+      if (event.type === 'post_tool' && toolName === 'Read') {
         const result = eventData.result as Record<string, unknown> | undefined;
         const content = typeof result?.content === 'string' ? result.content : undefined;
 
@@ -109,7 +127,7 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         };
       }
       // Check for Write operations
-      else if (event.type === 'pre_tool' && eventData.tool === 'Write') {
+      else if (event.type === 'pre_tool' && toolName === 'Write') {
         const parameters = eventData.parameters as Record<string, unknown> | undefined;
         const content = typeof parameters?.content === 'string' ? parameters.content : undefined;
 
@@ -123,7 +141,7 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         };
       }
       // Check for Edit operations
-      else if (event.type === 'pre_tool' && eventData.tool === 'Edit') {
+      else if (event.type === 'pre_tool' && toolName === 'Edit') {
         const parameters = eventData.parameters as Record<string, unknown> | undefined;
         const oldString = typeof parameters?.old_string === 'string' ? parameters.old_string : undefined;
         const newString = typeof parameters?.new_string === 'string' ? parameters.new_string : undefined;
@@ -139,7 +157,7 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         };
       }
       // Check for Grep operations
-      else if (event.type === 'pre_tool' && eventData.tool === 'Grep') {
+      else if (event.type === 'pre_tool' && toolName === 'Grep') {
         const parameters = eventData.parameters as Record<string, unknown> | undefined;
         const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
 
@@ -153,7 +171,7 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         };
       }
       // Check for Glob operations
-      else if (event.type === 'pre_tool' && eventData.tool === 'Glob') {
+      else if (event.type === 'pre_tool' && toolName === 'Glob') {
         const parameters = eventData.parameters as Record<string, unknown> | undefined;
         const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
 

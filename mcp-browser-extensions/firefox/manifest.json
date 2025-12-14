@@ -1,0 +1,60 @@
+{
+  "manifest_version": 2,
+  "name": "MCP Browser",
+  "version": "2.2.1",
+  "description": "Captures browser console logs and sends them to local MCP server",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "alarms",
+    "webNavigation",
+    "<all_urls>",
+    "http://localhost/*",
+    "ws://localhost/*",
+    "http://127.0.0.1/*",
+    "ws://127.0.0.1/*",
+    "ws://[::1]/*"
+  ],
+  "background": {
+    "scripts": [
+      "background-enhanced.js"
+    ],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "Readability.js",
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16-yellow.png",
+    "32": "icons/icon32-yellow.png",
+    "48": "icons/icon48-yellow.png",
+    "128": "icons/icon128-yellow.png"
+  },
+  "browser_action": {
+    "default_popup": "popup-enhanced.html",
+    "default_icon": {
+      "16": "icons/icon16-yellow.png",
+      "32": "icons/icon32-yellow.png",
+      "48": "icons/icon48-yellow.png",
+      "128": "icons/icon128-yellow.png"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mcp-browser@anthropic.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

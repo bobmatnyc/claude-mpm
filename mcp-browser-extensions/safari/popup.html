@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MCP Browser Status</title>
+  <style>
+    body {
+      width: 300px;
+      min-height: 200px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    h1 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .status-container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .status-label {
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .status-value {
+      font-weight: 600;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .connected {
+      background-color: #4CAF50;
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+    }
+
+    .disconnected {
+      background-color: #F44336;
+      box-shadow: 0 0 10px rgba(244, 67, 54, 0.6);
+    }
+
+    .action-button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .action-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .action-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message-count {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .error-message {
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid rgba(244, 67, 54, 0.5);
+      border-radius: 4px;
+      padding: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    select option {
+      background: #764ba2;
+      color: white;
+    }
+
+    .safari-badge {
+      text-align: center;
+      margin-top: 12px;
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      font-size: 11px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌐 MCP Browser (Safari)</h1>
+
+  <div class="status-container">
+    <div class="status-row">
+      <span class="status-label">Connection:</span>
+      <span class="status-value">
+        <span id="status-indicator" class="status-indicator"></span>
+        <span id="status-text">Checking...</span>
+      </span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Port:</span>
+      <span class="status-value">
+        <select id="port-select">
+          <option value="auto">Auto</option>
+          <option value="8875">8875</option>
+          <option value="8876">8876</option>
+          <option value="8877">8877</option>
+          <option value="8878">8878</option>
+          <option value="8879">8879</option>
+          <option value="8880">8880</option>
+          <option value="8881">8881</option>
+          <option value="8882">8882</option>
+          <option value="8883">8883</option>
+          <option value="8884">8884</option>
+          <option value="8885">8885</option>
+          <option value="8886">8886</option>
+          <option value="8887">8887</option>
+          <option value="8888">8888</option>
+          <option value="8889">8889</option>
+          <option value="8890">8890</option>
+          <option value="8891">8891</option>
+          <option value="8892">8892</option>
+          <option value="8893">8893</option>
+          <option value="8894">8894</option>
+          <option value="8895">8895</option>
+        </select>
+        <span id="port-value" style="margin-left: 5px;">-</span>
+      </span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Messages Sent:</span>
+      <span class="status-value" id="message-count">0</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Session Time:</span>
+      <span class="status-value" id="session-time">0s</span>
+    </div>
+  </div>
+
+  <button id="reconnect-button" class="action-button">Reconnect</button>
+  <button id="test-button" class="action-button">Generate Test Message</button>
+
+  <div id="error-container"></div>
+
+  <div class="message-count">
+    Console capture active on <strong>all tabs</strong>
+  </div>
+
+  <div class="safari-badge">
+    Safari Extension v2.0.8
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
