@@ -15,6 +15,8 @@
   let selectedOperation = $state<FileOperation | null>(null);
   let highlightedContent = $state<string>('');
   let diffHtml = $state<string>('');
+  let isLoading = $state<boolean>(false);
+  let loadError = $state<string | null>(null);
 
   // Derived state
   let currentOperation = $derived(selectedOperation || file?.operations[0] || null);
@@ -30,41 +32,68 @@
       if (!currentOperation || !file) {
         highlightedContent = '';
         diffHtml = '';
+        isLoading = false;
+        loadError = null;
         return;
       }
 
-      if (showDiff && currentOperation.old_string && currentOperation.new_string) {
-        // Generate diff HTML
-        const patch = Diff.createPatch(
-          file.filename,
-          currentOperation.old_string,
-          currentOperation.new_string,
-          'before',
-          'after'
-        );
+      isLoading = true;
+      loadError = null;
 
-        diffHtml = Diff2Html.html(patch, {
-          drawFileList: false,
-          matching: 'lines',
-          outputFormat: 'side-by-side'
-        });
-      } else if (showContent) {
-        // Syntax highlight content
-        const content = currentOperation.content || currentOperation.written_content || '';
-        const language = getLanguageFromFilename(file.filename);
+      try {
+        if (showDiff && currentOperation.old_string && currentOperation.new_string) {
+          // Generate diff HTML
+          const patch = Diff.createPatch(
+            file.filename,
+            currentOperation.old_string,
+            currentOperation.new_string,
+            'before',
+            'after'
+          );
 
-        try {
-          highlightedContent = await codeToHtml(content, {
-            lang: language as BundledLanguage,
-            themes: {
-              light: 'github-light',
-              dark: 'github-dark'
-            }
+          diffHtml = Diff2Html.html(patch, {
+            drawFileList: false,
+            matching: 'lines',
+            outputFormat: 'side-by-side'
           });
-        } catch (e) {
-          // Fallback to plain text if language detection fails
-          highlightedContent = `<pre><code>${escapeHtml(content)}</code></pre>`;
+        } else if (showContent) {
+          // Syntax highlight content
+          const content = currentOperation.content || currentOperation.written_content || '';
+
+          if (!content) {
+            loadError = 'No content available for this operation';
+            highlightedContent = '';
+            return;
+          }
+
+          const language = getLanguageFromFilename(file.filename);
+
+          try {
+            highlightedContent = await codeToHtml(content, {
+              lang: language as BundledLanguage,
+              themes: {
+                light: 'github-light',
+                dark: 'github-dark'
+              },
+              decorations: [
+                {
+                  // Add line numbers via CSS counter
+                  start: { line: 0, character: 0 },
+                  end: { line: content.split('\n').length, character: 0 }
+                }
+              ]
+            });
+          } catch (e) {
+            // Fallback to plain text if language detection fails
+            console.warn('[FileViewer] Language detection failed for', language, ':', e);
+            highlightedContent = addLineNumbers(content);
+          }
         }
+      } catch (e) {
+        loadError = e instanceof Error ? e.message : 'Failed to render content';
+        console.error('[FileViewer] Error rendering content:', e);
+      } finally {
+        isLoading = false;
       }
     }
 
@@ -82,19 +111,50 @@
     const ext = filename.split('.').pop()?.toLowerCase();
     const langMap: Record<string, string> = {
       ts: 'typescript',
+      tsx: 'tsx',
       js: 'javascript',
+      jsx: 'jsx',
       py: 'python',
       svelte: 'svelte',
       json: 'json',
       md: 'markdown',
+      markdown: 'markdown',
       html: 'html',
       css: 'css',
+      scss: 'scss',
+      sass: 'sass',
       sh: 'bash',
+      bash: 'bash',
       yaml: 'yaml',
       yml: 'yaml',
-      toml: 'toml'
+      toml: 'toml',
+      rs: 'rust',
+      go: 'go',
+      java: 'java',
+      c: 'c',
+      cpp: 'cpp',
+      h: 'c',
+      hpp: 'cpp',
+      rb: 'ruby',
+      php: 'php',
+      sql: 'sql',
+      xml: 'xml',
+      vue: 'vue'
     };
     return langMap[ext || ''] || 'text';
+  }
+
+  function addLineNumbers(content: string): string {
+    const lines = content.split('\n');
+    const lineNumberWidth = String(lines.length).length;
+
+    const numberedLines = lines.map((line, i) => {
+      const lineNum = String(i + 1).padStart(lineNumberWidth, ' ');
+      const escaped = escapeHtml(line);
+      return `<span class="line"><span class="line-number">${lineNum}</span>${escaped}</span>`;
+    }).join('\n');
+
+    return `<pre class="code-with-lines"><code>${numberedLines}</code></pre>`;
   }
 
   function escapeHtml(text: string): string {
@@ -153,7 +213,16 @@
 
     <!-- Content area -->
     <div class="viewer-content">
-      {#if showDiff}
+      {#if isLoading}
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading content...</p>
+        </div>
+      {:else if loadError}
+        <div class="error-state">
+          <p class="error-message">⚠️ {loadError}</p>
+        </div>
+      {:else if showDiff}
         <!-- Diff view for Edit operations -->
         <div class="diff-container">
           {@html diffHtml}
@@ -302,6 +371,54 @@
     line-height: 1.5;
   }
 
+  /* Line numbers for fallback rendering */
+  .code-container :global(.code-with-lines) {
+    counter-reset: line;
+  }
+
+  .code-container :global(.line) {
+    display: block;
+  }
+
+  .code-container :global(.line-number) {
+    display: inline-block;
+    width: 3em;
+    margin-right: 1em;
+    padding-right: 0.5em;
+    text-align: right;
+    color: var(--color-text-tertiary);
+    border-right: 1px solid var(--color-border);
+    user-select: none;
+  }
+
+  /* Shiki already handles line numbers via themes, but we enhance with CSS */
+  .code-container :global(.shiki) {
+    padding: 1rem;
+    border-radius: 0.375rem;
+    overflow-x: auto;
+  }
+
+  .code-container :global(.shiki code) {
+    counter-reset: line;
+  }
+
+  .code-container :global(.shiki code .line) {
+    display: block;
+  }
+
+  .code-container :global(.shiki code .line::before) {
+    content: counter(line);
+    counter-increment: line;
+    display: inline-block;
+    width: 3em;
+    margin-right: 1em;
+    padding-right: 0.5em;
+    text-align: right;
+    color: var(--color-text-tertiary);
+    border-right: 1px solid var(--color-border);
+    user-select: none;
+  }
+
   .search-results {
     padding: 1rem;
     background: var(--color-bg-secondary);
@@ -338,5 +455,51 @@
     height: 100%;
     color: var(--color-text-tertiary);
     font-style: italic;
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--color-text-secondary);
+  }
+
+  .spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+  }
+
+  .error-message {
+    color: #dc2626; /* red-600 */
+    background: #fef2f2; /* red-50 */
+    border: 1px solid #fecaca; /* red-200 */
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  :global(.dark) .error-message {
+    color: #fca5a5; /* red-300 */
+    background: #7f1d1d; /* red-900 */
+    border-color: #991b1b; /* red-800 */
   }
 </style>

@@ -66,37 +66,132 @@ function findFilePathsInObject(obj: unknown, paths: Set<string> = new Set(), dep
 
 function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>>) {
   const files = derived(eventsStore, ($events) => {
-    const allFilePaths = new Set<string>();
-    const fileTimestamps = new Map<string, string>();
+    const fileOperationsMap = new Map<string, FileOperation[]>();
 
-    // Extract file paths from ALL events
+    // Extract file operations from events
     $events.forEach(event => {
-      const paths = findFilePathsInObject(event);
-      paths.forEach(path => {
-        allFilePaths.add(path);
-        // Track most recent timestamp for each file
-        const timestamp = typeof event.timestamp === 'string'
-          ? event.timestamp
-          : new Date(event.timestamp).toISOString();
+      const eventData = event.data as Record<string, unknown> | undefined;
+      if (!eventData) return;
 
-        const existing = fileTimestamps.get(path);
-        if (!existing || new Date(timestamp) > new Date(existing)) {
-          fileTimestamps.set(path, timestamp);
-        }
-      });
+      const timestamp = typeof event.timestamp === 'string'
+        ? event.timestamp
+        : new Date(event.timestamp).toISOString();
+
+      // Extract file path
+      let filePath: string | undefined;
+      if (typeof eventData.file_path === 'string') {
+        filePath = eventData.file_path;
+      } else if (typeof eventData.path === 'string') {
+        filePath = eventData.path;
+      }
+
+      if (!filePath) return;
+
+      // Determine operation type
+      let operationType: FileOperation['type'] | undefined;
+      let operation: FileOperation | undefined;
+
+      // Check for Read operations
+      if (event.type === 'post_tool' && eventData.tool === 'Read') {
+        const result = eventData.result as Record<string, unknown> | undefined;
+        const content = typeof result?.content === 'string' ? result.content : undefined;
+
+        operation = {
+          type: 'Read',
+          timestamp,
+          correlation_id: event.correlation_id,
+          content,
+          pre_event: event,
+          post_event: event
+        };
+      }
+      // Check for Write operations
+      else if (event.type === 'pre_tool' && eventData.tool === 'Write') {
+        const parameters = eventData.parameters as Record<string, unknown> | undefined;
+        const content = typeof parameters?.content === 'string' ? parameters.content : undefined;
+
+        operation = {
+          type: 'Write',
+          timestamp,
+          correlation_id: event.correlation_id,
+          written_content: content,
+          pre_event: event,
+          post_event: event
+        };
+      }
+      // Check for Edit operations
+      else if (event.type === 'pre_tool' && eventData.tool === 'Edit') {
+        const parameters = eventData.parameters as Record<string, unknown> | undefined;
+        const oldString = typeof parameters?.old_string === 'string' ? parameters.old_string : undefined;
+        const newString = typeof parameters?.new_string === 'string' ? parameters.new_string : undefined;
+
+        operation = {
+          type: 'Edit',
+          timestamp,
+          correlation_id: event.correlation_id,
+          old_string: oldString,
+          new_string: newString,
+          pre_event: event,
+          post_event: event
+        };
+      }
+      // Check for Grep operations
+      else if (event.type === 'pre_tool' && eventData.tool === 'Grep') {
+        const parameters = eventData.parameters as Record<string, unknown> | undefined;
+        const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
+
+        operation = {
+          type: 'Grep',
+          timestamp,
+          correlation_id: event.correlation_id,
+          pattern,
+          pre_event: event,
+          post_event: event
+        };
+      }
+      // Check for Glob operations
+      else if (event.type === 'pre_tool' && eventData.tool === 'Glob') {
+        const parameters = eventData.parameters as Record<string, unknown> | undefined;
+        const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
+
+        operation = {
+          type: 'Glob',
+          timestamp,
+          correlation_id: event.correlation_id,
+          pattern,
+          pre_event: event,
+          post_event: event
+        };
+      }
+
+      if (operation) {
+        const operations = fileOperationsMap.get(filePath) || [];
+        operations.push(operation);
+        fileOperationsMap.set(filePath, operations);
+      }
     });
 
-    console.log('[FILES] Found paths:', allFilePaths.size, Array.from(allFilePaths).slice(0, 10));
+    console.log('[FILES] Found file operations:', fileOperationsMap.size);
 
     // Convert to FileEntry array for display
-    const fileList = Array.from(allFilePaths).map(path => ({
-      file_path: path,
-      filename: getFilename(path),
-      directory: getDirectory(path),
-      operations: [], // TODO: populate later if needed
-      last_modified: fileTimestamps.get(path) || new Date().toISOString(),
-      operation_types: new Set<string>()
-    }));
+    const fileList = Array.from(fileOperationsMap.entries()).map(([path, operations]) => {
+      // Sort operations by timestamp (most recent first)
+      const sortedOps = operations.sort((a, b) => {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
+      const operationTypes = new Set(operations.map(op => op.type));
+      const lastModified = sortedOps[0]?.timestamp || new Date().toISOString();
+
+      return {
+        file_path: path,
+        filename: getFilename(path),
+        directory: getDirectory(path),
+        operations: sortedOps,
+        last_modified: lastModified,
+        operation_types: operationTypes
+      };
+    });
 
     // Sort by most recently modified
     return fileList.sort((a, b) => {
