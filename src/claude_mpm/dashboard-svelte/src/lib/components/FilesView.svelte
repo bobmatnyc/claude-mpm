@@ -4,22 +4,32 @@
   interface Props {
     files: FileEntry[];
     selectedFile?: FileEntry | null;
-    sessionFilter?: string | null;
+    selectedStream?: string;
   }
 
-  let { files, selectedFile = $bindable(null), sessionFilter = null }: Props = $props();
+  let { files, selectedFile = $bindable(null), selectedStream = 'all' }: Props = $props();
 
-  // Filter files by session if needed
-  let filteredFiles = $derived(
-    sessionFilter
-      ? files.filter(f =>
-          f.operations.some(op =>
-            op.pre_event?.session_id === sessionFilter ||
-            op.post_event?.session_id === sessionFilter
-          )
-        )
-      : files
-  );
+  $effect(() => {
+    console.log('[FilesView] Props received:', {
+      filesLength: files.length,
+      selectedFile: selectedFile?.file_path,
+      selectedStream,
+      firstFile: files[0] ? { path: files[0].file_path, name: files[0].filename } : null
+    });
+  });
+
+  // Filter files by selected stream (matching ToolsView pattern)
+  let filteredFiles = $derived.by(() => {
+    const result = selectedStream === '' || selectedStream === 'all'
+      ? files
+      : files; // TODO: add stream filtering when operations are populated
+    console.log('[FilesView] Filtered files:', {
+      inputLength: files.length,
+      outputLength: result.length,
+      selectedStream
+    });
+    return result;
+  });
 
   // Format timestamp for display
   function formatTime(timestamp: string): string {

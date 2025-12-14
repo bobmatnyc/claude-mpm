@@ -134,7 +134,7 @@
 				{:else if viewMode === 'tools'}
 					<ToolsView {tools} bind:selectedTool selectedStream={$selectedStream} />
 				{:else if viewMode === 'files'}
-					<FilesView {files} bind:selectedFile sessionFilter={$selectedStream} />
+					<FilesView {files} bind:selectedFile selectedStream={$selectedStream} />
 				{/if}
 			</div>
 		</div>
