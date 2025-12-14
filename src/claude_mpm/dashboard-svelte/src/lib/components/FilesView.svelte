@@ -14,7 +14,8 @@
       filesLength: files.length,
       selectedFile: selectedFile?.file_path,
       selectedStream,
-      firstFile: files[0] ? { path: files[0].file_path, name: files[0].filename } : null
+      firstFile: files[0] ? { path: files[0].file_path, name: files[0].filename, ops: files[0].operations.length } : null,
+      allFiles: files.map(f => ({ path: f.file_path, ops: f.operations.length }))
     });
   });
 
@@ -70,7 +71,6 @@
       <thead class="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10 border-b-2 border-slate-200 dark:border-slate-700">
         <tr>
           <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400 uppercase text-xs tracking-wider">Filename</th>
-          <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400 uppercase text-xs tracking-wider">Path</th>
           <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400 uppercase text-xs tracking-wider">Operations</th>
           <th class="px-4 py-3 text-left font-semibold text-slate-600 dark:text-slate-400 uppercase text-xs tracking-wider">Last Modified</th>
         </tr>
@@ -88,8 +88,7 @@
             role="button"
             aria-pressed={selectedFile?.file_path === file.file_path}
           >
-            <td class="px-4 py-3 font-medium font-mono text-slate-900 dark:text-white">{file.filename}</td>
-            <td class="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs font-mono max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" title={file.file_path}>{file.directory}</td>
+            <td class="px-4 py-3 font-medium font-mono text-slate-900 dark:text-white" title={file.file_path}>{file.filename}</td>
             <td class="px-4 py-3 min-w-[200px]">
               <div class="flex gap-1 flex-wrap items-center">
                 {#each Array.from(file.operation_types) as opType}
@@ -111,7 +110,7 @@
 
         {#if filteredFiles.length === 0}
           <tr>
-            <td colspan="4" class="text-center py-12 text-slate-400 dark:text-slate-500">
+            <td colspan="3" class="text-center py-12 text-slate-400 dark:text-slate-500">
               <div class="flex flex-col items-center">
                 <svg class="w-16 h-16 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

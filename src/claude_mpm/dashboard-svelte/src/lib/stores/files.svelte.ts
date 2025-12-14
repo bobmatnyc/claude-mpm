@@ -66,6 +66,7 @@ function findFilePathsInObject(obj: unknown, paths: Set<string> = new Set(), dep
 
 function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>>) {
   const files = derived(eventsStore, ($events) => {
+    console.log('[FILES] Processing events:', $events.length);
     const fileOperationsMap = new Map<string, FileOperation[]>();
 
     // Extract file operations from events
@@ -86,6 +87,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
 
       if (!filePath) return;
+
+      console.log('[FILES] Found file path:', filePath, 'in event type:', event.type, 'tool:', eventData.tool);
 
       // Determine operation type
       let operationType: FileOperation['type'] | undefined;
@@ -168,10 +171,12 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         const operations = fileOperationsMap.get(filePath) || [];
         operations.push(operation);
         fileOperationsMap.set(filePath, operations);
+        console.log('[FILES] Added operation:', operation.type, 'for file:', filePath);
       }
     });
 
-    console.log('[FILES] Found file operations:', fileOperationsMap.size);
+    console.log('[FILES] Total files with operations:', fileOperationsMap.size);
+    console.log('[FILES] Files map:', Array.from(fileOperationsMap.keys()));
 
     // Convert to FileEntry array for display
     const fileList = Array.from(fileOperationsMap.entries()).map(([path, operations]) => {
@@ -194,11 +199,14 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
     });
 
     // Sort by most recently modified
-    return fileList.sort((a, b) => {
+    const sorted = fileList.sort((a, b) => {
       const aTime = new Date(a.last_modified).getTime();
       const bTime = new Date(b.last_modified).getTime();
       return bTime - aTime;
     });
+
+    console.log('[FILES] Returning sorted file list:', sorted.length, 'files');
+    return sorted;
   });
 
   return files;
