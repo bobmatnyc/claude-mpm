@@ -4,6 +4,68 @@ import type { ClaudeEvent } from '$lib/types/events';
 
 let eventCounter = 0;
 
+// Cache configuration
+const CACHE_KEY_PREFIX = 'claude-mpm-events-';
+const MAX_CACHED_EVENTS_PER_STREAM = 50;
+
+// Safely check if localStorage is available (returns false in SSR)
+function isLocalStorageAvailable(): boolean {
+	if (typeof window === 'undefined') return false;
+	try {
+		const test = '__localStorage_test__';
+		localStorage.setItem(test, test);
+		localStorage.removeItem(test);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+// Load cached events for a specific stream from localStorage
+function loadCachedEvents(streamId: string): ClaudeEvent[] {
+	if (!isLocalStorageAvailable()) return [];
+
+	try {
+		const key = `${CACHE_KEY_PREFIX}${streamId}`;
+		const cached = localStorage.getItem(key);
+		if (cached) {
+			const events = JSON.parse(cached);
+			console.log(`[Cache] Loaded ${events.length} cached events for stream ${streamId}`);
+			return events;
+		}
+	} catch (err) {
+		console.warn(`[Cache] Failed to load cached events for stream ${streamId}:`, err);
+	}
+	return [];
+}
+
+// Save events for a specific stream to localStorage (keep last 50)
+function saveCachedEvents(streamId: string, events: ClaudeEvent[]): void {
+	if (!isLocalStorageAvailable()) return;
+
+	try {
+		const key = `${CACHE_KEY_PREFIX}${streamId}`;
+		// Keep only last 50 events (FIFO)
+		const eventsToCache = events.slice(-MAX_CACHED_EVENTS_PER_STREAM);
+		localStorage.setItem(key, JSON.stringify(eventsToCache));
+		console.log(`[Cache] Saved ${eventsToCache.length} events for stream ${streamId}`);
+	} catch (err) {
+		console.warn(`[Cache] Failed to save cached events for stream ${streamId}:`, err);
+	}
+}
+
+// Group events by stream ID
+function getStreamId(event: ClaudeEvent): string | null {
+	return (
+		event.session_id ||
+		event.sessionId ||
+		(event.data as any)?.session_id ||
+		(event.data as any)?.sessionId ||
+		event.source ||
+		null
+	);
+}
+
 // Use traditional Svelte stores - compatible with static adapter + SSR
 function createSocketStore() {
 	const socket = writable<Socket | null>(null);
@@ -13,6 +75,54 @@ function createSocketStore() {
 	const streamMetadata = writable<Map<string, { projectPath: string; projectName: string }>>(new Map());
 	const error = writable<string | null>(null);
 	const selectedStream = writable<string>('');
+
+	// Load cached events on initialization (client-side only)
+	if (typeof window !== 'undefined') {
+		// This will be called after initial page load
+		setTimeout(() => {
+			const cachedStreams = getAllCachedStreams();
+			if (cachedStreams.length > 0) {
+				console.log(`[Cache] Found ${cachedStreams.length} cached streams`);
+
+				// Load events from all cached streams
+				const allCachedEvents: ClaudeEvent[] = [];
+				const cachedStreamSet = new Set<string>();
+
+				cachedStreams.forEach(streamId => {
+					const streamEvents = loadCachedEvents(streamId);
+					allCachedEvents.push(...streamEvents);
+					if (streamEvents.length > 0) {
+						cachedStreamSet.add(streamId);
+					}
+				});
+
+				// Update stores with cached data
+				if (allCachedEvents.length > 0) {
+					events.set(allCachedEvents);
+					streams.set(cachedStreamSet);
+					console.log(`[Cache] Restored ${allCachedEvents.length} total cached events from ${cachedStreamSet.size} streams`);
+				}
+			}
+		}, 0);
+	}
+
+	// Helper to get all cached stream IDs
+	function getAllCachedStreams(): string[] {
+		if (!isLocalStorageAvailable()) return [];
+
+		const streamIds: string[] = [];
+		try {
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key?.startsWith(CACHE_KEY_PREFIX)) {
+					streamIds.push(key.substring(CACHE_KEY_PREFIX.length));
+				}
+			}
+		} catch (err) {
+			console.warn('[Cache] Failed to enumerate cached streams:', err);
+		}
+		return streamIds;
+	}
 
 	function connect(url: string = 'http://localhost:8765') {
 		const currentSocket = get(socket);
@@ -107,12 +217,7 @@ function createSocketStore() {
 
 		// Track unique streams
 		// Check multiple possible field names for session/stream ID
-		const streamId =
-			data.session_id ||
-			data.sessionId ||
-			data.data?.session_id ||
-			data.data?.sessionId ||
-			data.source;
+		const streamId = getStreamId(eventWithId);
 
 		console.log('Socket store: Extracted stream ID:', streamId);
 		console.log('Socket store: Checked fields:', {
@@ -160,6 +265,11 @@ function createSocketStore() {
 					return newMap;
 				});
 			}
+
+			// Cache events for this stream (keep last 50)
+			const allEvents = get(events);
+			const streamEvents = allEvents.filter(e => getStreamId(e) === streamId);
+			saveCachedEvents(streamId, streamEvents);
 		} else {
 			console.log('Socket store: No stream ID found in event:', JSON.stringify(data, null, 2));
 		}
