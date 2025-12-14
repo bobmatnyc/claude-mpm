@@ -1,8 +1,8 @@
 /**
  * Files Store
  *
- * Tracks file operations (Read, Write, Edit, Glob, Grep) from event stream.
- * Consolidates all operations on the same file path into a single FileEntry.
+ * Extracts file references from ALL events in the stream.
+ * Simplified approach: scan all event data for file paths.
  */
 
 import { writable, derived } from 'svelte/store';
@@ -35,133 +35,71 @@ export interface FileEntry {
   operation_types: Set<string>; // unique operation types
 }
 
+/**
+ * Recursively find file paths in any object
+ */
+function findFilePathsInObject(obj: unknown, paths: Set<string> = new Set(), depth = 0): Set<string> {
+  // Prevent infinite recursion
+  if (depth > 5 || !obj || typeof obj !== 'object') return paths;
+
+  const record = obj as Record<string, unknown>;
+
+  // Check common file path field names
+  const filePathFields = ['file_path', 'path', 'filePath', 'filename'];
+  for (const field of filePathFields) {
+    const value = record[field];
+    if (typeof value === 'string' && value.startsWith('/')) {
+      paths.add(value);
+    }
+  }
+
+  // Recurse into nested objects (but not arrays to avoid noise)
+  for (const key of Object.keys(record)) {
+    const value = record[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      findFilePathsInObject(value, paths, depth + 1);
+    }
+  }
+
+  return paths;
+}
+
 function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>>) {
   const files = derived(eventsStore, ($events) => {
-    const fileMap = new Map<string, FileEntry>();
+    const allFilePaths = new Set<string>();
+    const fileTimestamps = new Map<string, string>();
 
-    // File operation tool names
-    const fileTools = new Set(['Read', 'Write', 'Edit', 'Glob', 'Grep']);
-
-    // Process all events
+    // Extract file paths from ALL events
     $events.forEach(event => {
-      // Add type guards to prevent runtime errors when event.data is array/string
-      const data = event.data;
-      const dataSubtype =
-        data && typeof data === 'object' && !Array.isArray(data)
-          ? (data as Record<string, unknown>).subtype as string | undefined
-          : undefined;
-      const eventSubtype = event.subtype || dataSubtype;
+      const paths = findFilePathsInObject(event);
+      paths.forEach(path => {
+        allFilePaths.add(path);
+        // Track most recent timestamp for each file
+        const timestamp = typeof event.timestamp === 'string'
+          ? event.timestamp
+          : new Date(event.timestamp).toISOString();
 
-      // Only process pre_tool and post_tool events
-      if (eventSubtype !== 'pre_tool' && eventSubtype !== 'post_tool') {
-        return;
-      }
-
-      const toolName =
-        data && typeof data === 'object' && !Array.isArray(data)
-          ? ((data as Record<string, unknown>).tool_name as string) || 'Unknown'
-          : 'Unknown';
-      if (!fileTools.has(toolName)) return;
-
-      // Extract file path
-      const filePath = extractFilePath(toolName, data);
-      if (!filePath) return;
-
-      // Extract correlation ID with type guards
-      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
-        ? data as Record<string, unknown>
-        : null;
-      const correlationId =
-        event.correlation_id ||
-        (dataRecord?.correlation_id as string) ||
-        (dataRecord?.tool_call_id as string);
-
-      // Get or create file entry
-      let fileEntry = fileMap.get(filePath);
-      if (!fileEntry) {
-        fileEntry = {
-          file_path: filePath,
-          filename: getFilename(filePath),
-          directory: getDirectory(filePath),
-          operations: [],
-          last_modified: typeof event.timestamp === 'string'
-            ? event.timestamp
-            : new Date(event.timestamp).toISOString(),
-          operation_types: new Set()
-        };
-        fileMap.set(filePath, fileEntry);
-      }
-
-      // Find or create operation for this correlation_id
-      const operationKey = correlationId || `${toolName}_${event.timestamp}`;
-      let operation = fileEntry.operations.find(op => op.correlation_id === operationKey);
-
-      if (!operation) {
-        operation = {
-          type: toolName as 'Read' | 'Write' | 'Edit' | 'Glob' | 'Grep',
-          timestamp: typeof event.timestamp === 'string'
-            ? event.timestamp
-            : new Date(event.timestamp).toISOString(),
-          correlation_id: operationKey
-        };
-        fileEntry.operations.push(operation);
-        fileEntry.operation_types.add(toolName);
-      }
-
-      // Store pre/post events
-      if (eventSubtype === 'pre_tool') {
-        operation.pre_event = event;
-
-        // Extract operation-specific data with type guards
-        if (dataRecord) {
-          if (toolName === 'Edit') {
-            operation.old_string = dataRecord.old_string as string;
-            operation.new_string = dataRecord.new_string as string;
-          } else if (toolName === 'Grep' || toolName === 'Glob') {
-            operation.pattern = dataRecord.pattern as string;
-          }
+        const existing = fileTimestamps.get(path);
+        if (!existing || new Date(timestamp) > new Date(existing)) {
+          fileTimestamps.set(path, timestamp);
         }
-      } else if (eventSubtype === 'post_tool') {
-        operation.post_event = event;
-
-        // Extract results from post event with type guards
-        if (dataRecord) {
-          if (toolName === 'Read') {
-            // Content might be in result or output
-            const result = dataRecord.result;
-            if (typeof result === 'string') {
-              operation.content = result;
-            } else if (result && typeof result === 'object' && !Array.isArray(result)) {
-              operation.content = (result as Record<string, unknown>).content as string;
-            }
-          } else if (toolName === 'Write') {
-            // For Write, content is in pre_event
-            const preData = operation.pre_event?.data;
-            if (preData && typeof preData === 'object' && !Array.isArray(preData)) {
-              operation.written_content = (preData as Record<string, unknown>).content as string;
-            }
-          } else if (toolName === 'Grep' || toolName === 'Glob') {
-            const result = dataRecord.result;
-            if (result && typeof result === 'object' && !Array.isArray(result)) {
-              const resultRecord = result as Record<string, unknown>;
-              if (resultRecord.matches && Array.isArray(resultRecord.matches)) {
-                operation.matches = resultRecord.matches.length;
-              }
-            }
-          }
-        }
-      }
-
-      // Update last_modified to most recent operation
-      const opTime = new Date(operation.timestamp).getTime();
-      const currentTime = new Date(fileEntry.last_modified).getTime();
-      if (opTime > currentTime) {
-        fileEntry.last_modified = operation.timestamp;
-      }
+      });
     });
 
-    // Convert to sorted array (most recently modified first)
-    return Array.from(fileMap.values()).sort((a, b) => {
+    console.log('[FILES] Found paths:', allFilePaths.size, Array.from(allFilePaths).slice(0, 10));
+
+    // Convert to FileEntry array for display
+    const fileList = Array.from(allFilePaths).map(path => ({
+      file_path: path,
+      filename: getFilename(path),
+      directory: getDirectory(path),
+      operations: [], // TODO: populate later if needed
+      last_modified: fileTimestamps.get(path) || new Date().toISOString(),
+      operation_types: new Set<string>()
+    }));
+
+    // Sort by most recently modified
+    return fileList.sort((a, b) => {
       const aTime = new Date(a.last_modified).getTime();
       const bTime = new Date(b.last_modified).getTime();
       return bTime - aTime;
@@ -169,50 +107,6 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
   });
 
   return files;
-}
-
-/**
- * Extract file path from tool data
- *
- * NOTE: File paths can be in two locations:
- * 1. Directly in data.file_path (legacy or simplified events)
- * 2. In data.tool_parameters.file_path (standard hook event structure)
- */
-function extractFilePath(toolName: string, data: unknown): string | null {
-  // Add type guard at function entry
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    return null;
-  }
-
-  const dataRecord = data as Record<string, unknown>;
-
-  // Extract tool_parameters if present (standard hook event structure)
-  const toolParams = dataRecord.tool_parameters &&
-                     typeof dataRecord.tool_parameters === 'object' &&
-                     !Array.isArray(dataRecord.tool_parameters)
-    ? dataRecord.tool_parameters as Record<string, unknown>
-    : null;
-
-  switch (toolName) {
-    case 'Read':
-    case 'Write':
-    case 'Edit':
-      // Check both direct field AND tool_parameters (hook events use tool_parameters)
-      return (dataRecord.file_path as string) ||
-             (toolParams?.file_path as string) ||
-             null;
-
-    case 'Grep':
-    case 'Glob':
-      // For search tools, use the path parameter (directory searched)
-      // Check both direct field AND tool_parameters
-      return (dataRecord.path as string) ||
-             (toolParams?.path as string) ||
-             null;
-
-    default:
-      return null;
-  }
 }
 
 /**
