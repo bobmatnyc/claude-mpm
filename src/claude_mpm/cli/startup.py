@@ -399,7 +399,10 @@ def sync_remote_agents_on_startup():
                             and f.name.lower() not in doc_files
                             and f.name.lower() != "base-agent.md"
                             # Exclude build artifacts (prevents double-counting source + built files)
-                            and not any(part in str(f).split('/') for part in ['dist', 'build', '.cache'])
+                            and not any(
+                                part in str(f).split("/")
+                                for part in ["dist", "build", ".cache"]
+                            )
                         )
                     ]
                     agent_count = len(agent_files)
