@@ -17,8 +17,8 @@
 
 ## [5.4.3] - 2025-12-15
 
-### Fixed
-- Automated release improvements
+### Changed
+- Renamed slash command from `/mpm-ticket-organize` to `/mpm-organize` for better clarity
 
 ## [5.4.2] - 2025-12-15
 
