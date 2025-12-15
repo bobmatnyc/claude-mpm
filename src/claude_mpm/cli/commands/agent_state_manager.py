@@ -236,7 +236,7 @@ class SimpleAgentManager:
                 # Create AgentConfig with source information
                 # Store full agent_dict for later use in deployment
                 agent_config = AgentConfig(
-                    name=agent_id,  # Use agent_id as name for uniqueness
+                    name=name,  # Use display name for UI
                     description=(
                         f"[{category}] {description[:60]}..."
                         if len(description) > 60
@@ -249,6 +249,7 @@ class SimpleAgentManager:
                 agent_config.source_type = "remote"
                 agent_config.is_deployed = is_deployed
                 agent_config.display_name = name
+                agent_config.agent_id = agent_id  # Store technical ID for reference
                 agent_config.full_agent_id = agent_id
                 agent_config.source_dict = agent_dict  # Store full dict for deployment
 
