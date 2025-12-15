@@ -268,15 +268,14 @@ Commands for viewing and validating Claude MPM configuration.
 
 Commands for ticketing workflows and project organization.
 
-### `/mpm-ticket-organize`
+### `/mpm-organize`
 
-**Aliases**: `/mpm-organize` (deprecated)
-**Future**: `/mpm/ticket:organize`
+**Future**: `/mpm/system:organize`
 **Description**: Organize project files into proper directories with intelligent pattern detection
 
 **Usage**:
 ```bash
-/mpm-ticket-organize [options]
+/mpm-organize [options]
 ```
 
 **Options**:
@@ -485,7 +484,6 @@ If you're using deprecated command names, here's how to migrate:
 | `/mpm-agents` | `/mpm-agents-list` | Deprecated in v4.27.0, removed in v5.1.0 |
 | `/mpm-auto-configure` | `/mpm-agents-auto-configure` | Deprecated in v4.27.0, removed in v5.1.0 |
 | `/mpm-config` | `/mpm-config-view` | Deprecated in v4.27.0, removed in v5.1.0 |
-| `/mpm-organize` | `/mpm-ticket-organize` | Deprecated in v4.27.0, removed in v5.1.0 |
 | `/mpm-ticket` | `/mpm-ticket-view` | Deprecated in v4.27.0, removed in v5.1.0 |
 | `/mpm-resume` | `/mpm-session-resume` | Deprecated in v4.27.0, removed in v5.1.0 |
 

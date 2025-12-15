@@ -465,7 +465,7 @@ class TestDeprecatedCommandCleanup:
             "mpm-agents-list.md",
             "mpm-agents-auto-configure.md",
             "mpm-config-view.md",
-            "mpm-ticket-organize.md",
+            "mpm-organize.md",
             "mpm-session-resume.md",
             "mpm-ticket-view.md",
         ]
@@ -536,7 +536,7 @@ class TestDeprecatedCommandCleanup:
         """Test that DEPRECATED_COMMANDS constant is defined correctly."""
         assert hasattr(CommandDeploymentService, "DEPRECATED_COMMANDS")
         assert isinstance(CommandDeploymentService.DEPRECATED_COMMANDS, list)
-        assert len(CommandDeploymentService.DEPRECATED_COMMANDS) == 6
+        assert len(CommandDeploymentService.DEPRECATED_COMMANDS) == 5
         assert "mpm-agents.md" in CommandDeploymentService.DEPRECATED_COMMANDS
         assert "mpm-ticket.md" in CommandDeploymentService.DEPRECATED_COMMANDS
 

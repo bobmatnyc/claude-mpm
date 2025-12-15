@@ -24,7 +24,6 @@ class CommandDeploymentService(BaseService):
         "mpm-agents.md",  # Replaced by mpm-agents-list.md
         "mpm-auto-configure.md",  # Replaced by mpm-agents-auto-configure.md
         "mpm-config.md",  # Replaced by mpm-config-view.md
-        "mpm-organize.md",  # Replaced by mpm-ticket-organize.md
         "mpm-resume.md",  # Replaced by mpm-session-resume.md
         "mpm-ticket.md",  # Replaced by mpm-ticket-view.md
     ]
@@ -316,7 +315,6 @@ class CommandDeploymentService(BaseService):
             "mpm-agents.md": "mpm-agents-list.md",
             "mpm-auto-configure.md": "mpm-agents-auto-configure.md",
             "mpm-config.md": "mpm-config-view.md",
-            "mpm-organize.md": "mpm-ticket-organize.md",
             "mpm-resume.md": "mpm-session-resume.md",
             "mpm-ticket.md": "mpm-ticket-view.md",
         }
