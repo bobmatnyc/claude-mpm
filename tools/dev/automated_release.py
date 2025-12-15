@@ -7,15 +7,18 @@ This script automates the entire release process:
 2. Increments build number if needed
 3. Commits changes
 4. Creates version tag
-5. Builds package
-6. Publishes to PyPI
-7. Pushes to GitHub
+5. Syncs agent and skills repositories
+6. Builds package
+7. Publishes to PyPI
+8. Pushes to GitHub
 
 Usage:
-    python scripts/automated_release.py --patch    # Patch version bump (X.Y.Z+1)
-    python scripts/automated_release.py --minor    # Minor version bump (X.Y+1.0)
-    python scripts/automated_release.py --major    # Major version bump (X+1.0.0)
-    python scripts/automated_release.py --build    # Build-only release (no version bump)
+    python tools/dev/automated_release.py --patch           # Patch version bump (X.Y.Z+1)
+    python tools/dev/automated_release.py --minor           # Minor version bump (X.Y+1.0)
+    python tools/dev/automated_release.py --major           # Major version bump (X+1.0.0)
+    python tools/dev/automated_release.py --build           # Build-only release (no version bump)
+    python tools/dev/automated_release.py --patch --yes     # Auto-confirm all prompts
+    python tools/dev/automated_release.py --patch --skip-agent-sync  # Skip agent repo sync
 """
 
 import argparse
@@ -193,6 +196,131 @@ def publish_package(project_root: Path, version: str) -> None:
     print("Package published successfully")
 
 
+def sync_agent_repositories(
+    project_root: Path, version: str, skip_sync: bool = False, yes_to_all: bool = False
+) -> None:
+    """Sync agent and skills repositories before release.
+
+    This function checks for uncommitted changes in the agent repositories and
+    commits/pushes them before building the release package.
+
+    Args:
+        project_root: The project root directory
+        version: The version being released
+        skip_sync: If True, skip agent repository sync
+        yes_to_all: If True, auto-confirm all prompts
+    """
+    if skip_sync:
+        print("⚠️  Skipping agent repository sync (--skip-agent-sync flag used)")
+        return
+
+    print("\n🔄 Syncing agent repositories...")
+    print("=" * 50)
+
+    agents_repo = Path.home() / ".claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents"
+    skills_repo = Path.home() / ".claude-mpm/cache/skills/system"
+
+    repos_to_sync = [
+        (agents_repo, "claude-mpm-agents"),
+        (skills_repo, "claude-mpm-skills"),
+    ]
+
+    sync_success = True
+
+    for repo_path, repo_name in repos_to_sync:
+        if not repo_path.exists():
+            print(f"⚠️  Repository not found: {repo_path}")
+            print(f"   Skipping {repo_name} sync")
+            continue
+
+        if not (repo_path / ".git").exists():
+            print(f"⚠️  Not a git repository: {repo_path}")
+            print(f"   Skipping {repo_name} sync")
+            continue
+
+        print(f"\n📦 Checking {repo_name}...")
+
+        # Check for uncommitted changes
+        returncode, stdout, _stderr = run_command(
+            "git status --porcelain", cwd=repo_path, check=False
+        )
+
+        # Filter out .etag_cache.json files
+        changes = [
+            line for line in stdout.strip().split("\n")
+            if line and ".etag_cache.json" not in line
+        ]
+
+        if not changes:
+            print(f"   ✓ No changes to sync in {repo_name}")
+            continue
+
+        print(f"   Found changes in {repo_name}:")
+        for change in changes[:10]:  # Show first 10 changes
+            print(f"     {change}")
+        if len(changes) > 10:
+            print(f"     ... and {len(changes) - 10} more")
+
+        # Get current branch
+        returncode, branch_stdout, _stderr = run_command(
+            "git branch --show-current", cwd=repo_path, check=False
+        )
+        current_branch = branch_stdout.strip()
+
+        # Confirm sync
+        if not yes_to_all:
+            response = input(f"\n   Commit and push changes to {repo_name}? [y/N]: ")
+            if response.lower() not in ["y", "yes"]:
+                print(f"   Skipping {repo_name} sync")
+                sync_success = False
+                continue
+
+        # Add all changes except .etag_cache.json
+        run_command("git add -A", cwd=repo_path)
+        run_command("git reset -- '**/.etag_cache.json'", cwd=repo_path, check=False)
+        run_command("git reset -- '.etag_cache.json'", cwd=repo_path, check=False)
+
+        # Create commit message
+        commit_msg = f"""chore: sync {repo_name} for v{version} release
+
+- Synchronized changes for release v{version}
+- Auto-committed by automated_release.py
+
+🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"""
+
+        # Commit changes
+        returncode, _stdout, _stderr = run_command(
+            f'git commit -m "{commit_msg}"', cwd=repo_path, check=False
+        )
+
+        if returncode != 0:
+            print(f"   ⚠️  Failed to commit changes in {repo_name}")
+            sync_success = False
+            continue
+
+        print(f"   ✓ Committed changes in {repo_name}")
+
+        # Push to remote
+        returncode, _stdout, _stderr = run_command(
+            f"git push origin {current_branch}", cwd=repo_path, check=False
+        )
+
+        if returncode != 0:
+            print(f"   ⚠️  Failed to push {repo_name} to remote")
+            print(f"      You may need to push manually later")
+            sync_success = False
+        else:
+            print(f"   ✓ Pushed {repo_name} to origin/{current_branch}")
+
+    if sync_success:
+        print("\n✅ Agent repository sync complete")
+    else:
+        print("\n⚠️  Agent repository sync completed with warnings")
+        print("   Some repositories may need manual intervention")
+
+
 def push_to_github(project_root: Path) -> None:
     """Push changes and tags to GitHub."""
     print("Pushing to GitHub...")
@@ -226,9 +354,20 @@ def main():
     )
     parser.add_argument("--skip-push", action="store_true", help="Skip GitHub push")
     parser.add_argument(
+        "--skip-agent-sync",
+        action="store_true",
+        help="Skip agent repository sync before build",
+    )
+    parser.add_argument(
         "--skip-checks",
         action="store_true",
         help="Skip quality checks (NOT RECOMMENDED)",
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Auto-confirm all prompts (useful for CI/CD)",
     )
 
     args = parser.parse_args()
@@ -268,6 +407,14 @@ def main():
 
     # Commit and tag
     commit_and_tag(project_root, new_version, is_version_bump)
+
+    # Sync agent repositories before building
+    sync_agent_repositories(
+        project_root,
+        new_version,
+        skip_sync=args.skip_agent_sync,
+        yes_to_all=args.yes,
+    )
 
     # Build package
     build_package(project_root)
