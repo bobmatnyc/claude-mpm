@@ -102,17 +102,76 @@ def bump_version(current_version: str, bump_type: str) -> str:
 
 
 def update_version_files(project_root: Path, new_version: str) -> None:
-    """Update both VERSION files with new version."""
+    """Update all version files (VERSION, package.json, pyproject.toml)."""
+    import json
+    import re
+
+    # Update VERSION files
     root_version_file = project_root / "VERSION"
     package_version_file = project_root / "src" / "claude_mpm" / "VERSION"
 
-    # Update root VERSION file
     root_version_file.write_text(new_version + "\n")
     print(f"Updated {root_version_file} to {new_version}")
 
-    # Update package VERSION file
     package_version_file.write_text(new_version + "\n")
     print(f"Updated {package_version_file} to {new_version}")
+
+    # Update package.json
+    package_json_path = project_root / "package.json"
+    if package_json_path.exists():
+        with open(package_json_path, "r") as f:
+            package_data = json.load(f)
+        package_data["version"] = new_version
+        with open(package_json_path, "w") as f:
+            json.dump(package_data, f, indent=2)
+            f.write("\n")
+        print(f"Updated {package_json_path} to {new_version}")
+
+    # Update pyproject.toml
+    pyproject_path = project_root / "pyproject.toml"
+    if pyproject_path.exists():
+        content = pyproject_path.read_text()
+        # Update [project] version
+        content = re.sub(
+            r'^version = "[^"]*"',
+            f'version = "{new_version}"',
+            content,
+            flags=re.MULTILINE,
+            count=1
+        )
+        # Update [tool.commitizen] version
+        content = re.sub(
+            r'\[tool\.commitizen\]\s+name = "[^"]*"\s+version = "[^"]*"',
+            f'[tool.commitizen]\nname = "cz_conventional_commits"\nversion = "{new_version}"',
+            content,
+            flags=re.DOTALL
+        )
+        pyproject_path.write_text(content)
+        print(f"Updated {pyproject_path} to {new_version}")
+
+    # Update CHANGELOG.md - add new version entry if not present
+    changelog_path = project_root / "CHANGELOG.md"
+    if changelog_path.exists():
+        from datetime import date
+        changelog_content = changelog_path.read_text()
+        version_header = f"## [{new_version}]"
+
+        if version_header not in changelog_content:
+            # Find the Unreleased section and add new version after it
+            unreleased_pattern = r'(## \[Unreleased\].*?)(\n## \[)'
+            today = date.today().strftime("%Y-%m-%d")
+            new_entry = f"\n\n{version_header} - {today}\n\n### Fixed\n- Automated release improvements\n"
+
+            updated_content = re.sub(
+                unreleased_pattern,
+                r'\1' + new_entry + r'\2',
+                changelog_content,
+                flags=re.DOTALL
+            )
+
+            if updated_content != changelog_content:
+                changelog_path.write_text(updated_content)
+                print(f"Updated {changelog_path} with version {new_version}")
 
 
 def run_quality_checks(project_root: Path, skip_checks: bool = False) -> None:
