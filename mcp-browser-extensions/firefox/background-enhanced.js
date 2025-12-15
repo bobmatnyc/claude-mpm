@@ -1927,7 +1927,7 @@ async function probePort(port) {
  */
 async function connectToServer(port, serverInfo = null, retryAttempt = 0) {
   const maxRetries = 3;
-  const baseTimeout = 5000; // Increased from 3000ms to 5000ms
+  const baseTimeout = 10000; // Increased from 5000ms to 10000ms for more robust handshake
   const retryDelay = Math.min(1000 * Math.pow(2, retryAttempt), 5000); // Exponential backoff: 1s, 2s, 4s
 
   console.log(`[MCP Browser] Connecting to server on port ${port}... (attempt ${retryAttempt + 1}/${maxRetries + 1})`);
@@ -1942,8 +1942,11 @@ async function connectToServer(port, serverInfo = null, retryAttempt = 0) {
     const ws = new WebSocket(`ws://localhost:${port}`);
 
     return new Promise((resolve) => {
+      let ackReceived = false;
+
       const timeout = setTimeout(() => {
         if (ws && ws.readyState !== WebSocket.CLOSED) {
+          console.log(`[MCP Browser] Connection timeout - ackReceived: ${ackReceived}, readyState: ${ws.readyState}`);
           ws.close();
         }
 
@@ -1961,11 +1964,10 @@ async function connectToServer(port, serverInfo = null, retryAttempt = 0) {
       }, baseTimeout);
 
       ws.onopen = async () => {
-        clearTimeout(timeout);
+        console.log('[MCP Browser] WebSocket opened, waiting for connection_ack...');
         currentConnection = ws;
         lastPongTime = Date.now();
         reconnectAttempts = 0;
-        console.log('[MCP Browser] Connection successful, reset reconnect attempts');
 
         // Reset gap detection state
         pendingGapRecovery = false;
@@ -1988,12 +1990,30 @@ async function connectToServer(port, serverInfo = null, retryAttempt = 0) {
           console.log(`[MCP Browser] Sent connection_init with lastSequence: ${lastSequenceReceived}`);
         } catch (e) {
           console.error('[MCP Browser] Failed to send connection_init:', e);
+          clearTimeout(timeout);
+          resolve(false);
+          return;
         }
 
-        setupWebSocketHandlers(ws);
-        // Don't call startHeartbeat or set connectionReady yet - wait for connection_ack
+        // Set up temporary message handler to wait for connection_ack
+        ws.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
 
-        resolve(true);
+            if (data.type === 'connection_ack') {
+              ackReceived = true;
+              clearTimeout(timeout);
+              console.log('[MCP Browser] Connection acknowledged by server - connection established!');
+
+              // Now set up the full WebSocket handlers
+              setupWebSocketHandlers(ws);
+
+              resolve(true);
+            }
+          } catch (error) {
+            console.error('[MCP Browser] Failed to parse message during handshake:', error);
+          }
+        };
       };
 
       ws.onerror = (error) => {
@@ -2007,7 +2027,8 @@ async function connectToServer(port, serverInfo = null, retryAttempt = 0) {
 
       ws.onclose = () => {
         clearTimeout(timeout);
-        if (!connectionStatus.connected) {
+        if (!ackReceived) {
+          console.log('[MCP Browser] WebSocket closed before connection_ack received');
           resolve(false);
         }
       };

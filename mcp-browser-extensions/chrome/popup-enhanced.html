@@ -180,6 +180,63 @@
       word-break: break-word;
     }
 
+    /* Progress Bar Styles */
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin: 8px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-container.visible {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4CAF50, #81C784);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-bar.scanning {
+      background: linear-gradient(90deg, #FFC107, #FFD54F);
+      animation: progress-pulse 1s infinite;
+    }
+
+    .progress-bar.connecting {
+      background: linear-gradient(90deg, #2196F3, #64B5F6);
+      animation: progress-pulse 1s infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .progress-text {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 4px;
+      text-align: center;
+      display: none;
+    }
+
+    .progress-text.visible {
+      display: block;
+    }
+
+    /* Smooth transitions for status updates */
+    .status-value,
+    .backend-list,
+    .status-container {
+      transition: opacity 0.2s ease;
+    }
+
   </style>
 </head>
 <body>
@@ -223,13 +280,19 @@
 
   <!-- Action Buttons -->
   <button id="scan-button" class="action-button">🔍 Scan for Backends</button>
-  <button id="test-button" class="action-button">Generate Test Message</button>
+
+  <!-- Progress Bars -->
+  <div id="scan-progress-container" class="progress-container">
+    <div id="scan-progress-bar" class="progress-bar scanning"></div>
+  </div>
+  <div id="scan-progress-text" class="progress-text"></div>
+
+  <div id="connect-progress-container" class="progress-container">
+    <div id="connect-progress-bar" class="progress-bar connecting"></div>
+  </div>
+  <div id="connect-progress-text" class="progress-text"></div>
 
   <div id="error-container"></div>
-
-  <div class="message-count">
-    Dashboard auto-refreshes every 2 seconds
-  </div>
 
   <script src="popup-enhanced.js"></script>
 </body>

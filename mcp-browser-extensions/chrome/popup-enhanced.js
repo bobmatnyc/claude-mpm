@@ -8,11 +8,20 @@
  */
 
 let refreshInterval = null;
+let isUpdating = false; // Prevent concurrent updates
+let errorDebounceTimer = null; // Debounce error messages
 
 /**
  * Load dashboard state
  */
 async function loadDashboard() {
+  // Prevent concurrent updates that cause flashing
+  if (isUpdating) {
+    return;
+  }
+
+  isUpdating = true;
+
   try {
     // Get overall status
     const status = await sendMessage({ type: 'get_status' });
@@ -21,7 +30,7 @@ async function loadDashboard() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const currentTab = tabs[0];
 
-    // Update UI
+    // Update UI smoothly (only update changed elements)
     updateOverallStatus(status);
     if (currentTab) {
       await updateCurrentTabStatus(currentTab.id);
@@ -33,6 +42,8 @@ async function loadDashboard() {
   } catch (error) {
     console.error('[Popup] Failed to load dashboard:', error);
     showError('Failed to load dashboard data');
+  } finally {
+    isUpdating = false;
   }
 }
 
@@ -54,26 +65,49 @@ function updateOverallStatus(status) {
   // Update server connection status
   const activeCount = status.totalConnections || 0;
 
-  if (activeCount > 0) {
-    statusIndicator.className = 'status-indicator connected';
-    if (activeCount === 1) {
-      statusText.textContent = 'Server Connected';
-    } else {
-      statusText.textContent = `${activeCount} Servers Connected`;
-    }
-  } else {
-    statusIndicator.className = 'status-indicator disconnected';
-    statusText.textContent = 'Server Disconnected';
+  // Only update if changed (prevent flashing)
+  const newStatusClass = activeCount > 0 ? 'status-indicator connected' : 'status-indicator disconnected';
+  if (statusIndicator.className !== newStatusClass) {
+    statusIndicator.className = newStatusClass;
   }
 
-  // Update message count
-  messageCount.textContent = status.messageCount || '0';
+  let newStatusText;
+  if (activeCount > 0) {
+    newStatusText = activeCount === 1 ? 'Server Connected' : `${activeCount} Servers Connected`;
+  } else {
+    newStatusText = 'Server Disconnected';
+  }
+
+  if (statusText.textContent !== newStatusText) {
+    statusText.textContent = newStatusText;
+  }
+
+  // Update message count only if changed
+  const newCount = status.messageCount || '0';
+  if (messageCount.textContent !== newCount.toString()) {
+    messageCount.textContent = newCount;
+  }
 
   // Clear error if connected
   if (activeCount > 0) {
-    document.getElementById('error-container').innerHTML = '';
+    const errorContainer = document.getElementById('error-container');
+    if (errorContainer.innerHTML !== '') {
+      errorContainer.innerHTML = '';
+    }
+    // Clear any pending error debounce
+    if (errorDebounceTimer) {
+      clearTimeout(errorDebounceTimer);
+      errorDebounceTimer = null;
+    }
   } else if (status.lastError) {
-    showError(status.lastError);
+    // Debounce error messages to avoid rapid flashing
+    if (errorDebounceTimer) {
+      clearTimeout(errorDebounceTimer);
+    }
+    errorDebounceTimer = setTimeout(() => {
+      showError(status.lastError);
+      errorDebounceTimer = null;
+    }, 500); // Wait 500ms before showing error
   }
 }
 
@@ -208,6 +242,9 @@ async function updateBackendList(status) {
  */
 async function handleConnectToBackend(port, tabId) {
   const connectBtn = document.querySelector(`.backend-connect-btn[data-port="${port}"]`);
+  const progressContainer = document.getElementById('connect-progress-container');
+  const progressBar = document.getElementById('connect-progress-bar');
+  const progressText = document.getElementById('connect-progress-text');
 
   try {
     console.log(`[Popup] Connecting tab ${tabId} to backend on port ${port}`);
@@ -225,6 +262,12 @@ async function handleConnectToBackend(port, tabId) {
       connectBtn.textContent = 'Connecting...';
     }
 
+    // Show progress bar
+    progressContainer.classList.add('visible');
+    progressText.classList.add('visible');
+    progressText.textContent = `Connecting to port ${port}...`;
+    progressBar.style.width = '30%';
+
     // Assign tab to the selected port
     const response = await sendMessage({
       type: 'assign_tab_to_port',
@@ -234,8 +277,15 @@ async function handleConnectToBackend(port, tabId) {
 
     console.log(`[Popup] assign_tab_to_port response:`, response);
 
+    // Update progress
+    progressBar.style.width = '70%';
+
     if (response && response.success) {
       console.log(`[Popup] Successfully connected tab ${tabId} to port ${port}`);
+
+      // Complete progress
+      progressBar.style.width = '100%';
+      progressText.textContent = `Connected to port ${port}!`;
 
       // Hide the backend list immediately
       const backendListContainer = document.getElementById('backend-list-container');
@@ -253,6 +303,13 @@ async function handleConnectToBackend(port, tabId) {
 
       // Refresh dashboard to get full status
       await loadDashboard();
+
+      // Hide progress after a short delay
+      setTimeout(() => {
+        progressContainer.classList.remove('visible');
+        progressText.classList.remove('visible');
+        progressBar.style.width = '0%';
+      }, 1000);
     } else {
       throw new Error(response?.error || 'Failed to connect');
     }
@@ -260,6 +317,11 @@ async function handleConnectToBackend(port, tabId) {
   } catch (error) {
     console.error('[Popup] Failed to connect to backend:', error);
     showError(`Failed to connect: ${error.message}`);
+
+    // Hide progress bar
+    progressContainer.classList.remove('visible');
+    progressText.classList.remove('visible');
+    progressBar.style.width = '0%';
 
     // Re-enable button
     if (connectBtn) {
@@ -276,23 +338,59 @@ async function handleConnectToBackend(port, tabId) {
 async function handleScanBackends() {
   const scanButton = document.getElementById('scan-button');
   const originalText = scanButton.textContent;
+  const progressContainer = document.getElementById('scan-progress-container');
+  const progressBar = document.getElementById('scan-progress-bar');
+  const progressText = document.getElementById('scan-progress-text');
 
   try {
     scanButton.disabled = true;
     scanButton.classList.add('scanning');
     scanButton.textContent = '🔄 Scanning...';
 
+    // Show progress bar
+    progressContainer.classList.add('visible');
+    progressText.classList.add('visible');
+    progressBar.style.width = '0%';
+
     console.log('[Popup] Starting server scan...');
+
+    // Simulate scanning progress (ports 8851-8899, ~49 ports)
+    const totalPorts = 49;
+    let currentPort = 8851;
+
+    // Start progress animation
+    const progressInterval = setInterval(() => {
+      const portOffset = currentPort - 8851;
+      const progress = Math.min((portOffset / totalPorts) * 100, 95);
+      progressBar.style.width = `${progress}%`;
+      progressText.textContent = `Scanning port ${currentPort}...`;
+      currentPort++;
+
+      if (currentPort > 8899) {
+        clearInterval(progressInterval);
+      }
+    }, 30); // Update every 30ms for smooth animation
+
     const response = await sendMessage({ type: 'scan_servers' });
+
+    // Clear the progress interval
+    clearInterval(progressInterval);
 
     if (response && response.servers) {
       console.log(`[Popup] Found ${response.servers.length} servers:`, response.servers);
+
+      // Complete progress
+      progressBar.style.width = '100%';
+      progressText.textContent = `Found ${response.servers.length} backend${response.servers.length !== 1 ? 's' : ''}!`;
+
       if (response.servers.length > 0) {
         // Clear error container immediately
         document.getElementById('error-container').innerHTML = '';
       }
     } else {
       console.log('[Popup] Scan response:', response);
+      progressBar.style.width = '100%';
+      progressText.textContent = 'Scan complete';
     }
 
     // Refresh dashboard after scan
@@ -300,9 +398,21 @@ async function handleScanBackends() {
     await loadDashboard();
     console.log('[Popup] Dashboard refreshed');
 
+    // Hide progress bar after a short delay
+    setTimeout(() => {
+      progressContainer.classList.remove('visible');
+      progressText.classList.remove('visible');
+      progressBar.style.width = '0%';
+    }, 1500);
+
   } catch (error) {
     console.error('[Popup] Scan failed:', error);
     showError('Failed to scan for backends');
+
+    // Hide progress bar on error
+    progressContainer.classList.remove('visible');
+    progressText.classList.remove('visible');
+    progressBar.style.width = '0%';
   } finally {
     scanButton.disabled = false;
     scanButton.classList.remove('scanning');
@@ -351,9 +461,11 @@ function startAutoRefresh() {
     clearInterval(refreshInterval);
   }
 
+  // Increased to 5 seconds to reduce flashing
+  // UI updates are now smooth and only change elements that have changed
   refreshInterval = setInterval(() => {
     loadDashboard();
-  }, 2000);
+  }, 5000);
 }
 
 /**
@@ -368,31 +480,6 @@ function stopAutoRefresh() {
 
 // Event Listeners
 document.getElementById('scan-button').addEventListener('click', handleScanBackends);
-
-document.getElementById('test-button').addEventListener('click', () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        func: () => {
-          console.log('[MCP Browser Test] Test message at', new Date().toISOString());
-          console.info('[MCP Browser Test] Extension is working!');
-          console.warn('[MCP Browser Test] This is a warning');
-          console.error('[MCP Browser Test] This is an error (test only)');
-        }
-      }, () => {
-        const button = document.getElementById('test-button');
-        button.textContent = 'Messages Sent!';
-        button.disabled = true;
-
-        setTimeout(() => {
-          button.textContent = 'Generate Test Message';
-          button.disabled = false;
-        }, 1500);
-      });
-    }
-  });
-});
 
 // Cleanup on popup close
 window.addEventListener('unload', () => {

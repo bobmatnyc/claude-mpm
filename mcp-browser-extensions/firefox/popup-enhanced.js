@@ -481,31 +481,6 @@ function stopAutoRefresh() {
 // Event Listeners
 document.getElementById('scan-button').addEventListener('click', handleScanBackends);
 
-document.getElementById('test-button').addEventListener('click', () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        func: () => {
-          console.log('[MCP Browser Test] Test message at', new Date().toISOString());
-          console.info('[MCP Browser Test] Extension is working!');
-          console.warn('[MCP Browser Test] This is a warning');
-          console.error('[MCP Browser Test] This is an error (test only)');
-        }
-      }, () => {
-        const button = document.getElementById('test-button');
-        button.textContent = 'Messages Sent!';
-        button.disabled = true;
-
-        setTimeout(() => {
-          button.textContent = 'Generate Test Message';
-          button.disabled = false;
-        }, 1500);
-      });
-    }
-  });
-});
-
 // Cleanup on popup close
 window.addEventListener('unload', () => {
   stopAutoRefresh();
