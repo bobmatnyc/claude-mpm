@@ -12,6 +12,12 @@
 
 ### Security
 
+
+## [5.4.1] - 2025-12-15
+
+### Fixed
+- Automated release improvements
+
 ## [5.4.0] - 2025-12-13
 
 ### Added
@@ -3752,6 +3758,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Security
+
+
+## [5.4.1] - 2025-12-15
+
+### Fixed
+- Automated release improvements
 
 ## [4.2.47] - 2025-09-14
 
