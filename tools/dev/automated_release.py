@@ -48,7 +48,7 @@ def run_command(
 
 def get_project_root() -> Path:
     """Get the project root directory."""
-    return Path(__file__).parent.parent
+    return Path(__file__).parent.parent.parent
 
 
 def sync_version_files(project_root: Path) -> None:
