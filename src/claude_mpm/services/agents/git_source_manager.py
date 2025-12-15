@@ -339,9 +339,19 @@ class GitSourceManager:
 
             # Walk cache directory structure
             logger.debug(f"[DEBUG] Walking cache root: {self.cache_root}")
+
+            # Known legacy category directories to skip (flat cache structure)
+            LEGACY_CATEGORIES = {'universal', 'engineer', 'ops', 'qa', 'security', 'documentation', 'claude-mpm'}
+
             for owner_dir in self.cache_root.iterdir():
                 if not owner_dir.is_dir():
                     continue
+
+                # Skip legacy category directories (they're not GitHub owners)
+                if owner_dir.name.lower() in LEGACY_CATEGORIES:
+                    logger.debug(f"[DEBUG] Skipping legacy category directory: {owner_dir.name}")
+                    continue
+
                 logger.debug(f"[DEBUG] Processing owner_dir: {owner_dir.name}")
 
                 for repo_dir in owner_dir.iterdir():

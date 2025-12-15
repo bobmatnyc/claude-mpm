@@ -851,6 +851,12 @@ class GitSourceSyncService:
             if base_path and not path.startswith(base_path + "/"):
                 continue
 
+            # Exclude build/dist directories (prevents double-counting)
+            # e.g., both "agents/engineer.md" and "dist/agents/engineer.md"
+            path_parts = path.split("/")
+            if any(excluded in path_parts for excluded in ["dist", "build", ".cache"]):
+                continue
+
             # Remove base_path prefix for relative paths
             if base_path:
                 relative_path = path[len(base_path) + 1 :]

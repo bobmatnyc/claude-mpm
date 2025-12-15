@@ -387,6 +387,7 @@ def sync_remote_agents_on_startup():
                     # 1. Must have "/agents/" in path (from git repos)
                     # 2. Must not be in PM templates or doc files
                     # 3. Exclude BASE-AGENT.md which is not a deployable agent
+                    # 4. Exclude build artifacts (dist/, build/, .cache/) to prevent double-counting
                     agent_files = [
                         f
                         for f in all_md_files
@@ -397,6 +398,8 @@ def sync_remote_agents_on_startup():
                             and f.name.lower() not in pm_templates
                             and f.name.lower() not in doc_files
                             and f.name.lower() != "base-agent.md"
+                            # Exclude build artifacts (prevents double-counting source + built files)
+                            and not any(part in str(f).split('/') for part in ['dist', 'build', '.cache'])
                         )
                     ]
                     agent_count = len(agent_files)

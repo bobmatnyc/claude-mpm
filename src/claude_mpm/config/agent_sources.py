@@ -316,6 +316,33 @@ class AgentSourceConfiguration:
 
         return errors
 
+    def list_sources(self) -> list[dict]:
+        """Return list of source configurations as dictionaries.
+
+        This method converts GitRepository objects to dictionaries for CLI
+        and API compatibility. Called by GitSourceManager and CLI commands.
+
+        Returns:
+            List of dicts with keys: identifier, url, subdirectory, enabled, priority
+
+        Example:
+            >>> config = AgentSourceConfiguration()
+            >>> sources = config.list_sources()
+            >>> for source in sources:
+            ...     print(f"{source['identifier']} (priority: {source['priority']})")
+        """
+        repos = self.get_enabled_repositories()
+        return [
+            {
+                "identifier": repo.identifier,
+                "url": repo.url,
+                "subdirectory": repo.subdirectory,
+                "enabled": repo.enabled,
+                "priority": repo.priority,
+            }
+            for repo in repos
+        ]
+
     def __repr__(self) -> str:
         """Return string representation of configuration."""
         return (
