@@ -408,14 +408,6 @@ def sync_remote_agents_on_startup():
                     agent_count = len(agent_files)
 
                 if agent_count > 0:
-                    # Create progress bar for deployment phase
-                    deploy_progress = ProgressBar(
-                        total=agent_count,
-                        prefix="Deploying agents",
-                        show_percentage=True,
-                        show_counter=True,
-                    )
-
                     # Deploy agents to project-level directory where Claude Code expects them
                     deploy_target = Path.cwd() / ".claude" / "agents"
                     deployment_result = deployment_service.deploy_agents(
@@ -424,23 +416,31 @@ def sync_remote_agents_on_startup():
                         deployment_mode="update",  # Version-aware updates
                     )
 
-                    # Update progress bar (single increment since deploy_agents is batch)
-                    deploy_progress.update(agent_count)
-
-                    # Finish deployment progress bar
+                    # Get actual counts from deployment result (reflects configured agents)
                     deployed = len(deployment_result.get("deployed", []))
                     updated = len(deployment_result.get("updated", []))
                     skipped = len(deployment_result.get("skipped", []))
-                    total_available = deployed + updated + skipped
+                    total_configured = deployed + updated + skipped
 
-                    # Show total available agents (deployed + updated + already existing)
+                    # Create progress bar with actual configured agent count (not raw file count)
+                    deploy_progress = ProgressBar(
+                        total=total_configured if total_configured > 0 else 1,
+                        prefix="Deploying agents",
+                        show_percentage=True,
+                        show_counter=True,
+                    )
+
+                    # Update progress bar to completion
+                    deploy_progress.update(total_configured if total_configured > 0 else 1)
+
+                    # Show total configured agents (deployed + updated + already existing)
                     if deployed > 0 or updated > 0:
                         deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_available} total)"
+                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_configured} total)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {total_available} agents ready (all up-to-date)"
+                            f"Complete: {total_configured} agents ready (all up-to-date)"
                         )
 
                     # Display deployment errors to user (not just logs)
