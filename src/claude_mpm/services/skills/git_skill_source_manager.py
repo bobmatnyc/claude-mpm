@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from claude_mpm.config.skill_sources import SkillSource, SkillSourceConfiguration
 from claude_mpm.core.logging_config import get_logger
@@ -989,6 +989,7 @@ class GitSkillSourceManager:
         target_dir: Optional[Path] = None,
         force: bool = False,
         progress_callback=None,
+        skill_filter: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
         """Deploy skills from cache to target directory with flat structure.
 
@@ -1004,6 +1005,9 @@ class GitSkillSourceManager:
             target_dir: Target deployment directory (default: ~/.claude/skills/)
             force: Overwrite existing skills
             progress_callback: Optional callback(increment: int) called for each skill deployed
+            skill_filter: Optional set of skill names to deploy (selective deployment).
+                         If None, deploys all skills. If provided, only deploys skills
+                         whose name matches an entry in the filter set.
 
         Returns:
             Dict with deployment results:
@@ -1013,13 +1017,19 @@ class GitSkillSourceManager:
                 "failed_count": int,
                 "deployed_skills": List[str],
                 "skipped_skills": List[str],
-                "errors": List[str]
+                "errors": List[str],
+                "filtered_count": int  # Number of skills filtered out
             }
 
         Example:
             >>> manager = GitSkillSourceManager(config)
             >>> result = manager.deploy_skills()
             >>> print(f"Deployed {result['deployed_count']} skills")
+
+            # Selective deployment based on agent requirements:
+            >>> required = {"typescript-core", "react-patterns"}
+            >>> result = manager.deploy_skills(skill_filter=required)
+            >>> print(f"Deployed {result['deployed_count']} of {len(required)} required skills")
         """
         if target_dir is None:
             target_dir = Path.home() / ".claude" / "skills"
@@ -1029,9 +1039,25 @@ class GitSkillSourceManager:
         deployed = []
         skipped = []
         errors = []
+        filtered_count = 0
 
         # Get all skills from all sources
         all_skills = self.get_all_skills()
+
+        # Apply skill filter if provided (selective deployment)
+        if skill_filter is not None:
+            original_count = len(all_skills)
+            # Normalize filter to lowercase for case-insensitive matching
+            normalized_filter = {s.lower() for s in skill_filter}
+            all_skills = [
+                s for s in all_skills
+                if s.get("name", "").lower() in normalized_filter
+            ]
+            filtered_count = original_count - len(all_skills)
+            self.logger.info(
+                f"Selective deployment: {len(all_skills)} of {original_count} skills "
+                f"match agent requirements ({filtered_count} filtered out)"
+            )
 
         self.logger.info(
             f"Deploying {len(all_skills)} skills to {target_dir} (force={force})"
@@ -1083,6 +1109,7 @@ class GitSkillSourceManager:
             "deployed_skills": deployed,
             "skipped_skills": skipped,
             "errors": errors,
+            "filtered_count": filtered_count,
         }
 
     def _deploy_single_skill(
