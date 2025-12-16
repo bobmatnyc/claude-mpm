@@ -5,26 +5,37 @@ skills that agents actually reference, reducing deployed skills from ~78 to ~20
 for a typical project.
 
 DESIGN DECISIONS:
+- Dual-source skill discovery:
+  1. Explicit frontmatter declarations (skills: field)
+  2. SkillToAgentMapper inference (pattern-based)
 - Support both legacy flat list and new required/optional dict formats
 - Parse YAML frontmatter from agent markdown files
-- Extract all skill references from deployed agents
+- Combine explicit + inferred skills for comprehensive coverage
 - Return set of unique skill names for filtering
 
 FORMATS SUPPORTED:
 1. Legacy: skills: [skill-a, skill-b, ...]
 2. New: skills: {required: [...], optional: [...]}
 
+SKILL DISCOVERY FLOW:
+1. Scan deployed agents (.claude/agents/*.md)
+2. Extract frontmatter skills (explicit declarations)
+3. Query SkillToAgentMapper for pattern-based skills
+4. Combine both sources into unified set
+
 References:
 - Feature: Progressive skills discovery (#117)
+- Service: SkillToAgentMapper (skill_to_agent_mapper.py)
 """
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set
 
 import yaml
 
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.skills.skill_to_agent_mapper import SkillToAgentMapper
 
 logger = get_logger(__name__)
 
@@ -114,11 +125,51 @@ def get_skills_from_agent(frontmatter: Dict[str, Any]) -> Set[str]:
     return set()
 
 
+def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
+    """Get skills for agents using SkillToAgentMapper inference.
+
+    Uses SkillToAgentMapper to find all skills associated with given agent IDs.
+    This provides pattern-based skill discovery beyond explicit frontmatter declarations.
+
+    Args:
+        agent_ids: List of agent identifiers (e.g., ["python-engineer", "typescript-engineer"])
+
+    Returns:
+        Set of unique skill names inferred from mapping configuration
+
+    Example:
+        >>> agent_ids = ["python-engineer", "typescript-engineer"]
+        >>> skills = get_skills_from_mapping(agent_ids)
+        >>> print(f"Found {len(skills)} skills from mapping")
+    """
+    try:
+        mapper = SkillToAgentMapper()
+        all_skills = set()
+
+        for agent_id in agent_ids:
+            agent_skills = mapper.get_skills_for_agent(agent_id)
+            if agent_skills:
+                all_skills.update(agent_skills)
+                logger.debug(f"Mapped {len(agent_skills)} skills to {agent_id}")
+
+        logger.info(f"Mapped {len(all_skills)} unique skills for {len(agent_ids)} agents")
+        return all_skills
+
+    except Exception as e:
+        logger.warning(f"Failed to load SkillToAgentMapper: {e}")
+        logger.info("Falling back to frontmatter-only skill discovery")
+        return set()
+
+
 def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     """Extract all skills referenced by deployed agents.
 
-    Scans all agent markdown files in agents_dir and collects unique skill names.
-    Supports both legacy and new skills field formats.
+    Combines skills from two sources:
+    1. Explicit frontmatter declarations (skills: field in agent .md files)
+    2. SkillToAgentMapper inference (pattern-based skill discovery)
+
+    This dual-source approach ensures agents get both explicitly declared skills
+    and skills inferred from their domain/toolchain patterns.
 
     Args:
         agents_dir: Path to deployed agents directory (e.g., .claude/agents/)
@@ -131,23 +182,40 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
         >>> required_skills = get_required_skills_from_agents(agents_dir)
         >>> print(f"Found {len(required_skills)} unique skills")
     """
-    required_skills = set()
-
     if not agents_dir.exists():
         logger.warning(f"Agents directory not found: {agents_dir}")
-        return required_skills
+        return set()
 
     # Scan all agent markdown files
     agent_files = list(agents_dir.glob("*.md"))
     logger.debug(f"Scanning {len(agent_files)} agent files in {agents_dir}")
 
+    # Source 1: Extract skills from frontmatter
+    frontmatter_skills = set()
+    agent_ids = []
+
     for agent_file in agent_files:
+        agent_id = agent_file.stem
+        agent_ids.append(agent_id)
+
         frontmatter = parse_agent_frontmatter(agent_file)
         agent_skills = get_skills_from_agent(frontmatter)
 
         if agent_skills:
-            required_skills.update(agent_skills)
-            logger.debug(f"Agent {agent_file.stem}: {len(agent_skills)} skills")
+            frontmatter_skills.update(agent_skills)
+            logger.debug(f"Agent {agent_id}: {len(agent_skills)} skills from frontmatter")
 
-    logger.info(f"Found {len(required_skills)} unique skills across all agents")
+    logger.info(f"Found {len(frontmatter_skills)} unique skills from frontmatter")
+
+    # Source 2: Get skills from SkillToAgentMapper
+    mapped_skills = get_skills_from_mapping(agent_ids)
+
+    # Combine both sources
+    required_skills = frontmatter_skills | mapped_skills
+
+    logger.info(
+        f"Combined {len(frontmatter_skills)} frontmatter + {len(mapped_skills)} mapped "
+        f"= {len(required_skills)} total unique skills"
+    )
+
     return required_skills
