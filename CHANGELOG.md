@@ -1,15 +1,29 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Deprecated
+
+### Removed
+
+### Security
+
+## [5.4.4] - 2025-12-16
+
+### Added
 - Selective skill deployment: only deploys skills referenced by agents (#117)
 - `--all-skills` flag to override selective deployment and deploy all skills
 - New `selective_skill_deployer` module for agent-to-skill mapping
+- Comprehensive licensing documentation
 
 ### Changed
 - Skills now deploy selectively by default (reduces ~78 to ~20 typical project)
 - Skill descriptions shortened to keywords for reduced context overhead (#115)
 - Agent YAML frontmatter now includes skills field linking to required skills (#116)
-
 - **License Update**: Changed license to Elastic License 2.0
   - **For most users**: No action required - internal and commercial use remains free
   - **SaaS providers**: Contact bob@matsuoka.com for commercial licensing
@@ -19,21 +33,13 @@
 - Agent selection wizard showing skills instead of agents (314 items instead of 41)
 - Exclude `claude-mpm-skills` repo from agent discovery in GitSourceManager
 - Add defense-in-depth filtering for SKILL.md files and skills-related directories
-
-### Deprecated
-
-### Removed
-
-### Security
+- Code formatting and linting issues for release
 
 ### Why This Change
 
 To ensure sustainable development of Claude MPM by preventing SaaS providers
 from reselling the project without contributing back, while keeping it freely
 available for the vast majority of use cases.
-
-
-
 
 ## [5.4.3] - 2025-12-15
 
