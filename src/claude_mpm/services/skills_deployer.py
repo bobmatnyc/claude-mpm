@@ -82,6 +82,8 @@ class SkillsDeployerService(LoggerMixin):
         toolchain: Optional[List[str]] = None,
         categories: Optional[List[str]] = None,
         force: bool = False,
+        selective: bool = True,
+        project_root: Optional[Path] = None,
     ) -> Dict:
         """Deploy skills from GitHub repository.
 
@@ -89,14 +91,17 @@ class SkillsDeployerService(LoggerMixin):
         1. Downloads skills from GitHub collection
         2. Parses manifest for metadata
         3. Filters by toolchain and categories
-        4. Deploys to ~/.claude/skills/
-        5. Warns about Claude Code restart
+        4. (If selective=True) Filters to only agent-referenced skills
+        5. Deploys to ~/.claude/skills/
+        6. Warns about Claude Code restart
 
         Args:
             collection: Collection name to deploy from (default: uses default collection)
             toolchain: Filter by toolchain (e.g., ['python', 'javascript'])
             categories: Filter by categories (e.g., ['testing', 'debugging'])
             force: Overwrite existing skills
+            selective: If True, only deploy skills referenced by agents (default)
+            project_root: Project root directory (for finding agents, auto-detected if None)
 
         Returns:
             Dict containing:
@@ -107,10 +112,14 @@ class SkillsDeployerService(LoggerMixin):
             - restart_required: True if Claude Code needs restart
             - restart_instructions: Message about restarting
             - collection: Collection name used for deployment
+            - selective_mode: True if selective deployment was used
+            - total_available: Total skills available before filtering
 
         Example:
             >>> result = deployer.deploy_skills(collection="obra-superpowers")
             >>> result = deployer.deploy_skills(toolchain=['python'])  # Uses default
+            >>> # Deploy all skills (not just agent-referenced)
+            >>> result = deployer.deploy_skills(selective=False)
             >>> if result['restart_required']:
             >>>     print(result['restart_instructions'])
         """
@@ -152,13 +161,63 @@ class SkillsDeployerService(LoggerMixin):
 
         self.logger.info(f"Found {len(skills)} skills in repository")
 
-        # Step 3: Filter skills
+        # Step 3: Filter skills by toolchain and categories
         filtered_skills = self._filter_skills(skills, toolchain, categories)
 
         self.logger.info(
             f"After filtering: {len(filtered_skills)} skills to deploy"
             f" (toolchain={toolchain}, categories={categories})"
         )
+
+        # Step 3.5: Apply selective filtering (only agent-referenced skills)
+        total_available = len(filtered_skills)
+        if selective:
+            # Auto-detect project root if not provided
+            if project_root is None:
+                # Try to find project root by looking for .claude directory
+                # Start from current directory and walk up
+                current = Path.cwd()
+                while current != current.parent:
+                    if (current / ".claude").exists():
+                        project_root = current
+                        break
+                    current = current.parent
+
+            if project_root:
+                agents_dir = Path(project_root) / ".claude" / "agents"
+            else:
+                # Fallback to current directory's .claude/agents
+                agents_dir = Path.cwd() / ".claude" / "agents"
+
+            from claude_mpm.services.skills.selective_skill_deployer import (
+                get_required_skills_from_agents,
+            )
+
+            required_skill_names = get_required_skills_from_agents(agents_dir)
+
+            if required_skill_names:
+                # Filter to only required skills
+                # Match on either 'name' or 'skill_id' field
+                filtered_skills = [
+                    s
+                    for s in filtered_skills
+                    if s.get("name") in required_skill_names
+                    or s.get("skill_id") in required_skill_names
+                ]
+
+                self.logger.info(
+                    f"Selective deployment: {len(filtered_skills)}/{total_available} skills "
+                    f"(agent-referenced only)"
+                )
+            else:
+                self.logger.warning(
+                    f"No skills found in agent frontmatter at {agents_dir}. "
+                    f"Deploying all {total_available} skills."
+                )
+        else:
+            self.logger.info(
+                f"Selective mode disabled: deploying all {total_available} skills"
+            )
 
         # Step 4: Deploy skills
         deployed = []
@@ -228,6 +287,8 @@ class SkillsDeployerService(LoggerMixin):
             "restart_required": restart_required,
             "restart_instructions": restart_instructions,
             "collection": collection_name,
+            "selective_mode": selective,
+            "total_available": total_available,
         }
 
     def list_available_skills(self, collection: Optional[str] = None) -> Dict:

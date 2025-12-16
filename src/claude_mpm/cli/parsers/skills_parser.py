@@ -168,9 +168,10 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         help="Force redeployment of already deployed skills",
     )
     deploy_github_parser.add_argument(
-        "--all",
+        "--all-skills",
         action="store_true",
-        help="Deploy all available skills (no filtering)",
+        dest="all_skills",
+        help="Deploy ALL available skills (not just agent-referenced). By default, only skills referenced in agent frontmatter are deployed.",
     )
 
     # List available GitHub skills

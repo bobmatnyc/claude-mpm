@@ -537,7 +537,7 @@ class SkillsManagementCommand(BaseCommand):
             toolchain = getattr(args, "toolchain", None)
             categories = getattr(args, "categories", None)
             force = getattr(args, "force", False)
-            all_skills = getattr(args, "all", False)
+            all_skills = getattr(args, "all_skills", False)
 
             if collection:
                 console.print(
@@ -554,17 +554,36 @@ class SkillsManagementCommand(BaseCommand):
                     "[yellow]No toolchain specified. Use --toolchain to filter by language,[/yellow]"
                 )
                 console.print(
-                    "[yellow]or --all to deploy all available skills.[/yellow]\n"
+                    "[yellow]or --all-skills to deploy all available skills (not just agent-referenced).[/yellow]\n"
                 )
 
+            # Selective deployment is enabled by default (deploy only agent-referenced skills)
+            # Use --all-skills to disable selective mode
             result = self.skills_deployer.deploy_skills(
                 collection=collection,
                 toolchain=toolchain,
                 categories=categories,
                 force=force,
+                selective=not all_skills,  # Disable selective mode if --all-skills is set
             )
 
             # Display results
+            # Show selective mode summary
+            if result.get("selective_mode"):
+                total_available = result.get("total_available", 0)
+                deployed_count = result["deployed_count"]
+                console.print(
+                    f"[cyan]📌 Selective deployment: {deployed_count} agent-referenced skills "
+                    f"(out of {total_available} available)[/cyan]"
+                )
+                console.print(
+                    "[dim]Use --all-skills to deploy all available skills[/dim]\n"
+                )
+            else:
+                console.print(
+                    "[cyan]📦 Deploying all available skills (selective mode disabled)[/cyan]\n"
+                )
+
             if result["deployed_count"] > 0:
                 console.print(
                     f"[green]✓ Deployed {result['deployed_count']} skill(s):[/green]"
