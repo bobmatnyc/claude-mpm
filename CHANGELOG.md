@@ -1,8 +1,14 @@
 ## [Unreleased]
 
 ### Added
+- Selective skill deployment: only deploys skills referenced by agents (#117)
+- `--all-skills` flag to override selective deployment and deploy all skills
+- New `selective_skill_deployer` module for agent-to-skill mapping
 
 ### Changed
+- Skills now deploy selectively by default (reduces ~78 to ~20 typical project)
+- Skill descriptions shortened to keywords for reduced context overhead (#115)
+- Agent YAML frontmatter now includes skills field linking to required skills (#116)
 
 - **License Update**: Changed license to Elastic License 2.0
   - **For most users**: No action required - internal and commercial use remains free
@@ -10,6 +16,9 @@
   - See [LICENSE-FAQ.md](LICENSE-FAQ.md) for detailed use cases and examples
 
 ### Fixed
+- Agent selection wizard showing skills instead of agents (314 items instead of 41)
+- Exclude `claude-mpm-skills` repo from agent discovery in GitSourceManager
+- Add defense-in-depth filtering for SKILL.md files and skills-related directories
 
 ### Deprecated
 

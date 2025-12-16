@@ -400,8 +400,9 @@ class ConfigureCommand(BaseCommand):
                 # Set deployment status on each agent for display
                 deployed_ids = get_deployed_agent_ids()
                 for agent in agents:
-                    # Extract leaf name for comparison
-                    agent_leaf_name = agent.name.split("/")[-1]
+                    # Use agent_id (technical ID) for comparison, not display name
+                    agent_id = getattr(agent, "agent_id", agent.name)
+                    agent_leaf_name = agent_id.split("/")[-1]
                     agent.is_deployed = agent_leaf_name in deployed_ids
 
                 # Filter BASE_AGENT from display (1M-502 Phase 1)
@@ -1218,7 +1219,9 @@ class ConfigureCommand(BaseCommand):
                 source_label = "Local"
 
             # FIX 2: Check actual deployment status from .claude/agents/ directory
-            is_installed = agent.name in deployed_ids
+            # Use agent_id (technical ID like "python-engineer") not display name
+            agent_id = getattr(agent, "agent_id", agent.name)
+            is_installed = agent_id in deployed_ids
             if is_installed:
                 status = "[green]Installed[/green]"
             else:
@@ -1248,8 +1251,8 @@ class ConfigureCommand(BaseCommand):
                     recommended_count += 1
                     break
 
-            # FIX 1: Removed asterisk - using Status column instead
-            agent_id_display = agent.name
+            # FIX 1: Show agent_id (technical ID) in first column, not display name
+            agent_id_display = getattr(agent, "agent_id", agent.name)
 
             # Get display name and format it properly
             # Raw display_name from YAML may contain underscores (e.g., "agentic_coder_optimizer")
@@ -1281,7 +1284,10 @@ class ConfigureCommand(BaseCommand):
                 self.console.print("\n[dim]* = recommended for this project[/dim]")
 
         # Show installed vs available count (use deployed_ids for accuracy)
-        installed_count = sum(1 for a in agents if a.name in deployed_ids)
+        # Use agent_id (technical ID) for comparison, not display name
+        installed_count = sum(
+            1 for a in agents if getattr(a, "agent_id", a.name) in deployed_ids
+        )
         available_count = len(agents) - installed_count
         self.console.print(
             f"\n[green]✓ {installed_count} installed[/green] | "
@@ -1352,11 +1358,14 @@ class ConfigureCommand(BaseCommand):
             recommended_agent_ids = set()
 
         # Build mapping: leaf name -> full path for deployed agents
+        # Use agent_id (technical ID) for comparison, not display name
         deployed_full_paths = set()
         for agent in agents:
-            agent_leaf_name = agent.name.split("/")[-1]
+            agent_id = getattr(agent, "agent_id", agent.name)
+            agent_leaf_name = agent_id.split("/")[-1]
             if agent_leaf_name in deployed_ids:
-                deployed_full_paths.add(agent.name)
+                # Store agent_id for selection tracking (not display name)
+                deployed_full_paths.add(agent_id)
 
         # Track current selection state (starts with deployed, updated in loop)
         current_selection = deployed_full_paths.copy()
@@ -1366,7 +1375,9 @@ class ConfigureCommand(BaseCommand):
         collections = defaultdict(list)
 
         for agent in agents:
-            if agent.name in {a["agent_id"] for a in all_agents}:
+            # Use agent_id (technical ID) for comparison, not display name
+            agent_id = getattr(agent, "agent_id", agent.name)
+            if agent_id in {a["agent_id"] for a in all_agents}:
                 # Determine collection ID
                 source_type = getattr(agent, "source_type", "local")
                 if source_type == "remote":
@@ -1391,7 +1402,7 @@ class ConfigureCommand(BaseCommand):
                     collection_id = "Local Agents"
 
                 collections[collection_id].append(agent)
-                agent_map[agent.name] = agent
+                agent_map[agent_id] = agent
 
         # Monkey-patch questionary symbols for better visibility
         questionary.prompts.common.INDICATOR_SELECTED = "[✓]"
@@ -1406,10 +1417,11 @@ class ConfigureCommand(BaseCommand):
                 agents_in_collection = collections[collection_id]
 
                 # Count selected/total agents in collection
+                # Use agent_id for selection tracking, not display name
                 selected_count = sum(
                     1
                     for agent in agents_in_collection
-                    if agent.name in current_selection
+                    if getattr(agent, "agent_id", agent.name) in current_selection
                 )
                 total_count = len(agents_in_collection)
 
@@ -1498,7 +1510,9 @@ class ConfigureCommand(BaseCommand):
 
                     # Add individual agents
                     for agent in agents_in_category:
-                        agent_leaf_name = agent.name.split("/")[-1]
+                        # Use agent_id (technical ID) for all tracking/selection
+                        agent_id = getattr(agent, "agent_id", agent.name)
+                        agent_leaf_name = agent_id.split("/")[-1]
                         display_name = getattr(agent, "display_name", agent_leaf_name)
 
                         # Check if agent is deployed (exists in .claude/agents/)
@@ -1506,12 +1520,12 @@ class ConfigureCommand(BaseCommand):
                         # Format choice text (no asterisk needed)
                         choice_text = f"    {display_name}"
 
-                        is_selected = agent.name in current_selection
+                        is_selected = agent_id in current_selection
 
                         choices.append(
                             Choice(
                                 title=choice_text,
-                                value=agent.name,
+                                value=agent_id,  # Use agent_id for value
                                 checked=is_selected,
                             )
                         )
@@ -1565,38 +1579,42 @@ class ConfigureCommand(BaseCommand):
                         )
                         # Add all agents from this collection to current_selection
                         for agent in collections[collection_id]:
-                            current_selection.add(agent.name)
+                            agent_id = getattr(agent, "agent_id", agent.name)
+                            current_selection.add(agent_id)
                     elif control.startswith("__DESELECT_ALL_"):
                         collection_id = control.replace("__DESELECT_ALL_", "").replace(
                             "__", ""
                         )
                         # Remove all agents from this collection
                         for agent in collections[collection_id]:
-                            current_selection.discard(agent.name)
+                            agent_id = getattr(agent, "agent_id", agent.name)
+                            current_selection.discard(agent_id)
                     elif control.startswith("__SELECT_REC_"):
                         collection_id = control.replace("__SELECT_REC_", "").replace(
                             "__", ""
                         )
                         # Add all recommended agents from this collection
                         for agent in collections[collection_id]:
+                            agent_id = getattr(agent, "agent_id", agent.name)
                             if any(
-                                agent.name == rec_id
-                                or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                agent_id == rec_id
+                                or agent_id.split("/")[-1] == rec_id.split("/")[-1]
                                 for rec_id in recommended_agent_ids
                             ):
-                                current_selection.add(agent.name)
+                                current_selection.add(agent_id)
                     elif control.startswith("__DESELECT_REC_"):
                         collection_id = control.replace("__DESELECT_REC_", "").replace(
                             "__", ""
                         )
                         # Remove all recommended agents from this collection
                         for agent in collections[collection_id]:
+                            agent_id = getattr(agent, "agent_id", agent.name)
                             if any(
-                                agent.name == rec_id
-                                or agent.name.split("/")[-1] == rec_id.split("/")[-1]
+                                agent_id == rec_id
+                                or agent_id.split("/")[-1] == rec_id.split("/")[-1]
                                 for rec_id in recommended_agent_ids
                             ):
-                                current_selection.discard(agent.name)
+                                current_selection.discard(agent_id)
 
                 # Loop back to re-display with updated selections
                 continue
@@ -1753,12 +1771,14 @@ class ConfigureCommand(BaseCommand):
             return
 
         # Build mapping: leaf name -> full path for deployed agents
-        # This allows comparing deployed_ids (leaf names) with agent.name (full paths)
+        # This allows comparing deployed_ids (leaf names) with agent.agent_id (full paths)
         deployed_full_paths = set()
         for agent in agents:
-            agent_leaf_name = agent.name.split("/")[-1]
+            # FIX: Use agent_id (technical ID) instead of display name
+            agent_id = getattr(agent, "agent_id", agent.name)
+            agent_leaf_name = agent_id.split("/")[-1]
             if agent_leaf_name in deployed_ids:
-                deployed_full_paths.add(agent.name)
+                deployed_full_paths.add(agent_id)
 
         # Track current selection state (starts with deployed full paths, updated after each iteration)
         current_selection = deployed_full_paths.copy()
@@ -1770,7 +1790,9 @@ class ConfigureCommand(BaseCommand):
             collections = defaultdict(list)
 
             for agent in agents:
-                if agent.name in {a["agent_id"] for a in all_agents}:
+                # FIX: Use agent_id (technical ID) for comparison
+                agent_id = getattr(agent, "agent_id", agent.name)
+                if agent_id in {a["agent_id"] for a in all_agents}:
                     # Determine collection ID
                     source_type = getattr(agent, "source_type", "local")
                     if source_type == "remote":
@@ -1789,7 +1811,7 @@ class ConfigureCommand(BaseCommand):
                         collection_id = "local"
 
                     collections[collection_id].append(agent)
-                    agent_map[agent.name] = agent
+                    agent_map[agent_id] = agent  # FIX: Use agent_id as key
 
             # STEP 1: Collection-level selection
             self.console.print("\n[bold cyan]Select Agent Collections[/bold cyan]")
@@ -1809,15 +1831,18 @@ class ConfigureCommand(BaseCommand):
 
                 # Check if ANY agent in this collection is currently deployed
                 # This reflects actual deployment state, not just selection
+                # FIX: Use agent_id for comparison with current_selection
                 any_deployed = any(
-                    agent.name in current_selection for agent in agents_in_collection
+                    getattr(agent, "agent_id", agent.name) in current_selection
+                    for agent in agents_in_collection
                 )
 
                 # Count deployed agents for display
+                # FIX: Use agent_id for comparison with current_selection
                 deployed_count = sum(
                     1
                     for agent in agents_in_collection
-                    if agent.name in current_selection
+                    if getattr(agent, "agent_id", agent.name) in current_selection
                 )
 
                 collection_choices.append(
@@ -1911,17 +1936,22 @@ class ConfigureCommand(BaseCommand):
                     )
 
                     # Add individual agents from this collection
-                    for agent in sorted(agents_in_collection, key=lambda a: a.name):
+                    # FIX: Use agent_id for sorting, comparison, and values
+                    for agent in sorted(
+                        agents_in_collection,
+                        key=lambda a: getattr(a, "agent_id", a.name),
+                    ):
+                        agent_id = getattr(agent, "agent_id", agent.name)
                         display_name = getattr(agent, "display_name", agent.name)
-                        is_selected = agent.name in deployed_full_paths
+                        is_selected = agent_id in deployed_full_paths
 
-                        choice_text = f"{agent.name}"
-                        if display_name and display_name != agent.name:
+                        choice_text = f"{agent_id}"
+                        if display_name and display_name != agent_id:
                             choice_text += f" - {display_name}"
 
                         agent_choices.append(
                             Choice(
-                                title=choice_text, value=agent.name, checked=is_selected
+                                title=choice_text, value=agent_id, checked=is_selected
                             )
                         )
 
@@ -1971,7 +2001,8 @@ class ConfigureCommand(BaseCommand):
                 final_selections = set()
                 for collection_id in selected_collections:
                     for agent in collections[collection_id]:
-                        final_selections.add(agent.name)
+                        # FIX: Use agent_id for selection tracking
+                        final_selections.add(getattr(agent, "agent_id", agent.name))
 
                 # Update current_selection
                 # This replaces the previous selection entirely with the new collection selections

@@ -408,14 +408,6 @@ def sync_remote_agents_on_startup():
                     agent_count = len(agent_files)
 
                 if agent_count > 0:
-                    # Create progress bar for deployment phase
-                    deploy_progress = ProgressBar(
-                        total=agent_count,
-                        prefix="Deploying agents",
-                        show_percentage=True,
-                        show_counter=True,
-                    )
-
                     # Deploy agents to project-level directory where Claude Code expects them
                     deploy_target = Path.cwd() / ".claude" / "agents"
                     deployment_result = deployment_service.deploy_agents(
@@ -424,23 +416,45 @@ def sync_remote_agents_on_startup():
                         deployment_mode="update",  # Version-aware updates
                     )
 
-                    # Update progress bar (single increment since deploy_agents is batch)
-                    deploy_progress.update(agent_count)
-
-                    # Finish deployment progress bar
+                    # Get actual counts from deployment result (reflects configured agents)
                     deployed = len(deployment_result.get("deployed", []))
                     updated = len(deployment_result.get("updated", []))
                     skipped = len(deployment_result.get("skipped", []))
-                    total_available = deployed + updated + skipped
+                    total_configured = deployed + updated + skipped
 
-                    # Show total available agents (deployed + updated + already existing)
+                    # FALLBACK: If deployment result doesn't track skipped agents (async path),
+                    # count existing agents in target directory as "already deployed"
+                    # This ensures accurate reporting when agents are already up-to-date
+                    if total_configured == 0 and deploy_target.exists():
+                        existing_agents = list(deploy_target.glob("*.md"))
+                        # Filter out non-agent files (e.g., README.md, INSTRUCTIONS.md)
+                        agent_count_in_target = len(
+                            [f for f in existing_agents if not f.name.startswith(("README", "INSTRUCTIONS"))]
+                        )
+                        if agent_count_in_target > 0:
+                            # All agents already deployed - count them as skipped
+                            skipped = agent_count_in_target
+                            total_configured = agent_count_in_target
+
+                    # Create progress bar with actual configured agent count (not raw file count)
+                    deploy_progress = ProgressBar(
+                        total=total_configured if total_configured > 0 else 1,
+                        prefix="Deploying agents",
+                        show_percentage=True,
+                        show_counter=True,
+                    )
+
+                    # Update progress bar to completion
+                    deploy_progress.update(total_configured if total_configured > 0 else 1)
+
+                    # Show total configured agents (deployed + updated + already existing)
                     if deployed > 0 or updated > 0:
                         deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_available} total)"
+                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_configured} total)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {total_available} agents ready (all up-to-date)"
+                            f"Complete: {total_configured} agents ready (all up-to-date)"
                         )
 
                     # Display deployment errors to user (not just logs)
@@ -588,42 +602,73 @@ def sync_remote_skills_on_startup():
         # This flattens nested Git structure (e.g., collaboration/parallel-agents/SKILL.md)
         # into flat deployment (e.g., collaboration-dispatching-parallel-agents/SKILL.md)
         if results["synced_count"] > 0:
-            # Get all skills to determine deployment count
+            # Get required skills from deployed agents (selective deployment)
+            from ..services.skills.selective_skill_deployer import (
+                get_required_skills_from_agents,
+            )
+
+            agents_dir = Path.cwd() / ".claude" / "agents"
+            required_skills = get_required_skills_from_agents(agents_dir)
+
+            # Get all skills to determine counts
             all_skills = manager.get_all_skills()
-            skill_count = len(all_skills)
+            total_skill_count = len(all_skills)
+
+            # Determine skill count based on whether we have agent requirements
+            if required_skills:
+                # Selective deployment: only skills required by deployed agents
+                skill_count = len(required_skills)
+            else:
+                # No agent requirements found - deploy all skills
+                skill_count = total_skill_count
 
             if skill_count > 0:
-                # Create progress bar for deployment phase
+                # Deploy skills with selective filter (if agent requirements exist)
+                # Deploy to project directory (like agents), not user directory
+                deployment_result = manager.deploy_skills(
+                    target_dir=Path.cwd() / ".claude" / "skills",
+                    force=False,
+                    skill_filter=required_skills if required_skills else None,
+                )
+
+                # Get actual counts from deployment result
+                deployed = deployment_result.get("deployed_count", 0)
+                skipped = deployment_result.get("skipped_count", 0)
+                filtered = deployment_result.get("filtered_count", 0)
+                total_available = deployed + skipped
+
+                # Create progress bar with actual deployed skill count
                 deploy_progress = ProgressBar(
-                    total=skill_count,
+                    total=total_available if total_available > 0 else 1,
                     prefix="Deploying skill directories",
                     show_percentage=True,
                     show_counter=True,
                 )
 
-                # Deploy skills with progress callback
-                # Deploy to project directory (like agents), not user directory
-                deployment_result = manager.deploy_skills(
-                    target_dir=Path.cwd() / ".claude" / "skills",
-                    force=False,
-                    progress_callback=deploy_progress.update,
-                )
-
-                # Finish deployment progress bar
-                deployed = deployment_result.get("deployed_count", 0)
-                skipped = deployment_result.get("skipped_count", 0)
-                total_available = deployed + skipped
+                # Update progress bar to completion
+                deploy_progress.update(total_available if total_available > 0 else 1)
 
                 # Show total available skills (deployed + already existing)
-                # This is more user-friendly than just showing newly deployed count
+                # Include filtered count if selective deployment was used
                 if deployed > 0:
-                    deploy_progress.finish(
-                        f"Complete: {deployed} deployed, {skipped} already present ({total_available} total)"
-                    )
+                    if filtered > 0:
+                        deploy_progress.finish(
+                            f"Complete: {deployed} deployed, {skipped} present "
+                            f"({total_available} for agents, {filtered} filtered)"
+                        )
+                    else:
+                        deploy_progress.finish(
+                            f"Complete: {deployed} deployed, {skipped} already present ({total_available} total)"
+                        )
                 else:
-                    deploy_progress.finish(
-                        f"Complete: {total_available} skills ready (all up-to-date)"
-                    )
+                    if filtered > 0:
+                        deploy_progress.finish(
+                            f"Complete: {total_available} skills ready for agents ({filtered} filtered)"
+                        )
+                    else:
+                        deploy_progress.finish(
+                            f"Complete: {total_available} skills ready (all up-to-date)"
+                        )
 
                 # Log deployment errors if any
                 from ..core.logger import get_logger
