@@ -351,6 +351,12 @@ class GitSourceManager:
                 "claude-mpm",
             }
 
+            # Repositories that are NOT agent repositories (should be excluded from agent discovery)
+            # These contain skills, documentation, or other non-agent content
+            EXCLUDED_REPOSITORIES = {
+                "claude-mpm-skills",  # Skills repository, not agents
+            }
+
             for owner_dir in self.cache_root.iterdir():
                 if not owner_dir.is_dir():
                     continue
@@ -367,6 +373,14 @@ class GitSourceManager:
                 for repo_dir in owner_dir.iterdir():
                     if not repo_dir.is_dir():
                         continue
+
+                    # Skip excluded repositories (e.g., skills repos are not agent repos)
+                    if repo_dir.name in EXCLUDED_REPOSITORIES:
+                        logger.debug(
+                            f"[DEBUG] Skipping excluded repository: {repo_dir.name}"
+                        )
+                        continue
+
                     logger.debug(f"[DEBUG] Processing repo_dir: {repo_dir.name}")
 
                     # Bug #5 fix: Don't iterate subdirectories - RemoteAgentDiscoveryService

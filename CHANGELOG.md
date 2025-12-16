@@ -11,6 +11,9 @@
 - Agent YAML frontmatter now includes skills field linking to required skills (#116)
 
 ### Fixed
+- Agent selection wizard showing skills instead of agents (314 items instead of 41)
+- Exclude `claude-mpm-skills` repo from agent discovery in GitSourceManager
+- Add defense-in-depth filtering for SKILL.md files and skills-related directories
 
 ### Deprecated
 

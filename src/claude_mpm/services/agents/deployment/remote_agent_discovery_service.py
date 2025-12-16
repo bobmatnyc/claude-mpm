@@ -464,8 +464,23 @@ class RemoteAgentDiscoveryService:
             "AUTO-DEPLOY-INDEX.md",
             "PHASE1_COMPLETE.md",
             "AGENTS.md",
+            # Skill-related files (should not be treated as agents)
+            "SKILL.md",
+            "SKILLS.md",
+            "skill-template.md",
         }
         md_files = [f for f in md_files if f.name not in excluded_files]
+
+        # Filter out files from skills-related directories
+        # Skills are not agents and should not be discovered here
+        excluded_directory_patterns = {"references", "examples", "claude-mpm-skills"}
+        md_files = [
+            f
+            for f in md_files
+            if not any(
+                excluded in f.parts for excluded in excluded_directory_patterns
+            )
+        ]
 
         # In flattened cache mode, also exclude files from git repository subdirectories
         # (files under directories that contain .git folder)
