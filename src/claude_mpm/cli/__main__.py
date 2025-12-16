@@ -1,3 +1,7 @@
+# Copyright (c) 2024-2025 Bob Matsuoka
+# Licensed under the Elastic License 2.0
+# See LICENSE file in the project root for full license information.
+
 """
 Entry point for executing the CLI module with python -m claude_mpm.cli.
 

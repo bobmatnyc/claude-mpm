@@ -4,6 +4,11 @@
 
 ### Changed
 
+- **License Update**: Changed license to Elastic License 2.0
+  - **For most users**: No action required - internal and commercial use remains free
+  - **SaaS providers**: Contact bob@matsuoka.com for commercial licensing
+  - See [LICENSE-FAQ.md](LICENSE-FAQ.md) for detailed use cases and examples
+
 ### Fixed
 
 ### Deprecated
@@ -11,6 +16,12 @@
 ### Removed
 
 ### Security
+
+### Why This Change
+
+To ensure sustainable development of Claude MPM by preventing SaaS providers
+from reselling the project without contributing back, while keeping it freely
+available for the vast majority of use cases.
 
 
 

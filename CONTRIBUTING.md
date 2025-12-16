@@ -271,4 +271,27 @@ All releases require passing the complete quality gate (`make pre-publish`).
 - 🔧 **Development**: [CLAUDE.md](CLAUDE.md) for detailed development guidelines
 - 🚀 **Deployment**: [docs/reference/DEPLOY.md](docs/reference/DEPLOY.md) for release process
 
+## License
+
+By contributing to Claude MPM, you agree that your contributions will be
+licensed under the Elastic License 2.0, the same license that covers the project.
+
+### What This Means for Contributors
+
+- Your contributions become part of Claude MPM under Elastic License 2.0
+- You retain copyright to your contributions
+- You grant Bob Matsuoka and the project the right to use your contributions
+- You confirm you have the right to submit the contribution
+
+### Contributor License Agreement
+
+For significant contributions, we may ask you to sign a Contributor License
+Agreement (CLA). This protects both you and the project.
+
+### Questions?
+
+If you have questions about licensing your contribution, contact bob@matsuoka.com
+
+---
+
 Thank you for contributing to Claude MPM! 🚀

@@ -1,3 +1,7 @@
+# Copyright (c) 2024-2025 Bob Matsuoka
+# Licensed under the Elastic License 2.0
+# See LICENSE file in the project root for full license information.
+
 """Claude MPM - Multi-Agent Project Manager."""
 
 from pathlib import Path

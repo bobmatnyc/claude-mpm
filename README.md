@@ -810,6 +810,16 @@ See [docs/reference/MEMORY.md](docs/reference/MEMORY.md) and [docs/developer/11-
 
 See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/user/MIGRATION.md](docs/user/MIGRATION.md) for upgrade instructions.
 
+## 📜 License
+
+[![License](https://img.shields.io/badge/License-Elastic_2.0-blue.svg)](LICENSE)
+
+Licensed under the [Elastic License 2.0](LICENSE) - free for internal use and commercial products.
+
+**Main restriction:** Cannot offer as a hosted SaaS service without a commercial license.
+
+📖 [Licensing FAQ](LICENSE-FAQ.md) | 💼 Commercial licensing: bob@matsuoka.com
+
 ## Development
 
 ### Quick Development Setup
@@ -842,9 +852,6 @@ Contributions are welcome! Please see our [project structure guide](docs/referen
 
 ### Project Structure
 See [docs/reference/STRUCTURE.md](docs/reference/STRUCTURE.md) for codebase organization.
-
-### License
-MIT License - see [LICENSE](LICENSE) file.
 
 ## Credits
 
