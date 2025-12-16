@@ -660,15 +660,14 @@ def sync_remote_skills_on_startup():
                         deploy_progress.finish(
                             f"Complete: {deployed} deployed, {skipped} already present ({total_available} total)"
                         )
+                elif filtered > 0:
+                    deploy_progress.finish(
+                        f"Complete: {total_available} skills ready for agents ({filtered} filtered)"
+                    )
                 else:
-                    if filtered > 0:
-                        deploy_progress.finish(
-                            f"Complete: {total_available} skills ready for agents ({filtered} filtered)"
-                        )
-                    else:
-                        deploy_progress.finish(
-                            f"Complete: {total_available} skills ready (all up-to-date)"
-                        )
+                    deploy_progress.finish(
+                        f"Complete: {total_available} skills ready (all up-to-date)"
+                    )
 
                 # Log deployment errors if any
                 from ..core.logger import get_logger
