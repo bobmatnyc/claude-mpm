@@ -1,8 +1,14 @@
 ## [Unreleased]
 
 ### Added
+- Selective skill deployment: only deploys skills referenced by agents (#117)
+- `--all-skills` flag to override selective deployment and deploy all skills
+- New `selective_skill_deployer` module for agent-to-skill mapping
 
 ### Changed
+- Skills now deploy selectively by default (reduces ~78 to ~20 typical project)
+- Skill descriptions shortened to keywords for reduced context overhead (#115)
+- Agent YAML frontmatter now includes skills field linking to required skills (#116)
 
 ### Fixed
 
