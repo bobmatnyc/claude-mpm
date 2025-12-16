@@ -12,6 +12,19 @@
 
 ### Security
 
+## [5.4.5] - 2025-12-16
+
+### Added
+- Skill-to-agent auto-inference mapping based on skill path patterns
+- Language, framework, and domain pattern matching for agent suggestions
+
+### Changed
+- Skills without explicit agent mappings now auto-infer agents from path
+- Improved skill deployment workflow with intelligent agent recommendations
+
+### Fixed
+- Code formatting and linting issues in skill_to_agent_mapper module
+
 ## [5.4.4] - 2025-12-16
 
 ### Added
