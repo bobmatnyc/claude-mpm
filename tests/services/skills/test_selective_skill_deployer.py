@@ -11,12 +11,14 @@ DESIGN DECISIONS:
 - Verify integration with agent scanning logic
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
+
 from claude_mpm.services.skills.selective_skill_deployer import (
-    parse_agent_frontmatter,
-    get_skills_from_agent,
     get_required_skills_from_agents,
+    get_skills_from_agent,
+    parse_agent_frontmatter,
 )
 
 
