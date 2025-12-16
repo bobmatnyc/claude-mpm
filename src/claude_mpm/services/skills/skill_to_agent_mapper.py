@@ -38,7 +38,6 @@ References:
 - Config: src/claude_mpm/config/skill_to_agent_mapping.yaml
 """
 
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -115,7 +114,7 @@ class SkillToAgentMapper:
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
 
         try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise yaml.YAMLError(f"Invalid YAML in {self.config_path}: {e}") from e
@@ -296,7 +295,7 @@ class SkillToAgentMapper:
                     inferred_agents.update(agents)
                     self.logger.debug(f"Matched domain pattern '{domain}' in {skill_path}")
 
-        return sorted(list(inferred_agents))
+        return sorted(inferred_agents)
 
     def get_all_mapped_skills(self) -> List[str]:
         """Get all skill paths with explicit mappings.
