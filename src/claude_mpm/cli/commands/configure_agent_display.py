@@ -85,7 +85,9 @@ class AgentDisplay:
 
         for idx, agent in enumerate(agents, 1):
             # Check if agent is deployed to .claude/agents/
-            agent_leaf_name = agent.name.split("/")[-1]
+            # Use agent_id (technical ID) for comparison, not display name
+            agent_id = getattr(agent, "agent_id", agent.name)
+            agent_leaf_name = agent_id.split("/")[-1]
             is_deployed = agent_leaf_name in deployed_ids
 
             # Show "Installed" for deployed agents, "Available" otherwise
