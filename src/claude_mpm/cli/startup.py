@@ -429,7 +429,11 @@ def sync_remote_agents_on_startup():
                         existing_agents = list(deploy_target.glob("*.md"))
                         # Filter out non-agent files (e.g., README.md, INSTRUCTIONS.md)
                         agent_count_in_target = len(
-                            [f for f in existing_agents if not f.name.startswith(("README", "INSTRUCTIONS"))]
+                            [
+                                f
+                                for f in existing_agents
+                                if not f.name.startswith(("README", "INSTRUCTIONS"))
+                            ]
                         )
                         if agent_count_in_target > 0:
                             # All agents already deployed - count them as skipped
@@ -445,7 +449,9 @@ def sync_remote_agents_on_startup():
                     )
 
                     # Update progress bar to completion
-                    deploy_progress.update(total_configured if total_configured > 0 else 1)
+                    deploy_progress.update(
+                        total_configured if total_configured > 0 else 1
+                    )
 
                     # Show total configured agents (deployed + updated + already existing)
                     if deployed > 0 or updated > 0:

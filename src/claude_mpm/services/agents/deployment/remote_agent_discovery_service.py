@@ -477,9 +477,7 @@ class RemoteAgentDiscoveryService:
         md_files = [
             f
             for f in md_files
-            if not any(
-                excluded in f.parts for excluded in excluded_directory_patterns
-            )
+            if not any(excluded in f.parts for excluded in excluded_directory_patterns)
         ]
 
         # In flattened cache mode, also exclude files from git repository subdirectories

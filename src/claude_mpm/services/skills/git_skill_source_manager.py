@@ -1050,8 +1050,7 @@ class GitSkillSourceManager:
             # Normalize filter to lowercase for case-insensitive matching
             normalized_filter = {s.lower() for s in skill_filter}
             all_skills = [
-                s for s in all_skills
-                if s.get("name", "").lower() in normalized_filter
+                s for s in all_skills if s.get("name", "").lower() in normalized_filter
             ]
             filtered_count = original_count - len(all_skills)
             self.logger.info(
