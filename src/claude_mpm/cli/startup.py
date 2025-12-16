@@ -422,6 +422,20 @@ def sync_remote_agents_on_startup():
                     skipped = len(deployment_result.get("skipped", []))
                     total_configured = deployed + updated + skipped
 
+                    # FALLBACK: If deployment result doesn't track skipped agents (async path),
+                    # count existing agents in target directory as "already deployed"
+                    # This ensures accurate reporting when agents are already up-to-date
+                    if total_configured == 0 and deploy_target.exists():
+                        existing_agents = list(deploy_target.glob("*.md"))
+                        # Filter out non-agent files (e.g., README.md, INSTRUCTIONS.md)
+                        agent_count_in_target = len(
+                            [f for f in existing_agents if not f.name.startswith(("README", "INSTRUCTIONS"))]
+                        )
+                        if agent_count_in_target > 0:
+                            # All agents already deployed - count them as skipped
+                            skipped = agent_count_in_target
+                            total_configured = agent_count_in_target
+
                     # Create progress bar with actual configured agent count (not raw file count)
                     deploy_progress = ProgressBar(
                         total=total_configured if total_configured > 0 else 1,
