@@ -152,7 +152,9 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
                 all_skills.update(agent_skills)
                 logger.debug(f"Mapped {len(agent_skills)} skills to {agent_id}")
 
-        logger.info(f"Mapped {len(all_skills)} unique skills for {len(agent_ids)} agents")
+        logger.info(
+            f"Mapped {len(all_skills)} unique skills for {len(agent_ids)} agents"
+        )
         return all_skills
 
     except Exception as e:
@@ -203,7 +205,9 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
 
         if agent_skills:
             frontmatter_skills.update(agent_skills)
-            logger.debug(f"Agent {agent_id}: {len(agent_skills)} skills from frontmatter")
+            logger.debug(
+                f"Agent {agent_id}: {len(agent_skills)} skills from frontmatter"
+            )
 
     logger.info(f"Found {len(frontmatter_skills)} unique skills from frontmatter")
 

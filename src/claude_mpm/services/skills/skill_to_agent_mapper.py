@@ -69,7 +69,9 @@ class SkillToAgentMapper:
     """
 
     # Default configuration path (relative to package root)
-    DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "skill_to_agent_mapping.yaml"
+    DEFAULT_CONFIG_PATH = (
+        Path(__file__).parent.parent.parent / "config" / "skill_to_agent_mapping.yaml"
+    )
 
     def __init__(self, config_path: Optional[Path] = None):
         """Initialize skill-to-agent mapper.
@@ -147,9 +149,15 @@ class SkillToAgentMapper:
 
         for skill_path, agent_list in skill_mappings.items():
             # Handle ALL_AGENTS marker expansion
-            if isinstance(agent_list, list) and len(agent_list) == 1 and agent_list[0] == "ALL_AGENTS":
+            if (
+                isinstance(agent_list, list)
+                and len(agent_list) == 1
+                and agent_list[0] == "ALL_AGENTS"
+            ):
                 expanded_agents = all_agents.copy()
-                self.logger.debug(f"Expanded ALL_AGENTS for {skill_path}: {len(expanded_agents)} agents")
+                self.logger.debug(
+                    f"Expanded ALL_AGENTS for {skill_path}: {len(expanded_agents)} agents"
+                )
             else:
                 expanded_agents = agent_list
 
@@ -278,7 +286,9 @@ class SkillToAgentMapper:
             for language, agents in inference_rules["language_patterns"].items():
                 if language in path_parts:
                     inferred_agents.update(agents)
-                    self.logger.debug(f"Matched language pattern '{language}' in {skill_path}")
+                    self.logger.debug(
+                        f"Matched language pattern '{language}' in {skill_path}"
+                    )
 
         # Match framework patterns
         if "framework_patterns" in inference_rules:
@@ -286,14 +296,18 @@ class SkillToAgentMapper:
                 # Match framework name anywhere in path (e.g., "nextjs" in path)
                 if any(framework in part for part in path_parts):
                     inferred_agents.update(agents)
-                    self.logger.debug(f"Matched framework pattern '{framework}' in {skill_path}")
+                    self.logger.debug(
+                        f"Matched framework pattern '{framework}' in {skill_path}"
+                    )
 
         # Match domain patterns
         if "domain_patterns" in inference_rules:
             for domain, agents in inference_rules["domain_patterns"].items():
                 if domain in path_parts:
                     inferred_agents.update(agents)
-                    self.logger.debug(f"Matched domain pattern '{domain}' in {skill_path}")
+                    self.logger.debug(
+                        f"Matched domain pattern '{domain}' in {skill_path}"
+                    )
 
         return sorted(inferred_agents)
 
@@ -379,7 +393,9 @@ class SkillToAgentMapper:
             "avg_agents_per_skill": round(avg_agents_per_skill, 2),
             "avg_skills_per_agent": round(avg_skills_per_agent, 2),
             "config_path": str(self.config_path),
-            "config_version": self._config.get("metadata", {}).get("version", "unknown"),
+            "config_version": self._config.get("metadata", {}).get(
+                "version", "unknown"
+            ),
         }
 
     def __repr__(self) -> str:

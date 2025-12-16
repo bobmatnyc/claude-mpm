@@ -29,10 +29,23 @@ def mock_config_minimal():
     """Minimal valid configuration."""
     return {
         "skill_mappings": {
-            "toolchains/python/frameworks/django": ["python-engineer", "data-engineer", "engineer"],
-            "toolchains/typescript/core": ["typescript-engineer", "javascript-engineer", "engineer"],
+            "toolchains/python/frameworks/django": [
+                "python-engineer",
+                "data-engineer",
+                "engineer",
+            ],
+            "toolchains/typescript/core": [
+                "typescript-engineer",
+                "javascript-engineer",
+                "engineer",
+            ],
         },
-        "all_agents_list": ["engineer", "python-engineer", "typescript-engineer", "javascript-engineer"],
+        "all_agents_list": [
+            "engineer",
+            "python-engineer",
+            "typescript-engineer",
+            "javascript-engineer",
+        ],
     }
 
 
@@ -41,7 +54,11 @@ def mock_config_with_all_agents():
     """Configuration with ALL_AGENTS marker."""
     return {
         "skill_mappings": {
-            "toolchains/python/frameworks/django": ["python-engineer", "data-engineer", "engineer"],
+            "toolchains/python/frameworks/django": [
+                "python-engineer",
+                "data-engineer",
+                "engineer",
+            ],
             "universal/debugging/systematic-debugging": ["ALL_AGENTS"],
         },
         "all_agents_list": [
@@ -59,13 +76,26 @@ def mock_config_with_inference():
     """Configuration with inference rules."""
     return {
         "skill_mappings": {
-            "toolchains/python/frameworks/django": ["python-engineer", "data-engineer", "engineer"],
+            "toolchains/python/frameworks/django": [
+                "python-engineer",
+                "data-engineer",
+                "engineer",
+            ],
         },
-        "all_agents_list": ["engineer", "python-engineer", "typescript-engineer", "data-engineer"],
+        "all_agents_list": [
+            "engineer",
+            "python-engineer",
+            "typescript-engineer",
+            "data-engineer",
+        ],
         "inference_rules": {
             "language_patterns": {
                 "python": ["python-engineer", "data-engineer", "engineer"],
-                "typescript": ["typescript-engineer", "javascript-engineer", "engineer"],
+                "typescript": [
+                    "typescript-engineer",
+                    "javascript-engineer",
+                    "engineer",
+                ],
             },
             "framework_patterns": {
                 "nextjs": ["nextjs-engineer", "react-engineer", "typescript-engineer"],
@@ -243,7 +273,13 @@ def test_all_agents_expansion(temp_config_with_all_agents):
 
     # Should expand to all agents in all_agents_list
     assert len(agents) == 5
-    assert set(agents) == {"engineer", "python-engineer", "typescript-engineer", "qa", "ops"}
+    assert set(agents) == {
+        "engineer",
+        "python-engineer",
+        "typescript-engineer",
+        "qa",
+        "ops",
+    }
 
 
 def test_all_agents_in_inverse_index(temp_config_with_all_agents):
@@ -273,7 +309,9 @@ def test_infer_agents_from_language_pattern(temp_config_with_inference):
 def test_infer_agents_from_framework_pattern(temp_config_with_inference):
     """Test inference from framework pattern."""
     mapper = SkillToAgentMapper(config_path=temp_config_with_inference)
-    agents = mapper.infer_agents_from_pattern("toolchains/typescript/frameworks/nextjs-advanced")
+    agents = mapper.infer_agents_from_pattern(
+        "toolchains/typescript/frameworks/nextjs-advanced"
+    )
 
     # Should match 'nextjs' framework pattern
     assert "nextjs-engineer" in agents
@@ -294,7 +332,9 @@ def test_infer_agents_from_domain_pattern(temp_config_with_inference):
 def test_infer_agents_multiple_patterns(temp_config_with_inference):
     """Test inference combining multiple patterns."""
     mapper = SkillToAgentMapper(config_path=temp_config_with_inference)
-    agents = mapper.infer_agents_from_pattern("toolchains/python/testing/pytest-advanced")
+    agents = mapper.infer_agents_from_pattern(
+        "toolchains/python/testing/pytest-advanced"
+    )
 
     # Should match both 'python' language and 'testing' domain patterns
     assert "python-engineer" in agents
