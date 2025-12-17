@@ -12,6 +12,11 @@
 
 ### Security
 
+## [5.4.6] - 2025-12-17
+
+### Fixed
+- Correct agent ID mismatch in configure CLI agent selection (#121)
+
 ## [5.4.5] - 2025-12-16
 
 ### Added
