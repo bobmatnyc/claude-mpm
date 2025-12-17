@@ -1332,7 +1332,7 @@ class ConfigureCommand(BaseCommand):
         all_agents = filter_base_agents(
             [
                 {
-                    "agent_id": a.name,
+                    "agent_id": getattr(a, "agent_id", a.name),
                     "name": a.name,
                     "description": a.description,
                     "deployed": getattr(a, "is_deployed", False),
@@ -1752,7 +1752,7 @@ class ConfigureCommand(BaseCommand):
         all_agents = filter_base_agents(
             [
                 {
-                    "agent_id": a.name,
+                    "agent_id": getattr(a, "agent_id", a.name),
                     "name": a.name,
                     "description": a.description,
                     "deployed": getattr(a, "is_deployed", False),
