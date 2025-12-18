@@ -1,1454 +1,3 @@
-## [Unreleased]
-
-### Added
-
-### Changed
-
-### Fixed
-
-### Deprecated
-
-### Removed
-
-### Security
-
-## [5.4.6] - 2025-12-17
-
-### Fixed
-- Correct agent ID mismatch in configure CLI agent selection (#121)
-
-## [5.4.5] - 2025-12-16
-
-### Added
-- Skill-to-agent auto-inference mapping based on skill path patterns
-- Language, framework, and domain pattern matching for agent suggestions
-
-### Changed
-- Skills without explicit agent mappings now auto-infer agents from path
-- Improved skill deployment workflow with intelligent agent recommendations
-
-### Fixed
-- Code formatting and linting issues in skill_to_agent_mapper module
-
-## [5.4.4] - 2025-12-16
-
-### Added
-- Selective skill deployment: only deploys skills referenced by agents (#117)
-- `--all-skills` flag to override selective deployment and deploy all skills
-- New `selective_skill_deployer` module for agent-to-skill mapping
-- Comprehensive licensing documentation
-
-### Changed
-- Skills now deploy selectively by default (reduces ~78 to ~20 typical project)
-- Skill descriptions shortened to keywords for reduced context overhead (#115)
-- Agent YAML frontmatter now includes skills field linking to required skills (#116)
-- **License Update**: Changed license to Elastic License 2.0
-  - **For most users**: No action required - internal and commercial use remains free
-  - **SaaS providers**: Contact bob@matsuoka.com for commercial licensing
-  - See [LICENSE-FAQ.md](LICENSE-FAQ.md) for detailed use cases and examples
-
-### Fixed
-- Agent selection wizard showing skills instead of agents (314 items instead of 41)
-- Exclude `claude-mpm-skills` repo from agent discovery in GitSourceManager
-- Add defense-in-depth filtering for SKILL.md files and skills-related directories
-- Code formatting and linting issues for release
-
-### Why This Change
-
-To ensure sustainable development of Claude MPM by preventing SaaS providers
-from reselling the project without contributing back, while keeping it freely
-available for the vast majority of use cases.
-
-## [5.4.3] - 2025-12-15
-
-### Changed
-- Renamed slash command from `/mpm-ticket-organize` to `/mpm-organize` for better clarity
-
-## [5.4.2] - 2025-12-15
-
-### Fixed
-- Automated release improvements
-
-## [5.4.1] - 2025-12-15
-
-### Fixed
-- Automated release improvements
-
-## [5.4.0] - 2025-12-13
-
-### Added
-- Knowledge extractor for mpm-init to analyze project documentation and structure
-- Files tab in dashboard with syntax highlighting and diff viewing
-- Tools view in dashboard with pre/post tool correlation
-- Documentation for mpm-init optimization feature (docs/features/mpm-init-optimization.md)
-
-### Changed
-- Dashboard now correctly extracts file paths from hook event tool_parameters
-- Agent discovery prioritizes dist/agents/ over source agents/
-
-### Fixed
-- Dashboard type guards in files.svelte.ts and tools.svelte.ts for safer property access
-- Monitor exit code messaging for daemon termination
-- File path extraction from tool_parameters in hook events
-
-## [5.3.1] - 2025-12-11
-
-### Added
-- PM delegation rules for mpm-skills-manager agent
-
-### Changed
-- Improved EventStream table layout with grid-based design
-
-### Fixed
-- Use raw strings for pytest regex patterns to satisfy ruff linter
-- Code formatting in monitor and socketio modules
-
-## [5.3.0] - 2025-12-11
-
-### Added
-- New `claude-mpm summarize` CLI command for document summarization with multiple output formats (text, JSON, Markdown)
-- Support for various summary styles (concise, detailed, executive, bullet-points, technical)
-
-### Changed
-- **BREAKING**: Deprecated MCP gateway functionality in favor of native Claude Code MCP server integration
-- Socket.IO server improvements with EventBus integration
-- Enhanced health check endpoints with service metrics
-
-### Deprecated
-- MCP gateway (use native Claude Code MCP servers instead)
-
-## [5.2.4] - 2025-12-11
-
-### Added
-- EventBus integration for POST /api/events - hook events now flow through EventBus for cross-component communication
-- Health check endpoints at GET /api/health and GET /health with service metrics (uptime, connected clients, event stats)
-
-### Changed
-- Enhanced payload handling in /api/events for both direct and wrapped event formats
-
-## [5.2.3] - 2025-12-11
-
-### Fixed
-- Agent dependencies are now fully optional via YAML frontmatter
-- Installation no longer fails due to compilation-prone packages like mysqlclient, psycopg2, and lxml
-
-### Changed
-- Removed `[agents]` optional dependency group (~80 packages) from pyproject.toml
-- Removed `[agents-load-testing]` optional dependency group
-- `pip install claude-mpm[agents]` is no longer supported
-- Use `claude-mpm agents deps check` to manage agent dependencies per-agent
-
-### Migration Note
-If you previously used `pip install claude-mpm[agents]`, you can now:
-1. Install just `pip install claude-mpm`
-2. Deploy agents as needed
-3. Install missing dependencies when prompted
-
-## [5.2.2] - 2025-12-10
-
-### Fixed
-- Made pylint import optional for clone detection to fix ModuleNotFoundError when pylint is not installed
-
-## [5.2.1] - 2025-12-10
-
-### Fixed
-- Fixed agent deployment path issue affecting 128 deployment tests
-- Updated test suite to verify correct agent deployment locations
-
-## [5.2.0] - 2025-12-10
-
-### Added
-- Multi-language clone detection support using tree-sitter for JavaScript, TypeScript, Go, Rust, Java, Ruby, PHP, C, and C++
-- Code clone detection integration in code-analyzer agent
-
-### Fixed
-- Fixed pylint API usage for duplicate detection
-- Applied ruff linting and formatting fixes
-
-## [5.1.12] - 2025-12-10
-
-### Changed
-- Patch release with code formatting fixes
-
-## [5.1.11] - 2025-12-10
-
-### Fixed
-- Auto-fixed linting errors and code formatting issues
-
-## [5.1.10] - 2025-12-09
-
-### Changed
-- Simplified agent architecture to 2-location model (source + deployment)
-- Unified agent selection UI with single "Select Agents" option
-- Added recommended agents feature with asterisk (*) markers
-- Added visual feedback loop for bulk selection controls
-- Fixed menu reload after agent selection to show updated state
-- Fixed loading spinner to prevent partial state display
-
-### Fixed
-- Fixed agent ID mismatch between hierarchical paths and leaf names
-- Fixed deployment status detection for installed agents
-
-## [5.1.9] - 2025-12-09
-
-### Fixed
-- Patch release for minor fixes and improvements
-
-## [5.1.8] - 2025-12-09
-
-### Fixed
-- Fixed Python 3.13 import scoping issue in questionary checkbox symbols
-
-## [5.1.7] - 2025-12-09
-
-### Fixed
-- Improved agent configurator checkbox visibility with [✓]/[ ] markers
-- Fixed state tracking when adjusting agent selections
-- Added error handling for non-interactive terminals in configure command
-- Removed user-specific .mcp.json/.claude.json from git tracking
-- Auto-gitignore user config files during mpm-init
-
-## [5.1.6] - 2025-12-08
-
-### Fixed
-- Homebrew tap automation: enabled auto-push for release workflow
-
-### Changed
-- Major documentation cleanup and reorganization (276 files removed, -124,190 lines)
-
-## [5.1.5] - 2025-12-08
-
-### Added
-- PM Proactive Verification test suite for evaluating mandatory verification gates
-- Comprehensive test coverage for PM behavioral compliance
-
-### Changed
-- Enforced mandatory QA verification gate in PM instructions
-
-### Fixed
-- CI test failures by adding pytest-timeout to eval dependencies
-- Code quality issues with linting and formatting across eval test suite
-
-## [5.1.4] - 2025-12-08
-
-### Added
-- DeepEval Phase 2 Complete: All 8 agent testing sprints at 100% pass rate
-  - Engineer Agent: 36/36 tests passing (#109)
-  - QA Agent: 30/30 tests passing (#110)
-  - Ops Agent: 28/28 tests passing (#111)
-  - Documentation Agent: 20/20 tests passing (#112)
-- Total test coverage: 352 DeepEval tests across all agents
-
-### Changed
-- Calibrated all scenario mock responses for comprehensive pattern detection
-- Enhanced workflow integration tests for better agent behavior validation
-
-### Fixed
-- Floating-point epsilon handling in test assertions
-- Test harness reliability improvements
-
-## [5.1.3] - 2025-12-07
-
-### Added
-- DeepEval Prompt-Engineer Agent scenarios and test harness
-- Custom metrics for Prompt-Engineer Agent evaluation
-
-### Changed
-- Version bump for Sprint 7 completion (Prompt-Engineer Agent testing)
-
-## [5.1.2] - 2025-12-06
-
-### Added
-- DeepEval Phase 2 research and agent testing evaluation framework
-- Comprehensive agent testing infrastructure for behavioral evaluation
-
-### Changed
-- Updated dependency lock file (uv.lock)
-
-### Fixed
-- Ruff linting errors in auto_configure.py and agent evaluation tests
-- Code formatting issues across multiple files
-- False positive secret detection in test fixtures
-
-## [5.1.1] - 2025-12-05
-
-### Changed
-- Patch release: version bump only
-- Build number incremented to 545
-
-## [5.1.0] - 2025-12-05
-
-### Added
-- **PM/Agent Behavioral Evaluation System**: Comprehensive testing framework for PM behavioral compliance
-  - 51 test scenarios across 6 categories (delegation, circuit breakers, tools, workflow, evidence, file tracking)
-  - DEL-000: Universal delegation pattern meta-test for novel work types
-  - DEL-011: Delegation authority test with dynamic agent selection (8 sub-scenarios)
-  - MockPMAgent with intelligent agent selection logic
-  - Validation framework for PM response compliance
-  - Scoring system: 1.0 exact match, 0.8 acceptable fallback, 0.0 failure
-  - Integrated with release process for PM instruction validation
-- **Eval System Documentation**: Dedicated documentation path in `docs/testing/eval-system/`
-  - README.md: System overview and architecture
-  - quickstart.md: 5-minute quick start guide
-  - test-cases.md: Detailed test case documentation with examples
-  - Integration with main testing documentation
-
-### Changed
-- **PM Instruction Enforcement**: Enhanced ticketing delegation and mandatory verification
-  - Circuit Breaker #6: PM must NEVER use mcp-ticketer tools directly (always delegate to ticketing)
-  - All ticket operations require delegation to ticketing agent
-  - Improved assertion verification requirements with evidence templates
-
-## [5.0.9] - 2025-12-04
-
-### Breaking Changes
-- **Python 3.11+ Required**: Bumped minimum Python version from 3.10 to 3.11 for kuzu-memory compatibility
-  - Ensures compatibility with kuzu-memory>=1.1.5 dependency
-  - Updates all project metadata and type checking configuration
-
-### Fixed
-- **Dependency Conflicts**: Removed unused pydoc-markdown dependency causing version conflicts
-- **Code Quality**: Resolved all ruff linting violations for cleaner codebase
-- **Code Formatting**: Applied black formatting across all Python files
-- **Test Execution**: Fixed test runner to use UV virtual environment correctly
-- **Test Configuration**: Removed pytest-timeout flags not available in UV environment
-
-### Documentation
-- Added comprehensive analysis of dependency conflict resolution
-- Added MCP slash command ownership investigation
-
-## [5.0.8] - 2025-12-04
-
-### Changed
-- **Documentation Consolidation**: Completed 3-phase documentation reorganization
-  - Consolidated testing/QA docs (3 directories → 1 unified structure)
-  - Merged developer documentation (2 directories → 1)
-  - Archived 34 completed research files with preservation strategy
-  - Created 10+ comprehensive README indexes for navigation
-  - Root directory cleanup (13 → 5 files, 61% reduction)
-
-### Fixed
-- **Circular Import Resolution**: Eliminated 2 critical circular import chains
-  - Implemented protocol-based dependency injection pattern
-  - Created 4 new protocol files for clean architecture
-  - Zero breaking changes, 100% backward compatible
-- **Code Complexity Reduction**: Refactored top 4 high-complexity functions
-  - Overall 71% complexity reduction (84 → 24)
-  - `_is_editable_install`: 26 → 6 (77% reduction)
-  - `validate_configuration`: 25 → 8 (68% reduction)
-  - `detect_deployment_context`: 18 → 5 (72% reduction)
-  - `framework_root`: 15 → 5 (67% reduction)
-
-### Documentation
-- **Link Audit**: Comprehensive scan of 1,004 internal links
-  - Fixed 4 critical user-facing broken links
-  - Categorized remaining 179 for incremental fixing
-- **Version References**: Strategic update of critical v4.x references
-  - Updated main README for clarity
-  - Preserved 193 historical references for context accuracy
-- **Migration Guides**: Complete 3-phase migration documentation
-  - Phase 1: Foundation cleanup and circular import fixes
-  - Phase 2: Documentation organization and archival
-  - Phase 3: Link audit and polish
-
-### Added
-- New protocol-based architecture in `core/protocols/`
-- Comprehensive complexity reduction report
-- 476-line Phase 3 link audit report
-- Cleanup scripts: `cleanup-safe.sh` and `cleanup-review.sh`
-
-## [5.0.7] - 2025-12-04
-
-### Fixed
-- **MCP Auto-Configuration Removal**: Removed obsolete MCP service auto-configuration code
-  - Claude MPM no longer auto-modifies `~/.claude.json` to add/fix MCP service configurations
-  - Users must now manually install and configure MCP services via pip, npx, or Claude Desktop
-  - Deprecated `MCPConfigManager.ensure_mcp_services_configured()` method
-  - Added new read-only check method: `check_mcp_services_available()`
-  - Updated all callers to use read-only checks instead of auto-modifications
-
-### Changed
-- **MCP Service Management**: MCP services are now fully user-controlled (as intended since v4.15.0)
-  - Removed 28 lines from `startup.py` auto-configuration
-  - Removed 40 lines from `run.py` including auto-config function
-  - Refactored `MCPConfigManager` with 140+ lines of auto-modification logic removed
-  - Net reduction: 140 lines of code (-245 removed, +105 added)
-
-### Documentation
-- Added comprehensive guide: `docs/developer/mcp-auto-config-removal.md`
-  - Migration guide for code using deprecated methods
-  - Testing checklist for MCP service availability
-  - Timeline for complete removal (v6.0.0)
-
-### Breaking Changes
-- Users must now install MCP services themselves:
-  - `pip install mcp-ticketer mcp-browser mcp-vector-search kuzu-memory`
-  - Configure via Claude Desktop UI or manually edit `~/.claude.json`
-  - Claude MPM will only check availability (read-only)
-
-## [5.0.6] - 2025-12-03
-
-### Fixed
-- **Thread Safety**: Resolved deadlock in SingletonManager from recursive __new__ calls
-  - Fixed race condition causing test timeouts
-  - Re-enabled all 17 thread safety tests (100% pass rate)
-  - Tests now complete in < 0.5s (was 10+ second timeout)
-- **Daemon Reliability**: Fixed intermittent monitor daemon startup failures
-  - Implemented port-specific PID files to prevent conflicts
-  - Added comprehensive health checks (PID + port + HTTP)
-  - Achieved 100% startup success rate
-- **Code Quality**: Applied black formatting to daemon management files
-
-### Technical Details
-- Core test suite: 290/290 passing (was 273/280)
-- Thread safety: object.__new__() bypass eliminates recursion
-- Daemon: Port-specific PID files (monitor-daemon-{port}.pid)
-- Zero critical blocking issues remaining
-
-## [5.0.5] - 2025-12-03
-
-### Fixed
-- Deprecated command aliases no longer shown in UI listings
-  - Moved deprecated aliases to `deprecated_aliases` field in YAML frontmatter
-  - Updated command deployment service to filter deprecated aliases
-  - Prevents confusion from outdated command names appearing in help text
-
-### Changed
-- Improved slash command organization and discoverability
-  - Cleaner command lists without deprecated entries
-  - Better user experience for command discovery
-
-## [5.0.4] - 2025-12-03
-
-### Added
-- **/mpm-postmortem Command**: Automated error analysis and troubleshooting recommendations
-  - Analyzes recent errors from monitor server logs
-  - Provides actionable recommendations for resolution
-  - Context-aware troubleshooting with error pattern detection
-- **Claude MPM Teach Mode**: Interactive tutorial for framework beginners
-  - Guided walkthrough of multi-agent orchestration concepts
-  - Hands-on exercises with real ticket creation
-  - Best practices for agent delegation and workflow management
-- **Agent Modification Workflow**: Documentation for contributing to framework agents
-  - Complete guide for editing agents in cache repository
-  - Git workflow for pushing changes to official repository
-  - Testing and validation procedures
-
-### Changed
-- **PM Instructions Optimized**: Enhanced for Claude 4.5 Sonnet best practices
-  - Improved prompt structure and clarity
-  - Better context management and delegation patterns
-  - Enhanced error handling and recovery guidance
-- **Deprecated Commands Auto-Cleanup**: Framework automatically removes deprecated /mpm commands on startup
-  - Prevents clutter in slash command list
-  - Provides informative messages about command consolidation
-  - Maintains backward compatibility with redirects
-
-### Fixed
-- **Agent Count Display**: Corrected deployment progress indicator to show accurate agent counts
-- **Nested Repository Discovery**: CacheGitManager now properly finds git repos in nested subdirectories
-- **Skills Deployment Verification**: Completed comprehensive testing and validation of skills deployment system
-
-## [5.0.3] - 2025-12-03
-
-### Added
-- **Toolchain-based Agent Presets**: MIN/MAX presets for 8 toolchains (Python, JavaScript, React, Next.js, Go, Rust, Java, Flutter)
-  - MIN presets: Essential agents only (8 agents per toolchain)
-  - MAX presets: Full toolchain with specialized agents (11-15+ agents)
-  - 28 total presets including CORE_AGENTS and legacy compatibility
-- **Toolchain-based Skill Presets**: MIN/MAX presets for 11 domains
-  - MIN presets: Essential skills (2-4 skills per toolchain)
-  - MAX presets: Full skill stack (3-10+ skills per toolchain)
-  - 24 total presets covering Python, JavaScript, React, Next.js, TypeScript, Rust, WordPress, AI/MCP, Svelte, Testing, and Collaboration
-- **Interactive Skills Configure Command**: `claude-mpm skills configure`
-  - Checkbox-based selection matching agents configure UX
-  - Pre-selection for installed skills
-  - Apply/Adjust/Cancel workflow
-  - Install and remove operations in one session
-  - Status detection (deployed vs available)
-  - Automatic restart instructions
-- Comprehensive user guide for toolchain presets (docs/TOOLCHAIN_PRESETS_GUIDE.md)
-- Testing report for preset validation (QA_TOOLCHAIN_PRESETS_TESTING.md)
-
-### Changed
-- Enhanced UX consistency between agents and skills configuration
-- Improved preset organization with toolchain-specific groupings
-- Better status detection for deployed vs available skills
-
-## [5.0.2] - 2025-12-02
-
-### Added
-- Arrow-key navigation support in configurator using questionary library
-- User guide for new menu navigation system (docs/CONFIGURATOR_MENU_GUIDE.md)
-
-### Changed
-- Upgraded configurator menus from letter-based input to intuitive arrow-key navigation
-- Improved user experience matching industry standards (AWS CLI, npm, etc.)
-
-### Fixed
-- User confusion about how to select menu options (now uses arrow keys + Enter)
-
-## [5.0.1] - 2025-12-01
-
-### Changed
-- Improved skills deployment message clarity
-- Updated "hundreds of skills" messaging across documentation
-- Enhanced startup verification for better reliability
-- Improved Linear ticket transition handling
-
-### Fixed
-- Quality gate validation for patch releases
-- Startup progress indicator accuracy
-
-## [5.0.0] - 2025-11-30
-
-### 🚀 Major Features
-
-This release represents a major milestone in Claude MPM's evolution with comprehensive Git repository integration for both agents and skills, bringing the total from 4 built-in skills to hundreds of skills and 47+ agents available out-of-box.
-
-#### Git Repository Integration for Skills
-
-**Skills Repository Ecosystem**:
-- **Default Repositories**:
-  - `bobmatnyc/claude-mpm-skills` (community skills)
-  - `anthropics/skills` (official Anthropic skills)
-- **Hundreds of Skills Available**: Massive expansion from 4 built-in skills
-- **Custom Repositories**: Add your own via `claude-mpm skill-source add <url>`
-- **Nested Repository Support**: Automatic flattening for Claude Code compatibility
-- **Immediate Testing**: Validate repositories before adding
-- **Two-Phase Progress**: Clear sync and deployment progress visibility
-
-#### Git Repository Integration for Agents
-
-Building on the 4.5.0 git-first architecture, this release adds:
-- **47+ Agents Available**: Automatic discovery via GitHub API (previously hardcoded 10)
-- **Dynamic Agent Discovery**: Uses GitHub API to discover all agents in repository
-- **Graceful Fallbacks**: Offline support with cached agent lists
-- **Robust Error Handling**: Rate limit and network error recovery
-
-### Added
-
-- **Skill Source Management (1M-441)**: Complete CLI for managing skill repositories
-  - `claude-mpm skill-source add <url>` - Add Git repository as skill source
-  - `claude-mpm skill-source list` - List all configured skill sources
-  - `claude-mpm skill-source update` - Sync skills from repositories
-  - `claude-mpm skill-source enable/disable` - Toggle sources
-  - `claude-mpm skill-source show <id>` - View source details
-  - `claude-mpm skill-source remove <id>` - Remove source
-  - **Immediate Testing**: `--test` flag validates repositories before adding
-  - **Configuration**: `~/.claude-mpm/config/skill_sources.yaml`
-  - **Cache Location**: `~/.claude-mpm/skill-sources/<source-id>/`
-
-- **Two-Phase Progress Bars**: Comprehensive deployment progress tracking
-  - **Phase 1: Sync**: Shows repository cloning/update progress
-  - **Phase 2: Deployment**: Shows file discovery and deployment progress
-  - **Accurate Counts**: Real-time updates with total file counts
-  - **Visual Feedback**: Color-coded status (green success, yellow warnings, red errors)
-  - **Implemented For**: Both agents and skills deployment
-  - **Documentation**: `docs/implementation/two-phase-progress-bars.md`
-
-- **Nested Repository Flattening**: Automatic handling of nested skill structures
-  - **Claude Code Compatibility**: Flattens nested SKILL.md files for discovery
-  - **Namespace Preservation**: Maintains original directory structure in metadata
-  - **Helper File Support**: Copies all associated files to skill directory
-  - **Recursive Discovery**: Finds skills at any directory depth
-  - **Documentation**: `docs/implementation/flat-skill-deployment.md`
-
-- **Anthropic Skills Integration**: Official Anthropic skills repository support
-  - **Pre-configured**: `anthropics/skills` added by default
-  - **7+ Official Skills**: Includes time_tools, brave_search, filesystem, and more
-  - **Documentation**: `docs/implementation/anthropic-skills-integration.md`
-
-- **Doctor Diagnostics**: New health checks for skill sources
-  - `claude-mpm doctor --checks skill-sources` - Validate skill configurations
-  - Detects unreachable repositories, invalid configurations
-  - Suggests corrective actions for common issues
-
-### Changed
-
-- **Skills Deployment Location**:
-  - **BREAKING**: Skills now deployed to `~/.claude/skills/` (was project-local `.claude-mpm/skills/`)
-  - **Rationale**: Claude Code requires flat directory structure at `~/.claude/skills/`
-  - **Migration**: Automatic - skills redeploy to new location on startup
-  - **Impact**: Skills now globally available across all Claude Code sessions
-
-- **Skill Discovery Architecture**:
-  - Recursive SKILL.md discovery (was single-level)
-  - Automatic flattening of nested structures
-  - Helper file preservation during deployment
-
-- **Agent Discovery Architecture**:
-  - GitHub API-based discovery (was hardcoded list)
-  - Dynamic total counts for progress bars
-  - Graceful offline fallback to static list
-
-- **Progress Bar Accuracy**:
-  - Shows actual file counts during deployment (was estimated)
-  - Separate sync and deployment phases with individual progress
-  - Real-time updates as files are discovered
-
-### Fixed
-
-- **Agent Discovery (1M-482)**: Fixed git source sync to discover all agents from repository
-  - Changed from hardcoded list (10 agents) to GitHub API auto-discovery (47+ agents)
-  - Progress bar now shows correct total count during sync
-  - Automatic fallback to static list if GitHub API unavailable
-  - Graceful handling of rate limits and network errors
-
-- **Skill Source Update Command (1M-441)**: Fixed crash in `skill-source update`
-  - Resolved path handling for single source updates
-  - Fixed dictionary access error in update logic
-  - Added comprehensive error handling and validation
-
-- **Deployment Import Paths (1M-442 QA)**: Fixed critical import errors
-  - Corrected relative import paths in deployment service
-  - Fixed file discovery for agent helper files
-  - Resolved agent deployment failures from import issues
-
-- **Agent-Source Doctor Suggestions (1M-442)**: Fixed command suggestions in diagnostics
-  - Corrected from `agent-sources` to `agent-source` (singular)
-  - Updated all help text and error messages
-  - Aligned with actual CLI command structure
-
-### Documentation
-
-- **New Documentation Structure**: Complete reorganization into `docs/` directory
-  - `docs/features/` - Feature guides and capabilities
-  - `docs/implementation/` - Technical implementation details
-  - `docs/migration/` - Version migration guides
-  - `docs/reference/` - CLI and API reference
-  - `docs/research/` - Research findings and decisions
-  - `docs/testing/` - Test reports and verification
-  - `docs/tickets/` - Ticket-specific documentation
-  - `docs/user/` - User-facing guides
-
-- **Skills Documentation**:
-  - `docs/implementation/flat-skill-deployment.md` - Flattening architecture
-  - `docs/implementation/anthropic-skills-integration.md` - Integration guide
-  - `docs/implementation/two-phase-progress-bars.md` - Progress system
-  - `docs/research/claude-code-nested-skills-discovery.md` - Research findings
-
-- **Agent Documentation**:
-  - `docs/user/agent-sources.md` - Complete user guide
-  - `docs/reference/cli-agent-source.md` - CLI reference
-  - `docs/migration/agent-sources-git-default-v4.5.0.md` - Migration guide
-
-- **Troubleshooting**:
-  - `docs/user/troubleshooting.md` - Comprehensive troubleshooting guide
-  - `docs/TROUBLESHOOTING.md` - Quick reference for common issues
-
-### Technical
-
-- **Test Coverage**: 115+ tests passing
-  - 34 skill source tests
-  - 28 agent source tests
-  - 44 configuration tests
-  - 9 progress bar tests
-  - Integration tests for end-to-end workflows
-
-- **Zero Breaking Changes**: Graceful defaults for existing users
-  - Existing configurations preserved
-  - Automatic migration to new structure
-  - No manual intervention required
-
-- **Performance**:
-  - Repository sync: 500-800ms (first run), 100-200ms (cached)
-  - Agent discovery: ~200ms with GitHub API
-  - Skill deployment: ~1-2s for 89+ skills
-  - Progress bars: Real-time updates with <50ms latency
-
-- **Backward Compatibility**:
-  - All legacy agent/skill formats still supported
-  - Built-in fallbacks for git source failures
-  - Graceful degradation on network errors
-
-### Deprecated
-
-### Removed
-
-### Security
-
-## [4.5.0] - 2025-11-30
-
-### 🌟 Major Changes: Git-First Agent Architecture
-
-**Breaking Change Note**: This release changes the **default agent source** from built-in JSON templates to Git repositories. Existing installations preserve their configuration, but new installations use git-first by default.
-
-### Added
-
-- **Git-First Agent Architecture (1M-442)**: Agents now sourced from Git repositories by default
-  - **Default Repository**: https://github.com/bobmatnyc/claude-mpm-agents (39 agents)
-  - **4-Tier Discovery System**: Local project → Git sources (by priority) → Built-in fallback
-  - **Priority-Based Resolution**: Multiple repositories with configurable precedence (lower number = higher priority)
-  - **Automatic Sync**: Agents update from Git on startup (non-blocking, background)
-  - **ETag-Based Caching**: Intelligent HTTP caching reduces bandwidth usage by 95%+
-  - **Configuration**: `~/.claude-mpm/config/agent_sources.yaml` (auto-created on first run)
-  - **Cache Location**: `~/.claude-mpm/agent-sources/<source-id>/`
-  - **CLI Commands**: Complete `agent-source` command group
-    - `add` - Add Git repository as agent source
-    - `list` - List all configured sources
-    - `update` - Sync agents from repositories
-    - `enable`/`disable` - Toggle sources without removing
-    - `show` - View source details and agents
-    - `remove` - Remove source from configuration
-  - **Doctor Integration**: `claude-mpm doctor --checks agent-sources` for health diagnostics
-  - **Agent Improvement Workflow**: Use `agent-manager` agent to propose changes to repositories
-  - **Documentation**:
-    - User Guide: `docs/user/agent-sources.md` (complete guide with examples)
-    - CLI Reference: `docs/reference/cli-agent-source.md` (all commands)
-    - Migration Guide: `docs/migration/agent-sources-git-default-v4.5.0.md`
-    - Troubleshooting: `docs/user/troubleshooting.md#agent-source-issues`
-  - **Test Coverage**: Comprehensive unit and integration tests
-  - **Migration Path**: Existing users preserve configuration; new users get git-first automatically
-
-- **Agent Source Commands**: New `agent-source` CLI command group (1M-442)
-  - Complete repository management without editing YAML files
-  - Priority-based conflict resolution
-  - Enable/disable sources dynamically
-  - Health diagnostics and troubleshooting
-
-- **Instruction Caching (1M-446)**: Automatic file-based instruction caching for cross-platform compatibility
-  - **Critical for Linux/Windows**: Solves ARG_MAX limits (Linux: exceeds by 19.1%, Windows: exceeds by 476%)
-  - **Cache Location**: `.claude-mpm/PM_INSTRUCTIONS.md` (~152 KB assembled instructions)
-  - **Hash-Based Invalidation**: SHA-256 content hashing for efficient cache updates
-  - **Atomic Updates**: Prevents partial writes via temp file replacement
-  - **Performance**: ~200ms faster agent startup, zero I/O on cache hits
-  - **Graceful Fallback**: Degrades to inline loading if cache fails
-  - **Auto-Management**: No user configuration required, fully automatic
-  - **Metadata Tracking**: JSON metadata with hash, timestamp, components list
-  - **Test Coverage**: 88 tests (35 cache service + 53 integration), 100% passing
-  - **QA Verified**: Comprehensive testing across all scenarios (cache creation, invalidation, error handling)
-  - **Documentation**: Complete feature guide at `docs/features/instruction_caching.md`
-
-- **Git-Based Agent Synchronization (1M-382)**: Automatic agent updates from remote repositories
-  - **ETag-Based Caching**: Reduces bandwidth usage by ~95% with intelligent HTTP caching
-  - **SQLite State Tracking**: Persistent sync history with SHA-256 content hash verification
-  - **Performance**: First sync 500-800ms, subsequent syncs 100-200ms
-  - **Offline Support**: Graceful degradation to cached agents when network unavailable
-  - **Default Repository**: https://github.com/bobmatnyc/claude-mpm-agents (48 agents)
-  - **Configuration**: `agent_sync.enabled`, `agent_sync.sources`, `agent_sync.cache_dir`
-  - **State Database**: `~/.config/claude-mpm/agent_sync.db` with complete audit trail
-  - **Cache Location**: `~/.claude-mpm/cache/remote-agents/`
-  - **Non-Blocking**: Sync failures don't prevent Claude MPM startup
-  - **Documentation**:
-    - User Guide: `docs/guides/agent-synchronization.md`
-    - Configuration Reference: `docs/reference/configuration.md`
-    - Developer Guide: `docs/development/agent-sync-internals.md`
-  - **Test Coverage**: 94 tests, 93% coverage with comprehensive integration tests
-  - **Future Enhancements**: Multi-source support (1M-390), GitHub authentication, configurable sync intervals
-
-- **`/mpm-ticket` Slash Command**: Comprehensive ticketing workflow management
-  - `organize` - Review and organize tickets, transition states, update priorities
-  - `proceed` - Analyze project board and recommend next actionable steps
-  - `status` - Generate comprehensive status report with metrics and insights
-  - `update` - Create project status update (Linear ProjectUpdate or equivalent)
-  - `project <url>` - Set project context for Linear/GitHub/JIRA/Asana
-  - Auto-deploys to `~/.claude/commands/mpm-ticket.md`
-  - Delegates all operations to ticketing agent (MCP-first with CLI fallback)
-  - Documentation: `docs/guides/ticketing-workflows.md`
-
-### Changed
-
-- **Default Agent Source**: New installations now use Git repositories by default (v4.5.0+)
-  - **Before**: Built-in JSON templates in package
-  - **After**: Git-sourced agents from https://github.com/bobmatnyc/claude-mpm-agents
-  - **Existing Users**: Configuration preserved (no automatic migration)
-  - **Migration**: See `docs/migration/agent-sources-git-default-v4.5.0.md`
-
-- **Agent Count**: Now 39 agents (from git sources, previously 37 built-in)
-
-- **Documentation**: Comprehensive updates for git-first architecture
-  - Updated `README.md` with agent sources section
-  - Updated `docs/user/README.md` with v4.5.0 highlights
-  - Updated `docs/reference/README.md` with technical details
-  - Expanded troubleshooting guide with agent source issues
-
-### Fixed
-
-## [4.26.5] - 2025-11-29
-
-### Fixed
-- **Agent Dependency Loading**: Fixed critical bug in parsing YAML frontmatter for agent dependencies
-- **Test Suite**: Removed hanging integration test (test_real_git_sync.py) that was blocking CI/CD
-
-### Added
-- **Documentation**: Comprehensive research and QA reports for YAML frontmatter dependency migration
-- **Performance Metrics**: Dependency loading now completes in 0.129s (7.7x faster than target)
-
-## [4.26.4] - 2025-11-28
-
-### Fixed
-- Corrected ticketing agent_id from 'ticketing-agent' to 'ticketing' to match deployment name
-- Ticketing agent version bumped to 2.6.1
-
-## [4.26.3] - 2025-11-25
-
-### Changed
-- Documentation updates for output style startup investigation
-
-## [4.26.2] - 2025-11-25
-
-### Changed
-- Optimized PM_INSTRUCTIONS.md for token efficiency (Tickets 1M-200, 1M-203)
-
-### Fixed
-- Updated mypy and pytest configuration for compatibility
-
-## [4.26.1] - 2025-11-24
-
-### Added
-- **Ticket Completeness Protocol** (feat a86c9f09): 5-Point Engineer Handoff Checklist
-  - "Zero PM Context" Test for ticket verification
-  - Ticket Attachment Decision Tree
-  - PM Self-Check Protocol for session end
-  - 4 detailed examples (complete/incomplete tickets)
-  - Engineers can now work from ticket context alone (zero PM dependency)
-
-### Fixed
-- **Agent Naming Consistency** (fix 10b6b2b1): Corrected agent naming from 'ticketing-agent' to 'ticketing'
-  - Fixed 100+ instances across PM instructions
-  - Ensures consistent delegation to correct agent name
-  - Prevents delegation errors
-
-### Changed
-- Enhanced Circuit Breaker #6 with ticket completeness violations
-- Strengthened Quick Delegation Matrix for ticketing operations
-- Updated all delegation examples with correct agent names
-
-## [4.26.0] - 2025-11-24
-
-### Added
-- **Circuit Breaker #7: Research Gate Violation Detection** (Ticket 1M-163): Improved research agent quality
-  - Research Gate Protocol enforcement with confidence thresholds
-  - Automatic violation detection and intervention
-  - Evidence-based research requirements
-  - Integration with Agent Clarification Framework
-- **Enhanced Ticketing Agent** (Ticket 1M-178): Read full ticket context including comments
-  - Complete ticket history and context awareness
-  - Comment thread analysis
-  - Improved context for ticket operations
-- **Semantic Workflow State Intelligence**: Natural language state transitions
-  - Supports natural language inputs (e.g., "working on it" → IN_PROGRESS)
-  - Confidence-based matching with suggestions
-  - Typo handling and fuzzy matching
-
-### Changed
-- Updated circuit_breakers.md with Research Gate Protocol documentation
-- Enhanced agent instructions with clarification framework
-
-### Fixed
-- Removed conflicting PM ticket tool usage guidance (Ticket 1M-177)
-- Restored OUTPUT_STYLE.md content from git history (Ticket 1M-175)
-- Fixed output style file size check in deployment (Ticket 1M-175)
-
-## [4.25.10] - 2025-11-24
-
-### Added
-- **Standardized Confidence Reporting** (Ticket 1M-167): JSON-based confidence metrics
-  - Mandatory confidence metrics in task completion reports
-  - Initial confidence, final confidence, and confidence change tracking
-  - Assumptions tracking (validated and unvalidated)
-  - Remaining ambiguities reporting
-  - Integration with clarification framework
-- **Task Decomposition Protocol** (Ticket 1M-168): Self-validation through decomposition
-  - Mandatory decomposition for non-trivial tasks (>2 steps)
-  - 4-step decomposition process (identify, order, validate, estimate)
-  - Complexity estimates (Simple/Medium/Complex)
-  - Dependency tracking and risk identification
-  - Integration with execution workflow
-
-### Changed
-- base-agent: Enhanced with mandatory confidence reporting and task decomposition protocols
-
-## [4.25.9] - 2025-11-24
-
-### Added
-- **Agent Clarification Framework** (Ticket 1M-163): 85% confidence threshold enforcement
-  - Mandatory clarity checklist before task execution
-  - Clarification request templates with confidence scoring
-  - Examples of ambiguous vs. clear tasks
-- **Research Gate Protocol** (Ticket 1M-163): Research-first workflow enforcement
-  - Mandatory research validation for ambiguous tasks
-  - Research gate protocol with 4-step validation
-  - Bidirectional ticket linking for research findings
-- **Context Optimization** (Ticket 1M-163): Compact ticket reading mode
-  - 70% token reduction for large ticket lists
-  - Compact mode returns only essential fields
-  - Configurable via `compact=True` parameter
-- **Semantic Workflow States** (Ticket 1M-163): Natural language state transitions
-  - Accepts "working on it" → maps to IN_PROGRESS
-  - Semantic matching with confidence scoring
-  - Handles typos and ambiguous inputs
-
-### Changed
-- base-agent: Enhanced with mandatory clarification framework
-- ticketing-agent: v2.7.0 → v2.8.0 (semantic states, context optimization)
-- PM_INSTRUCTIONS.md: Added research gate protocol enforcement
-
-## [4.25.8] - 2025-11-23
-
-### Changed
-- Version bump for patch release
-
-## [4.25.7] - 2025-11-23
-
-### Changed
-- Version bump for patch release
-
-## [4.25.6] - 2025-11-23
-
-### Added
-- **Ticket-First Workflow Enforcement** (PM v0006, Agents v2.8.0): Mandatory traceability
-  - PM now enforces ticket context propagation to all agents
-  - Research agent requires ticket attachment when ticket context exists
-  - Ticketing agent supports TODO conversion and follow-up workflows
-  - Framework vs. project work distinction in CLAUDE.md
-
-### Changed
-- research-agent: v4.7.0 → v4.8.0 (mandatory ticket attachment)
-- ticketing-agent: v2.5.0 → v2.6.0 (TODO conversion + follow-ups)
-- PM: v0005 → v0006 (strict ticket-first enforcement)
-
-### Fixed
-- Resolved all linting errors (RUF059, I001, RUF043)
-- Fixed unused variable warnings in source and test files
-- Converted pytest match patterns to raw strings for proper regex handling
-
-## [4.25.5] - 2025-11-22
-
-### Added
-- **Research Agent Work Capture** (v2.7.0): Automatic structured documentation
-  - File-based capture to `docs/research/` with standardized markdown template
-  - Ticketing integration via mcp-ticketer when available
-  - Priority-based routing: Issue ID > Project/Epic > File-only
-  - Work classification: Actionable (subtask) vs Informational (attachment)
-  - Non-blocking design with comprehensive fallback chain
-- **GitIgnore Management**: Automatic `.gitignore` updates during `/mpm-init`
-  - Adds `.claude-mpm/` and `.claude/agents/` automatically
-  - Safe append-only strategy with duplicate detection
-  - Creates `.gitignore` if missing, preserves existing content
-  - Graceful error handling with user-friendly messages
-
-### Changed
-- Research agent (v2.6.0 → v2.7.0) with comprehensive work capture imperatives
-- `/mpm-init` now automatically manages `.gitignore` entries
-- All research outputs saved to `docs/research/` by default
-
-### Documentation
-- Created `docs/research/research-agent-work-capture-integration-2025-11-22.md` documenting work capture design
-- Created `docs/research/skills-configurator-integration.md` with skills menu analysis
-- Created `docs/research/mcp-skills-architecture.md` for mcp-skills project design
-- Updated `/mpm-init` documentation with GitIgnore Management feature
-
-## [4.25.4] - 2025-11-21
-
-### Added
-- **Multi-Collection Support**: Manage multiple skill repositories
-  - Add/remove/enable/disable collections with CLI commands
-  - Git-based deployment (clone on first install, pull on updates)
-  - Priority-based ordering for skill conflicts
-  - Default collection configuration
-  - Collections stored in `~/.claude-mpm/config.json`
-- Collection management commands:
-  - `skills collection-list` - List all collections with status, priority, and timestamps
-  - `skills collection-add NAME URL [--priority N]` - Add new collection with optional priority
-  - `skills collection-remove NAME` - Remove collection and deployed skills
-  - `skills collection-enable NAME` - Enable disabled collection
-  - `skills collection-disable NAME` - Temporarily disable collection
-  - `skills collection-set-default NAME` - Set default collection for deployments
-
-### Changed
-- Skills deployment now uses git clone/pull instead of ZIP downloads
-- Each collection deployed to separate subdirectory under `~/.claude/skills/`
-- Existing commands accept optional `--collection` parameter for targeted deployment
-- Default collection (claude-mpm) automatically configured on first use
-
-### Documentation
-- Updated `docs/guides/skills-deployment-guide.md` with comprehensive multi-collection section
-- Updated `docs/reference/skills-quick-reference.md` with collection management commands
-- Updated `README.md` Skills Deployment section with multi-collection examples
-- Added collection deployment workflows and troubleshooting guidance
-
-### Fixed
-
-### Removed
-
-## [4.25.4] - 2025-11-21
-
-### Added
-- **Skills Deployment System**: Intelligent Claude Code skills deployment with automatic recommendations
-  - SkillsDeployer service for downloading and deploying skills from GitHub
-  - Technology stack detection and automatic skill gap analysis
-  - Research agent enhancement (v2.6.0) with skill detection capabilities
-  - CLI commands: `skills deploy-github`, `list-available`, `check-deployed`, `remove`
-  - Comprehensive skills deployment guide at `docs/guides/skills-deployment-guide.md`
-  - Integration with [claude-mpm-skills repository](https://github.com/bobmatnyc/claude-mpm-skills)
-  - Proactive skill recommendations during project analysis and specific work types
-
-### Changed
-- Research agent (v2.6.0) now proactively recommends Claude Code skills based on project technology stack
-- Research agent detects frameworks, testing tools, and infrastructure patterns for targeted recommendations
-- Enhanced project analysis to include skill gap detection and deployment guidance
-
-### Documentation
-- Added `docs/agents/research-agent.md` - Complete research agent documentation with skill detection
-- Added `docs/reference/skills-quick-reference.md` - Quick reference card for skills commands
-- Updated `README.md` with Skills Deployment section and usage examples
-- Enhanced skills deployment guide with research agent integration examples
-
-### Fixed
-- Resolved linting issues in skills deployment code (unused imports, variables, code style)
-- Fixed critical manifest parsing bug for nested skill structures
-
-## [4.25.3] - 2025-11-21
-
-### Added
-- **Makefile Enhancements**: Comprehensive Makefile improvements (+234 lines, +13 targets)
-  - Ruff-only migration for 10-200x faster linting
-  - ENV variable system for environment-aware builds
-  - Dependency locking targets for reproducible builds
-  - Build metadata tracking and verification
-  - Enhanced pre-publish quality gate
-  - Improved cleanup and maintenance targets
-
-### Changed
-- Migrated from Black/Flake8/isort to Ruff for unified, faster linting
-- Streamlined quality workflow with integrated ENV system
-
-## [4.25.2] - 2025-11-21
-
-### Changed
-- Patch release for deployment testing and quality gate verification
-
-## [4.25.1] - 2025-11-21
-
-### Added
-- **Test Parallelization**: Implemented pytest-xdist for parallel test execution, reducing test runtime significantly
-- **MCP-Ticketer Integration**: Enhanced research agent with mcp-ticketer delegation for comprehensive ticket management
-
-### Changed
-- Strengthened "DO THE WORK" directive in PM instructions for more proactive agent behavior
-
-## [4.25.0] - 2025-11-21
-
-### Added
-- **Ticketing Agent Delegation**: Mandatory delegation to ticketing agent in PM instructions for ticket management workflows
-- **Git History Display**: CLI startup screen now shows recent git commit activity for better context awareness
-- **Theme Support**: Light/dark theme support added to d2 dashboard for improved user experience
-
-### Fixed
-- Removed unnecessary f-string prefix in startup_display.py
-- Resolved critical Svelte 5 store architecture error in d2 dashboard
-
-### Changed
-- Applied black formatting to git integration code for consistency
-
-## [4.24.4] - 2025-11-20
-
-### Fixed
-- Dashboard panes not rendering on initial load or when Socket.IO connection is established
-- Historical events not appearing in dashboard panes after connection
-- Socket.IO logging disabled (now enabled for better debugging visibility)
-
-### Added
-- Vite build configuration for modern dashboard bundling
-- package.json for NPM wrapper support with version synchronization
-- historyLoaded event to trigger pane rendering after data load
-
-## [4.24.3] - 2025-11-19
-
-### Fixed
-- Fixed pytest collection blocker (renamed tests/test_utils.py to tests/_test_utils.py)
-- Updated mypy python_version configuration (3.8 → 3.9) to match actual Python requirements
-- Added pytest norecursedirs configuration to exclude non-test directories
-
-### Technical
-- Resolved ImportError during test collection by prefixing test utility module with underscore
-- Eliminated mypy configuration warning about outdated Python version
-- Improved test suite organization and pytest configuration
-
-## [4.24.2] - 2025-11-19
-
-### Added
-- **Structured Questions Framework**: Comprehensive system for interactive PM workflows
-  - Core framework with BaseQuestion and StructuredQuestionsManager
-  - Template system for reusable question patterns (PR strategy, project init, ticket management)
-  - Full documentation (design, guides, API reference)
-  - Comprehensive test coverage
-
-## [4.24.1] - 2025-11-19
-
-### Added
-- Enhanced startup banner with teal robots and launch message
-- Claude Code-style presentation for startup banner
-
-## [4.24.0] - 2025-11-17
-
-### Added
-- **JavaScript Engineer Agent (v1.0.0)**: Vanilla JavaScript specialist for Node.js backends, browser extensions, Web Components, and modern ESM patterns
-  - Node.js backend frameworks: Express, Fastify, Koa, Hapi
-  - Browser extensions with Manifest V3 support
-  - Web Components (Custom Elements, Shadow DOM)
-  - Modern ESM patterns and build tooling (Vite, esbuild, Rollup)
-  - Comprehensive testing with Vitest/Jest
-  - Priority 80 routing with 21 trigger keywords
-
-## [4.23.1] - 2025-11-15
-
-### Changed
-- **Documentation Agent v3.4.2**: Added thorough reorganization capability for comprehensive documentation restructuring
-
-## [4.23.0] - 2025-11-13
-
-### Changed
-- **Ticketing Agent v2.5.0**: Updated to prefer mcp-ticketer MCP server as PRIMARY integration with automatic fallback to aitrackdown CLI
-- Added 4-step MCP detection workflow for intelligent integration selection
-- Documented all 6 mcp-ticketer MCP tools with comprehensive examples
-- Enhanced ticketing agent with graceful degradation and user preference support
-
-### Documentation
-- Updated ticketing agent template with MCP-first architecture
-- Enhanced agent capabilities reference with ticketing integration details
-- Added comprehensive MCP vs CLI usage guidance across 4 documentation files
-- Created detailed verification report for ticketing agent updates
-
-## [4.22.3] - 2025-11-13
-
-### Added
-- **env-manager skill**: Comprehensive environment variable validation, security scanning, and management
-  - Framework-specific validation (Next.js, Vite, React, Node.js, Flask)
-  - Security-first design with secret detection in client-exposed variables (NEXT_PUBLIC_, VITE_, REACT_APP_)
-  - Completeness checking (.env vs .env.example comparison)
-  - .env.example generation with automatic secret sanitization
-  - JSON output mode for CI/CD integration
-  - 85%+ test coverage with comprehensive test suite
-  - Zero secret exposure guarantee (security-audited)
-  - High performance: validates 1000 variables in 0.025s (80x faster than 2s target)
-  - Exit codes for automation: 0 (success), 1 (errors), 2 (file not found), 3 (warnings in strict mode)
-  - Strict mode for treating warnings as errors in CI/CD pipelines
-  - Quiet mode for suppressing warnings in production logs
-
-### Changed
-
-### Fixed
-
-### Removed
-
-### Documentation
-- **env-manager skill documentation**: Complete user-facing and integration documentation
-  - Comprehensive README.md with quick start, usage examples, and CLI reference
-  - INTEGRATION.md guide for Claude MPM agents with workflow patterns
-  - Real-world workflow examples covering 10 common scenarios
-  - Framework-specific guides (Next.js, Vite, React, Express, Flask)
-  - CI/CD integration patterns for GitHub Actions
-  - Security audit workflows and best practices
-  - Multi-environment management strategies
-
-## [4.22.2] - 2025-11-13
-
-### Added
-- **Test Quality Inspector Skill**: Comprehensive test inspection capability for QA agents
-  - 5-phase inspection framework (Intent, Setup, Execution, Assertion, Failure analysis)
-  - Assertion quality guide with 6-level strength spectrum
-  - Red flags detection with severity matrix (CRITICAL/HIGH/MEDIUM/LOW)
-  - Mental debugging techniques and inspection checklist
-  - Detailed example inspection report with before/after test improvements
-  - Integrated into all QA agents (qa, web_qa, api_qa)
-
-### Fixed
-- Pre-commit hook now properly detects detect-secrets-hook from venv/virtualenv
-- Updated secrets baseline to include new skill files
-
-## [4.22.1] - 2025-11-13
-
-### Fixed
-- Ruff linter configuration now properly ignores import sorting rules (I001) using `--extend-ignore` flag
-- Test script now checks if pytest module is importable instead of just checking for pytest binary
-- Test script now uses `python3` instead of `python` for compatibility with macOS and modern Python installations
-- Structure linter now uses `python3` instead of `python` command
-
-### Changed
-- Makefile lint-ruff target updated to use `--extend-ignore=RUF043,RUF059,I` format for better rule exclusion
-- Test execution now properly skips pytest tests when module is not available instead of failing
-
-## [4.22.0] - 2025-11-12
-
-### Added
-- **Stacked PR & Git Worktree Framework**: New skills for advanced PR workflows
-  - `stacked-prs.md` (252 lines): Complete stacked PR workflow documentation
-  - `git-worktrees.md` (318 lines): Parallel development guide using git worktrees
-- **Version-Control Agent**: Enhanced with comprehensive PR workflow guidance
-  - 5 CRITICAL warnings about branch bases
-  - Decision framework for choosing PR strategy (main-based vs stacked)
-  - Rebase chain management guidance
-- **PM Instructions**: PR Workflow Delegation section (183 lines)
-  - Quick Delegation Matrix updated with PR workflow entries
-  - Strategy recommendations for when to use each approach
-  - Git worktrees delegation template
-
-### Changed
-- **Default PR Strategy**: Main-based PRs (simpler) with opt-in for stacked PRs (advanced)
-- **11 Anti-Patterns**: Documented to prevent common PR workflow mistakes
-
-### Fixed
-- Fixed 148 RUF059 linting errors (unused unpacked variables)
-- Resolved dependency aggregation issues
-- Cleaned up obsolete files (.mcp.backup, QA_SUMMARY.txt)
-
-### Documentation
-- Clarified locust as optional dependency (agents-load-testing group)
-- Added installation instructions for load testing features
-- Updated performance profiling skill documentation
-
-## [4.21.5] - 2025-11-11
-
-### Documentation
-- Enhanced CLAUDE.md with prominent CONTRIBUTING.md reference
-- Added Quick Development Commands section (lint-fix, quality, safe-release-build)
-- Added Project Organization section with file placement rules
-- Updated project-organizer agent to use CONTRIBUTING.md as primary reference
-- Created bidirectional link between CLAUDE.md and CONTRIBUTING.md
-
-## [4.21.4] - 2025-11-10
-
-### Added
-- Pre-tool-use hooks system with comprehensive templates
-- Update checking service with self-upgrade capabilities
-- PM file tracking enforcement (BLOCKING requirement)
-
-### Changed
-- PM workflow now requires IMMEDIATE file tracking after agent work
-- File tracking is BLOCKING (cannot mark todos complete without tracking)
-
-### Fixed
-- PM workflow timing violations now properly detected
-- Circuit breaker enforcement for file tracking violations
-
-### Documentation
-- Added pretool-use-hooks.md, why-not-a-plugin.md, update-checking.md
-- Updated installation and troubleshooting guides
-
-## [4.21.3] - 2025-11-10
-
-### Added
-- **CLAUDE.md**: 755-line comprehensive development guide
-  - Distinguishes three environments (dev, installed product, end-user projects)
-  - Documents critical architecture principles for contributors
-  - Includes file locations reference and workflow guidance
-- **Makefile target**: `make deploy-commands` for testing command deployment during development
-
-### Fixed
-- **Command Deployment Architecture**: Commands now properly deploy to `~/.claude/commands/` (user-level)
-  - Removed incorrect symlinks to source files in project `.claude/commands/`
-  - System correctly uses COPY deployment, not symlinks
-  - Development environment now properly simulates production behavior
-- **Thread Safety**: 3 singleton implementations now use double-checked locking
-  - `failure_tracker.py`: Added thread-safe singleton
-  - `relay.py`: Fixed concurrent access issues
-  - `base.py` (SingletonService): Base class thread safety
-- **Linting Errors**: Resolved code_tree_analyzer package issues
-  - Fixed RUF022 violations (alphabetical __all__ sorting)
-  - Removed F401 unused imports
-  - Optimized RUF015 iteration patterns
-
-### Refactored
-- **code_tree_analyzer Package**: Modularized 1,825-line monolith into 10 focused modules
-  - Improved maintainability (avg ~228 lines per module)
-  - Enhanced testability and extensibility
-  - 100% backward compatibility maintained
-- **Priority 2 Tasks**: Thread safety and /mpm-resume command fixes
-  - Achieved 100% thread-safe singletons (up from 81%)
-  - Corrected /mpm-resume to load state (not create files)
-
-### Documentation
-- **CONTRIBUTING.md**: Updated to reference CLAUDE.md in Getting Help section
-- **Thread Safety Reports**: Comprehensive audit documentation added
-  - thread-safety-audit-report.md (617 lines)
-  - thread-safety-audit-summary.md (402 lines)
-
-## [4.21.2] - 2025-11-09
-
-### Documentation
-- **Publishing Documentation Consolidation**: Streamlined 4 files into 2 comprehensive guides
-  - New unified `publishing-guide.md` with complete workflow
-  - Enhanced `pre-publish-checklist.md` with detailed validation
-- **Session Archive**: Moved completed session documents to `docs/_archive/2025-11-sessions/`
-- **Metadata Standardization**: Added headers to 5 documentation files
-- **Documentation Tracking**: New `DOCUMENTATION_STATUS.md` for maintenance
-
-### Technical Details
-- 25 files changed: +1,172 insertions, -10,339 deletions
-- Net reduction: 9,167 lines (documentation cleanup)
-- All 230 tests passing
-
-## [4.21.1] - 2025-11-09
-
-### Added
-- **New `/mpm-resume` Slash Command**: Instant session pause and resume file generation
-  - One-command operation for session management (<1 second execution)
-  - Automatically captures todos, git context, and context usage
-  - Generates two files: comprehensive session-resume and quick SESSION_SUMMARY
-  - Perfect for managing context limits and work continuity
-  - Implementation: Complete command specification with usage examples
-
-### Documentation
-- Added comprehensive `/mpm-resume` command documentation
-- Included usage examples and demo scenarios
-- Documented implementation guidelines and user instructions
-- Enhanced session management workflow documentation
-
-## [4.21.0] - 2025-11-09
-
-### Added
-- **Automatic Session Resume at 70% Context**: Session resume files now automatically created at 70% context threshold
-  - Monitors token usage (70% = 140k/200k tokens)
-  - Automatically creates session resume file and prompts user
-  - Enforcement thresholds: 70% (auto-create + prompt), 85% (block work), 95% (emergency)
-  - Ensures seamless work continuation without losing context
-  - Implementation: PM agent instructions updated with automatic threshold enforcement
-
-### Changed
-- **Session File Location**: Session files now stored in `.claude-mpm/sessions/` instead of `.claude-mpm/sessions/pause/`
-  - Simplified directory structure
-  - Backward compatibility maintained (legacy location still checked)
-  - All 32 existing session files migrated successfully
-  - Documentation updated to reflect new location
-
-### Fixed
-- **MCP Protocol**: Fixed print statements redirecting to stderr to prevent protocol pollution
-- **Import Cleanup**: Replaced wildcard imports with explicit imports and added backward compatibility
-- **Code Quality**: Fixed 9 Ruff linting errors
-
-### Documentation
-- Updated `docs/features/session-auto-resume.md` with automatic 70% threshold behavior
-- Updated all examples to use new `.claude-mpm/sessions/` path
-- Added historical note to `docs/design/session-resume-implementation.md`
-- Added comprehensive session resume documentation for 2025-11-09
-- Added code review and refactoring session documentation
-
-## [4.20.7] - 2025-11-07
-
-### Added
-- **Rust Desktop Applications Skill**: Comprehensive guide for building cross-platform desktop applications
-  - Complete Tauri, Iced, Egui, and Slint framework coverage
-  - Architecture patterns, testing strategies, and distribution guides
-  - Reference documentation for GUI frameworks and native integrations
-  - Implementation: `src/claude_mpm/skills/bundled/languages/rust-desktop-applications/`
-
-### Changed
-- **Skills Progressive Disclosure (Tier 3 - Complete)**: Universal application of progressive disclosure pattern
-  - **Tier 3A**: Optimized 5 high-value skills (elixir-phoenix, react-advanced-patterns, etc.)
-  - **Tier 3B**: Refactored dispatching-parallel-agents skill (195→175 lines)
-  - **Tier 3C & 3D**: Optimized final skills (go-web-services, python-django, etc.)
-  - **skill-creator**: Applied to skill creation workflow itself (209→189 lines)
-  - **Project Totals**: 17/17 skills optimized (100% complete)
-  - **Documentation Impact**: 12,466 lines added, 25 new reference files created
-  - All skills now follow consistent structure with streamlined entry points
-  - Complete progressive disclosure pattern established across entire skill library
-
-## [4.20.6] - 2025-11-07
-
-### Added
-- **Session Pause CLI Command**: New `/mpm-init pause` command for session management
-  - Creates comprehensive pause snapshots (JSON, YAML, Markdown formats)
-  - Captures git state, environment, configuration, and project context
-  - Automatic git commit creation with session metadata
-  - Export functionality for portable session archives
-  - Implementation: `src/claude_mpm/cli/commands/mpm_init.py`, `SessionPauseManager`
-
-### Changed
-- **Skills Progressive Disclosure (Tier 2)**: Refactored verification-before-completion skill
-  - Entry point reduced to 175 lines with streamlined quick start guide
-  - Detailed reference documentation moved to separate files
-  - Improved discoverability and reduced cognitive load
-  - Implementation: `src/claude_mpm/skills/bundled/testing/verification-before-completion/`
-
-### Fixed
-- **Code Quality**: Fixed linting violations across production codebase
-  - Timezone-aware datetime calls (DTZ005)
-  - Removed unused imports (F401)
-  - Fixed f-string formatting (F541, ISC001)
-  - Import ordering and Optional type hints
-  - All production code now passes ruff and black checks
-
-## [4.20.5] - 2025-11-07
-
-### Fixed
-- **EspoCRM Skill Validation**: Fixed critical validation issues preventing skill loading
-  - Name mismatch: Changed `EspoCRM Development` → `espocrm-development` (matches directory)
-  - Invalid category: Changed `php` → `development` (valid category)
-  - Line limit: Reduced entry point from 217 → 170 lines (meets 200-line requirement)
-  - Skill now passes all critical validation rules and loads properly
-
-## [4.20.4] - 2025-11-07
-
-### Added
-- **EspoCRM Development Skill**: Comprehensive guide for PHP engineers developing on EspoCRM
-  - Progressive disclosure: 216-line entry point + 4,700 lines of reference documentation
-  - Covers metadata-driven architecture, ORM, hooks, service layer, frontend customization
-  - 6 detailed reference guides: architecture, development workflow, hooks/services, frontend, common tasks, testing/debugging
-  - 100+ code examples with best practices and anti-patterns
-  - Version support: EspoCRM 7.4+, 8.0+, 9.x
-  - Implementation: `src/claude_mpm/skills/bundled/php/espocrm-development/`
-
-### Changed
-- **PHP Engineer Agent**: Bumped to v2.1.0 with EspoCRM development skill
-  - Added `espocrm-development` to skills array
-  - Updated agent version and changelog
-  - Implementation: `src/claude_mpm/agents/templates/php-engineer.json`
-
-## [4.20.3] - 2025-11-07
-
-### Added
-- **License attributions for bundled skills**: Generated LICENSE_ATTRIBUTIONS.md with attribution information for all 15 bundled skills
-  - Groups skills by license type (MIT, Complete terms)
-  - Includes author, source URLs, and descriptions
-  - Identifies 8 skills missing license information
-  - Implementation: `scripts/generate_license_attributions.py`, `src/claude_mpm/skills/bundled/LICENSE_ATTRIBUTIONS.md`
-
-### Changed
-- **Skills progressive disclosure (Tier 2)**: Refactored verification-before-completion skill
-  - Entry point reduced to 175 lines with quick start guide
-  - Created detailed reference documentation (861 lines across 3 files)
-  - Added progressive disclosure metadata to frontmatter
-  - Version bumped to 2.0.0
-  - Implementation: `src/claude_mpm/skills/bundled/debugging/verification-before-completion/`
-
-### Fixed
-- **Skills configuration cleanup**: Removed 8 non-existent skills from skills_sources.yaml
-  - Skills don't exist in their GitHub repositories (404 errors)
-  - Removed: git-worktrees, finishing-branches, elements-of-style, defense-in-depth, content-research-writer, file-organizer, csv-data-summarizer, playwright-browser-automation
-  - Cleaned up empty skill directories
-  - Updated configuration version to 1.0.1
-  - Implementation: `config/skills_sources.yaml`
-
-### Documentation
-- Added extensive reference documentation for verification-before-completion skill
-- Updated skills sources configuration with explanatory comments
-
-## [4.20.2] - 2025-11-07
-
-### Added
-- **Auto-configure default configuration fallback**: Provides sensible default agents when toolchain detection fails
-  - Default agents: engineer, research, qa, ops, documentation
-  - Moderate confidence (0.7) indicates fallback nature
-  - Clear reasoning explains why defaults were applied
-  - User-configurable (can disable or customize)
-  - Implementation: `src/claude_mpm/agents/configs/agent_capabilities.yaml`, `src/claude_mpm/agents/toolchain/recommender.py`
-
-### Documentation
-- Updated user guide with auto-configure fallback behavior
-- Enhanced mpm-auto-configure.md with fallback documentation
-
-## [4.20.1] - 2025-11-05
-
-### Fixed
-- **MCP service health checks**: Removed noisy proactive health checking on startup
-  - Services now manage their own health independently
-  - Reduces startup noise by 124 lines of unnecessary checking
-  - Implementation: `src/claude_mpm/services/mcp_config_manager.py`
-
-## [4.20.0] - 2025-11-04
 
 ### Added
 - **Automatic session resume on PM startup**: Detects paused sessions and displays context
@@ -1489,6 +38,2395 @@ Building on the 4.5.0 git-first architecture, this release adds:
 - Added `IMPLEMENTATION_SUMMARY.md`: Implementation details for auto-resume functionality
 
 #### Agent Updates
+
+## v5.4.7 (2025-12-18)
+
+### Fix
+
+- correct agent ID mismatch in configure CLI agent selection
+
+## v5.4.5 (2025-12-16)
+
+### Feat
+
+- add skill-to-agent auto-inference mapping (#120)
+
+### Fix
+
+- resolve linting errors in skill_to_agent_mapper.py
+
+## v5.4.4 (2025-12-16)
+
+### Feat
+
+- selective skill deployment based on agent requirements
+- **deployment**: implement selective skill deployment
+
+### Fix
+
+- apply ruff linting fixes for release
+- show correct agent count when deployment reports 0 configured
+- show configured agent count in deployment progress bar
+- use agent_id for deployment status detection in configure
+- exclude claude-mpm-skills repo from agent discovery
+
+## v5.4.3 (2025-12-15)
+
+### Refactor
+
+- rename /mpm-ticket-organize to /mpm-organize
+
+## v5.4.2 (2025-12-15)
+
+## v5.4.1 (2025-12-15)
+
+### Feat
+
+- auto-update package.json, pyproject.toml, and CHANGELOG.md in automated release
+- **release**: add agent repository sync to automated release
+- **dashboard**: implement file viewer with Shiki syntax highlighting
+- **dashboard**: fix FilesView styling and add 50-event cache per stream
+
+### Fix
+
+- correct project root path calculation in automated_release.py
+- **cli**: use display name instead of agent_id in agent selection UI
+- **agents**: resolve agent count discrepancy and missing list_sources method
+- **dashboard**: extract file paths from tool_parameters
+- **dashboard**: debug files display + remove Path column
+- **dashboard**: Files tab now displays file operations correctly
+- **dashboard**: simplify Files tab to scan all events for file paths
+
+## v5.4.0 (2025-12-13)
+
+### Feat
+
+- **dashboard**: add Files tab with syntax highlighting and diff viewing
+- **dashboard**: add Tools view with pre/post tool correlation
+- improve EventStream table layout with grid-based design
+- add PM delegation rules for mpm-skills-manager agent
+- enhance event list with detailed display fields
+- add hot reload for dashboard development
+- enhance Svelte dashboard with JSON explorer and stream filtering
+- add SvelteKit 5 dashboard with real-time event monitoring
+
+### Fix
+
+- replace os.getcwd() with Path.cwd() (PTH109)
+- **dashboard**: extract file paths from tool_parameters in hook events
+- **dashboard**: add type guards to files.svelte.ts and tools.svelte.ts
+- **agents**: prioritize dist/agents/ over source agents/ in discovery
+- **monitor**: improve exit code messaging for daemon termination
+- add proper type guards for event.data property access in EventStream
+- remove unused contextlib import
+- use raw strings for pytest regex patterns
+- use $effect for store subscription in runes mode
+- use traditional Svelte stores for static adapter compatibility
+- stream dropdown reactivity in Svelte 5
+- convert Svelte 5 socket store to factory function pattern
+- serve Svelte assets at /svelte/_app/ to match base path
+- configure SvelteKit base path for /svelte mount point
+- disable redundant DirectSocketIORelay to prevent event duplication
+- improve hook event naming with comprehensive mapping
+
+## v5.3.0 (2025-12-11)
+
+### BREAKING CHANGE
+
+- MCP gateway service has been archived and is no longer active.
+Use direct MCP server integrations (mcp-ticketer, mcp-vector-search, etc.) instead.
+
+### Feat
+
+- deprecate MCP gateway, add summarize CLI command
+- add EventBus integration and health endpoints to Socket.IO server
+
+### Fix
+
+- resolve ruff linting errors before release
+
+## v5.2.3 (2025-12-11)
+
+### Fix
+
+- make agent dependencies optional via frontmatter
+
+## v5.2.2 (2025-12-10)
+
+### Fix
+
+- make pylint import optional for clone detection
+
+## v5.2.1 (2025-12-10)
+
+### Feat
+
+- add multi-language clone detection support
+- add code clone detection to code-analyzer agent
+
+### Fix
+
+- agent deployment path and test fixes
+- apply ruff linting and formatting fixes
+- use correct pylint API for duplicate detection
+
+## v5.1.12 (2025-12-10)
+
+### Feat
+
+- auto-deploy agents when saving selection in configure
+- show Installed status with green highlight for deployed agents
+
+### Fix
+
+- use grey color and properly format YAML name for display
+- use YAML name in agent list and improve table colors
+- deploy output styles to project-level directory
+- deploy output styles to correct directory with both styles
+- auto-fix linting errors before publish
+- deploy agents to project directory instead of user-level
+- show Installed status for deployed agents in initial list
+- show asterisk for deployed agents instead of recommended agents
+- update AgentRecommendationService.CORE_AGENTS to match ToolchainDetector
+
+## v5.1.11 (2025-12-10)
+
+### Feat
+
+- add branch protection for main branch
+- add visual feedback loop for agent selection controls
+- add recommended agents feature with toolchain detection
+- **ui**: implement two-step agent selection with collection-level toggles
+- **ui**: change Select All to Toggle All for select/deselect behavior
+- **ui**: group agent selection by collection with Select All option
+- **styles**: rename output styles and deploy to ~/.claude/styles/
+- **agents**: enhance agent matching with collection-based selection and frontmatter
+
+### Fix
+
+- update CORE_AGENTS to use correct agent IDs and add local-ops-agent
+- correct agent count in sources table and add loading spinner
+- prioritize frontmatter metadata for agent name/description extraction
+- resolve datetime timezone mismatch in socketio health monitor
+- reload menu after agent selection and fix loading state
+- use YAML frontmatter agent_id for deployment matching
+- **ui**: show actual deployment state in individual agent selection
+- **ui**: show actual deployment state in agent selection
+- **agents**: remove redundant Path import causing scoping error
+- **agents**: verify file existence before adding to removal set
+- **agents**: extract leaf name for agent removal to match deployed files
+- **ui**: normalize agent path formats for accurate change detection
+- **ui**: patch correct module for questionary checkbox symbols
+
+### Refactor
+
+- simplify agent management to unified selection view
+- simplify agent architecture to 2-location model
+
+## v5.1.8 (2025-12-09)
+
+### Feat
+
+- auto-gitignore user-specific config files during mpm-init
+
+### Fix
+
+- **ui**: fix questionary import scoping for checkbox symbols
+- remove unnecessary f-string prefixes in error messages
+- **ui**: add exception handling for questionary menu failures
+- **ui**: improve configurator feedback and error handling
+- **ui**: improve agent configurator checkbox visibility and state tracking
+
+## v5.1.6 (2025-12-08)
+
+### Fix
+
+- enable auto-push for Homebrew tap updates in releases
+
+## v5.1.5 (2025-12-08)
+
+### Feat
+
+- enforce mandatory QA verification gate in PM instructions
+- **deepeval**: add PM Proactive Verification test suite
+
+### Fix
+
+- **lint**: combine implicitly concatenated strings
+- **lint**: apply ruff auto-fixes for eval tests
+- **ci**: add pytest-timeout to eval dependencies
+- **deepeval**: calibrate BASE_AGENT and Engineer tests for CI (#105)
+
+## v5.1.4 (2025-12-08)
+
+### Fix
+
+- **deepeval**: calibrate Documentation Agent scenarios to 100% pass rate (#112)
+- **deepeval**: calibrate Ops Agent scenarios to 100% pass rate (#111)
+- **deepeval**: calibrate QA Agent scenarios to 100% pass rate (#110)
+- **deepeval**: calibrate Engineer Agent scenarios to 100% pass rate (#109)
+
+## v5.1.3 (2025-12-07)
+
+### Feat
+
+- **deepeval**: add Prompt-Engineer Agent test suite (#113)
+- **deepeval**: add CI/CD and documentation for Documentation Agent tests (#112)
+- **deepeval**: implement Documentation Agent test harness and 3 integration tests (#112)
+- **deepeval**: add 12 Documentation Agent test scenarios (#112)
+- **deepeval**: implement Documentation Agent custom metrics (#112)
+- **deepeval**: add CI/CD and documentation for Ops Agent tests (#111)
+- **deepeval**: implement Ops Agent test harness and 5 integration tests (#111)
+- **deepeval**: add 18 Ops Agent test scenarios (#111)
+- **deepeval**: implement Ops Agent custom metrics (#111)
+- **pm**: add documentation routing protocol to PM instructions
+- **deepeval**: add CI/CD and documentation for QA Agent tests (#110)
+- **deepeval**: implement QA Agent test harness and 5 integration tests (#110)
+- **deepeval**: add 20 QA Agent test scenarios (#110)
+- **deepeval**: implement QA Agent custom metrics (#110)
+- **deepeval**: add CI/CD and documentation for Engineer Agent tests (#109)
+- **deepeval**: add 6 Engineer Agent workflow integration tests (#109)
+- **deepeval**: implement Engineer Agent test harness (#109)
+- **deepeval**: add 25 Engineer Agent test scenarios (#109)
+- **deepeval**: implement Engineer Agent custom metrics (#109)
+- **deepeval**: add Research Agent scenarios and test harness (#108)
+- **deepeval**: implement Research Agent custom metrics (#108)
+- add CI/CD for DeepEval tests and TkDD protocol (#107)
+- **deepeval**: add 5 BASE_AGENT integration tests (#107)
+- **deepeval**: implement BASE_AGENT test harness (#107)
+- **deepeval**: add 20 BASE_AGENT behavioral scenarios (#107)
+- **deepeval**: implement BASE_AGENT custom metrics (#107)
+
+## v5.1.2 (2025-12-06)
+
+### BREAKING CHANGE
+
+- None (additive enforcement, backward compatible)
+
+### Feat
+
+- implement 1M-445 logging fix and 1M-502 UX improvements
+- upgrade Circuit Breaker #2 to proactive blocking (40% → 95%)
+
+### Fix
+
+- remove duplicate "Launching Claude" progress bar at startup
+- add corrupt git repository detection to Homebrew update script
+
+## v5.1.1 (2025-12-05)
+
+## v5.1.0 (2025-12-05)
+
+### Feat
+
+- add DEL-000 universal delegation pattern test
+- implement PM behavioral testing framework integrated with release process
+- add PM behavior validation test suite for Circuit Breaker #6
+- implement integration testing framework for DeepEval PM evaluation
+- implement DeepEval framework for PM instruction evaluation
+- enforce ticketing delegation and mandatory verification in PM instructions
+
+### Fix
+
+- add Optional types to conftest.py to resolve RUF013 linting issues
+
+## v5.0.9 (2025-12-04)
+
+### Feat
+
+- add comprehensive agent and skills repository sync workflow
+
+### Fix
+
+- remove pytest-timeout flags not available in UV environment
+- use UV virtual environment for test execution
+- bump minimum Python version to 3.11 for kuzu-memory compatibility
+- remove unused pydoc-markdown dependency causing conflict
+- resolve ruff linting violations for 5.0.9 release
+- prevent text artifacts in progress bar display
+- resolve circular import dependencies using dependency injection
+
+### Refactor
+
+- simplify test mode instruction removal with regex
+- consolidate tier precedence pattern in file_loader
+- reduce complexity of high-complexity functions
+
+## v5.0.7 (2025-12-04)
+
+### BREAKING CHANGE
+
+- MCP services are now user-controlled and must be installed manually.
+Claude MPM no longer auto-modifies ~/.claude.json to add/fix MCP service configurations.
+
+### Fix
+
+- auto-fix import ordering in tests
+- remove unused imports and fix linting issues
+- remove obsolete MCP auto-configuration code
+
+## v5.0.6 (2025-12-03)
+
+### Feat
+
+- hide deprecated command aliases from UI while preserving functionality
+- configure twine with .pypirc for streamlined PyPI publishing
+
+### Fix
+
+- resolve thread safety deadlocks and daemon startup failures
+- remove unused shutil import
+
+### Refactor
+
+- move deprecated command aliases to deprecated_aliases field
+
+## v5.0.4 (2025-12-03)
+
+### BREAKING CHANGE
+
+- Switched from checked=True on Choice objects to default parameter
+
+### Feat
+
+- auto-remove deprecated /mpm commands on startup
+- add /mpm-postmortem command for automated error analysis
+- add Claude MPM Teach mode for beginners
+- optimize PM instructions for Claude 4.5 best practices
+- consolidate cache to remote-agents + add git workflow
+- add toolchain presets and interactive skills configure
+- add 'Adjust selection' option to agent installation confirmation
+- **1M-502**: improve color readability and terminology
+- **1M-502**: Implement unified agent deployment/removal interface
+- **1M-502**: Simplify agent selection menu and improve UX flow
+- **1M-502**: Fix BASE_AGENT filtering and add multi-select deployment UI
+- **1M-502**: Phase 2 - Convert text-input menus to questionary navigation
+- implement 1M-502 Phase 1 - BASE_AGENT and deployment filtering
+- complete Phase 3 of Git sync refactor (1M-486)
+- upgrade configurator with arrow-key navigation using questionary
+
+### Fix
+
+- add per-test timeouts to prevent test suite hangs
+- remove unused variables in postmortem and agents parser
+- resolve linting issues for postmortem analysis module
+- correct agent count in startup deployment progress
+- CacheGitManager now finds git repos in nested subdirectories
+- remove unnecessary .keys() call in test (linter fix)
+- remove [Installed]/[Available] labels from checkbox interface for clearer UX
+- add .claude/templates/ to deployed agent detection
+- set is_deployed attribute on agents for Status column display
+- revert to checked=True (default param is single-select only)
+- use questionary default parameter instead of checked for pre-selection
+- add checkbox styling to QUESTIONARY_STYLE for proper visual state rendering
+- agent removal now updates virtual deployment state
+- update get_deployed_agent_ids to check virtual deployment state
+- detect virtually deployed agents in configure interface
+- **1M-502**: Use hex colors and add install status to checkbox list
+- **1M-502**: Use correct color syntax for prompt_toolkit and Rich
+- **1M-502**: Replace cyan with high-contrast white/brightyellow color scheme
+- **1M-502**: Fix deployment status detection for hierarchical agent IDs
+
+## v5.0.1 (2025-12-01)
+
+### BREAKING CHANGE
+
+- Git repository integration for skills and agents
+
+### Feat
+
+- clarify skills deployment message in startup
+- add informative message for Claude Code startup delay
+- add "Launching Claude" progress bar matching agent sync style
+- add progress indicators for startup operations
+- fix PM instructions deployment architecture
+- integrate template deployment with PM instructions build
+- implement PR-based workflow for agent and skill management (Phase 1-3)
+- add 'claude-mpm agents cleanup' command for agent migration
+- implement parallel downloads for skills sync with thread-safe ETag caching
+- improve sync progress messages to show downloaded vs cached
+- implement Phase 2 of git sync refactoring for skills (1M-486)
+- implement Phase 1 of agent sync refactoring with Git Tree API (1M-486)
+- add user-visible notification when reading system prompt from file
+- v5.0 major release - Git repository integration for agents and skills
+- wire up agent git sources deployment integration and auto-sync (1M-442 Phase 2)
+- add comprehensive agent improvement workflow to agent-manager
+- implement agent-source CLI commands (1M-442 Phase 1)
+- integrate SkillSourcesCheck into doctor diagnostic system
+- implement Phase 3 agent selection modes (1M-382)
+- implement Phase 2 single-tier deployment service and CLI (1M-382)
+- implement Phase 1 foundation for single-tier agent system (1M-382)
+- implement 4-tier agent discovery with remote agents and user-level deprecation
+- implement Phase 1 enhanced flat naming with namespace metadata (1M-400)
+- complete git-based agent system integration (1M-382)
+- migrate agent templates from JSON to Markdown format (1M-382)
+- implement SQLite state tracking for agent sync (1M-388)
+- implement GitSourceSyncService with ETag-based caching (1M-387)
+
+### Fix
+
+- apply ruff format to match Makefile quality gate requirements
+- apply black formatting to 30 remaining files
+- resolve final import sorting issues in source code
+- resolve remaining import sorting issues detected by ruff
+- resolve linting issues and improve code quality
+- prioritize PM_INSTRUCTIONS_DEPLOYED.md over source file
+- Phase 2 tests - replace GitSourceSyncService mocks with direct _recursive_sync_repository mocks
+- deploy skills to project directory (.claude/skills/) not user directory
+- resolve skills sync progress bar stuck at 0% (absolute position fix)
+- implement file-based caching for oneshot sessions to resolve Linux ARG_MAX issue (1M-485)
+- correct PM_INSTRUCTIONS.md filename in SystemInstructionsDeployer
+- filter remote agent sync to only pull from /agents directory (1M-442)
+- resolve agent deployment failures in v5.0 (1M-442)
+- add missing deployment phase to agent startup sync (CRITICAL)
+- critical bugs in agent deployment - import path and file discovery (1M-442 QA fixes)
+- correct agent-source command suggestions in doctor diagnostic (1M-442 Phase 3)
+- complete skill-source update fix for single source path (1M-441)
+- resolve skill-source update command crash (1M-441)
+- parse YAML frontmatter for agent dependencies
+
+### Refactor
+
+- remove duplicate agent files from source templates directory
+- remove deprecated JSON agent templates
+- optimize startup process and remove redundancies
+- optimize PM instructions with content consolidation (Phase 3)
+- optimize PM instructions with template references (Phase 2)
+- extract MCP-specific instructions to agent files
+- standardize template filenames to use dashes instead of underscores
+- remove deprecated command stubs for clean migration (1M-400)
+
+## v4.26.4 (2025-11-29)
+
+### Feat
+
+- add /mpm-ticket slash command for high-level ticketing workflows
+
+### Fix
+
+- correct ticketing agent_id to match deployment name
+
+## v4.26.3 (2025-11-25)
+
+### Feat
+
+- optimize PM_INSTRUCTIONS.md for token efficiency (1M-200, 1M-203)
+- add mcp-skillset integration to research agent (v4.9.0)
+- migrate Homebrew tap to bobmatnyc/homebrew-tools
+
+### Fix
+
+- update mypy and pytest configuration for compatibility
+
+## v4.26.1 (2025-11-24)
+
+### Feat
+
+- add ticket completeness protocol to PM instructions
+
+### Fix
+
+- correct agent naming from 'ticketing-agent' to 'ticketing'
+
+## v4.26.0 (2025-11-24)
+
+### Feat
+
+- add Circuit Breaker #7 for Research Gate violation detection (1M-163)
+- enhance ticketing agent to read full ticket context including comments (1M-178)
+
+### Fix
+
+- remove remaining PM ticket tool usage examples (1M-177)
+- remove conflicting ticketing delegation guidance (1M-177)
+
+## v4.25.10 (2025-11-24)
+
+### Feat
+
+- add task decomposition protocol for agents (1M-168)
+- add standardized confidence reporting for agents (1M-167)
+- add semantic workflow state intelligence to ticketing agent (1M-163)
+- add context optimization for ticket reading (1M-163)
+- add research gate protocol for ticket 1M-163
+- add agent clarification framework for ticket 1M-163
+
+### Fix
+
+- restore OUTPUT_STYLE.md content from git history (1M-175)
+- check output style file size before skipping deployment (1M-175)
+
+## v4.25.8 (2025-11-23)
+
+### Feat
+
+- implement ticket-scoped work protection system
+- add scope protection protocol to PM instructions
+
+### Fix
+
+- update security agent to validate .gitignore before flagging secrets
+
+## v4.25.7 (2025-11-23)
+
+## v4.25.6 (2025-11-23)
+
+### Feat
+
+- enforce ticket-first workflow with mandatory traceability (v2.8.0)
+- add comprehensive work capture to research agent (v2.7.0)
+- add automatic .gitignore management to /mpm-init
+- add multi-collection support for skills deployment
+
+### Fix
+
+- convert pytest match patterns to raw strings (RUF043)
+- resolve all remaining linting errors (RUF059, I001)
+- resolve unused variable linting errors (RUF059)
+
+## v4.25.4 (2025-11-21)
+
+### Feat
+
+- add intelligent skills deployment system with GitHub integration
+
+## v4.25.3 (2025-11-21)
+
+### Feat
+
+- implement comprehensive Makefile enhancements and ruff migration
+
+## v4.25.2 (2025-11-21)
+
+### Feat
+
+- implement pytest-xdist parallelization for 3-4x test speedup
+- add mcp-ticketer delegation to PM instructions
+- add mcp-ticketer integration to research agent
+- strengthen DO THE WORK directive in PM instructions
+- enforce mandatory ticketing agent delegation in PM instructions
+- add git history to CLI startup screen recent activity
+- add light/dark theme support to d2 dashboard
+- auto-deploy output style on startup
+
+### Fix
+
+- remove unnecessary f-string prefix in startup_display.py
+- resolve critical Svelte 5 store architecture error in d2 dashboard
+- dashboard pane rendering and Socket.IO improvements
+- remove extraneous f-string prefixes in test_output_style_deployment.py
+
+## v4.24.3 (2025-11-19)
+
+### Feat
+
+- add hook error detection and memory system
+- add structured questions framework for PM agent
+
+### Fix
+
+- update mypy python_version to 3.9
+- resolve pytest collection blocker
+- replace list()[0] with next(iter()) in tests
+- resolve linting errors in hook error detection
+- correct test assertions for command argument order
+
+## v4.24.1 (2025-11-19)
+
+### BREAKING CHANGE
+
+- Default logging changed to OFF for cleaner startup
+
+### Feat
+
+- enhance startup banner with teal robots and launch message
+- add enhanced startup banner with Claude Code-style presentation
+
+## v4.24.0 (2025-11-17)
+
+### Feat
+
+- add JavaScript Engineer agent for vanilla JS development
+
+## v4.23.1 (2025-11-15)
+
+### Feat
+
+- add thorough reorganization capability to documentation agent
+
+### Fix
+
+- correct import order in 4 test files
+- add Optional type hint to create_temp_directory
+- resolve 2 test failures in unit tests
+
+### Refactor
+
+- replace sleep() with wait_for_condition in log monitor tests (partial)
+- replace 23 sleep() calls with wait_for_condition in socketio integration tests
+
+## v4.23.0 (2025-11-13)
+
+### Feat
+
+- update ticketing agent to prefer mcp-ticketer with CLI fallback
+
+## v4.22.3 (2025-11-13)
+
+### Feat
+
+- add env-manager skill for environment variable validation
+- add Homebrew tap integration to publishing workflow
+
+## v4.22.2 (2025-11-12)
+
+### Feat
+
+- add test-quality-inspector skill for QA agents
+
+### Fix
+
+- use python3 in safe-release-build target
+
+## v4.22.1 (2025-11-12)
+
+### Feat
+
+- add Tauri Engineer agent with 11 progressive skills
+
+### Fix
+
+- check if pytest module is importable instead of just checking pytest binary
+- use python3 instead of python in test script
+- use extend-ignore for ruff to properly skip import sorting
+- use python3 instead of python in lint-structure target
+- add --ignore I flag to ruff in Makefile
+- explicitly ignore RUF043 and RUF059 in Makefile lint-ruff target
+
+## v4.22.0 (2025-11-12)
+
+### Feat
+
+- add comprehensive stacked PR and git worktree workflows
+
+### Fix
+
+- manually resolve final RUF059 linting errors
+- apply automatic linting fixes
+
+## v4.21.5 (2025-11-11)
+
+### Feat
+
+- add native --agents flag support for 5x faster startup
+
+### Fix
+
+- remove unnecessary f-string prefix in test file
+
+## v4.21.4 (2025-11-10)
+
+### Feat
+
+- enforce IMMEDIATE file tracking in PM workflow (BLOCKING)
+
+### Fix
+
+- apply linting fixes for quality gate
+
+## v4.21.3 (2025-11-10)
+
+### Feat
+
+- add architectural documentation and fix command deployment
+
+### Fix
+
+- use next(iter()) instead of single element slice
+- resolve linting errors in code_tree_analyzer package
+
+### Refactor
+
+- complete Priority 2 refactoring tasks
+- modularize code_tree_analyzer (1,825 → 10 focused modules)
+
+## v4.21.2 (2025-11-09)
+
+## v4.21.1 (2025-11-09)
+
+### Feat
+
+- add /mpm-resume command for automatic session pause
+
+## v4.21.0 (2025-11-09)
+
+### Feat
+
+- implement automatic session resume at 70% context threshold
+
+### Fix
+
+- resolve 9 Ruff linting errors blocking v4.21.0 release
+- redirect MCP print statements to stderr to prevent protocol pollution
+- replace wildcard imports with explicit imports and add backward compatibility
+
+### Refactor
+
+- **mpm-init**: modularize 2,093-line file into focused components
+
+## v4.20.7 (2025-11-07)
+
+### Feat
+
+- **skills**: add comprehensive Rust desktop applications skill
+
+### Refactor
+
+- **skills**: Tier 3C & 3D progressive disclosure optimizations
+- **skills**: Tier 3B progressive disclosure - dispatching-parallel-agents
+- **skills**: apply progressive disclosure to skill-creator (209→189 lines)
+- **skills**: Tier 3A progressive disclosure optimizations
+
+## v4.20.6 (2025-11-07)
+
+### Feat
+
+- implement /mpm-init pause CLI command
+- **skills**: Tier 2 progressive disclosure refactoring
+
+## v4.20.5 (2025-11-07)
+
+### Fix
+
+- **skills**: espocrm-development validation issues
+
+## v4.20.4 (2025-11-07)
+
+### Feat
+
+- **skills**: add EspoCRM development skill for PHP engineers
+- **skills**: refactor verification-before-completion to progressive disclosure (Tier 2)
+- **skills**: generate license attributions for bundled skills
+
+### Fix
+
+- **skills**: remove 8 non-existent skills from configuration
+
+## v4.20.3 (2025-11-07)
+
+### BREAKING CHANGE
+
+- kuzu-memory and mcp-vector-search are no longer bundled with Claude MPM
+
+### Feat
+
+- **skills**: Week 2 progress - 15 skills downloaded, 2 refactored to progressive disclosure
+- add automated pre-publish cleanup to release workflow
+
+### Fix
+
+- **skills**: address CRITICAL and HIGH priority issues from code review
+
+## v4.20.2 (2025-11-07)
+
+### Feat
+
+- add default configuration fallback for auto-configure
+
+## v4.20.1 (2025-11-05)
+
+### Fix
+
+- remove noisy MCP service health checks on startup
+
+## v4.20.0 (2025-11-04)
+
+### Feat
+
+- add automatic session resume and mandatory pause prompts
+- implement /mpm-init resume command to read stop event logs
+- **agents**: enhance rust and python engineers with DI/SOA patterns
+- implement auto-save session feature with async periodic saves
+
+### Fix
+
+- upgrade dependencies to resolve security vulnerabilities
+- resolve linting issues for 4.20.0 pre-publish
+
+## v4.18.2 (2025-11-02)
+
+### Feat
+
+- **engineering**: add comprehensive documentation quality standards
+
+## v4.18.1 (2025-11-01)
+
+### Fix
+
+- correct agent name parsing to only read YAML frontmatter
+- resolve ruff linting errors for 4.18.0 release
+
+## v4.18.0 (2025-11-01)
+
+### Feat
+
+- add comprehensive resume log system for proactive context management
+
+## v4.17.1 (2025-10-30)
+
+### Fix
+
+- update commitizen version field to 4.17.1
+
+## v4.17.0 (2025-10-30)
+
+### Feat
+
+- add skills versioning system and /mpm-version command
+
+### Fix
+
+- auto-fix import sorting in test_skills_frontmatter
+- resolve Ruff linting errors in version_service
+
+## v4.16.3 (2025-10-29)
+
+### Feat
+
+- add comprehensive web-performance-optimization skill
+
+## v4.16.2 (2025-10-29)
+
+## v4.16.1 (2025-10-29)
+
+### Feat
+
+- add 4 new toolchain-specific development skills
+
+## v4.16.0 (2025-10-28)
+
+## v4.15.6 (2025-10-28)
+
+### Feat
+
+- skills integration and agent template cleanup
+- major documentation reorganization and monitor improvements
+- enhance local-ops agent PM2 monitoring for Next.js (v2.0.1)
+
+### Fix
+
+- update version to 4.15.6 in pyproject.toml
+- add PTH123, C401, RUF005 to .ruff.toml ignore list
+- remove PTH, RUF, C4 from ruff select to avoid problematic rules
+- add RUF005 and C401 to ruff ignore list
+- add ruff per-file ignores for skills system
+- auto-fix ruff linting errors for quality gate
+- auto-fix ruff linting errors for pre-publish quality gate
+- update commitizen version to 4.15.3 in pyproject.toml
+
+### Refactor
+
+- **enums**: consolidate ValidationSeverity enum (Batch 29)
+- **enums**: consolidate HealthStatus enums (Batch 28)
+- **enums**: consolidate ServiceState enums (Batch 27)
+
+## v4.15.2 (2025-10-26)
+
+### BREAKING CHANGE
+
+- MCP services no longer auto-installed - users must install manually
+- External MCP services are no longer auto-installed.
+Users must manually install optional services using pipx/pip:
+  - pipx install mcp-vector-search
+  - pipx install mcp-browser
+  - pipx install kuzu-memory
+  - pipx install mcp-ticketer
+
+### Feat
+
+- prepare v4.15.0 with MCP service user-control and agent enhancements
+- **security**: add detect-secrets pre-commit hook for credential protection
+- make MCP service installation user-controlled
+- Phase 3A Batch 18 enum migration (19 occurrences)
+- Phase 3A Batch 17 enum migration (8 occurrences)
+- Phase 3A Batch 16 enum migration (9 occurrences)
+- Phase 3A Batch 15 - analyzer strategies enum migration (6 occurrences)
+- Phase 3B AgentCategory migration - add enum validation
+- Phase 3C enum expansion - AgentCategory (12→20), HealthStatus (new), +ROLLBACK
+- migrate final 3 CLI files to OutputFormat enum (12 occurrences)
+- migrate agent_manager.py to use OutputFormat enum (12 occurrences)
+- migrate config.py to use OutputFormat enum (17 occurrences)
+- migrate agents.py to use OutputFormat enum (22 occurrences)
+- migrate memory.py to use OutputFormat enum
+- migrate mcp_check.py to use ServiceState enum
+- add comprehensive enum system with 6 core enums
+
+### Fix
+
+- **diagnostics**: correct import order in diagnostic_runner.py
+- **tests**: update enum counts and delegation status for consolidation changes
+- resolve linting issues from enum migration
+- **output-style**: read OUTPUT_STYLE.md directly instead of extracting
+- **agent**: add memory format instructions to agentic-coder-optimizer
+- resolve cross-project memory contamination and add git tracking enhancements
+
+### Refactor
+
+- **enums**: consolidate DiagnosticStatus into core enums (Batch 26)
+- **enums**: consolidate ConfigurationStatus into core OperationResult enum
+- **enums**: consolidate ProcessStatus into core ServiceState enum
+- **enums**: consolidate StepStatus into core OperationResult enum
+- **enums**: consolidate MCPServiceState into core ServiceState enum
+- **enums**: migrate Phase 3A Batch 21 to OperationResult enum
+- **enums**: migrate Phase 3A Batch 20 to HealthStatus enum
+- **enums**: migrate Phase 3A Batch 19 to OperationResult enum
+- Phase 3A Batch 14 - migrate 2 subprocess status occurrences
+- Phase 3A Batch 13 - migrate 7 session status occurrences
+- Phase 3A Batch 12 - eliminate type system redundancy (critical)
+- Phase 3A Batch 11 - migrate 5 OperationResult occurrences (core & hooks)
+- migrate core tools and logging to enum system
+- migrate mpm-init command to enum system
+- migrate memory, diagnostics, and socketio main to enum system
+- migrate session and socketio services to enum system
+- migrate monitor services to enum system
+- migrate deployment strategies to enum system
+- migrate unified service layer to enum system
+- migrate subprocess and health check services to enum system
+- migrate analyzer strategies to OperationResult enum
+- migrate monitor services to OperationResult enum
+- migrate agent deployment services to OperationResult enum
+- integrate ValidationSeverity enum into unified services
+- replace manual model normalization with ModelTier.normalize()
+- Phase 1 dead code removal - shrink codebase by 3,947 lines
+- **configure**: extract Startup Manager module (Phase 6/9 - FINAL)
+- **configure**: extract Template Editor module (Phase 3/9 - HIGH RISK)
+- **configure**: extract Navigation module (Phase 9/9 - Low Risk Complete)
+- **configure**: extract Config Persistence module (Phase 8/9)
+- **configure**: extract Agent Display module (Phase 4/9)
+- **configure**: extract behavior management module (Phase 5/9)
+- **configure**: extract hook management module (Phase 7/9)
+- **configure**: extract paths and validators (Phase 2/9 complete)
+- **configure**: extract helper classes to separate modules (Phase 1)
+- **tests**: split agent deployment tests into 8 focused modules
+- **tests**: remove broken memory CLI tests for rewrite
+- **tests**: split hook_handler_comprehensive into 5 focused modules
+- **cli**: eliminate __init__.py anti-pattern by extracting implementations
+- **tests**: split 3 monolithic test files into focused modules
+- **tools**: reduce complexity of CodeTreeAnalyzer.analyze_file from CC:34 to CC:4
+- **cli**: reduce complexity of AgentsCommand._fix_agents from CC:40 to CC:4
+- **agents**: reduce complexity of FrontmatterValidator.validate_and_correct from CC:57 to CC:3
+
+## v4.14.3 (2025-10-22)
+
+### Feat
+
+- **cli**: add "did you mean?" suggestions for command typos
+
+## v4.14.2 (2025-10-22)
+
+## v4.14.1 (2025-10-22)
+
+### Feat
+
+- enhance local-ops-agent with comprehensive multi-toolchain support (v2.0.0)
+
+## v4.14.0 (2025-10-22)
+
+### Feat
+
+- add Local Operations Process Management system
+
+### Fix
+
+- resolve linting issues and sync version files
+
+## v4.13.2 (2025-10-22)
+
+## v4.13.1 (2025-10-21)
+
+### Fix
+
+- resolve duplicate --dry-run argument and CLI initialization issues
+
+## v4.13.0 (2025-10-21)
+
+### Feat
+
+- add intelligent auto-configuration system (Phases 1-5)
+- add auto-configuration feature (Phases 1-2)
+
+## v4.12.4 (2025-10-21)
+
+### Feat
+
+- extract PM behavior examples to separate template file
+
+### Fix
+
+- resolve race condition in log directory creation during tests
+
+### Refactor
+
+- complete Phase 2 modularization of PM_INSTRUCTIONS.md
+- extract response format to template file (Phase 2, Module #3)
+- extract PM red flags to template file (Phase 2, Module #2)
+- extract Git File Tracking Protocol to dedicated template (Phase 2, Module 1)
+- consolidate circuit breakers into template file (Quick Win #2)
+- extract validation templates from PM_INSTRUCTIONS.md
+
+## v4.12.2 (2025-10-20)
+
+### Feat
+
+- add mandatory git file tracking protocol to PM instructions
+
+## v4.12.1 (2025-10-20)
+
+### Feat
+
+- add Java Engineer as 8th coding agent with benchmark suite
+
+## v4.11.2 (2025-10-20)
+
+### Feat
+
+- add adaptive context window (days OR 25 commits minimum)
+
+## v4.11.1 (2025-10-19)
+
+### Fix
+
+- replace session state with intelligent git-based context
+
+## v4.11.0 (2025-10-19)
+
+### Feat
+
+- add session pause/resume to /mpm-init command
+
+## v4.10.0 (2025-10-19)
+
+### Feat
+
+- **mcp**: add interactive auto-install for mcp-vector-search
+
+## v4.9.0 (2025-10-19)
+
+### Feat
+
+- **memory**: integrate kuzu-memory as required dependency with auto-setup
+
+## v4.8.6 (2025-10-18)
+
+### Feat
+
+- add Context Management Protocol to PM framework
+- implement Git Commit Protocol across all 35 agents
+- enhance Next.js Engineer to v2.1.0 with advanced patterns
+- add AsyncWorkerPool retry pattern to Python Engineer v2.2.1
+- enhance Python Engineer to v2.2.0 with algorithm pattern fixes
+
+### Fix
+
+- move ClickUp API credentials to environment variables
+
+## v4.8.3 (2025-10-18)
+
+### Feat
+
+- Add production benchmarks, failure-learning, and Product Owner agent
+
+### Fix
+
+- prevent cleanup race condition in directory verification test
+- handle race condition in mpm log migration test
+- resolve linting issues for release
+
+### Perf
+
+- optimize hook system for 91% latency reduction
+
+## v4.8.2 (2025-10-17)
+
+### Fix
+
+- update test to handle log cleanup removing empty directories
+
+## v4.8.0 (2025-10-15)
+
+### BREAKING CHANGE
+
+- Mamba/Conda auto-detection removed. Claude MPM now uses
+standard Python venv exclusively for dependency management.
+
+### Feat
+
+- remove Mamba support and simplify to venv-only workflow
+- add self-upgrade system with automatic version checks
+
+## v4.7.10 (2025-10-11)
+
+### BREAKING CHANGE
+
+- User-level memories (~/.claude-mpm/memories/) are no longer loaded.
+Existing user-level memories must be migrated to project-level.
+
+### Fix
+
+- enforce project-only memory scope to prevent cross-project contamination
+
+## v4.7.9 (2025-10-10)
+
+### Feat
+
+- add mpm-init --catchup mode for PM project context
+
+## v4.7.8 (2025-10-09)
+
+### Feat
+
+- major configurator UX improvements - batch toggle, save & launch, better visibility
+
+## v4.7.7 (2025-10-09)
+
+### Fix
+
+- resolve Rich markup consuming keyboard shortcuts in configurator menus
+
+## v4.7.6 (2025-10-09)
+
+### Fix
+
+- enhance configurator input handling and add agent reset feature
+- resolve PEP 668 virtualenv detection and add kuzu-memory bidirectional enrichment
+
+## v4.7.5 (2025-10-08)
+
+### Refactor
+
+- reduce code bloat by 505 lines through DisplayHelper utility
+
+## v4.7.4 (2025-10-08)
+
+### Feat
+
+- dashboard restoration and slash command enhancements
+
+### Fix
+
+- make print statement check non-blocking in pre-publish
+- resolve mypy untyped import warnings and test timing issue
+
+## v4.7.3 (2025-10-07)
+
+### Fix
+
+- correct mypy.ini exclude pattern syntax
+
+## v4.7.2 (2025-10-06)
+
+### Fix
+
+- correct PROJECT_ROOT path in run_all_tests.sh
+- resolve indentation and formatting issues in config_service_base.py
+- critical IndentationError in config_service_base.py
+- add ClassVar annotations for mutable class attributes (RUF012) - batch 3
+- add ClassVar annotations (RUF012) - batch 3/3
+- add ClassVar annotations (RUF012) - batch 2/3
+- add ClassVar annotations (RUF012) - batch 1/3
+- rename ambiguous variable name 'l' to 'line' (E741)
+
+### Refactor
+
+- combine nested if statements (SIM102) - batch 3
+- combine nested if statements (SIM102) - batch 2
+- combine nested if statements (SIM102) - batch 1
+
+## v4.7.0 (2025-10-03)
+
+### BREAKING CHANGE
+
+- Engineers must now execute duplicate detection before ANY implementation
+
+### Feat
+
+- upgrade prompt-engineer agent to v2.0.0 with Claude 4.5 best practices
+- add anti-pattern restrictions for mock data and fallback behavior
+- add mandatory duplicate elimination protocol for Engineer agents
+
+## v4.6.1 (2025-10-03)
+
+## v4.6.0 (2025-10-03)
+
+### Feat
+
+- add Ruby Engineer agent and comprehensive publish workflow
+- add project organization command and fix slash command documentation
+- strengthen local-ops agent and PM verification policies
+
+### Fix
+
+- remove hardcoded model specification from Claude Code startup
+
+## v4.5.14 (2025-10-02)
+
+## v4.5.13 (2025-10-02)
+
+### Fix
+
+- prevent vitest/jest memory leaks in agent templates
+
+## v4.5.12 (2025-10-01)
+
+### Fix
+
+- comprehensive linting cleanup - 657 critical and medium issues resolved
+
+## v4.5.11 (2025-10-01)
+
+### Feat
+
+- add local-ops port allocation, orphan detection, and Dart engineer agent
+
+### Fix
+
+- reduce hook handler logging noise by changing INFO to DEBUG
+- apply ruff auto-fixes for linting issues
+- resolve AsyncSessionLogger lifecycle and duplicate session ID issues
+
+### Refactor
+
+- make core package imports lazy to reduce hook overhead
+- make hook handler imports lazy to improve performance (partial)
+
+### Perf
+
+- optimize hook handler initialization with lazy imports
+
+## v4.5.5 (2025-09-30)
+
+### Feat
+
+- add automatic kuzu-memory version checking with update prompts
+- implement kuzu-memory version checking system with user update prompts
+- add UAT mode to web-qa agent for business intent verification
+- release v4.4.11 with enhanced doctor command and PM instructions
+- release v4.4.9 with critical MCP and deployment fixes
+
+### Fix
+
+- improve MCP service management and kuzu-memory integration
+- improve PM localhost verification enforcement and reduce log verbosity
+- improve MCP service dependency handling and eliminate duplicate checks
+- resolve kuzu-memory Python 3.13 asyncio compatibility issue
+- update web-qa agent version to 3.0.0 for UAT release
+- release v4.4.12 with critical MCP service configuration fixes
+- release v4.4.10 with critical MCP service configuration fixes
+
+### Refactor
+
+- minor code quality improvements
+
+## v4.4.8 (2025-09-29)
+
+### Feat
+
+- release v4.4.7 with local-ops agent and MCP service improvements
+
+## v4.4.7 (2025-09-29)
+
+### Feat
+
+- implement Phase 3 architectural simplification for v4.4.1
+
+### Fix
+
+- additional improvements for fresh installation (v4.4.3)
+- resolve critical fresh install errors (v4.4.2)
+
+## v4.4.0 (2025-09-26)
+
+### Feat
+
+- implement Phase 2 service consolidation with 84% code reduction
+
+## v4.3.22 (2025-09-26)
+
+### BREAKING CHANGE
+
+- PM now forbidden from using Grep/Glob and reading >1 file
+
+### Feat
+
+- enhance /mpm-init command with intelligent update capabilities (v4.3.21)
+- enhance Clerk Ops agent with critical ClerkProvider configuration insights
+- add mcp-vector-search auto-indexing and agent integration
+- strengthen PM delegation mandate and verification requirements
+- enhance data engineer with comprehensive database migration expertise
+- improve memory loading logs to show actual items instead of byte counts
+- auto-configure MCP services on startup
+
+### Fix
+
+- resolve hook handler module import error
+- reduce duplicate logging in MCP auto-configuration
+
+### Refactor
+
+- update import patterns and code formatting across codebase
+- simplify memory loading logs to show only item counts
+
+## v4.3.12 (2025-09-24)
+
+### Feat
+
+- add --reload-agents flag and update MCP to use pipx
+- integrate mcp-vector-search and mcp-browser as core services
+- integrate mcp-browser with web-qa agent
+
+### Fix
+
+- update MCP browser config to use local venv installation
+- update mcp-browser command path in project config
+- use Python module invocation for mcp-browser
+- prefer pipx installations for MCP services and fix mcp-browser config
+- smart detection for local vs pipx MCP service installations
+- add mcp-browser to project .mcp.json configuration
+- resolve php-engineer metadata extraction error
+- configure mcp-browser with pipx installation path
+- eliminate repeated agent upgrade messages on startup
+- properly configure external MCP services in Claude Desktop
+
+## v4.3.11 (2025-09-23)
+
+### Feat
+
+- add PHP Engineer agent template and lint fixes
+- enhance PM delegation with reinforcement system
+- add Clerk Operations Agent for authentication setup
+
+### Fix
+
+- resolve critical linting errors for release build
+- resolve technical debt and stability improvements
+
+## v4.3.6 (2025-09-19)
+
+## v4.3.5 (2025-09-19)
+
+## v4.3.4 (2025-09-19)
+
+### Feat
+
+- **vercel-ops**: enhance agent with enterprise-grade environment management
+- enhance PM instructions with PM2 deployment and mandatory web-qa verification
+
+### Fix
+
+- **vercel-ops**: add critical .env.local preservation instructions
+- correct version comparison logic in agent override warnings
+
+## v4.3.0 (2025-09-18)
+
+### BREAKING CHANGE
+
+- Dashboard URLs have changed - use /static/ for hub access
+- Browser Logs tab removed - will be replaced with browser extension
+
+### Feat
+
+- bump version to 4.3.0 - add standard tools recognition
+- expand standard tools recognition in agent template builder
+- improve tools handling in agent deployment system
+- enhance Security agent with comprehensive attack vector detection
+- add NextJS Engineer agent and enhance engineers with web search
+- consolidate dashboards with unified hub and React integration
+- strengthen PM mandate for comprehensive real-world testing
+- reinforce mandatory QA verification in PM instructions
+- implement comprehensive browser console monitoring with complete isolation
+- grant web_qa agent full browser console monitoring authority
+- implement injectable browser console monitoring system
+
+### Fix
+
+- handle dictionary instructions in agent template builder
+- correct log directory path to use .claude-mpm/logs
+- update version to 4.2.47 and add temporary files documentation
+- resolve agent type parsing issue causing 'unknown' types in listings
+- resolve dashboard data display and tab isolation issues
+- browser logs tab isolation from hook events
+- remove test-non-mpm test agent
+- resolve Claude Tree visualization and enhance engineering standards
+
+### Refactor
+
+- optimize PM instructions for clarity and enforceability
+- remove browser logs for plugin model & strengthen PM controls
+
+## v4.2.40 (2025-09-10)
+
+### Fix
+
+- replace fork() with subprocess.Popen() for monitor daemon startup
+
+## v4.2.39 (2025-09-10)
+
+### Fix
+
+- disable MCP pre-warming to prevent monitor fork() race conditions
+
+## v4.2.38 (2025-09-09)
+
+### Fix
+
+- improve monitor startup fork safety and thread synchronization
+
+## v4.2.37 (2025-09-09)
+
+### Fix
+
+- resolve daemon startup communication bug (v4.2.37)
+
+## v4.2.36 (2025-09-09)
+
+### Fix
+
+- resolve monitor daemon startup issues and process identification
+
+## v4.2.35 (2025-09-09)
+
+### Fix
+
+- resolve false positive port conflicts in monitor startup
+
+## v4.2.34 (2025-09-09)
+
+### Fix
+
+- prevent race conditions in dashboard daemon restart logic (v4.2.33)
+
+## v4.2.33 (2025-09-09)
+
+### Fix
+
+- prevent race conditions in daemon restart logic (v4.2.33)
+
+## v4.2.32 (2025-09-09)
+
+### Feat
+
+- consolidate all daemon operations into single DaemonManager service
+- Created centralized DaemonManager for consistent daemon lifecycle operations
+- Eliminated code duplication between UnifiedMonitorDaemon and UnifiedDashboardManager
+- Fixed monitor cleanup issues where old monitors weren't properly killed
+- Improved process cleanup with enhanced SIGTERM/SIGKILL handling
+- Fixed race conditions in port cleanup and daemon startup
+- consolidate daemon management into single DaemonManager service (v4.2.31)
+
+### Fix
+
+- enhance monitor cleanup with more aggressive process termination
+- resolve Mamba environment detection and document dependency conflicts
+- resolve UnboundLocalError in monitor cleanup code
+- resolve monitor cleanup race condition for --monitor flag
+
+## v4.2.25 (2025-09-09)
+
+## v4.2.24 (2025-09-08)
+
+## v4.2.23 (2025-09-08)
+
+### Feat
+
+- add Socket.IO service detection and automatic restart (v4.2.23)
+
+## v4.2.22 (2025-09-08)
+
+### Fix
+
+- resolve monitor daemon silent failures and enhance pipx documentation (v4.2.22)
+
+## v4.2.21 (2025-09-08)
+
+### Feat
+
+- add monitor optional dependencies for pipx installation (v4.2.21)
+
+### Fix
+
+- add missing socketio_daemon.py and launch_monitor.py scripts
+
+## v4.2.18 (2025-09-08)
+
+### Fix
+
+- prevent code viewer from defaulting to root directory
+
+## v4.2.17 (2025-09-06)
+
+### Feat
+
+- add comprehensive local agent template support with interactive management
+
+### Fix
+
+- remove remaining linting issues for release
+
+## v4.2.16 (2025-09-05)
+
+### Fix
+
+- resolve dashboard "process is not defined" error and monitor daemon restart issues
+
+## v4.2.15 (2025-09-05)
+
+### Fix
+
+- resolve dashboard stop command error and eliminate hardcoded paths
+
+## v4.2.14 (2025-09-04)
+
+### Fix
+
+- comprehensive dashboard improvements, JS refactoring phase 1, and version bump to 4.2.14
+
+## v4.2.13 (2025-09-04)
+
+### Fix
+
+- resolve missing quickstart guide and fix documentation navigation
+
+## v4.2.12 (2025-09-04)
+
+### BREAKING CHANGE
+
+- Removed deprecated socketio commands, use 'claude-mpm monitor' instead
+
+### Feat
+
+- add JSON support to dashboard code viewer
+
+### Fix
+
+- resolve monitor daemon process management and status detection
+- consolidate monitoring architecture and enhance dashboard UI
+- eliminate duplicate events with single-path emission architecture
+- dashboard code tree root node directory identification
+- dashboard code viewer and Socket.IO event handling
+- dashboard code tree root node directory identification
+- remove duplicate content pane and improve code tree data display
+- add defensive import handling for outdated installations
+- dashboard code viewer displays content in correct tab
+
+## v4.2.7 (2025-09-03)
+
+### Fix
+
+- dashboard resilience and real event serving
+
+## v4.2.6 (2025-09-03)
+
+### Fix
+
+- dashboard service now works reliably without monitor dependency
+- improve Socket.IO client connection resilience
+- dashboard AST viewer now displays real file content instead of mock data
+
+## v4.2.3 (2025-09-03)
+
+### Feat
+
+- improve agent deployment and description formatting
+- add single-line description formatting to agent deployer
+- implement BASE agent instruction system and Google Cloud Ops agent
+- enhance file viewing in activity data viewer for single file operations
+- add simple directory browser as alternative to complex D3 tree view
+
+### Fix
+
+- dashboard monitoring and source viewer improvements
+- improve YAML descriptions with single-line format and commentary
+- improve monitor launch error messages and add fallback dashboard launcher
+- resolve 'Already loading' issue in code tree directory navigation
+
+## v4.1.29 (2025-08-31)
+
+### Fix
+
+- prevent duplicate empty directory events in code explorer
+
+## v4.1.28 (2025-08-31)
+
+### Fix
+
+- resolve backend issue with empty directory children in code explorer
+
+## v4.1.27 (2025-08-31)
+
+### Feat
+
+- strengthen PM testing and observability requirements
+- web qa agent v1.8.0 adds safari testing with applescript
+- web qa agent v1.7.0 with 4-phase progressive testing
+
+### Fix
+
+- add debug logging for code explorer empty directory issue
+- code explorer showing empty directory for src
+- add missing .mjs and .cjs extensions to CODE_EXTENSIONS
+- todowrite viewer horizontal status bar display
+- activity viewer tools persistence and data viewer improvements
+- resolve activity viewer tool display issues
+- implement proper activity viewer display rules for TodoWrite
+- resolve repeated agent upgrade notifications by fixing author field check
+- include version metadata in deployed agent frontmatter
+- dashboard activity tree persistence and proper event handling
+- dashboard activity viewer persistence and nesting improvements
+
+### Refactor
+
+- consolidate and strengthen PM instructions for firm behavioral enforcement
+
+## v4.1.15 (2025-08-29)
+
+### Fix
+
+- add missing __init__.py files for proper package distribution
+
+## v4.1.14 (2025-08-29)
+
+### Fix
+
+- pipx installation issues and enhance Ops agent security
+- dashboard code panel multi-level navigation and remove centering
+
+## v4.1.13 (2025-08-28)
+
+### Fix
+
+- restore agent metadata and improve dashboard stability
+
+## v4.1.12 (2025-08-28)
+
+### Feat
+
+- add PM instruction reinforcement system and improve dashboard visualization
+
+### Fix
+
+- improve ruff linting configuration and resolve syntax errors
+
+## v4.1.11 (2025-08-27)
+
+### Feat
+
+- add mpm-init command and git branding customization v4.1.11
+
+## v4.1.10 (2025-08-26)
+
+### Fix
+
+- properly handle code analysis events in dashboard
+
+## v4.1.9 (2025-08-26)
+
+### Feat
+
+- add mermaid diagram generation for Code Analyzer v4.1.9
+- add Claude Code version checking for hook monitoring
+
+### Fix
+
+- correct hook matcher syntax for Claude Code compatibility
+- resolve dashboard event broadcasting issues
+
+## v4.1.8 (2025-08-25)
+
+### Feat
+
+- improve event monitoring and debugging tools
+
+### Fix
+
+- enhance hook management and agent-manager configuration
+- critical dashboard connection failures - event handler registration and connection resilience
+
+## v4.1.7 (2025-08-25)
+
+### Fix
+
+- improve dashboard/SocketIO connection stability and update agent-manager (v1.1.0)
+- resolve linting issues in scripts directory
+
+### Refactor
+
+- reduce complexity in scripts directory
+
+## v4.1.6 (2025-08-25)
+
+### Feat
+
+- add instructions check to mpm-doctor for detecting duplicate CLAUDE.md files
+
+### Fix
+
+- resolve MountError in Textual TUI by yielding ListView items directly
+
+## v4.1.5 (2025-08-25)
+
+### Feat
+
+- add development test files
+- optimize agent templates for memory safety and clarity
+- complete god class refactoring and service architecture implementation
+
+### Fix
+
+- apply automated linting fixes for release build
+
+### Refactor
+
+- update core registries for refactored services
+- eliminate god classes in agent deployment
+- eliminate god classes in ticket services
+- eliminate god classes in project analyzer
+- eliminate god classes in monitoring subsystem
+- eliminate god class in tickets.py
+- eliminate god class in analyzer.py
+- eliminate god classes in monitoring and agent_lifecycle_manager
+- Extract services from hook_handler.py god class
+- Major god class elimination - Phase 1 complete
+- extract services from agent_deployment.py to reduce complexity
+
+## v4.1.2 (2025-08-24)
+
+### Fix
+
+- resolve FileExistsError in logger symlink creation and comprehensive linting cleanup
+
+## v4.1.1 (2025-08-23)
+
+## v4.1.0 (2025-08-22)
+
+### BREAKING CHANGE
+
+- All agents now deploy to project-level .claude/agents directory
+regardless of tier or source. This simplifies deployment logic and improves
+project isolation while maintaining agent discovery from multiple sources.
+
+### Feat
+
+- bump version to 4.1.0
+- **deployment**: standardize all agent deployment to project-level .claude directory
+- add hierarchical agent display and monitor UI build tracking system
+
+### Fix
+
+- restore test scripts and update documentation paths
+- improve Socket.IO stability and connection reliability
+- **agents**: fix MCP tool name and enhance Documentation agent memory protection
+- prevent automatic file creation in .claude/ directory during startup
+- prevent CLAUDE.md creation during startup in SystemInstructionsDeployer
+- update pyproject.toml version to 4.0.30 for PyPI publication
+- correct PM customization documentation to reference .claude-mpm/INSTRUCTIONS.md
+
+### Refactor
+
+- reorganize scripts directory and remove obsolete test files
+
+## v4.0.29 (2025-08-21)
+
+## v4.0.28 (2025-08-21)
+
+## v4.0.25 (2025-08-20)
+
+### Fix
+
+- resolve agent upgrade persistence and JSON template issues
+
+## v4.0.24 (2025-08-20)
+
+### Fix
+
+- update MCP installation to use claude-mpm command instead of Python script
+
+## v4.0.23 (2025-08-20)
+
+### Feat
+
+- add comprehensive memory protection to all file-processing agents
+
+## v4.0.22 (2025-08-19)
+
+### Fix
+
+- implement NLP-based memory deduplication and standardize simple list format
+- implement NLP-based memory deduplication and standardize simple list format
+- correct version format in CHANGELOG.md for 4.0.19
+- add memory management instructions to QA agent
+
+### Refactor
+
+- move MCP server script to proper module location
+
+## v4.0.18 (2025-08-18)
+
+### Feat
+
+- implement MCP gateway singleton installation and startup verification
+
+## v4.0.17 (2025-08-18)
+
+### Feat
+
+- add automated release system and Makefile targets
+
+### Fix
+
+- resolve dynamic agent capabilities loading issues
+
+## v4.0.16 (2025-08-18)
+
+## v4.0.15 (2025-08-18)
+
+### Feat
+
+- reorganize release notes and enhance structure linter
+
+### Fix
+
+- resolve pipx installation framework loading and agent deployment issues
+- add importlib.resources support for loading INSTRUCTIONS.md in pipx installations
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.13)
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.12)
+- sync version files and increment build number
+- resolve test failures in interactive and oneshot sessions
+
+### Refactor
+
+- consolidate version management to use only Commitizen
+
+## v4.0.10 (2025-08-18)
+
+## v4.0.9 (2025-08-18)
+
+### Fix
+
+- include build number in CLI --version display
+
+## v4.0.8 (2025-08-18)
+
+### Fix
+
+- update commitizen version to 4.0.7 for version sync
+
+## v4.0.7 (2025-08-18)
+
+### Feat
+
+- comprehensive scripts directory cleanup
+- implement automatic build number tracking
+- add build number increment to release process
+
+### Fix
+
+- update test script to run core tests only
+- remove tracked node_modules and package-lock.json files
+- update session management tests to work with current implementation
+- remove obsolete ticket-related tests
+
+## v4.0.6 (2025-08-18)
+
+### Fix
+
+- correct Python syntax in Makefile release-sync-versions
+- restore [Unreleased] section and correct version format in CHANGELOG.md
+- format CHANGELOG.md to meet structure requirements
+- correct commitizen bump syntax in Makefile
+- add current directory to framework detection candidates
+
+## v4.0.4 (2025-08-18)
+
+## v4.0.3 (2025-08-17)
+
+### Feat
+
+- implement comprehensive structure linting system
+
+### Fix
+
+- implement missing get_hook_status abstract method in MemoryHookService
+
+## v4.0.2 (2025-08-17)
+
+## v4.0.1 (2025-08-17)
+
+## v4.0.0 (2025-08-17)
+
+## v3.9.11 (2025-08-16)
+
+## v3.9.10 (2025-08-16)
+
+## v3.9.9 (2025-08-16)
+
+### Feat
+
+- add MCP Gateway integration and enhanced process management
+
+### Fix
+
+- correct commit parsing in version management script
+- ticketing agent instruction template for autonomous ticket creation
+
+## v3.9.7 (2025-08-15)
+
+## v3.9.6 (2025-08-15)
+
+### Fix
+
+- optimize agent memory usage through instruction modifications
+
+## v3.9.5 (2025-08-15)
+
+### Refactor
+
+- major version tracking system overhaul and cleanup command fixes
+
+## v3.9.4 (2025-08-15)
+
+## v3.9.3 (2025-08-15)
+
+## v3.9.2 (2025-08-15)
+
+### Feat
+
+- Research Agent v4.0.0 - critical search failure fixes
+- add build tracking system for code changes
+- enhance ticketing workflow with automatic phase tracking
+
+### Fix
+
+- resolve circular import in ClaudeRunner with lazy import
+
+## v3.9.0 (2025-08-14)
+
+### Feat
+
+- enhance memory management system with 20k token capacity
+
+## v3.8.4 (2025-08-14)
+
+### Fix
+
+- resolve Read the Docs build.environment configuration error
+- constrain aiohttp-cors to 0.7.x for Python 3.8 compatibility
+
+## v3.8.3 (2025-08-14)
+
+### Feat
+
+- major v3.8.2 release - Gemini review fixes, docs improvements, and deployment setup
+
+### Fix
+
+- resolve Read the Docs configuration error
+
+## v3.8.2 (2025-08-14)
+
+## v3.8.1 (2025-08-14)
+
+## v3.8.0 (2025-08-14)
+
+## v3.7.8 (2025-08-13)
+
+### Feat
+
+- remove .claude directory from version control
+
+## v3.7.7 (2025-08-13)
+
+### Fix
+
+- Socket.IO dashboard file viewer now properly displays file operations
+
+## v3.7.6 (2025-08-13)
+
+### Feat
+
+- add ticketing agent guidance to PM instructions
+
+## v3.7.5 (2025-08-13)
+
+### Feat
+
+- improve agent capabilities discovery with clear name/ID separation
+
+### Fix
+
+- update agent dependencies and package names for Python 3.13 compatibility
+- correct agent dependencies for Python 3.13 compatibility
+
+## v3.7.4 (2025-08-13)
+
+### Feat
+
+- add Web UI and Web QA specialized agents for front-end development and testing
+
+## v3.7.3 (2025-08-13)
+
+### Fix
+
+- correct agent deployment metadata and version handling
+
+## v3.7.2 (2025-08-13)
+
+### Fix
+
+- update internal VERSION file to 3.7.1
+- update version to 3.7.1 to match published release
+- correct version to 3.6.2 for documentation patch release
+
+## v3.7.1 (2025-08-12)
+
+## v3.7.0 (2025-08-12)
+
+## v3.6.0 (2025-08-12)
+
+### Feat
+
+- enhance core framework for 3.6.0
+- add agent exclusion configuration
+- strengthen PM delegation requirements
+- add dynamic agent dependency system
+
+### Fix
+
+- improve hook handler and response logging
+- resolve agent deployment path and duplication issues
+
+## v3.5.6 (2025-08-11)
+
+## v3.5.5 (2025-08-11)
+
+### Fix
+
+- prevent PM agent from being deployed as subagent
+
+## v3.5.4 (2025-08-11)
+
+### Fix
+
+- correct agent deployment and tools formatting
+
+## v3.5.3 (2025-08-11)
+
+## v3.5.2 (2025-08-11)
+
+### Feat
+
+- Add project-local agent deployment with three-tier precedence system
+- Add agent versioning system and strengthen PM delegation rules
+
+### Refactor
+
+- Major codebase cleanup and service reorganization
+- Remove obsolete orchestration module
+- Centralize config paths with enum and remove obsolete parent_directory_manager
+
+## v3.4.27 (2025-08-08)
+
+### Fix
+
+- remove manager import causing ImportError in 3.4.26
+
+## v3.4.26 (2025-08-08)
+
+## v3.4.25 (2025-08-08)
+
+### Feat
+
+- add project registry for global project tracking
+
+### Fix
+
+- synchronize VERSION files and enhance version management system
+
+## v3.4.24 (2025-08-08)
+
+## v3.4.23 (2025-08-08)
+
+### Feat
+
+- add TodoWrite usage guidelines to agent templates
+- add TodoWrite usage guidelines to agent templates
+
+## v3.4.22 (2025-08-08)
+
+## v3.4.21 (2025-08-08)
+
+### Feat
+
+- add urwid dependency for terminal UI components
+
+### Fix
+
+- convert agent files from YAML to Markdown with frontmatter for Claude Code compatibility
+
+## v3.4.20 (2025-08-08)
+
+## v3.4.19 (2025-08-08)
+
+### Fix
+
+- include VERSION file in package distribution to fix version reporting
+- restore PM agent orchestration imperative in template
+- restore PM agent orchestration imperative in template
+
+## v3.4.17 (2025-08-07)
+
+## v3.4.16 (2025-08-07)
+
+## v3.4.15 (2025-08-07)
+
+### Fix
+
+- resolve static file serving for Socket.IO dashboard
+- add aiohttp-cors dependency and fix dashboard path resolution
+
+## v3.4.14 (2025-08-07)
+
+## v3.4.13 (2025-08-07)
+
+## v3.4.12 (2025-08-07)
+
+### Fix
+
+- resolve socketio daemon import path for installed environments
+
+## v3.4.11 (2025-08-07)
+
+## v3.4.10 (2025-08-07)
+
+### Fix
+
+- move Socket.IO dependencies to core requirements
+
+## v3.4.9 (2025-08-07)
+
+## v3.4.8 (2025-08-07)
+
+### Fix
+
+- resolve Socket.IO server false negative startup detection
+
+## v3.4.7 (2025-08-07)
+
+### Fix
+
+- resolve version display and socketio daemon path issues
+- resolve NPM wrapper infinite loop in findClaudeMpmCommand
+
+## v3.4.6 (2025-08-07)
+
+### Feat
+
+- comprehensive project reorganization following docs/STRUCTURE.md
+
+## v3.4.5 (2025-08-07)
+
+### Feat
+
+- add monitor command with Socket.IO server management
+
+### Fix
+
+- resolve server undefined error in Socket.IO startup
+
+## v3.4.4 (2025-08-07)
+
+## v3.4.3 (2025-08-06)
+
+### Feat
+
+- enhance memory system with data_engineer and test_integration agent support
+
+## v3.4.2 (2025-08-06)
+
+## v3.4.1 (2025-08-06)
+
+### Feat
+
+- major system improvements including Socket.IO reliability, dashboard enhancements, and comprehensive cleanup
+- improve tool correlation to eliminate duplicate entries in tools list
+- add comprehensive HUD blank screen debugging solution
+- add memory system enhancements and monitoring improvements
+
+### Fix
+
+- resolve git diff working directory issues and improve dashboard layout
+- update monitor event viewer dropdown to show actual hook event types
+- change /mpm command prefix from colon to space syntax
+
+## v3.3.2 (2025-08-04)
+
+### Feat
+
+- comprehensive memory system enhancements
+
+## v3.3.1 (2025-08-04)
+
+### Feat
+
+- sync working directory when footer directory changes
+- add working directory per session with git branch display
+
+### Fix
+
+- git diff viewer now properly uses session working directory
+- automatically load working directory when session changes
+
+## v3.3.0 (2025-08-04)
+
+### Feat
+
+- add git diff viewer for file write operations
+
+### Fix
+
+- agent inference to work with nested event data structure
+
+## v3.2.1 (2025-08-03)
+
+### Feat
+
+- enhance dashboard UI with improved layout and functionality
+
+## v3.2.0 (2025-08-03)
+
+### Feat
+
+- release v3.2.0 with dashboard improvements and monitoring consolidation
+
+### Fix
+
+- enhance file path extraction and fix Files tab rendering issues
+- resolve Socket.IO event transformation to preserve all event data
+
+## v3.2.0-beta.3 (2025-08-02)
+
+### Feat
+
+- consolidate monitoring interface and fix dashboard tabs
+- say hello with enhanced dashboard and test improvements
+- add split view dashboard with module viewer
+- clean up dashboard header layout
+- compact dashboard header with integrated controls
+- add TodoWrite list capture to monitoring system
+- enhance hook data capture for agent delegations and prompts
+- implement Socket.IO monitoring system for real-time Claude MPM session tracking
+- add --manager flag for integrated management interface
+- add memory management capabilities to PM agent
+- add WebSocket event logging for memory operations
+- improve memory system with explicit agent-controlled markers
+- implement Phase 2 of agent memory system - hook integration
+- implement Phase 1 of agent memory system
+- add configurable WebSocket port and instance identification
+
+### Fix
+
+- redesign dashboard with split lower section
+- add missing Connect button and controls to dashboard header
+- improve SubagentStop event handling for Claude Code compatibility
+- ensure events display in chronological order in dashboard
+- update dashboard to show newest events at bottom with proper auto-scroll
+- add websocket and launch-method flags to MPM_FLAGS list in wrapper script
+- add backward compatibility for simple_runner imports
+
+### Refactor
+
+- rename simple_runner to claude_runner and add subprocess launch method
+
+## v3.1.3 (2025-07-29)
+
+## v3.1.2 (2025-07-29)
+
+### BREAKING CHANGE
+
+- None - backward compatibility maintained
+
+### Feat
+
+- integrate AgentManager into AgentLifecycleManager as dependency
+
+## v3.1.1 (2025-07-28)
+
+### Fix
+
+- critical working directory enforcement in claude-mpm
+
+## v3.1.0 (2025-07-28)
+
+### BREAKING CHANGE
+
+- Agent configurations now require filesystem_restrictions field
+
+### Feat
+
+- add filesystem restrictions and PM agent support
+
+### Fix
+
+- comprehensive JSON schema fixes and test improvements
+
+## v3.0.1 (2025-07-28)
+
+## v3.0.0 (2025-07-28)
+
+### BREAKING CHANGE
+
+- Agent definitions now use YAML format instead of Markdown
+
+### Feat
+
+- major agent system refactoring and improvements
+
+## v2.2.0 (2025-07-28)
+
+### Feat
+
+- remove obsolete cli_old directory
+
+## v2.1.1 (2025-07-27)
+
+## v2.1.2 (2025-07-27)
+
+### Feat
+
+- enhance release automation with improved npm sync
+
+## v2.1.0 (2025-07-27)
+
+### Feat
+
+- Add comprehensive file security hook system
+
+### Fix
+
+- Update setuptools-scm fallback version to 2.0.0
+
+## v2.0.0 (2025-07-27)
+
+## v2.0.0-rc1 (2025-07-27)
+
+### BREAKING CHANGE
+
+- Agents now require mandatory PM reporting and follow strict workflow phases
+- Removed JSON-RPC hook system. All hook functionality now uses Claude Code hooks exclusively.
+
+### Feat
+
+- Enhance agent system with comprehensive workflow management
+- Major refactor of hook system and agent deployment improvements
 
 ##### Rust Engineer (v1.1.0) - 2025-11-04
 - **Added comprehensive dependency injection patterns** with trait-based architecture

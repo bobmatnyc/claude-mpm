@@ -471,7 +471,8 @@ class StructureLinter:
             changelog_path = PROJECT_ROOT / "CHANGELOG.md"
             if changelog_path.exists():
                 content = changelog_path.read_text()
-                version_pattern = rf"##\s+\[{re.escape(versions['VERSION'])}\]"
+                # Match both formats: ## v5.4.7 and ## [5.4.7]
+                version_pattern = rf"##\s+(?:v|)\[?{re.escape(versions['VERSION'])}\]?"
                 if not re.search(version_pattern, content):
                     # Only warn if this is not a development version
                     if not versions["VERSION"].endswith("-dev"):
