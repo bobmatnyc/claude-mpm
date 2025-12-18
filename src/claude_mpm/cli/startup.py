@@ -352,7 +352,11 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
                         agent_id = frontmatter.get("agent_id", "")
 
                         # It's ours if it has any of these markers
-                        if "Claude MPM" in str(author) or source == "remote" or agent_id:
+                        if (
+                            "Claude MPM" in str(author)
+                            or source == "remote"
+                            or agent_id
+                        ):
                             is_ours = True
 
                     if is_ours:

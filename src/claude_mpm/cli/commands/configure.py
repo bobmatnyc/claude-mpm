@@ -1513,7 +1513,9 @@ class ConfigureCommand(BaseCommand):
                         # Use agent_id (technical ID) for all tracking/selection
                         agent_id = getattr(agent, "agent_id", agent.name)
                         agent_leaf_name = agent_id.split("/")[-1]
-                        raw_display_name = getattr(agent, "display_name", agent_leaf_name)
+                        raw_display_name = getattr(
+                            agent, "display_name", agent_leaf_name
+                        )
                         display_name = self._format_display_name(raw_display_name)
 
                         # Check if agent is deployed (exists in .claude/agents/)
@@ -2600,7 +2602,11 @@ class ConfigureCommand(BaseCommand):
                 # Basic info
                 self.console.print(f"[bold]ID:[/bold] {agent.name}")
                 raw_display_name = getattr(agent, "display_name", "N/A")
-                display_name = self._format_display_name(raw_display_name) if raw_display_name != "N/A" else "N/A"
+                display_name = (
+                    self._format_display_name(raw_display_name)
+                    if raw_display_name != "N/A"
+                    else "N/A"
+                )
                 self.console.print(f"[bold]Name:[/bold] {display_name}")
                 self.console.print(f"[bold]Description:[/bold] {agent.description}")
 
