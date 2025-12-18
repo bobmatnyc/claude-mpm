@@ -352,11 +352,7 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
                         agent_id = frontmatter.get("agent_id", "")
 
                         # It's ours if it has any of these markers
-                        if "Claude MPM" in str(author):
-                            is_ours = True
-                        elif source == "remote":
-                            is_ours = True
-                        elif agent_id:  # Has agent_id = from our repo
+                        if "Claude MPM" in str(author) or source == "remote" or agent_id:
                             is_ours = True
 
                     if is_ours:
@@ -560,17 +556,16 @@ def sync_remote_agents_on_startup():
                                 f"Complete: {deployed} deployed, {updated} updated, {skipped} already present "
                                 f"({total_configured} configured from {agent_count} in repo)"
                             )
+                    elif removed > 0:
+                        deploy_progress.finish(
+                            f"Complete: {total_configured} agents ready - all up-to-date, "
+                            f"{removed} removed ({agent_count} available in repo)"
+                        )
                     else:
-                        if removed > 0:
-                            deploy_progress.finish(
-                                f"Complete: {total_configured} agents ready - all up-to-date, "
-                                f"{removed} removed ({agent_count} available in repo)"
-                            )
-                        else:
-                            deploy_progress.finish(
-                                f"Complete: {total_configured} agents ready - all up-to-date "
-                                f"({agent_count} available in repo)"
-                            )
+                        deploy_progress.finish(
+                            f"Complete: {total_configured} agents ready - all up-to-date "
+                            f"({agent_count} available in repo)"
+                        )
 
                     # Display deployment errors to user (not just logs)
                     deploy_errors = deployment_result.get("errors", [])
