@@ -1513,7 +1513,8 @@ class ConfigureCommand(BaseCommand):
                         # Use agent_id (technical ID) for all tracking/selection
                         agent_id = getattr(agent, "agent_id", agent.name)
                         agent_leaf_name = agent_id.split("/")[-1]
-                        display_name = getattr(agent, "display_name", agent_leaf_name)
+                        raw_display_name = getattr(agent, "display_name", agent_leaf_name)
+                        display_name = self._format_display_name(raw_display_name)
 
                         # Check if agent is deployed (exists in .claude/agents/)
 
@@ -1942,7 +1943,8 @@ class ConfigureCommand(BaseCommand):
                         key=lambda a: getattr(a, "agent_id", a.name),
                     ):
                         agent_id = getattr(agent, "agent_id", agent.name)
-                        display_name = getattr(agent, "display_name", agent.name)
+                        raw_display_name = getattr(agent, "display_name", agent.name)
+                        display_name = self._format_display_name(raw_display_name)
                         is_selected = agent_id in deployed_full_paths
 
                         choice_text = f"{agent_id}"
@@ -2515,7 +2517,8 @@ class ConfigureCommand(BaseCommand):
 
         self.console.print(f"\n[bold]Installed agents ({len(installed)}):[/bold]")
         for idx, agent in enumerate(installed, 1):
-            display_name = getattr(agent, "display_name", agent.name)
+            raw_display_name = getattr(agent, "display_name", agent.name)
+            display_name = self._format_display_name(raw_display_name)
             self.console.print(f"  {idx}. {agent.name} - {display_name}")
 
         selection = Prompt.ask("\nEnter agent number to remove (or 'c' to cancel)")
@@ -2578,7 +2581,8 @@ class ConfigureCommand(BaseCommand):
 
         self.console.print(f"\n[bold]Available agents ({len(agents)}):[/bold]")
         for idx, agent in enumerate(agents, 1):
-            display_name = getattr(agent, "display_name", agent.name)
+            raw_display_name = getattr(agent, "display_name", agent.name)
+            display_name = self._format_display_name(raw_display_name)
             self.console.print(f"  {idx}. {agent.name} - {display_name}")
 
         selection = Prompt.ask("\nEnter agent number to view (or 'c' to cancel)")
@@ -2595,7 +2599,8 @@ class ConfigureCommand(BaseCommand):
 
                 # Basic info
                 self.console.print(f"[bold]ID:[/bold] {agent.name}")
-                display_name = getattr(agent, "display_name", "N/A")
+                raw_display_name = getattr(agent, "display_name", "N/A")
+                display_name = self._format_display_name(raw_display_name) if raw_display_name != "N/A" else "N/A"
                 self.console.print(f"[bold]Name:[/bold] {display_name}")
                 self.console.print(f"[bold]Description:[/bold] {agent.description}")
 

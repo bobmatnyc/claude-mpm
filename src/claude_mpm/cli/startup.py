@@ -294,6 +294,84 @@ def deploy_output_style_on_startup():
         # Continue execution - output style deployment shouldn't block startup
 
 
+def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) -> int:
+    """Remove agents that are managed by claude-mpm but no longer deployed.
+
+    WHY: When agent configurations change, old agents should be removed to avoid
+    confusion and stale agent references. Only removes claude-mpm managed agents,
+    leaving user-created agents untouched.
+
+    SAFETY: Only removes files with claude-mpm ownership markers in frontmatter.
+    Files without frontmatter or without ownership indicators are preserved.
+
+    Args:
+        deploy_target: Path to .claude/agents/ directory
+        deployed_agents: List of agent filenames that should remain
+
+    Returns:
+        Number of agents removed
+    """
+    import re
+
+    import yaml
+
+    from ..core.logger import get_logger
+
+    logger = get_logger("cli")
+    removed_count = 0
+    deployed_set = set(deployed_agents)
+
+    if not deploy_target.exists():
+        return 0
+
+    # Scan all .md files in agents directory
+    for agent_file in deploy_target.glob("*.md"):
+        # Skip hidden files
+        if agent_file.name.startswith("."):
+            continue
+
+        # Skip if this agent should remain deployed
+        if agent_file.name in deployed_set:
+            continue
+
+        # Check if this is a claude-mpm managed agent
+        try:
+            content = agent_file.read_text(encoding="utf-8")
+
+            # Parse YAML frontmatter
+            if content.startswith("---"):
+                match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+                if match:
+                    frontmatter = yaml.safe_load(match.group(1))
+
+                    # Check ownership indicators
+                    is_ours = False
+                    if frontmatter:
+                        author = frontmatter.get("author", "")
+                        source = frontmatter.get("source", "")
+                        agent_id = frontmatter.get("agent_id", "")
+
+                        # It's ours if it has any of these markers
+                        if "Claude MPM" in str(author):
+                            is_ours = True
+                        elif source == "remote":
+                            is_ours = True
+                        elif agent_id:  # Has agent_id = from our repo
+                            is_ours = True
+
+                    if is_ours:
+                        # Safe to remove - it's our agent but not deployed
+                        agent_file.unlink()
+                        removed_count += 1
+                        logger.info(f"Removed orphaned agent: {agent_file.name}")
+
+        except Exception as e:
+            logger.debug(f"Could not check agent {agent_file.name}: {e}")
+            # Don't remove if we can't verify ownership
+
+    return removed_count
+
+
 def sync_remote_agents_on_startup():
     """
     Synchronize agent templates from remote sources on startup.
@@ -309,7 +387,8 @@ def sync_remote_agents_on_startup():
     Workflow:
     1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
     2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
-    3. Log deployment results
+    3. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
+    4. Log deployment results
     """
     # Check for legacy cache and warn user if found
     check_legacy_cache()
@@ -453,15 +532,45 @@ def sync_remote_agents_on_startup():
                         total_configured if total_configured > 0 else 1
                     )
 
+                    # Cleanup orphaned agents (ours but no longer deployed)
+                    # Get list of deployed agent filenames (what should remain)
+                    deployed_filenames = []
+                    for agent_name in deployment_result.get("deployed", []):
+                        deployed_filenames.append(f"{agent_name}.md")
+                    for agent_name in deployment_result.get("updated", []):
+                        deployed_filenames.append(f"{agent_name}.md")
+                    for agent_name in deployment_result.get("skipped", []):
+                        deployed_filenames.append(f"{agent_name}.md")
+
+                    # Run cleanup and get count of removed agents
+                    removed = _cleanup_orphaned_agents(
+                        deploy_target, deployed_filenames
+                    )
+
                     # Show total configured agents (deployed + updated + already existing)
+                    # Include repo count for context and removed count if any
                     if deployed > 0 or updated > 0:
-                        deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {updated} updated, {skipped} already present ({total_configured} total)"
-                        )
+                        if removed > 0:
+                            deploy_progress.finish(
+                                f"Complete: {deployed} deployed, {updated} updated, {skipped} already present, "
+                                f"{removed} removed ({total_configured} configured from {agent_count} in repo)"
+                            )
+                        else:
+                            deploy_progress.finish(
+                                f"Complete: {deployed} deployed, {updated} updated, {skipped} already present "
+                                f"({total_configured} configured from {agent_count} in repo)"
+                            )
                     else:
-                        deploy_progress.finish(
-                            f"Complete: {total_configured} agents ready (all up-to-date)"
-                        )
+                        if removed > 0:
+                            deploy_progress.finish(
+                                f"Complete: {total_configured} agents ready - all up-to-date, "
+                                f"{removed} removed ({agent_count} available in repo)"
+                            )
+                        else:
+                            deploy_progress.finish(
+                                f"Complete: {total_configured} agents ready - all up-to-date "
+                                f"({agent_count} available in repo)"
+                            )
 
                     # Display deployment errors to user (not just logs)
                     deploy_errors = deployment_result.get("errors", [])
@@ -550,6 +659,8 @@ def sync_remote_skills_on_startup():
 
         # Discover total file count across all sources
         total_file_count = 0
+        total_skill_dirs = 0  # Count actual skill directories (folders with SKILL.md)
+
         for source in enabled_sources:
             try:
                 # Parse GitHub URL
@@ -573,15 +684,26 @@ def sync_remote_skills_on_startup():
                     ]
                     total_file_count += len(relevant_files)
 
+                    # Count skill directories (unique directories containing SKILL.md)
+                    skill_dirs = set()
+                    for f in all_files:
+                        if f.endswith("/SKILL.md"):
+                            # Extract directory path
+                            skill_dir = "/".join(f.split("/")[:-1])
+                            skill_dirs.add(skill_dir)
+                    total_skill_dirs += len(skill_dirs)
+
             except Exception as e:
                 logger.debug(f"Failed to discover files for {source.id}: {e}")
                 # Use estimate if discovery fails
                 total_file_count += 150
+                total_skill_dirs += 50  # Estimate ~50 skills
 
         # Create progress bar for sync phase with actual file count
+        # Note: We sync files (md, json, etc.), but will deploy skill directories
         sync_progress = ProgressBar(
             total=total_file_count if total_file_count > 0 else 1,
-            prefix="Syncing skills",
+            prefix="Syncing skill files",
             show_percentage=True,
             show_counter=True,
         )
@@ -598,11 +720,13 @@ def sync_remote_skills_on_startup():
 
         if cached > 0:
             sync_progress.finish(
-                f"Complete: {downloaded} downloaded, {cached} cached ({total_files} total)"
+                f"Complete: {downloaded} downloaded, {cached} cached ({total_files} files, {total_skill_dirs} skills)"
             )
         else:
             # All new downloads (first sync)
-            sync_progress.finish(f"Complete: {downloaded} files downloaded")
+            sync_progress.finish(
+                f"Complete: {downloaded} files downloaded ({total_skill_dirs} skills)"
+            )
 
         # Phase 2: Deploy skills to ~/.claude/skills/
         # This flattens nested Git structure (e.g., collaboration/parallel-agents/SKILL.md)
@@ -656,23 +780,27 @@ def sync_remote_skills_on_startup():
 
                 # Show total available skills (deployed + already existing)
                 # Include filtered count if selective deployment was used
+                # Note: total_skill_count is from the repo, total_available is what's deployed/needed
                 if deployed > 0:
                     if filtered > 0:
                         deploy_progress.finish(
                             f"Complete: {deployed} deployed, {skipped} present "
-                            f"({total_available} for agents, {filtered} filtered)"
+                            f"({total_available} required by agents, {filtered} available but not needed, {total_skill_count} total in repo)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {skipped} already present ({total_available} total)"
+                            f"Complete: {deployed} deployed, {skipped} already present "
+                            f"({total_available} total from {total_skill_count} in repo)"
                         )
                 elif filtered > 0:
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills ready for agents ({filtered} filtered)"
+                        f"Complete: {total_available} skills ready for agents "
+                        f"({filtered} available but not needed, {total_skill_count} total in repo)"
                     )
                 else:
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills ready (all up-to-date)"
+                        f"Complete: {total_available} skills ready - all up-to-date "
+                        f"({total_skill_count} available in repo)"
                     )
 
                 # Log deployment errors if any
