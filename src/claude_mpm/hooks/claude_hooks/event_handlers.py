@@ -95,22 +95,27 @@ class EventHandlers:
         }
 
         # Store prompt for comprehensive response tracking if enabled
-        if (
-            self.hook_handler.response_tracking_manager.response_tracking_enabled
-            and self.hook_handler.response_tracking_manager.track_all_interactions
-        ):
-            session_id = event.get("session_id", "")
-            if session_id:
-                self.hook_handler.pending_prompts[session_id] = {
-                    "prompt": prompt,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "working_directory": working_dir,
-                }
-                if DEBUG:
-                    print(
-                        f"Stored prompt for comprehensive tracking: session {session_id[:8]}...",
-                        file=sys.stderr,
-                    )
+        try:
+            rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+            if (rtm and
+                getattr(rtm, 'response_tracking_enabled', False) and
+                getattr(rtm, 'track_all_interactions', False)):
+                session_id = event.get("session_id", "")
+                if session_id:
+                    pending_prompts = getattr(self.hook_handler, 'pending_prompts', {})
+                    pending_prompts[session_id] = {
+                        "prompt": prompt,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "working_directory": working_dir,
+                    }
+                    if DEBUG:
+                        print(
+                            f"Stored prompt for comprehensive tracking: session {session_id[:8]}...",
+                            file=sys.stderr,
+                        )
+        except Exception:
+            # Response tracking is optional - silently continue if it fails
+            pass
 
         # Emit normalized event (namespace no longer needed with normalized events)
         self.hook_handler._emit_socketio_event("", "user_prompt", prompt_data)
@@ -244,8 +249,9 @@ class EventHandlers:
                     f"  - Request data keys: {list(request_data.keys())}",
                     file=sys.stderr,
                 )
+                delegation_requests = getattr(self.hook_handler, 'delegation_requests', {})
                 print(
-                    f"  - delegation_requests size: {len(self.hook_handler.delegation_requests)}",
+                    f"  - delegation_requests size: {len(delegation_requests)}",
                     file=sys.stderr,
                 )
 
@@ -257,9 +263,13 @@ class EventHandlers:
                 )
 
         # Trigger memory pre-delegation hook
-        self.hook_handler.memory_hook_manager.trigger_pre_delegation_hook(
-            agent_type, tool_input, session_id
-        )
+        try:
+            mhm = getattr(self.hook_handler, 'memory_hook_manager', None)
+            if mhm and hasattr(mhm, 'trigger_pre_delegation_hook'):
+                mhm.trigger_pre_delegation_hook(agent_type, tool_input, session_id)
+        except Exception:
+            # Memory hooks are optional
+            pass
 
         # Emit a subagent_start event for better tracking
         subagent_start_data = {
@@ -451,14 +461,23 @@ class EventHandlers:
             agent_type = self.hook_handler._get_delegation_agent_type(session_id)
 
             # Trigger memory post-delegation hook
-            self.hook_handler.memory_hook_manager.trigger_post_delegation_hook(
-                agent_type, event, session_id
-            )
+            try:
+                mhm = getattr(self.hook_handler, 'memory_hook_manager', None)
+                if mhm and hasattr(mhm, 'trigger_post_delegation_hook'):
+                    mhm.trigger_post_delegation_hook(agent_type, event, session_id)
+            except Exception:
+                # Memory hooks are optional
+                pass
 
             # Track agent response if response tracking is enabled
-            self.hook_handler.response_tracking_manager.track_agent_response(
-                session_id, agent_type, event, self.hook_handler.delegation_requests
-            )
+            try:
+                rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+                if rtm and hasattr(rtm, 'track_agent_response'):
+                    delegation_requests = getattr(self.hook_handler, 'delegation_requests', {})
+                    rtm.track_agent_response(session_id, agent_type, event, delegation_requests)
+            except Exception:
+                # Response tracking is optional
+                pass
 
         self.hook_handler._emit_socketio_event("", "post_tool", post_tool_data)
 
@@ -519,9 +538,14 @@ class EventHandlers:
             self._log_stop_event_debug(event, session_id, metadata)
 
         # Track response if enabled
-        self.hook_handler.response_tracking_manager.track_stop_response(
-            event, session_id, metadata, self.hook_handler.pending_prompts
-        )
+        try:
+            rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+            if rtm and hasattr(rtm, 'track_stop_response'):
+                pending_prompts = getattr(self.hook_handler, 'pending_prompts', {})
+                rtm.track_stop_response(event, session_id, metadata, pending_prompts)
+        except Exception:
+            # Response tracking is optional
+            pass
 
         # Emit stop event to Socket.IO
         self._emit_stop_event(event, session_id, metadata)
@@ -544,15 +568,23 @@ class EventHandlers:
         self, event: dict, session_id: str, metadata: dict
     ) -> None:
         """Log debug information for stop events."""
+        try:
+            rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+            tracking_enabled = getattr(rtm, 'response_tracking_enabled', False) if rtm else False
+            tracker_exists = getattr(rtm, 'response_tracker', None) is not None if rtm else False
 
-        print(
-            f"  - response_tracking_enabled: {self.hook_handler.response_tracking_manager.response_tracking_enabled}",
-            file=sys.stderr,
-        )
-        print(
-            f"  - response_tracker exists: {self.hook_handler.response_tracking_manager.response_tracker is not None}",
-            file=sys.stderr,
-        )
+            print(
+                f"  - response_tracking_enabled: {tracking_enabled}",
+                file=sys.stderr,
+            )
+            print(
+                f"  - response_tracker exists: {tracker_exists}",
+                file=sys.stderr,
+            )
+        except Exception:
+            # If debug logging fails, just skip it
+            pass
+
         print(
             f"  - session_id: {session_id[:8] if session_id else 'None'}...",
             file=sys.stderr,
@@ -600,15 +632,20 @@ class EventHandlers:
         git_branch: str,
     ):
         """Handle response tracking for subagent stop events with fuzzy matching."""
-        if not (
-            self.hook_handler.response_tracking_manager.response_tracking_enabled
-            and self.hook_handler.response_tracking_manager.response_tracker
-        ):
+        try:
+            rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+            if not (rtm and
+                    getattr(rtm, 'response_tracking_enabled', False) and
+                    getattr(rtm, 'response_tracker', None)):
+                return
+        except Exception:
+            # Response tracking is optional
             return
 
         try:
             # Get the original request data (with fuzzy matching fallback)
-            request_info = self.hook_handler.delegation_requests.get(session_id)
+            delegation_requests = getattr(self.hook_handler, 'delegation_requests', {})
+            request_info = delegation_requests.get(session_id)
 
             # If exact match fails, try partial matching
             if not request_info and session_id:
@@ -618,7 +655,7 @@ class EventHandlers:
                         file=sys.stderr,
                     )
                 # Try to find a session that matches the first 8-16 characters
-                for stored_sid in list(self.hook_handler.delegation_requests.keys()):
+                for stored_sid in list(delegation_requests.keys()):
                     if (
                         stored_sid.startswith(session_id[:8])
                         or session_id.startswith(stored_sid[:8])
@@ -633,17 +670,13 @@ class EventHandlers:
                                 f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
                                 file=sys.stderr,
                             )
-                        request_info = self.hook_handler.delegation_requests.get(
-                            stored_sid
-                        )
+                        request_info = delegation_requests.get(stored_sid)
                         # Update the key to use the current session_id for consistency
                         if request_info:
-                            self.hook_handler.delegation_requests[session_id] = (
-                                request_info
-                            )
+                            delegation_requests[session_id] = request_info
                             # Optionally remove the old key to avoid duplicates
                             if stored_sid != session_id:
-                                del self.hook_handler.delegation_requests[stored_sid]
+                                del delegation_requests[stored_sid]
                         break
 
             if request_info:
@@ -691,23 +724,27 @@ class EventHandlers:
                     )
 
                 # Track the response
-                file_path = self.hook_handler.response_tracking_manager.response_tracker.track_response(
-                    agent_name=agent_type,
-                    request=full_request,
-                    response=response_text,
-                    session_id=session_id,
-                    metadata=metadata,
-                )
-
-                if file_path and DEBUG:
-                    print(
-                        f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}",
-                        file=sys.stderr,
+                rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+                response_tracker = getattr(rtm, 'response_tracker', None) if rtm else None
+                if response_tracker and hasattr(response_tracker, 'track_response'):
+                    file_path = response_tracker.track_response(
+                        agent_name=agent_type,
+                        request=full_request,
+                        response=response_text,
+                        session_id=session_id,
+                        metadata=metadata,
                     )
 
+                    if file_path and DEBUG:
+                        print(
+                            f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}",
+                            file=sys.stderr,
+                        )
+
                 # Clean up the request data
-                if session_id in self.hook_handler.delegation_requests:
-                    del self.hook_handler.delegation_requests[session_id]
+                delegation_requests = getattr(self.hook_handler, 'delegation_requests', {})
+                if session_id in delegation_requests:
+                    del delegation_requests[session_id]
 
             elif DEBUG:
                 print(
@@ -731,9 +768,14 @@ class EventHandlers:
         - Essential for comprehensive monitoring of Claude interactions
         """
         # Track the response for logging
-        self.hook_handler.response_tracking_manager.track_assistant_response(
-            event, self.hook_handler.pending_prompts
-        )
+        try:
+            rtm = getattr(self.hook_handler, 'response_tracking_manager', None)
+            if rtm and hasattr(rtm, 'track_assistant_response'):
+                pending_prompts = getattr(self.hook_handler, 'pending_prompts', {})
+                rtm.track_assistant_response(event, pending_prompts)
+        except Exception:
+            # Response tracking is optional
+            pass
 
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
@@ -763,16 +805,21 @@ class EventHandlers:
         }
 
         # Check if this is a response to a tracked prompt
-        if session_id in self.hook_handler.pending_prompts:
-            prompt_data = self.hook_handler.pending_prompts[session_id]
-            assistant_response_data["original_prompt"] = prompt_data.get("prompt", "")[
-                :200
-            ]
-            assistant_response_data["prompt_timestamp"] = prompt_data.get(
-                "timestamp", ""
-            )
-            assistant_response_data["is_tracked_response"] = True
-        else:
+        try:
+            pending_prompts = getattr(self.hook_handler, 'pending_prompts', {})
+            if session_id in pending_prompts:
+                prompt_data = pending_prompts[session_id]
+                assistant_response_data["original_prompt"] = prompt_data.get("prompt", "")[
+                    :200
+                ]
+                assistant_response_data["prompt_timestamp"] = prompt_data.get(
+                    "timestamp", ""
+                )
+                assistant_response_data["is_tracked_response"] = True
+            else:
+                assistant_response_data["is_tracked_response"] = False
+        except Exception:
+            # If prompt lookup fails, just mark as not tracked
             assistant_response_data["is_tracked_response"] = False
 
         # Debug logging
