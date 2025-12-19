@@ -215,9 +215,8 @@ class AgentDiscoveryService:
             # Extract YAML frontmatter
             frontmatter = self._extract_yaml_frontmatter(template_content)
             if not frontmatter:
-                self.logger.warning(
-                    f"No valid YAML frontmatter in {template_file.name}"
-                )
+                # Silently return None for files without frontmatter
+                # (e.g., PM instruction templates in templates/ directory)
                 return None
 
             # Extract metadata directly from frontmatter (flat structure)

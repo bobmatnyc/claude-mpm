@@ -202,8 +202,9 @@ main "$@"
         self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
         # Use settings.json for hooks (Claude Code reads from this file)
         self.settings_file = self.claude_dir / "settings.json"
-        # Keep reference to old file for migration
-        self.old_settings_file = self.claude_dir / "settings.json"
+        # There is no legacy settings file - this was a bug where both pointed to same file
+        # Setting to None to disable cleanup that was deleting freshly installed hooks
+        self.old_settings_file = None
         self._claude_version: Optional[str] = None
         self._hook_script_path: Optional[Path] = None
 
@@ -462,7 +463,9 @@ main "$@"
 
     def _cleanup_old_settings(self) -> None:
         """Remove hooks from old settings.json file if present."""
-        if not self.old_settings_file.exists():
+        # No-op: old_settings_file was pointing to same file as settings_file (bug)
+        # This was causing freshly installed hooks to be immediately deleted
+        if self.old_settings_file is None or not self.old_settings_file.exists():
             return
 
         try:
@@ -650,9 +653,13 @@ main "$@"
                 old_script.unlink()
                 self.logger.info(f"Removed old deployed script: {old_script}")
 
-            # Remove from Claude settings (both old and new locations)
-            for settings_path in [self.settings_file, self.old_settings_file]:
-                if settings_path.exists():
+            # Remove from Claude settings
+            settings_paths = [self.settings_file]
+            if self.old_settings_file is not None:
+                settings_paths.append(self.old_settings_file)
+
+            for settings_path in settings_paths:
+                if settings_path and settings_path.exists():
                     with settings_path.open() as f:
                         settings = json.load(f)
 
@@ -763,7 +770,7 @@ main "$@"
                 pass
 
         # Also check old settings file
-        if self.old_settings_file.exists():
+        if self.old_settings_file is not None and self.old_settings_file.exists():
             try:
                 with self.old_settings_file.open() as f:
                     old_settings = json.load(f)

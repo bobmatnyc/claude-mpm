@@ -192,21 +192,36 @@ log_debug() {
 }
 
 # Test Python works and module exists
-if ! $PYTHON_CMD -c "import claude_mpm" 2>/dev/null; then
-    log_debug "claude_mpm module not available, continuing without hook"
-    echo '{"action": "continue"}'
-    exit 0
+# Handle UV's multi-word command specially
+if [[ "$PYTHON_CMD" == "uv run python" ]]; then
+    if ! uv run python -c "import claude_mpm" 2>/dev/null; then
+        log_debug "claude_mpm module not available, continuing without hook"
+        echo '{"action": "continue"}'
+        exit 0
+    fi
+else
+    if ! $PYTHON_CMD -c "import claude_mpm" 2>/dev/null; then
+        log_debug "claude_mpm module not available, continuing without hook"
+        echo '{"action": "continue"}'
+        exit 0
+    fi
 fi
 
 # Run the Python hook handler with all input
 # Use exec to replace the shell process with Python
-if ! exec "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log; then
-    # If the Python handler fails, always return continue to not block Claude
-    if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
-        echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/claude-mpm-hook-error.log" >> /tmp/claude-mpm-hook.log
-        echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Error: $(cat /tmp/claude-mpm-hook-error.log 2>/dev/null | head -5)" >> /tmp/claude-mpm-hook.log
-    fi
-    # Return continue action to prevent blocking Claude Code
-    echo '{"action": "continue"}'
-    exit 0
+# Handle UV's multi-word command specially
+if [[ "$PYTHON_CMD" == "uv run python" ]]; then
+    exec uv run python -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
+else
+    exec "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
 fi
+
+# Note: exec replaces the shell process, so code below only runs if exec fails
+# If we reach here, the Python handler failed
+if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/claude-mpm-hook-error.log" >> /tmp/claude-mpm-hook.log
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Error: $(cat /tmp/claude-mpm-hook-error.log 2>/dev/null | head -5)" >> /tmp/claude-mpm-hook.log
+fi
+# Return continue action to prevent blocking Claude Code
+echo '{"action": "continue"}'
+exit 0
