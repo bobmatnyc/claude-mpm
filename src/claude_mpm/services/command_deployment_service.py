@@ -23,7 +23,7 @@ class CommandDeploymentService(BaseService):
     DEPRECATED_COMMANDS = [
         "mpm-agents.md",  # Replaced by mpm-agents-list.md
         "mpm-auto-configure.md",  # Replaced by mpm-agents-auto-configure.md
-        "mpm-config.md",  # Replaced by mpm-config-view.md
+        "mpm-config-view.md",  # Replaced by mpm-config.md
         "mpm-resume.md",  # Replaced by mpm-session-resume.md
         "mpm-ticket.md",  # Replaced by mpm-ticket-view.md
     ]
@@ -314,7 +314,7 @@ class CommandDeploymentService(BaseService):
         replacement_map = {
             "mpm-agents.md": "mpm-agents-list.md",
             "mpm-auto-configure.md": "mpm-agents-auto-configure.md",
-            "mpm-config.md": "mpm-config-view.md",
+            "mpm-config-view.md": "mpm-config.md",
             "mpm-resume.md": "mpm-session-resume.md",
             "mpm-ticket.md": "mpm-ticket-view.md",
         }
@@ -343,13 +343,69 @@ class CommandDeploymentService(BaseService):
 
         return removed
 
+    def remove_stale_commands(self) -> int:
+        """Remove stale MPM commands that no longer exist in source.
+
+        This method cleans up deployed commands that have been deleted or renamed
+        in the source directory. It's called automatically on startup to ensure
+        deployed commands stay in sync with source.
+
+        Returns:
+            Number of stale files removed
+        """
+        if not self.target_dir.exists():
+            self.logger.debug(
+                f"Target directory does not exist: {self.target_dir}, skipping stale command cleanup"
+            )
+            return 0
+
+        if not self.source_dir.exists():
+            self.logger.warning(
+                f"Source directory does not exist: {self.source_dir}, cannot detect stale commands"
+            )
+            return 0
+
+        # Get current source commands (ground truth)
+        source_commands = {f.name for f in self.source_dir.glob("mpm*.md")}
+
+        # Get deployed commands
+        deployed_commands = {f.name for f in self.target_dir.glob("mpm*.md")}
+
+        # Find stale commands (deployed but not in source, excluding deprecated)
+        stale_commands = deployed_commands - source_commands - set(
+            self.DEPRECATED_COMMANDS
+        )
+
+        if not stale_commands:
+            self.logger.debug("No stale commands found to remove")
+            return 0
+
+        removed = 0
+        self.logger.info(f"Cleaning up {len(stale_commands)} stale command(s)...")
+
+        for stale_cmd in stale_commands:
+            stale_file = self.target_dir / stale_cmd
+            try:
+                stale_file.unlink()
+                self.logger.info(f"Removed stale command: {stale_cmd} (no longer in source)")
+                removed += 1
+            except Exception as e:
+                # Log error but don't fail startup - this is non-critical
+                self.logger.warning(f"Failed to remove stale command {stale_cmd}: {e}")
+
+        if removed > 0:
+            self.logger.info(f"Removed {removed} stale command(s)")
+
+        return removed
+
 
 def deploy_commands_on_startup(force: bool = False) -> None:
     """Convenience function to deploy commands during startup.
 
     This function:
     1. Removes deprecated commands that have been replaced
-    2. Deploys current command files
+    2. Removes stale commands that no longer exist in source
+    3. Deploys current command files
 
     Args:
         force: Force deployment even if files exist
@@ -357,12 +413,17 @@ def deploy_commands_on_startup(force: bool = False) -> None:
     service = CommandDeploymentService()
     logger = get_logger("startup")
 
-    # Clean up deprecated commands BEFORE deploying new ones
-    removed_count = service.remove_deprecated_commands()
-    if removed_count > 0:
-        logger.info(f"Cleaned up {removed_count} deprecated command(s)")
+    # Clean up deprecated commands FIRST (known old commands)
+    deprecated_count = service.remove_deprecated_commands()
+    if deprecated_count > 0:
+        logger.info(f"Cleaned up {deprecated_count} deprecated command(s)")
 
-    # Deploy current commands
+    # Clean up stale commands SECOND (deployed but not in source anymore)
+    stale_count = service.remove_stale_commands()
+    if stale_count > 0:
+        logger.info(f"Cleaned up {stale_count} stale command(s)")
+
+    # Deploy current commands LAST
     result = service.deploy_commands(force=force)
 
     if result["deployed"]:
