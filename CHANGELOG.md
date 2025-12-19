@@ -1,3 +1,8 @@
+## v5.4.12 (2025-12-19)
+
+### Changed
+- **Version**: Patch version bump
+
 ## v5.4.11 (2025-12-19)
 
 ### Fixed
