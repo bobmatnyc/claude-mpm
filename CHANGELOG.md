@@ -1,3 +1,17 @@
+## v5.4.8 (2025-12-19)
+
+### Added
+- **Unified /mpm-config command**: Replaces /mpm-config-view with auto-configuration
+  - Automatic toolchain detection and configuration
+  - Agent review service to categorize and archive unused agents
+  - Archive unused agents to `.claude/agents/unused/` instead of deleting
+  - Restart notification after configuration changes
+- **Command sync on startup**: Auto-deploys MPM commands and removes stale ones
+
+### Fixed
+- **Agent deployment**: Suppress YAML frontmatter warnings for template files
+- **UV exec compatibility**: Hook handler now works correctly with UV-managed projects
+- **Hook installer**: Fixed critical bug causing hooks to self-delete after installation
 
 ### Added
 - **Automatic session resume on PM startup**: Detects paused sessions and displays context
