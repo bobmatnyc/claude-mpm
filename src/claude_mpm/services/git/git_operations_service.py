@@ -346,11 +346,14 @@ class GitOperationsService:
             return True
 
         # Check if this is a divergent branch situation
-        is_divergent = any(phrase in stderr.lower() for phrase in [
-            "divergent branches",
-            "need to specify how to reconcile",
-            "have diverged"
-        ])
+        is_divergent = any(
+            phrase in stderr.lower()
+            for phrase in [
+                "divergent branches",
+                "need to specify how to reconcile",
+                "have diverged",
+            ]
+        )
 
         if is_divergent:
             logger.warning(
@@ -370,10 +373,10 @@ class GitOperationsService:
                 return True
 
             # Check if rebase had conflicts
-            has_rebase_conflict = any(phrase in stderr.lower() for phrase in [
-                "conflict",
-                "rebase in progress"
-            ])
+            has_rebase_conflict = any(
+                phrase in stderr.lower()
+                for phrase in ["conflict", "rebase in progress"]
+            )
 
             if has_rebase_conflict:
                 logger.warning(

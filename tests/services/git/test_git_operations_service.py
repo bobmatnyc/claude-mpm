@@ -121,8 +121,12 @@ class TestGitOperationsService(unittest.TestCase):
         """Test creating and checking out a new branch."""
         # Mock git commands sequence
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (_validate_repo)
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_current_branch)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (_validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (get_current_branch)
             Mock(returncode=0, stdout="develop\n", stderr=""),  # branch --show-current
             Mock(returncode=0, stdout="", stderr=""),  # checkout main
             Mock(returncode=0, stdout="", stderr=""),  # pull origin main
@@ -147,8 +151,12 @@ class TestGitOperationsService(unittest.TestCase):
         """Test rollback when branch creation fails."""
         # Mock git commands with failure on checkout -b
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (_validate_repo)
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_current_branch)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (_validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (get_current_branch)
             Mock(returncode=0, stdout="main\n", stderr=""),  # branch --show-current
             Mock(returncode=0, stdout="", stderr=""),  # checkout main
             Mock(returncode=0, stdout="", stderr=""),  # pull origin main
@@ -302,13 +310,17 @@ class TestGitOperationsService(unittest.TestCase):
         """Test pull with divergent branches - successful rebase recovery."""
         # Mock git commands
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (validate_repo)
             Mock(
                 returncode=1,
                 stdout="",
-                stderr="hint: You have divergent branches and need to specify how to reconcile them."
+                stderr="hint: You have divergent branches and need to specify how to reconcile them.",
             ),  # initial pull fails with divergent branches
-            Mock(returncode=0, stdout="Successfully rebased\n", stderr=""),  # pull --rebase succeeds
+            Mock(
+                returncode=0, stdout="Successfully rebased\n", stderr=""
+            ),  # pull --rebase succeeds
         ]
 
         result = self.service.pull(self.test_repo_path, "main")
@@ -324,16 +336,16 @@ class TestGitOperationsService(unittest.TestCase):
         """Test pull with divergent branches - rebase fails, hard reset succeeds."""
         # Mock git commands
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (validate_repo)
             Mock(
                 returncode=1,
                 stdout="",
-                stderr="hint: You have divergent branches and need to specify how to reconcile them."
+                stderr="hint: You have divergent branches and need to specify how to reconcile them.",
             ),  # initial pull fails with divergent branches
             Mock(
-                returncode=1,
-                stdout="",
-                stderr="CONFLICT: merge conflict during rebase"
+                returncode=1, stdout="", stderr="CONFLICT: merge conflict during rebase"
             ),  # pull --rebase fails with conflict
             Mock(returncode=0, stdout="", stderr=""),  # rebase --abort
             Mock(returncode=0, stdout="", stderr=""),  # fetch origin main
@@ -345,7 +357,9 @@ class TestGitOperationsService(unittest.TestCase):
         self.assertTrue(result)
         # Verify reset --hard was called
         commands_called = [call[0][0] for call in mock_run.call_args_list]
-        reset_commands = [cmd for cmd in commands_called if "reset" in cmd and "--hard" in cmd]
+        reset_commands = [
+            cmd for cmd in commands_called if "reset" in cmd and "--hard" in cmd
+        ]
         self.assertEqual(len(reset_commands), 1)
         # Verify fetch was called
         fetch_commands = [cmd for cmd in commands_called if "fetch" in cmd]
@@ -387,8 +401,12 @@ class TestGitOperationsService(unittest.TestCase):
         # Mock git commands - validate_repo calls is_git_repo then get_remote_url
         # get_remote_url calls _validate_repo which calls is_git_repo again
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_remote_url->_validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (get_remote_url->_validate_repo)
             Mock(
                 returncode=0,
                 stdout="git@github.com:bobmatnyc/claude-mpm-agents.git\n",
@@ -407,9 +425,15 @@ class TestGitOperationsService(unittest.TestCase):
         # Mock git commands - validate_repo calls is_git_repo then get_remote_url
         # get_remote_url calls _validate_repo which calls is_git_repo again
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_remote_url->_validate_repo)
-            Mock(returncode=1, stdout="", stderr=""),  # config get remote.origin.url fails
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=0, stdout=".git\n", stderr=""
+            ),  # is_git_repo check (get_remote_url->_validate_repo)
+            Mock(
+                returncode=1, stdout="", stderr=""
+            ),  # config get remote.origin.url fails
         ]
 
         valid, message = self.service.validate_repo(self.test_repo_path)
