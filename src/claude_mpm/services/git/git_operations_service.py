@@ -359,7 +359,7 @@ class GitOperationsService:
             )
 
             # Strategy 1: Try rebase for cleaner history
-            returncode, stdout, stderr = self._run_git_command(
+            returncode, _stdout, stderr = self._run_git_command(
                 ["git", "pull", "--rebase", "origin", branch], cwd=repo_path
             )
 
@@ -389,7 +389,7 @@ class GitOperationsService:
             )
 
             # Fetch latest to ensure we have the remote state
-            returncode, stdout, stderr = self._run_git_command(
+            returncode, _stdout, stderr = self._run_git_command(
                 ["git", "fetch", "origin", branch], cwd=repo_path
             )
 
