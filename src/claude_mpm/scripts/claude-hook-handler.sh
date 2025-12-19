@@ -88,18 +88,21 @@ fi
 #
 # STRATEGY:
 # This function implements a fallback chain to find Python with claude-mpm dependencies:
-# 1. Project-specific virtual environments (venv, .venv)
-# 2. Currently active virtual environment ($VIRTUAL_ENV)
-# 3. System python3 (may lack dependencies)
-# 4. System python (last resort)
+# 1. UV-managed projects (uv.lock detected) - uses "uv run python"
+# 2. pipx installations - uses pipx venv Python
+# 3. Project-specific virtual environments (venv, .venv)
+# 4. Currently active virtual environment ($VIRTUAL_ENV)
+# 5. System python3 (may lack dependencies)
+# 6. System python (last resort)
 #
 # WHY THIS APPROACH:
 # - Claude MPM requires specific packages (socketio, eventlet) not in system Python
-# - Virtual environments ensure dependency isolation and availability
+# - UV and virtual environments ensure dependency isolation and availability
 # - Multiple naming conventions supported (venv vs .venv)
 # - Graceful degradation to system Python if no venv found
 #
 # ACTIVATION STRATEGY:
+# - UV projects: use "uv run python" to execute in UV-managed environment
 # - Sources activate script to set up environment variables
 # - Returns specific Python path for exec (not just 'python')
 # - Maintains environment in same shell process
@@ -110,10 +113,18 @@ fi
 # - Caches result in process environment
 #
 # RETURNS:
-# Absolute path to Python executable with claude-mpm dependencies
+# Absolute path to Python executable with claude-mpm dependencies, or "uv run python" for UV projects
 #
 find_python_command() {
-    # 1. Check if we're in a pipx installation first
+    # 1. Check for UV project first (uv.lock or pyproject.toml with uv)
+    if [ -f "$CLAUDE_MPM_ROOT/uv.lock" ]; then
+        if command -v uv &> /dev/null; then
+            echo "uv run python"
+            return
+        fi
+    fi
+
+    # 2. Check if we're in a pipx installation
     if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
         # pipx installation - use the pipx venv's Python directly
         if [ -f "$CLAUDE_MPM_ROOT/bin/python" ]; then
@@ -122,7 +133,7 @@ find_python_command() {
         fi
     fi
 
-    # 2. Check for project-local virtual environment (common in development)
+    # 3. Check for project-local virtual environment (common in development)
     if [ -f "$CLAUDE_MPM_ROOT/venv/bin/activate" ]; then
         source "$CLAUDE_MPM_ROOT/venv/bin/activate"
         echo "$CLAUDE_MPM_ROOT/venv/bin/python"
@@ -172,6 +183,20 @@ fi
 
 # Set Socket.IO configuration for hook events
 export CLAUDE_MPM_SOCKETIO_PORT="${CLAUDE_MPM_SOCKETIO_PORT:-8765}"
+
+# Function for debug logging
+log_debug() {
+    if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] $1" >> /tmp/claude-mpm-hook.log
+    fi
+}
+
+# Test Python works and module exists
+if ! $PYTHON_CMD -c "import claude_mpm" 2>/dev/null; then
+    log_debug "claude_mpm module not available, continuing without hook"
+    echo '{"action": "continue"}'
+    exit 0
+fi
 
 # Run the Python hook handler with all input
 # Use exec to replace the shell process with Python
