@@ -141,17 +141,28 @@ claude --version
 # Basic installation
 pip install claude-mpm
 
+# Or with uv (faster)
+uv tool install claude-mpm
+
 # Install with monitoring dashboard (recommended)
 pip install "claude-mpm[monitor]"
+uv tool install "claude-mpm[monitor]"
 ```
 
-Or with pipx (recommended for isolated installation):
+Or with pipx/uvx (recommended for isolated installation):
 ```bash
 # Basic installation
 pipx install claude-mpm
 
+# Or with uv tool (permanent installation)
+uv tool install claude-mpm
+
+# Or with uvx (one-off execution)
+uvx claude-mpm
+
 # Install with monitoring dashboard (recommended)
 pipx install "claude-mpm[monitor]"
+uv tool install "claude-mpm[monitor]"
 ```
 
 ### Verify Installation
@@ -203,6 +214,8 @@ Claude MPM works excellently with these complementary MCP tools. While optional,
 **Installation:**
 ```bash
 pipx install kuzu-memory
+# Or with uv
+uv tool install kuzu-memory
 ```
 
 **Benefits with Claude MPM:**
@@ -225,6 +238,8 @@ pipx install kuzu-memory
 **Installation:**
 ```bash
 pipx install mcp-vector-search
+# Or with uv
+uv tool install mcp-vector-search
 ```
 
 **Benefits with Claude MPM:**
@@ -249,6 +264,10 @@ Install both recommended tools in one go:
 ```bash
 pipx install kuzu-memory
 pipx install mcp-vector-search
+
+# Or with uv
+uv tool install kuzu-memory
+uv tool install mcp-vector-search
 ```
 
 Then verify they're working:
