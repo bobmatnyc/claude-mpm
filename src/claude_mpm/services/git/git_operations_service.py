@@ -399,7 +399,7 @@ class GitOperationsService:
                 )
 
             # Hard reset to remote branch
-            returncode, stdout, stderr = self._run_git_command(
+            returncode, _stdout, stderr = self._run_git_command(
                 ["git", "reset", "--hard", f"origin/{branch}"], cwd=repo_path
             )
 
