@@ -13,7 +13,7 @@ This directory contains essential utility scripts for Claude MPM development, de
 
 ### Local Development
 - **`claude-mpm`** - Main development script (run from project root only)
-- **`claude-mpm-dev`** - Development variant with additional debugging
+- **`uv run claude-mpm`** - Recommended: Run via UV for automatic dependency management
 - **`claude-mpm-mamba`** - Mamba/Conda environment variant
 
 ## 🚀 Build & Release Scripts

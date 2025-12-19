@@ -115,21 +115,25 @@ print(f"Is pipx paths: {'pipx' in str(pm.framework_root)}")
     else:
         print(f"Error: {result.stderr}")
 
-    # Test 4: Check if the development wrapper works
-    print("\n5. Test development wrapper script:")
+    # Test 4: Check if uv run works for development
+    print("\n5. Test uv run development mode:")
     print("-" * 40)
 
-    dev_wrapper = Path("/Users/masa/Projects/claude-mpm/scripts/claude-mpm-dev")
-    if dev_wrapper.exists():
+    # Check if uv is available
+    uv_check = subprocess.run(["which", "uv"], capture_output=True, text=True, check=False)
+    if uv_check.returncode == 0:
         result = subprocess.run(
-            [str(dev_wrapper), "--version"], capture_output=True, text=True, check=False
+            ["uv", "run", "claude-mpm", "--version"],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if result.returncode == 0:
-            print(f"Development wrapper version: {result.stdout.strip()}")
+            print(f"uv run version: {result.stdout.strip()}")
         else:
             print(f"Error: {result.stderr}")
     else:
-        print("Development wrapper not found")
+        print("uv not found - install with: curl -LsSf https://astral.sh/uv/install.sh | sh")
 
     print("\n" + "=" * 70)
     print("TEST COMPLETE")

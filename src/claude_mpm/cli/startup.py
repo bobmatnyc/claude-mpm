@@ -20,8 +20,8 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     WHY: Users can have stale hook configurations in settings.json that cause errors.
     Reinstalling hooks ensures the hook format matches the current code.
 
-    DESIGN DECISION: This is fast, silent on success, and non-blocking. Failures
-    are logged but don't prevent startup to ensure claude-mpm remains functional.
+    DESIGN DECISION: Shows brief status message on success for user awareness.
+    Failures are logged but don't prevent startup to ensure claude-mpm remains functional.
 
     Args:
         quiet: If True, suppress all output (used internally)
@@ -34,19 +34,24 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
 
         installer = HookInstaller()
 
+        # Show brief status (hooks sync is fast)
+        if not quiet:
+            print("Syncing Claude Code hooks...", end=" ", flush=True)
+
         # Reinstall hooks (force=True ensures update)
         success = installer.install_hooks(force=True)
 
-        if not quiet and success:
-            # Only log at debug level on success (silent success)
-            from ..core.logger import get_logger
-
-            logger = get_logger("startup")
-            logger.debug("Hook sync completed successfully")
+        if not quiet:
+            if success:
+                print("✓")
+            else:
+                print("(skipped)")
 
         return success
 
     except Exception as e:
+        if not quiet:
+            print("(error)")
         # Log but don't fail startup
         from ..core.logger import get_logger
 
@@ -893,7 +898,7 @@ def run_background_services():
     # Sync hooks early to ensure up-to-date configuration
     # RATIONALE: Hooks should be synced before other services to fix stale configs
     # This is fast (<100ms) and non-blocking, so it doesn't delay startup
-    sync_hooks_on_startup(quiet=True)
+    sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
 
     initialize_project_registry()
     check_mcp_auto_configuration()
