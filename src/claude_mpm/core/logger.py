@@ -177,7 +177,7 @@ def setup_logging(
     """
     # Detect deployment context for install-type-aware defaults
     if level == "INFO":  # Only override default, not explicit settings
-        from claude_mpm.core.unified_paths import PathContext, DeploymentContext
+        from claude_mpm.core.unified_paths import DeploymentContext, PathContext
 
         context = PathContext.detect_deployment_context()
         if context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
