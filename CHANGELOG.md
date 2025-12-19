@@ -1,3 +1,11 @@
+## v5.4.9 (2025-12-19)
+
+### Fixed
+- **Hook System**: Add matcher field for SessionStart hook subtypes to prevent hook execution errors
+- **Logging**: Resolve SessionStart hook errors and implement install-type-aware logging
+- **Code Quality**: Sort imports in logger.py for ruff compliance
+- **Dependencies**: Update uv.lock for version consistency
+
 ## v5.4.8 (2025-12-19)
 
 ### Added
