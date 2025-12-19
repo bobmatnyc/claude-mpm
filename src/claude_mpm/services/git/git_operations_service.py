@@ -338,7 +338,7 @@ class GitOperationsService:
         self._validate_repo(repo_path)
 
         # First, try standard pull
-        returncode, stdout, stderr = self._run_git_command(
+        returncode, _stdout, stderr = self._run_git_command(
             ["git", "pull", "origin", branch], cwd=repo_path
         )
 
