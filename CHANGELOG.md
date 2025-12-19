@@ -1,3 +1,8 @@
+## v5.4.11 (2025-12-19)
+
+### Fixed
+- **Code Quality**: Format event_handlers.py for ruff compliance
+
 ## v5.4.10 (2025-12-19)
 
 ### Fixed
