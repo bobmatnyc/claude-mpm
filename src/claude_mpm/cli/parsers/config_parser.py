@@ -1,14 +1,15 @@
 """
 Config command parser for claude-mpm CLI.
 
-WHY: This module provides the config command which is synonymous with configure.
-Both launch the interactive configuration TUI.
+WHY: This module provides the unified config command with subcommands for
+auto-configuration, viewing, validation, and status checks.
 
-DESIGN DECISION: 'config' and 'configure' are aliases - both commands provide
-identical functionality through the interactive configuration interface.
+DESIGN DECISION: 'config' provides both auto-configuration (default) and
+manual configuration management through subcommands.
 """
 
 import argparse
+from pathlib import Path
 
 from ...constants import CLICommands
 from .base_parser import add_common_arguments
@@ -16,11 +17,10 @@ from .base_parser import add_common_arguments
 
 def add_config_subparser(subparsers) -> argparse.ArgumentParser:
     """
-    Add the config subparser (alias for configure).
+    Add the unified config subparser with all configuration subcommands.
 
-    WHY: 'config' and 'configure' are synonymous commands that both launch
-    the interactive configuration interface. This provides a consistent
-    parser setup matching the configure command.
+    WHY: 'config' provides comprehensive configuration management including
+    auto-detection, manual viewing, validation, and status checks.
 
     Args:
         subparsers: The subparsers object from the main parser
@@ -28,111 +28,181 @@ def add_config_subparser(subparsers) -> argparse.ArgumentParser:
     Returns:
         The configured config subparser
     """
-    # Config command - alias for configure (interactive configuration)
+    # Config command with subcommands
     config_parser = subparsers.add_parser(
         CLICommands.CONFIG.value,
-        help="Interactive configuration interface for managing agents and behaviors (alias for 'configure')",
-        description="Launch an interactive Rich-based menu for configuring claude-mpm agents, templates, and behavior files",
-    )
+        help="Unified configuration management with auto-detection and manual viewing",
+        description="""
+Unified configuration management for Claude MPM.
 
-    # Add common arguments
+Available commands:
+  auto        Auto-configure agents and skills based on detected toolchain (default)
+  view        View current configuration settings
+  validate    Validate configuration files
+  status      Show configuration health and status
+
+Running 'config' with no subcommand defaults to 'auto' in preview mode.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     add_common_arguments(config_parser)
 
-    # Configuration scope options
-    scope_group = config_parser.add_argument_group("configuration scope")
+    # Add subcommands
+    config_subparsers = config_parser.add_subparsers(
+        dest="config_command", help="Configuration commands", metavar="SUBCOMMAND"
+    )
+
+    # Auto-configure subcommand (default)
+    auto_parser = config_subparsers.add_parser(
+        "auto",
+        help="Auto-configure agents and skills based on detected toolchain",
+        description="""
+Auto-configure agents and skills for your project based on detected toolchain.
+
+This command analyzes your project to detect languages, frameworks, and
+deployment targets, then recommends and deploys appropriate specialized
+agents and skills automatically.
+
+The command provides safety features including:
+  • Preview mode to see changes before applying
+  • Confidence thresholds to ensure quality matches
+  • Validation gates to block invalid configurations
+  • Rollback on failure to maintain consistency
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    add_common_arguments(auto_parser)
+
+    # Configuration mode
+    mode_group = auto_parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--preview",
+        "--dry-run",
+        dest="preview",
+        action="store_true",
+        help="Show what would be configured without deploying (preview mode)",
+    )
+    mode_group.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip confirmation prompts and deploy automatically",
+    )
+
+    # Scope selection
+    scope_group = auto_parser.add_mutually_exclusive_group()
     scope_group.add_argument(
-        "--scope",
-        choices=["project", "user"],
-        default="project",
-        help="Configuration scope to manage (default: project)",
+        "--agents-only",
+        action="store_true",
+        help="Configure agents only (skip skills)",
+    )
+    scope_group.add_argument(
+        "--skills-only",
+        action="store_true",
+        help="Configure skills only (skip agents)",
     )
 
-    # Direct navigation options (skip main menu)
-    nav_group = config_parser.add_argument_group("direct navigation")
-    nav_group.add_argument(
-        "--agents", action="store_true", help="Jump directly to agent management"
-    )
-    nav_group.add_argument(
-        "--templates", action="store_true", help="Jump directly to template editing"
-    )
-    nav_group.add_argument(
-        "--behaviors",
-        action="store_true",
-        help="Jump directly to behavior file management",
-    )
-    nav_group.add_argument(
-        "--startup",
-        action="store_true",
-        help="Configure startup services and agents",
-    )
-    nav_group.add_argument(
-        "--version-info",
-        action="store_true",
-        help="Display version information and exit",
+    # Configuration options
+    auto_parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=0.8,
+        metavar="FLOAT",
+        help="Minimum confidence threshold for recommendations (0.0-1.0, default: 0.8)",
     )
 
-    # Non-interactive options
-    noninteractive_group = config_parser.add_argument_group("non-interactive options")
-    noninteractive_group.add_argument(
-        "--list-agents", action="store_true", help="List all available agents and exit"
-    )
-    noninteractive_group.add_argument(
-        "--enable-agent",
-        type=str,
-        metavar="AGENT_NAME",
-        help="Enable a specific agent and exit",
-    )
-    noninteractive_group.add_argument(
-        "--disable-agent",
-        type=str,
-        metavar="AGENT_NAME",
-        help="Disable a specific agent and exit",
-    )
-    noninteractive_group.add_argument(
-        "--export-config",
-        type=str,
-        metavar="FILE",
-        help="Export current configuration to a file",
-    )
-    noninteractive_group.add_argument(
-        "--import-config",
-        type=str,
-        metavar="FILE",
-        help="Import configuration from a file",
+    auto_parser.add_argument(
+        "--project-path",
+        type=Path,
+        metavar="PATH",
+        help="Project path to analyze (default: current directory)",
     )
 
-    # Hook management options
-    hooks_group = config_parser.add_argument_group("hook management")
-    hooks_group.add_argument(
-        "--install-hooks",
+    auto_parser.add_argument(
+        "--json",
         action="store_true",
-        help="Install Claude MPM hooks for Claude Code integration",
-    )
-    hooks_group.add_argument(
-        "--verify-hooks",
-        action="store_true",
-        help="Verify that Claude MPM hooks are properly installed",
-    )
-    hooks_group.add_argument(
-        "--uninstall-hooks",
-        action="store_true",
-        help="Uninstall Claude MPM hooks",
-    )
-    hooks_group.add_argument(
-        "--force",
-        action="store_true",
-        help="Force reinstallation of hooks even if they already exist",
+        help="Output results in JSON format",
     )
 
-    # Display options
-    display_group = config_parser.add_argument_group("display options")
-    display_group.add_argument(
-        "--no-colors",
-        action="store_true",
-        help="Disable colored output in the interface",
+    # View subcommand
+    view_parser = config_subparsers.add_parser(
+        "view",
+        help="View current configuration settings",
     )
-    display_group.add_argument(
-        "--compact", action="store_true", help="Use compact display mode"
+    add_common_arguments(view_parser)
+
+    view_parser.add_argument(
+        "--section",
+        type=str,
+        metavar="SECTION",
+        help="Specific configuration section to view (agents, memory, websocket, etc.)",
+    )
+    view_parser.add_argument(
+        "--format",
+        choices=["yaml", "json", "table", "text"],
+        default="table",
+        help="Output format (default: table)",
+    )
+    view_parser.add_argument(
+        "--show-defaults",
+        action="store_true",
+        help="Include default values in output",
+    )
+    view_parser.add_argument(
+        "--config-file",
+        type=Path,
+        metavar="PATH",
+        help="Specific config file to view (default: all)",
+    )
+
+    # Validate subcommand
+    validate_parser = config_subparsers.add_parser(
+        "validate",
+        help="Validate configuration files for correctness",
+    )
+    add_common_arguments(validate_parser)
+
+    validate_parser.add_argument(
+        "--config-file",
+        type=Path,
+        metavar="PATH",
+        help="Validate specific config file (default: all)",
+    )
+    validate_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Use strict validation rules",
+    )
+    validate_parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Attempt to fix validation errors automatically",
+    )
+
+    # Status subcommand
+    status_parser = config_subparsers.add_parser(
+        "status",
+        help="Show configuration health and status",
+    )
+    add_common_arguments(status_parser)
+
+    # Note: --verbose is provided by add_common_arguments()
+    status_parser.add_argument(
+        "--check-response-logging",
+        action="store_true",
+        help="Check response logging configuration",
+    )
+    status_parser.add_argument(
+        "--format",
+        choices=["yaml", "json", "text"],
+        default="text",
+        help="Output format (default: text)",
+    )
+    status_parser.add_argument(
+        "--config-file",
+        type=Path,
+        metavar="PATH",
+        help="Specific config file to check (default: all)",
     )
 
     return config_parser

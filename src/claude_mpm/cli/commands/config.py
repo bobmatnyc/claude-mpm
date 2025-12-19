@@ -68,10 +68,12 @@ class ConfigCommand(BaseCommand):
 
     def validate_args(self, args) -> str:
         """Validate command arguments."""
+        # If no config_command specified, default to 'auto' (preview mode)
         if not hasattr(args, "config_command") or not args.config_command:
-            return "No config command specified"
+            args.config_command = "auto"
+            args.preview = True  # Default to preview when no args
 
-        valid_commands = ["validate", "view", "status"]
+        valid_commands = ["validate", "view", "status", "auto"]
         if args.config_command not in valid_commands:
             return f"Unknown config command: {args.config_command}. Valid commands: {', '.join(valid_commands)}"
 
@@ -85,6 +87,8 @@ class ConfigCommand(BaseCommand):
             return self._view_config(args)
         if args.config_command == "status":
             return self._show_config_status(args)
+        if args.config_command == "auto":
+            return self._auto_configure(args)
         return CommandResult.error_result(
             f"Unknown config command: {args.config_command}"
         )
@@ -449,6 +453,32 @@ class ConfigCommand(BaseCommand):
                 flattened[new_key] = value
 
         return flattened
+
+    def _auto_configure(self, args) -> CommandResult:
+        """
+        Run auto-configuration to detect toolchain and recommend agents/skills.
+
+        This delegates to the AutoConfigureCommand for the actual implementation.
+        """
+        try:
+            # Import AutoConfigureCommand
+            from .auto_configure import AutoConfigureCommand
+
+            # Create auto-configure command instance
+            auto_cmd = AutoConfigureCommand()
+
+            # Run auto-configuration
+            return auto_cmd.run(args)
+
+        except ImportError as e:
+            self.logger.error(f"AutoConfigureCommand not available: {e}")
+            return CommandResult.error_result(
+                "Auto-configuration feature not available. "
+                "Please ensure all dependencies are installed."
+            )
+        except Exception as e:
+            self.logger.error(f"Auto-configuration failed: {e}", exc_info=True)
+            return CommandResult.error_result(f"Auto-configuration failed: {e}")
 
 
 def manage_config(args) -> int:

@@ -21,7 +21,6 @@ from typing import Optional
 
 try:
     from rich.console import Console
-    from rich.panel import Panel
     from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
     from rich.table import Table
 
@@ -267,6 +266,15 @@ class AutoConfigureCommand(BaseCommand):
                     project_path, min_confidence
                 )
 
+        # Review existing project agents
+        agent_review_results = None
+        if configure_agents:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Reviewing existing agents..."):
+                    agent_review_results = self._review_project_agents(agent_preview)
+            else:
+                agent_review_results = self._review_project_agents(agent_preview)
+
         # Get skills recommendations
         skills_recommendations = None
         if configure_skills:
@@ -283,9 +291,14 @@ class AutoConfigureCommand(BaseCommand):
                 skills_recommendations,
                 configure_agents,
                 configure_skills,
+                agent_review_results,
             )
         return self._display_preview(
-            agent_preview, skills_recommendations, configure_agents, configure_skills
+            agent_preview,
+            skills_recommendations,
+            configure_agents,
+            configure_skills,
+            agent_review_results,
         )
 
     def _run_full_configuration(
@@ -311,6 +324,15 @@ class AutoConfigureCommand(BaseCommand):
                     project_path, min_confidence
                 )
 
+        # Review existing project agents
+        agent_review_results = None
+        if configure_agents:
+            if self.console and not json_output:
+                with self.console.status("[bold green]Reviewing existing agents..."):
+                    agent_review_results = self._review_project_agents(agent_preview)
+            else:
+                agent_review_results = self._review_project_agents(agent_preview)
+
         # Get skills recommendations
         skills_recommendations = None
         if configure_skills:
@@ -327,6 +349,7 @@ class AutoConfigureCommand(BaseCommand):
                 skills_recommendations,
                 configure_agents,
                 configure_skills,
+                agent_review_results,
             )
 
         # Ask for confirmation (unless skipped)
@@ -336,12 +359,24 @@ class AutoConfigureCommand(BaseCommand):
                 skills_recommendations,
                 configure_agents,
                 configure_skills,
+                agent_review_results,
             ):
                 if self.console:
                     self.console.print("\n❌ Operation cancelled by user")
                 else:
                     print("\nOperation cancelled by user")
                 return CommandResult.error_result("Operation cancelled", exit_code=0)
+
+        # Archive unused agents (before deploying new ones)
+        archive_result = None
+        if configure_agents and agent_review_results:
+            agents_to_archive = agent_review_results.get("unused", [])
+            if agents_to_archive:
+                if self.console and not json_output:
+                    self.console.print(
+                        "\n[bold yellow]Archiving unused agents...[/bold yellow]\n"
+                    )
+                archive_result = self._archive_agents(agents_to_archive)
 
         # Execute agent configuration
         agent_result = None
@@ -368,8 +403,8 @@ class AutoConfigureCommand(BaseCommand):
 
         # Output results
         if json_output:
-            return self._output_result_json(agent_result, skills_result)
-        return self._display_result(agent_result, skills_result)
+            return self._output_result_json(agent_result, skills_result, archive_result)
+        return self._display_result(agent_result, skills_result, archive_result)
 
     def _display_preview(
         self,
@@ -377,6 +412,7 @@ class AutoConfigureCommand(BaseCommand):
         skills_recommendations=None,
         configure_agents=True,
         configure_skills=True,
+        agent_review_results=None,
     ) -> CommandResult:
         """Display configuration preview with Rich formatting."""
         if not self.console:
@@ -386,6 +422,7 @@ class AutoConfigureCommand(BaseCommand):
                 skills_recommendations,
                 configure_agents,
                 configure_skills,
+                agent_review_results,
             )
 
         # Only show toolchain and agents if configuring agents
@@ -457,6 +494,10 @@ class AutoConfigureCommand(BaseCommand):
                         f"  {severity_icon} {issue.message}", style="yellow"
                     )
 
+        # Display agent review results
+        if configure_agents and agent_review_results:
+            self._display_agent_review(agent_review_results)
+
         # Display recommended skills
         if configure_skills and skills_recommendations:
             self.console.print("\n🎯 Recommended Skills:", style="bold blue")
@@ -471,6 +512,7 @@ class AutoConfigureCommand(BaseCommand):
         skills_recommendations=None,
         configure_agents=True,
         configure_skills=True,
+        agent_review_results=None,
     ) -> CommandResult:
         """Display preview in plain text (fallback when Rich not available)."""
         if configure_agents and agent_preview:
@@ -517,6 +559,7 @@ class AutoConfigureCommand(BaseCommand):
         skills_recommendations=None,
         configure_agents=True,
         configure_skills=True,
+        agent_review_results=None,
     ) -> bool:
         """Ask user to confirm deployment."""
         has_agents = (
@@ -566,11 +609,16 @@ class AutoConfigureCommand(BaseCommand):
         return False
 
     def _display_result(
-        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+        self,
+        agent_result: Optional = None,
+        skills_result: Optional[dict] = None,
+        archive_result: Optional[dict] = None,
     ) -> CommandResult:
         """Display configuration result."""
         if not self.console:
-            return self._display_result_plain(agent_result, skills_result)
+            return self._display_result_plain(
+                agent_result, skills_result, archive_result
+            )
 
         # Determine overall success
         agent_success = (
@@ -581,26 +629,11 @@ class AutoConfigureCommand(BaseCommand):
         skills_success = not skills_result or (
             skills_result and not skills_result.get("errors")
         )
-        overall_success = agent_success and skills_success
+        archive_success = not archive_result or not archive_result.get("errors")
+        overall_success = agent_success and skills_success and archive_success
 
         # Display summary
         if overall_success:
-            # Build summary message
-            deployed_items = []
-            if agent_result and agent_result.deployed_agents:
-                deployed_items.append(f"{len(agent_result.deployed_agents)} agent(s)")
-            if skills_result and skills_result.get("deployed"):
-                deployed_items.append(f"{len(skills_result['deployed'])} skill(s)")
-
-            panel_text = "✅ Auto-configuration completed successfully!\n\n"
-            if deployed_items:
-                panel_text += f"Deployed {' and '.join(deployed_items)}"
-            else:
-                panel_text += "No deployments needed"
-
-            panel = Panel(panel_text, title="Success", border_style="green")
-            self.console.print(panel)
-
             # Show deployed agents
             if agent_result and agent_result.deployed_agents:
                 self.console.print("\n📦 Deployed Agents:", style="bold green")
@@ -612,6 +645,15 @@ class AutoConfigureCommand(BaseCommand):
                 self.console.print("\n🎯 Deployed Skills:", style="bold green")
                 for skill in skills_result["deployed"]:
                     self.console.print(f"  ✓ {skill}")
+
+            # Show archived agents
+            if archive_result and archive_result.get("archived"):
+                self.console.print("\n📁 Archived Agents:", style="bold yellow")
+                for archived in archive_result["archived"]:
+                    self.console.print(f"  → {archived['name']}")
+
+            # Show restart notification
+            self._show_restart_notification(agent_result, skills_result, archive_result)
 
             return CommandResult.success_result()
 
@@ -654,7 +696,10 @@ class AutoConfigureCommand(BaseCommand):
         )
 
     def _display_result_plain(
-        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+        self,
+        agent_result: Optional = None,
+        skills_result: Optional[dict] = None,
+        archive_result: Optional[dict] = None,
     ) -> CommandResult:
         """Display result in plain text (fallback)."""
         # Determine overall success
@@ -725,6 +770,7 @@ class AutoConfigureCommand(BaseCommand):
         skills_recommendations=None,
         configure_agents=True,
         configure_skills=True,
+        agent_review_results=None,
     ) -> CommandResult:
         """Output preview as JSON."""
         output = {}
@@ -790,7 +836,10 @@ class AutoConfigureCommand(BaseCommand):
         return CommandResult.success_result(data=output)
 
     def _output_result_json(
-        self, agent_result: Optional = None, skills_result: Optional[dict] = None
+        self,
+        agent_result: Optional = None,
+        skills_result: Optional[dict] = None,
+        archive_result: Optional[dict] = None,
     ) -> CommandResult:
         """Output result as JSON."""
         output = {}
@@ -866,3 +915,139 @@ class AutoConfigureCommand(BaseCommand):
         except Exception as e:
             self.logger.error(f"Failed to deploy skills: {e}")
             return {"deployed": [], "errors": [str(e)]}
+
+    def _review_project_agents(self, agent_preview) -> Optional[dict]:
+        """Review existing project agents and categorize them.
+
+        Args:
+            agent_preview: Agent preview result with recommendations
+
+        Returns:
+            Dictionary with categorized agents or None if no preview
+        """
+        if not agent_preview:
+            return None
+
+        from ...services.agents.agent_review_service import AgentReviewService
+        from ...services.agents.deployment.remote_agent_discovery_service import (
+            RemoteAgentDiscoveryService,
+        )
+
+        # Get managed agents from cache
+        remote_agents_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        if not remote_agents_dir.exists():
+            self.logger.debug("No remote agents cache found")
+            return None
+
+        # Discover managed agents
+        discovery_service = RemoteAgentDiscoveryService(remote_agents_dir)
+        managed_agents = discovery_service.discover_remote_agents()
+
+        if not managed_agents:
+            self.logger.debug("No managed agents found in cache")
+            return None
+
+        # Get recommended agent IDs
+        recommended_ids = set()
+        if agent_preview.recommendations:
+            recommended_ids = {rec.agent_id for rec in agent_preview.recommendations}
+
+        # Review project agents
+        project_agents_dir = Path.cwd() / ".claude" / "agents"
+        review_service = AgentReviewService()
+        return review_service.review_project_agents(
+            project_agents_dir, managed_agents, recommended_ids
+        )
+
+    def _archive_agents(self, agents_to_archive: list[dict]) -> dict:
+        """Archive unused agents by moving them to .claude/agents/unused/.
+
+        Args:
+            agents_to_archive: List of agent dicts to archive
+
+        Returns:
+            Dictionary with archival results
+        """
+        from ...services.agents.agent_review_service import AgentReviewService
+
+        project_agents_dir = Path.cwd() / ".claude" / "agents"
+        review_service = AgentReviewService()
+        return review_service.archive_agents(agents_to_archive, project_agents_dir)
+
+    def _display_agent_review(self, review_results: dict) -> None:
+        """Display agent review results in the preview.
+
+        Args:
+            review_results: Dictionary with categorized agents
+        """
+        if not self.console:
+            return
+
+        # Count agents to archive
+        unused_count = len(review_results.get("unused", []))
+        outdated_count = len(review_results.get("outdated", []))
+        custom_count = len(review_results.get("custom", []))
+
+        if unused_count > 0 or outdated_count > 0 or custom_count > 0:
+            self.console.print("\n📋 Existing Agents Review:", style="bold blue")
+
+            # Show custom agents (will be preserved)
+            if custom_count > 0:
+                self.console.print(
+                    "\n  [green]Custom agents (will be preserved):[/green]"
+                )
+                for agent in review_results["custom"]:
+                    self.console.print(f"    ✓ {agent['name']} (v{agent['version']})")
+
+            # Show agents to be archived
+            if unused_count > 0:
+                self.console.print(
+                    "\n  [yellow]Agents to archive (not needed for this toolchain):[/yellow]"
+                )
+                for agent in review_results["unused"]:
+                    reason = (
+                        f"outdated (v{agent['current_version']} → v{agent['available_version']})"
+                        if "current_version" in agent
+                        else "not recommended"
+                    )
+                    self.console.print(f"    → {agent['name']} ({reason})")
+                self.console.print(
+                    "    [dim]Will be moved to .claude/agents/unused/[/dim]"
+                )
+
+    def _show_restart_notification(
+        self, agent_result=None, skills_result=None, archive_result=None
+    ) -> None:
+        """Show restart notification after configuration is complete.
+
+        Args:
+            agent_result: Agent deployment results
+            skills_result: Skills deployment results
+            archive_result: Agent archival results
+        """
+        if not self.console:
+            return
+
+        # Build summary of changes
+        changes = []
+        if agent_result and agent_result.deployed_agents:
+            changes.append(f"Deployed {len(agent_result.deployed_agents)} agent(s)")
+        if skills_result and skills_result.get("deployed"):
+            changes.append(f"Deployed {len(skills_result['deployed'])} skill(s)")
+        if archive_result and archive_result.get("archived"):
+            changes.append(
+                f"Archived {len(archive_result['archived'])} unused agent(s) to .claude/agents/unused/"
+            )
+
+        if changes:
+            self.console.print("\n" + "=" * 70)
+            self.console.print("✅ [bold green]Configuration complete![/bold green]")
+            self.console.print(
+                "\n🔄 [bold yellow]Please restart Claude Code to apply changes:[/bold yellow]"
+            )
+            self.console.print("   - Quit Claude Code completely")
+            self.console.print("   - Relaunch Claude Code")
+            self.console.print("\n[bold]Changes applied:[/bold]")
+            for change in changes:
+                self.console.print(f"  • {change}")
+            self.console.print("=" * 70 + "\n")

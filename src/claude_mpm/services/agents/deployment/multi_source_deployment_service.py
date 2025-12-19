@@ -87,7 +87,7 @@ class MultiSourceAgentDeploymentService:
                 version = frontmatter.get("version")
                 return version if version else None
 
-            elif template_path.suffix == ".json":
+            if template_path.suffix == ".json":
                 # Parse JSON template
                 template_data = json.loads(template_path.read_text())
                 metadata = template_data.get("metadata", {})
@@ -98,11 +98,10 @@ class MultiSourceAgentDeploymentService:
                 )
                 return version if version else None
 
-            else:
-                self.logger.warning(
-                    f"Unknown template format: {template_path.suffix} for {template_path.name}"
-                )
-                return None
+            self.logger.warning(
+                f"Unknown template format: {template_path.suffix} for {template_path.name}"
+            )
+            return None
 
         except yaml.YAMLError as e:
             self.logger.warning(

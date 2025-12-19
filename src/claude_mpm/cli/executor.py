@@ -24,6 +24,7 @@ from .commands import (
     show_info,
 )
 from .commands.analyze_code import manage_analyze_code
+from .commands.config import manage_config
 from .commands.dashboard import manage_dashboard
 from .commands.skills import manage_skills
 from .commands.upgrade import upgrade
@@ -236,9 +237,8 @@ def execute_command(command: str, args) -> int:
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
         CLICommands.DASHBOARD.value: manage_dashboard,
-        # Configuration management commands (synonymous)
-        # Both 'config' and 'configure' launch the interactive configuration TUI
-        CLICommands.CONFIG.value: manage_configure,  # Alias to configure
+        # Configuration management commands
+        CLICommands.CONFIG.value: manage_config,  # Unified config with subcommands
         CLICommands.CONFIGURE.value: manage_configure,  # Interactive configuration TUI
         CLICommands.AGGREGATE.value: aggregate_command,
         CLICommands.ANALYZE_CODE.value: manage_analyze_code,
