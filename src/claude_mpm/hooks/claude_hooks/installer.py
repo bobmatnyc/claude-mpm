@@ -522,7 +522,7 @@ main "$@"
             ]
 
         # Simple events (no subtypes, no matcher needed)
-        simple_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart"]
+        simple_events = ["Stop", "SubagentStop", "SubagentStart"]
         for event_type in simple_events:
             settings["hooks"][event_type] = [
                 {
@@ -534,6 +534,14 @@ main "$@"
         settings["hooks"]["SessionStart"] = [
             {
                 "matcher": "*",  # Match all SessionStart subtypes
+                "hooks": [hook_command],
+            }
+        ]
+
+        # UserPromptSubmit needs matcher for potential subtypes
+        settings["hooks"]["UserPromptSubmit"] = [
+            {
+                "matcher": "*",
                 "hooks": [hook_command],
             }
         ]
