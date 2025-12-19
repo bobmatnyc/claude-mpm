@@ -552,22 +552,22 @@ def sync_remote_agents_on_startup():
                     if deployed > 0 or updated > 0:
                         if removed > 0:
                             deploy_progress.finish(
-                                f"Complete: {deployed} deployed, {updated} updated, {skipped} already present, "
+                                f"Complete: {deployed} new, {updated} updated, {skipped} unchanged, "
                                 f"{removed} removed ({total_configured} configured from {agent_count} in repo)"
                             )
                         else:
                             deploy_progress.finish(
-                                f"Complete: {deployed} deployed, {updated} updated, {skipped} already present "
+                                f"Complete: {deployed} new, {updated} updated, {skipped} unchanged "
                                 f"({total_configured} configured from {agent_count} in repo)"
                             )
                     elif removed > 0:
                         deploy_progress.finish(
-                            f"Complete: {total_configured} agents ready - all up-to-date, "
+                            f"Complete: {total_configured} agents ready - all unchanged, "
                             f"{removed} removed ({agent_count} available in repo)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {total_configured} agents ready - all up-to-date "
+                            f"Complete: {total_configured} agents ready - all unchanged "
                             f"({agent_count} available in repo)"
                         )
 
@@ -766,16 +766,25 @@ def sync_remote_skills_on_startup():
                 filtered = deployment_result.get("filtered_count", 0)
                 total_available = deployed + skipped
 
-                # Create progress bar with actual deployed skill count
-                deploy_progress = ProgressBar(
-                    total=total_available if total_available > 0 else 1,
-                    prefix="Deploying skill directories",
-                    show_percentage=True,
-                    show_counter=True,
-                )
-
-                # Update progress bar to completion
-                deploy_progress.update(total_available if total_available > 0 else 1)
+                # Only show progress bar if there are skills to deploy
+                if total_available > 0:
+                    deploy_progress = ProgressBar(
+                        total=total_available,
+                        prefix="Deploying skill directories",
+                        show_percentage=True,
+                        show_counter=True,
+                    )
+                    # Update progress bar to completion
+                    deploy_progress.update(total_available)
+                else:
+                    # No skills to deploy - create dummy progress for message only
+                    deploy_progress = ProgressBar(
+                        total=1,
+                        prefix="Deploying skill directories",
+                        show_percentage=False,
+                        show_counter=False,
+                    )
+                    deploy_progress.update(1)
 
                 # Show total available skills (deployed + already existing)
                 # Include filtered count if selective deployment was used
@@ -783,22 +792,22 @@ def sync_remote_skills_on_startup():
                 if deployed > 0:
                     if filtered > 0:
                         deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {skipped} present "
-                            f"({total_available} required by agents, {filtered} available but not needed, {total_skill_count} total in repo)"
+                            f"Complete: {deployed} new, {skipped} unchanged "
+                            f"({total_available} required by agents, {filtered} available in repo)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {deployed} deployed, {skipped} already present "
-                            f"({total_available} total from {total_skill_count} in repo)"
+                            f"Complete: {deployed} new, {skipped} unchanged "
+                            f"({total_available} skills deployed from {total_skill_count} in repo)"
                         )
                 elif filtered > 0:
+                    # Skills filtered means agents require fewer skills than available
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills ready for agents "
-                        f"({filtered} available but not needed, {total_skill_count} total in repo)"
+                        f"Agents require no skills ({total_skill_count} available in repo)"
                     )
                 else:
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills ready - all up-to-date "
+                        f"Complete: {total_available} skills deployed for agents "
                         f"({total_skill_count} available in repo)"
                     )
 

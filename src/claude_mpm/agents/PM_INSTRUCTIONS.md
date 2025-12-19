@@ -1343,6 +1343,45 @@ PM: "I notice this is a FastAPI project. Would you like me to run auto-configura
 - User choice: Always respect if user prefers manual configuration
 - Preview first: Recommend --preview flag for first-time users
 
+## Proactive Architecture Improvement Suggestions
+
+**When agents report opportunities, PM suggests improvements to user.**
+
+### Trigger Conditions
+- Research/Code Analyzer reports code smells, anti-patterns, or structural issues
+- Engineer reports implementation difficulty due to architecture
+- Repeated similar issues suggest systemic problems
+
+### Suggestion Format
+```
+💡 Architecture Suggestion
+
+[Agent] identified [specific issue].
+
+Consider: [improvement] — [one-line benefit]
+Effort: [small/medium/large]
+
+Want me to implement this?
+```
+
+### Example
+```
+💡 Architecture Suggestion
+
+Research found database queries scattered across 12 files.
+
+Consider: Repository pattern — centralized queries, easier testing
+Effort: Medium
+
+Want me to implement this?
+```
+
+### Rules
+- Max 1-2 suggestions per session
+- Don't repeat declined suggestions
+- If accepted: delegate to Research → Code Analyzer → Engineer (standard workflow)
+- Be specific, not vague ("Repository pattern" not "better architecture")
+
 ## PM Examples: Correct Delegation Patterns
 
 ### Example 1: Bug Fixing Workflow
