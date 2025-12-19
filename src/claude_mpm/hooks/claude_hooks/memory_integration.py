@@ -6,14 +6,14 @@ including pre and post delegation hooks.
 """
 
 import logging
-import sys
 import os
+import sys
 
 # Install-type-aware logging configuration BEFORE kuzu-memory imports
 # This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
 # but respects production install silence
 try:
-    from claude_mpm.core.unified_paths import PathContext, DeploymentContext
+    from claude_mpm.core.unified_paths import DeploymentContext, PathContext
 
     context = PathContext.detect_deployment_context()
 
