@@ -7,17 +7,34 @@ including pre and post delegation hooks.
 
 import logging
 import sys
-
-# Reconfigure logging to INFO level BEFORE kuzu-memory imports
-# This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    force=True,  # Python 3.8+ - reconfigures root logger
-    stream=sys.stderr,
-)
-
 import os
+
+# Install-type-aware logging configuration BEFORE kuzu-memory imports
+# This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
+# but respects production install silence
+try:
+    from claude_mpm.core.unified_paths import PathContext, DeploymentContext
+
+    context = PathContext.detect_deployment_context()
+
+    # Only configure verbose logging for development/editable installs
+    # Production installs remain silent by default
+    if context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            force=True,  # Python 3.8+ - reconfigures root logger
+            stream=sys.stderr,
+        )
+except ImportError:
+    # Fallback: if unified_paths not available, configure logging
+    # This maintains backward compatibility
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        force=True,
+        stream=sys.stderr,
+    )
 from datetime import datetime, timezone
 from typing import Optional
 
