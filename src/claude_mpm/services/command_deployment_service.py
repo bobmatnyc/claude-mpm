@@ -372,8 +372,8 @@ class CommandDeploymentService(BaseService):
         deployed_commands = {f.name for f in self.target_dir.glob("mpm*.md")}
 
         # Find stale commands (deployed but not in source, excluding deprecated)
-        stale_commands = deployed_commands - source_commands - set(
-            self.DEPRECATED_COMMANDS
+        stale_commands = (
+            deployed_commands - source_commands - set(self.DEPRECATED_COMMANDS)
         )
 
         if not stale_commands:
@@ -387,7 +387,9 @@ class CommandDeploymentService(BaseService):
             stale_file = self.target_dir / stale_cmd
             try:
                 stale_file.unlink()
-                self.logger.info(f"Removed stale command: {stale_cmd} (no longer in source)")
+                self.logger.info(
+                    f"Removed stale command: {stale_cmd} (no longer in source)"
+                )
                 removed += 1
             except Exception as e:
                 # Log error but don't fail startup - this is non-critical

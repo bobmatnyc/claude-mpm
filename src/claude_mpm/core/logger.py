@@ -180,7 +180,10 @@ def setup_logging(
         from claude_mpm.core.unified_paths import DeploymentContext, PathContext
 
         context = PathContext.detect_deployment_context()
-        if context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+        if context in (
+            DeploymentContext.DEVELOPMENT,
+            DeploymentContext.EDITABLE_INSTALL,
+        ):
             level = "INFO"  # Development: verbose logging
         else:
             level = "OFF"  # Production installs: silent by default
