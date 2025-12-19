@@ -120,7 +120,9 @@ print(f"Is pipx paths: {'pipx' in str(pm.framework_root)}")
     print("-" * 40)
 
     # Check if uv is available
-    uv_check = subprocess.run(["which", "uv"], capture_output=True, text=True, check=False)
+    uv_check = subprocess.run(
+        ["which", "uv"], capture_output=True, text=True, check=False
+    )
     if uv_check.returncode == 0:
         result = subprocess.run(
             ["uv", "run", "claude-mpm", "--version"],
@@ -133,7 +135,9 @@ print(f"Is pipx paths: {'pipx' in str(pm.framework_root)}")
         else:
             print(f"Error: {result.stderr}")
     else:
-        print("uv not found - install with: curl -LsSf https://astral.sh/uv/install.sh | sh")
+        print(
+            "uv not found - install with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+        )
 
     print("\n" + "=" * 70)
     print("TEST COMPLETE")
