@@ -522,7 +522,7 @@ main "$@"
             ]
 
         # Non-tool events don't need a matcher - just hooks array
-        non_tool_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart"]
+        non_tool_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart", "SessionStart"]
         for event_type in non_tool_events:
             settings["hooks"][event_type] = [
                 {

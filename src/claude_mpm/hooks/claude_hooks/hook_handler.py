@@ -417,6 +417,8 @@ class ClaudeHookHandler:
             "Notification": self.event_handlers.handle_notification_fast,
             "Stop": self.event_handlers.handle_stop_fast,
             "SubagentStop": self.event_handlers.handle_subagent_stop_fast,
+            "SubagentStart": self.event_handlers.handle_session_start_fast,
+            "SessionStart": self.event_handlers.handle_session_start_fast,
             "AssistantResponse": self.event_handlers.handle_assistant_response,
         }
 

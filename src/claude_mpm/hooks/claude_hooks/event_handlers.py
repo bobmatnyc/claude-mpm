@@ -786,3 +786,33 @@ class EventHandlers:
         self.hook_handler._emit_socketio_event(
             "", "assistant_response", assistant_response_data
         )
+
+    def handle_session_start_fast(self, event):
+        """Handle session start events for tracking conversation sessions.
+
+        WHY track session starts:
+        - Provides visibility into new conversation sessions
+        - Enables tracking of session lifecycle and duration
+        - Useful for monitoring concurrent sessions and resource usage
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+        git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
+
+        session_start_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "git_branch": git_branch,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "SessionStart",
+        }
+
+        # Debug logging
+        if DEBUG:
+            print(
+                f"Hook handler: Processing SessionStart - session: '{session_id}'",
+                file=sys.stderr,
+            )
+
+        # Emit normalized event
+        self.hook_handler._emit_socketio_event("", "session_start", session_start_data)

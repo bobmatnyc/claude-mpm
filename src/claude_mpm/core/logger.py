@@ -175,6 +175,16 @@ def setup_logging(
     Returns:
         Configured logger
     """
+    # Detect deployment context for install-type-aware defaults
+    if level == "INFO":  # Only override default, not explicit settings
+        from claude_mpm.core.unified_paths import PathContext, DeploymentContext
+
+        context = PathContext.detect_deployment_context()
+        if context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+            level = "INFO"  # Development: verbose logging
+        else:
+            level = "OFF"  # Production installs: silent by default
+
     logger = logging.getLogger(name)
 
     # Handle OFF level
