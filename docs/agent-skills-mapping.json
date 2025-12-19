@@ -1,0 +1,297 @@
+{
+  "python-engineer": [
+    "toolchains-python-frameworks-django",
+    "toolchains-python-frameworks-fastapi-local-dev",
+    "toolchains-python-frameworks-flask",
+    "toolchains-python-testing-pytest",
+    "toolchains-python-async-asyncio",
+    "toolchains-python-async-celery",
+    "toolchains-python-data-sqlalchemy",
+    "toolchains-python-validation-pydantic",
+    "toolchains-python-tooling-mypy",
+    "toolchains-python-tooling-pyright",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging",
+    "universal-debugging-verification-before-completion"
+  ],
+  "typescript-engineer": [
+    "toolchains-typescript-core",
+    "toolchains-typescript-frameworks-nodejs-backend",
+    "toolchains-typescript-frameworks-fastify",
+    "toolchains-typescript-data-prisma",
+    "toolchains-typescript-data-drizzle",
+    "toolchains-typescript-data-kysely",
+    "toolchains-typescript-validation-zod",
+    "toolchains-typescript-testing-vitest",
+    "toolchains-typescript-testing-jest",
+    "toolchains-typescript-api-trpc",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging",
+    "universal-debugging-verification-before-completion"
+  ],
+  "javascript-engineer": [
+    "toolchains-javascript-frameworks-express-local-dev",
+    "toolchains-javascript-build-vite",
+    "toolchains-javascript-testing-playwright",
+    "toolchains-javascript-testing-cypress",
+    "toolchains-javascript-tooling-biome",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging"
+  ],
+  "react-engineer": [
+    "toolchains-javascript-frameworks-react",
+    "toolchains-javascript-frameworks-react-state-machine",
+    "toolchains-typescript-core",
+    "toolchains-typescript-validation-zod",
+    "toolchains-typescript-state-zustand",
+    "toolchains-typescript-state-tanstack-query",
+    "toolchains-ui-styling-tailwind",
+    "toolchains-ui-components-shadcn",
+    "toolchains-ui-components-headlessui",
+    "toolchains-javascript-testing-playwright",
+    "toolchains-typescript-testing-vitest",
+    "universal-testing-webapp-testing",
+    "universal-web-web-performance-optimization"
+  ],
+  "nextjs-engineer": [
+    "toolchains-nextjs-core",
+    "toolchains-nextjs-v16",
+    "toolchains-javascript-frameworks-nextjs",
+    "toolchains-javascript-frameworks-react",
+    "toolchains-typescript-core",
+    "toolchains-typescript-validation-zod",
+    "toolchains-ui-styling-tailwind",
+    "toolchains-ui-components-shadcn",
+    "toolchains-platforms-deployment-vercel",
+    "toolchains-typescript-testing-vitest",
+    "universal-web-web-performance-optimization",
+    "universal-infrastructure-env-manager"
+  ],
+  "svelte-engineer": [
+    "toolchains-javascript-frameworks-svelte",
+    "toolchains-javascript-frameworks-svelte5-runes-static",
+    "toolchains-javascript-frameworks-sveltekit",
+    "toolchains-typescript-core",
+    "toolchains-ui-styling-tailwind",
+    "toolchains-ui-components-daisyui",
+    "toolchains-javascript-build-vite",
+    "toolchains-typescript-testing-vitest",
+    "universal-web-web-performance-optimization"
+  ],
+  "golang-engineer": [
+    "toolchains-golang-web",
+    "toolchains-golang-grpc",
+    "toolchains-golang-concurrency",
+    "toolchains-golang-data",
+    "toolchains-golang-cli",
+    "toolchains-golang-testing",
+    "toolchains-golang-observability",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging"
+  ],
+  "rust-engineer": [
+    "toolchains-rust-frameworks-axum",
+    "toolchains-rust-frameworks-tauri",
+    "toolchains-rust-desktop-applications",
+    "toolchains-rust-cli-clap",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging"
+  ],
+  "php-engineer": [
+    "toolchains-php-frameworks-wordpress-plugin-fundamentals",
+    "toolchains-php-frameworks-wordpress-block-editor",
+    "toolchains-php-frameworks-wordpress-advanced-architecture",
+    "toolchains-php-frameworks-wordpress-security-validation",
+    "toolchains-php-frameworks-wordpress-testing-qa",
+    "toolchains-php-frameworks-espocrm",
+    "universal-testing-test-driven-development"
+  ],
+  "phoenix-engineer": [
+    "toolchains-elixir-frameworks-phoenix-liveview",
+    "toolchains-elixir-frameworks-phoenix-api-channels",
+    "toolchains-elixir-data-ecto-patterns",
+    "toolchains-elixir-ops-phoenix-ops",
+    "universal-testing-test-driven-development"
+  ],
+  "tauri-engineer": [
+    "toolchains-rust-frameworks-tauri",
+    "toolchains-rust-desktop-applications",
+    "toolchains-javascript-frameworks-react",
+    "toolchains-javascript-frameworks-svelte",
+    "toolchains-javascript-frameworks-vue",
+    "toolchains-typescript-core",
+    "toolchains-ui-styling-tailwind"
+  ],
+  "qa": [
+    "toolchains-javascript-testing-playwright",
+    "toolchains-javascript-testing-cypress",
+    "toolchains-python-testing-pytest",
+    "toolchains-typescript-testing-vitest",
+    "toolchains-typescript-testing-jest",
+    "toolchains-golang-testing",
+    "universal-testing-webapp-testing",
+    "universal-testing-test-driven-development",
+    "universal-testing-test-quality-inspector",
+    "universal-testing-testing-anti-patterns",
+    "universal-testing-condition-based-waiting",
+    "universal-debugging-verification-before-completion"
+  ],
+  "api-qa": [
+    "toolchains-javascript-testing-playwright",
+    "toolchains-python-testing-pytest",
+    "toolchains-typescript-testing-vitest",
+    "universal-testing-test-driven-development",
+    "universal-testing-test-quality-inspector",
+    "universal-web-api-design-patterns",
+    "universal-debugging-verification-before-completion"
+  ],
+  "web-qa": [
+    "toolchains-javascript-testing-playwright",
+    "toolchains-javascript-testing-cypress",
+    "universal-testing-webapp-testing",
+    "universal-testing-condition-based-waiting",
+    "universal-web-web-performance-optimization",
+    "universal-debugging-verification-before-completion"
+  ],
+  "security": [
+    "universal-security-security-scanning",
+    "universal-security-threat-modeling",
+    "toolchains-php-frameworks-wordpress-security-validation",
+    "universal-infrastructure-kubernetes",
+    "universal-debugging-root-cause-tracing"
+  ],
+  "ops": [
+    "toolchains-universal-infrastructure-docker",
+    "toolchains-universal-infrastructure-github-actions",
+    "universal-infrastructure-kubernetes",
+    "universal-infrastructure-terraform",
+    "universal-infrastructure-env-manager",
+    "universal-observability-opentelemetry",
+    "universal-debugging-systematic-debugging",
+    "universal-debugging-root-cause-tracing"
+  ],
+  "vercel-ops": [
+    "toolchains-platforms-deployment-vercel",
+    "toolchains-nextjs-core",
+    "toolchains-universal-infrastructure-github-actions",
+    "universal-infrastructure-env-manager"
+  ],
+  "gcp-ops": [
+    "toolchains-universal-infrastructure-docker",
+    "universal-infrastructure-kubernetes",
+    "universal-infrastructure-terraform",
+    "toolchains-universal-infrastructure-github-actions"
+  ],
+  "local-ops": [
+    "toolchains-universal-infrastructure-docker",
+    "toolchains-python-frameworks-fastapi-local-dev",
+    "toolchains-javascript-frameworks-express-local-dev",
+    "universal-infrastructure-env-manager"
+  ],
+  "data-engineer": [
+    "toolchains-python-data-sqlalchemy",
+    "toolchains-typescript-data-prisma",
+    "toolchains-typescript-data-drizzle",
+    "toolchains-typescript-data-kysely",
+    "toolchains-golang-data",
+    "toolchains-elixir-data-ecto-patterns",
+    "universal-data-database-migration",
+    "universal-data-json-data-handling",
+    "universal-data-xlsx"
+  ],
+  "documentation": [
+    "universal-web-api-documentation",
+    "universal-collaboration-writing-plans",
+    "universal-main-artifacts-builder"
+  ],
+  "ticketing": [
+    "universal-collaboration-writing-plans",
+    "universal-collaboration-brainstorming"
+  ],
+  "research": [
+    "universal-architecture-software-patterns",
+    "universal-debugging-root-cause-tracing",
+    "universal-debugging-systematic-debugging",
+    "universal-collaboration-brainstorming"
+  ],
+  "code-analyzer": [
+    "universal-architecture-software-patterns",
+    "universal-debugging-root-cause-tracing",
+    "universal-testing-test-quality-inspector",
+    "universal-testing-testing-anti-patterns"
+  ],
+  "refactoring-engineer": [
+    "universal-architecture-software-patterns",
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging",
+    "toolchains-typescript-core",
+    "toolchains-python-frameworks-django",
+    "toolchains-python-frameworks-fastapi-local-dev"
+  ],
+  "prompt-engineer": [
+    "toolchains-ai-protocols-mcp",
+    "toolchains-ai-frameworks-langchain",
+    "toolchains-ai-frameworks-langgraph",
+    "toolchains-ai-frameworks-dspy",
+    "toolchains-ai-sdks-anthropic",
+    "toolchains-ai-services-openrouter",
+    "toolchains-ai-techniques-session-compression",
+    "universal-main-mcp-builder"
+  ],
+  "agentic-coder-optimizer": [
+    "toolchains-ai-protocols-mcp",
+    "universal-main-skill-creator",
+    "universal-collaboration-dispatching-parallel-agents"
+  ],
+  "mpm-agent-manager": [
+    "universal-main-skill-creator",
+    "universal-collaboration-dispatching-parallel-agents",
+    "universal-collaboration-writing-plans"
+  ],
+  "mpm-skills-manager": [
+    "universal-main-skill-creator"
+  ],
+  "web-ui": [
+    "toolchains-ui-styling-tailwind",
+    "toolchains-ui-components-shadcn",
+    "toolchains-ui-components-headlessui",
+    "toolchains-ui-components-daisyui",
+    "toolchains-javascript-frameworks-react",
+    "toolchains-javascript-frameworks-vue",
+    "toolchains-javascript-frameworks-svelte",
+    "universal-web-web-performance-optimization"
+  ],
+  "version-control": [
+    "universal-collaboration-git-workflow",
+    "universal-collaboration-git-worktrees",
+    "universal-collaboration-stacked-prs",
+    "universal-collaboration-requesting-code-review",
+    "toolchains-universal-infrastructure-github-actions"
+  ],
+  "product-owner": [
+    "universal-collaboration-writing-plans",
+    "universal-collaboration-brainstorming",
+    "universal-architecture-software-patterns"
+  ],
+  "project-organizer": [
+    "universal-collaboration-writing-plans",
+    "universal-collaboration-git-workflow",
+    "universal-data-json-data-handling"
+  ],
+  "engineer": [
+    "universal-testing-test-driven-development",
+    "universal-debugging-systematic-debugging",
+    "universal-debugging-verification-before-completion",
+    "universal-collaboration-git-workflow",
+    "universal-architecture-software-patterns"
+  ],
+  "content-agent": [
+    "universal-main-artifacts-builder",
+    "universal-collaboration-writing-plans",
+    "universal-web-api-documentation"
+  ],
+  "memory-manager": [
+    "universal-collaboration-writing-plans",
+    "universal-data-json-data-handling"
+  ]
+}

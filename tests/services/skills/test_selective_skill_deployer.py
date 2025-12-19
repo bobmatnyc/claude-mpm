@@ -294,3 +294,58 @@ skills: [skill-a, skill-c]
         result = get_required_skills_from_agents(agents_dir)
         # skill-a should appear only once
         assert result == {"skill-a", "skill-b", "skill-c"}
+
+    def test_slash_to_dash_normalization(self, tmp_path, monkeypatch):
+        """Test that skill paths with slashes are normalized to dashes.
+
+        WHY: SkillToAgentMapper returns paths like "toolchains/python/frameworks/django"
+        but deployment expects "toolchains-python-frameworks-django" for matching.
+        This ensures compatibility between skill discovery and deployment filtering.
+        """
+        agents_dir = tmp_path / "agents"
+        agents_dir.mkdir()
+
+        # Create agent file
+        (agents_dir / "agent1.md").write_text(
+            """---
+skills: [explicit-skill]
+---
+# Agent 1
+"""
+        )
+
+        # Mock SkillToAgentMapper to return slash-separated paths
+        from unittest.mock import MagicMock
+
+        from claude_mpm.services.skills import selective_skill_deployer
+
+        mock_mapper = MagicMock()
+        mock_mapper.get_skills_for_agent.return_value = [
+            "toolchains/python/frameworks/django",
+            "universal/collaboration/git-workflow",
+        ]
+
+        original_mapper_class = selective_skill_deployer.SkillToAgentMapper
+        monkeypatch.setattr(
+            selective_skill_deployer, "SkillToAgentMapper", lambda: mock_mapper
+        )
+
+        try:
+            result = get_required_skills_from_agents(agents_dir)
+
+            # Verify slash-separated paths are normalized to dashes
+            assert result == {
+                "explicit-skill",
+                "toolchains-python-frameworks-django",
+                "universal-collaboration-git-workflow",
+            }
+
+            # Ensure no slash-separated paths remain
+            for skill in result:
+                assert "/" not in skill, f"Skill {skill} contains unprocessed slashes"
+
+        finally:
+            # Restore original class
+            monkeypatch.setattr(
+                selective_skill_deployer, "SkillToAgentMapper", original_mapper_class
+            )

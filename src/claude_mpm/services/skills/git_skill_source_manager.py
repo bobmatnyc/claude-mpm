@@ -1049,8 +1049,10 @@ class GitSkillSourceManager:
             original_count = len(all_skills)
             # Normalize filter to lowercase for case-insensitive matching
             normalized_filter = {s.lower() for s in skill_filter}
+            # Match against deployment_name (not display name) since skill_filter contains
+            # deployment-style names like "toolchains-python-frameworks-django"
             all_skills = [
-                s for s in all_skills if s.get("name", "").lower() in normalized_filter
+                s for s in all_skills if s.get("deployment_name", "").lower() in normalized_filter
             ]
             filtered_count = original_count - len(all_skills)
             self.logger.info(

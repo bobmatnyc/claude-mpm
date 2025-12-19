@@ -217,9 +217,14 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     # Combine both sources
     required_skills = frontmatter_skills | mapped_skills
 
+    # Normalize skill paths: convert slashes to dashes for compatibility with deployment
+    # SkillToAgentMapper returns paths like "toolchains/python/frameworks/django"
+    # but deployment expects "toolchains-python-frameworks-django"
+    normalized_skills = {skill.replace('/', '-') for skill in required_skills}
+
     logger.info(
         f"Combined {len(frontmatter_skills)} frontmatter + {len(mapped_skills)} mapped "
-        f"= {len(required_skills)} total unique skills"
+        f"= {len(required_skills)} total unique skills (normalized to {len(normalized_skills)})"
     )
 
-    return required_skills
+    return normalized_skills
