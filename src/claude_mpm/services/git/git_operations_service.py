@@ -18,9 +18,12 @@ Example:
     ...     service.commit(Path("~/.claude-mpm/cache/remote-agents"), "feat: improve research agent memory handling")
 """
 
+import logging
 import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 # Custom Exceptions
@@ -314,7 +317,12 @@ class GitOperationsService:
 
     def pull(self, repo_path: Path, branch: str = "main") -> bool:
         """
-        Pull latest changes from remote.
+        Pull latest changes from remote with automatic divergent branch recovery.
+
+        For cache/sync repositories, automatically handles divergent branches by:
+        1. First attempting git pull --rebase (cleaner history)
+        2. If rebase fails or conflicts exist, hard reset to match remote exactly
+           (cache repos should mirror remote state, local changes are discarded)
 
         Args:
             repo_path: Repository path
@@ -325,21 +333,95 @@ class GitOperationsService:
 
         Raises:
             GitOperationError: If pull fails
-            GitConflictError: If merge conflicts detected
+            GitConflictError: If merge conflicts detected and cannot be auto-resolved
         """
         self._validate_repo(repo_path)
 
-        returncode, _stdout, stderr = self._run_git_command(
+        # First, try standard pull
+        returncode, stdout, stderr = self._run_git_command(
             ["git", "pull", "origin", branch], cwd=repo_path
         )
 
-        if returncode != 0:
-            # Check for merge conflicts
-            if "conflict" in stderr.lower():
-                raise GitConflictError(
-                    f"Merge conflicts detected when pulling {branch}: {stderr}"
+        if returncode == 0:
+            return True
+
+        # Check if this is a divergent branch situation
+        is_divergent = any(phrase in stderr.lower() for phrase in [
+            "divergent branches",
+            "need to specify how to reconcile",
+            "have diverged"
+        ])
+
+        if is_divergent:
+            logger.warning(
+                f"Divergent branches detected in cache repository at {repo_path}. "
+                "Attempting automatic recovery with rebase..."
+            )
+
+            # Strategy 1: Try rebase for cleaner history
+            returncode, stdout, stderr = self._run_git_command(
+                ["git", "pull", "--rebase", "origin", branch], cwd=repo_path
+            )
+
+            if returncode == 0:
+                logger.info(
+                    f"Successfully resolved divergent branches with rebase for {branch}"
                 )
-            raise GitOperationError(f"Failed to pull {branch}: {stderr}")
+                return True
+
+            # Check if rebase had conflicts
+            has_rebase_conflict = any(phrase in stderr.lower() for phrase in [
+                "conflict",
+                "rebase in progress"
+            ])
+
+            if has_rebase_conflict:
+                logger.warning(
+                    "Rebase conflicts detected. Aborting rebase and resetting to remote state..."
+                )
+                # Abort the rebase
+                self._run_git_command(["git", "rebase", "--abort"], cwd=repo_path)
+
+            # Strategy 2: Hard reset to match remote exactly (cache repos should mirror remote)
+            logger.warning(
+                f"Discarding local changes and resetting to origin/{branch} "
+                "(cache repositories should match remote exactly)"
+            )
+
+            # Fetch latest to ensure we have the remote state
+            returncode, stdout, stderr = self._run_git_command(
+                ["git", "fetch", "origin", branch], cwd=repo_path
+            )
+
+            if returncode != 0:
+                raise GitOperationError(
+                    f"Failed to fetch from remote during divergent branch recovery: {stderr}"
+                )
+
+            # Hard reset to remote branch
+            returncode, stdout, stderr = self._run_git_command(
+                ["git", "reset", "--hard", f"origin/{branch}"], cwd=repo_path
+            )
+
+            if returncode != 0:
+                raise GitOperationError(
+                    f"Failed to reset to origin/{branch} during divergent branch recovery: {stderr}"
+                )
+
+            logger.info(
+                f"Successfully reset cache repository to origin/{branch} "
+                "(local changes discarded)"
+            )
+            return True
+
+        # Check for merge conflicts (non-divergent case)
+        if "conflict" in stderr.lower():
+            raise GitConflictError(
+                f"Merge conflicts detected when pulling {branch}: {stderr}"
+            )
+
+        # Other pull errors
+        raise GitOperationError(f"Failed to pull {branch}: {stderr}")
 
         return True
 

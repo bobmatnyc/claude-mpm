@@ -27,6 +27,15 @@ class TestGitOperationsService(unittest.TestCase):
         self.service = GitOperationsService(timeout=5)
         self.test_repo_path = Path("/tmp/test-repo")
 
+        # Mock Path.exists() to return True for test repo path
+        # This is needed because _validate_repo checks if path exists
+        self.path_exists_patcher = patch.object(Path, "exists", return_value=True)
+        self.mock_path_exists = self.path_exists_patcher.start()
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        self.path_exists_patcher.stop()
+
     @patch("subprocess.run")
     def test_is_git_repo_success(self, mock_run):
         """Test checking if directory is a git repo."""
@@ -112,8 +121,9 @@ class TestGitOperationsService(unittest.TestCase):
         """Test creating and checking out a new branch."""
         # Mock git commands sequence
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check
-            Mock(returncode=0, stdout="develop\n", stderr=""),  # get current branch
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (_validate_repo)
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_current_branch)
+            Mock(returncode=0, stdout="develop\n", stderr=""),  # branch --show-current
             Mock(returncode=0, stdout="", stderr=""),  # checkout main
             Mock(returncode=0, stdout="", stderr=""),  # pull origin main
             Mock(returncode=0, stdout="", stderr=""),  # checkout -b new-branch
@@ -137,8 +147,9 @@ class TestGitOperationsService(unittest.TestCase):
         """Test rollback when branch creation fails."""
         # Mock git commands with failure on checkout -b
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check
-            Mock(returncode=0, stdout="main\n", stderr=""),  # get current branch
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (_validate_repo)
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_current_branch)
+            Mock(returncode=0, stdout="main\n", stderr=""),  # branch --show-current
             Mock(returncode=0, stdout="", stderr=""),  # checkout main
             Mock(returncode=0, stdout="", stderr=""),  # pull origin main
             Mock(
@@ -287,6 +298,60 @@ class TestGitOperationsService(unittest.TestCase):
         self.assertIn("Merge conflicts detected", str(context.exception))
 
     @patch("subprocess.run")
+    def test_pull_divergent_branches_rebase_success(self, mock_run):
+        """Test pull with divergent branches - successful rebase recovery."""
+        # Mock git commands
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=1,
+                stdout="",
+                stderr="hint: You have divergent branches and need to specify how to reconcile them."
+            ),  # initial pull fails with divergent branches
+            Mock(returncode=0, stdout="Successfully rebased\n", stderr=""),  # pull --rebase succeeds
+        ]
+
+        result = self.service.pull(self.test_repo_path, "main")
+
+        self.assertTrue(result)
+        # Verify rebase was attempted
+        commands_called = [call[0][0] for call in mock_run.call_args_list]
+        rebase_commands = [cmd for cmd in commands_called if "--rebase" in cmd]
+        self.assertEqual(len(rebase_commands), 1)
+
+    @patch("subprocess.run")
+    def test_pull_divergent_branches_hard_reset(self, mock_run):
+        """Test pull with divergent branches - rebase fails, hard reset succeeds."""
+        # Mock git commands
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(
+                returncode=1,
+                stdout="",
+                stderr="hint: You have divergent branches and need to specify how to reconcile them."
+            ),  # initial pull fails with divergent branches
+            Mock(
+                returncode=1,
+                stdout="",
+                stderr="CONFLICT: merge conflict during rebase"
+            ),  # pull --rebase fails with conflict
+            Mock(returncode=0, stdout="", stderr=""),  # rebase --abort
+            Mock(returncode=0, stdout="", stderr=""),  # fetch origin main
+            Mock(returncode=0, stdout="", stderr=""),  # reset --hard origin/main
+        ]
+
+        result = self.service.pull(self.test_repo_path, "main")
+
+        self.assertTrue(result)
+        # Verify reset --hard was called
+        commands_called = [call[0][0] for call in mock_run.call_args_list]
+        reset_commands = [cmd for cmd in commands_called if "reset" in cmd and "--hard" in cmd]
+        self.assertEqual(len(reset_commands), 1)
+        # Verify fetch was called
+        fetch_commands = [cmd for cmd in commands_called if "fetch" in cmd]
+        self.assertEqual(len(fetch_commands), 1)
+
+    @patch("subprocess.run")
     def test_get_remote_url(self, mock_run):
         """Test getting remote URL."""
         # Mock git commands
@@ -319,19 +384,19 @@ class TestGitOperationsService(unittest.TestCase):
     @patch("subprocess.run")
     def test_validate_repo_success(self, mock_run):
         """Test validating repository configuration."""
-        # Mock git commands
+        # Mock git commands - validate_repo calls is_git_repo then get_remote_url
+        # get_remote_url calls _validate_repo which calls is_git_repo again
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_remote_url->_validate_repo)
             Mock(
                 returncode=0,
                 stdout="git@github.com:bobmatnyc/claude-mpm-agents.git\n",
                 stderr="",
-            ),  # get remote URL
+            ),  # config get remote.origin.url
         ]
 
-        # Mock path.exists()
-        with patch.object(Path, "exists", return_value=True):
-            valid, message = self.service.validate_repo(self.test_repo_path)
+        valid, message = self.service.validate_repo(self.test_repo_path)
 
         self.assertTrue(valid)
         self.assertEqual(message, "Repository is valid")
@@ -339,15 +404,15 @@ class TestGitOperationsService(unittest.TestCase):
     @patch("subprocess.run")
     def test_validate_repo_no_remote(self, mock_run):
         """Test validating repo without remote configured."""
-        # Mock git commands
+        # Mock git commands - validate_repo calls is_git_repo then get_remote_url
+        # get_remote_url calls _validate_repo which calls is_git_repo again
         mock_run.side_effect = [
-            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check
-            Mock(returncode=1, stdout="", stderr=""),  # get remote URL fails
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (validate_repo)
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check (get_remote_url->_validate_repo)
+            Mock(returncode=1, stdout="", stderr=""),  # config get remote.origin.url fails
         ]
 
-        # Mock path.exists()
-        with patch.object(Path, "exists", return_value=True):
-            valid, message = self.service.validate_repo(self.test_repo_path)
+        valid, message = self.service.validate_repo(self.test_repo_path)
 
         self.assertFalse(valid)
         self.assertIn("No remote origin configured", message)
@@ -363,11 +428,14 @@ class TestGitOperationsService(unittest.TestCase):
     @patch("subprocess.run")
     def test_timeout_handling(self, mock_run):
         """Test handling of command timeouts."""
-        # Mock timeout
-        mock_run.side_effect = subprocess.TimeoutExpired("git", 5)
+        # Mock timeout - use get_current_branch which propagates errors
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout=".git\n", stderr=""),  # is_git_repo check
+            subprocess.TimeoutExpired("git", 5),  # branch command times out
+        ]
 
         with self.assertRaises(GitOperationError) as context:
-            self.service.is_git_repo(self.test_repo_path)
+            self.service.get_current_branch(self.test_repo_path)
 
         self.assertIn("timed out", str(context.exception))
 
