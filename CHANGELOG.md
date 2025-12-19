@@ -1,3 +1,8 @@
+## v5.4.10 (2025-12-19)
+
+### Fixed
+- **Code Quality**: Fix import sorting in memory_integration.py for ruff compliance
+
 ## v5.4.9 (2025-12-19)
 
 ### Fixed
