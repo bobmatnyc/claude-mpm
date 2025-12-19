@@ -521,14 +521,22 @@ main "$@"
                 }
             ]
 
-        # Non-tool events don't need a matcher - just hooks array
-        non_tool_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart", "SessionStart"]
-        for event_type in non_tool_events:
+        # Simple events (no subtypes, no matcher needed)
+        simple_events = ["UserPromptSubmit", "Stop", "SubagentStop", "SubagentStart"]
+        for event_type in simple_events:
             settings["hooks"][event_type] = [
                 {
                     "hooks": [hook_command],
                 }
             ]
+
+        # SessionStart needs matcher for subtypes (startup, resume)
+        settings["hooks"]["SessionStart"] = [
+            {
+                "matcher": "*",  # Match all SessionStart subtypes
+                "hooks": [hook_command],
+            }
+        ]
 
         # Write settings to settings.json
         with self.settings_file.open("w") as f:
