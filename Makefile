@@ -765,8 +765,7 @@ build-prod: quality ## Production build (with all checks)
 	fi
 	@$(MAKE) build-metadata
 	@rm -rf $(DIST_DIR) $(BUILD_DIR) *.egg-info
-	@$(PYTHON) -m build $(BUILD_FLAGS)
-	@twine check $(DIST_DIR)/*
+	@uv build $(BUILD_FLAGS)
 	@$(MAKE) build-info-json
 	@echo "$(GREEN)✓ Production build complete (ENV=$(ENV))$(NC)"
 
@@ -854,7 +853,7 @@ release-build: pre-publish ## Build Python package for release (runs quality che
 	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
 	@python scripts/increment_build.py --all-changes
 	@rm -rf dist/ build/ *.egg-info
-	@python -m build
+	@uv build
 	@echo "$(GREEN)✓ Package built successfully$(NC)"
 	@ls -la dist/
 
@@ -870,7 +869,7 @@ safe-release-build: ## Build release with mandatory quality checks
 	@$(PYTHON) scripts/increment_build.py --all-changes
 	@$(MAKE) build-metadata
 	@rm -rf $(DIST_DIR) $(BUILD_DIR) *.egg-info
-	@$(PYTHON) -m build $(BUILD_FLAGS)
+	@uv build $(BUILD_FLAGS)
 	@echo "$(GREEN)✓ Package built successfully with quality assurance (ENV=$(ENV))$(NC)"
 	@ls -la $(DIST_DIR)
 
@@ -1008,11 +1007,11 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	fi
 	@echo ""
 	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
-	@if command -v twine >/dev/null 2>&1; then \
-		python -m twine upload dist/*; \
+	@if command -v uv >/dev/null 2>&1; then \
+		uv publish dist/*; \
 		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
 	else \
-		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
 		exit 1; \
 	fi
 	@echo ""
@@ -1038,11 +1037,11 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 # Publish to TestPyPI for testing
 release-test-pypi: release-build ## Publish to TestPyPI for testing
 	@echo "$(YELLOW)🧪 Publishing to TestPyPI...$(NC)"
-	@if command -v twine >/dev/null 2>&1; then \
-		python -m twine upload --repository testpypi dist/*; \
+	@if command -v uv >/dev/null 2>&1; then \
+		uv publish --publish-url https://test.pypi.org/legacy/ dist/*; \
 		echo "$(GREEN)✓ Published to TestPyPI$(NC)"; \
 	else \
-		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
 		exit 1; \
 	fi
 
@@ -1087,7 +1086,7 @@ release-build-current: ## Build current version without version bump
 	@VERSION=$$(cat VERSION); \
 	echo "Building version: $$VERSION"
 	@rm -rf dist/ build/ *.egg-info
-	@python -m build
+	@uv build
 	@echo "$(GREEN)✓ Package built successfully$(NC)"
 	@ls -la dist/
 
@@ -1106,11 +1105,11 @@ release-publish-current: ## Publish current built version
 		exit 1; \
 	fi
 	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
-	@if command -v twine >/dev/null 2>&1; then \
-		python -m twine upload dist/*; \
+	@if command -v uv >/dev/null 2>&1; then \
+		uv publish dist/*; \
 		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
 	else \
-		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(YELLOW)📤 Publishing to npm...$(NC)"

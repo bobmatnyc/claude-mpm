@@ -75,13 +75,13 @@ TAR_SIZE=$(ls -lh "$TAR_FILE" | awk '{print $5}')
 print_message "$BLUE" "  Wheel size: $WHEEL_SIZE"
 print_message "$BLUE" "  Tarball size: $TAR_SIZE"
 
-# 6. Install/verify twine
-if ! command -v twine &> /dev/null; then
-    print_message "$YELLOW" "Installing twine..."
-    pip install twine
-    print_message "$GREEN" "✓ Twine installed"
+# 6. Verify uv is available
+if ! command -v uv &> /dev/null; then
+    print_message "$RED" "Error: uv not found"
+    print_message "$YELLOW" "Please install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
 else
-    print_message "$GREEN" "✓ Twine is available"
+    print_message "$GREEN" "✓ uv is available"
 fi
 
 # 7. Confirmation prompt
@@ -105,9 +105,9 @@ print_message "$YELLOW" "Uploading to PyPI..."
 print_message "$BLUE" "This may take a moment..."
 echo ""
 
-# Use twine with credentials from ~/.pypirc
-# Twine will automatically read the [pypi] section from ~/.pypirc
-if twine upload "$WHEEL_FILE" "$TAR_FILE"; then
+# Use uv publish with credentials from ~/.pypirc
+# UV will automatically read the [pypi] section from ~/.pypirc
+if uv publish "$WHEEL_FILE" "$TAR_FILE"; then
 
     echo ""
     print_message "$GREEN" "========================================"

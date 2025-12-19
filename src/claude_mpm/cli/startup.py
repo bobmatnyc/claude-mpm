@@ -14,6 +14,47 @@ import warnings
 from pathlib import Path
 
 
+def sync_hooks_on_startup(quiet: bool = False) -> bool:
+    """Ensure hooks are up-to-date on startup.
+
+    WHY: Users can have stale hook configurations in settings.json that cause errors.
+    Reinstalling hooks ensures the hook format matches the current code.
+
+    DESIGN DECISION: This is fast, silent on success, and non-blocking. Failures
+    are logged but don't prevent startup to ensure claude-mpm remains functional.
+
+    Args:
+        quiet: If True, suppress all output (used internally)
+
+    Returns:
+        bool: True if hooks were synced successfully, False otherwise
+    """
+    try:
+        from ..hooks.claude_hooks.installer import HookInstaller
+
+        installer = HookInstaller()
+
+        # Reinstall hooks (force=True ensures update)
+        success = installer.install_hooks(force=True)
+
+        if not quiet and success:
+            # Only log at debug level on success (silent success)
+            from ..core.logger import get_logger
+
+            logger = get_logger("startup")
+            logger.debug("Hook sync completed successfully")
+
+        return success
+
+    except Exception as e:
+        # Log but don't fail startup
+        from ..core.logger import get_logger
+
+        logger = get_logger("startup")
+        logger.warning(f"Hook sync failed (non-fatal): {e}")
+        return False
+
+
 def check_legacy_cache() -> None:
     """Check for legacy cache/agents/ directory and warn user.
 
@@ -849,6 +890,11 @@ def run_background_services():
     file creation in project .claude/ directories.
     See: SystemInstructionsDeployer and agent_deployment.py line 504-509
     """
+    # Sync hooks early to ensure up-to-date configuration
+    # RATIONALE: Hooks should be synced before other services to fix stale configs
+    # This is fast (<100ms) and non-blocking, so it doesn't delay startup
+    sync_hooks_on_startup(quiet=True)
+
     initialize_project_registry()
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()

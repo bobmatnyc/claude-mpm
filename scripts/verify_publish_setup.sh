@@ -159,12 +159,12 @@ fi
 echo ""
 print_message "$YELLOW" "Checking required tools..."
 
-if command -v twine &> /dev/null; then
-    TWINE_VERSION=$(twine --version | head -n1)
-    print_message "$GREEN" "✓ twine is installed: $TWINE_VERSION"
+if command -v uv &> /dev/null; then
+    UV_VERSION=$(uv --version)
+    print_message "$GREEN" "✓ uv is installed: $UV_VERSION"
 else
-    print_message "$YELLOW" "⚠ twine not installed (will be auto-installed if needed)"
-    print_message "$YELLOW" "  Install with: pip install twine"
+    print_message "$YELLOW" "⚠ uv not installed (required for publishing)"
+    print_message "$YELLOW" "  Install with: curl -LsSf https://astral.sh/uv/install.sh | sh"
     WARNINGS=$((WARNINGS + 1))
 fi
 

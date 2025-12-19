@@ -81,7 +81,7 @@ def test_prerequisites():
     optional_tools = [
         ("cz", "Commitizen"),
         ("gh", "GitHub CLI"),
-        ("twine", "PyPI upload tool"),
+        ("uv", "Python package installer and publisher"),
         ("npm", "Node.js package manager"),
     ]
 
