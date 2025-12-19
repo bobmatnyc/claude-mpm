@@ -3,7 +3,7 @@ Self-Upgrade Service
 ====================
 
 Handles version checking and self-upgrade functionality for claude-mpm.
-Supports pip, pipx, and npm installations with automatic detection.
+Supports pip, pipx, npm, uv tool, and Homebrew installations with automatic detection.
 Also checks Claude Code version compatibility.
 
 WHY: Users should be notified of updates and have an easy way to upgrade
@@ -11,7 +11,7 @@ without manually running installation commands. Claude Code version checking
 ensures compatibility with required features.
 
 DESIGN DECISIONS:
-- Detects installation method (pip/pipx/npm/editable)
+- Detects installation method (pip/pipx/npm/uv_tool/homebrew/editable)
 - Non-blocking version checks with caching
 - Interactive upgrade prompts with confirmation
 - Automatic restart after upgrade
@@ -40,6 +40,8 @@ class InstallationMethod:
     PIP = "pip"
     PIPX = "pipx"
     NPM = "npm"
+    UV_TOOL = "uv_tool"
+    HOMEBREW = "homebrew"
     EDITABLE = "editable"
     UNKNOWN = "unknown"
 
@@ -95,6 +97,14 @@ class SelfUpgradeService:
         """
         Detect how claude-mpm was installed.
 
+        Detection priority:
+        1. Editable (skip auto-upgrade)
+        2. UV Tool
+        3. Homebrew
+        4. Pipx
+        5. NPM
+        6. Pip (default)
+
         Returns:
             Installation method constant
         """
@@ -104,6 +114,14 @@ class SelfUpgradeService:
             "EDITABLE_INSTALL",
         ]:
             return InstallationMethod.EDITABLE
+
+        # Check for UV tool installation
+        if self._check_uv_tool_installation():
+            return InstallationMethod.UV_TOOL
+
+        # Check for Homebrew installation
+        if self._check_homebrew_installation():
+            return InstallationMethod.HOMEBREW
 
         # Check for pipx by looking at executable path
         executable = sys.executable
@@ -126,6 +144,85 @@ class SelfUpgradeService:
 
         # Default to pip
         return InstallationMethod.PIP
+
+    def _check_uv_tool_installation(self) -> bool:
+        """
+        Check if claude-mpm is installed via uv tool.
+
+        Detection methods:
+        1. Check UV_TOOL_DIR environment variable
+        2. Check if executable path contains .local/share/uv/tools/
+        3. Fallback: Run `uv tool list` and check for claude-mpm
+
+        Returns:
+            True if UV tool installation detected
+        """
+        # Method 1: Check UV_TOOL_DIR environment variable
+        uv_tool_dir = os.environ.get("UV_TOOL_DIR")
+        if uv_tool_dir and "claude-mpm" in uv_tool_dir:
+            return True
+
+        # Method 2: Check executable path
+        executable = sys.executable
+        if ".local/share/uv/tools/" in executable or "uv/tools/" in executable:
+            return True
+
+        # Method 3: Fallback to `uv tool list` command
+        try:
+            result = subprocess.run(
+                ["uv", "tool", "list"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and "claude-mpm" in result.stdout:
+                return True
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # uv not installed or command failed
+            pass
+        except Exception as e:
+            self.logger.debug(f"UV tool check failed: {e}")
+
+        return False
+
+    def _check_homebrew_installation(self) -> bool:
+        """
+        Check if claude-mpm is installed via Homebrew.
+
+        Detection methods:
+        1. Check if executable path starts with /opt/homebrew/ or /usr/local/Cellar/
+        2. Fallback: Run `brew list claude-mpm` to verify
+
+        Returns:
+            True if Homebrew installation detected
+        """
+        # Method 1: Check executable path
+        executable = sys.executable
+        if executable.startswith("/opt/homebrew/") or executable.startswith(
+            "/usr/local/Cellar/"
+        ):
+            return True
+
+        # Method 2: Fallback to `brew list` command
+        try:
+            result = subprocess.run(
+                ["brew", "list", "claude-mpm"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            # brew list returns 0 if package is installed
+            if result.returncode == 0:
+                return True
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # brew not installed or command failed
+            pass
+        except Exception as e:
+            self.logger.debug(f"Homebrew check failed: {e}")
+
+        return False
 
     def _get_claude_code_version(self) -> Optional[str]:
         """
@@ -257,6 +354,8 @@ class SelfUpgradeService:
         if self.installation_method in [
             InstallationMethod.PIP,
             InstallationMethod.PIPX,
+            InstallationMethod.UV_TOOL,
+            InstallationMethod.HOMEBREW,
         ]:
             result = await self.version_checker.check_for_update(
                 "claude-mpm", self.current_version, cache_ttl
@@ -313,15 +412,18 @@ class SelfUpgradeService:
         Returns:
             Shell command string to upgrade claude-mpm
         """
-        if self.installation_method == InstallationMethod.PIPX:
-            return "pipx upgrade claude-mpm"
-        if self.installation_method == InstallationMethod.NPM:
-            return "npm update -g claude-mpm"
-        if self.installation_method == InstallationMethod.PIP:
-            return f"{sys.executable} -m pip install --upgrade claude-mpm"
-        if self.installation_method == InstallationMethod.EDITABLE:
-            return "git pull && pip install -e ."
-        return "pip install --upgrade claude-mpm"
+        upgrade_commands = {
+            InstallationMethod.UV_TOOL: "uv tool upgrade claude-mpm",
+            InstallationMethod.HOMEBREW: "brew upgrade claude-mpm",
+            InstallationMethod.PIPX: "pipx upgrade claude-mpm",
+            InstallationMethod.NPM: "npm update -g claude-mpm",
+            InstallationMethod.PIP: f"{sys.executable} -m pip install --upgrade claude-mpm",
+            InstallationMethod.EDITABLE: "git pull && pip install -e .",
+        }
+
+        return upgrade_commands.get(
+            self.installation_method, "pip install --upgrade claude-mpm"
+        )
 
     def prompt_for_upgrade(self, update_info: Dict[str, any]) -> bool:
         """
@@ -432,7 +534,13 @@ class SelfUpgradeService:
             args = sys.argv[:]
 
             # Replace current process with new one
-            if self.installation_method == InstallationMethod.PIPX:
+            if self.installation_method == InstallationMethod.UV_TOOL:
+                # Use uv run
+                os.execvp("uv", ["uv", "tool", "run", "claude-mpm", *args[1:]])
+            elif self.installation_method == InstallationMethod.HOMEBREW:
+                # Use direct executable (installed to PATH by Homebrew)
+                os.execvp("claude-mpm", args)
+            elif self.installation_method == InstallationMethod.PIPX:
                 # Use pipx run
                 os.execvp("pipx", ["pipx", "run", "claude-mpm", *args[1:]])
             elif self.installation_method == InstallationMethod.NPM:
