@@ -39,15 +39,12 @@ data-processing = [ "pandas>=2.1.0", "openpyxl>=3.1.0", "xlsxwriter>=3.1.0", "nu
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
-claude-mpm-ticket = "claude_mpm.cli.ticket_cli:main"
-ticket = "claude_mpm.cli.ticket_cli:main"
-claude-mpm-version = "claude_mpm.scripts.manage_version:main"
+claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
 claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 # DEPRECATED: MCP gateway archived 2025-12-11
 # claude-mpm-mcp = "claude_mpm.services.mcp_gateway.server.stdio_server:main_sync"
 # claude-mpm-mcp-wrapper = "claude_mpm.scripts.mcp_wrapper:entry_point"
-claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 
 [tool.uv]
 dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
