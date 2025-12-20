@@ -161,10 +161,11 @@ class ToolchainDetector:
     # Core agents always included (use exact agent IDs from repository)
     CORE_AGENTS = [
         "qa-agent",
+        "memory-manager-agent",
+        "local-ops-agent",
         "research-agent",
         "documentation-agent",
-        "ticketing",
-        "local-ops-agent",
+        "security-agent",
     ]
 
     # Directories to exclude from scanning
@@ -366,7 +367,8 @@ class ToolchainDetector:
         """Map detected toolchain to recommended agents.
 
         Combines language-specific, framework-specific, and ops agents with
-        core agents (qa-agent, research-agent, documentation-agent, ticketing, local-ops-agent).
+        core agents (qa-agent, memory-manager-agent, local-ops-agent, research-agent,
+        documentation-agent, security-agent).
 
         Args:
             toolchain: Detected toolchain dictionary with languages, frameworks, tools

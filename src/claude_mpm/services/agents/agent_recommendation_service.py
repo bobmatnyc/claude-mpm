@@ -9,8 +9,8 @@ to specific engineer agents, plus always includes core agents.
 
 Architecture:
 - Toolchain-based recommendations: Python → python-engineer, etc.
-- Core agents (always recommended): qa-agent, research-agent, documentation-agent,
-  ticketing, local-ops-agent, version-control, security
+- Core agents (always recommended): qa-agent, memory-manager-agent, local-ops-agent,
+  research-agent, documentation-agent, security-agent
 - Confidence-based filtering: Only recommend high-confidence detections
 """
 
@@ -34,13 +34,11 @@ class AgentRecommendationService:
     # Uses exact agent IDs from repository for consistency
     CORE_AGENTS = {
         "qa-agent",
+        "memory-manager-agent",
+        "local-ops-agent",
         "research-agent",
         "documentation-agent",
-        "ticketing",
-        "local-ops-agent",
-        # Keep version-control and security as universal recommended agents
-        "version-control",
-        "security",
+        "security-agent",
     }
 
     # Map detected languages to recommended engineer agents

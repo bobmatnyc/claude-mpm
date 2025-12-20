@@ -630,7 +630,19 @@ Claude MPM includes 15 specialized agents:
 - **Code Analyzer** - Static code analysis with AST and tree-sitter
 
 ### Agent Memory System
-Agents learn project-specific patterns using a simple list format and can update memories via JSON response fields (`remember` for incremental updates, `MEMORIES` for complete replacement). Initialize with `claude-mpm memory init`.
+
+**NEW in v5.4.13**: Runtime memory loading for instant updates and better efficiency.
+
+**How It Works:**
+- **Memory Files**: Store agent memories in `.claude-mpm/memories/{agent_id}.md` (e.g., `engineer.md`, `qa.md`)
+- **Runtime Loading**: Memories loaded dynamically when agents are delegated to (no restart required)
+- **Instant Updates**: Memory changes take effect immediately
+- **Event Observability**: Memory loading tracked via EventBus (`agent.memory.loaded` events)
+
+**Memory Format:**
+Agents learn project-specific patterns using a simple markdown list format and can update memories via JSON response fields (`remember` for incremental updates, `MEMORIES` for complete replacement).
+
+**See:** [Memory Flow Architecture](docs/architecture/memory-flow.md) for complete technical details.
 
 ### Skills System
 

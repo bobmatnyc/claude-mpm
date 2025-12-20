@@ -59,11 +59,56 @@ User Request
 
 **Delegation**: PM routes tasks based on capabilities
 
-**Memory**: Agents store learnings for continuity
+**Memory**: Agents store learnings for continuity (see [Memory System](#memory-system-v5413) below)
 
 **Frontmatter**: YAML metadata defining agent configuration
 
 **Skills Integration**: Research Agent detects skill gaps and recommends Claude Code skills
+
+## Memory System (v5.4.13+)
+
+**NEW in v5.4.13**: Claude MPM now uses **runtime memory loading** to give agents project-specific knowledge:
+
+### How It Works
+
+1. **Agent Memory Files**: Store agent memories in `.claude-mpm/memories/{agent_id}.md`
+   - Example: `engineer.md`, `qa.md`, `research.md`
+   - Simple markdown format with list-based learnings
+
+2. **Runtime Loading**: Memories loaded dynamically when agents are delegated to
+   - No restart required - changes take effect immediately
+   - Each agent receives only its own memory (not all agent memories)
+   - PM instructions no longer bloated with all agent memories
+
+3. **Event Observability**: Memory loading tracked via EventBus
+   - Event: `agent.memory.loaded`
+   - Data: agent_id, memory_source, memory_size, timestamp
+
+### Memory File Format
+
+```markdown
+# Agent Memory: engineer
+
+## Recent Learnings
+- Use async/await for I/O operations in Python
+- Prefer composition over inheritance for services
+- Always validate inputs with Pydantic models
+
+## Project-Specific Patterns
+- Database models use SQLAlchemy 2.0 async syntax
+- API routes follow REST conventions
+```
+
+### Benefits
+
+✅ **Instant Updates**: Memory changes apply immediately (no restart)
+✅ **Cleaner Separation**: PM doesn't carry all agent memories
+✅ **Observable**: EventBus integration enables monitoring
+✅ **Token Efficient**: Agents only receive relevant memory
+
+**See Also:**
+- [Memory Flow Architecture](../architecture/memory-flow.md) - Complete technical details
+- [Agent Memory Events](../observability/agent-memory-events.md) - EventBus integration
 
 ## Enhanced Research Agent (v2.6.0)
 

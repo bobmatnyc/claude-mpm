@@ -1,3 +1,31 @@
+## v5.4.13 (2025-12-20)
+
+### Changed
+- **Memory Architecture**: Transitioned from deployment-time to runtime memory loading
+  - Agent memories now loaded dynamically via `MemoryPreDelegationHook` during task delegation
+  - PM instructions only contain PM.md memory (not all agent memories)
+  - Each agent receives only its own memory when delegated to via Task tool
+  - Memory changes take effect immediately without restarting Claude Code
+
+### Added
+- **EventBus Integration**: Memory loading now emits `agent.memory.loaded` events
+  - Observability into when agents load memory and how much
+  - Event data includes agent_id, memory_source, memory_size, timestamp
+  - See `docs/observability/agent-memory-events.md` for details
+
+### Removed
+- **BASE_*.md Templates**: Removed obsolete static template files
+  - Replaced by repository-based agent synchronization
+  - Agents synced from GitHub repos to `~/.claude-mpm/cache/remote-agents/`
+  - Hierarchical `BASE-AGENT.md` files for shared content
+- **Deployment-Time Memory Injection**: Removed from ContentFormatter
+  - No longer inject all agent memories into PM_INSTRUCTIONS.md
+
+### Documentation
+- Added `docs/architecture/memory-flow.md`: Comprehensive memory architecture documentation
+- Added `docs/observability/agent-memory-events.md`: EventBus integration guide
+- Updated agent documentation to reflect runtime memory loading
+
 ## v5.4.12 (2025-12-19)
 
 ### Changed
