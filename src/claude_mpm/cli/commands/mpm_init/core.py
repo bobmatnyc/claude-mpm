@@ -400,7 +400,6 @@ class MPMInitCommand:
             "warnings": warnings,
         }
 
-
     def _build_initialization_prompt(
         self,
         project_type: Optional[str] = None,

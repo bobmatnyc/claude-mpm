@@ -555,8 +555,15 @@ uvicorn = "^0.21.0"
         assert any(agent in agents for agent in ["ops", "local-ops-agent"])
 
         # Verify core agents included
-        for core_agent in ["engineer", "qa-agent", "research-agent", "documentation-agent",
-                          "memory-manager-agent", "local-ops-agent", "security-agent"]:
+        for core_agent in [
+            "engineer",
+            "qa-agent",
+            "research-agent",
+            "documentation-agent",
+            "memory-manager-agent",
+            "local-ops-agent",
+            "security-agent",
+        ]:
             assert core_agent in agents
 
     def test_full_workflow_javascript_project(self, tmp_path: Path):

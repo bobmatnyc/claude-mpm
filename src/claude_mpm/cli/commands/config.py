@@ -463,7 +463,9 @@ class ConfigCommand(BaseCommand):
         This displays recommended gitignore patterns without making any changes
         to the user's .gitignore file. Users can choose to apply these manually.
         """
-        console.print("\n[bold cyan]Recommended .gitignore Patterns for Claude MPM[/bold cyan]\n")
+        console.print(
+            "\n[bold cyan]Recommended .gitignore Patterns for Claude MPM[/bold cyan]\n"
+        )
 
         console.print("[bold]Track agent memories, ignore runtime data:[/bold]")
         console.print("[dim]# Add this to your .gitignore:[/dim]\n")
@@ -477,21 +479,30 @@ class ConfigCommand(BaseCommand):
 
         # Display in a panel for clarity
         from rich.panel import Panel
+
         panel = Panel(
             recommended_patterns,
             title="Recommended .gitignore Patterns",
             border_style="green",
-            padding=(1, 2)
+            padding=(1, 2),
         )
         console.print(panel)
 
         # Explanation
         console.print("\n[bold]What this does:[/bold]")
-        console.print("  • Track [cyan].claude-mpm/memories/*.md[/cyan] (agent memories are valuable)")
-        console.print("  • Ignore everything else in [dim].claude-mpm/[/dim] (cache, logs, sessions, tmp)")
-        console.print("  • Services (mcp-vector-search, kuzu-memory, etc.) handle their own .gitignore")
+        console.print(
+            "  • Track [cyan].claude-mpm/memories/*.md[/cyan] (agent memories are valuable)"
+        )
+        console.print(
+            "  • Ignore everything else in [dim].claude-mpm/[/dim] (cache, logs, sessions, tmp)"
+        )
+        console.print(
+            "  • Services (mcp-vector-search, kuzu-memory, etc.) handle their own .gitignore"
+        )
 
-        console.print("\n[yellow]Note:[/yellow] These patterns are recommendations only.")
+        console.print(
+            "\n[yellow]Note:[/yellow] These patterns are recommendations only."
+        )
         console.print("       Add them manually to your .gitignore if desired.\n")
 
     def _auto_configure(self, args) -> CommandResult:
@@ -501,7 +512,7 @@ class ConfigCommand(BaseCommand):
         This delegates to the AutoConfigureCommand for the actual implementation.
         """
         # Check if user wants gitignore recommendations
-        if hasattr(args, 'gitignore') and args.gitignore:
+        if hasattr(args, "gitignore") and args.gitignore:
             self._show_gitignore_recommendations()
             return CommandResult.success_result("Gitignore recommendations displayed")
 
