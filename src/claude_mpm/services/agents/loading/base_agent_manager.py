@@ -13,21 +13,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Lazy import for base_agent_loader to reduce initialization overhead
-# base_agent_loader adds ~500ms to import time
-# from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.shared import ConfigServiceBase
 
 logger = get_logger(__name__)
-
-
-def _get_clear_base_agent_cache():
-    """Lazy loader for clear_base_agent_cache function."""
-    from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
-
-    return clear_base_agent_cache
 
 
 class BaseAgentSection(str, Enum):
@@ -143,9 +133,7 @@ class BaseAgentManager(ConfigServiceBase):
         content = self._structure_to_markdown(current)
         self.base_agent_path.write_text(content, encoding="utf-8")
 
-        # Clear caches (lazy load to avoid import overhead)
-        clear_base_agent_cache = _get_clear_base_agent_cache()
-        clear_base_agent_cache()
+        # Clear cache
         self.cache.invalidate("base_agent:instructions")
 
         logger.info("Base agent updated successfully")

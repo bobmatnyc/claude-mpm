@@ -18,8 +18,7 @@ DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 
 # Response tracking integration
 # NOTE: ResponseTracker import moved to _initialize_response_tracking() for lazy loading
-# This prevents unnecessary import of base_agent_loader and other heavy dependencies
-# when hooks don't need response tracking
+# This prevents unnecessary import of heavy dependencies when hooks don't need response tracking
 RESPONSE_TRACKING_AVAILABLE = (
     True  # Assume available, will check on actual initialization
 )
@@ -51,7 +50,7 @@ class ResponseTrackingManager:
         response tracking without code changes.
 
         NOTE: ResponseTracker is imported lazily here to avoid loading
-        base_agent_loader and other heavy dependencies unless actually needed.
+        heavy dependencies unless actually needed.
         """
         try:
             # Lazy import of ResponseTracker to avoid unnecessary dependency loading

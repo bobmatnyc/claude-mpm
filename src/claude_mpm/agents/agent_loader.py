@@ -49,23 +49,7 @@ from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCac
 
 from ..core.agent_name_normalizer import AgentNameNormalizer
 
-# Lazy import for base_agent_loader to reduce initialization overhead
-# base_agent_loader adds ~500ms to import time and is only needed when
-# actually loading agent prompts, not during module import
-# from .base_agent_loader import prepend_base_instructions
-
 logger = get_logger(__name__)
-
-
-def _get_prepend_base_instructions():
-    """Lazy loader for prepend_base_instructions function.
-
-    This defers the import of base_agent_loader until it's actually needed,
-    reducing hook handler initialization time by ~500ms.
-    """
-    from .base_agent_loader import prepend_base_instructions
-
-    return prepend_base_instructions
 
 
 class ModelType(str, Enum):
@@ -248,9 +232,7 @@ class AgentLoader:
             logger.warning(f"Agent '{agent_id}' has no instructions")
             return None
 
-        # Prepend base instructions (lazy load to avoid import overhead)
-        prepend_base_instructions = _get_prepend_base_instructions()
-        return prepend_base_instructions(instructions)
+        return instructions
 
     def get_agent_metadata(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -796,16 +778,10 @@ def get_agent_prompt(
         model_metadata = f"\n<!-- Model Selection: {selected_model} (Complexity: {model_config.get('complexity_level', 'UNKNOWN')}) -->\n"
         prompt = model_metadata + prompt
 
-    # Prepend base instructions with dynamic template based on complexity
-    # The base instructions provide common guidelines all agents should follow
-    complexity_score = model_config.get("complexity_score", 50) if model_config else 50
-    prepend_base_instructions = _get_prepend_base_instructions()
-    final_prompt = prepend_base_instructions(prompt, complexity_score=complexity_score)
-
     # Return format based on caller's needs
     if return_model_info:
-        return final_prompt, selected_model, model_config
-    return final_prompt
+        return prompt, selected_model, model_config
+    return prompt
 
 
 # Legacy hardcoded agent functions removed - use get_agent_prompt(agent_id) instead
