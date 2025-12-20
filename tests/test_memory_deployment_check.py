@@ -102,8 +102,12 @@ def test_memory_deployment_check():
     if len(agent_memories) == 0:
         print("✓ Agent memories NOT in framework content (correct)")
     else:
-        print(f"✗ Agent memories found in framework content: {list(agent_memories.keys())}")
-        print("  Agent memories should be loaded at deployment time, not framework time")
+        print(
+            f"✗ Agent memories found in framework content: {list(agent_memories.keys())}"
+        )
+        print(
+            "  Agent memories should be loaded at deployment time, not framework time"
+        )
 
     # Check actual content
     if "actual_memories" in content:
