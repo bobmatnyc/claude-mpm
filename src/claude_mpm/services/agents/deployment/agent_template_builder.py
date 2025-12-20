@@ -32,46 +32,6 @@ class AgentTemplateBuilder:
         """Initialize the template builder."""
         self.logger = get_logger(__name__)
 
-    def append_agent_memory(self, agent_name: str, agent_markdown: str) -> str:
-        """Append agent-specific memory to agent markdown if it exists.
-
-        Checks for agent memory in both project-level and user-level locations:
-        1. Project: .claude-mpm/memories/{agent_name}.md (highest priority)
-        2. User: ~/.claude-mpm/memories/{agent_name}.md (fallback)
-
-        Args:
-            agent_name: Name of the agent (e.g., "engineer", "qa-agent")
-            agent_markdown: Agent markdown content to append memory to
-
-        Returns:
-            Agent markdown with memory appended if found, otherwise unchanged
-        """
-        # Project-level memory (highest priority)
-        project_memory = Path(".claude-mpm") / "memories" / f"{agent_name}.md"
-
-        # User-level memory (fallback)
-        user_memory = Path.home() / ".claude-mpm" / "memories" / f"{agent_name}.md"
-
-        memory_content = ""
-        memory_source = ""
-
-        # Project memory takes precedence
-        if project_memory.exists():
-            memory_content = project_memory.read_text()
-            memory_source = "project"
-            self.logger.debug(f"Found project-level memory for {agent_name}")
-        elif user_memory.exists():
-            memory_content = user_memory.read_text()
-            memory_source = "user"
-            self.logger.debug(f"Found user-level memory for {agent_name}")
-
-        if memory_content:
-            self.logger.info(f"Appending {memory_source}-level memory to {agent_name} agent")
-            return f"{agent_markdown}\n\n## Agent Memory\n\n{memory_content}"
-
-        self.logger.debug(f"No memory found for {agent_name} agent")
-        return agent_markdown
-
     def normalize_tools_input(self, tools):
         """Normalize various tool input formats to a consistent list.
 
@@ -718,9 +678,6 @@ Only include memories that are:
 
         # Combine frontmatter and content
         agent_markdown = frontmatter + content
-
-        # Append agent-specific memory if it exists
-        agent_markdown = self.append_agent_memory(agent_name, agent_markdown)
 
         return agent_markdown
 

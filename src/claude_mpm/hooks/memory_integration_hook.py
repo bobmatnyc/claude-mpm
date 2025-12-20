@@ -15,6 +15,8 @@ agent outputs because:
 import re
 from typing import Dict, List
 
+from datetime import datetime
+
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.shared.config_loader import ConfigLoader
@@ -46,6 +48,16 @@ except ImportError as e:
     logger.debug(f"SocketIO server not available: {e}")
     SOCKETIO_AVAILABLE = False
     get_socketio_server = None
+
+# Try to import event bus with fallback handling
+try:
+    from claude_mpm.services.event_bus.event_bus import EventBus
+
+    EVENT_BUS_AVAILABLE = True
+except ImportError as e:
+    logger.debug(f"EventBus not available: {e}")
+    EVENT_BUS_AVAILABLE = False
+    EventBus = None
 
 
 class MemoryPreDelegationHook(PreDelegationHook):
@@ -82,6 +94,16 @@ class MemoryPreDelegationHook(PreDelegationHook):
         else:
             logger.info("Memory manager not available - hook will be inactive")
             self.memory_manager = None
+
+        # Initialize event bus for observability
+        if EVENT_BUS_AVAILABLE and EventBus:
+            try:
+                self.event_bus = EventBus.get_instance()
+            except Exception as e:
+                logger.debug(f"Failed to get EventBus instance: {e}")
+                self.event_bus = None
+        else:
+            self.event_bus = None
 
     def execute(self, context: HookContext) -> HookResult:
         """Add agent memory to delegation context.
@@ -137,7 +159,26 @@ INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns
 
                     logger.info(f"Injected memory for agent '{agent_id}'")
 
-                    # Emit Socket.IO event for memory injected
+                    # Calculate memory size for observability
+                    memory_size = len(memory_content)
+
+                    # Emit event bus event for observability
+                    if self.event_bus:
+                        try:
+                            # Determine memory source (project or user level)
+                            # This is inferred from the memory manager's behavior
+                            memory_source = "runtime"  # Runtime loading from memory manager
+
+                            self.event_bus.publish("agent.memory.loaded", {
+                                "agent_id": agent_id,
+                                "memory_source": memory_source,
+                                "memory_size": memory_size,
+                                "timestamp": datetime.now().isoformat()
+                            })
+                        except Exception as event_error:
+                            logger.debug(f"EventBus publish failed: {event_error}")
+
+                    # Emit Socket.IO event for memory injected (legacy compatibility)
                     try:
                         socketio_server = get_socketio_server()
                         # Calculate size of injected content
