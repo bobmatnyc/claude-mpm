@@ -73,7 +73,7 @@ class ConfigCommand(BaseCommand):
             args.config_command = "auto"
             args.preview = True  # Default to preview when no args
 
-        valid_commands = ["validate", "view", "status", "auto"]
+        valid_commands = ["validate", "view", "status", "auto", "gitignore"]
         if args.config_command not in valid_commands:
             return f"Unknown config command: {args.config_command}. Valid commands: {', '.join(valid_commands)}"
 
@@ -87,6 +87,9 @@ class ConfigCommand(BaseCommand):
             return self._view_config(args)
         if args.config_command == "status":
             return self._show_config_status(args)
+        if args.config_command == "gitignore":
+            self._show_gitignore_recommendations()
+            return CommandResult.success_result("Gitignore recommendations displayed")
         if args.config_command == "auto":
             return self._auto_configure(args)
         return CommandResult.error_result(
@@ -454,12 +457,54 @@ class ConfigCommand(BaseCommand):
 
         return flattened
 
+    def _show_gitignore_recommendations(self) -> None:
+        """Show recommended .gitignore patterns for Claude MPM projects.
+
+        This displays recommended gitignore patterns without making any changes
+        to the user's .gitignore file. Users can choose to apply these manually.
+        """
+        console.print("\n[bold cyan]Recommended .gitignore Patterns for Claude MPM[/bold cyan]\n")
+
+        console.print("[bold]Track agent memories, ignore runtime data:[/bold]")
+        console.print("[dim]# Add this to your .gitignore:[/dim]\n")
+
+        # The recommended gitignore block
+        recommended_patterns = """# Claude MPM - Track memories, ignore runtime data
+.claude-mpm/*
+!.claude-mpm/memories/
+.claude-mpm/memories/*
+!.claude-mpm/memories/*.md"""
+
+        # Display in a panel for clarity
+        from rich.panel import Panel
+        panel = Panel(
+            recommended_patterns,
+            title="Recommended .gitignore Patterns",
+            border_style="green",
+            padding=(1, 2)
+        )
+        console.print(panel)
+
+        # Explanation
+        console.print("\n[bold]What this does:[/bold]")
+        console.print("  • Track [cyan].claude-mpm/memories/*.md[/cyan] (agent memories are valuable)")
+        console.print("  • Ignore everything else in [dim].claude-mpm/[/dim] (cache, logs, sessions, tmp)")
+        console.print("  • Services (mcp-vector-search, kuzu-memory, etc.) handle their own .gitignore")
+
+        console.print("\n[yellow]Note:[/yellow] These patterns are recommendations only.")
+        console.print("       Add them manually to your .gitignore if desired.\n")
+
     def _auto_configure(self, args) -> CommandResult:
         """
         Run auto-configuration to detect toolchain and recommend agents/skills.
 
         This delegates to the AutoConfigureCommand for the actual implementation.
         """
+        # Check if user wants gitignore recommendations
+        if hasattr(args, 'gitignore') and args.gitignore:
+            self._show_gitignore_recommendations()
+            return CommandResult.success_result("Gitignore recommendations displayed")
+
         try:
             # Import AutoConfigureCommand
             from .auto_configure import AutoConfigureCommand

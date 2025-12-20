@@ -141,25 +141,6 @@ class ProjectInitializer:
             if not gitignore.exists():
                 gitignore.write_text("logs/\n*.log\n*.pyc\n__pycache__/\n")
 
-            # Also ensure MCP directories are in main project .gitignore
-            try:
-                from claude_mpm.services.project.project_organizer import (
-                    ProjectOrganizer,
-                )
-
-                # Check if we're in a git repository
-                if (project_root / ".git").exists():
-                    organizer = ProjectOrganizer(project_root)
-                    # This will add MCP directories and other standard patterns
-                    organizer.update_gitignore()
-                    self.logger.debug(
-                        "Updated project .gitignore with MCP and standard patterns"
-                    )
-            except Exception as e:
-                self.logger.debug(
-                    f"Could not update project gitignore with MCP patterns: {e}"
-                )
-
             # Log successful creation with details
             self.logger.info(f"Initialized project directory at {self.project_dir}")
             self.logger.debug("Created directories: agents, config, responses, logs")
