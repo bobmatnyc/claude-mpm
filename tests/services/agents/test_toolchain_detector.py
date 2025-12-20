@@ -355,6 +355,7 @@ class TestAgentRecommendation:
 
         assert "python-engineer" in agents
         # Core agents should always be included
+        assert "engineer" in agents
         assert "qa-agent" in agents
         assert "research-agent" in agents
         assert "documentation-agent" in agents
@@ -376,6 +377,7 @@ class TestAgentRecommendation:
         assert "python-engineer" in agents
         assert "ops" in agents or "local-ops-agent" in agents
         # Core agents
+        assert "engineer" in agents
         assert "qa-agent" in agents
         assert "research-agent" in agents
         assert "documentation-agent" in agents
@@ -396,6 +398,7 @@ class TestAgentRecommendation:
 
         assert "react-engineer" in agents
         # Core agents
+        assert "engineer" in agents
         assert "qa-agent" in agents
         assert "research-agent" in agents
 
@@ -552,7 +555,7 @@ uvicorn = "^0.21.0"
         assert any(agent in agents for agent in ["ops", "local-ops-agent"])
 
         # Verify core agents included
-        for core_agent in ["qa-agent", "research-agent", "documentation-agent",
+        for core_agent in ["engineer", "qa-agent", "research-agent", "documentation-agent",
                           "memory-manager-agent", "local-ops-agent", "security-agent"]:
             assert core_agent in agents
 
@@ -591,5 +594,6 @@ uvicorn = "^0.21.0"
 
         # Verify recommendations
         assert "react-engineer" in agents
+        assert "engineer" in agents
         assert "qa-agent" in agents
         assert "research-agent" in agents

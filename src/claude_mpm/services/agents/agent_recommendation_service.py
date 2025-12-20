@@ -9,7 +9,7 @@ to specific engineer agents, plus always includes core agents.
 
 Architecture:
 - Toolchain-based recommendations: Python → python-engineer, etc.
-- Core agents (always recommended): qa-agent, memory-manager-agent, local-ops-agent,
+- Core agents (always recommended): engineer, qa-agent, memory-manager-agent, local-ops-agent,
   research-agent, documentation-agent, security-agent
 - Confidence-based filtering: Only recommend high-confidence detections
 """
@@ -33,6 +33,7 @@ class AgentRecommendationService:
     # Core agents always included - matches ToolchainDetector.CORE_AGENTS
     # Uses exact agent IDs from repository for consistency
     CORE_AGENTS = {
+        "engineer",
         "qa-agent",
         "memory-manager-agent",
         "local-ops-agent",
