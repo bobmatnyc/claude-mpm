@@ -172,14 +172,15 @@ def test_memory_injection_with_deployment_check():
     else:
         print("✗ PM memories NOT found in framework_content")
 
-    if "agent_memories" in content:
-        print(f"✓ Agent memories loaded for {len(content['agent_memories'])} agents:")
-        for agent_name in sorted(content["agent_memories"].keys()):
-            size = len(content["agent_memories"][agent_name])
-            print(f"  • {agent_name}: {size:,} bytes")
+    # NEW ARCHITECTURE: Agent memories should NOT be in framework_content
+    # They are now loaded at deployment time and appended to agent files
+    if "agent_memories" in content and len(content["agent_memories"]) > 0:
+        print("✗ Agent memories found in framework_content (should NOT be there)")
+        print(f"  Found: {list(content['agent_memories'].keys())}")
+        print("  Agent memories are now loaded at deployment time, not framework time")
     else:
         print(
-            "ℹ️  No agent memories in framework_content (all agents might be non-deployed)"  # noqa: RUF001
+            "✓ No agent memories in framework_content (correct - now loaded at deployment time)"
         )
 
     # Also verify memories are in the actual instructions
@@ -191,15 +192,13 @@ def test_memory_injection_with_deployment_check():
     else:
         print("✗ PM memories NOT in instructions")
 
+    # NEW ARCHITECTURE: Agent memories should NOT be in PM instructions
+    # They are now appended to individual agent files at deployment time
     if "## Agent Memories" in instructions:
-        print("✓ Agent memories section injected into instructions")
-        # Count how many agent memories are in instructions
-        agent_count = instructions.count("### ") - instructions.count(
-            "### Context-Aware"
-        )
-        print(f"  • {agent_count} agent memories found in instructions")
+        print("✗ Agent memories section found in instructions (should NOT be there)")
+        print("  Agent memories are now appended to agent files, not PM instructions")
     else:
-        print("✗ Agent memories NOT in instructions")
+        print("✓ Agent memories NOT in instructions (correct - now in agent files)")
 
     # Verification summary
     print("\n✨ VERIFICATION SUMMARY")
@@ -230,16 +229,19 @@ def test_memory_injection_with_deployment_check():
             "No non-deployed agents found (all memories are for deployed agents)"
         )
 
-    # Check 2: Deployed agents are loaded
+    # Check 2: Deployed agents - NEW: should NOT be in framework content
+    # Agent memories are now loaded at deployment time
     for memory_file, agent_name, is_deployed, _source in memories_to_check:
         if is_deployed:
-            # This should have been loaded
-            if agent_name not in content.get("agent_memories", {}):
+            # NEW: This should NOT be in framework content anymore
+            if agent_name in content.get("agent_memories", {}):
                 checks_failed.append(
-                    f"Deployed agent '{agent_name}' memory was not loaded"
+                    f"Deployed agent '{agent_name}' memory found in framework (should be in agent file now)"
                 )
             else:
-                checks_passed.append(f"Deployed agent '{agent_name}' memory was loaded")
+                checks_passed.append(
+                    f"Deployed agent '{agent_name}' memory not in framework (correct - now in agent file)"
+                )
 
     # Check 3: PM memories are always loaded
     if "actual_memories" in content:

@@ -71,7 +71,7 @@ def test_memory_loading():
             agent_memories = content.get("agent_memories", {})
 
             print(f"PM memory loaded: {has_pm}")
-            print(f"Agent memories loaded: {list(agent_memories.keys())}")
+            print(f"Agent memories in framework content: {list(agent_memories.keys())}")
 
             # Verify results
             print("\n" + "=" * 60)
@@ -85,50 +85,29 @@ def test_memory_loading():
                 "PM memory content not found"
             )
 
-            # Check that deployed agent memories were loaded
-            engineer_loaded = "Engineer" in agent_memories
-            print(f"✓ Engineer_memories.md loaded (deployed): {engineer_loaded}")
-            assert engineer_loaded, (
-                "Engineer_memories.md should be loaded (agent is deployed)"
-            )
-            if engineer_loaded:
-                assert "Test engineer memory" in agent_memories["Engineer"], (
-                    "Engineer memory content not found"
-                )
-
-            qa_loaded = "QA" in agent_memories
-            print(f"✓ QA_memories.md loaded (deployed): {qa_loaded}")
-            assert qa_loaded, "QA_memories.md should be loaded (agent is deployed)"
-            if qa_loaded:
-                assert "Test QA memory" in agent_memories["QA"], (
-                    "QA memory content not found"
-                )
-
-            # Check that non-deployed agent memory was NOT loaded
-            research_loaded = "Research" in agent_memories
-            print(
-                f"✓ Research_memories.md NOT loaded (not deployed): {not research_loaded}"
-            )
-            assert not research_loaded, (
-                "Research_memories.md should NOT be loaded (agent not deployed)"
+            # NEW ARCHITECTURE: Agent memories are NOT loaded at framework time
+            # They are loaded at agent deployment time and appended to each agent file
+            print("\n✓ Agent memories NOT in framework content (expected behavior)")
+            print("  Agent memories are now loaded at deployment time")
+            assert len(agent_memories) == 0, (
+                "Agent memories should NOT be loaded at framework time anymore. "
+                "They are now appended to agent files at deployment time."
             )
 
             # Check that README and NOTES were not loaded as memories
-            all_memory_content = content.get("actual_memories", "") + str(
-                agent_memories
-            )
+            all_memory_content = content.get("actual_memories", "")
             assert "README" not in all_memory_content, "README.md should NOT be loaded"
             assert "Notes" not in all_memory_content, "NOTES.md should NOT be loaded"
             print("✓ README.md and NOTES.md NOT loaded")
 
-            # Verify count (PM + 2 deployed agents)
-            total_loaded = (1 if has_pm else 0) + len(agent_memories)
-            expected_count = 3
+            # Verify count (PM only)
+            total_loaded = 1 if has_pm else 0
+            expected_count = 1
             print(
-                f"\n✓ Expected {expected_count} memory sources, loaded {total_loaded}"
+                f"\n✓ Expected {expected_count} memory source (PM only), loaded {total_loaded}"
             )
             assert total_loaded == expected_count, (
-                f"Expected {expected_count} memory sources, got {total_loaded}"
+                f"Expected {expected_count} memory sources (PM only), got {total_loaded}"
             )
 
             print("\n✅ All tests passed! Memory filtering is working correctly.")

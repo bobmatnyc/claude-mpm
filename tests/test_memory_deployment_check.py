@@ -71,85 +71,39 @@ def test_memory_deployment_check():
     # Now test actual loading with mock content
     print("\n=== Testing Actual Load Process ===")
 
-    # Mock the PM instructions to avoid loading the full framework
-    content = {"instructions": "Test instructions"}
+    # NEW ARCHITECTURE: Agent memories are no longer loaded at framework time
+    # They are loaded at agent deployment time via append_agent_memory()
+    # So we just verify the framework content structure
+    content = loader.framework_content
 
-    # Capture log messages
+    # Capture log messages (not needed anymore, but keep for reference)
     log_messages = []
 
-    class LogCapture:
-        def __init__(self, original_logger):
-            self.original = original_logger
-
-        def info(self, msg):
-            log_messages.append(("INFO", msg))
-            self.original.info(msg)
-
-        def debug(self, msg):
-            log_messages.append(("DEBUG", msg))
-            self.original.debug(msg)
-
-        def error(self, msg):
-            log_messages.append(("ERROR", msg))
-            self.original.error(msg)
-
-    # Wrap the logger
-    original_logger = loader.logger
-    loader.logger = LogCapture(original_logger)
-
-    # Load memories
-    loader._load_memory_files(content)
-
-    # Analyze log messages
-    print("\n=== Log Analysis ===")
-    skipped_messages = [msg for level, msg in log_messages if "Skipped" in msg]
-    loaded_messages = [
-        msg
-        for level, msg in log_messages
-        if "Loaded" in msg and "memory" in msg.lower()
-    ]
-
-    print(f"\nSkipped memories ({len(skipped_messages)}):")
-    for msg in skipped_messages:
-        print(f"  - {msg}")
-
-    print(f"\nLoaded memories ({len(loaded_messages)}):")
-    for msg in loaded_messages:
-        print(f"  - {msg}")
+    # Analyze framework content (NEW ARCHITECTURE)
+    print("\n=== Framework Content Analysis ===")
+    print("\nNEW ARCHITECTURE:")
+    print("  - Agent memories are NOT loaded into framework content")
+    print("  - Agent memories are loaded at deployment time")
+    print("  - Only PM memories are in framework content")
 
     # Verify specific cases
     print("\n=== Verification ===")
 
-    # Check that non-deployed agents are skipped
-    non_deployed_found = False
-    for memory_file in list(user_memories_dir.glob("*_memories.md")) + list(
-        project_memories_dir.glob("*_memories.md")
-    ):
-        if memory_file.name == "PM_memories.md":
-            continue
-        agent_name = memory_file.stem[:-9]
-        if agent_name not in deployed:
-            non_deployed_found = True
-            # Check that there's a skip message for this agent
-            expected_skip = f"{memory_file.name} (agent not deployed)"
-            if any(
-                expected_skip in msg for level, msg in log_messages if level == "INFO"
-            ):
-                print(f"✓ Correctly skipped non-deployed agent: {agent_name}")
-            else:
-                print(f"✗ Missing skip message for non-deployed agent: {agent_name}")
-
-    if not non_deployed_found:
-        print("✓ All memory files are for deployed agents (no skipping needed)")
-
-    # Check that PM memories are always loaded
-    pm_loaded = any(
-        "PM memory" in msg for level, msg in log_messages if "Loaded" in msg
-    )
+    # NEW ARCHITECTURE: Agent memories are not loaded at framework time
+    # Check that PM memories are in framework content
+    pm_loaded = "actual_memories" in content
     if pm_loaded:
-        print("✓ PM memories were loaded")
+        print("✓ PM memories are in framework content")
     else:
-        print("✗ PM memories were NOT loaded (should always be loaded)")
+        print("✗ PM memories NOT in framework content (should always be there)")
+
+    # Check that agent memories are NOT in framework content
+    agent_memories = content.get("agent_memories", {})
+    if len(agent_memories) == 0:
+        print("✓ Agent memories NOT in framework content (correct)")
+    else:
+        print(f"✗ Agent memories found in framework content: {list(agent_memories.keys())}")
+        print("  Agent memories should be loaded at deployment time, not framework time")
 
     # Check actual content
     if "actual_memories" in content:
@@ -157,12 +111,17 @@ def test_memory_deployment_check():
             f"✓ PM memories injected into content ({len(content['actual_memories'])} bytes)"
         )
 
-    if "agent_memories" in content:
-        print("✓ Agent memories injected into content:")
+    # NEW ARCHITECTURE: Agent memories should NOT be in framework content
+    # They are loaded at deployment time and appended to agent files
+    if "agent_memories" in content and len(content["agent_memories"]) > 0:
+        print("⚠ Agent memories found in framework content (should NOT be there):")
         for agent_name in content["agent_memories"]:
             print(
                 f"  - {agent_name}: {len(content['agent_memories'][agent_name])} bytes"
             )
+        print("  NOTE: Agent memories are now loaded at deployment time")
+    else:
+        print("✓ No agent memories in framework (correct - now in agent files)")
 
     print("\n=== Test Complete ===")
 

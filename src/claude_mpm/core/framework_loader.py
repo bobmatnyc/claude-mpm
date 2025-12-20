@@ -255,10 +255,12 @@ class FrameworkLoader:
         """Load actual memories using the MemoryManager service."""
         memories = self._memory_manager.load_memories()
 
+        # Only load PM memories (PM.md)
+        # Agent memories are loaded at deployment time in agent_template_builder.py
         if "actual_memories" in memories:
             content["actual_memories"] = memories["actual_memories"]
-        if "agent_memories" in memories:
-            content["agent_memories"] = memories["agent_memories"]
+        # NOTE: agent_memories are no longer loaded for PM instructions
+        # They are injected per-agent at deployment time
 
     # === Agent Discovery Methods ===
 

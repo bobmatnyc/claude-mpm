@@ -92,14 +92,17 @@ def test_memory_loading():
     else:
         print("! No PM memories found")
 
-    if "agent_memories" in content:
+    # NEW ARCHITECTURE: Agent memories should NOT be in framework content
+    # They are loaded at deployment time and appended to agent files
+    if "agent_memories" in content and len(content["agent_memories"]) > 0:
         agent_count = len(content["agent_memories"])
-        print(f"✓ Loaded agent memories for {agent_count} agents")
+        print(f"⚠ Found agent memories in framework content: {agent_count} agents")
+        print("  NOTE: Agent memories should now be in agent files, not framework")
         for agent_name in content["agent_memories"]:
             memory_size = len(content["agent_memories"][agent_name])
             print(f"  - {agent_name}: {memory_size} bytes")
     else:
-        print("! No agent memories found")
+        print("✓ No agent memories in framework (correct - now loaded at deployment)")
 
     return True
 

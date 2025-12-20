@@ -100,19 +100,9 @@ class ContentFormatter:
                 instructions += framework_content["actual_memories"]
                 instructions += "\n"
 
-            # Add agent memories if available
-            if framework_content.get("agent_memories"):
-                agent_memories = framework_content["agent_memories"]
-                if agent_memories:
-                    instructions += "\n\n## Agent Memories\n\n"
-                    instructions += "**The following are accumulated memories from specialized agents:**\n\n"
-
-                    for agent_name in sorted(agent_memories.keys()):
-                        memory_content = agent_memories[agent_name]
-                        if memory_content:
-                            instructions += f"### {agent_name.replace('_', ' ').title()} Agent Memory\n\n"
-                            instructions += memory_content
-                            instructions += "\n\n"
+            # NOTE: Agent memories are now injected at agent deployment time
+            # in agent_template_builder.py, not in PM instructions.
+            # This ensures each agent gets its own memory, not all memories embedded in PM.
 
             # Add dynamic agent capabilities section
             instructions += capabilities_section
