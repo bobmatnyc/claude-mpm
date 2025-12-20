@@ -677,9 +677,7 @@ Only include memories that are:
             content = content + memory_instructions
 
         # Combine frontmatter and content
-        agent_markdown = frontmatter + content
-
-        return agent_markdown
+        return frontmatter + content
 
     def build_agent_yaml(
         self, agent_name: str, template_path: Path, base_agent_data: dict

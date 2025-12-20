@@ -13,9 +13,8 @@ agent outputs because:
 """
 
 import re
-from typing import Dict, List
-
 from datetime import datetime
+from typing import Dict, List
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_utils import get_logger
@@ -173,7 +172,7 @@ INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns
                                 "agent_id": agent_id,
                                 "memory_source": memory_source,
                                 "memory_size": memory_size,
-                                "timestamp": datetime.now().isoformat()
+                                "timestamp": datetime.now(datetime.UTC).isoformat()
                             })
                         except Exception as event_error:
                             logger.debug(f"EventBus publish failed: {event_error}")
