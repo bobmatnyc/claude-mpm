@@ -166,14 +166,19 @@ INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns
                         try:
                             # Determine memory source (project or user level)
                             # This is inferred from the memory manager's behavior
-                            memory_source = "runtime"  # Runtime loading from memory manager
+                            memory_source = (
+                                "runtime"  # Runtime loading from memory manager
+                            )
 
-                            self.event_bus.publish("agent.memory.loaded", {
-                                "agent_id": agent_id,
-                                "memory_source": memory_source,
-                                "memory_size": memory_size,
-                                "timestamp": datetime.now(datetime.UTC).isoformat()
-                            })
+                            self.event_bus.publish(
+                                "agent.memory.loaded",
+                                {
+                                    "agent_id": agent_id,
+                                    "memory_source": memory_source,
+                                    "memory_size": memory_size,
+                                    "timestamp": datetime.now(datetime.UTC).isoformat(),
+                                },
+                            )
                         except Exception as event_error:
                             logger.debug(f"EventBus publish failed: {event_error}")
 
