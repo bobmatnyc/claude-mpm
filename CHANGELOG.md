@@ -4793,6 +4793,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+## [5.4.13] - 2025-12-20
+
+### Fixed
+- Automated release improvements
+
 ## [5.4.3] - 2025-12-15
 
 ### Fixed
