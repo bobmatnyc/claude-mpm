@@ -160,9 +160,7 @@ class TestChromeDevToolsInstaller:
 
         with patch.object(installer, "claude_config_path", mock_claude_config):
             # Should return True without attempting installation
-            with patch.object(
-                installer, "install_mcp_server"
-            ) as mock_install:
+            with patch.object(installer, "install_mcp_server") as mock_install:
                 result = installer.auto_install(quiet=True)
 
                 assert result is True

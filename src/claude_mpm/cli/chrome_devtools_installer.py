@@ -75,7 +75,13 @@ class ChromeDevToolsInstaller:
         """
         try:
             # Build the command: claude mcp add chrome-devtools -- npx chrome-devtools-mcp@latest
-            command = ["claude", "mcp", "add", self.MCP_SERVER_NAME, "--"] + self.INSTALL_COMMAND
+            command = [
+                "claude",
+                "mcp",
+                "add",
+                self.MCP_SERVER_NAME,
+                "--",
+            ] + self.INSTALL_COMMAND
 
             self.logger.debug(f"Running: {' '.join(command)}")
 
@@ -95,12 +101,16 @@ class ChromeDevToolsInstaller:
                 return True, None
 
             # Command failed
-            error_msg = f"Failed to install {self.MCP_SERVER_NAME}: {result.stderr.strip()}"
+            error_msg = (
+                f"Failed to install {self.MCP_SERVER_NAME}: {result.stderr.strip()}"
+            )
             self.logger.warning(error_msg)
             return False, error_msg
 
         except subprocess.TimeoutExpired:
-            error_msg = f"Installation of {self.MCP_SERVER_NAME} timed out after 30 seconds"
+            error_msg = (
+                f"Installation of {self.MCP_SERVER_NAME} timed out after 30 seconds"
+            )
             self.logger.warning(error_msg)
             return False, error_msg
 
