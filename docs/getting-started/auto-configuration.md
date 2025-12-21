@@ -716,9 +716,7 @@ This gives you:
 - **[Slash Commands](../reference/slash-commands.md)** - In-session command reference
 
 ### Slash Commands
-- **`/mpm-agents-detect`** - Run detection from Claude session
-- **`/mpm-agents-recommend`** - Get recommendations from Claude session
-- **`/mpm-agents-auto-configure`** - Full auto-configuration from Claude session
+- **`/mpm-configure`** - Unified configuration interface (includes detection, recommendations, and auto-configuration)
 
 ### Implementation
 - **[Toolchain Analysis Implementation](../implementation/toolchain-analyzer.md)** - Technical details

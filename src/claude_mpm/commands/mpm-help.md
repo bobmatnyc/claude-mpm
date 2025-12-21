@@ -78,14 +78,8 @@ Available Commands:
 /mpm-agents [list|deploy|remove] [name]
   Manage agent deployment
 
-/mpm-auto-configure [--preview] [--yes]
-  🤖 NEW! Automatically configure agents based on your project
-
-/mpm-agents-detect
-  🤖 NEW! Detect project toolchain and frameworks
-
-/mpm-agents-recommend
-  🤖 NEW! Show recommended agents for your project
+/mpm-configure
+  🤖 Unified configuration interface for agents, skills, and project settings
 
 /mpm-config [validate|view|status]
   Manage configuration settings
@@ -184,99 +178,24 @@ Automatically detects your project's toolchain and frameworks, then recommends a
 - **Full-stack**: Combination of backend + frontend agents
 - **Testing**: playwright-qa, api-qa based on detected test tools
 
-### /mpm-agents-detect - Toolchain Detection
+## Quick Start with Configuration
 
-**Description:**
-Scans your project to detect programming languages, frameworks, tools, and configuration files.
-
-**Usage:**
-```
-/mpm-agents-detect
-```
-
-**Output:**
-- Detected languages and versions
-- Frameworks and their configurations
-- Testing tools and test frameworks
-- Build tools and bundlers
-- Package managers
-- Deployment configurations
-
-**Example:**
-```
-/mpm-agents-detect
-
-Detected Project Stack:
-======================
-Languages: Python 3.11, Node.js 20.x
-Frameworks: FastAPI 0.104.0, React 18.2.0
-Testing: pytest, Playwright
-Build: Vite 5.0.0
-Package Manager: poetry, npm
-Deployment: Docker, Vercel
-```
-
-### /mpm-agents-recommend - Agent Recommendations
-
-**Description:**
-Based on detected toolchain, shows which agents are recommended for your project with explanations.
+For new projects or first-time setup, use the unified `/mpm-configure` command which provides:
+- Toolchain detection
+- Agent recommendations
+- Skills management
+- Auto-configuration
 
 **Usage:**
 ```
-/mpm-agents-recommend
+/mpm-configure
 ```
 
-**Output:**
-- Recommended agents with rationale
-- Agent capabilities and when to use them
-- Suggested deployment order
-- Complementary agent combinations
-
-**Example:**
-```
-/mpm-agents-recommend
-
-Recommended Agents for Your Project:
-===================================
-
-Essential Agents:
-✓ fastapi-engineer - Detected FastAPI framework
-✓ python-engineer - Python 3.11 project
-✓ api-qa - API testing and validation
-
-Recommended Agents:
-○ react-engineer - React frontend detected
-○ web-qa - Web UI testing
-○ playwright-qa - Playwright tests found
-
-Optional Agents:
-○ docker-ops - Docker configuration found
-○ vercel-ops - Vercel deployment detected
-```
-
-## Quick Start with Auto-Configuration
-
-For new projects or first-time setup:
-
-1. **Preview what would be configured:**
-   ```
-   /mpm-auto-configure --preview
-   ```
-
-2. **Review recommendations:**
-   ```
-   /mpm-agents-recommend
-   ```
-
-3. **Apply configuration:**
-   ```
-   /mpm-auto-configure
-   ```
-
-Or skip straight to auto-apply:
-```
-/mpm-auto-configure --yes
-```
+The interactive menu will guide you through:
+1. Detecting your project's toolchain
+2. Viewing recommended agents
+3. Deploying agents and skills
+4. Managing configuration settings
 
 ## Supported Technology Stacks
 

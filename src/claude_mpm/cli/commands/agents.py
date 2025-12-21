@@ -157,9 +157,6 @@ class AgentsCommand(AgentCommand):
                 "configure": self._configure_deployment,
                 # Migration command (DEPRECATION support)
                 "migrate-to-project": self._migrate_to_project,
-                # Auto-configuration commands (TSK-0054 Phase 5)
-                "detect": self._detect_toolchain,
-                "recommend": self._recommend_agents,
                 # Agent selection modes (Phase 3: 1M-382)
                 "deploy-minimal": self._deploy_minimal_configuration,
                 "deploy-auto": self._deploy_auto_configure,
@@ -1825,33 +1822,6 @@ class AgentsCommand(AgentCommand):
                 f"Error in interactive configuration: {e}"
             )
 
-    def _detect_toolchain(self, args) -> CommandResult:
-        """Detect project toolchain without deploying agents.
-
-        Part of TSK-0054 Phase 5: Auto-configuration CLI integration.
-        """
-        try:
-            from .agents_detect import AgentsDetectCommand
-
-            cmd = AgentsDetectCommand()
-            return cmd.run(args)
-        except Exception as e:
-            self.logger.error(f"Error detecting toolchain: {e}", exc_info=True)
-            return CommandResult.error_result(f"Error detecting toolchain: {e}")
-
-    def _recommend_agents(self, args) -> CommandResult:
-        """Recommend agents based on project toolchain.
-
-        Part of TSK-0054 Phase 5: Auto-configuration CLI integration.
-        """
-        try:
-            from .agents_recommend import AgentsRecommendCommand
-
-            cmd = AgentsRecommendCommand()
-            return cmd.run(args)
-        except Exception as e:
-            self.logger.error(f"Error recommending agents: {e}", exc_info=True)
-            return CommandResult.error_result(f"Error recommending agents: {e}")
 
     def _migrate_to_project(self, args) -> CommandResult:
         """Migrate user-level agents to project-level.

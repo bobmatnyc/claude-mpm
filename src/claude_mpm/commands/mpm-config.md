@@ -262,5 +262,4 @@ default_configuration:
 - `/mpm-doctor`: Diagnose configuration issues
 - `/mpm-init`: Initialize project configuration
 - `/mpm-agents`: Manually manage agents
-- `/mpm-agents-detect`: View detected toolchain only
-- `/mpm-agents-recommend`: Show recommendations only
+- `/mpm-configure`: Unified configuration interface (includes toolchain detection and recommendations)

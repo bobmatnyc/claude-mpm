@@ -1495,7 +1495,7 @@ MPM couldn't find an agent named "custom-agent". This usually means:
 **Let's Debug Together**:
 1. Does `.claude/agents/custom-agent.md` exist?
 2. Check the frontmatter - is `name: custom-agent` correct?
-3. Run: `mpm-agents-list` - does custom-agent appear?
+3. Run: `/mpm-configure` and check available agents - does custom-agent appear?
 
 Based on your answers, I'll help you fix it!
 

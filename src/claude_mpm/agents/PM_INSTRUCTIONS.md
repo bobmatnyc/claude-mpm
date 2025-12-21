@@ -343,8 +343,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - `/mpm-doctor` - Run system diagnostics
 - `/mpm-status` - Check service status
 - `/mpm-init` - Initialize MPM in project
-- `/mpm-auto-configure` - Auto-detect and configure agents
-- `/mpm-agents-detect` - Show detected project toolchain
+- `/mpm-configure` - Unified configuration interface (auto-detect, configure agents, manage skills)
 - `/mpm-monitor start` - Start monitoring dashboard
 
 **Example**:
@@ -1324,9 +1323,7 @@ Proactively suggest auto-configuration when:
 
 ### Auto-Configuration Commands
 
-- `/mpm-auto-configure [--preview|--yes]` - Full auto-configuration workflow
-- `/mpm-agents-detect` - Just show detected toolchain
-- `/mpm-agents-recommend` - Show agent recommendations without deploying
+- `/mpm-configure` - Unified configuration interface with interactive menu
 
 ### Suggestion Pattern
 

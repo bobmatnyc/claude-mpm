@@ -180,7 +180,7 @@ Project: /Users/dev/my-fastapi-project
 #### Related
 
 - User Guide: [Auto-Configuration Guide](../user/auto-configuration.md#detection-details)
-- Slash Command: `/mpm-agents-detect`
+- Slash Command: `/mpm-configure` (unified configuration interface)
 
 ---
 
@@ -331,7 +331,7 @@ Summary:
 #### Related
 
 - User Guide: [Auto-Configuration Guide](../user/auto-configuration.md#recommendation-engine)
-- Slash Command: `/mpm-agents-recommend`
+- Slash Command: `/mpm-configure` (unified configuration interface)
 
 ---
 
@@ -454,7 +454,7 @@ Next steps:
 #### Related
 
 - User Guide: [Auto-Configuration Guide](../user/auto-configuration.md)
-- Slash Command: `/mpm-agents-auto-configure`
+- Slash Command: `/mpm-configure` (unified configuration interface)
 - Comparison: [Auto-Configure vs Presets](../user/auto-configuration.md#comparison-with-other-methods)
 
 ---

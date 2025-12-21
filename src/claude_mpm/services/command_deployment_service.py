@@ -26,6 +26,11 @@ class CommandDeploymentService(BaseService):
         "mpm-config-view.md",  # Replaced by mpm-config.md
         "mpm-resume.md",  # Replaced by mpm-session-resume.md
         "mpm-ticket.md",  # Replaced by mpm-ticket-view.md
+        # Removed - consolidated into /mpm-configure
+        "mpm-agents-list.md",  # Consolidated into /mpm-configure
+        "mpm-agents-detect.md",  # Consolidated into /mpm-configure
+        "mpm-agents-auto-configure.md",  # Consolidated into /mpm-configure
+        "mpm-agents-recommend.md",  # Consolidated into /mpm-configure
     ]
 
     def __init__(self):
@@ -317,6 +322,11 @@ class CommandDeploymentService(BaseService):
             "mpm-config-view.md": "mpm-config.md",
             "mpm-resume.md": "mpm-session-resume.md",
             "mpm-ticket.md": "mpm-ticket-view.md",
+            # Removed commands - consolidated into /mpm-configure
+            "mpm-agents-list.md": "mpm-configure (use /mpm-configure)",
+            "mpm-agents-detect.md": "mpm-configure (use /mpm-configure)",
+            "mpm-agents-auto-configure.md": "mpm-configure (use /mpm-configure)",
+            "mpm-agents-recommend.md": "mpm-configure (use /mpm-configure)",
         }
 
         for deprecated_cmd in self.DEPRECATED_COMMANDS:
