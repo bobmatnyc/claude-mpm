@@ -1,3 +1,8 @@
+## v5.4.19 (2025-12-21)
+
+### Fixed
+- **Version Management**: Patch release for version consistency
+
 ## v5.4.18 (2025-12-21)
 
 ### Added
