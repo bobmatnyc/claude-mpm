@@ -1,3 +1,8 @@
+## v5.4.16 (2025-12-21)
+
+### Added
+- **Agent Summary**: Display total agent count on startup for better visibility
+
 ## v5.4.15 (2025-12-21)
 
 ### Added
