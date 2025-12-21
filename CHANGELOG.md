@@ -1,3 +1,20 @@
+## v5.4.15 (2025-12-21)
+
+### Added
+- **Chrome DevTools MCP**: Auto-install chrome-devtools-mcp server on first use
+  - Detects if server is not installed and prompts user to install
+  - Uses npx for zero-configuration installation
+  - Adds server to Claude Code config automatically
+- **Web QA Agent**: Updated configuration for enhanced browser automation capabilities
+
+### Fixed
+- **Code Quality**: Format chrome_devtools_installer.py and tests for ruff compliance
+
+## v5.4.14 (2025-12-21)
+
+### Fixed
+- **Dependencies**: Update uv.lock for version consistency
+
 ## v5.4.13 (2025-12-20)
 
 ### Changed
