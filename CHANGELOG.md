@@ -1,3 +1,10 @@
+## v5.4.18 (2025-12-21)
+
+### Added
+- **Project Organization**: Expand /mpm-organize to full project organization
+  - Enhanced organization capabilities for better project management
+  - Improved structure and workflow for project organization tasks
+
 ## v5.4.17 (2025-12-21)
 
 ### Changed
