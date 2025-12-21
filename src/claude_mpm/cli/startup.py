@@ -883,6 +883,90 @@ def sync_remote_skills_on_startup():
         # Continue execution - skill sync failure shouldn't block startup
 
 
+def show_agent_summary():
+    """
+    Display agent availability summary on startup.
+
+    WHY: Users should see at a glance how many agents are available and installed
+    without having to run /mpm-agents list.
+
+    DESIGN DECISION: Fast, non-blocking check that counts agents from the deployment
+    directory. Shows simple "X installed / Y available" format. Failures are silent
+    to avoid blocking startup.
+    """
+    try:
+        from pathlib import Path
+
+        # Count deployed agents (installed)
+        deploy_target = Path.cwd() / ".claude" / "agents"
+        installed_count = 0
+        if deploy_target.exists():
+            # Count .md files, excluding README and other docs
+            agent_files = [
+                f
+                for f in deploy_target.glob("*.md")
+                if not f.name.startswith(("README", "INSTRUCTIONS", "."))
+            ]
+            installed_count = len(agent_files)
+
+        # Count available agents in cache (from remote sources)
+        cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        available_count = 0
+        if cache_dir.exists():
+            # Use same filtering logic as agent deployment (lines 486-533 in startup.py)
+            pm_templates = {
+                "base-agent.md",
+                "circuit_breakers.md",
+                "pm_examples.md",
+                "pm_red_flags.md",
+                "research_gate_examples.md",
+                "response_format.md",
+                "ticket_completeness_examples.md",
+                "validation_templates.md",
+                "git_file_tracking.md",
+            }
+            doc_files = {
+                "readme.md",
+                "changelog.md",
+                "contributing.md",
+                "implementation-summary.md",
+                "reorganization-plan.md",
+                "auto-deploy-index.md",
+            }
+
+            # Find all markdown files in agents/ directories
+            all_md_files = list(cache_dir.rglob("*.md"))
+            agent_files = [
+                f
+                for f in all_md_files
+                if (
+                    "/agents/" in str(f)
+                    and f.name.lower() not in pm_templates
+                    and f.name.lower() not in doc_files
+                    and f.name.lower() != "base-agent.md"
+                    and not any(
+                        part in str(f).split("/")
+                        for part in ["dist", "build", ".cache"]
+                    )
+                )
+            ]
+            available_count = len(agent_files)
+
+        # Display summary if we have agents
+        if installed_count > 0 or available_count > 0:
+            print(
+                f"✓ Agents: {installed_count} installed / {available_count} available",
+                flush=True,
+            )
+
+    except Exception as e:
+        # Silent failure - agent summary is informational only
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to generate agent summary: {e}")
+
+
 def auto_install_chrome_devtools_on_startup():
     """
     Automatically install chrome-devtools-mcp on startup if enabled.
@@ -946,6 +1030,7 @@ def run_background_services():
     verify_mcp_gateway_startup()
     check_for_updates_async()
     sync_remote_agents_on_startup()  # Sync agents from remote sources
+    show_agent_summary()  # Display agent counts after deployment
 
     # Skills deployment order (precedence: remote > bundled)
     # 1. Deploy bundled skills first (base layer from package)
