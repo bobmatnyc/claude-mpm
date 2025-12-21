@@ -883,6 +883,47 @@ def sync_remote_skills_on_startup():
         # Continue execution - skill sync failure shouldn't block startup
 
 
+def auto_install_chrome_devtools_on_startup():
+    """
+    Automatically install chrome-devtools-mcp on startup if enabled.
+
+    WHY: Browser automation capabilities should be available out-of-the-box without
+    manual MCP server configuration. chrome-devtools-mcp provides powerful browser
+    interaction tools for Claude Code.
+
+    DESIGN DECISION: Non-blocking installation that doesn't prevent startup if it fails.
+    Respects user configuration setting (enabled by default). Only installs if not
+    already configured in Claude.
+    """
+    try:
+        # Check if auto-install is disabled in config
+        from ..config.config_loader import ConfigLoader
+
+        config_loader = ConfigLoader()
+        try:
+            config = config_loader.load_main_config()
+            chrome_devtools_config = config.get("chrome_devtools", {})
+            if not chrome_devtools_config.get("auto_install", True):
+                # Auto-install disabled, skip silently
+                return
+        except Exception:
+            # If config loading fails, assume auto-install is enabled (default)
+            pass
+
+        # Import and run chrome-devtools installation
+        from ..cli.chrome_devtools_installer import auto_install_chrome_devtools
+
+        auto_install_chrome_devtools(quiet=False)
+
+    except Exception as e:
+        # Import logger here to avoid circular imports
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to auto-install chrome-devtools-mcp: {e}")
+        # Continue execution - chrome-devtools installation failure shouldn't block startup
+
+
 def run_background_services():
     """
     Initialize all background services on startup.
@@ -916,6 +957,9 @@ def run_background_services():
     discover_and_link_runtime_skills()  # Discovery: user-added skills
 
     deploy_output_style_on_startup()
+
+    # Auto-install chrome-devtools-mcp for browser automation
+    auto_install_chrome_devtools_on_startup()
 
 
 def setup_mcp_server_logging(args):
