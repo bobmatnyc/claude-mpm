@@ -1,3 +1,12 @@
+## v5.4.20 (2025-12-21)
+
+### Changed
+- **PM Instructions**: Enhanced PM agent delegation guidelines
+  - Added forbidden MCP tools section for browser testing tools
+  - Clarified PM must delegate to web-qa for browser operations
+  - Documented Circuit Breaker #6 triggers for violations
+  - Added delegation guidelines for browser testing tasks
+
 ## v5.4.19 (2025-12-21)
 
 ### Fixed
