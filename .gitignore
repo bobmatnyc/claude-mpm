@@ -337,3 +337,4 @@ dist/
 # Research docs (work in progress)
 docs/research/*.md
 mcp-browser-extensions/
+tests/eval/reports/
