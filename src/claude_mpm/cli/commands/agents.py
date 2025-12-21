@@ -1822,7 +1822,6 @@ class AgentsCommand(AgentCommand):
                 f"Error in interactive configuration: {e}"
             )
 
-
     def _migrate_to_project(self, args) -> CommandResult:
         """Migrate user-level agents to project-level.
 

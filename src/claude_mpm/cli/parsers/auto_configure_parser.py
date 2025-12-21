@@ -118,5 +118,3 @@ Examples:
     )
 
     return auto_configure_parser
-
-

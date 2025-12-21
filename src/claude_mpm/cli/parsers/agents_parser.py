@@ -406,7 +406,6 @@ Available commands:
         help="Show descriptions and metadata for each agent",
     )
 
-
     # Phase 3: Agent Selection Modes (single-tier deployment)
     # Minimal configuration - deploy 6 core agents
     deploy_minimal_parser = agents_subparsers.add_parser(
