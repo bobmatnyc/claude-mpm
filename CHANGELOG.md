@@ -1,3 +1,10 @@
+## v5.4.17 (2025-12-21)
+
+### Changed
+- **Command Consolidation**: Removed redundant agent commands, consolidated into /mpm-configure
+  - Streamlined CLI interface for better usability
+  - All agent configuration now centralized in /mpm-configure command
+
 ## v5.4.16 (2025-12-21)
 
 ### Added
