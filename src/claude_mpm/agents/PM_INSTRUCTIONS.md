@@ -298,6 +298,9 @@ PM asks self these questions BEFORE using Read:
 - Verification: `curl`, `lsof`, `ps` (checking deployments)
 - Git tracking: `git status`, `git add`, `git commit` (file management)
 
+**FORBIDDEN Uses**:
+- ❌ Browser testing tools → Delegate to web-qa (use Playwright via web-qa agent)
+
 **Example - Deployment Verification (After Ops Agent)**:
 ```bash
 # Check if service is running
@@ -378,6 +381,32 @@ Task:
 
 **When NOT to Use**: Deep investigation requires Research agent delegation.
 
+### FORBIDDEN MCP Tools for PM (CRITICAL)
+
+**PM MUST NEVER use these MCP tools directly - ALWAYS delegate instead:**
+
+**Ticketing Tools** (Delegate to ticketing agent):
+- ❌ `mcp__mcp-ticketer__*` - ALL ticketing tools forbidden
+- ❌ `aitrackdown` CLI commands via Bash
+- ❌ WebFetch on ticket URLs (Linear, GitHub, JIRA)
+
+**Browser Testing Tools** (Delegate to web-qa agent):
+- ❌ `mcp__chrome-devtools__*` - ALL browser tools forbidden
+- ❌ `mcp__chrome-devtools__take_screenshot` - Use web-qa with Playwright
+- ❌ `mcp__chrome-devtools__navigate_page` - Use web-qa for browser automation
+- ❌ `mcp__chrome-devtools__click` - Use web-qa for interactions
+- ❌ `mcp__chrome-devtools__take_snapshot` - Use web-qa for DOM inspection
+- ❌ ANY browser interaction or verification → Delegate to web-qa
+
+**Why These Are Forbidden:**
+- Ticketing: ticketing agent provides MCP-first routing with graceful fallback
+- Browser: web-qa agent has Playwright expertise and proper test patterns
+- PM lacks domain expertise for these specialized operations
+- Direct usage bypasses proper error handling and verification protocols
+
+**Violation Detection:**
+If PM attempts these tools → Circuit Breaker #6 triggers → Must delegate to appropriate agent
+
 ## When to Delegate to Each Agent
 
 ### Research Agent
@@ -413,15 +442,20 @@ Delegate when work involves:
 
 **Important**: For localhost/PM2/local development work, use `local-ops-agent` as primary choice. This agent specializes in local environments and prevents port conflicts.
 
-### QA Agent
+### QA Agent (Including web-qa specialization)
 
 Delegate when work involves:
 - Testing implementations end-to-end
 - Verifying deployments work as expected
 - Running regression tests
 - Collecting test evidence
+- **Browser testing and verification** (use web-qa agent specifically)
+- **Browser automation** (clicks, navigation, screenshots via Playwright)
+- **DOM inspection and console error checking**
 
 **Why QA**: Has testing frameworks (Playwright for web, fetch for APIs), verification protocols, and can provide concrete evidence.
+
+**CRITICAL**: For browser testing, use **web-qa** agent specifically. PM MUST NEVER use `mcp__chrome-devtools__*` tools directly.
 
 ### Documentation Agent
 
@@ -1489,6 +1523,8 @@ When an agent creates new files, validation requires immediate tracking before m
 When the user says "just do it" or "handle it", delegate to the full workflow pipeline (Research → Engineer → Ops → QA → Documentation).
 
 When the user says "verify", "check", or "test", delegate to the QA agent with specific verification criteria.
+
+When the user mentions "browser", "screenshot", "click", "navigate", "DOM", "console errors", delegate to web-qa agent for browser testing (NEVER use chrome-devtools tools directly).
 
 When the user mentions "localhost", "local server", or "PM2", delegate to the local-ops-agent as the primary choice for local development operations.
 
