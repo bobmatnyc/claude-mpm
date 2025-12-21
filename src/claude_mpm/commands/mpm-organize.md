@@ -4,11 +4,11 @@ command: organize
 aliases: [mpm-organize]
 migration_target: /mpm/system:organize
 category: system
-description: Consolidate, prune, triage, and organize documentation files
+description: Organize all project files including documentation, source code, tests, scripts, and configuration with intelligent consolidation and pruning
 ---
 # /mpm-organize
 
-Consolidate, prune, triage, and organize your project's documentation files into a clean, structured format.
+Organize ALL project files into a clean, structured format with intelligent detection of existing patterns. Includes special handling for documentation consolidation, pruning, and triage into research/user/developer categories.
 
 ## Usage
 
@@ -17,26 +17,35 @@ Consolidate, prune, triage, and organize your project's documentation files into
 /mpm-organize --dry-run             # Preview changes without applying
 /mpm-organize --force               # Proceed even with uncommitted changes
 /mpm-organize --no-backup           # Skip backup creation (not recommended)
+/mpm-organize --docs-only           # Only organize documentation files
 ```
 
 ## Description
 
-This slash command delegates to the **Project Organizer agent** to perform intelligent documentation organization. The agent analyzes your documentation files, detects existing structure patterns, consolidates duplicates, removes stale content, and organizes everything into a clean, logical structure.
+This slash command delegates to the **Project Organizer agent** to perform intelligent project organization across ALL file types. The agent analyzes your project structure, detects existing patterns, consolidates duplicates, removes stale content, and organizes everything into a clean, logical structure.
 
-**Documentation Focus**: This command ONLY touches documentation files (.md, .rst, .txt docs). Source code, configuration files, tests, and build artifacts are never modified.
+**Comprehensive Scope**: This command organizes ALL project files including:
+- **Documentation** (.md, .rst, .txt) - consolidate, prune, triage into research/user/developer
+- **Source code** - proper module structure and organization
+- **Tests** - organized test suites
+- **Scripts** - automation tools and utilities
+- **Configuration** - project config files
 
-**Smart Detection**: The agent first looks for existing documentation organization patterns in your project. If found, it respects and extends those patterns. If not found, it organizes into a standard structure: `docs/research/`, `docs/user/`, `docs/developer/`.
+**Smart Detection**: The agent first looks for existing organization patterns in your project (e.g., PROJECT_ORGANIZATION.md, CONTRIBUTING.md). If found, it respects and extends those patterns. If not found, it applies framework-appropriate defaults.
 
 ## Features
 
-- **📁 Pattern Detection**: Analyzes existing documentation structure and conventions
-- **🔄 Consolidation**: Merges duplicate or related documentation files
-- **✂️ Pruning**: Identifies and removes outdated, stale, or redundant docs
-- **📋 Triage**: Categorizes docs into appropriate directories (research/user/developer)
+- **📁 Pattern Detection**: Analyzes existing project structure and detects organization conventions
+- **🔄 Consolidation**: Merges duplicate or related files (especially documentation)
+- **✂️ Pruning**: Identifies and removes outdated, stale, or redundant content
+- **📋 Triage**: Categorizes documentation into research/user/developer directories
+- **🏗️ Code Organization**: Ensures proper module structure and file placement
+- **🧪 Test Organization**: Organizes test suites into proper directories
+- **📜 Script Organization**: Moves scripts to dedicated scripts/ directory
 - **✅ Safe Operations**: Uses `git mv` for tracked files to preserve history
 - **💾 Automatic Backups**: Creates backups before major reorganizations
 - **📊 Organization Report**: Detailed summary of changes and recommendations
-- **🎯 Documentation Only**: Never touches code, config, tests, or build files
+- **🎯 Smart Scope**: Full project or documentation-only mode (--docs-only)
 
 ## Options
 
@@ -45,11 +54,17 @@ This slash command delegates to the **Project Organizer agent** to perform intel
 - `--no-backup`: Skip backup creation before reorganization (not recommended)
 - `--force`: Proceed even with uncommitted changes (use with caution)
 
+### Scope Options
+- `--docs-only`: Only organize documentation files (legacy behavior)
+- `--code-only`: Only organize source code files
+- `--tests-only`: Only organize test files
+- `--scripts-only`: Only organize script files
+
 ### Organization Options
-- `--consolidate-only`: Only consolidate duplicate docs, skip reorganization
-- `--prune-only`: Only identify and remove stale docs
-- `--triage-only`: Only categorize docs without moving them
-- `--no-prune`: Skip pruning phase (keep all existing docs)
+- `--consolidate-only`: Only consolidate duplicate files, skip reorganization
+- `--prune-only`: Only identify and remove stale files
+- `--triage-only`: Only categorize files without moving them
+- `--no-prune`: Skip pruning phase (keep all existing files)
 
 ### Output Options
 - `--verbose`: Show detailed analysis and reasoning
@@ -59,15 +74,17 @@ This slash command delegates to the **Project Organizer agent** to perform intel
 ## What This Command Does
 
 ### 1. Pattern Detection
-- Scans existing documentation structure
-- Identifies documentation organization conventions
-- Detects if project uses custom docs structure
-- Falls back to standard structure if no pattern found
+- Scans existing project structure across all file types
+- Identifies organization conventions (PROJECT_ORGANIZATION.md, CONTRIBUTING.md)
+- Detects framework-specific patterns (Next.js, Django, Flask, etc.)
+- Detects existing documentation organization
+- Falls back to framework-appropriate defaults if no pattern found
 
-### 2. Standard Documentation Structure
+### 2. Standard Project Structure
 
-If no existing pattern is detected, organizes into:
+If no existing pattern is detected, organizes according to project type:
 
+**Documentation** (all project types):
 ```
 docs/
 ├── research/     # Research findings, analysis, investigations
@@ -83,94 +100,151 @@ docs/
     └── contributing/ # Contribution guidelines
 ```
 
-### 3. Documentation Consolidation
+**Source Code** (framework-specific):
+- Python: `src/package_name/` structure
+- JavaScript/TypeScript: Framework conventions (Next.js, React, etc.)
+- Other: Language-appropriate module structure
 
-Identifies and merges:
+**Tests**: `tests/` with mirrored source structure
+
+**Scripts**: `scripts/` for automation tools
+
+**Configuration**: Root or `config/` depending on project size
+
+### 3. File Consolidation
+
+Identifies and merges duplicate/similar files:
+
+**Documentation**:
 - Duplicate README files
 - Similar guide documents
 - Redundant architecture notes
 - Multiple versions of same doc
 - Scattered meeting notes
 
-### 4. Documentation Pruning
+**Code**:
+- Duplicate utility functions
+- Similar helper modules
+- Redundant configuration files
 
-Removes or archives:
-- Outdated documentation (based on last modified date)
+### 4. Content Pruning
+
+Removes or archives stale/obsolete content:
+
+**Documentation**:
+- Outdated documentation (last modified >6 months)
 - Stale TODO lists and notes
 - Obsolete architecture documents
 - Deprecated API documentation
 - Empty or placeholder files
 
-### 5. Documentation Triage
+**Code**:
+- Commented-out code blocks
+- Unused imports and dependencies
+- Dead code (unreferenced functions/classes)
 
-Categorizes documentation by content:
+### 5. File Categorization & Triage
+
+Categorizes and organizes files by purpose:
+
+**Documentation**:
 - **Research**: Analysis, spikes, investigations, experiments
 - **User**: Guides, tutorials, FAQs, how-tos
 - **Developer**: API docs, architecture, contributing guides
 
+**Code**:
+- Source code to proper module structure
+- Tests to organized test suites
+- Scripts to scripts/ directory
+- Configuration to appropriate locations
+
 ### 6. Safe File Movement
 
-For each documentation file:
-1. Analyzes content and purpose
-2. Determines optimal location based on patterns
+For each file being organized:
+1. Analyzes file type, content, and purpose
+2. Determines optimal location based on detected patterns
 3. Uses `git mv` for version-controlled files
 4. Preserves git history
-5. Creates backup before changes
+5. Creates backup before major changes
+6. Validates move doesn't break imports or references
 
 ### 7. Backup Creation
 
 Before reorganization:
 ```bash
-backup_docs_YYYYMMDD_HHMMSS.tar.gz  # Documentation backup
+backup_project_YYYYMMDD_HHMMSS.tar.gz  # Full project backup (or docs-only)
 ```
 
-### 8. Files That Are NEVER Touched
+### 8. Protected Files (Never Moved)
 
-This command explicitly ignores:
-- Source code files (.py, .js, .ts, .java, etc.)
-- Configuration files (.json, .yaml, .toml, etc.)
-- Test files (*_test.*, test_*.*, *.test.*, *.spec.*)
-- Build artifacts (dist/, build/, node_modules/, etc.)
-- Package files (package.json, pyproject.toml, etc.)
+These files remain in project root:
+- `README.md`, `CHANGELOG.md`, `LICENSE.md`
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`
+- `CLAUDE.md`, `CODE.md`, `DEVELOPER.md`
+- Package files: `package.json`, `pyproject.toml`, `Cargo.toml`, etc.
+- Build configs: `Makefile`, `Dockerfile`, `docker-compose.yml`
+- Git files: `.gitignore`, `.gitattributes`
+- Environment templates: `.env.example`, `.env.sample`
 
-### 9. Organization Report
+### 9. Files Excluded from Organization
+
+Never touched:
+- Build artifacts: `dist/`, `build/`, `node_modules/`, `__pycache__/`
+- Version control: `.git/`, `.svn/`, `.hg/`
+- Virtual environments: `venv/`, `.venv/`, `env/`
+- IDE configs: `.vscode/`, `.idea/` (unless --config-only)
+
+### 10. Organization Report
 
 Generates detailed report including:
-- Documentation files moved and new locations
-- Files consolidated (merged)
-- Files pruned (removed or archived)
+- All files moved with before/after locations
+- Files consolidated (merged) with change summary
+- Files pruned (removed or archived) with reasoning
 - Pattern analysis and detected conventions
-- Recommendations for documentation improvements
+- Import/reference validation results
+- Recommendations for further improvements
 
 ## Examples
 
-### Preview Documentation Organization (Recommended First Run)
+### Preview Full Project Organization (Recommended First Run)
 ```bash
 /mpm-organize --dry-run
 ```
-Shows what documentation changes would be made without applying them.
+Shows what changes would be made across ALL project files without applying them.
 
-### Full Documentation Organization with Backup
+### Preview Documentation Organization Only
+```bash
+/mpm-organize --docs-only --dry-run
+```
+Shows what documentation changes would be made (legacy behavior).
+
+### Full Project Organization with Backup
 ```bash
 /mpm-organize
 ```
-Interactive mode with automatic backup before changes.
+Interactive mode with automatic backup before organizing all project files.
 
-### Consolidate Duplicate Docs Only
+### Organize Tests and Scripts Only
+```bash
+/mpm-organize --tests-only --scripts-only
+```
+Focus on organizing test files and scripts, leave everything else untouched.
+
+### Consolidate Duplicate Files Only
 ```bash
 /mpm-organize --consolidate-only --dry-run
 ```
-Preview which duplicate documentation files would be merged.
+Preview which duplicate files would be merged across the project.
 
-### Identify Stale Documentation
+### Identify Stale Files (All Types)
 ```bash
 /mpm-organize --prune-only --dry-run
 ```
-See which outdated documentation files would be removed or archived.
+See which outdated files would be removed or archived.
 
 ### Triage Documentation by Category
 ```bash
-/mpm-organize --triage-only --verbose
+/mpm-organize --docs-only --triage-only --verbose
 ```
 Categorize documentation into research/user/developer without moving files.
 
@@ -178,37 +252,103 @@ Categorize documentation into research/user/developer without moving files.
 ```bash
 /mpm-organize --no-prune
 ```
-Organize and consolidate docs but keep all existing files.
+Organize and consolidate all files but keep everything (no deletions).
 
 ### Save Organization Report
 ```bash
-/mpm-organize --report /tmp/docs-organize-report.md
+/mpm-organize --report /tmp/project-organize-report.md
 ```
-Save detailed documentation organization report to file for review.
+Save detailed organization report to file for review.
 
 ## Implementation
 
-This slash command delegates to the **Project Organizer agent** (`project-organizer`), which performs intelligent documentation organization based on detected patterns and content analysis.
+This slash command delegates to the **Project Organizer agent** (`project-organizer`), which performs intelligent project organization based on detected patterns and content analysis across all file types.
 
 The agent receives the command options as context and then:
-1. Scans for documentation files (.md, .rst, .txt)
-2. Detects existing documentation structure patterns
-3. Analyzes content to categorize by type (research/user/developer)
-4. Identifies duplicate and stale documentation
-5. Creates safe reorganization plan
-6. Executes file moves with git integration (preserves history)
-7. Generates detailed organization report
+1. **Scans** for all project files (or scope-specific with --docs-only, --tests-only, etc.)
+2. **Detects** existing organization patterns (PROJECT_ORGANIZATION.md, CONTRIBUTING.md, framework conventions)
+3. **Analyzes** file content, purpose, and relationships
+4. **Categorizes** files by type and purpose (documentation by audience, code by module, tests by coverage)
+5. **Identifies** duplicates, stale content, and misplaced files
+6. **Validates** that moves won't break imports or references
+7. **Creates** safe reorganization plan with detailed reasoning
+8. **Executes** file moves with git integration (preserves history)
+9. **Generates** comprehensive organization report
 
 When you invoke `/mpm-organize [options]`, Claude MPM:
 - Passes the options to the Project Organizer agent as task context
-- The agent executes the documentation organization workflow
-- Results are returned to you through the agent's structured output
+- The agent executes the comprehensive organization workflow
+- Results are returned through structured output with detailed change log
 
-**Important**: This command explicitly filters to documentation files only and never touches source code, configuration, tests, or build artifacts.
+**Scope Control**:
+- Default: Organizes ALL project files (comprehensive)
+- `--docs-only`: Only documentation files (legacy behavior)
+- `--code-only`, `--tests-only`, `--scripts-only`: Specific file types
 
 ## Expected Output
 
-### Dry Run Mode
+### Dry Run Mode (Full Project)
+```
+🔍 Analyzing project structure...
+✓ Detected PROJECT_ORGANIZATION.md - using project standards
+✓ Found Python Flask project with standard structure
+✓ Found 23 documentation files
+✓ Found 15 misplaced test files
+✓ Found 8 scripts in root directory
+✓ Identified 3 duplicate READMEs
+✓ Found 5 stale files
+
+📁 Proposed Changes:
+
+  Documentation:
+    Consolidate:
+      → Merge README_OLD.md + README_BACKUP.md → docs/user/README.md
+      → Merge architecture-v1.md + architecture-v2.md → docs/developer/architecture/decisions.md
+
+    Organize:
+      docs/research/
+        ← spike-oauth.md (from root)
+        ← performance-analysis.md (from root)
+      docs/user/guides/
+        ← getting-started.md (from root)
+        ← installation.md (from docs/)
+
+    Prune:
+      ✂ Remove TODO_2023.md (last modified 18 months ago)
+      ✂ Archive deprecated-api.md → docs/_archive/
+
+  Tests:
+    tests/unit/
+      ← test_auth.py (from root)
+      ← test_utils.py (from src/)
+    tests/integration/
+      ← test_api_integration.py (from root)
+
+  Scripts:
+    scripts/
+      ← deploy.sh (from root)
+      ← run_tests.py (from root)
+      ← backup_db.sh (from utils/)
+
+  Source Code:
+    src/myapp/utils/
+      → Consolidate helpers.py + utility_functions.py → utils.py
+
+📊 Summary:
+  - 8 documentation files to move
+  - 4 files to consolidate (2 merged)
+  - 5 files to prune (3 removed, 2 archived)
+  - 15 test files to organize
+  - 8 scripts to move
+  - 2 code files to consolidate
+
+Run without --dry-run to apply changes.
+```
+
+### Dry Run Mode (Documentation Only)
+```bash
+/mpm-organize --docs-only --dry-run
+```
 ```
 🔍 Analyzing documentation structure...
 ✓ Detected existing pattern: docs/guides/ and docs/reference/
@@ -224,107 +364,134 @@ When you invoke `/mpm-organize [options]`, Claude MPM:
 
   Prune:
     ✂ Remove TODO_2023.md (last modified 18 months ago)
-    ✂ Archive deprecated-api.md → docs/archive/
+    ✂ Archive deprecated-api.md → docs/_archive/
     ✂ Remove empty placeholder.md
 
   Organize:
     docs/research/
       ← spike-oauth.md (from root)
       ← performance-analysis.md (from root)
-
     docs/user/guides/
       ← getting-started.md (from root)
       ← installation.md (from docs/)
-
-    docs/developer/api/
-      ← api-reference.md (from root)
 
 📊 Summary:
   - 8 documentation files to move
   - 4 files to consolidate (2 merged files)
   - 5 files to prune (3 removed, 2 archived)
-  - 0 code files touched
 
 Run without --dry-run to apply changes.
 ```
 
 ### Actual Organization
 ```
-🔍 Analyzing documentation structure...
-✓ Detected existing pattern: docs/guides/ and docs/reference/
-✓ Created backup: backup_docs_20250102_143022.tar.gz
+🔍 Analyzing project structure...
+✓ Detected PROJECT_ORGANIZATION.md - using project standards
+✓ Created backup: backup_project_20250102_143022.tar.gz
 
-📁 Organizing documentation...
+📁 Organizing project files...
   ✓ Consolidated README_OLD.md + README_BACKUP.md → docs/user/README.md
   ✓ Moved spike-oauth.md → docs/research/
-  ✓ Moved getting-started.md → docs/user/guides/
+  ✓ Moved test_auth.py → tests/unit/
+  ✓ Moved deploy.sh → scripts/
+  ✓ Consolidated helpers.py + utility_functions.py → src/myapp/utils/utils.py
   ✓ Pruned TODO_2023.md (stale)
   ✓ Archived deprecated-api.md
 
-✅ Documentation organization complete!
+✅ Project organization complete!
 
-📊 Report saved to: /tmp/docs-organization-report.md
+📊 Report saved to: /tmp/project-organization-report.md
 ```
 
 ## Safety Guarantees
 
-- **Documentation Backup**: Backup of all documentation files before changes (unless --no-backup)
+- **Full Project Backup**: Backup of all affected files before changes (unless --no-backup)
 - **Git Integration**: Uses `git mv` to preserve file history for tracked files
-- **Dry Run Available**: Preview all changes before applying
-- **Code Never Touched**: Source code, configs, tests, and builds are explicitly excluded
+- **Dry Run Available**: Preview all changes before applying (--dry-run)
+- **Import Validation**: Validates that code moves won't break imports/references
+- **Protected Files**: Critical root files never moved (README.md, package.json, etc.)
 - **Rollback Support**: Backup enables full rollback if needed
 - **Conservative Pruning**: Stale files are archived rather than deleted when in doubt
+- **Scope Control**: Limit changes to specific file types (--docs-only, --tests-only, etc.)
 
 ## When to Use This Command
 
 Use `/mpm-organize` when:
-- Documentation has become scattered or disorganized
-- You have duplicate README files or guides
-- Documentation is outdated and needs cleanup
-- Starting a new project and establishing docs structure
-- Before a major release (clean up docs)
-- When onboarding new team members (clear documentation)
-- After accumulating research notes and spikes
+- **Project has grown organically** and structure has become messy
+- **Test files are scattered** across the codebase
+- **Scripts are in root** instead of scripts/ directory
+- **Documentation is disorganized** with duplicates and stale content
+- **Code has duplicated utilities** that should be consolidated
+- **Starting a new project** and establishing clean structure
+- **Before a major release** (clean up everything)
+- **After a major refactor** (reorganize changed files)
+- **When onboarding new team members** (clear, organized structure)
+- **After accumulating research notes** and experimental code
 
 ## Best Practices
 
-1. **Always Start with Dry Run**: Use `--dry-run` first to preview documentation changes
-2. **Commit First**: Commit your work before organizing (or use --force)
-3. **Review Proposed Consolidations**: Check merged files to ensure no information loss
-4. **Verify Pruning Decisions**: Review stale files before removal, some may still be valuable
-5. **Update Links**: After reorganization, check that internal documentation links still work
-6. **Document New Structure**: Update README or docs index to reflect new organization
+1. **Always Start with Dry Run**: Use `--dry-run` first to preview ALL changes
+2. **Commit First**: Commit your work before organizing (or use --force, but not recommended)
+3. **Start Small**: Use `--docs-only` first, then expand to full project organization
+4. **Review Proposed Changes**: Carefully review consolidations and moves
+5. **Verify Pruning Decisions**: Review stale files before removal, some may still be valuable
+6. **Test After Organization**: Run tests after organizing to ensure imports still work
+7. **Update Links**: Check that documentation links and imports still work
+8. **Document Structure**: Update README or PROJECT_ORGANIZATION.md to reflect new structure
+9. **Use Scope Flags**: Limit scope with `--docs-only`, `--tests-only`, etc. for focused changes
+10. **Review Report**: Always check the organization report for detailed change log
 
 ## Notes
 
 - This slash command delegates to the **Project Organizer agent** (`project-organizer`)
-- The agent performs intelligent documentation organization based on content analysis
-- **Only touches documentation files**: .md, .rst, .txt documentation files
-- **Never modifies**: Source code, tests, configs, or build artifacts
+- The agent performs intelligent organization across **all project file types**
+- **Default behavior**: Organizes ALL files (comprehensive project organization)
+- **Legacy behavior**: Use `--docs-only` to only organize documentation (old default)
 - Integrates with git to preserve file history
 - Creates comprehensive reports for audit trails
-- Can be run repeatedly safely (idempotent)
-- Detects existing documentation patterns and respects them
-- Falls back to standard docs structure if no pattern detected
+- Can be run repeatedly safely (idempotent within scope)
+- Detects existing patterns and respects them (PROJECT_ORGANIZATION.md, CONTRIBUTING.md)
+- Falls back to framework-appropriate defaults if no pattern detected
 
-## What Gets Organized
+## What Gets Organized (by Default)
 
-**Documentation files that ARE organized:**
+**ALL project files by default**, including:
+
+**Documentation**:
 - Markdown files (*.md)
 - reStructuredText files (*.rst)
 - Text documentation (*.txt in docs/ or with doc-like names)
-- README files in various locations
+- README files in various locations (except root README.md)
 - Guide and tutorial files
 - Architecture and design documents
 
-**Files that are NEVER touched:**
-- Source code (.py, .js, .ts, .java, .go, .rs, etc.)
-- Configuration files (.json, .yaml, .toml, .ini, etc.)
-- Test files (*_test.*, test_*.*, *.test.*, *.spec.*)
+**Source Code**:
+- Python files (*.py) - organized into proper module structure
+- JavaScript/TypeScript (*.js, *.ts, *.jsx, *.tsx)
+- Other language source files
+- Utilities and helper modules
+
+**Tests**:
+- Unit tests (*_test.*, test_*.*)
+- Integration tests
+- Test fixtures and utilities
+
+**Scripts**:
+- Shell scripts (*.sh, *.bash)
+- Python scripts (identified by patterns)
+- Build and deployment scripts
+
+**Configuration** (with caution):
+- Project-specific configs (not package.json, pyproject.toml, etc.)
+- Environment config templates
+
+**Files NEVER touched (protected)**:
+- Root README.md, CHANGELOG.md, LICENSE.md
 - Package files (package.json, pyproject.toml, Cargo.toml, etc.)
-- Build artifacts (dist/, build/, target/, node_modules/, etc.)
+- Build artifacts (dist/, build/, target/, node_modules/, __pycache__/)
 - Git files (.git/, .gitignore, .gitattributes)
 - CI/CD files (.github/, .gitlab-ci.yml, etc.)
+- Virtual environments (venv/, .venv/, env/)
 
 ## Related Commands
 
