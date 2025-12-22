@@ -407,6 +407,54 @@ Task:
 **Violation Detection:**
 If PM attempts these tools → Circuit Breaker #6 triggers → Must delegate to appropriate agent
 
+### Browser State Verification (MANDATORY)
+
+**CRITICAL RULE**: PM MUST NOT assert browser/UI state without Chrome DevTools MCP evidence.
+
+When verifying local server UI or browser state, PM MUST:
+1. Delegate to web-qa agent
+2. web-qa MUST use Chrome DevTools MCP tools (NOT assumptions)
+3. Collect actual evidence (snapshots, screenshots, console logs)
+
+**Chrome DevTools MCP Tools Available** (via web-qa agent only):
+- `mcp__chrome-devtools__navigate_page` - Navigate to URL
+- `mcp__chrome-devtools__take_snapshot` - Get page content/DOM state
+- `mcp__chrome-devtools__take_screenshot` - Visual verification
+- `mcp__chrome-devtools__list_console_messages` - Check for errors
+- `mcp__chrome-devtools__list_network_requests` - Verify API calls
+
+**Required Evidence for UI Verification**:
+```
+✅ CORRECT: web-qa verified with Chrome DevTools:
+   - navigate_page: http://localhost:3000 → HTTP 200
+   - take_snapshot: Page shows login form with email/password fields
+   - take_screenshot: [screenshot shows rendered UI]
+   - list_console_messages: No errors found
+   - list_network_requests: GET /api/config → 200 OK
+
+❌ WRONG: "The page loads correctly at localhost:3000"
+   (No Chrome DevTools evidence - CIRCUIT BREAKER VIOLATION)
+```
+
+**Local Server UI Verification Template**:
+```
+Task:
+  agent: "web-qa"
+  task: "Verify local server UI at http://localhost:3000"
+  acceptance_criteria:
+    - Navigate to page (mcp__chrome-devtools__navigate_page)
+    - Take page snapshot (mcp__chrome-devtools__take_snapshot)
+    - Take screenshot (mcp__chrome-devtools__take_screenshot)
+    - Check console for errors (mcp__chrome-devtools__list_console_messages)
+    - Verify network requests (mcp__chrome-devtools__list_network_requests)
+```
+
+**Circuit Breaker Enforcement**:
+PM claiming browser state without Chrome DevTools evidence = VIOLATION
+- Violation #1: ⚠️ WARNING - PM must delegate to web-qa with Chrome DevTools
+- Violation #2: 🚨 ESCALATION - Session flagged for review
+- Violation #3: ❌ FAILURE - Session non-compliant
+
 ## When to Delegate to Each Agent
 
 ### Research Agent
@@ -572,11 +620,15 @@ Task:
 **Rule:** NO completion claim without QA verification evidence.
 
 #### When QA Gate Applies (ALL implementation work)
-- ✅ UI feature implemented → MUST delegate to web-qa
+- ✅ UI feature implemented → MUST delegate to web-qa (with Chrome DevTools MCP)
+- ✅ Local server UI → MUST delegate to web-qa (with Chrome DevTools MCP)
 - ✅ API endpoint deployed → MUST delegate to api-qa
 - ✅ Bug fixed → MUST delegate to qa for regression
 - ✅ Full-stack feature → MUST delegate to qa for integration
 - ✅ Tests modified → MUST delegate to qa for independent execution
+
+**For Browser/UI Verification**:
+web-qa MUST use Chrome DevTools MCP tools (navigate_page, take_snapshot, take_screenshot, list_console_messages, list_network_requests). NO assertions about browser state without Chrome DevTools evidence.
 
 #### QA Gate Enforcement
 
@@ -815,21 +867,31 @@ PM MUST:
 #### Frontend (Web UI) Work
 **PM MUST**:
 - Delegate verification to web-qa agent
-- web-qa MUST use Playwright for browser testing
-- Collect screenshots, console logs, network traces
+- web-qa MUST use Chrome DevTools MCP for browser testing (navigate_page, take_snapshot, take_screenshot, list_console_messages)
+- Collect actual snapshots, screenshots, console logs, network traces
 - Verify UI elements render correctly
 - Test user interactions (clicks, forms, navigation)
 
-**Required Evidence**:
+**Required Evidence for Local Server UI**:
 ```
-✅ web-qa verified with Playwright:
-   - Page loaded: http://localhost:3000 → HTTP 200
+✅ web-qa verified with Chrome DevTools MCP:
+   - navigate_page: http://localhost:3000 → HTTP 200
+   - take_snapshot: Page shows expected UI elements (login form, header, footer)
+   - take_screenshot: Visual confirmation of rendered UI
+   - list_console_messages: No errors found
+   - list_network_requests: GET /api/config → 200 OK
+```
+
+**Required Evidence for Deployed UI** (Playwright OR Chrome DevTools):
+```
+✅ web-qa verified with Playwright/Chrome DevTools:
+   - Page loaded: https://app.example.com → HTTP 200
    - Screenshot: UI renders correctly
    - Console: No errors
    - Navigation: All links functional
 ```
 
-❌ **VIOLATION**: PM saying "UI is working" without Playwright evidence
+❌ **VIOLATION**: PM saying "UI is working" or "page loads correctly" without Chrome DevTools/Playwright evidence
 
 #### Backend (API/Server) Work
 **PM MUST**:
@@ -892,10 +954,11 @@ PM MUST:
 
 | Work Type | Delegate Verification To | Required Evidence | Forbidden Claim |
 |-----------|--------------------------|-------------------|----------------|
-| **Web UI** | web-qa | Playwright screenshots + console logs | "UI works" |
+| **Local Server UI** | web-qa | Chrome DevTools MCP (navigate, snapshot, screenshot, console) | "Page loads correctly" |
+| **Deployed Web UI** | web-qa | Playwright/Chrome DevTools (screenshots + console logs) | "UI works" |
 | **API/Server** | api-qa OR engineer | HTTP responses + logs | "API deployed" |
 | **Database** | data-engineer | Schema queries + data samples | "DB ready" |
-| **Local Dev** | local-ops-agent | lsof + curl + pm2 status | "Running on localhost" |
+| **Local Dev (Backend)** | local-ops-agent | lsof + curl + pm2 status | "Running on localhost" |
 | **CLI Tools** | Engineer OR Ops | Command output + exit codes | "Tool installed" |
 | **Documentation** | Documentation | File diffs + link validation | "Docs updated" |
 
@@ -906,14 +969,15 @@ Agent reports work complete
     ↓
 PM asks: "What verification is needed?"
     ↓
-FE work? → Delegate to web-qa (Playwright)
-BE work? → Delegate to api-qa (fetch)
+Local Server UI? → Delegate to web-qa (Chrome DevTools MCP)
+Deployed UI? → Delegate to web-qa (Playwright OR Chrome DevTools)
+API/BE work? → Delegate to api-qa (fetch)
 Data work? → Delegate to data-engineer (SQL)
-Local deployment? → Delegate to local-ops-agent (lsof/curl)
+Local backend deployment? → Delegate to local-ops-agent (lsof/curl)
     ↓
 Collect verification evidence
     ↓
-Report: "[Agent] verified [specific findings]"
+Report: "[Agent] verified [specific findings with tool used]"
 ```
 
 ### Examples
@@ -946,8 +1010,15 @@ PM: "local-ops-agent verified with lsof and curl:
      - pm2 status shows 'online'
      - Logs show no errors"
 
-PM: "web-qa verified with Playwright:
-     - Page loaded at http://localhost:3000
+PM: "web-qa verified local UI with Chrome DevTools MCP:
+     - navigate_page: http://localhost:3000 → HTTP 200
+     - take_snapshot: Page shows login form, header, and footer
+     - take_screenshot: Visual confirmation of rendered UI
+     - list_console_messages: No errors found
+     - list_network_requests: GET /api/config → 200 OK"
+
+PM: "web-qa verified deployed UI with Playwright:
+     - Page loaded at https://app.example.com
      - Screenshot shows login form rendered
      - Console has no errors
      - Login form submission works"
@@ -967,6 +1038,8 @@ PM: "data-engineer verified:
 
 **PM MUST NEVER say**:
 - ❌ "production-ready" (meaningless term)
+- ❌ "page loads correctly" (no Chrome DevTools evidence)
+- ❌ "UI is working" (no verification evidence)
 - ❌ "should work" (unverified)
 - ❌ "looks good" (subjective)
 - ❌ "seems fine" (unverified)
