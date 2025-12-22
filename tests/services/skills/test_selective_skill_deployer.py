@@ -461,9 +461,18 @@ class TestCleanupOrphanSkillsWithUserRequested:
         # Create index with deployed skills
         index = {
             "deployed_skills": {
-                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
-                "user-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
-                "orphan-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "agent-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
+                "user-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
+                "orphan-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
             },
             "user_requested_skills": ["user-skill"],
             "last_sync": "2025-01-01T00:00:00Z",
@@ -494,8 +503,14 @@ class TestCleanupOrphanSkillsWithUserRequested:
         # Create index without user-requested skills
         index = {
             "deployed_skills": {
-                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
-                "orphan-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "agent-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
+                "orphan-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
             },
             "user_requested_skills": [],
             "last_sync": "2025-01-01T00:00:00Z",
@@ -523,8 +538,14 @@ class TestCleanupOrphanSkillsWithUserRequested:
         # Create index with skills that are all protected
         index = {
             "deployed_skills": {
-                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
-                "user-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "agent-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
+                "user-skill": {
+                    "collection": "test",
+                    "deployed_at": "2025-01-01T00:00:00Z",
+                },
             },
             "user_requested_skills": ["user-skill"],
             "last_sync": "2025-01-01T00:00:00Z",
@@ -556,13 +577,21 @@ class TestDeploymentIndexBackwardCompatibility:
 
         # Create old-format index (no user_requested_skills)
         import json
+
         index_path = claude_skills_dir / ".mpm-deployed-skills.json"
-        index_path.write_text(json.dumps({
-            "deployed_skills": {
-                "skill-a": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"}
-            },
-            "last_sync": "2025-01-01T00:00:00Z"
-        }))
+        index_path.write_text(
+            json.dumps(
+                {
+                    "deployed_skills": {
+                        "skill-a": {
+                            "collection": "test",
+                            "deployed_at": "2025-01-01T00:00:00Z",
+                        }
+                    },
+                    "last_sync": "2025-01-01T00:00:00Z",
+                }
+            )
+        )
 
         # Load index - should add empty user_requested_skills
         index = load_deployment_index(claude_skills_dir)
@@ -580,7 +609,7 @@ class TestDeploymentIndexBackwardCompatibility:
                 "skill-a": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"}
             },
             "user_requested_skills": ["skill-b", "skill-c"],
-            "last_sync": "2025-01-01T00:00:00Z"
+            "last_sync": "2025-01-01T00:00:00Z",
         }
 
         # Save and reload

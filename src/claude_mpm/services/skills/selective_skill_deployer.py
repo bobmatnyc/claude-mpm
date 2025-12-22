@@ -366,7 +366,9 @@ def untrack_skill(claude_skills_dir: Path, skill_name: str) -> None:
 
     if skill_name in index["deployed_skills"]:
         del index["deployed_skills"][skill_name]
-        index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        index["last_sync"] = (
+            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        )
         save_deployment_index(claude_skills_dir, index)
         logger.debug(f"Untracked skill: {skill_name}")
 

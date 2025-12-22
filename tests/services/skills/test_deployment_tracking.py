@@ -35,8 +35,14 @@ class TestLoadDeploymentIndex:
         """Test loading valid existing index file."""
         index_data = {
             "deployed_skills": {
-                "skill-a": {"collection": "claude-mpm", "deployed_at": "2025-12-22T10:00:00Z"},
-                "skill-b": {"collection": "obra", "deployed_at": "2025-12-22T11:00:00Z"},
+                "skill-a": {
+                    "collection": "claude-mpm",
+                    "deployed_at": "2025-12-22T10:00:00Z",
+                },
+                "skill-b": {
+                    "collection": "obra",
+                    "deployed_at": "2025-12-22T11:00:00Z",
+                },
             },
             "last_sync": "2025-12-22T11:30:00Z",
             "user_requested_skills": [],
@@ -60,7 +66,11 @@ class TestLoadDeploymentIndex:
         result = load_deployment_index(tmp_path)
 
         # Should return default empty index (includes user_requested_skills)
-        assert result == {"deployed_skills": {}, "last_sync": None, "user_requested_skills": []}
+        assert result == {
+            "deployed_skills": {},
+            "last_sync": None,
+            "user_requested_skills": [],
+        }
 
     def test_load_corrupted_index(self, tmp_path):
         """Test loading corrupted JSON file."""
@@ -70,7 +80,11 @@ class TestLoadDeploymentIndex:
         result = load_deployment_index(tmp_path)
 
         # Should return default empty index on error (includes user_requested_skills)
-        assert result == {"deployed_skills": {}, "last_sync": None, "user_requested_skills": []}
+        assert result == {
+            "deployed_skills": {},
+            "last_sync": None,
+            "user_requested_skills": [],
+        }
 
     def test_load_index_missing_keys(self, tmp_path):
         """Test loading index with missing keys."""
@@ -94,7 +108,10 @@ class TestSaveDeploymentIndex:
         """Test saving index to file."""
         index = {
             "deployed_skills": {
-                "skill-a": {"collection": "claude-mpm", "deployed_at": "2025-12-22T10:00:00Z"}
+                "skill-a": {
+                    "collection": "claude-mpm",
+                    "deployed_at": "2025-12-22T10:00:00Z",
+                }
             },
             "last_sync": "2025-12-22T10:00:00Z",
         }
@@ -144,7 +161,9 @@ class TestTrackDeployedSkill:
 
     def test_track_new_skill(self, tmp_path):
         """Test tracking a new skill deployment."""
-        with patch("claude_mpm.services.skills.selective_skill_deployer.datetime") as mock_dt:
+        with patch(
+            "claude_mpm.services.skills.selective_skill_deployer.datetime"
+        ) as mock_dt:
             mock_dt.utcnow.return_value.isoformat.return_value = "2025-12-22T10:00:00"
 
             track_deployed_skill(tmp_path, "test-skill", "claude-mpm")
@@ -153,7 +172,10 @@ class TestTrackDeployedSkill:
             index = load_deployment_index(tmp_path)
             assert "test-skill" in index["deployed_skills"]
             assert index["deployed_skills"]["test-skill"]["collection"] == "claude-mpm"
-            assert index["deployed_skills"]["test-skill"]["deployed_at"] == "2025-12-22T10:00:00Z"
+            assert (
+                index["deployed_skills"]["test-skill"]["deployed_at"]
+                == "2025-12-22T10:00:00Z"
+            )
             assert index["last_sync"] == "2025-12-22T10:00:00Z"
 
     def test_track_multiple_skills(self, tmp_path):
@@ -171,18 +193,25 @@ class TestTrackDeployedSkill:
     def test_track_overwrites_existing(self, tmp_path):
         """Test tracking same skill again updates metadata."""
         # First deployment
-        with patch("claude_mpm.services.skills.selective_skill_deployer.datetime") as mock_dt:
+        with patch(
+            "claude_mpm.services.skills.selective_skill_deployer.datetime"
+        ) as mock_dt:
             mock_dt.utcnow.return_value.isoformat.return_value = "2025-12-22T10:00:00"
             track_deployed_skill(tmp_path, "test-skill", "old-collection")
 
         # Second deployment
-        with patch("claude_mpm.services.skills.selective_skill_deployer.datetime") as mock_dt:
+        with patch(
+            "claude_mpm.services.skills.selective_skill_deployer.datetime"
+        ) as mock_dt:
             mock_dt.utcnow.return_value.isoformat.return_value = "2025-12-22T11:00:00"
             track_deployed_skill(tmp_path, "test-skill", "new-collection")
 
         index = load_deployment_index(tmp_path)
         assert index["deployed_skills"]["test-skill"]["collection"] == "new-collection"
-        assert index["deployed_skills"]["test-skill"]["deployed_at"] == "2025-12-22T11:00:00Z"
+        assert (
+            index["deployed_skills"]["test-skill"]["deployed_at"]
+            == "2025-12-22T11:00:00Z"
+        )
 
 
 class TestUntrackSkill:
@@ -218,7 +247,9 @@ class TestUntrackSkill:
         """Test that untrack updates last_sync timestamp."""
         track_deployed_skill(tmp_path, "skill-a", "collection")
 
-        with patch("claude_mpm.services.skills.selective_skill_deployer.datetime") as mock_dt:
+        with patch(
+            "claude_mpm.services.skills.selective_skill_deployer.datetime"
+        ) as mock_dt:
             mock_dt.utcnow.return_value.isoformat.return_value = "2025-12-22T12:00:00"
             untrack_skill(tmp_path, "skill-a")
 
@@ -359,6 +390,7 @@ class TestCleanupOrphanSkills:
         # Mock shutil.rmtree to raise an error
         # Need to patch in the cleanup_orphan_skills function's scope
         import shutil
+
         original_rmtree = shutil.rmtree
 
         def mock_rmtree(path, *args, **kwargs):

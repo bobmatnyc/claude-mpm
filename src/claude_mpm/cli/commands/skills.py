@@ -1103,9 +1103,7 @@ class SkillsManagementCommand(BaseCommand):
                 console.print(
                     "\n[bold cyan]Switching to User Mode - Manual Skill Selection[/bold cyan]\n"
                 )
-                console.print(
-                    "[dim]Fetching available skills from GitHub...[/dim]\n"
-                )
+                console.print("[dim]Fetching available skills from GitHub...[/dim]\n")
 
                 # Get available skills
                 available_result = self.skills_deployer.list_available_skills()

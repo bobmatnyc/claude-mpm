@@ -800,7 +800,9 @@ def sync_remote_skills_on_startup():
             total_skill_count = len(all_skills)
 
             # Determine skill count based on resolution
-            skill_count = len(skills_to_deploy) if skills_to_deploy else total_skill_count
+            skill_count = (
+                len(skills_to_deploy) if skills_to_deploy else total_skill_count
+            )
 
             if skill_count > 0:
                 # Deploy skills with resolved filter
@@ -1010,7 +1012,10 @@ def show_skill_summary():
         if skills_dir.exists():
             # Scan all collection directories (those with .git)
             for collection_dir in skills_dir.iterdir():
-                if not collection_dir.is_dir() or not (collection_dir / ".git").exists():
+                if (
+                    not collection_dir.is_dir()
+                    or not (collection_dir / ".git").exists()
+                ):
                     continue
 
                 # Count skill directories in this collection
@@ -1023,7 +1028,8 @@ def show_skill_summary():
                         root_path = Path(root)
                         relative_parts = root_path.relative_to(collection_dir).parts
                         if not any(
-                            part.startswith(".") or part in ["dist", "build", "__pycache__"]
+                            part.startswith(".")
+                            or part in ["dist", "build", "__pycache__"]
                             for part in relative_parts
                         ):
                             available_count += 1

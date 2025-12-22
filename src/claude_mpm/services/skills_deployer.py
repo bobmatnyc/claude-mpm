@@ -226,7 +226,9 @@ class SkillsDeployerService(LoggerMixin):
 
         # Extract skill names for cleanup (needed regardless of deployment outcome)
         filtered_skills_names = [
-            skill["name"] for skill in filtered_skills if isinstance(skill, dict) and "name" in skill
+            skill["name"]
+            for skill in filtered_skills
+            if isinstance(skill, dict) and "name" in skill
         ]
 
         for skill in filtered_skills:
@@ -777,7 +779,11 @@ class SkillsDeployerService(LoggerMixin):
         return filtered
 
     def _deploy_skill(
-        self, skill: Dict, collection_dir: Path, collection_name: str, force: bool = False
+        self,
+        skill: Dict,
+        collection_dir: Path,
+        collection_name: str,
+        force: bool = False,
     ) -> Dict:
         """Deploy a single skill to ~/.claude/skills/ and track deployment.
 
