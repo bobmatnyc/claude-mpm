@@ -93,23 +93,44 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         ? event.timestamp
         : new Date(event.timestamp).toISOString();
 
-      // Extract tool_parameters (standard hook event structure, matches tools.svelte.ts)
+      // Extract hook_input_data (hook event structure from backend)
+      const hookInputData = eventData.hook_input_data &&
+                            typeof eventData.hook_input_data === 'object' &&
+                            !Array.isArray(eventData.hook_input_data)
+        ? eventData.hook_input_data as Record<string, unknown>
+        : null;
+
+      // Extract params from hook_input_data
+      const hookParams = hookInputData?.params &&
+                         typeof hookInputData.params === 'object' &&
+                         !Array.isArray(hookInputData.params)
+        ? hookInputData.params as Record<string, unknown>
+        : null;
+
+      // Extract tool_parameters (alternative format)
       const toolParams = eventData.tool_parameters &&
                          typeof eventData.tool_parameters === 'object' &&
                          !Array.isArray(eventData.tool_parameters)
         ? eventData.tool_parameters as Record<string, unknown>
         : null;
 
-      // Extract file path - prioritize tool_parameters like tools store does
-      const filePath = (eventData.file_path || toolParams?.file_path || eventData.path || toolParams?.path) as string | undefined;
+      // Extract file path - prioritize hook event format (backend provides hook_input_data.params.file_path)
+      const filePath = (
+        hookParams?.file_path ||      // Hook event format (PRIORITY 1)
+        hookParams?.path ||
+        toolParams?.file_path ||      // Alternative format
+        toolParams?.path ||
+        eventData.file_path ||
+        eventData.path
+      ) as string | undefined;
 
       if (!filePath) {
         console.log(`[FILES] Event ${index}: No file path found`);
         return;
       }
 
-      // Get tool name (matches tools.svelte.ts extraction)
-      const toolName = eventData.tool_name as string | undefined;
+      // Get tool name (check both hook_input_data and direct field)
+      const toolName = (hookInputData?.tool_name || eventData.tool_name) as string | undefined;
 
       // DEBUG: Log detailed extraction info
       console.log(`[FILES] Event ${index}: Found file path:`, {
@@ -139,8 +160,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Write operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Write') {
-        // Extract content from tool_parameters (Write parameters are in pre_tool)
-        const content = toolParams?.content as string | undefined;
+        // Extract content - prioritize hook params, fallback to tool_parameters
+        const content = (hookParams?.content || toolParams?.content) as string | undefined;
 
         operation = {
           type: 'Write',
@@ -153,9 +174,9 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Edit operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Edit') {
-        // Extract from tool_parameters (Edit parameters are in pre_tool)
-        const oldString = toolParams?.old_string as string | undefined;
-        const newString = toolParams?.new_string as string | undefined;
+        // Extract from hook params first, fallback to tool_parameters
+        const oldString = (hookParams?.old_string || toolParams?.old_string) as string | undefined;
+        const newString = (hookParams?.new_string || toolParams?.new_string) as string | undefined;
 
         operation = {
           type: 'Edit',
@@ -169,8 +190,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Grep operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Grep') {
-        // Extract pattern from tool_parameters
-        const pattern = toolParams?.pattern as string | undefined;
+        // Extract pattern - prioritize hook params
+        const pattern = (hookParams?.pattern || toolParams?.pattern) as string | undefined;
 
         operation = {
           type: 'Grep',
@@ -183,8 +204,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Glob operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Glob') {
-        // Extract pattern from tool_parameters
-        const pattern = toolParams?.pattern as string | undefined;
+        // Extract pattern - prioritize hook params
+        const pattern = (hookParams?.pattern || toolParams?.pattern) as string | undefined;
 
         operation = {
           type: 'Glob',
