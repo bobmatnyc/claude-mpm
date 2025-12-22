@@ -1,3 +1,29 @@
+## v5.4.21 (2025-12-22)
+
+### Added
+- **Selective Skills**: Deploy only skills referenced by active agents
+  - Reduces deployed skills from ~78 to ~20 for typical projects
+  - Skill statistics displayed on startup
+  - User skill override via configuration.yaml
+  - Skills command for manual skill management
+
+### Changed
+- **PM Instructions**: Chrome DevTools MCP now mandatory for browser verification
+  - PM agent must verify browser operations using Chrome DevTools
+  - Enhanced delegation guidelines for web testing tasks
+
+### Fixed
+- **Dashboard**: File tracking, viewer, and styling improvements
+  - Comprehensive test suite for dashboard functionality
+  - Socket.IO integration tests
+  - File tracking validation scripts
+- **Code Quality**: Resolve ruff linting errors
+  - Replace datetime.utcnow() with timezone-aware datetime.now(timezone.utc)
+  - Fix import ordering and unused variables
+  - Remove unnecessary else clauses
+- **Dependencies**: Update uv.lock and fix deprecation warnings
+  - Migrate from dependency-groups to project.dependencies
+
 ## v5.4.20 (2025-12-21)
 
 ### Changed
