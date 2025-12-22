@@ -39,7 +39,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Tuple
 
 import yaml
 
@@ -254,6 +254,7 @@ def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
     Returns:
         Dict containing:
         - deployed_skills: Dict mapping skill name to deployment metadata
+        - user_requested_skills: List of skill names manually requested by user
         - last_sync: ISO timestamp of last sync operation
 
     Example:
@@ -264,7 +265,7 @@ def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
 
     if not index_path.exists():
         logger.debug(f"No deployment index found at {index_path}, creating new")
-        return {"deployed_skills": {}, "last_sync": None}
+        return {"deployed_skills": {}, "user_requested_skills": [], "last_sync": None}
 
     try:
         with open(index_path, encoding="utf-8") as f:
@@ -273,17 +274,20 @@ def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
         # Ensure required keys exist
         if "deployed_skills" not in index:
             index["deployed_skills"] = {}
+        if "user_requested_skills" not in index:
+            index["user_requested_skills"] = []
         if "last_sync" not in index:
             index["last_sync"] = None
 
         logger.debug(
-            f"Loaded deployment index: {len(index['deployed_skills'])} tracked skills"
+            f"Loaded deployment index: {len(index['deployed_skills'])} tracked skills, "
+            f"{len(index['user_requested_skills'])} user-requested"
         )
         return index
 
     except (json.JSONDecodeError, OSError) as e:
         logger.warning(f"Failed to load deployment index: {e}, creating new")
-        return {"deployed_skills": {}, "last_sync": None}
+        return {"deployed_skills": {}, "user_requested_skills": [], "last_sync": None}
 
 
 def save_deployment_index(claude_skills_dir: Path, index: Dict[str, Any]) -> None:
@@ -374,9 +378,11 @@ def cleanup_orphan_skills(
 
     This function:
     1. Loads deployment tracking index
-    2. Identifies orphaned skills (tracked but not in required_skills)
+    2. Identifies orphaned skills (tracked but not in required_skills AND not user-requested)
     3. Removes orphaned skill directories from ~/.claude/skills/
     4. Updates deployment index
+
+    User-requested skills are NEVER cleaned up as orphans - they are treated as required.
 
     Args:
         claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
@@ -401,9 +407,12 @@ def cleanup_orphan_skills(
 
     index = load_deployment_index(claude_skills_dir)
     tracked_skills = set(index["deployed_skills"].keys())
+    user_requested = set(index.get("user_requested_skills", []))
 
-    # Find orphaned skills: tracked by mpm but not in required_skills
-    orphaned = tracked_skills - required_skills
+    # Find orphaned skills: tracked by mpm but not in required_skills AND not user-requested
+    # User-requested skills are treated as required and NEVER cleaned up
+    all_required = required_skills | user_requested
+    orphaned = tracked_skills - all_required
 
     if not orphaned:
         logger.info("No orphaned skills to remove")
@@ -466,3 +475,229 @@ def cleanup_orphan_skills(
         "kept_count": kept_count,
         "errors": errors,
     }
+
+
+# === Configuration Management Functions ===
+
+
+def save_agent_skills_to_config(skills: List[str], config_path: Path) -> None:
+    """Save agent-scanned skills to configuration.yaml under skills.agent_referenced.
+
+    Args:
+        skills: List of skill names scanned from deployed agents
+        config_path: Path to configuration.yaml file
+
+    Example:
+        >>> skills = ["systematic-debugging", "typescript-core"]
+        >>> save_agent_skills_to_config(skills, Path(".claude-mpm/configuration.yaml"))
+    """
+    import yaml
+
+    try:
+        # Load existing configuration (or create empty dict)
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+
+        # Ensure skills section exists
+        if "skills" not in config:
+            config["skills"] = {}
+
+        # Update agent_referenced skills (sorted for consistency)
+        config["skills"]["agent_referenced"] = sorted(skills)
+
+        # Ensure user_defined exists (but don't overwrite if set)
+        if "user_defined" not in config["skills"]:
+            config["skills"]["user_defined"] = []
+
+        # Save configuration
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(
+            f"Saved {len(skills)} agent-referenced skills to configuration.yaml"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to save agent skills to config: {e}")
+        raise
+
+
+def get_skills_to_deploy(config_path: Path) -> Tuple[List[str], str]:
+    """Resolve which skills to deploy based on configuration priority.
+
+    Returns (skills_list, source) where source is 'user_defined' or 'agent_referenced'.
+
+    Logic:
+    - If config.skills.user_defined is non-empty → return (user_defined, 'user_defined')
+    - Otherwise → return (agent_referenced, 'agent_referenced')
+
+    Args:
+        config_path: Path to configuration.yaml file
+
+    Returns:
+        Tuple of (skills list, source string)
+
+    Example:
+        >>> skills, source = get_skills_to_deploy(Path(".claude-mpm/configuration.yaml"))
+        >>> print(f"Deploy {len(skills)} skills from {source}")
+    """
+    import yaml
+
+    try:
+        # Load configuration
+        if not config_path.exists():
+            logger.warning(f"Configuration file not found: {config_path}")
+            return ([], "agent_referenced")
+
+        with open(config_path, encoding="utf-8") as f:
+            config = yaml.safe_load(f) or {}
+
+        skills_config = config.get("skills", {})
+        user_defined = skills_config.get("user_defined", [])
+        agent_referenced = skills_config.get("agent_referenced", [])
+
+        # Priority: user_defined if non-empty, otherwise agent_referenced
+        if user_defined:
+            logger.info(
+                f"Using {len(user_defined)} user-defined skills from configuration"
+            )
+            return (user_defined, "user_defined")
+        else:
+            logger.info(
+                f"Using {len(agent_referenced)} agent-referenced skills from configuration"
+            )
+            return (agent_referenced, "agent_referenced")
+
+    except Exception as e:
+        logger.error(f"Failed to load skills from config: {e}")
+        return ([], "agent_referenced")
+
+
+# === User-Requested Skills Management ===
+
+
+def get_user_requested_skills(claude_skills_dir: Path) -> List[str]:
+    """Get list of user-requested skills.
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+
+    Returns:
+        List of skill names manually requested by user
+
+    Example:
+        >>> skills = get_user_requested_skills(Path.home() / ".claude" / "skills")
+        >>> print(f"User requested {len(skills)} skills")
+    """
+    index = load_deployment_index(claude_skills_dir)
+    return index.get("user_requested_skills", [])
+
+
+def add_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> bool:
+    """Add a skill to user_requested_skills list.
+
+    This function:
+    1. Loads deployment index
+    2. Adds skill name to user_requested_skills (if not already present)
+    3. Saves updated index
+    4. Returns success status
+
+    Note: This function does NOT deploy the skill, it only marks it as user-requested.
+    Use this in conjunction with skill deployment functions.
+
+    Args:
+        skill_name: Name of skill to mark as user-requested
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+
+    Returns:
+        True if skill was added, False if already present
+
+    Example:
+        >>> added = add_user_requested_skill(
+        ...     "django-framework",
+        ...     Path.home() / ".claude" / "skills"
+        ... )
+        >>> print(f"Skill added: {added}")
+    """
+    index = load_deployment_index(claude_skills_dir)
+    user_requested = index.get("user_requested_skills", [])
+
+    if skill_name in user_requested:
+        logger.debug(f"Skill {skill_name} already in user_requested_skills")
+        return False
+
+    user_requested.append(skill_name)
+    index["user_requested_skills"] = user_requested
+    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+
+    save_deployment_index(claude_skills_dir, index)
+    logger.info(f"Added {skill_name} to user_requested_skills")
+    return True
+
+
+def remove_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> bool:
+    """Remove a skill from user_requested_skills list.
+
+    This function:
+    1. Loads deployment index
+    2. Removes skill name from user_requested_skills
+    3. Saves updated index
+    4. Returns success status
+
+    Note: This function does NOT remove the deployed skill directory.
+    It only removes the skill from user_requested_skills, making it eligible
+    for cleanup during orphan removal.
+
+    Args:
+        skill_name: Name of skill to remove from user_requested_skills
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+
+    Returns:
+        True if skill was removed, False if not present
+
+    Example:
+        >>> removed = remove_user_requested_skill(
+        ...     "django-framework",
+        ...     Path.home() / ".claude" / "skills"
+        ... )
+        >>> print(f"Skill removed: {removed}")
+    """
+    index = load_deployment_index(claude_skills_dir)
+    user_requested = index.get("user_requested_skills", [])
+
+    if skill_name not in user_requested:
+        logger.debug(f"Skill {skill_name} not in user_requested_skills")
+        return False
+
+    user_requested.remove(skill_name)
+    index["user_requested_skills"] = user_requested
+    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+
+    save_deployment_index(claude_skills_dir, index)
+    logger.info(f"Removed {skill_name} from user_requested_skills")
+    return True
+
+
+def is_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> bool:
+    """Check if a skill is in the user_requested_skills list.
+
+    Args:
+        skill_name: Name of skill to check
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+
+    Returns:
+        True if skill is user-requested, False otherwise
+
+    Example:
+        >>> is_requested = is_user_requested_skill(
+        ...     "django-framework",
+        ...     Path.home() / ".claude" / "skills"
+        ... )
+        >>> print(f"User requested: {is_requested}")
+    """
+    user_requested = get_user_requested_skills(claude_skills_dir)
+    return skill_name in user_requested

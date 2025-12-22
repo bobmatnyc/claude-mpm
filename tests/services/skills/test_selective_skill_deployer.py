@@ -16,9 +16,16 @@ from pathlib import Path
 import pytest
 
 from claude_mpm.services.skills.selective_skill_deployer import (
+    add_user_requested_skill,
+    cleanup_orphan_skills,
     get_required_skills_from_agents,
     get_skills_from_agent,
+    get_user_requested_skills,
+    is_user_requested_skill,
+    load_deployment_index,
     parse_agent_frontmatter,
+    remove_user_requested_skill,
+    save_deployment_index,
 )
 
 
@@ -349,3 +356,236 @@ skills: [explicit-skill]
             monkeypatch.setattr(
                 selective_skill_deployer, "SkillToAgentMapper", original_mapper_class
             )
+
+
+class TestUserRequestedSkills:
+    """Test user-requested skills management."""
+
+    def test_add_user_requested_skill(self, tmp_path):
+        """Test adding a skill to user_requested_skills."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Add skill
+        result = add_user_requested_skill("django-framework", claude_skills_dir)
+        assert result is True
+
+        # Verify it was added to index
+        user_requested = get_user_requested_skills(claude_skills_dir)
+        assert "django-framework" in user_requested
+
+    def test_add_duplicate_user_requested_skill(self, tmp_path):
+        """Test adding a skill that's already user-requested."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Add skill twice
+        add_user_requested_skill("django-framework", claude_skills_dir)
+        result = add_user_requested_skill("django-framework", claude_skills_dir)
+
+        # Second add should return False (already exists)
+        assert result is False
+
+        # Should only appear once
+        user_requested = get_user_requested_skills(claude_skills_dir)
+        assert user_requested.count("django-framework") == 1
+
+    def test_remove_user_requested_skill(self, tmp_path):
+        """Test removing a skill from user_requested_skills."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Add then remove skill
+        add_user_requested_skill("django-framework", claude_skills_dir)
+        result = remove_user_requested_skill("django-framework", claude_skills_dir)
+        assert result is True
+
+        # Verify it was removed
+        user_requested = get_user_requested_skills(claude_skills_dir)
+        assert "django-framework" not in user_requested
+
+    def test_remove_nonexistent_user_requested_skill(self, tmp_path):
+        """Test removing a skill that's not user-requested."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Try to remove skill that was never added
+        result = remove_user_requested_skill("nonexistent-skill", claude_skills_dir)
+        assert result is False
+
+    def test_is_user_requested_skill(self, tmp_path):
+        """Test checking if a skill is user-requested."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Add skill
+        add_user_requested_skill("django-framework", claude_skills_dir)
+
+        # Check presence
+        assert is_user_requested_skill("django-framework", claude_skills_dir) is True
+        assert is_user_requested_skill("not-requested", claude_skills_dir) is False
+
+    def test_get_user_requested_skills_empty(self, tmp_path):
+        """Test getting user_requested_skills from empty index."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        user_requested = get_user_requested_skills(claude_skills_dir)
+        assert user_requested == []
+
+    def test_get_user_requested_skills_multiple(self, tmp_path):
+        """Test getting multiple user-requested skills."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Add multiple skills
+        add_user_requested_skill("django-framework", claude_skills_dir)
+        add_user_requested_skill("fastapi-patterns", claude_skills_dir)
+        add_user_requested_skill("playwright-e2e-testing", claude_skills_dir)
+
+        user_requested = get_user_requested_skills(claude_skills_dir)
+        assert len(user_requested) == 3
+        assert "django-framework" in user_requested
+        assert "fastapi-patterns" in user_requested
+        assert "playwright-e2e-testing" in user_requested
+
+
+class TestCleanupOrphanSkillsWithUserRequested:
+    """Test orphan cleanup respects user-requested skills."""
+
+    def test_cleanup_preserves_user_requested_skills(self, tmp_path):
+        """Test that user-requested skills are never cleaned up as orphans."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Create index with deployed skills
+        index = {
+            "deployed_skills": {
+                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "user-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "orphan-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+            },
+            "user_requested_skills": ["user-skill"],
+            "last_sync": "2025-01-01T00:00:00Z",
+        }
+        save_deployment_index(claude_skills_dir, index)
+
+        # Create skill directories
+        (claude_skills_dir / "agent-skill").mkdir()
+        (claude_skills_dir / "user-skill").mkdir()
+        (claude_skills_dir / "orphan-skill").mkdir()
+
+        # Cleanup with only agent-skill required
+        required_skills = {"agent-skill"}
+        result = cleanup_orphan_skills(claude_skills_dir, required_skills)
+
+        # user-skill should be preserved (user-requested)
+        # orphan-skill should be removed
+        assert result["removed_count"] == 1
+        assert "orphan-skill" in result["removed_skills"]
+        assert (claude_skills_dir / "user-skill").exists()
+        assert not (claude_skills_dir / "orphan-skill").exists()
+
+    def test_cleanup_with_no_user_requested_skills(self, tmp_path):
+        """Test cleanup works normally when no user-requested skills exist."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Create index without user-requested skills
+        index = {
+            "deployed_skills": {
+                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "orphan-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+            },
+            "user_requested_skills": [],
+            "last_sync": "2025-01-01T00:00:00Z",
+        }
+        save_deployment_index(claude_skills_dir, index)
+
+        # Create skill directories
+        (claude_skills_dir / "agent-skill").mkdir()
+        (claude_skills_dir / "orphan-skill").mkdir()
+
+        # Cleanup with only agent-skill required
+        required_skills = {"agent-skill"}
+        result = cleanup_orphan_skills(claude_skills_dir, required_skills)
+
+        # orphan-skill should be removed
+        assert result["removed_count"] == 1
+        assert "orphan-skill" in result["removed_skills"]
+        assert not (claude_skills_dir / "orphan-skill").exists()
+
+    def test_cleanup_all_skills_protected(self, tmp_path):
+        """Test cleanup when all skills are either required or user-requested."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Create index with skills that are all protected
+        index = {
+            "deployed_skills": {
+                "agent-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+                "user-skill": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"},
+            },
+            "user_requested_skills": ["user-skill"],
+            "last_sync": "2025-01-01T00:00:00Z",
+        }
+        save_deployment_index(claude_skills_dir, index)
+
+        # Create skill directories
+        (claude_skills_dir / "agent-skill").mkdir()
+        (claude_skills_dir / "user-skill").mkdir()
+
+        # Cleanup with agent-skill required
+        required_skills = {"agent-skill"}
+        result = cleanup_orphan_skills(claude_skills_dir, required_skills)
+
+        # Nothing should be removed
+        assert result["removed_count"] == 0
+        assert result["removed_skills"] == []
+        assert (claude_skills_dir / "agent-skill").exists()
+        assert (claude_skills_dir / "user-skill").exists()
+
+
+class TestDeploymentIndexBackwardCompatibility:
+    """Test backward compatibility of deployment index loading."""
+
+    def test_load_old_index_without_user_requested_skills(self, tmp_path):
+        """Test loading index from old version without user_requested_skills field."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Create old-format index (no user_requested_skills)
+        import json
+        index_path = claude_skills_dir / ".mpm-deployed-skills.json"
+        index_path.write_text(json.dumps({
+            "deployed_skills": {
+                "skill-a": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"}
+            },
+            "last_sync": "2025-01-01T00:00:00Z"
+        }))
+
+        # Load index - should add empty user_requested_skills
+        index = load_deployment_index(claude_skills_dir)
+        assert "user_requested_skills" in index
+        assert index["user_requested_skills"] == []
+
+    def test_save_and_load_index_preserves_user_requested(self, tmp_path):
+        """Test that saving and loading preserves user_requested_skills."""
+        claude_skills_dir = tmp_path / "skills"
+        claude_skills_dir.mkdir()
+
+        # Create index with user-requested skills
+        index = {
+            "deployed_skills": {
+                "skill-a": {"collection": "test", "deployed_at": "2025-01-01T00:00:00Z"}
+            },
+            "user_requested_skills": ["skill-b", "skill-c"],
+            "last_sync": "2025-01-01T00:00:00Z"
+        }
+
+        # Save and reload
+        save_deployment_index(claude_skills_dir, index)
+        loaded = load_deployment_index(claude_skills_dir)
+
+        # Verify user_requested_skills preserved
+        assert loaded["user_requested_skills"] == ["skill-b", "skill-c"]

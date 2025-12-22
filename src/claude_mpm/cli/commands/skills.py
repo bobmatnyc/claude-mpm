@@ -972,22 +972,35 @@ class SkillsManagementCommand(BaseCommand):
             console.print(f"[red]Unexpected error: {e}[/red]")
 
     def _configure_skills(self, args) -> CommandResult:
-        """Interactive skills configuration with checkbox selection.
+        """Interactive skills configuration using configuration.yaml.
 
         Provides checkbox-based selection interface matching agents configure UX:
-        - Status column showing Installed/Available
-        - Pre-selection for installed skills
-        - Apply/Adjust/Cancel menu
-        - While loop for adjustment
-        - Simplified labels (checkbox state only)
+        - Shows current mode (user_defined vs agent_referenced)
+        - If agent mode: shows agent-scanned skills
+        - Allows switching to user_defined mode and selecting skills
+        - Can reset to agent mode (clears user_defined)
+        - Saves selections to configuration.yaml
 
-        This is Option 3 (Hybrid approach): Separate command for interactive mode
-        while keeping deploy-github for CLI automation.
+        Configuration structure:
+        ```yaml
+        skills:
+          agent_referenced:  # Auto-populated from agent scan (read-only)
+            - systematic-debugging
+            - typescript-core
+          user_defined:      # User override - if set, ONLY these are deployed
+            []               # Empty = use agent_referenced
+        ```
         """
         try:
             import questionary
+            from pathlib import Path
             from questionary import Choice, Style
             from rich.prompt import Prompt
+            import yaml
+
+            from ...services.skills.selective_skill_deployer import (
+                get_skills_to_deploy,
+            )
 
             # Questionary style (matching agents configure)
             QUESTIONARY_STYLE = Style(
@@ -1013,211 +1026,205 @@ class SkillsManagementCommand(BaseCommand):
                 ]
             )
 
-            console.print("\n[bold cyan]Interactive Skills Configuration[/bold cyan]\n")
+            console.print("\n[bold cyan]Skills Configuration Manager[/bold cyan]\n")
+
+            # Load current configuration
+            project_config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            skills_to_deploy, current_mode = get_skills_to_deploy(project_config_path)
+
+            # Display current mode and skill count
+            console.print(f"[bold]Current Mode:[/bold] [cyan]{current_mode}[/cyan]")
             console.print(
-                "[dim]Select skills to install/uninstall using checkboxes[/dim]"
+                f"[bold]Active Skills:[/bold] {len(skills_to_deploy)} skills\n"
             )
-            console.print("[dim]● = Installed, ○ = Available[/dim]\n")
 
-            # Get deployed skills for status detection
-            deployed_result = self.skills_deployer.check_deployed_skills()
-            deployed_skills = {
-                skill["name"] for skill in deployed_result.get("skills", [])
-            }
-
-            # Get available skills from GitHub
-            console.print("[dim]Fetching available skills from GitHub...[/dim]\n")
-            available_result = self.skills_deployer.list_available_skills()
-
-            if available_result.get("error"):
-                console.print(f"[red]Error: {available_result['error']}[/red]")
-                return CommandResult(
-                    success=False, message=available_result["error"], exit_code=1
+            if current_mode == "agent_referenced":
+                console.print(
+                    "[dim]Agent mode: Skills are auto-detected from deployed agents[/dim]"
                 )
+                console.print(
+                    "[dim]Switch to user mode to manually select skills[/dim]\n"
+                )
+            else:
+                console.print(
+                    "[dim]User mode: You've manually selected which skills to deploy[/dim]"
+                )
+                console.print("[dim]Reset to agent mode to use auto-detection[/dim]\n")
 
-            # Flatten skills by category
-            all_skills = []
-            for category, skills in available_result.get("by_category", {}).items():
-                for skill in skills:
-                    skill_info = {
-                        "name": skill.get("name", "unknown"),
-                        "category": category,
-                        "is_deployed": skill.get("name", "unknown") in deployed_skills,
-                    }
-                    all_skills.append(skill_info)
+            # Offer mode switching
+            action_choices = [
+                Choice("View current skills", value="view"),
+                Choice("Switch to user mode (manual selection)", value="switch_user"),
+                Choice("Reset to agent mode (auto-detection)", value="reset_agent"),
+                Choice("Cancel", value="cancel"),
+            ]
 
-            # Sort by deployed status (deployed first), then by name
-            all_skills.sort(key=lambda s: (not s["is_deployed"], s["name"]))
+            action = questionary.select(
+                "What would you like to do?",
+                choices=action_choices,
+                style=QUESTIONARY_STYLE,
+            ).ask()
 
-            # Build checkbox choices with pre-selection
-            # Loop to allow adjusting selection
-            while True:
-                skill_choices = []
-                skill_map = {}  # For lookup after selection
+            if action == "cancel" or action is None:
+                console.print("[yellow]Configuration cancelled[/yellow]")
+                return CommandResult(success=True, exit_code=0)
 
-                for skill in all_skills:
-                    skill_name = skill["name"]
-                    category = skill["category"]
-                    is_deployed = skill["is_deployed"]
-
-                    # Simple format: "skill-name (category)"
-                    # Checkbox state (checked/unchecked) indicates installed status
-                    choice_text = f"{skill_name} ({category})"
-
-                    # Pre-select if deployed
-                    choice = Choice(
-                        title=choice_text, value=skill_name, checked=is_deployed
-                    )
-
-                    skill_choices.append(choice)
-                    skill_map[skill_name] = skill
-
-                # Display checkbox selection
-                selected_skills = questionary.checkbox(
-                    "Select skills (Space to toggle, Enter to confirm):",
-                    choices=skill_choices,
-                    style=QUESTIONARY_STYLE,
-                ).ask()
-
-                if selected_skills is None:
-                    # User cancelled (Ctrl+C)
-                    console.print("[yellow]Skills configuration cancelled[/yellow]")
-                    return CommandResult(success=True, exit_code=0)
-
-                # Determine changes
-                to_install = []
-                to_remove = []
-
-                for skill in all_skills:
-                    skill_name = skill["name"]
-                    is_deployed = skill["is_deployed"]
-                    is_selected = skill_name in selected_skills
-
-                    if is_selected and not is_deployed:
-                        to_install.append(skill_name)
-                    elif not is_selected and is_deployed:
-                        to_remove.append(skill_name)
-
-                # Show summary of changes
-                console.print("\n[bold]Changes to apply:[/bold]")
-                if to_install:
-                    console.print(
-                        f"\n[green]✓ Install ({len(to_install)} skills):[/green]"
-                    )
-                    for skill in to_install:
-                        console.print(f"  • {skill}")
-
-                if to_remove:
-                    console.print(
-                        f"\n[yellow]✗ Remove ({len(to_remove)} skills):[/yellow]"
-                    )
-                    for skill in to_remove:
-                        console.print(f"  • {skill}")
-
-                if not to_install and not to_remove:
-                    console.print(
-                        "\n[dim]No changes (selection matches current deployment)[/dim]"
-                    )
-
-                console.print()
-
-                # Ask user to confirm, adjust, or cancel
-                action = questionary.select(
-                    "\nWhat would you like to do?",
-                    choices=[
-                        Choice("Apply these changes", value="apply"),
-                        Choice("Adjust selection", value="adjust"),
-                        Choice("Cancel", value="cancel"),
-                    ],
-                    default="apply",
-                    style=QUESTIONARY_STYLE,
-                ).ask()
-
-                if action == "cancel":
-                    console.print("[yellow]Changes cancelled[/yellow]")
-                    Prompt.ask("\nPress Enter to continue")
-                    return CommandResult(success=True, exit_code=0)
-                if action == "adjust":
-                    # Loop back to skill selection
-                    console.print("\n[dim]Adjusting selection...[/dim]\n")
-                    continue
-
-                # Apply changes
-                success = True
-                errors = []
-
-                # Install skills
-                if to_install:
-                    console.print("\n[bold cyan]Installing skills...[/bold cyan]\n")
-                    for skill_name in to_install:
-                        try:
-                            # Deploy single skill
-                            result = self.skills_deployer.deploy_skills(
-                                skill_names=[skill_name], force=False
-                            )
-
-                            if result.get("errors"):
-                                errors.extend(result["errors"])
-                                success = False
-                            else:
-                                console.print(
-                                    f"[green]✓ Installed: {skill_name}[/green]"
-                                )
-                        except Exception as e:
-                            errors.append(f"Failed to install {skill_name}: {e}")
-                            success = False
-
-                # Remove skills
-                if to_remove:
-                    console.print("\n[bold yellow]Removing skills...[/bold yellow]\n")
-                    for skill_name in to_remove:
-                        try:
-                            # Remove single skill
-                            result = self.skills_deployer.remove_skills(
-                                skill_names=[skill_name]
-                            )
-
-                            if result.get("errors"):
-                                errors.extend(result["errors"])
-                                success = False
-                            else:
-                                console.print(
-                                    f"[yellow]✗ Removed: {skill_name}[/yellow]"
-                                )
-                        except Exception as e:
-                            errors.append(f"Failed to remove {skill_name}: {e}")
-                            success = False
-
-                # Show errors if any
-                if errors:
-                    console.print(f"\n[red]✗ {len(errors)} error(s):[/red]")
-                    for error in errors:
-                        console.print(f"  • {error}")
-
-                # Show restart instructions
-                if success and (to_install or to_remove):
-                    console.print(
-                        "\n[bold green]✓ Changes applied successfully![/bold green]"
-                    )
-                    console.print("\n[yellow]⚠️  Important:[/yellow]")
-                    console.print("  Restart Claude Code for changes to take effect")
-
+            if action == "view":
+                # Display current skills
+                console.print("\n[bold]Current Skills:[/bold]\n")
+                for skill in sorted(skills_to_deploy):
+                    console.print(f"  • {skill}")
                 console.print()
                 Prompt.ask("\nPress Enter to continue")
+                return CommandResult(success=True, exit_code=0)
 
-                # Exit the loop after successful execution
-                break
+            if action == "reset_agent":
+                # Reset to agent mode by clearing user_defined
+                with open(project_config_path, encoding="utf-8") as f:
+                    config = yaml.safe_load(f) or {}
 
-            exit_code = 0 if success else 1
-            return CommandResult(success=success, exit_code=exit_code)
+                if "skills" not in config:
+                    config["skills"] = {}
+
+                config["skills"]["user_defined"] = []
+
+                with open(project_config_path, "w", encoding="utf-8") as f:
+                    yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+                console.print(
+                    "\n[green]✓ Reset to agent mode - skills will be auto-detected from agents[/green]\n"
+                )
+                Prompt.ask("\nPress Enter to continue")
+                return CommandResult(success=True, exit_code=0)
+
+            # Switch to user mode - manual skill selection
+            if action == "switch_user":
+                console.print(
+                    "\n[bold cyan]Switching to User Mode - Manual Skill Selection[/bold cyan]\n"
+                )
+                console.print(
+                    "[dim]Fetching available skills from GitHub...[/dim]\n"
+                )
+
+                # Get available skills
+                available_result = self.skills_deployer.list_available_skills()
+
+                if available_result.get("error"):
+                    console.print(f"[red]Error: {available_result['error']}[/red]")
+                    return CommandResult(
+                        success=False, message=available_result["error"], exit_code=1
+                    )
+
+                # Flatten skills by category
+                all_skills = []
+                for category, skills in available_result.get("by_category", {}).items():
+                    for skill in skills:
+                        skill_name = skill.get("name", "unknown")
+                        is_currently_selected = skill_name in skills_to_deploy
+                        skill_info = {
+                            "name": skill_name,
+                            "category": category,
+                            "is_selected": is_currently_selected,
+                        }
+                        all_skills.append(skill_info)
+
+                # Sort by selection status (selected first), then by name
+                all_skills.sort(key=lambda s: (not s["is_selected"], s["name"]))
+
+                # Build checkbox choices
+                while True:
+                    skill_choices = []
+
+                    for skill in all_skills:
+                        skill_name = skill["name"]
+                        category = skill["category"]
+                        is_selected = skill["is_selected"]
+
+                        # Format: "skill-name (category)"
+                        choice_text = f"{skill_name} ({category})"
+
+                        # Pre-select if currently in skills_to_deploy
+                        choice = Choice(
+                            title=choice_text, value=skill_name, checked=is_selected
+                        )
+
+                        skill_choices.append(choice)
+
+                    # Display checkbox selection
+                    selected_skills = questionary.checkbox(
+                        "Select skills (Space to toggle, Enter to confirm):",
+                        choices=skill_choices,
+                        style=QUESTIONARY_STYLE,
+                    ).ask()
+
+                    if selected_skills is None:
+                        # User cancelled (Ctrl+C)
+                        console.print("[yellow]Skills configuration cancelled[/yellow]")
+                        return CommandResult(success=True, exit_code=0)
+
+                    # Show summary
+                    console.print("\n[bold]Selected Skills:[/bold]")
+                    console.print(f"  {len(selected_skills)} skills selected\n")
+
+                    if selected_skills:
+                        for skill in sorted(selected_skills):
+                            console.print(f"  • {skill}")
+                        console.print()
+
+                    # Ask user to confirm, adjust, or cancel
+                    confirm_action = questionary.select(
+                        "\nWhat would you like to do?",
+                        choices=[
+                            Choice("Save to configuration", value="apply"),
+                            Choice("Adjust selection", value="adjust"),
+                            Choice("Cancel", value="cancel"),
+                        ],
+                        default="apply",
+                        style=QUESTIONARY_STYLE,
+                    ).ask()
+
+                    if confirm_action == "cancel":
+                        console.print("[yellow]Configuration cancelled[/yellow]")
+                        Prompt.ask("\nPress Enter to continue")
+                        return CommandResult(success=True, exit_code=0)
+
+                    if confirm_action == "adjust":
+                        # Update selection state and loop back
+                        for skill in all_skills:
+                            skill["is_selected"] = skill["name"] in selected_skills
+                        console.print("\n[dim]Adjusting selection...[/dim]\n")
+                        continue
+
+                    # Save to configuration.yaml
+                    with open(project_config_path, encoding="utf-8") as f:
+                        config = yaml.safe_load(f) or {}
+
+                    if "skills" not in config:
+                        config["skills"] = {}
+
+                    config["skills"]["user_defined"] = sorted(selected_skills)
+
+                    with open(project_config_path, "w", encoding="utf-8") as f:
+                        yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+                    console.print(
+                        f"\n[green]✓ Saved {len(selected_skills)} skills to user_defined mode[/green]"
+                    )
+                    console.print(
+                        "[yellow]⚠️  Important:[/yellow] Run [cyan]claude-mpm init[/cyan] to deploy these skills\n"
+                    )
+                    Prompt.ask("\nPress Enter to continue")
+
+                    # Exit the loop after successful save
+                    break
+
+            return CommandResult(success=True, exit_code=0)
 
         except Exception as e:
             console.print(f"[red]Error in skills configuration: {e}[/red]")
             import traceback
 
             console.print(f"[dim]{traceback.format_exc()}[/dim]")
-            return CommandResult(success=False, message=str(e), exit_code=1)
-
             return CommandResult(success=False, message=str(e), exit_code=1)
 
 

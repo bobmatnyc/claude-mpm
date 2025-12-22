@@ -677,14 +677,21 @@ def sync_remote_skills_on_startup():
 
     Workflow:
     1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
-    2. Deploy skills to ~/.claude/skills/ with flat structure - Phase 2 progress bar
-    3. Log deployment results
+    2. Scan deployed agents for skill requirements → save to configuration.yaml
+    3. Resolve which skills to deploy (user_defined vs agent_referenced)
+    4. Deploy resolved skills to ~/.claude/skills/ - Phase 2 progress bar
+    5. Log deployment results with source indication
     """
     try:
         from pathlib import Path
 
         from ..config.skill_sources import SkillSourceConfiguration
         from ..services.skills.git_skill_source_manager import GitSkillSourceManager
+        from ..services.skills.selective_skill_deployer import (
+            get_required_skills_from_agents,
+            get_skills_to_deploy,
+            save_agent_skills_to_config,
+        )
         from ..utils.progress import ProgressBar
 
         config = SkillSourceConfiguration()
@@ -773,37 +780,35 @@ def sync_remote_skills_on_startup():
                 f"Complete: {downloaded} files downloaded ({total_skill_dirs} skills)"
             )
 
-        # Phase 2: Deploy skills to ~/.claude/skills/
-        # This flattens nested Git structure (e.g., collaboration/parallel-agents/SKILL.md)
-        # into flat deployment (e.g., collaboration-dispatching-parallel-agents/SKILL.md)
+        # Phase 2: Scan agents and save to configuration.yaml
+        # This step populates configuration.yaml with agent-referenced skills
         if results["synced_count"] > 0:
-            # Get required skills from deployed agents (selective deployment)
-            from ..services.skills.selective_skill_deployer import (
-                get_required_skills_from_agents,
-            )
-
             agents_dir = Path.cwd() / ".claude" / "agents"
-            required_skills = get_required_skills_from_agents(agents_dir)
+
+            # Scan agents for skill requirements
+            agent_skills = get_required_skills_from_agents(agents_dir)
+
+            # Save to project-level configuration.yaml
+            project_config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            save_agent_skills_to_config(list(agent_skills), project_config_path)
+
+            # Phase 3: Resolve which skills to deploy (user_defined or agent_referenced)
+            skills_to_deploy, skill_source = get_skills_to_deploy(project_config_path)
 
             # Get all skills to determine counts
             all_skills = manager.get_all_skills()
             total_skill_count = len(all_skills)
 
-            # Determine skill count based on whether we have agent requirements
-            if required_skills:
-                # Selective deployment: only skills required by deployed agents
-                skill_count = len(required_skills)
-            else:
-                # No agent requirements found - deploy all skills
-                skill_count = total_skill_count
+            # Determine skill count based on resolution
+            skill_count = len(skills_to_deploy) if skills_to_deploy else total_skill_count
 
             if skill_count > 0:
-                # Deploy skills with selective filter (if agent requirements exist)
+                # Deploy skills with resolved filter
                 # Deploy to project directory (like agents), not user directory
                 deployment_result = manager.deploy_skills(
                     target_dir=Path.cwd() / ".claude" / "skills",
                     force=False,
-                    skill_filter=required_skills if required_skills else None,
+                    skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
                 )
 
                 # Get actual counts from deployment result
@@ -833,27 +838,31 @@ def sync_remote_skills_on_startup():
                     deploy_progress.update(1)
 
                 # Show total available skills (deployed + already existing)
-                # Include filtered count if selective deployment was used
+                # Include source indication (user_defined vs agent_referenced)
                 # Note: total_skill_count is from the repo, total_available is what's deployed/needed
+                source_label = (
+                    "user override" if skill_source == "user_defined" else "from agents"
+                )
+
                 if deployed > 0:
                     if filtered > 0:
                         deploy_progress.finish(
                             f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} required by agents, {filtered} available in repo)"
+                            f"({total_available} {source_label}, {filtered} available in repo)"
                         )
                     else:
                         deploy_progress.finish(
                             f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} skills deployed from {total_skill_count} in repo)"
+                            f"({total_available} skills {source_label} from {total_skill_count} in repo)"
                         )
                 elif filtered > 0:
                     # Skills filtered means agents require fewer skills than available
                     deploy_progress.finish(
-                        f"Agents require no skills ({total_skill_count} available in repo)"
+                        f"No skills needed ({source_label}, {total_skill_count} available in repo)"
                     )
                 else:
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills deployed for agents "
+                        f"Complete: {total_available} skills {source_label} "
                         f"({total_skill_count} available in repo)"
                     )
 

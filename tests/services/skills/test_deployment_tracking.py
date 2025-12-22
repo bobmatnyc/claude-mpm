@@ -39,6 +39,7 @@ class TestLoadDeploymentIndex:
                 "skill-b": {"collection": "obra", "deployed_at": "2025-12-22T11:00:00Z"},
             },
             "last_sync": "2025-12-22T11:30:00Z",
+            "user_requested_skills": [],
         }
 
         # Create index file
@@ -58,8 +59,8 @@ class TestLoadDeploymentIndex:
         """Test loading when index file doesn't exist."""
         result = load_deployment_index(tmp_path)
 
-        # Should return default empty index
-        assert result == {"deployed_skills": {}, "last_sync": None}
+        # Should return default empty index (includes user_requested_skills)
+        assert result == {"deployed_skills": {}, "last_sync": None, "user_requested_skills": []}
 
     def test_load_corrupted_index(self, tmp_path):
         """Test loading corrupted JSON file."""
@@ -68,8 +69,8 @@ class TestLoadDeploymentIndex:
 
         result = load_deployment_index(tmp_path)
 
-        # Should return default empty index on error
-        assert result == {"deployed_skills": {}, "last_sync": None}
+        # Should return default empty index on error (includes user_requested_skills)
+        assert result == {"deployed_skills": {}, "last_sync": None, "user_requested_skills": []}
 
     def test_load_index_missing_keys(self, tmp_path):
         """Test loading index with missing keys."""
