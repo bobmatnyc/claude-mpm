@@ -1,3 +1,11 @@
+## v5.4.22 (2025-12-22)
+
+### Changed
+- **Ops Agent**: Consolidated ops and local-ops into unified ops agent
+  - Removed redundant local-ops agent definition
+  - Enhanced verification and deployment workflows
+  - Improved deployment verification protocols
+
 ## v5.4.21 (2025-12-22)
 
 ### Added
