@@ -146,8 +146,28 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
       // Check for Read operations (use event.subtype, not event.type)
       if (event.subtype === 'post_tool' && toolName === 'Read') {
-        // Extract content from output field (added by backend for file operations)
-        const content = typeof eventData.output === 'string' ? eventData.output : undefined;
+        // Extract content from output field - check multiple possible locations
+        const content = (
+          typeof eventData.output === 'string'
+            ? eventData.output
+            : typeof hookInputData?.output === 'string'
+              ? (hookInputData.output as string)
+              : typeof (eventData as any).result?.output === 'string'
+                ? (eventData as any).result.output
+                : typeof (eventData as any).tool_result === 'string'
+                  ? (eventData as any).tool_result
+                  : undefined
+        );
+
+        // Debug logging to help diagnose content extraction
+        if (filePath) {
+          console.log(`[FILES] File operation for ${filePath}:`, {
+            hasOutput: !!content,
+            outputLength: content?.length,
+            eventKeys: Object.keys(eventData),
+            hookInputDataKeys: hookInputData ? Object.keys(hookInputData) : []
+          });
+        }
 
         operation = {
           type: 'Read',
