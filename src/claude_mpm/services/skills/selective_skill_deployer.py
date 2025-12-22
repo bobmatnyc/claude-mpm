@@ -37,7 +37,7 @@ References:
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Set, Tuple
 
@@ -339,11 +339,11 @@ def track_deployed_skill(
     # Add skill to deployed_skills
     index["deployed_skills"][skill_name] = {
         "collection": collection,
-        "deployed_at": datetime.utcnow().isoformat() + "Z",
+        "deployed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 
     # Update last_sync timestamp
-    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.debug(f"Tracked deployment: {skill_name} from {collection}")
@@ -366,7 +366,7 @@ def untrack_skill(claude_skills_dir: Path, skill_name: str) -> None:
 
     if skill_name in index["deployed_skills"]:
         del index["deployed_skills"][skill_name]
-        index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+        index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         save_deployment_index(claude_skills_dir, index)
         logger.debug(f"Untracked skill: {skill_name}")
 
@@ -449,7 +449,7 @@ def cleanup_orphan_skills(
                 removed.append(skill_name)
                 logger.info(f"Removed orphaned skill: {skill_name}")
 
-            except ValueError as e:
+            except ValueError:
                 error_msg = f"Path traversal attempt detected: {skill_dir}"
                 logger.error(error_msg)
                 errors.append(error_msg)
@@ -566,11 +566,10 @@ def get_skills_to_deploy(config_path: Path) -> Tuple[List[str], str]:
                 f"Using {len(user_defined)} user-defined skills from configuration"
             )
             return (user_defined, "user_defined")
-        else:
-            logger.info(
-                f"Using {len(agent_referenced)} agent-referenced skills from configuration"
-            )
-            return (agent_referenced, "agent_referenced")
+        logger.info(
+            f"Using {len(agent_referenced)} agent-referenced skills from configuration"
+        )
+        return (agent_referenced, "agent_referenced")
 
     except Exception as e:
         logger.error(f"Failed to load skills from config: {e}")
@@ -632,7 +631,7 @@ def add_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> bool:
 
     user_requested.append(skill_name)
     index["user_requested_skills"] = user_requested
-    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.info(f"Added {skill_name} to user_requested_skills")
@@ -675,7 +674,7 @@ def remove_user_requested_skill(skill_name: str, claude_skills_dir: Path) -> boo
 
     user_requested.remove(skill_name)
     index["user_requested_skills"] = user_requested
-    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+    index["last_sync"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     save_deployment_index(claude_skills_dir, index)
     logger.info(f"Removed {skill_name} from user_requested_skills")

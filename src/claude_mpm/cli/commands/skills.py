@@ -992,11 +992,12 @@ class SkillsManagementCommand(BaseCommand):
         ```
         """
         try:
-            import questionary
             from pathlib import Path
+
+            import questionary
+            import yaml
             from questionary import Choice, Style
             from rich.prompt import Prompt
-            import yaml
 
             from ...services.skills.selective_skill_deployer import (
                 get_skills_to_deploy,
