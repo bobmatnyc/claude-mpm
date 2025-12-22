@@ -224,6 +224,11 @@ class SkillsDeployerService(LoggerMixin):
         skipped = []
         errors = []
 
+        # Extract skill names for cleanup (needed regardless of deployment outcome)
+        filtered_skills_names = [
+            skill["name"] for skill in filtered_skills if isinstance(skill, dict) and "name" in skill
+        ]
+
         for skill in filtered_skills:
             try:
                 # Validate skill is a dictionary
@@ -232,7 +237,9 @@ class SkillsDeployerService(LoggerMixin):
                     errors.append(f"Invalid skill format: {skill}")
                     continue
 
-                result = self._deploy_skill(skill, skills_data["temp_dir"], force=force)
+                result = self._deploy_skill(
+                    skill, skills_data["temp_dir"], collection_name, force=force
+                )
                 if result["deployed"]:
                     deployed.append(skill["name"])
                 elif result["skipped"]:
@@ -248,10 +255,33 @@ class SkillsDeployerService(LoggerMixin):
                 self.logger.error(f"Failed to deploy {skill_name}: {e}")
                 errors.append(f"{skill_name}: {e}")
 
-        # Step 5: Cleanup
+        # Step 5: Cleanup orphaned skills (if selective mode enabled)
+        cleanup_result = {"removed_count": 0, "removed_skills": []}
+        if selective and len(deployed) > 0:
+            # Get the set of skills that should remain deployed
+            # This is the union of what we just deployed and what was already there
+            try:
+                from claude_mpm.services.skills.selective_skill_deployer import (
+                    cleanup_orphan_skills,
+                )
+
+                # Only cleanup if we're in selective mode
+                cleanup_result = cleanup_orphan_skills(
+                    self.CLAUDE_SKILLS_DIR, set(filtered_skills_names)
+                )
+
+                if cleanup_result["removed_count"] > 0:
+                    self.logger.info(
+                        f"Removed {cleanup_result['removed_count']} orphaned skills: "
+                        f"{', '.join(cleanup_result['removed_skills'])}"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Failed to cleanup orphaned skills: {e}")
+
+        # Step 6: Cleanup temp directory
         self._cleanup(skills_data["temp_dir"])
 
-        # Step 6: Check if Claude Code restart needed
+        # Step 7: Check if Claude Code restart needed
         restart_required = len(deployed) > 0
         restart_instructions = ""
 
@@ -275,7 +305,8 @@ class SkillsDeployerService(LoggerMixin):
 
         self.logger.info(
             f"Deployment complete: {len(deployed)} deployed, "
-            f"{len(skipped)} skipped, {len(errors)} errors"
+            f"{len(skipped)} skipped, {len(errors)} errors, "
+            f"{cleanup_result['removed_count']} orphaned skills removed"
         )
 
         return {
@@ -289,6 +320,7 @@ class SkillsDeployerService(LoggerMixin):
             "collection": collection_name,
             "selective_mode": selective,
             "total_available": total_available,
+            "cleanup": cleanup_result,
         }
 
     def list_available_skills(self, collection: Optional[str] = None) -> Dict:
@@ -472,6 +504,13 @@ class SkillsDeployerService(LoggerMixin):
 
                 removed.append(skill_name)
                 self.logger.info(f"Removed skill: {skill_name}")
+
+                # Untrack skill from deployment index
+                from claude_mpm.services.skills.selective_skill_deployer import (
+                    untrack_skill,
+                )
+
+                untrack_skill(self.CLAUDE_SKILLS_DIR, skill_name)
 
             except Exception as e:
                 self.logger.error(f"Failed to remove {skill_name}: {e}")
@@ -738,17 +777,21 @@ class SkillsDeployerService(LoggerMixin):
         return filtered
 
     def _deploy_skill(
-        self, skill: Dict, collection_dir: Path, force: bool = False
+        self, skill: Dict, collection_dir: Path, collection_name: str, force: bool = False
     ) -> Dict:
-        """Deploy a single skill to ~/.claude/skills/.
+        """Deploy a single skill to ~/.claude/skills/ and track deployment.
 
         NOTE: With multi-collection support, skills are now stored in collection
         subdirectories. This method creates symlinks or copies to maintain the
         flat structure that Claude Code expects in ~/.claude/skills/.
 
+        Additionally tracks deployed skills in .mpm-deployed-skills.json index
+        for orphan cleanup functionality.
+
         Args:
             skill: Skill metadata dict
             collection_dir: Collection directory containing skills
+            collection_name: Name of collection (for tracking)
             force: Overwrite if already exists
 
         Returns:
@@ -837,6 +880,13 @@ class SkillsDeployerService(LoggerMixin):
             # Copy skill to Claude skills directory
             # NOTE: We use copy instead of symlink to maintain Claude Code compatibility
             shutil.copytree(source_dir, target_dir)
+
+            # Track deployment in index
+            from claude_mpm.services.skills.selective_skill_deployer import (
+                track_deployed_skill,
+            )
+
+            track_deployed_skill(self.CLAUDE_SKILLS_DIR, skill_name, collection_name)
 
             self.logger.debug(
                 f"Deployed {skill_name} from {source_dir} to {target_dir}"

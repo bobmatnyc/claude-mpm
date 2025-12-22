@@ -12,6 +12,8 @@ DESIGN DECISIONS:
 - Parse YAML frontmatter from agent markdown files
 - Combine explicit + inferred skills for comprehensive coverage
 - Return set of unique skill names for filtering
+- Track deployed skills in .mpm-deployed-skills.json index
+- Remove orphaned skills (deployed by mpm but no longer referenced)
 
 FORMATS SUPPORTED:
 1. Legacy: skills: [skill-a, skill-b, ...]
@@ -23,12 +25,19 @@ SKILL DISCOVERY FLOW:
 3. Query SkillToAgentMapper for pattern-based skills
 4. Combine both sources into unified set
 
+DEPLOYMENT TRACKING:
+1. Track which skills were deployed by claude-mpm in index file
+2. Update index after each deployment operation
+3. Clean up orphaned skills no longer referenced by agents
+
 References:
 - Feature: Progressive skills discovery (#117)
 - Service: SkillToAgentMapper (skill_to_agent_mapper.py)
 """
 
+import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
@@ -38,6 +47,9 @@ from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.skills.skill_to_agent_mapper import SkillToAgentMapper
 
 logger = get_logger(__name__)
+
+# Deployment tracking index file
+DEPLOYED_INDEX_FILE = ".mpm-deployed-skills.json"
 
 
 def parse_agent_frontmatter(agent_file: Path) -> Dict[str, Any]:
@@ -228,3 +240,229 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     )
 
     return normalized_skills
+
+
+# === Deployment Tracking Functions ===
+
+
+def load_deployment_index(claude_skills_dir: Path) -> Dict[str, Any]:
+    """Load deployment tracking index from ~/.claude/skills/.
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+
+    Returns:
+        Dict containing:
+        - deployed_skills: Dict mapping skill name to deployment metadata
+        - last_sync: ISO timestamp of last sync operation
+
+    Example:
+        >>> index = load_deployment_index(Path.home() / ".claude" / "skills")
+        >>> print(f"Tracked skills: {len(index['deployed_skills'])}")
+    """
+    index_path = claude_skills_dir / DEPLOYED_INDEX_FILE
+
+    if not index_path.exists():
+        logger.debug(f"No deployment index found at {index_path}, creating new")
+        return {"deployed_skills": {}, "last_sync": None}
+
+    try:
+        with open(index_path, encoding="utf-8") as f:
+            index = json.load(f)
+
+        # Ensure required keys exist
+        if "deployed_skills" not in index:
+            index["deployed_skills"] = {}
+        if "last_sync" not in index:
+            index["last_sync"] = None
+
+        logger.debug(
+            f"Loaded deployment index: {len(index['deployed_skills'])} tracked skills"
+        )
+        return index
+
+    except (json.JSONDecodeError, OSError) as e:
+        logger.warning(f"Failed to load deployment index: {e}, creating new")
+        return {"deployed_skills": {}, "last_sync": None}
+
+
+def save_deployment_index(claude_skills_dir: Path, index: Dict[str, Any]) -> None:
+    """Save deployment tracking index to ~/.claude/skills/.
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+        index: Index data to save
+
+    Example:
+        >>> index = {"deployed_skills": {...}, "last_sync": "2025-12-22T10:30:00Z"}
+        >>> save_deployment_index(Path.home() / ".claude" / "skills", index)
+    """
+    index_path = claude_skills_dir / DEPLOYED_INDEX_FILE
+
+    try:
+        # Ensure directory exists
+        claude_skills_dir.mkdir(parents=True, exist_ok=True)
+
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(index, f, indent=2, ensure_ascii=False)
+
+        logger.debug(f"Saved deployment index: {len(index['deployed_skills'])} skills")
+
+    except OSError as e:
+        logger.error(f"Failed to save deployment index: {e}")
+        raise
+
+
+def track_deployed_skill(
+    claude_skills_dir: Path, skill_name: str, collection: str
+) -> None:
+    """Track a newly deployed skill in the deployment index.
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+        skill_name: Name of deployed skill
+        collection: Collection name skill was deployed from
+
+    Example:
+        >>> track_deployed_skill(
+        ...     Path.home() / ".claude" / "skills",
+        ...     "systematic-debugging",
+        ...     "claude-mpm-skills"
+        ... )
+    """
+    index = load_deployment_index(claude_skills_dir)
+
+    # Add skill to deployed_skills
+    index["deployed_skills"][skill_name] = {
+        "collection": collection,
+        "deployed_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+    # Update last_sync timestamp
+    index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+
+    save_deployment_index(claude_skills_dir, index)
+    logger.debug(f"Tracked deployment: {skill_name} from {collection}")
+
+
+def untrack_skill(claude_skills_dir: Path, skill_name: str) -> None:
+    """Remove skill from deployment tracking index.
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+        skill_name: Name of skill to untrack
+
+    Example:
+        >>> untrack_skill(
+        ...     Path.home() / ".claude" / "skills",
+        ...     "old-skill"
+        ... )
+    """
+    index = load_deployment_index(claude_skills_dir)
+
+    if skill_name in index["deployed_skills"]:
+        del index["deployed_skills"][skill_name]
+        index["last_sync"] = datetime.utcnow().isoformat() + "Z"
+        save_deployment_index(claude_skills_dir, index)
+        logger.debug(f"Untracked skill: {skill_name}")
+
+
+def cleanup_orphan_skills(
+    claude_skills_dir: Path, required_skills: Set[str]
+) -> Dict[str, Any]:
+    """Remove skills deployed by claude-mpm but no longer referenced by agents.
+
+    This function:
+    1. Loads deployment tracking index
+    2. Identifies orphaned skills (tracked but not in required_skills)
+    3. Removes orphaned skill directories from ~/.claude/skills/
+    4. Updates deployment index
+
+    Args:
+        claude_skills_dir: Path to Claude skills directory (~/.claude/skills/)
+        required_skills: Set of skill names currently required by agents
+
+    Returns:
+        Dict containing:
+        - removed_count: Number of skills removed
+        - removed_skills: List of removed skill names
+        - kept_count: Number of skills kept
+        - errors: List of error messages
+
+    Example:
+        >>> required = {"skill-a", "skill-b"}
+        >>> result = cleanup_orphan_skills(
+        ...     Path.home() / ".claude" / "skills",
+        ...     required
+        ... )
+        >>> print(f"Removed {result['removed_count']} orphaned skills")
+    """
+    import shutil
+
+    index = load_deployment_index(claude_skills_dir)
+    tracked_skills = set(index["deployed_skills"].keys())
+
+    # Find orphaned skills: tracked by mpm but not in required_skills
+    orphaned = tracked_skills - required_skills
+
+    if not orphaned:
+        logger.info("No orphaned skills to remove")
+        return {
+            "removed_count": 0,
+            "removed_skills": [],
+            "kept_count": len(tracked_skills),
+            "errors": [],
+        }
+
+    logger.info(
+        f"Found {len(orphaned)} orphaned skills (tracked but not required by agents)"
+    )
+
+    removed = []
+    errors = []
+
+    for skill_name in orphaned:
+        skill_dir = claude_skills_dir / skill_name
+
+        # Remove skill directory if it exists
+        if skill_dir.exists():
+            try:
+                # Validate path is within claude_skills_dir (security)
+                skill_dir.resolve().relative_to(claude_skills_dir.resolve())
+
+                # Remove directory
+                if skill_dir.is_symlink():
+                    logger.debug(f"Removing symlink: {skill_dir}")
+                    skill_dir.unlink()
+                else:
+                    shutil.rmtree(skill_dir)
+
+                removed.append(skill_name)
+                logger.info(f"Removed orphaned skill: {skill_name}")
+
+            except ValueError as e:
+                error_msg = f"Path traversal attempt detected: {skill_dir}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+            except Exception as e:
+                error_msg = f"Failed to remove {skill_name}: {e}"
+                logger.error(error_msg)
+                errors.append(error_msg)
+                continue
+
+        # Remove from tracking index
+        untrack_skill(claude_skills_dir, skill_name)
+
+    kept_count = len(tracked_skills) - len(removed)
+
+    logger.info(
+        f"Cleanup complete: removed {len(removed)} skills, kept {kept_count} skills"
+    )
+
+    return {
+        "removed_count": len(removed),
+        "removed_skills": removed,
+        "kept_count": kept_count,
+        "errors": errors,
+    }
