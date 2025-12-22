@@ -270,7 +270,7 @@
 			</select>
 		</div>
 		<div class="flex items-center gap-3">
-			<span class="text-sm text-slate-600 dark:text-slate-400">{events.length} events</span>
+			<span class="text-sm text-slate-700 dark:text-slate-300">{events.length} events</span>
 			<button
 				onclick={clearEvents}
 				class="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 rounded transition-colors border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-200"
@@ -282,16 +282,16 @@
 
 	<div class="flex-1 overflow-y-auto">
 		{#if events.length === 0}
-			<div class="text-center py-12 text-slate-400 dark:text-slate-500">
+			<div class="text-center py-12 text-slate-600 dark:text-slate-400">
 				<svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 				</svg>
-				<p class="text-lg mb-2">No events yet</p>
-				<p class="text-sm">Waiting for Claude activity...</p>
+				<p class="text-lg mb-2 font-medium">No events yet</p>
+				<p class="text-sm text-slate-500 dark:text-slate-500">Waiting for Claude activity...</p>
 			</div>
 		{:else}
 			<!-- Table header -->
-			<div class="grid grid-cols-[110px_120px_160px_120px_100px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 sticky top-0 transition-colors">
+			<div class="grid grid-cols-[110px_120px_160px_120px_100px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
 				<div>Event</div>
 				<div>Source</div>
 				<div>Activity</div>
@@ -345,7 +345,7 @@
 						</div>
 
 						<!-- Timestamp (right-aligned) -->
-						<div class="text-slate-500 dark:text-slate-400 font-mono text-[11px] text-right">
+						<div class="text-slate-700 dark:text-slate-300 font-mono text-[11px] text-right">
 							{formatTimestamp(event.timestamp)}
 						</div>
 					</button>

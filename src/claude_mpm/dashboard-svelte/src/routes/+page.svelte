@@ -48,6 +48,16 @@
 		return unsubscribe;
 	});
 
+	// Log selectedFile changes
+	$effect(() => {
+		console.log('[+page] selectedFile changed:', {
+			hasFile: !!selectedFile,
+			filename: selectedFile?.filename,
+			operations: selectedFile?.operations.length,
+			viewMode
+		});
+	});
+
 	// Clear selections when switching views
 	$effect(() => {
 		if (viewMode === 'events') {

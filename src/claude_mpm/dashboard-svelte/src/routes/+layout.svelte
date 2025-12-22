@@ -12,7 +12,7 @@
 	});
 </script>
 
-<div class="min-h-screen bg-slate-900 flex flex-col">
+<div class="dark min-h-screen bg-slate-900 flex flex-col">
 	<main class="flex-1 overflow-hidden">
 		<slot />
 	</main>

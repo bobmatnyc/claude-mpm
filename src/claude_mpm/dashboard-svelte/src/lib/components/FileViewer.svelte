@@ -11,6 +11,15 @@
 
   let { file }: Props = $props();
 
+  // Debug logging for file prop changes
+  $effect(() => {
+    console.log('[FileViewer] File prop changed:', {
+      hasFile: !!file,
+      path: file?.file_path,
+      operations: file?.operations.length
+    });
+  });
+
   // State
   let selectedOperation = $state<FileOperation | null>(null);
   let highlightedContent = $state<string>('');

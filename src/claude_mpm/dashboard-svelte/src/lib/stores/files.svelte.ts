@@ -67,55 +67,66 @@ function findFilePathsInObject(obj: unknown, paths: Set<string> = new Set(), dep
 function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>>) {
   const files = derived(eventsStore, ($events) => {
     console.log('[FILES] Processing events:', $events.length);
+
+    // DEBUG: Log first event to see structure
+    if ($events.length > 0) {
+      console.log('[FILES] First event structure:', JSON.stringify($events[0], null, 2));
+    }
+
     const fileOperationsMap = new Map<string, FileOperation[]>();
 
     // Extract file operations from events
-    $events.forEach(event => {
+    $events.forEach((event, index) => {
+      console.log(`[FILES] Event ${index}:`, {
+        type: event.type,
+        hasData: !!event.data,
+        dataKeys: event.data ? Object.keys(event.data as any) : []
+      });
+
       const eventData = event.data as Record<string, unknown> | undefined;
-      if (!eventData) return;
+      if (!eventData) {
+        console.log(`[FILES] Event ${index}: No event data, skipping`);
+        return;
+      }
 
       const timestamp = typeof event.timestamp === 'string'
         ? event.timestamp
         : new Date(event.timestamp).toISOString();
 
-      // Extract file path - check multiple locations
-      let filePath: string | undefined;
+      // Extract tool_parameters (standard hook event structure, matches tools.svelte.ts)
+      const toolParams = eventData.tool_parameters &&
+                         typeof eventData.tool_parameters === 'object' &&
+                         !Array.isArray(eventData.tool_parameters)
+        ? eventData.tool_parameters as Record<string, unknown>
+        : null;
 
-      // Check tool_parameters first (most common location)
-      const toolParams = eventData.tool_parameters as Record<string, unknown> | undefined;
-      if (toolParams && typeof toolParams.file_path === 'string') {
-        filePath = toolParams.file_path;
-      } else if (toolParams && typeof toolParams.path === 'string') {
-        filePath = toolParams.path;
-      }
-      // Fallback to direct properties
-      else if (typeof eventData.file_path === 'string') {
-        filePath = eventData.file_path;
-      } else if (typeof eventData.path === 'string') {
-        filePath = eventData.path;
-      }
-      // Check parameters (for pre_tool events)
-      else {
-        const params = eventData.parameters as Record<string, unknown> | undefined;
-        if (params && typeof params.file_path === 'string') {
-          filePath = params.file_path;
-        }
+      // Extract file path - prioritize tool_parameters like tools store does
+      const filePath = (eventData.file_path || toolParams?.file_path || eventData.path || toolParams?.path) as string | undefined;
+
+      if (!filePath) {
+        console.log(`[FILES] Event ${index}: No file path found`);
+        return;
       }
 
-      if (!filePath) return;
+      // Get tool name (matches tools.svelte.ts extraction)
+      const toolName = eventData.tool_name as string | undefined;
 
-      // Get tool name from multiple possible locations
-      const toolName = eventData.tool || eventData.tool_name || (toolParams && toolParams.tool);
-      console.log('[FILES] Found file path:', filePath, 'in event type:', event.type, 'tool:', toolName);
+      // DEBUG: Log detailed extraction info
+      console.log(`[FILES] Event ${index}: Found file path:`, {
+        filePath,
+        eventSubtype: event.subtype,
+        toolName,
+        hasToolParams: !!toolParams
+      });
 
       // Determine operation type
       let operationType: FileOperation['type'] | undefined;
       let operation: FileOperation | undefined;
 
-      // Check for Read operations
-      if (event.type === 'post_tool' && toolName === 'Read') {
-        const result = eventData.result as Record<string, unknown> | undefined;
-        const content = typeof result?.content === 'string' ? result.content : undefined;
+      // Check for Read operations (use event.subtype, not event.type)
+      if (event.subtype === 'post_tool' && toolName === 'Read') {
+        // Extract content from output field (added by backend for file operations)
+        const content = typeof eventData.output === 'string' ? eventData.output : undefined;
 
         operation = {
           type: 'Read',
@@ -126,10 +137,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Write operations
-      else if (event.type === 'pre_tool' && toolName === 'Write') {
-        const parameters = eventData.parameters as Record<string, unknown> | undefined;
-        const content = typeof parameters?.content === 'string' ? parameters.content : undefined;
+      // Check for Write operations (use event.subtype, not event.type)
+      else if (event.subtype === 'pre_tool' && toolName === 'Write') {
+        // Extract content from tool_parameters (Write parameters are in pre_tool)
+        const content = toolParams?.content as string | undefined;
 
         operation = {
           type: 'Write',
@@ -140,11 +151,11 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Edit operations
-      else if (event.type === 'pre_tool' && toolName === 'Edit') {
-        const parameters = eventData.parameters as Record<string, unknown> | undefined;
-        const oldString = typeof parameters?.old_string === 'string' ? parameters.old_string : undefined;
-        const newString = typeof parameters?.new_string === 'string' ? parameters.new_string : undefined;
+      // Check for Edit operations (use event.subtype, not event.type)
+      else if (event.subtype === 'pre_tool' && toolName === 'Edit') {
+        // Extract from tool_parameters (Edit parameters are in pre_tool)
+        const oldString = toolParams?.old_string as string | undefined;
+        const newString = toolParams?.new_string as string | undefined;
 
         operation = {
           type: 'Edit',
@@ -156,10 +167,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Grep operations
-      else if (event.type === 'pre_tool' && toolName === 'Grep') {
-        const parameters = eventData.parameters as Record<string, unknown> | undefined;
-        const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
+      // Check for Grep operations (use event.subtype, not event.type)
+      else if (event.subtype === 'pre_tool' && toolName === 'Grep') {
+        // Extract pattern from tool_parameters
+        const pattern = toolParams?.pattern as string | undefined;
 
         operation = {
           type: 'Grep',
@@ -170,10 +181,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Glob operations
-      else if (event.type === 'pre_tool' && toolName === 'Glob') {
-        const parameters = eventData.parameters as Record<string, unknown> | undefined;
-        const pattern = typeof parameters?.pattern === 'string' ? parameters.pattern : undefined;
+      // Check for Glob operations (use event.subtype, not event.type)
+      else if (event.subtype === 'pre_tool' && toolName === 'Glob') {
+        // Extract pattern from tool_parameters
+        const pattern = toolParams?.pattern as string | undefined;
 
         operation = {
           type: 'Glob',
@@ -189,7 +200,9 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         const operations = fileOperationsMap.get(filePath) || [];
         operations.push(operation);
         fileOperationsMap.set(filePath, operations);
-        console.log('[FILES] Added operation:', operation.type, 'for file:', filePath);
+        console.log(`[FILES] Event ${index}: Added operation:`, operation.type, 'for file:', filePath);
+      } else {
+        console.log(`[FILES] Event ${index}: No operation created for event type:`, event.type, 'tool:', toolName);
       }
     });
 

@@ -455,6 +455,11 @@ class EventHandlers:
             ),
         }
 
+        # Include full output for file operations (Read, Edit, Write)
+        # so frontend can display file content
+        if tool_name in ("Read", "Edit", "Write", "Grep", "Glob") and "output" in event:
+            post_tool_data["output"] = event["output"]
+
         # Add correlation_id if available for correlation with pre_tool
         if tool_call_id:
             post_tool_data["correlation_id"] = tool_call_id

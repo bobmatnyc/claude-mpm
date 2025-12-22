@@ -53,7 +53,7 @@
 
 	// Auto-scroll logic: always on initial load, otherwise only if near bottom
 	$effect(() => {
-		if (filteredTools.length > 0 && toolListContainer) {
+		if (displayedTools.length > 0 && toolListContainer) {
 			const shouldScroll = isInitialLoad || isNearBottom(toolListContainer);
 
 			if (shouldScroll) {
@@ -73,6 +73,21 @@
 		selectedStream;
 		isInitialLoad = true;
 	});
+
+	// Tool type filter state
+	let toolTypeFilter = $state<string>('');
+
+	// Apply tool type filter on top of stream filter
+	let displayedTools = $derived(
+		toolTypeFilter
+			? filteredTools.filter(t => t.toolName === toolTypeFilter)
+			: filteredTools
+	);
+
+	// Extract unique tool names from filtered tools for filter dropdown
+	let uniqueToolNames = $derived(
+		Array.from(new Set(filteredTools.map(t => t.toolName))).sort()
+	);
 
 	function selectTool(tool: Tool) {
 		selectedTool = tool;
@@ -120,17 +135,17 @@
 
 	// Keyboard navigation
 	function handleKeydown(e: KeyboardEvent) {
-		if (filteredTools.length === 0) return;
+		if (displayedTools.length === 0) return;
 
 		const currentIndex = selectedTool
-			? filteredTools.findIndex(tool => tool.id === selectedTool?.id)
+			? displayedTools.findIndex(tool => tool.id === selectedTool?.id)
 			: -1;
 
 		let newIndex = currentIndex;
 
 		if (e.key === 'ArrowDown') {
 			e.preventDefault();
-			newIndex = currentIndex < filteredTools.length - 1 ? currentIndex + 1 : currentIndex;
+			newIndex = currentIndex < displayedTools.length - 1 ? currentIndex + 1 : currentIndex;
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
 			newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
@@ -138,8 +153,8 @@
 			return;
 		}
 
-		if (newIndex !== currentIndex && newIndex >= 0 && newIndex < filteredTools.length) {
-			selectedTool = filteredTools[newIndex];
+		if (newIndex !== currentIndex && newIndex >= 0 && newIndex < displayedTools.length) {
+			selectedTool = displayedTools[newIndex];
 			// Scroll into view
 			const toolElement = toolListContainer?.querySelector(
 				`[data-tool-id="${selectedTool.id}"]`
@@ -157,23 +172,34 @@
 </script>
 
 <div class="flex flex-col h-full bg-white dark:bg-slate-900">
+	<!-- Header with filters -->
 	<div class="flex items-center justify-between px-6 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
-		<h2 class="text-lg font-semibold text-slate-900 dark:text-white">Tools</h2>
-		<span class="text-sm text-slate-600 dark:text-slate-400">{filteredTools.length} tools</span>
+		<div class="flex items-center gap-3">
+			<select
+				bind:value={toolTypeFilter}
+				class="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 rounded transition-colors border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-200"
+			>
+				<option value="">All Tools</option>
+				{#each uniqueToolNames as toolName}
+					<option value={toolName}>{toolName}</option>
+				{/each}
+			</select>
+		</div>
+		<span class="text-sm text-slate-700 dark:text-slate-300">{displayedTools.length} tools</span>
 	</div>
 
 	<div class="flex-1 overflow-y-auto">
-		{#if filteredTools.length === 0}
-			<div class="text-center py-12 text-slate-400 dark:text-slate-500">
+		{#if displayedTools.length === 0}
+			<div class="text-center py-12 text-slate-600 dark:text-slate-400">
 				<svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
-				<p class="text-lg mb-2">No tool executions yet</p>
-				<p class="text-sm">Waiting for Claude to use tools...</p>
+				<p class="text-lg mb-2 font-medium">No tool executions yet</p>
+				<p class="text-sm text-slate-500 dark:text-slate-500">Waiting for Claude to use tools...</p>
 			</div>
 		{:else}
 			<!-- Table header -->
-			<div class="grid grid-cols-[140px_1fr_80px_100px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-400 sticky top-0 transition-colors">
+			<div class="grid grid-cols-[140px_1fr_80px_100px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
 				<div>Tool Name</div>
 				<div>Operation</div>
 				<div class="text-center">Status</div>
@@ -189,7 +215,7 @@
 				aria-label="Tool list - use arrow keys to navigate"
 				class="focus:outline-none overflow-y-auto max-h-[calc(100vh-280px)]"
 			>
-				{#each filteredTools as tool, i (tool.id)}
+				{#each displayedTools as tool, i (tool.id)}
 					<button
 						data-tool-id={tool.id}
 						onclick={() => selectTool(tool)}
@@ -218,7 +244,7 @@
 						</div>
 
 						<!-- Duration -->
-						<div class="text-slate-600 dark:text-slate-400 font-mono text-[11px] text-right">
+						<div class="text-slate-700 dark:text-slate-300 font-mono text-[11px] text-right">
 							{formatDuration(tool.duration)}
 						</div>
 					</button>

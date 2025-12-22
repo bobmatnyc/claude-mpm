@@ -26,13 +26,13 @@
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Claude MPM Monitor</h1>
-			<p class="text-sm text-slate-600 dark:text-slate-400 mt-1">Real-time multi-agent orchestration dashboard</p>
+			<p class="text-sm text-slate-700 dark:text-slate-300 mt-1">Real-time multi-agent orchestration dashboard</p>
 		</div>
 
 		<div class="flex items-center gap-3">
 			<!-- Stream Filter Dropdown -->
 			<div class="flex items-center gap-2">
-				<label for="stream-filter" class="text-sm text-slate-600 dark:text-slate-400">Stream:</label>
+				<label for="stream-filter" class="text-sm text-slate-700 dark:text-slate-300">Stream:</label>
 				<select
 					id="stream-filter"
 					bind:value={$selectedStream}
