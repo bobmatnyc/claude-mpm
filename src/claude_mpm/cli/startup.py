@@ -967,6 +967,73 @@ def show_agent_summary():
         logger.debug(f"Failed to generate agent summary: {e}")
 
 
+def show_skill_summary():
+    """
+    Display skill availability summary on startup.
+
+    WHY: Users should see at a glance how many skills are deployed and available
+    from collections, similar to the agent summary.
+
+    DESIGN DECISION: Fast, non-blocking check that counts skills from deployment
+    directory and collection repos. Shows "X installed (Y available)" format.
+    Failures are silent to avoid blocking startup.
+    """
+    try:
+        from pathlib import Path
+
+        # Count deployed skills (installed)
+        skills_dir = Path.home() / ".claude" / "skills"
+        installed_count = 0
+        if skills_dir.exists():
+            # Count directories with SKILL.md (excludes collection repos)
+            # Exclude collection directories (obra-superpowers, etc.)
+            skill_dirs = [
+                d
+                for d in skills_dir.iterdir()
+                if d.is_dir()
+                and (d / "SKILL.md").exists()
+                and not (d / ".git").exists()  # Exclude collection repos
+            ]
+            installed_count = len(skill_dirs)
+
+        # Count available skills in collections
+        available_count = 0
+        if skills_dir.exists():
+            # Scan all collection directories (those with .git)
+            for collection_dir in skills_dir.iterdir():
+                if not collection_dir.is_dir() or not (collection_dir / ".git").exists():
+                    continue
+
+                # Count skill directories in this collection
+                # Skills can be nested in: skills/category/skill-name/SKILL.md
+                # or in flat structure: skill-name/SKILL.md
+                for root, dirs, files in os.walk(collection_dir):
+                    if "SKILL.md" in files:
+                        # Exclude build artifacts and hidden directories (within the collection)
+                        # Get relative path from collection_dir to avoid excluding based on .claude parent
+                        root_path = Path(root)
+                        relative_parts = root_path.relative_to(collection_dir).parts
+                        if not any(
+                            part.startswith(".") or part in ["dist", "build", "__pycache__"]
+                            for part in relative_parts
+                        ):
+                            available_count += 1
+
+        # Display summary if we have skills
+        if installed_count > 0 or available_count > 0:
+            print(
+                f"✓ Skills: {installed_count} installed ({available_count} available)",
+                flush=True,
+            )
+
+    except Exception as e:
+        # Silent failure - skill summary is informational only
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to generate skill summary: {e}")
+
+
 def auto_install_chrome_devtools_on_startup():
     """
     Automatically install chrome-devtools-mcp on startup if enabled.
@@ -1040,6 +1107,7 @@ def run_background_services():
     deploy_bundled_skills()  # Base layer: package-bundled skills
     sync_remote_skills_on_startup()  # Override layer: Git-based skills (takes precedence)
     discover_and_link_runtime_skills()  # Discovery: user-added skills
+    show_skill_summary()  # Display skill counts after deployment
 
     deploy_output_style_on_startup()
 
