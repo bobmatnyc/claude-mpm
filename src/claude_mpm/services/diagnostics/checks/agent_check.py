@@ -66,9 +66,9 @@ class AgentCheck(BaseDiagnosticCheck):
 
             if deployed_count == 0:
                 status = ValidationSeverity.ERROR
-                message = f"No agents deployed (0/{available_count} available)"
+                message = f"No agents deployed (0/{available_count} cached)"
                 fix_command = "claude-mpm agents deploy"
-                fix_description = "Deploy all available agents"
+                fix_description = "Deploy all cached agents"
             elif deployed_count < available_count:
                 status = ValidationSeverity.WARNING
                 message = f"{deployed_count}/{available_count} agents deployed"

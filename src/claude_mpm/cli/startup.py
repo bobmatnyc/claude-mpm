@@ -562,27 +562,27 @@ def sync_remote_agents_on_startup():
                     )
 
                     # Show total configured agents (deployed + updated + already existing)
-                    # Include repo count for context and removed count if any
+                    # Include cache count for context and removed count if any
                     if deployed > 0 or updated > 0:
                         if removed > 0:
                             deploy_progress.finish(
                                 f"Complete: {deployed} new, {updated} updated, {skipped} unchanged, "
-                                f"{removed} removed ({total_configured} configured from {agent_count} in repo)"
+                                f"{removed} removed ({total_configured} configured from {agent_count} files in cache)"
                             )
                         else:
                             deploy_progress.finish(
                                 f"Complete: {deployed} new, {updated} updated, {skipped} unchanged "
-                                f"({total_configured} configured from {agent_count} in repo)"
+                                f"({total_configured} configured from {agent_count} files in cache)"
                             )
                     elif removed > 0:
                         deploy_progress.finish(
-                            f"Complete: {total_configured} agents ready - all unchanged, "
-                            f"{removed} removed ({agent_count} available in repo)"
+                            f"Complete: {total_configured} agents deployed, "
+                            f"{removed} removed ({agent_count} files in cache)"
                         )
                     else:
                         deploy_progress.finish(
-                            f"Complete: {total_configured} agents ready - all unchanged "
-                            f"({agent_count} available in repo)"
+                            f"Complete: {total_configured} agents deployed "
+                            f"({agent_count} files in cache)"
                         )
 
                     # Display deployment errors to user (not just logs)
@@ -809,7 +809,7 @@ def sync_remote_skills_on_startup():
 
                 # Show total available skills (deployed + already existing)
                 # Include source indication (user_defined vs agent_referenced)
-                # Note: total_skill_count is from the repo, total_available is what's deployed/needed
+                # Note: total_skill_count is from cache, total_available is what's deployed/needed
                 source_label = (
                     "user override" if skill_source == "user_defined" else "from agents"
                 )
@@ -818,22 +818,22 @@ def sync_remote_skills_on_startup():
                     if filtered > 0:
                         deploy_progress.finish(
                             f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} {source_label}, {filtered} available in repo)"
+                            f"({total_available} {source_label}, {filtered} files in cache)"
                         )
                     else:
                         deploy_progress.finish(
                             f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} skills {source_label} from {total_skill_count} in repo)"
+                            f"({total_available} skills {source_label} from {total_skill_count} files in cache)"
                         )
                 elif filtered > 0:
                     # Skills filtered means agents require fewer skills than available
                     deploy_progress.finish(
-                        f"No skills needed ({source_label}, {total_skill_count} available in repo)"
+                        f"No skills needed ({source_label}, {total_skill_count} files in cache)"
                     )
                 else:
                     deploy_progress.finish(
                         f"Complete: {total_available} skills {source_label} "
-                        f"({total_skill_count} available in repo)"
+                        f"({total_skill_count} files in cache)"
                     )
 
                 # Log deployment errors if any
@@ -934,7 +934,7 @@ def show_agent_summary():
         # Display summary if we have agents
         if installed_count > 0 or available_count > 0:
             print(
-                f"✓ Agents: {installed_count} installed / {available_count} available",
+                f"✓ Agents: {installed_count} deployed / {available_count} cached",
                 flush=True,
             )
 
