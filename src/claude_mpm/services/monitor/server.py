@@ -927,7 +927,9 @@ class UnifiedMonitorServer:
 
                 try:
                     file_path = request.query.get("path", "")
-                    commit_hash = request.query.get("commit", "")  # Optional commit hash
+                    commit_hash = request.query.get(
+                        "commit", ""
+                    )  # Optional commit hash
 
                     if not file_path:
                         return web.json_response(
