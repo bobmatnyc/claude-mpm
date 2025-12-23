@@ -6,7 +6,7 @@ This normalizer ensures all events follow a consistent schema before broadcastin
 providing backward compatibility while establishing a standard format.
 
 DESIGN DECISION: Transform all events to a consistent schema:
-- event: Socket.IO event name (always "claude_event")
+- event: Socket.IO event name (always "mpm_event")
 - type: Main category (hook, system, session, file, connection)
 - subtype: Specific event type (pre_tool, heartbeat, started, etc.)
 - timestamp: ISO format timestamp
@@ -72,7 +72,7 @@ class NormalizedEvent:
     structure explicit and self-documenting.
     """
 
-    event: str = "claude_event"  # Socket.IO event name
+    event: str = "mpm_event"  # Socket.IO event name
     source: str = ""  # WHERE the event comes from
     type: str = ""  # WHAT category of event
     subtype: str = ""  # Specific event type
@@ -251,7 +251,7 @@ class EventNormalizer:
 
             # Create normalized event
             normalized = NormalizedEvent(
-                event="claude_event",
+                event="mpm_event",
                 source=event_source,
                 type=event_type,
                 subtype=subtype,
@@ -273,7 +273,7 @@ class EventNormalizer:
 
             # Return a generic event on error
             return NormalizedEvent(
-                event="claude_event",
+                event="mpm_event",
                 source="system",
                 type="unknown",
                 subtype="error",
@@ -315,7 +315,7 @@ class EventNormalizer:
         )
 
         return NormalizedEvent(
-            event="claude_event",  # Always use standard event name
+            event="mpm_event",  # Always use standard event name
             source=source,
             type=event_data.get("type", "unknown"),
             subtype=event_data.get("subtype", "generic"),

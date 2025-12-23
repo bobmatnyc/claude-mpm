@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { FileEntry } from '$lib/stores/files.svelte';
+  import { themeStore } from '$lib/stores/theme.svelte';
   import Highlight, { HighlightSvelte } from 'svelte-highlight';
   import python from 'svelte-highlight/languages/python';
   import typescript from 'svelte-highlight/languages/typescript';
@@ -12,7 +14,6 @@
   import yaml from 'svelte-highlight/languages/yaml';
   import scss from 'svelte-highlight/languages/scss';
   import sql from 'svelte-highlight/languages/sql';
-  import 'svelte-highlight/styles/github-dark.css';
 
   interface Props {
     file: FileEntry | null;
@@ -21,6 +22,22 @@
   }
 
   let { file, content, isLoading = false }: Props = $props();
+
+  // Project root for relative path display
+  let projectRoot = $state<string>('');
+
+  onMount(async () => {
+    // Fetch working directory for relative path display
+    try {
+      const response = await fetch('/api/working-directory');
+      const data = await response.json();
+      if (data.success && data.working_directory) {
+        projectRoot = data.working_directory;
+      }
+    } catch (error) {
+      console.error('[FileViewer] Failed to fetch working directory:', error);
+    }
+  });
 
   type ViewMode = 'content' | 'changes';
   let viewMode = $state<ViewMode>('content');
@@ -75,16 +92,26 @@
   async function checkGitStatus() {
     if (!file) return;
 
+    console.log('[FileViewer] Checking git status for:', file.path);
     try {
       const response = await fetch(`/api/file/diff?path=${encodeURIComponent(file.path)}`);
       const data = await response.json();
 
+      console.log('[FileViewer] Git status response:', data);
+
       if (data.success) {
         hasGitChanges = data.has_changes || false;
         isGitTracked = data.tracked !== false;
+        console.log('[FileViewer] Git status updated:', {
+          hasGitChanges,
+          isGitTracked,
+          showToggle: isGitTracked && hasGitChanges
+        });
+      } else {
+        console.log('[FileViewer] Git status check failed:', data.error);
       }
     } catch (error) {
-      console.error('Failed to check git status:', error);
+      console.error('[FileViewer] Failed to check git status:', error);
       hasGitChanges = false;
       isGitTracked = false;
     }
@@ -155,6 +182,16 @@
     const mb = kb / 1024;
     return `${mb.toFixed(1)} MB`;
   }
+
+  // Get display path (relative to project root)
+  function getDisplayPath(fullPath: string): string {
+    if (!projectRoot || !fullPath.startsWith(projectRoot)) {
+      return fullPath;
+    }
+    // Remove project root and ensure leading slash
+    const relativePath = fullPath.substring(projectRoot.length);
+    return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
+  }
 </script>
 
 {#if file}
@@ -162,7 +199,7 @@
     <!-- Header -->
     <div class="viewer-header">
       <div class="file-info">
-        <h3 class="file-path">{file.path}</h3>
+        <h3 class="file-path">{getDisplayPath(file.path)}</h3>
         <p class="file-meta">
           {formatSize(file.size)}
           · Last modified {new Date(file.modified * 1000).toLocaleString()}
@@ -224,7 +261,7 @@
         </div>
       {:else}
         <!-- Syntax highlighted content -->
-        <div class="code-container">
+        <div class="code-container" data-theme={themeStore.current}>
           {#if file.name.endsWith('.svelte')}
             <HighlightSvelte code={content} />
           {:else}
@@ -361,6 +398,124 @@
     display: block;
     padding: 1rem;
     border-radius: 0.375rem;
+  }
+
+  /* Light theme overrides for syntax highlighting */
+  .code-container[data-theme='light'] :global(pre code.hljs) {
+    background: #fafafa !important;
+    color: #383a42 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-comment),
+  .code-container[data-theme='light'] :global(.hljs-quote) {
+    color: #a0a1a7 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-keyword),
+  .code-container[data-theme='light'] :global(.hljs-selector-tag),
+  .code-container[data-theme='light'] :global(.hljs-addition) {
+    color: #a626a4 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-number),
+  .code-container[data-theme='light'] :global(.hljs-string),
+  .code-container[data-theme='light'] :global(.hljs-meta .hljs-string),
+  .code-container[data-theme='light'] :global(.hljs-literal),
+  .code-container[data-theme='light'] :global(.hljs-doctag),
+  .code-container[data-theme='light'] :global(.hljs-regexp) {
+    color: #50a14f !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-title),
+  .code-container[data-theme='light'] :global(.hljs-section),
+  .code-container[data-theme='light'] :global(.hljs-name),
+  .code-container[data-theme='light'] :global(.hljs-selector-id),
+  .code-container[data-theme='light'] :global(.hljs-selector-class) {
+    color: #c18401 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-attribute),
+  .code-container[data-theme='light'] :global(.hljs-attr),
+  .code-container[data-theme='light'] :global(.hljs-variable),
+  .code-container[data-theme='light'] :global(.hljs-template-variable),
+  .code-container[data-theme='light'] :global(.hljs-class .hljs-title),
+  .code-container[data-theme='light'] :global(.hljs-type) {
+    color: #986801 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-symbol),
+  .code-container[data-theme='light'] :global(.hljs-bullet),
+  .code-container[data-theme='light'] :global(.hljs-subst),
+  .code-container[data-theme='light'] :global(.hljs-meta),
+  .code-container[data-theme='light'] :global(.hljs-meta .hljs-keyword),
+  .code-container[data-theme='light'] :global(.hljs-selector-attr),
+  .code-container[data-theme='light'] :global(.hljs-selector-pseudo),
+  .code-container[data-theme='light'] :global(.hljs-link) {
+    color: #4078f2 !important;
+  }
+
+  .code-container[data-theme='light'] :global(.hljs-built_in),
+  .code-container[data-theme='light'] :global(.hljs-deletion) {
+    color: #e45649 !important;
+  }
+
+  /* Dark theme overrides for syntax highlighting */
+  .code-container[data-theme='dark'] :global(pre code.hljs) {
+    background: #282c34 !important;
+    color: #abb2bf !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-comment),
+  .code-container[data-theme='dark'] :global(.hljs-quote) {
+    color: #5c6370 !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-keyword),
+  .code-container[data-theme='dark'] :global(.hljs-selector-tag),
+  .code-container[data-theme='dark'] :global(.hljs-addition) {
+    color: #c678dd !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-number),
+  .code-container[data-theme='dark'] :global(.hljs-string),
+  .code-container[data-theme='dark'] :global(.hljs-meta .hljs-string),
+  .code-container[data-theme='dark'] :global(.hljs-literal),
+  .code-container[data-theme='dark'] :global(.hljs-doctag),
+  .code-container[data-theme='dark'] :global(.hljs-regexp) {
+    color: #98c379 !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-title),
+  .code-container[data-theme='dark'] :global(.hljs-section),
+  .code-container[data-theme='dark'] :global(.hljs-name),
+  .code-container[data-theme='dark'] :global(.hljs-selector-id),
+  .code-container[data-theme='dark'] :global(.hljs-selector-class) {
+    color: #e5c07b !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-attribute),
+  .code-container[data-theme='dark'] :global(.hljs-attr),
+  .code-container[data-theme='dark'] :global(.hljs-variable),
+  .code-container[data-theme='dark'] :global(.hljs-template-variable),
+  .code-container[data-theme='dark'] :global(.hljs-class .hljs-title),
+  .code-container[data-theme='dark'] :global(.hljs-type) {
+    color: #d19a66 !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-symbol),
+  .code-container[data-theme='dark'] :global(.hljs-bullet),
+  .code-container[data-theme='dark'] :global(.hljs-subst),
+  .code-container[data-theme='dark'] :global(.hljs-meta),
+  .code-container[data-theme='dark'] :global(.hljs-meta .hljs-keyword),
+  .code-container[data-theme='dark'] :global(.hljs-selector-attr),
+  .code-container[data-theme='dark'] :global(.hljs-selector-pseudo),
+  .code-container[data-theme='dark'] :global(.hljs-link) {
+    color: #61afef !important;
+  }
+
+  .code-container[data-theme='dark'] :global(.hljs-built_in),
+  .code-container[data-theme='dark'] :global(.hljs-deletion) {
+    color: #e06c75 !important;
   }
 
   .code-container .plaintext {

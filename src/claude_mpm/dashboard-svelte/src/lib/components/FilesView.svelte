@@ -19,6 +19,9 @@
     contentLoading = $bindable(false)
   }: Props = $props();
 
+  // Project root for relative path display
+  let projectRoot = $state<string>('');
+
   // State
   let touchedFiles = $state<TouchedFile[]>([]);
   let filenameFilter = $state('');
@@ -54,9 +57,7 @@
 
     // Filter by stream
     if (selectedStream !== 'all' && selectedStream !== '') {
-      // For stream filtering, we'd need to track session_id with each file
-      // For now, just use all files when stream is selected
-      files = uniqueFiles;
+      files = files.filter(file => file.sessionId === selectedStream);
     }
 
     // Filter by filename
@@ -74,8 +75,20 @@
   // Subscribe to socket events
   let unsubscribeEvents: (() => void) | null = null;
 
-  onMount(() => {
+  onMount(async () => {
     console.log('[FilesView] Mounted, subscribing to socket events');
+
+    // Fetch working directory for relative path display
+    try {
+      const response = await fetch('/api/working-directory');
+      const data = await response.json();
+      if (data.success && data.working_directory) {
+        projectRoot = data.working_directory;
+        console.log('[FilesView] Project root:', projectRoot);
+      }
+    } catch (error) {
+      console.error('[FilesView] Failed to fetch working directory:', error);
+    }
 
     // Subscribe to events store
     unsubscribeEvents = socketStore.events.subscribe((events) => {
@@ -178,6 +191,16 @@
       }
     }
 
+    // Extract session_id from event
+    const sessionId = (
+      event.session_id ||
+      event.sessionId ||
+      (event.data as any)?.session_id ||
+      (event.data as any)?.sessionId ||
+      event.source ||
+      undefined
+    );
+
     // Add to touched files
     const fileName = getFileName(filePath);
     const touchedFile: TouchedFile = {
@@ -187,6 +210,7 @@
       timestamp: event.timestamp,
       toolName,
       eventId: event.id,
+      sessionId,
       oldContent: finalOldContent,
       newContent
     };
@@ -270,6 +294,16 @@
     if (['.yml', '.yaml'].includes(ext)) return '📝';
     return '📄';
   }
+
+  // Get display path (relative to project root)
+  function getDisplayPath(fullPath: string): string {
+    if (!projectRoot || !fullPath.startsWith(projectRoot)) {
+      return fullPath;
+    }
+    // Remove project root and ensure leading slash
+    const relativePath = fullPath.substring(projectRoot.length);
+    return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
+  }
 </script>
 
 <!-- LEFT PANE: File List (matching Tools/Events styling) -->
@@ -327,7 +361,7 @@
 
             <!-- File Path -->
             <div class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs" title={file.path}>
-              {file.name}
+              {getDisplayPath(file.path)}
             </div>
 
             <!-- Operation -->

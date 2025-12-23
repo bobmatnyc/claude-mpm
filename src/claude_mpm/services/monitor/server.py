@@ -949,13 +949,35 @@ class UnifiedMonitorServer:
                             status=404,
                         )
 
+                    # Find git repository root
+                    git_root_result = subprocess.run(
+                        ["git", "rev-parse", "--show-toplevel"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        cwd=str(path.parent),
+                    )
+
+                    if git_root_result.returncode != 0:
+                        # Not in a git repository
+                        return web.json_response(
+                            {
+                                "success": True,
+                                "diff": "",
+                                "has_changes": False,
+                                "tracked": False,
+                            }
+                        )
+
+                    git_root = Path(git_root_result.stdout.strip())
+
                     # Check if file is tracked by git
                     ls_files_result = subprocess.run(
                         ["git", "ls-files", "--error-unmatch", str(path)],
                         check=False,
                         capture_output=True,
                         text=True,
-                        cwd=str(path.parent),
+                        cwd=str(git_root),
                     )
 
                     if ls_files_result.returncode != 0:
@@ -969,13 +991,13 @@ class UnifiedMonitorServer:
                             }
                         )
 
-                    # Get git diff for file
+                    # Get git diff for file (using absolute path or relative to git root)
                     result = subprocess.run(
                         ["git", "diff", "HEAD", str(path)],
                         check=False,
                         capture_output=True,
                         text=True,
-                        cwd=str(path.parent),
+                        cwd=str(git_root),
                     )
 
                     diff_output = result.stdout if result.returncode == 0 else ""

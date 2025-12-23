@@ -12,6 +12,7 @@ export interface TouchedFile {
   timestamp: string | number;
   toolName: string;
   eventId: string;
+  sessionId?: string; // Stream/session ID for filtering by stream
   oldContent?: string; // Content before edit/write
   newContent?: string; // Content after edit/write
 }

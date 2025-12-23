@@ -58,7 +58,7 @@ except ImportError:
                 (),
                 {
                     "to_dict": lambda: {
-                        "event": "claude_event",
+                        "event": "mpm_event",
                         "type": event_data.get("type", "unknown"),
                         "subtype": event_data.get("subtype", "generic"),
                         "timestamp": event_data.get(
@@ -130,12 +130,20 @@ class ConnectionManagerService:
             data.get("workingDirectory")
         )
 
+        # For hook_execution events, extract the actual hook type from data
+        # Otherwise use "hook" as the type
+        if event == "hook_execution":
+            hook_type = data.get("hook_type", "unknown")
+            event_type = hook_type
+        else:
+            event_type = "hook"
+
         raw_event = {
-            "type": "hook",
-            "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
+            "type": event_type,  # Use actual hook type for hook_execution, "hook" otherwise
+            "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop", "execution"
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
-            "source": "claude_hooks",  # Identify the source
+            "source": "mpm_hook",  # Identify the source as mpm_hook
             "session_id": session_id,  # Include session if available (supports both naming conventions)
             "cwd": cwd,  # Add working directory at top level for easy frontend access
             "correlation_id": tool_call_id,  # Set from tool_call_id for event correlation
@@ -166,7 +174,7 @@ class ConnectionManagerService:
         if self.connection_pool:
             try:
                 # Emit to Socket.IO server directly
-                self.connection_pool.emit("claude_event", claude_event_data)
+                self.connection_pool.emit("mpm_event", claude_event_data)
                 if DEBUG:
                     print(f"✅ Emitted via connection pool: {event}", file=sys.stderr)
                 return  # Success - no need for fallback
