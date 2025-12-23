@@ -1,3 +1,9 @@
+## v5.4.25 (2025-12-23)
+
+### Fixed
+- **Linting**: Resolved ruff linting issues in hook_handler and test files
+- **Code Formatting**: Applied consistent formatting across codebase
+
 ## v5.4.24 (2025-12-23)
 
 ### Fixed
