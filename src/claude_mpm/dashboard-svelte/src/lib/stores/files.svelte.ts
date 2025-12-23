@@ -154,9 +154,17 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       if (event.type === 'hook' && event.subtype === 'post_tool' && toolName === 'Read') {
         // Extract content from output field
         // Backend structure: { data: { output: "content", tool_name: "Read", tool_parameters: {...} } }
-        // The output is directly in eventData.output (not nested)
+        // CRITICAL: The event structure from SSE might wrap the data
+
+        // Try to unwrap if event.data is the actual payload
+        const actualEventData = eventData.data && typeof eventData.data === 'object'
+          ? eventData.data as Record<string, unknown>
+          : eventData;
+
         const content = (
-          // Check eventData.output first (direct format from backend)
+          // PRIORITY 1: Check actualEventData.output (unwrapped from event.data.data.output)
+          typeof actualEventData.output === 'string' ? actualEventData.output :
+          // PRIORITY 2: Check eventData.output (direct format from backend)
           typeof eventData.output === 'string' ? eventData.output :
           // Check eventData.result (alternative format)
           typeof eventData.result === 'string' ? eventData.result :

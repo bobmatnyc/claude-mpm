@@ -263,6 +263,14 @@
 
     <!-- Content area -->
     <div class="viewer-content">
+      <!-- VISIBLE DEBUG OUTPUT -->
+      <p style="color: red; font-size: 12px; padding: 8px; background: #ffebee; border: 1px solid #ef5350;">
+        DEBUG: content={currentOperation?.content?.length || 'NO CONTENT'} |
+        written_content={currentOperation?.written_content?.length || 'NO'} |
+        post_event.output={currentOperation?.post_event?.data ?
+          ((currentOperation.post_event.data as any).output?.length || 'NO') : 'NO POST EVENT'}
+      </p>
+
       {#if isLoading}
         <div class="loading-state">
           <div class="spinner"></div>
