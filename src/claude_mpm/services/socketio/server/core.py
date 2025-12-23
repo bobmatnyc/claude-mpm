@@ -629,6 +629,85 @@ class SocketIOServerCore:
         self.app.router.add_get("/api/file/read", file_read_handler)
         self.logger.info("✅ File reading API registered at /api/file/read")
 
+        # Add files listing endpoint for file browser
+        async def files_list_handler(request):
+            """Handle GET /api/files for listing files in working directory."""
+            import os
+
+            try:
+                # Get working directory from query params or use current directory
+                working_dir = request.query.get("path", str(Path.cwd()))
+                abs_working_dir = Path(working_dir).resolve().expanduser()
+
+                # Security check - ensure directory is accessible
+                if not abs_working_dir.exists():
+                    return web.json_response({"error": "Directory not found"}, status=404)
+
+                if not abs_working_dir.is_dir():
+                    return web.json_response({"error": "Path is not a directory"}, status=400)
+
+                # Collect files and directories
+                files = []
+                directories = []
+
+                # Common patterns to exclude
+                exclude_patterns = {
+                    '.git', '.venv', 'venv', 'node_modules', '__pycache__',
+                    '.pytest_cache', '.mypy_cache', 'dist', 'build', '.next',
+                    'coverage', '.coverage', '.tox', '.eggs', '*.egg-info'
+                }
+
+                for entry in abs_working_dir.iterdir():
+                    # Skip hidden files and excluded patterns
+                    if entry.name.startswith('.'):
+                        # Allow .py, .ts, .md, etc. files but skip directories like .git
+                        if entry.is_dir():
+                            continue
+
+                    # Skip excluded directories
+                    if entry.name in exclude_patterns:
+                        continue
+
+                    try:
+                        stat_info = entry.stat()
+                        entry_data = {
+                            "name": entry.name,
+                            "path": str(entry),
+                            "type": "directory" if entry.is_dir() else "file",
+                            "size": stat_info.st_size if entry.is_file() else 0,
+                            "modified": stat_info.st_mtime,
+                        }
+
+                        if entry.is_dir():
+                            directories.append(entry_data)
+                        else:
+                            # Add file extension for syntax highlighting
+                            entry_data["extension"] = entry.suffix.lower()
+                            files.append(entry_data)
+                    except (PermissionError, OSError):
+                        # Skip files we can't access
+                        continue
+
+                # Sort directories and files alphabetically
+                directories.sort(key=lambda x: x["name"].lower())
+                files.sort(key=lambda x: x["name"].lower())
+
+                return web.json_response({
+                    "success": True,
+                    "path": str(abs_working_dir),
+                    "directories": directories,
+                    "files": files,
+                    "total_files": len(files),
+                    "total_directories": len(directories),
+                })
+
+            except Exception as e:
+                self.logger.error(f"Error listing files: {e}")
+                return web.json_response({"error": str(e)}, status=500)
+
+        self.app.router.add_get("/api/files", files_list_handler)
+        self.logger.info("✅ Files listing API registered at /api/files")
+
         # Add git history endpoint
         async def git_history_handler(request):
             """Handle POST /api/git-history for getting file git history."""

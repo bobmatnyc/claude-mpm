@@ -3,20 +3,17 @@
 	import EventStream from '$lib/components/EventStream.svelte';
 	import ToolsView from '$lib/components/ToolsView.svelte';
 	import FilesView from '$lib/components/FilesView.svelte';
-	import FileViewer from '$lib/components/FileViewer.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
 	import type { FileEntry } from '$lib/stores/files.svelte';
 	import { socketStore } from '$lib/stores/socket.svelte';
 	import { createToolsStore } from '$lib/stores/tools.svelte';
-	import { createFilesStore } from '$lib/stores/files.svelte';
 	import { derived } from 'svelte/store';
 
 	type ViewMode = 'events' | 'tools' | 'files';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
-	let selectedFile = $state<FileEntry | null>(null);
 	let viewMode = $state<ViewMode>('events');
 	let leftWidth = $state(40); // percentage - 40% event stream, 60% data explorer
 	let isDragging = $state(false);
@@ -25,7 +22,7 @@
 	const { selectedStream, events: eventsStore } = socketStore;
 
 	// Create filtered events store based on selectedStream
-	// This ensures tools and files stores react to stream changes
+	// This ensures tools store reacts to stream changes
 	const filteredEventsStore = derived(
 		[eventsStore, selectedStream],
 		([$events, $selectedStream]) => {
@@ -48,10 +45,8 @@
 		}
 	);
 
-	// Create tools and files stores from filtered events
-	// These will now automatically update when selectedStream changes
+	// Create tools store from filtered events
 	const toolsStore = createToolsStore(filteredEventsStore);
-	const filesStore = createFilesStore(filteredEventsStore);
 
 	// Subscribe to tools store
 	let tools = $state<Tool[]>([]);
@@ -63,34 +58,12 @@
 		return unsubscribe;
 	});
 
-	// Subscribe to files store
-	let files = $state<FileEntry[]>([]);
-
-	$effect(() => {
-		const unsubscribe = filesStore.subscribe(value => {
-			files = value;
-		});
-		return unsubscribe;
-	});
-
-	// Log selectedFile changes
-	$effect(() => {
-		console.log('[+page] selectedFile changed:', {
-			hasFile: !!selectedFile,
-			filename: selectedFile?.filename,
-			operations: selectedFile?.operations.length,
-			viewMode
-		});
-	});
-
 	// Clear selections when switching views
 	$effect(() => {
 		if (viewMode === 'events') {
 			selectedTool = null;
-			selectedFile = null;
 		} else if (viewMode === 'tools') {
 			selectedEvent = null;
-			selectedFile = null;
 		} else if (viewMode === 'files') {
 			selectedEvent = null;
 			selectedTool = null;
@@ -104,7 +77,6 @@
 		// Clear all selections when stream changes
 		selectedEvent = null;
 		selectedTool = null;
-		selectedFile = null;
 	});
 
 	function startDrag(e: MouseEvent) {
@@ -179,31 +151,30 @@
 				{:else if viewMode === 'tools'}
 					<ToolsView {tools} bind:selectedTool selectedStream={$selectedStream} />
 				{:else if viewMode === 'files'}
-					<FilesView {files} bind:selectedFile selectedStream={$selectedStream} />
+					<!-- FilesView now handles file browsing and content internally -->
+					<FilesView selectedStream={$selectedStream} />
 				{/if}
 			</div>
 		</div>
 
-		<!-- Draggable Divider -->
-		<div
-			class="divider"
-			class:dragging={isDragging}
-			onmousedown={startDrag}
-			role="separator"
-			aria-label="Resize panels"
-			tabindex="0"
-		></div>
+		<!-- Draggable Divider (hidden in files view since FilesView is full-width) -->
+		{#if viewMode !== 'files'}
+			<div
+				class="divider"
+				class:dragging={isDragging}
+				onmousedown={startDrag}
+				role="separator"
+				aria-label="Resize panels"
+				tabindex="0"
+			></div>
+		{/if}
 
-		<!-- Right Panel: JSON Explorer or FileViewer (resizable) -->
-		<div class="right-panel flex flex-col flex-1 min-w-0 min-h-0" style="width: {100 - leftWidth}%;">
-			{#if viewMode === 'files'}
-				<div class="flex-1 min-h-0 overflow-hidden">
-					<FileViewer file={selectedFile} />
-				</div>
-			{:else}
+		<!-- Right Panel: JSON Explorer (only shown for events/tools views) -->
+		{#if viewMode !== 'files'}
+			<div class="right-panel flex flex-col flex-1 min-w-0 min-h-0" style="width: {100 - leftWidth}%;">
 				<JSONExplorer event={selectedEvent} tool={selectedTool} />
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </div>
 

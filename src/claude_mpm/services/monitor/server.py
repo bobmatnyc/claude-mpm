@@ -588,6 +588,84 @@ class UnifiedMonitorServer:
                         {"success": False, "error": str(e)}, status=500
                     )
 
+            # File listing endpoint for file browser
+            async def api_files_handler(request):
+                """List files in a directory for the file browser."""
+                try:
+                    # Get path from query param, default to working directory
+                    path = request.query.get("path", str(Path.cwd()))
+                    dir_path = Path(path)
+
+                    if not dir_path.exists():
+                        return web.json_response(
+                            {"success": False, "error": "Directory not found"},
+                            status=404,
+                        )
+
+                    if not dir_path.is_dir():
+                        return web.json_response(
+                            {"success": False, "error": "Path is not a directory"},
+                            status=400,
+                        )
+
+                    # Patterns to exclude
+                    exclude_patterns = {
+                        ".git", "node_modules", "__pycache__", ".svelte-kit",
+                        "venv", ".venv", "dist", "build", ".next", ".cache",
+                        ".pytest_cache", ".mypy_cache", ".ruff_cache", "eggs",
+                        "*.egg-info", ".tox", ".nox", "htmlcov", ".coverage",
+                    }
+
+                    entries = []
+                    try:
+                        for entry in sorted(dir_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+                            # Skip hidden files and excluded patterns
+                            if entry.name.startswith(".") and entry.name not in {".env", ".gitignore"}:
+                                if entry.name in {".git", ".svelte-kit", ".cache"}:
+                                    continue
+                            if entry.name in exclude_patterns:
+                                continue
+                            if any(entry.name.endswith(p.replace("*", "")) for p in exclude_patterns if "*" in p):
+                                continue
+
+                            try:
+                                stat = entry.stat()
+                                entries.append({
+                                    "name": entry.name,
+                                    "path": str(entry),
+                                    "type": "directory" if entry.is_dir() else "file",
+                                    "size": stat.st_size if entry.is_file() else 0,
+                                    "modified": stat.st_mtime,
+                                    "extension": entry.suffix.lstrip(".") if entry.is_file() else None,
+                                })
+                            except (PermissionError, OSError):
+                                continue
+
+                    except PermissionError:
+                        return web.json_response(
+                            {"success": False, "error": "Permission denied"},
+                            status=403,
+                        )
+
+                    # Separate directories and files
+                    directories = [e for e in entries if e["type"] == "directory"]
+                    files = [e for e in entries if e["type"] == "file"]
+
+                    return web.json_response({
+                        "success": True,
+                        "path": str(dir_path),
+                        "directories": directories,
+                        "files": files,
+                        "total_directories": len(directories),
+                        "total_files": len(files),
+                    })
+
+                except Exception as e:
+                    self.logger.error(f"Error listing directory: {e}")
+                    return web.json_response(
+                        {"success": False, "error": str(e)}, status=500
+                    )
+
             # Version endpoint for dashboard build tracker
             async def version_handler(request):
                 """Serve version information for dashboard build tracker."""
@@ -745,7 +823,7 @@ class UnifiedMonitorServer:
             self.app.router.add_get("/version.json", version_handler)
             self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/working-directory", working_directory_handler)
-            self.app.router.add_get("/api/directory", list_directory)
+            self.app.router.add_get("/api/files", api_files_handler)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
             self.app.router.add_post("/api/git-history", git_history_handler)

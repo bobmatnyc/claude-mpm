@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- main [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Claude MPM Monitor" [level=1] [ref=e9]
+        - paragraph [ref=e10]: Real-time multi-agent orchestration dashboard
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: "Stream:"
+          - combobox "Stream:" [disabled] [ref=e14]:
+            - option "Waiting for streams..." [disabled] [selected]
+        - button "Switch to light mode" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+        - generic [ref=e20]: Connected
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e24]:
+          - button "Events" [ref=e25] [cursor=pointer]
+          - button "Tools" [ref=e26] [cursor=pointer]
+          - button "Files" [ref=e27] [cursor=pointer]
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - combobox [ref=e32]:
+              - option "All Activities" [selected]
+              - option "pre_tool"
+            - generic [ref=e33]:
+              - generic [ref=e34]: 1 events
+              - button "Clear" [ref=e35] [cursor=pointer]
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]: Event
+              - generic [ref=e39]: Source
+              - generic [ref=e40]: Activity
+              - generic [ref=e41]: Agent
+              - generic [ref=e42]: Timestamp
+            - list "Event list - use arrow keys to navigate" [ref=e43]:
+              - button "claude_event - pre_tool Read 2:29:11 AM" [ref=e44] [cursor=pointer]:
+                - generic [ref=e45]: claude_event
+                - generic [ref=e46]: "-"
+                - generic [ref=e48]: pre_tool
+                - generic [ref=e49]: Read
+                - generic [ref=e50]: 2:29:11 AM
+      - separator "Resize panels" [ref=e51]
+      - generic [ref=e53]:
+        - heading "JSON Data Explorer" [level=3] [ref=e55]
+        - generic [ref=e57]:
+          - img [ref=e58]
+          - paragraph [ref=e60]: Select an event or tool to view details
+```
