@@ -666,6 +666,63 @@ class UnifiedMonitorServer:
                         {"success": False, "error": str(e)}, status=500
                     )
 
+            # File read endpoint (GET) for file browser
+            async def api_file_read_handler(request):
+                """Read file content via GET request."""
+                try:
+                    file_path = request.query.get("path", "")
+
+                    if not file_path:
+                        return web.json_response(
+                            {"success": False, "error": "Path parameter required"},
+                            status=400,
+                        )
+
+                    path = Path(file_path)
+
+                    if not path.exists():
+                        return web.json_response(
+                            {"success": False, "error": "File not found"},
+                            status=404,
+                        )
+
+                    if not path.is_file():
+                        return web.json_response(
+                            {"success": False, "error": "Path is not a file"},
+                            status=400,
+                        )
+
+                    # Get file info
+                    file_size = path.stat().st_size
+
+                    # Read file content
+                    try:
+                        content = path.read_text(encoding="utf-8")
+                        lines = content.count("\n") + 1
+                    except UnicodeDecodeError:
+                        return web.json_response(
+                            {"success": False, "error": "File is not a text file"},
+                            status=415,
+                        )
+
+                    # Get file extension
+                    file_ext = path.suffix.lstrip(".")
+
+                    return web.json_response({
+                        "success": True,
+                        "path": str(path),
+                        "content": content,
+                        "lines": lines,
+                        "size": file_size,
+                        "type": file_ext or "text",
+                    })
+
+                except Exception as e:
+                    self.logger.error(f"Error reading file: {e}")
+                    return web.json_response(
+                        {"success": False, "error": str(e)}, status=500
+                    )
+
             # Version endpoint for dashboard build tracker
             async def version_handler(request):
                 """Serve version information for dashboard build tracker."""
@@ -824,6 +881,7 @@ class UnifiedMonitorServer:
             self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/working-directory", working_directory_handler)
             self.app.router.add_get("/api/files", api_files_handler)
+            self.app.router.add_get("/api/file/read", api_file_read_handler)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
             self.app.router.add_post("/api/git-history", git_history_handler)
