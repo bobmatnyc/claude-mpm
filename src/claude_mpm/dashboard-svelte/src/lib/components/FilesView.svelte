@@ -361,7 +361,7 @@
 
             <!-- File Path -->
             <div class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs" title={file.path}>
-              {getDisplayPath(file.path)}
+              {file.name}
             </div>
 
             <!-- Operation -->

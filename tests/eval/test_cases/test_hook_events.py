@@ -130,7 +130,7 @@ def test_hook_event_emission():
             hook_event = hook_exec_events[0]
             data = hook_event["data"]
 
-            print(f"   ✅ Hook execution event emitted")
+            print("   ✅ Hook execution event emitted")
             print(f"      - hook_type: {data.get('hook_type')}")
             print(f"      - success: {data.get('success')}")
             print(f"      - duration_ms: {data.get('duration_ms')}ms")
@@ -146,7 +146,7 @@ def test_hook_event_emission():
             if missing_fields:
                 print(f"   ❌ Missing required fields: {missing_fields}")
             else:
-                print(f"   ✅ All required fields present")
+                print("   ✅ All required fields present")
 
             # Validate hook-specific fields
             for field in test_case["expected_fields"]:
@@ -157,20 +157,20 @@ def test_hook_event_emission():
 
             # Validate timing
             if data.get("duration_ms", 0) > 0:
-                print(f"   ✅ Timing information captured")
+                print("   ✅ Timing information captured")
             else:
-                print(f"   ⚠️  Duration is 0 or missing")
+                print("   ⚠️  Duration is 0 or missing")
 
         else:
-            print(f"   ❌ No hook_execution event found!")
+            print("   ❌ No hook_execution event found!")
             print(f"      Emitted events: {[e['event_type'] for e in emitted_events]}")
 
     print("\n" + "=" * 60)
     print("🎯 Test Summary:")
     print(f"   - Tested {len(test_cases)} hook types")
-    print(f"   - All hooks emitted structured events")
-    print(f"   - Events include timing and success status")
-    print(f"   - Events follow normalized schema")
+    print("   - All hooks emitted structured events")
+    print("   - Events include timing and success status")
+    print("   - Events follow normalized schema")
 
 
 def test_event_normalizer():

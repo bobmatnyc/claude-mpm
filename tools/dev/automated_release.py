@@ -119,7 +119,7 @@ def update_version_files(project_root: Path, new_version: str) -> None:
     # Update package.json
     package_json_path = project_root / "package.json"
     if package_json_path.exists():
-        with open(package_json_path, "r") as f:
+        with open(package_json_path) as f:
             package_data = json.load(f)
         package_data["version"] = new_version
         with open(package_json_path, "w") as f:
@@ -368,7 +368,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"""
 
         if returncode != 0:
             print(f"   ⚠️  Failed to push {repo_name} to remote")
-            print(f"      You may need to push manually later")
+            print("      You may need to push manually later")
             sync_success = False
         else:
             print(f"   ✓ Pushed {repo_name} to origin/{current_branch}")

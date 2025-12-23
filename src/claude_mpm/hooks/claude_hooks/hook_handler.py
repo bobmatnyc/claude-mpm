@@ -512,7 +512,7 @@ class ClaudeHookHandler:
         event: dict,
         success: bool,
         duration_ms: int,
-        error_message: str = None
+        error_message: Optional[str] = None
     ):
         """Emit a structured JSON event for hook execution.
 
@@ -532,7 +532,6 @@ class ClaudeHookHandler:
         # Extract common fields
         session_id = event.get("session_id", "")
         working_dir = event.get("cwd", "")
-        correlation_id = event.get("correlation_id") or str(uuid.uuid4())
 
         # Build hook execution data
         hook_data = {
@@ -599,29 +598,29 @@ class ClaudeHookHandler:
             tool_name = event.get("tool_name", "unknown")
             return f"Pre-processing tool call: {tool_name}"
 
-        elif hook_type == "PostToolUse":
+        if hook_type == "PostToolUse":
             tool_name = event.get("tool_name", "unknown")
             exit_code = event.get("exit_code", 0)
             status = "success" if exit_code == 0 else "failed"
             return f"Completed tool call: {tool_name} ({status})"
 
-        elif hook_type == "SubagentStop":
+        if hook_type == "SubagentStop":
             agent_type = event.get("agent_type", "unknown")
             reason = event.get("reason", "unknown")
             return f"Subagent {agent_type} stopped: {reason}"
 
-        elif hook_type == "SessionStart":
+        if hook_type == "SessionStart":
             return "New session started"
 
-        elif hook_type == "Stop":
+        if hook_type == "Stop":
             reason = event.get("reason", "unknown")
             return f"Session stopped: {reason}"
 
-        elif hook_type == "Notification":
+        if hook_type == "Notification":
             notification_type = event.get("notification_type", "unknown")
             return f"Notification received: {notification_type}"
 
-        elif hook_type == "AssistantResponse":
+        if hook_type == "AssistantResponse":
             response_len = len(event.get("response", ""))
             return f"Assistant response generated ({response_len} chars)"
 
