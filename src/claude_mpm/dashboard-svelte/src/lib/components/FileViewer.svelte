@@ -69,6 +69,20 @@
           // Syntax highlight content
           const content = currentOperation.content || currentOperation.written_content || '';
 
+          // Enhanced debugging
+          console.log('[FileViewer] Content extraction:', {
+            hasContent: !!content,
+            contentLength: content?.length,
+            contentPreview: content ? content.substring(0, 100) : null,
+            currentOperation: {
+              type: currentOperation.type,
+              hasContent: !!currentOperation.content,
+              hasWrittenContent: !!currentOperation.written_content,
+              hasPreEvent: !!currentOperation.pre_event,
+              hasPostEvent: !!currentOperation.post_event
+            }
+          });
+
           if (!content) {
             loadError = 'No content available for this operation';
             highlightedContent = '';

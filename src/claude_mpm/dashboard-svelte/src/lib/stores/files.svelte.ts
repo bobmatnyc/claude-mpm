@@ -160,15 +160,24 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           undefined
         );
 
-        // Debug logging to help diagnose content extraction
-        if (filePath) {
-          console.log(`[FILES] File operation for ${filePath}:`, {
-            hasOutput: !!content,
-            outputLength: content?.length,
-            eventKeys: Object.keys(eventData),
-            hookInputDataKeys: hookInputData ? Object.keys(hookInputData) : []
-          });
-        }
+        // Enhanced debug logging to help diagnose content extraction
+        console.log(`[FILES] Read operation for ${filePath}:`, {
+          hasContent: !!content,
+          contentLength: content?.length,
+          contentPreview: content ? content.substring(0, 100) : null,
+          eventData: {
+            hasOutput: 'output' in eventData,
+            outputType: typeof eventData.output,
+            outputIsString: typeof eventData.output === 'string',
+            hasToolParameters: !!eventData.tool_parameters,
+            toolParametersKeys: eventData.tool_parameters ? Object.keys(eventData.tool_parameters as any) : []
+          },
+          hookInputData: hookInputData ? {
+            hasOutput: 'output' in hookInputData,
+            outputType: typeof (hookInputData as any).output,
+            keys: Object.keys(hookInputData)
+          } : null
+        });
 
         operation = {
           type: 'Read',
