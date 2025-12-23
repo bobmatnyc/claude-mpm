@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { FileEntry, FileOperation } from '$lib/stores/files.svelte';
   import { onMount } from 'svelte';
-  import { codeToHtml, type BundledLanguage } from 'shiki';
+  import { codeToHtml, type BundledLanguage } from 'shiki/bundle/full';
   import * as Diff from 'diff';
   import * as Diff2Html from 'diff2html';
 
@@ -152,6 +152,12 @@
             highlightedContent = '<pre class="shiki github-light github-dark"><code></code></pre>';
           } else {
             try {
+              console.log('[FileViewer] Attempting to highlight:', {
+                language,
+                filename: file.filename,
+                contentLength: content.length
+              });
+
               highlightedContent = await codeToHtml(content, {
                 lang: language as BundledLanguage,
                 themes: {
@@ -166,9 +172,15 @@
                   }
                 ]
               });
+
+              console.log('[FileViewer] Highlighting succeeded for', language);
             } catch (e) {
               // Fallback to plain text if syntax highlighting fails
-              console.warn('[FileViewer] Syntax highlighting failed for', language, ':', e);
+              console.error('[FileViewer] Syntax highlighting failed:', {
+                language,
+                filename: file.filename,
+                error: e instanceof Error ? e.message : String(e)
+              });
               highlightedContent = addLineNumbers(content);
             }
           }
