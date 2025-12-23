@@ -448,9 +448,72 @@ def sync_remote_agents_on_startup():
                 agent_count = 0
 
                 if cache_dir.exists():
-                    # Count MD files in cache (agent markdown files from Git)
-                    # BUGFIX: Only count files in agent directories, not docs/templates/READMEs
-                    # Valid agent paths must contain "/agents/" or be in root-level category dirs
+                    # BUGFIX (cache-count-inflation): Clean up stale cache files
+                    # from old repositories before counting to prevent inflated counts.
+                    # Issue: Old caches like bobmatnyc/claude-mpm-agents/agents/
+                    # were counted alongside current agents, inflating count
+                    # from 44 to 85.
+                    #
+                    # Solution: Remove files with nested /agents/ paths
+                    # (e.g., cache/agents/user/repo/agents/...)
+                    # Keep only current agents (e.g., cache/agents/engineer/...)
+                    removed_count = 0
+                    stale_dirs = set()
+
+                    for md_file in cache_dir.rglob("*.md"):
+                        # Stale cache files have multiple /agents/ in their path
+                        # Current: ~/.claude-mpm/cache/agents/engineer/...
+                        #          (1 occurrence)
+                        # Old: ~/.claude-mpm/cache/agents/bobmatnyc/.../agents/...
+                        #      (2+ occurrences)
+                        if str(md_file).count("/agents/") > 1:
+                            # Track parent directory for cleanup
+                            # Extract subdirectory under cache/agents/
+                            # (e.g., "bobmatnyc")
+                            parts = md_file.parts
+                            cache_agents_idx = parts.index("agents")
+                            if cache_agents_idx + 1 < len(parts):
+                                stale_subdir = parts[cache_agents_idx + 1]
+                                # Only remove if it's not a known category directory
+                                if stale_subdir not in [
+                                    "engineer",
+                                    "ops",
+                                    "qa",
+                                    "universal",
+                                    "documentation",
+                                    "claude-mpm",
+                                    "security",
+                                ]:
+                                    stale_dirs.add(cache_dir / stale_subdir)
+
+                            md_file.unlink()
+                            removed_count += 1
+
+                    # Remove empty stale directories
+                    for stale_dir in stale_dirs:
+                        if stale_dir.exists() and stale_dir.is_dir():
+                            try:
+                                # Remove directory and all contents
+                                import shutil
+
+                                shutil.rmtree(stale_dir)
+                            except Exception:
+                                pass  # Ignore cleanup errors
+
+                    if removed_count > 0:
+                        from loguru import logger
+
+                        logger.info(
+                            f"Cleaned up {removed_count} stale cache files "
+                            f"from old repositories"
+                        )
+
+                    # Count MD files in cache (agent markdown files from
+                    # current repos)
+                    # BUGFIX: Only count files in agent directories,
+                    # not docs/templates/READMEs
+                    # Valid agent paths must contain "/agents/" exactly ONCE
+                    # (current structure)
                     # Exclude PM templates, BASE-AGENT, and documentation files
                     pm_templates = {
                         "base-agent.md",
@@ -473,25 +536,34 @@ def sync_remote_agents_on_startup():
                         "auto-deploy-index.md",
                     }
 
-                    # Find all markdown files
+                    # Find all markdown files (after cleanup)
                     all_md_files = list(cache_dir.rglob("*.md"))
 
                     # Filter to only agent files:
-                    # 1. Must have "/agents/" in path (from git repos)
+                    # 1. Must have "/agents/" in path exactly ONCE
+                    #    (current structure)
                     # 2. Must not be in PM templates or doc files
                     # 3. Exclude BASE-AGENT.md which is not a deployable agent
-                    # 4. Exclude build artifacts (dist/, build/, .cache/) to prevent double-counting
+                    # 4. Exclude build artifacts (dist/, build/, .cache/)
+                    #    to prevent double-counting
                     agent_files = [
                         f
                         for f in all_md_files
                         if (
-                            # Must be in an agent directory (from git repos like bobmatnyc/claude-mpm-agents/agents/)
+                            # Must be in an agent directory (from current
+                            # cache structure)
                             "/agents/" in str(f)
+                            # NEW: Only ONE /agents/ in path (excludes old
+                            # nested repos)
+                            # This prevents counting old caches like
+                            # bobmatnyc/claude-mpm-agents/agents/...
+                            and str(f).count("/agents/") == 1
                             # Exclude PM templates, doc files, and BASE-AGENT
                             and f.name.lower() not in pm_templates
                             and f.name.lower() not in doc_files
                             and f.name.lower() != "base-agent.md"
-                            # Exclude build artifacts (prevents double-counting source + built files)
+                            # Exclude build artifacts (prevents double-counting
+                            # source + built files)
                             and not any(
                                 part in str(f).split("/")
                                 for part in ["dist", "build", ".cache"]
