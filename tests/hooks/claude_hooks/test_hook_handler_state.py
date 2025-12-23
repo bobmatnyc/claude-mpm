@@ -33,10 +33,10 @@ class TestEventEmission:
         data = {"test": "data", "sessionId": "test-123"}
         handler._emit_socketio_event("/hook", "test_event", data)
 
-        # Should emit claude_event with normalized data
+        # Should emit mpm_event with normalized data
         mock_pool.emit.assert_called_once()
         call_args = mock_pool.emit.call_args
-        assert call_args[0][0] == "claude_event"
+        assert call_args[0][0] == "mpm_event"
         emitted_data = call_args[0][1]
         assert emitted_data["type"] == "hook"
         assert emitted_data["subtype"] == "test_event"

@@ -101,6 +101,32 @@ function createSocketStore() {
 					events.set(allCachedEvents);
 					streams.set(cachedStreamSet);
 					console.log(`[Cache] Restored ${allCachedEvents.length} total cached events from ${cachedStreamSet.size} streams`);
+
+					// Extract metadata from cached events
+					const metadataMap = new Map<string, { projectPath: string; projectName: string }>();
+					allCachedEvents.forEach(event => {
+						const streamId = getStreamId(event);
+						if (streamId && !metadataMap.has(streamId)) {
+							// Try to extract working directory from event
+							const projectPath =
+								event.cwd ||
+								event.working_directory ||
+								(event.data as any)?.working_directory ||
+								(event.data as any)?.cwd ||
+								(event.metadata as any)?.working_directory ||
+								(event.metadata as any)?.cwd;
+
+							if (projectPath && typeof projectPath === 'string') {
+								const projectName = projectPath.split('/').filter(Boolean).pop() || projectPath;
+								metadataMap.set(streamId, { projectPath, projectName });
+							}
+						}
+					});
+
+					if (metadataMap.size > 0) {
+						streamMetadata.set(metadataMap);
+						console.log(`[Cache] Extracted metadata for ${metadataMap.size} streams`);
+					}
 				}
 			}
 		}, 0);
@@ -247,12 +273,16 @@ function createSocketStore() {
 
 			// Extract and store project path information
 			// Check multiple possible locations for working directory/cwd
+			// Events can have various structures depending on their type:
+			// - Hook events: data.cwd (from ConnectionManager line 148)
+			// - Other events: data.working_directory, data.data.working_directory, etc.
 			const projectPath =
-				data.cwd ||
-				data.data?.working_directory ||
-				data.data?.cwd ||
-				data.metadata?.working_directory ||
-				data.metadata?.cwd;
+				data.cwd ||                            // Direct cwd field (from hook events)
+				data.working_directory ||              // Direct working_directory field
+				data.data?.working_directory ||        // Nested in data object
+				data.data?.cwd ||                      // Nested in data object as cwd
+				data.metadata?.working_directory ||    // Nested in metadata object
+				data.metadata?.cwd;                    // Nested in metadata as cwd
 
 			if (projectPath) {
 				// Extract project name from path (last directory component)
