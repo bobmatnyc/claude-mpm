@@ -334,7 +334,7 @@
       <!-- Table header -->
       <div class="grid grid-cols-[50px_1fr_100px_120px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
         <div></div>
-        <div>File Path</div>
+        <div>Filename</div>
         <div>Operation</div>
         <div class="text-right">Timestamp</div>
       </div>

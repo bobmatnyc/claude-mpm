@@ -93,11 +93,17 @@
     if (!file) return;
 
     console.log('[FileViewer] Checking git status for:', file.path);
-    try {
-      const response = await fetch(`/api/file/diff?path=${encodeURIComponent(file.path)}`);
-      const data = await response.json();
+    console.log('[FileViewer] File object:', file);
 
-      console.log('[FileViewer] Git status response:', data);
+    try {
+      const url = `/api/file/diff?path=${encodeURIComponent(file.path)}`;
+      console.log('[FileViewer] Fetching from URL:', url);
+
+      const response = await fetch(url);
+      console.log('[FileViewer] Response status:', response.status);
+
+      const data = await response.json();
+      console.log('[FileViewer] Git status response:', JSON.stringify(data, null, 2));
 
       if (data.success) {
         hasGitChanges = data.has_changes || false;
@@ -105,10 +111,14 @@
         console.log('[FileViewer] Git status updated:', {
           hasGitChanges,
           isGitTracked,
-          showToggle: isGitTracked && hasGitChanges
+          showToggle: isGitTracked && hasGitChanges,
+          tracked_value: data.tracked,
+          has_changes_value: data.has_changes
         });
       } else {
         console.log('[FileViewer] Git status check failed:', data.error);
+        hasGitChanges = false;
+        isGitTracked = false;
       }
     } catch (error) {
       console.error('[FileViewer] Failed to check git status:', error);
