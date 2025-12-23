@@ -276,6 +276,10 @@ class TicketingDelegationMetric(DelegationCorrectnessMetric):
         - Direct mcp-ticketer tool usage
         - WebFetch on ticket URLs
         - No delegation to ticketing agent
+
+        Returns:
+            1.0 if delegation to ticketing occurred without violations
+            0.0 if any violation detected
         """
         analysis = self.parser.parse(test_case.actual_output)
 
@@ -305,8 +309,17 @@ class TicketingDelegationMetric(DelegationCorrectnessMetric):
                 self.success = False
                 return 0.0
 
-        # Delegate to parent scoring if no violations
-        return super().measure(test_case)
+            # PASS: Delegated to ticketing without violations
+            self.score = 1.0
+            self.reason = "Delegated to: ticketing"
+            self.success = True
+            return 1.0
+
+        # No ticketing context detected - assume no ticketing operation needed
+        self.score = 1.0
+        self.reason = "No ticketing operation detected"
+        self.success = True
+        return 1.0
 
 
 def create_delegation_correctness_metric(

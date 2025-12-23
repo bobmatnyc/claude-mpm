@@ -132,38 +132,45 @@
           console.log('[FileViewer] Fetching file content from server API');
           const content = await fetchFileContent(file.file_path);
 
-          if (!content) {
-            loadError = 'File is empty';
+          console.log('[FileViewer] Fetched content:', {
+            length: content.length,
+            preview: content.substring(0, 100),
+            type: typeof content
+          });
+
+          // Allow empty files - they're valid and should display as empty
+          if (content === undefined || content === null) {
+            loadError = 'Failed to load file content';
             highlightedContent = '';
             return;
           }
 
-          console.log('[FileViewer] Fetched content:', {
-            length: content.length,
-            preview: content.substring(0, 100)
-          });
-
           const language = getLanguageFromFilename(file.filename);
 
-          try {
-            highlightedContent = await codeToHtml(content, {
-              lang: language as BundledLanguage,
-              themes: {
-                light: 'github-light',
-                dark: 'github-dark'
-              },
-              decorations: [
-                {
-                  // Add line numbers via CSS counter
-                  start: { line: 0, character: 0 },
-                  end: { line: content.split('\n').length, character: 0 }
-                }
-              ]
-            });
-          } catch (e) {
-            // Fallback to plain text if syntax highlighting fails
-            console.warn('[FileViewer] Syntax highlighting failed for', language, ':', e);
-            highlightedContent = addLineNumbers(content);
+          // Handle empty files
+          if (content === '') {
+            highlightedContent = '<pre class="shiki github-light github-dark"><code></code></pre>';
+          } else {
+            try {
+              highlightedContent = await codeToHtml(content, {
+                lang: language as BundledLanguage,
+                themes: {
+                  light: 'github-light',
+                  dark: 'github-dark'
+                },
+                decorations: [
+                  {
+                    // Add line numbers via CSS counter
+                    start: { line: 0, character: 0 },
+                    end: { line: content.split('\n').length, character: 0 }
+                  }
+                ]
+              });
+            } catch (e) {
+              // Fallback to plain text if syntax highlighting fails
+              console.warn('[FileViewer] Syntax highlighting failed for', language, ':', e);
+              highlightedContent = addLineNumbers(content);
+            }
           }
         }
       } catch (e) {

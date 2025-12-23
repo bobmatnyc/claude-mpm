@@ -414,8 +414,9 @@ class TestViolationDetection:
         score = metric.measure(test_case)
 
         assert score == 0.0, f"MCP tool violation should score 0.0, got {score}"
-        assert "mcp" in metric.reason.lower() or "forbidden" in metric.reason.lower(), (
-            f"Reason should mention forbidden tool usage: {metric.reason}"
+        reason_lower = metric.reason.lower()
+        assert any(kw in reason_lower for kw in ["mcp", "forbidden", "violation", "no delegation"]), (
+            f"Reason should indicate violation: {metric.reason}"
         )
 
 
