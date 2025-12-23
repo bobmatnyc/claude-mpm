@@ -101,13 +101,24 @@ Content =
 
 ### Agent Level: `engineering/python/backend/fastapi-engineer.md`
 
-```json
-{
-  "name": "fastapi-engineer",
-  "description": "FastAPI backend development specialist",
-  "agent_type": "engineer",
-  "instructions": "# FastAPI Engineer\n\nExpert in building async REST APIs with FastAPI.\n\n## Specialization\n- Async/await patterns\n- Pydantic models\n- Dependency injection\n- OpenAPI documentation"
-}
+```markdown
+---
+name: fastapi-engineer
+description: FastAPI backend development specialist
+version: 1.0.0
+agent_type: engineer
+model: sonnet
+---
+
+# FastAPI Engineer
+
+Expert in building async REST APIs with FastAPI.
+
+## Specialization
+- Async/await patterns
+- Pydantic models
+- Dependency injection
+- OpenAPI documentation
 ```
 
 ## Deployed Agent Content

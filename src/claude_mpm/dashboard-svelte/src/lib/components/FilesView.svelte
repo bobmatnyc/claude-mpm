@@ -21,6 +21,7 @@
 
   // State
   let touchedFiles = $state<TouchedFile[]>([]);
+  let filenameFilter = $state('');
 
   // Cache to track file content at the time of read operations
   // This allows us to show diffs when files are edited/written later
@@ -47,14 +48,27 @@
     });
   });
 
-  // Filter files by selected stream
+  // Filter files by selected stream and filename
   let filteredFiles = $derived.by(() => {
-    if (selectedStream === 'all' || selectedStream === '') {
-      return uniqueFiles;
+    let files = uniqueFiles;
+
+    // Filter by stream
+    if (selectedStream !== 'all' && selectedStream !== '') {
+      // For stream filtering, we'd need to track session_id with each file
+      // For now, just use all files when stream is selected
+      files = uniqueFiles;
     }
-    // For stream filtering, we'd need to track session_id with each file
-    // For now, just return all files when stream is selected
-    return uniqueFiles;
+
+    // Filter by filename
+    if (filenameFilter.trim() !== '') {
+      const filterLower = filenameFilter.toLowerCase();
+      files = files.filter(file =>
+        file.path.toLowerCase().includes(filterLower) ||
+        file.name.toLowerCase().includes(filterLower)
+      );
+    }
+
+    return files;
   });
 
   // Subscribe to socket events
@@ -80,8 +94,7 @@
   });
 
   // Process tool events to extract file touches
-  function processToolEvent(event: ClaudeEvent) {
-    // Only process pre_tool events (when tool is invoked)
+  async function processToolEvent(event: ClaudeEvent) {
     const data = event.data;
     const dataSubtype =
       data && typeof data === 'object' && !Array.isArray(data)
@@ -89,6 +102,29 @@
         : undefined;
     const eventSubtype = event.subtype || dataSubtype;
 
+    // Handle post_tool events (for caching read results)
+    if (eventSubtype === 'post_tool') {
+      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : null;
+
+      const toolName = dataRecord?.tool_name as string | undefined;
+      const operation = toolName ? getOperationType(toolName) : null;
+
+      // For Read operations, cache the content from the tool result
+      if (operation === 'read') {
+        const filePath = extractFilePath(data);
+        const toolResult = dataRecord?.tool_result;
+
+        if (filePath && toolResult && typeof toolResult === 'string') {
+          fileContentCache.set(filePath, toolResult);
+          console.log('[FilesView] Cached read content:', filePath);
+        }
+      }
+      return; // Don't create TouchedFile entries for post_tool
+    }
+
+    // Only process pre_tool events for creating TouchedFile entries
     if (eventSubtype !== 'pre_tool') {
       return;
     }
@@ -124,10 +160,22 @@
     // Extract content for write/edit operations
     const { oldContent, newContent } = extractContent(data);
 
-    // For write/edit operations, use cached content as oldContent if not provided
+    // For write/edit operations, try to get old content
     let finalOldContent = oldContent;
     if ((operation === 'write' || operation === 'edit') && !oldContent) {
+      // First try cache
       finalOldContent = fileContentCache.get(filePath);
+
+      // If not in cache, try to fetch from server (for existing files)
+      if (!finalOldContent && operation === 'write') {
+        try {
+          finalOldContent = await fetchFileContent(filePath);
+          console.log('[FilesView] Fetched old content for write operation:', filePath);
+        } catch (error) {
+          // File might not exist yet (new file), which is fine
+          console.log('[FilesView] Could not fetch old content (might be new file):', filePath);
+        }
+      }
     }
 
     // Add to touched files
@@ -228,8 +276,13 @@
 <div class="flex flex-col h-full bg-white dark:bg-slate-900">
   <!-- Header with filters -->
   <div class="flex items-center justify-between px-6 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
-    <div class="flex items-center gap-3">
-      <!-- Future: Add operation filter dropdown here if needed -->
+    <div class="flex items-center gap-3 flex-1">
+      <input
+        type="text"
+        bind:value={filenameFilter}
+        placeholder="Filter by filename..."
+        class="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors w-64"
+      />
     </div>
     <span class="text-sm text-slate-700 dark:text-slate-300">{filteredFiles.length} files</span>
   </div>

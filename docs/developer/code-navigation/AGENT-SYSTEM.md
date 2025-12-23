@@ -12,14 +12,14 @@ Claude MPM extends Claude Code's native agent system with:
 
 ```
 src/claude_mpm/agents/
-├── templates/              # JSON agent templates
-│   ├── base_agent.json    # Base configuration
-│   ├── engineer.json
-│   ├── qa.json
-│   ├── research.json
-│   ├── documentation.json
-│   ├── ops.json
-│   ├── security.json
+├── templates/              # Markdown agent templates
+│   ├── base_agent.md      # Base configuration
+│   ├── engineer.md
+│   ├── qa.md
+│   ├── research.md
+│   ├── documentation.md
+│   ├── ops.md
+│   ├── security.md
 │   └── ... (37+ templates)
 ├── BASE_AGENT_TEMPLATE.md  # Template documentation
 ├── BASE_ENGINEER.md        # Engineer base prompt
@@ -35,48 +35,31 @@ src/claude_mpm/agents/
 
 ## Agent Template Format
 
-### JSON Template Structure
-```json
-{
-  "id": "engineer",
-  "name": "Engineer Agent",
-  "version": "2.0.0",
-  "type": "engineer",
-  "tier": "system",
-  "description": "Software development and implementation",
-  "capabilities": [
-    "code_implementation",
-    "debugging",
-    "testing"
-  ],
-  "specializations": ["backend", "frontend"],
-  "frameworks": ["python", "typescript"],
-  "base_template": "BASE_ENGINEER",
-  "prompt_components": {
-    "role": "You are a software engineer...",
-    "instructions": "...",
-    "output_format": "..."
-  },
-  "skills": ["git-workflow", "tdd", "code-review"],
-  "model_config": {
-    "preferred_model": "claude-sonnet-4-20250514",
-    "temperature": 0.7
-  }
-}
-```
-
-### Markdown Agent Format (Deployed)
+### Markdown Agent Format
 ```markdown
 ---
-name: Engineer Agent
+name: engineer
+description: Software development and implementation
 version: 2.0.0
-type: engineer
+agent_type: engineer
+model: sonnet
+tier: system
 capabilities:
   - code_implementation
   - debugging
+  - testing
+specializations:
+  - backend
+  - frontend
+frameworks:
+  - python
+  - typescript
+extends: BASE_ENGINEER
 skills:
   - git-workflow
   - tdd
+  - code-review
+temperature: 0.7
 ---
 
 # Engineer Agent
@@ -91,16 +74,19 @@ You are a software engineer...
 [Skills content injected here]
 ```
 
+### Deployed Agent Format
+Same as template format - agents are Markdown files with YAML frontmatter throughout the system.
+
 ## Agent Loading Flow
 
 ```
 Agent Request
     │
     ├── 1. agents/agent_loader.py:get_agent_prompt()
-    │       └── Load JSON template from templates/
+    │       └── Load Markdown agent from templates/
     │
-    ├── 2. Apply base template inheritance
-    │       └── Merge with BASE_* templates
+    ├── 2. Apply BASE_AGENT.md inheritance
+    │       └── Compose with hierarchical BASE_AGENT.md files
     │
     ├── 3. skills/agent_skills_injector.py
     │       └── Inject linked skills content
@@ -123,11 +109,11 @@ Agent Request
 class DeployedAgentDiscovery:
     def discover_all_agents():
         agents = {}
-        # System agents (lowest priority)
+        # System agents (lowest priority) - Markdown files
         agents.update(self.discover_system_agents())
-        # User agents (override system)
+        # User agents (override system) - Markdown files
         agents.update(self.discover_user_agents())
-        # Project agents (highest priority)
+        # Project agents (highest priority) - Markdown files
         agents.update(self.discover_project_agents())
         return agents
 ```
@@ -317,38 +303,51 @@ class FrontmatterValidator:
 ```
 
 ### Schema Validation
-```json
-// schemas/agent_schema.json
-{
-  "type": "object",
-  "required": ["id", "name", "type", "version"],
-  "properties": {
-    "id": {"type": "string"},
-    "name": {"type": "string"},
-    "type": {"enum": ["engineer", "qa", "ops", ...]},
-    "version": {"pattern": "^\\d+\\.\\d+\\.\\d+$"}
-  }
-}
+```yaml
+# Agent YAML frontmatter schema
+required:
+  - name
+  - description
+  - version
+  - agent_type
+  - model
+
+properties:
+  name: string
+  description: string
+  version: string (pattern: ^\d+\.\d+\.\d+$)
+  agent_type: enum [engineer, qa, ops, research, documentation, security]
+  model: enum [sonnet, opus, haiku]
+  extends: string (BASE_AGENT reference)
+  capabilities: array of strings
+  skills: array of strings
 ```
 
 ## Creating New Agents
 
 ### 1. Create Template
-```json
-// agents/templates/my_agent.json
-{
-  "id": "my_agent",
-  "name": "My Custom Agent",
-  "version": "1.0.0",
-  "type": "engineer",
-  "capabilities": ["custom_capability"],
-  "base_template": "BASE_ENGINEER",
-  "prompt_components": {
-    "role": "You are a specialized agent for...",
-    "instructions": "..."
-  },
-  "skills": ["relevant-skill"]
-}
+```markdown
+<!-- agents/templates/my_agent.md -->
+---
+name: my_agent
+description: My Custom Agent
+version: 1.0.0
+agent_type: engineer
+model: sonnet
+capabilities:
+  - custom_capability
+extends: BASE_ENGINEER
+skills:
+  - relevant-skill
+---
+
+# My Custom Agent
+
+## Role
+You are a specialized agent for...
+
+## Instructions
+...
 ```
 
 ### 2. Update Metadata

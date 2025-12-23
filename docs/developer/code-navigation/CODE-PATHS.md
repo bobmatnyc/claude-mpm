@@ -24,8 +24,8 @@ claude-mpm run
 ```
 Agent Request
     → services/agents/registry/agent_registry.py
-        → agents/agent_loader.py (template loading)
-        → agents/templates/<agent>.json (template file)
+        → agents/agent_loader.py (agent loading)
+        → agents/templates/<agent>.md (Markdown agent file)
         → skills/agent_skills_injector.py (skill injection)
         → Final agent prompt with skills
 ```
@@ -138,14 +138,14 @@ Agent Activity
 ### Agent Template Loading
 ```
 src/claude_mpm/agents/templates/
-    ├── base_agent.json (base configuration)
-    ├── engineer.json
-    ├── qa.json
+    ├── base_agent.md (base configuration)
+    ├── engineer.md
+    ├── qa.md
     └── ... (other agent templates)
 
 Loading: agents/agent_loader.py:get_agent_prompt()
-    → Load JSON template
-    → Apply base agent inheritance
+    → Load Markdown agent
+    → Apply BASE_AGENT.md inheritance
     → Inject skills from skills/
     → Return final prompt string
 ```
