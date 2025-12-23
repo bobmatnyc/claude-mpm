@@ -639,7 +639,7 @@ class SocketIOServerCore:
             self.logger.error(f"Failed to setup directory API: {e}")
 
     def _setup_static_files(self):
-        """Setup static file serving for the dashboard."""
+        """Setup static file serving for the Svelte dashboard."""
         try:
             # Add debug logging for deployment context
             try:
@@ -652,65 +652,41 @@ class SocketIOServerCore:
             except Exception as e:
                 self.logger.debug(f"Could not detect deployment context: {e}")
 
-            self.dashboard_path = self._find_static_path()
+            # Find Svelte build directory
+            svelte_build_path = self._find_static_path()
 
-            if self.dashboard_path and self.dashboard_path.exists():
-                self.logger.info(f"✅ Dashboard found at: {self.dashboard_path}")
+            if svelte_build_path and svelte_build_path.exists():
+                self.logger.info(f"✅ Svelte dashboard found at: {svelte_build_path}")
+                self.dashboard_path = svelte_build_path
 
-                # Serve index.html at root
+                # Serve Svelte index.html at root
                 async def index_handler(request):
-                    index_file = self.dashboard_path / "index.html"
+                    index_file = svelte_build_path / "index.html"
                     if index_file.exists():
-                        self.logger.debug(f"Serving dashboard index from: {index_file}")
+                        self.logger.debug(f"Serving Svelte dashboard from: {index_file}")
                         return web.FileResponse(index_file)
                     self.logger.warning(
-                        f"Dashboard index.html not found at: {index_file}"
+                        f"Svelte index.html not found at: {index_file}"
                     )
                     return web.Response(text="Dashboard not available", status=404)
 
                 self.app.router.add_get("/", index_handler)
 
-                # Serve the actual dashboard template at /dashboard
-                async def dashboard_handler(request):
-                    dashboard_template = (
-                        self.dashboard_path.parent / "templates" / "index.html"
+                # Serve Svelte app assets at /_app/ (needed for SvelteKit builds)
+                svelte_app_path = svelte_build_path / "_app"
+                if svelte_app_path.exists():
+                    self.app.router.add_static(
+                        "/_app/", svelte_app_path, name="svelte_app"
                     )
-                    if dashboard_template.exists():
-                        self.logger.debug(
-                            f"Serving dashboard template from: {dashboard_template}"
-                        )
-                        return web.FileResponse(dashboard_template)
-                    # Fallback to the main index if template doesn't exist
-                    self.logger.warning(
-                        f"Dashboard template not found at: {dashboard_template}, falling back to index"
+                    self.logger.info(
+                        f"✅ Svelte dashboard available at http://{self.host}:{self.port}/ (build: {svelte_build_path})"
                     )
-                    return await index_handler(request)
+                else:
+                    self.logger.warning(f"⚠️  Svelte _app directory not found at: {svelte_app_path}")
 
-                self.app.router.add_get("/dashboard", dashboard_handler)
-
-                # Serve simple code view template at /code-simple
-                async def code_simple_handler(request):
-                    code_simple_template = (
-                        self.dashboard_path.parent / "templates" / "code_simple.html"
-                    )
-                    if code_simple_template.exists():
-                        self.logger.debug(
-                            f"Serving code simple template from: {code_simple_template}"
-                        )
-                        return web.FileResponse(code_simple_template)
-                    # Return error if template doesn't exist
-                    self.logger.warning(
-                        f"Code simple template not found at: {code_simple_template}"
-                    )
-                    return web.Response(
-                        text="Simple code view not available", status=404
-                    )
-
-                self.app.router.add_get("/code-simple", code_simple_handler)
-
-                # Serve version.json from dashboard directory
+                # Serve version.json from Svelte build directory
                 async def version_handler(request):
-                    version_file = self.dashboard_path / "version.json"
+                    version_file = svelte_build_path / "version.json"
                     if version_file.exists():
                         self.logger.debug(f"Serving version.json from: {version_file}")
                         return web.FileResponse(version_file)
@@ -726,55 +702,8 @@ class SocketIOServerCore:
 
                 self.app.router.add_get("/version.json", version_handler)
 
-                # Serve static assets (CSS, JS) from the dashboard static directory
-                # Use package-relative path (works for both dev and installed package)
-                package_root = Path(claude_mpm.__file__).parent
-                dashboard_static_path = package_root / "dashboard" / "static"
-                if dashboard_static_path.exists():
-                    self.app.router.add_static(
-                        "/static/", dashboard_static_path, name="dashboard_static"
-                    )
-                    self.logger.info(
-                        f"✅ Static assets available at: {dashboard_static_path}"
-                    )
-                else:
-                    self.logger.warning(
-                        f"⚠️  Static assets directory not found at: {dashboard_static_path}"
-                    )
-
-                # Serve Svelte dashboard build
-                svelte_build_path = (
-                    package_root / "dashboard" / "static" / "svelte-build"
-                )
-                if svelte_build_path.exists():
-                    # Serve Svelte dashboard at /svelte route
-                    async def svelte_handler(request):
-                        svelte_index = svelte_build_path / "index.html"
-                        if svelte_index.exists():
-                            self.logger.debug(
-                                f"Serving Svelte dashboard from: {svelte_index}"
-                            )
-                            return web.FileResponse(svelte_index)
-                        return web.Response(
-                            text="Svelte dashboard not available", status=404
-                        )
-
-                    self.app.router.add_get("/svelte", svelte_handler)
-
-                    # Serve Svelte app assets at /_app/ (needed for SvelteKit builds)
-                    svelte_app_path = svelte_build_path / "_app"
-                    if svelte_app_path.exists():
-                        self.app.router.add_static(
-                            "/_app/", svelte_app_path, name="svelte_app"
-                        )
-                        self.logger.info(
-                            f"✅ Svelte dashboard available at /svelte (build: {svelte_build_path})"
-                        )
-                else:
-                    self.logger.debug(f"Svelte build not found at: {svelte_build_path}")
-
             else:
-                self.logger.warning("⚠️  No dashboard found, serving fallback response")
+                self.logger.warning("⚠️  Svelte dashboard not found, serving fallback response")
 
                 # Fallback handler
                 async def fallback_handler(request):
@@ -801,10 +730,10 @@ class SocketIOServerCore:
             self.app.router.add_get("/", error_handler)
 
     def _find_static_path(self):
-        """Find the static files directory using multiple approaches.
+        """Find the Svelte build directory using multiple approaches.
 
-        WHY: The static files location varies depending on how the application
-        is installed and run. We try multiple common locations to find them.
+        WHY: The dashboard is now pure Svelte, located at dashboard/static/svelte-build/.
+        We search for this specific structure across different deployment contexts.
         """
         # Get deployment-context-aware paths
         try:
@@ -825,43 +754,35 @@ class SocketIOServerCore:
             package_root = None
             project_root = get_project_root()
 
-        # Try multiple possible locations for static files and dashboard
+        # Try multiple possible locations for Svelte build directory
         possible_paths = [
             # Package-based paths (for pipx and pip installations)
-            package_root / "dashboard" / "templates" if package_root else None,
-            package_root / "services" / "socketio" / "static" if package_root else None,
-            package_root / "static" if package_root else None,
+            package_root / "dashboard" / "static" / "svelte-build" if package_root else None,
             # Project-based paths (for development)
-            project_root / "src" / "claude_mpm" / "dashboard" / "templates",
-            project_root / "dashboard" / "templates",
-            project_root / "src" / "claude_mpm" / "services" / "static",
-            project_root / "src" / "claude_mpm" / "services" / "socketio" / "static",
-            project_root / "static",
-            project_root / "src" / "static",
+            project_root / "src" / "claude_mpm" / "dashboard" / "static" / "svelte-build",
+            project_root / "dashboard" / "static" / "svelte-build",
             # Package installation locations (fallback)
-            Path(__file__).parent.parent / "static",
-            Path(__file__).parent / "static",
+            Path(__file__).parent.parent.parent / "dashboard" / "static" / "svelte-build",
             # Scripts directory (for standalone installations)
-            get_scripts_dir() / "static",
-            get_scripts_dir() / "socketio" / "static",
+            get_scripts_dir() / "dashboard" / "static" / "svelte-build",
             # Current working directory
-            Path.cwd() / "static",
-            Path.cwd() / "socketio" / "static",
+            Path.cwd() / "src" / "claude_mpm" / "dashboard" / "static" / "svelte-build",
+            Path.cwd() / "dashboard" / "static" / "svelte-build",
         ]
 
         # Filter out None values
         possible_paths = [p for p in possible_paths if p is not None]
         self.logger.debug(
-            f"Searching {len(possible_paths)} possible static file locations"
+            f"Searching {len(possible_paths)} possible Svelte build locations"
         )
 
         for path in possible_paths:
-            self.logger.debug(f"Checking for static files at: {path}")
+            self.logger.debug(f"Checking for Svelte build at: {path}")
             try:
                 if path.exists() and path.is_dir():
-                    # Check if it contains expected files
+                    # Check if it contains expected Svelte build files
                     if (path / "index.html").exists():
-                        self.logger.info(f"✅ Found static files at: {path}")
+                        self.logger.info(f"✅ Found Svelte build at: {path}")
                         return path
                     self.logger.debug(f"Directory exists but no index.html: {path}")
                 else:
@@ -870,7 +791,7 @@ class SocketIOServerCore:
                 self.logger.debug(f"Error checking path {path}: {e}")
 
         self.logger.warning(
-            "⚠️  Static files not found - dashboard will not be available"
+            "⚠️  Svelte build not found - dashboard will not be available"
         )
         self.logger.debug(f"Searched paths: {[str(p) for p in possible_paths]}")
         return None
