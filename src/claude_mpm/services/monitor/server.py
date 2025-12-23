@@ -762,7 +762,7 @@ class UnifiedMonitorServer:
                 """Serve favicon.svg from static directory."""
                 from aiohttp.web_fileresponse import FileResponse
 
-                favicon_path = static_dir / "favicon.svg"
+                favicon_path = static_dir / "svelte-build" / "favicon.svg"
                 if favicon_path.exists():
                     return FileResponse(
                         favicon_path, headers={"Content-Type": "image/svg+xml"}
@@ -834,7 +834,7 @@ class UnifiedMonitorServer:
             async def working_directory_handler(request):
                 """Return the current working directory."""
                 return web.json_response(
-                    {"working_directory": Path.cwd(), "success": True}
+                    {"working_directory": str(Path.cwd()), "success": True}
                 )
 
             # Monitor page routes
