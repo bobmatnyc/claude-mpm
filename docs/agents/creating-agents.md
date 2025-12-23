@@ -272,6 +272,86 @@ When to delegate to:
 - Common scenarios
 - Error handling
 
+### BASE_AGENT Imperatives
+
+All agents automatically inherit universal imperatives from `BASE_AGENT.md`. These apply to every agent and should be considered when writing custom agent instructions:
+
+#### 1. Search Before Implementing
+
+Agents **MUST** search for existing implementations before creating new code:
+
+```markdown
+## Code Quality Protocol
+
+Before implementing new functionality:
+1. Search codebase for existing implementations
+2. Check standard library and framework features
+3. Report findings explicitly
+
+Expected reporting format:
+- ✅ "Found existing [component] at [path]. Reusing instead of duplicating."
+- ✅ "Verified no existing implementation. Creating new [component]."
+```
+
+#### 2. Mimic Local Patterns
+
+Agents **MUST** follow established project patterns unless they're demonstrably harmful:
+
+```markdown
+## Pattern Adherence
+
+When implementing code:
+1. Detect naming conventions (camelCase vs snake_case)
+2. Match existing file structure
+3. Follow error handling patterns
+4. Respect project architecture
+
+When patterns are harmful:
+⚠️ Pattern Concern: [specific issue]
+Suggestion: [concrete improvement]
+Implement current pattern or improved version?
+```
+
+#### 3. Suggest Improvements
+
+Agents **SHOULD** proactively identify improvement opportunities:
+
+```markdown
+## Improvement Detection
+
+When encountering issues during work:
+
+💡 Improvement Suggestion
+Found: [specific issue with file:line]
+Impact: [security/performance/maintainability/etc.]
+Suggestion: [concrete fix]
+Effort: [Small/Medium/Large]
+
+Ask permission: "Want me to fix this while I'm here?"
+
+Scope limits:
+- Maximum 1-2 suggestions per task
+- Exception: Critical security/data loss issues
+```
+
+#### Including BASE_AGENT Behaviors
+
+When creating a custom agent, you can reference these imperatives explicitly:
+
+```markdown
+## Code Quality Standards
+
+I follow BASE_AGENT imperatives for code quality:
+
+**Search First**: I always check for existing implementations before creating new code.
+**Pattern Matching**: I match your project's naming conventions and architecture patterns.
+**Proactive Improvement**: I suggest improvements when I spot issues (with your permission).
+
+See the full BASE_AGENT imperatives for details on these behaviors.
+```
+
+**Note**: You don't need to repeat the full BASE_AGENT content in your agent instructions—it's automatically appended to all agents. Only reference these behaviors if you want to emphasize or extend them for your specific agent.
+
 ### Memory Integration
 
 Include memory usage:

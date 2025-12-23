@@ -18,9 +18,11 @@ Remote agents are the **3rd tier** in the 4-tier agent discovery system:
 Remote agents are automatically synced from GitHub during Claude MPM startup:
 
 1. **GitHub Sync**: Agents are fetched from configured GitHub repositories
-2. **Local Caching**: Agents are cached to `~/.claude-mpm/cache/remote-agents/` as Markdown files
+2. **Local Caching**: Agents are cached to `~/.claude-mpm/cache/agents/` as Markdown files
 3. **ETag Updates**: Incremental updates using HTTP ETags (only changed files are re-downloaded)
 4. **Discovery Integration**: Cached agents are automatically discovered during deployment
+
+> **Note**: Prior to v5.4.23, remote agents were cached to `~/.claude-mpm/cache/remote-agents/`. This path has been standardized to `~/.claude-mpm/cache/agents/` for consistency. Existing caches are automatically migrated on first use.
 
 ### Agent Priority
 
@@ -83,12 +85,16 @@ Agent description paragraph (appears in agent list)
 
 Remote agents are cached to:
 ```
-~/.claude-mpm/cache/remote-agents/
+~/.claude-mpm/cache/agents/
 ```
 
 Each agent has two files:
 - `<agent-name>.md` - The agent content
 - `<agent-name>.md.meta.json` - Metadata (version, ETag, last modified)
+
+#### Migration from Legacy Path
+
+Prior to v5.4.23, remote agents were stored in `~/.claude-mpm/cache/remote-agents/`. The path has been standardized to improve consistency across the codebase. Your existing cache will be automatically migrated on first use of v5.4.23+.
 
 ### Cache Updates
 
@@ -101,9 +107,14 @@ Cache updates happen automatically:
 
 To force a cache refresh:
 ```bash
-rm -rf ~/.claude-mpm/cache/remote-agents/
+rm -rf ~/.claude-mpm/cache/agents/
 claude-mpm --mpm:agents deploy
 ```
+
+> **Legacy Path**: If upgrading from older versions, you may also want to remove the old cache:
+> ```bash
+> rm -rf ~/.claude-mpm/cache/remote-agents/
+> ```
 
 ## User-Level Deprecation
 
@@ -151,10 +162,11 @@ Options:
 **Symptom**: Remote agents don't show up in `claude-mpm agents list --deployed`
 
 **Solutions**:
-1. Check cache exists: `ls ~/.claude-mpm/cache/remote-agents/`
+1. Check cache exists: `ls ~/.claude-mpm/cache/agents/`
 2. Verify internet connection during startup
 3. Check logs: `claude-mpm --debug`
 4. Force cache refresh (see Cache Updates above)
+5. Check for legacy cache: `ls ~/.claude-mpm/cache/remote-agents/` (should be empty after migration)
 
 ### User-Level Deprecation Warning
 
@@ -182,7 +194,7 @@ This shows which tier each agent comes from and helps debug priority issues.
 
 **Solution**: Clear and rebuild cache:
 ```bash
-rm -rf ~/.claude-mpm/cache/remote-agents/
+rm -rf ~/.claude-mpm/cache/agents/
 claude-mpm --mpm:agents deploy
 ```
 

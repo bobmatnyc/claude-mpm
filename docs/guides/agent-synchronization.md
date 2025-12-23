@@ -67,7 +67,7 @@ Claude MPM's agent synchronization system automatically keeps your agent templat
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              Local Agent Cache                               │
-│  Location: ~/.claude-mpm/cache/remote-agents/               │
+│  Location: ~/.claude-mpm/cache/agents/                      │
 │  Files: 48 agent markdown templates                         │
 │  Size: ~50-200KB total                                      │
 └─────────────────────────────────────────────────────────────┘
@@ -133,7 +133,7 @@ Check your local cache:
 
 ```bash
 # View cached agents
-ls -lh ~/.claude-mpm/cache/remote-agents/
+ls -lh ~/.claude-mpm/cache/agents/
 
 # Check sync database
 sqlite3 ~/.config/claude-mpm/agent_sync.db "SELECT COUNT(*) FROM sync_history;"
@@ -143,11 +143,13 @@ sqlite3 ~/.config/claude-mpm/agent_sync.db \
   "SELECT MAX(synced_at) FROM sync_history;"
 ```
 
+> **Note**: Prior to v5.4.23, agents were cached to `~/.claude-mpm/cache/remote-agents/`. This has been standardized to `~/.claude-mpm/cache/agents/`. Existing caches are automatically migrated.
+
 ### Manual Cache Management
 
 ```bash
 # Force full re-sync (clears all cached data)
-rm -rf ~/.claude-mpm/cache/remote-agents/
+rm -rf ~/.claude-mpm/cache/agents/
 rm ~/.config/claude-mpm/agent_sync.db
 
 # Next run will perform full initial sync
@@ -165,7 +167,7 @@ agent_sync:
   sources:
     - url: https://github.com/bobmatnyc/claude-mpm-agents
       priority: 1
-  cache_dir: ~/.claude-mpm/cache/remote-agents
+  cache_dir: ~/.claude-mpm/cache/agents
 ```
 
 ### Configuration Options
@@ -210,7 +212,7 @@ agent_sync:
   cache_dir: /opt/company/claude-agents  # Custom location
 ```
 
-**Default**: `~/.claude-mpm/cache/remote-agents`
+**Default**: `~/.claude-mpm/cache/agents`
 
 **Use Cases**:
 - Shared cache for multiple users
@@ -271,7 +273,7 @@ Claude MPM uses HTTP ETags for efficient caching:
 **ETag Storage**:
 ```bash
 # View ETag cache (JSON file)
-cat ~/.claude-mpm/cache/remote-agents/.etag_cache.json
+cat ~/.claude-mpm/cache/agents/.etag_cache.json
 
 # Example content:
 # {
@@ -349,7 +351,7 @@ def verify_agent(agent_path: Path, expected_hash: str) -> bool:
     return actual_hash == expected_hash
 
 # Usage
-agent_file = Path("~/.claude-mpm/cache/remote-agents/engineer.md").expanduser()
+agent_file = Path("~/.claude-mpm/cache/agents/engineer.md").expanduser()
 expected = "abc123..."  # From database
 is_valid = verify_agent(agent_file, expected)
 ```
@@ -393,7 +395,7 @@ agent_sync:
   enabled: false
 
 # Use cached agents (if available)
-ls ~/.claude-mpm/cache/remote-agents/
+ls ~/.claude-mpm/cache/agents/
 ```
 
 #### 2. Agents Not Updating
@@ -410,17 +412,17 @@ sqlite3 ~/.config/claude-mpm/agent_sync.db \
   "SELECT source_url, last_sync_at FROM source_metadata;"
 
 # Verify ETag cache
-cat ~/.claude-mpm/cache/remote-agents/.etag_cache.json
+cat ~/.claude-mpm/cache/agents/.etag_cache.json
 
 # Check file hashes
-ls -lh ~/.claude-mpm/cache/remote-agents/
+ls -lh ~/.claude-mpm/cache/agents/
 ```
 
 **Solutions**:
 
 ```bash
 # Force full re-sync
-rm -rf ~/.claude-mpm/cache/remote-agents/
+rm -rf ~/.claude-mpm/cache/agents/
 rm ~/.config/claude-mpm/agent_sync.db
 
 # Run with debug logging
@@ -443,7 +445,7 @@ CLAUDE_MPM_LOG_LEVEL=DEBUG claude-mpm
 time claude-mpm --help  # Quick startup test
 
 # Check cache size
-du -sh ~/.claude-mpm/cache/remote-agents/
+du -sh ~/.claude-mpm/cache/agents/
 
 # Test network speed
 curl -w "@-" -o /dev/null -s https://github.com/bobmatnyc/claude-mpm-agents <<'EOF'
@@ -457,7 +459,7 @@ EOF
 
 ```bash
 # Clear oversized ETag cache
-rm ~/.claude-mpm/cache/remote-agents/.etag_cache.json
+rm ~/.claude-mpm/cache/agents/.etag_cache.json
 
 # Reduce agent count (custom source)
 # Use smaller repository with fewer agents
@@ -482,13 +484,13 @@ ERROR: unable to open database file
 rm ~/.config/claude-mpm/agent_sync.db
 
 # Verify cache integrity
-find ~/.claude-mpm/cache/remote-agents/ -name "*.md" -type f
+find ~/.claude-mpm/cache/agents/ -name "*.md" -type f
 
 # Run SQLite integrity check
 sqlite3 ~/.config/claude-mpm/agent_sync.db "PRAGMA integrity_check;"
 
 # If corruption persists, full reset
-rm -rf ~/.claude-mpm/cache/remote-agents/
+rm -rf ~/.claude-mpm/cache/agents/
 rm ~/.config/claude-mpm/agent_sync.db
 ```
 
@@ -550,7 +552,7 @@ claude-mpm
 
 **Log Example**:
 ```
-DEBUG: Loading ETag cache from ~/.claude-mpm/cache/remote-agents/.etag_cache.json
+DEBUG: Loading ETag cache from ~/.claude-mpm/cache/agents/.etag_cache.json
 DEBUG: Checking engineer.md: ETag="abc123", cached="abc123" -> MATCH
 DEBUG: Skipping download (304 Not Modified): engineer.md
 DEBUG: Hash verification: engineer.md -> PASS

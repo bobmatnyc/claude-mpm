@@ -1,3 +1,46 @@
+## v5.4.23 (2025-12-23)
+
+### Changed
+- **Agent Cache Standardization**: Unified cache directory structure
+  - Renamed `~/.claude-mpm/cache/remote-agents/` to `~/.claude-mpm/cache/agents/`
+  - Automatic migration on first use (no manual intervention required)
+  - Updated all documentation to reflect new path
+  - Consistent naming across codebase
+
+- **PM Instructions Consolidation**: Streamlined PM agent instructions (31.9% reduction)
+  - Reduced from 1,725 to 1,175 lines
+  - QA verification consolidated to single dedicated section
+  - Agent delegation converted to tabular format for clarity
+  - Read Tool hierarchy explicitly defined
+  - Improved LLM parsing and decision-making
+
+- **BASE_AGENT Imperatives**: Added proactive code quality improvements section
+  - **Search Before Implementing**: Mandatory existing code search before creating new implementations
+  - **Mimic Local Patterns**: Follow established project naming conventions and patterns
+  - **Suggest Improvements**: Proactive quality suggestions (ask before implementing)
+  - Standardized reporting format for findings
+
+### Added
+- **PM Instructions Testing**: Comprehensive DeepEval test infrastructure
+  - 10 tests for PM verification gate behavior (`test_pm_verification_gate.py`)
+  - 7 tests for ticketing delegation behavior (`test_pm_behavior_validation.py`)
+  - TicketingDelegationMetric now uses strict binary scoring (pass/fail)
+  - Total of 17 PM behavior tests ensuring compliance
+
+- **Documentation**:
+  - Created `docs/reference/pm-instructions.md` - Comprehensive PM instructions reference
+  - Documents consolidated structure, testing methodology, and BASE_AGENT integration
+  - Includes migration notes for users of pre-v5.4.23 versions
+
+### Fixed
+- **Documentation**: Updated all cache path references (~30+ updates across 9 files)
+  - Core: `README.md`, `docs/deployment/README.md`, `docs/architecture/overview.md`
+  - Guides: `docs/guides/agent-synchronization.md` (13 path updates)
+  - Developer: `docs/developer/internals/agent-sync-internals.md`, `docs/developer/collection-based-agents-quick-start.md`
+  - Agents: `docs/agents/remote-agents.md`, `docs/developer/agent-modification-workflow.md`
+  - Build: `Makefile` comment updates
+  - Added consistent migration notes across all user-facing documentation
+
 ## v5.4.22 (2025-12-22)
 
 ### Changed

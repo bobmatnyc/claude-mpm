@@ -282,18 +282,20 @@ claude-mpm verify
 
 ## Cache Management
 
-Claude MPM maintains a local cache of agent templates at `~/.claude-mpm/cache/remote-agents/`.
+Claude MPM maintains a local cache of agent templates at `~/.claude-mpm/cache/agents/`.
 
 ### Cache Structure
 
 ```
-~/.claude-mpm/cache/remote-agents/
+~/.claude-mpm/cache/agents/
 └── bobmatnyc/
     └── claude-mpm-agents/
         ├── .git/              # Git repository
         ├── agents/            # 45+ agent templates
         └── docs/
 ```
+
+> **Note**: Prior to v5.4.23, agents were cached to `~/.claude-mpm/cache/remote-agents/`. This has been standardized to `~/.claude-mpm/cache/agents/`. Existing caches are automatically migrated.
 
 ### Git Workflow (Optional)
 

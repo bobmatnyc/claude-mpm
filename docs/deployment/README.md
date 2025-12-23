@@ -69,7 +69,7 @@ claude-mpm agents sync
 - `~/.claude-mpm/` - Global configuration
 
 ### Key Directories
-- `~/.claude-mpm/cache/remote-agents/` - Agent cache
+- `~/.claude-mpm/cache/agents/` - Agent cache
 - `.claude/agents/` - Deployed agents for Claude Code
 - `.claude-mpm/sessions/` - Session management
 

@@ -8,14 +8,16 @@
 
 ## Overview
 
-This guide explains how to modify agents in the Claude MPM framework and commit changes back to the source repository. The cache directory (`~/.claude-mpm/cache/remote-agents/`) contains full git repositories, making it easy to contribute agent improvements.
+This guide explains how to modify agents in the Claude MPM framework and commit changes back to the source repository. The cache directory (`~/.claude-mpm/cache/agents/`) contains full git repositories, making it easy to contribute agent improvements.
 
 ### Quick Summary
 
-- ✅ **Cache is a git repository**: `~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/`
+- ✅ **Cache is a git repository**: `~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/`
 - ✅ **Modifications are tracked**: Git automatically detects changes to agent files
 - ✅ **Can commit and push**: Full git workflow available
 - ✅ **Remote configured**: GitHub remote pre-configured for contributions
+
+> **Note**: Prior to v5.4.23, agents were cached to `~/.claude-mpm/cache/remote-agents/`. This has been standardized to `~/.claude-mpm/cache/agents/`. Existing caches are automatically migrated.
 
 ---
 
@@ -37,7 +39,7 @@ This guide explains how to modify agents in the Claude MPM framework and commit 
 
 ```
 ~/.claude-mpm/cache/
-├── remote-agents/
+├── agents/
 │   ├── bobmatnyc/
 │   │   └── claude-mpm-agents/              # ← Full git repository
 │   │       ├── .git/                       # Git metadata
@@ -78,7 +80,7 @@ This guide explains how to modify agents in the Claude MPM framework and commit 
 
 ```bash
 # Navigate to cache
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 
 # Edit an agent file
 vim agents/qa/api-qa.md
@@ -122,7 +124,7 @@ tags:                       # Update for discoverability
 ### Step 1: Check Git Status
 
 ```bash
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 
 # View modified files
 git status
@@ -190,7 +192,7 @@ git show HEAD
 
 ```bash
 # 1. Deploy your modified agent
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 # Changes are automatically synced on next startup
 
 # 2. Run Claude MPM with the modified agent
@@ -222,7 +224,7 @@ claude-mpm run -i "Test task for the modified agent"
 ### Push Workflow
 
 ```bash
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 
 # Check remote is configured
 git remote -v
@@ -252,10 +254,10 @@ git push --dry-run origin main
 
 ```bash
 # 1. Edit agent
-vim ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/qa/api-qa.md
+vim ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/qa/api-qa.md
 
 # 2. Commit
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 git add agents/qa/api-qa.md
 git commit -m "fix: improve error handling in api-qa agent"
 
@@ -270,7 +272,7 @@ git push origin main
 
 ```bash
 # 1. Pull latest changes
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 git pull origin main
 
 # 2. Edit agent (add capabilities)
@@ -300,7 +302,7 @@ git push origin main
 
 ```bash
 # 1. Create feature branch
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 git checkout -b feature/enhance-qa-agents
 
 # 2. Make multiple changes
@@ -403,7 +405,7 @@ claude-mpm agents sync --force
 ### 1. Always Pull Before Editing
 
 ```bash
-cd ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+cd ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 git pull origin main
 # Now edit...
 ```
@@ -458,9 +460,15 @@ One logical change per commit:
 
 The agent modification workflow is straightforward:
 
-1. **Edit** agents in `~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/`
+1. **Edit** agents in `~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/`
 2. **Commit** changes with conventional commit messages
 3. **Test** locally before pushing
 4. **Push** to GitHub (main branch or PR)
 
 The cache directory is a full git repository, giving you complete version control and collaboration capabilities!
+
+---
+
+## Legacy Path Migration
+
+If you were using the old cache path (`~/.claude-mpm/cache/remote-agents/`), your cache will be automatically migrated to the new location (`~/.claude-mpm/cache/agents/`) on first use of Claude MPM v5.4.23+. No manual intervention is required.

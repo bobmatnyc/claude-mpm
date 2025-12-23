@@ -517,7 +517,7 @@ from claude_mpm.services.agents.sources import (
 )
 from claude_mpm.services.agents.sources.git_source_sync_service import ETagCache
 
-cache_dir = Path("~/.claude-mpm/cache/remote-agents").expanduser()
+cache_dir = Path("~/.claude-mpm/cache/agents").expanduser()
 state = AgentSyncState()
 etag_cache = ETagCache(cache_dir / ".etag_cache.json")
 

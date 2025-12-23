@@ -67,7 +67,7 @@ Real-time monitoring via WebSocket with live agent activity tracking.
 ## Performance Optimizations
 
 **v5.0+ Architecture Improvements:**
-- Consolidated cache architecture (`~/.claude-mpm/cache/remote-agents/`)
+- Consolidated cache architecture (`~/.claude-mpm/cache/agents/`)
 - Version-aware agent deployment
 - ETag-based sync optimization
 - 91% latency reduction in hook system (108ms → 10ms)

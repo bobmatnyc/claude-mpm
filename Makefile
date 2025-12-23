@@ -1250,7 +1250,7 @@ migrate-agents-v5-dry-run: ## Preview agent migration without making changes
 # ============================================================================
 # Agent Cache Git Management
 # ============================================================================
-# Git workflow integration for managing agent cache at ~/.claude-mpm/cache/remote-agents/
+# Git workflow integration for managing agent cache at ~/.claude-mpm/cache/agents/
 
 .PHONY: agents-cache-status agents-cache-pull agents-cache-commit agents-cache-push agents-cache-sync
 

@@ -11,9 +11,9 @@ Format: `owner/repo-name` (e.g., `bobmatnyc/claude-mpm-agents`)
 
 Automatically extracted from repository path:
 ```
-~/.claude-mpm/cache/remote-agents/{owner}/{repo}/agents/...
-                                    ↓       ↓
-                              collection_id: owner/repo
+~/.claude-mpm/cache/agents/{owner}/{repo}/agents/...
+                            ↓       ↓
+                      collection_id: owner/repo
 ```
 
 ### Canonical ID
@@ -202,7 +202,7 @@ claude-mpm agents list-collections
 claude-mpm agents list-by-collection bobmatnyc/claude-mpm-agents --format json
 
 # Verify agent is in cache
-ls ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/
+ls ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/
 ```
 
 ### Collection ID format error
