@@ -1,3 +1,10 @@
+## v5.4.29 (2025-12-23)
+
+### Fixed
+- **Dashboard**: Fixed PyPI package missing dashboard static files
+  - Added `dashboard/static/svelte-build/**/*` to package-data in pyproject.toml
+  - Ensures dashboard svelte-build files are included in PyPI distribution
+
 ## v5.4.28 (2025-12-23)
 
 ### Added
