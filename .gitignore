@@ -66,6 +66,7 @@ test_dir/
 ai-trackdown-pytools-bug-support/
 tmp/
 test_results/
+test-results/
 screenshots/
 agent_metadata_backup/
 
