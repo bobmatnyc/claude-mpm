@@ -1,3 +1,16 @@
+## v5.4.26 (2025-12-23)
+
+### Fixed
+- **Dashboard**: Fixed working-directory API and favicon path issues
+- **Dashboard**: Corrected inflated agent count from stale repository files in cache
+- **Dashboard**: Fixed Path.cwd() conversion to string for API response compatibility
+- **Dashboard**: Fixed filename header display and added diff debug logging
+- **Dashboard**: Improved filename display in list view and relative path in viewer
+- **Dashboard**: Enhanced project name extraction from event root level cwd
+
+### Added
+- **Dashboard**: Historical diff viewer with commit dropdown navigation
+
 ## v5.4.25 (2025-12-23)
 
 ### Fixed
