@@ -37,7 +37,7 @@ def test_hook_event_emission():
                 "session_id": "test-session-123",
                 "cwd": "/Users/test/project",
             },
-            "expected_fields": ["prompt_preview", "prompt_length"]
+            "expected_fields": ["prompt_preview", "prompt_length"],
         },
         {
             "name": "PreToolUse",
@@ -48,7 +48,7 @@ def test_hook_event_emission():
                 "session_id": "test-session-123",
                 "cwd": "/Users/test/project",
             },
-            "expected_fields": ["tool_name"]
+            "expected_fields": ["tool_name"],
         },
         {
             "name": "PostToolUse",
@@ -60,7 +60,7 @@ def test_hook_event_emission():
                 "session_id": "test-session-123",
                 "cwd": "/Users/test/project",
             },
-            "expected_fields": ["tool_name", "exit_code"]
+            "expected_fields": ["tool_name", "exit_code"],
         },
         {
             "name": "SubagentStop",
@@ -72,7 +72,7 @@ def test_hook_event_emission():
                 "session_id": "test-session-123",
                 "cwd": "/Users/test/project",
             },
-            "expected_fields": ["agent_type", "reason"]
+            "expected_fields": ["agent_type", "reason"],
         },
         {
             "name": "SessionStart",
@@ -81,7 +81,7 @@ def test_hook_event_emission():
                 "session_id": "test-session-456",
                 "cwd": "/Users/test/project",
             },
-            "expected_fields": []
+            "expected_fields": [],
         },
     ]
 
@@ -91,12 +91,14 @@ def test_hook_event_emission():
 
     def capture_emit(namespace, event_type, data):
         """Capture emitted events for validation."""
-        emitted_events.append({
-            "namespace": namespace,
-            "event_type": event_type,
-            "data": data,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        emitted_events.append(
+            {
+                "namespace": namespace,
+                "event_type": event_type,
+                "data": data,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         # Also call original to maintain normal flow
         try:
             original_emit(namespace, event_type, data)
@@ -118,12 +120,11 @@ def test_hook_event_emission():
         result = handler._route_event(test_case["event"])
         duration = time.time() - start_time
 
-        print(f"   ⏱️  Execution time: {duration*1000:.2f}ms")
+        print(f"   ⏱️  Execution time: {duration * 1000:.2f}ms")
 
         # Find the hook_execution event
         hook_exec_events = [
-            e for e in emitted_events
-            if e["event_type"] == "hook_execution"
+            e for e in emitted_events if e["event_type"] == "hook_execution"
         ]
 
         if hook_exec_events:
@@ -138,8 +139,14 @@ def test_hook_event_emission():
 
             # Validate required fields
             required_fields = [
-                "hook_name", "hook_type", "session_id", "working_directory",
-                "success", "duration_ms", "result_summary", "timestamp"
+                "hook_name",
+                "hook_type",
+                "session_id",
+                "working_directory",
+                "success",
+                "duration_ms",
+                "result_summary",
+                "timestamp",
             ]
 
             missing_fields = [f for f in required_fields if f not in data]
@@ -192,7 +199,7 @@ def test_event_normalizer():
         "duration_ms": 42,
         "result_summary": "Pre-processing tool call: Bash",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "tool_name": "Bash"
+        "tool_name": "Bash",
     }
 
     normalized = normalizer.normalize(raw_event, source="hook")
@@ -206,24 +213,24 @@ def test_event_normalizer():
     print(f"   Timestamp: {event_dict['timestamp']}")
 
     # Validate normalized structure
-    if event_dict['source'] == 'hook':
+    if event_dict["source"] == "hook":
         print("   ✅ Source correctly set to 'hook'")
     else:
         print(f"   ❌ Source incorrect: {event_dict['source']}")
 
-    if event_dict['type'] == 'hook':
+    if event_dict["type"] == "hook":
         print("   ✅ Type correctly set to 'hook'")
     else:
         print(f"   ❌ Type incorrect: {event_dict['type']}")
 
-    if event_dict['subtype'] == 'execution':
+    if event_dict["subtype"] == "execution":
         print("   ✅ Subtype correctly set to 'execution'")
     else:
         print(f"   ❌ Subtype incorrect: {event_dict['subtype']}")
 
     # Validate data payload
-    data = event_dict.get('data', {})
-    if 'hook_name' in data and 'duration_ms' in data:
+    data = event_dict.get("data", {})
+    if "hook_name" in data and "duration_ms" in data:
         print("   ✅ Data payload contains hook metadata")
     else:
         print("   ❌ Data payload missing required fields")
@@ -257,9 +264,9 @@ def print_example_events():
                     "duration_ms": 15,
                     "result_summary": "Processed user prompt (87 chars)",
                     "prompt_preview": "Write a Python function to calculate fibonacci numbers",
-                    "prompt_length": 87
-                }
-            }
+                    "prompt_length": 87,
+                },
+            },
         },
         {
             "name": "PreToolUse Hook Execution",
@@ -278,9 +285,9 @@ def print_example_events():
                     "success": True,
                     "duration_ms": 8,
                     "result_summary": "Pre-processing tool call: Bash",
-                    "tool_name": "Bash"
-                }
-            }
+                    "tool_name": "Bash",
+                },
+            },
         },
         {
             "name": "PostToolUse Hook Execution (Success)",
@@ -300,9 +307,9 @@ def print_example_events():
                     "duration_ms": 12,
                     "result_summary": "Completed tool call: Bash (success)",
                     "tool_name": "Bash",
-                    "exit_code": 0
-                }
-            }
+                    "exit_code": 0,
+                },
+            },
         },
         {
             "name": "SubagentStop Hook Execution",
@@ -322,9 +329,9 @@ def print_example_events():
                     "duration_ms": 25,
                     "result_summary": "Subagent engineer stopped: completed",
                     "agent_type": "engineer",
-                    "reason": "completed"
-                }
-            }
+                    "reason": "completed",
+                },
+            },
         },
         {
             "name": "Failed Hook Execution (Error)",
@@ -343,16 +350,16 @@ def print_example_events():
                     "success": False,
                     "duration_ms": 5,
                     "result_summary": "Hook PreToolUse failed during processing",
-                    "error_message": "Invalid tool parameters: missing required field 'command'"
-                }
-            }
-        }
+                    "error_message": "Invalid tool parameters: missing required field 'command'",
+                },
+            },
+        },
     ]
 
     for example in examples:
         print(f"\n{example['name']}:")
         print("-" * 60)
-        print(json.dumps(example['event'], indent=2))
+        print(json.dumps(example["event"], indent=2))
 
     print("\n" + "=" * 60)
 
@@ -369,5 +376,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

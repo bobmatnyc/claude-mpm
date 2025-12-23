@@ -764,7 +764,9 @@ class UnifiedMonitorServer:
 
                 favicon_path = static_dir / "favicon.svg"
                 if favicon_path.exists():
-                    return FileResponse(favicon_path, headers={"Content-Type": "image/svg+xml"})
+                    return FileResponse(
+                        favicon_path, headers={"Content-Type": "image/svg+xml"}
+                    )
                 raise web.HTTPNotFound()
 
             # Version endpoint for dashboard build tracker

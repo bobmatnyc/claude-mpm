@@ -244,9 +244,9 @@ class EventNormalizer:
                 session_id = event_data.get("session_id") or event_data.get("sessionId")
                 # Try multiple field names for working directory
                 cwd = (
-                    event_data.get("cwd") or
-                    event_data.get("working_directory") or
-                    event_data.get("workingDirectory")
+                    event_data.get("cwd")
+                    or event_data.get("working_directory")
+                    or event_data.get("workingDirectory")
                 )
 
             # Create normalized event
@@ -309,9 +309,9 @@ class EventNormalizer:
         # Extract session_id and cwd, trying multiple naming conventions
         session_id = event_data.get("session_id") or event_data.get("sessionId")
         cwd = (
-            event_data.get("cwd") or
-            event_data.get("working_directory") or
-            event_data.get("workingDirectory")
+            event_data.get("cwd")
+            or event_data.get("working_directory")
+            or event_data.get("workingDirectory")
         )
 
         return NormalizedEvent(

@@ -457,7 +457,7 @@ class ClaudeHookHandler:
                     event=event,
                     success=success,
                     duration_ms=duration_ms,
-                    error_message=error_message
+                    error_message=error_message,
                 )
 
             return return_value
@@ -511,7 +511,7 @@ class ClaudeHookHandler:
         event: dict,
         success: bool,
         duration_ms: int,
-        error_message: Optional[str] = None
+        error_message: Optional[str] = None,
     ):
         """Emit a structured JSON event for hook execution.
 
@@ -569,7 +569,7 @@ class ClaudeHookHandler:
         if DEBUG:
             print(
                 f"📊 Hook execution event: {hook_type} - {duration_ms}ms - {'✅' if success else '❌'}",
-                file=sys.stderr
+                file=sys.stderr,
             )
 
     def _generate_hook_summary(self, hook_type: str, event: dict, success: bool) -> str:

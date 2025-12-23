@@ -125,9 +125,9 @@ class ConnectionManagerService:
         # Extract working directory for project identification
         # Try multiple field names for maximum compatibility
         cwd = (
-            data.get("cwd") or
-            data.get("working_directory") or
-            data.get("workingDirectory")
+            data.get("cwd")
+            or data.get("working_directory")
+            or data.get("workingDirectory")
         )
 
         # For hook_execution events, extract the actual hook type from data
