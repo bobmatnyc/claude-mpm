@@ -59,6 +59,18 @@
   let hasUncommitted = $state<boolean>(false);
   let selectedCommit = $state<string>('');  // Empty string means "uncommitted"
 
+  // Auto-select most recent commit when switching to changes view
+  $effect(() => {
+    if (viewMode === 'changes' && !selectedCommit && (hasUncommitted || commitHistory.length > 0)) {
+      // Auto-select uncommitted changes if available, otherwise select first commit
+      if (hasUncommitted) {
+        selectedCommit = '';
+      } else if (commitHistory.length > 0) {
+        selectedCommit = commitHistory[0].full_hash;
+      }
+    }
+  });
+
   // Fetch git diff when file changes, view mode changes, or commit selection changes
   $effect(() => {
     if (file && viewMode === 'changes') {

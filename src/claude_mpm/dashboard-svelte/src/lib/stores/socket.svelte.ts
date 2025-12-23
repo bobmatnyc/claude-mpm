@@ -261,10 +261,12 @@ function createSocketStore() {
 				const newStreams = new Set([...s, streamId]);
 				console.log('Socket store: Updated streams:', Array.from(newStreams), 'Size changed:', prevSize, '->', newStreams.size);
 
-				// Auto-select first stream if no stream selected and this is the first stream
+				// Auto-select stream based on priority:
+				// 1. If this is the first stream detected, auto-select it
+				// 2. If no stream is currently selected (empty string), auto-select this new stream (most recent)
 				const currentSelected = get(selectedStream);
-				if (prevSize === 0 && newStreams.size === 1 && (currentSelected === '' || currentSelected === 'all')) {
-					console.log('Socket store: Auto-selecting first stream:', streamId);
+				if (prevSize === 0 || currentSelected === '') {
+					console.log('Socket store: Auto-selecting stream:', streamId, 'Reason:', prevSize === 0 ? 'first stream' : 'no stream selected');
 					selectedStream.set(streamId);
 				}
 

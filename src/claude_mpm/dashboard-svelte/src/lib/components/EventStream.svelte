@@ -4,7 +4,7 @@
 
 	let {
 		selectedEvent = $bindable(null),
-		selectedStream = 'all'
+		selectedStream = ''
 	}: {
 		selectedEvent: ClaudeEvent | null;
 		selectedStream: string;
@@ -65,7 +65,7 @@
 	// Empty string means show all events (before first stream is detected)
 	// Check multiple field locations for session ID (matches socket store extraction logic)
 	let streamFilteredEvents = $derived(
-		selectedStream === '' || selectedStream === 'all'
+		selectedStream === ''
 			? allEvents
 			: allEvents.filter(event => {
 				// Extract session ID using same logic as socket store (lines 101-106)

@@ -30,11 +30,11 @@
 	const filteredEventsStore = derived(
 		[eventsStore, selectedStream],
 		([$events, $selectedStream]) => {
-			// If 'all' or empty, return all events
-			if ($selectedStream === '' || $selectedStream === 'all') {
+			// If empty (no stream selected yet), return all events
+			if ($selectedStream === '') {
 				return $events;
 			}
-			// Otherwise filter by stream
+			// Otherwise filter by selected stream
 			return $events.filter(event => {
 				const streamId = (
 					event.session_id ||

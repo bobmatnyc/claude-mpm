@@ -49,8 +49,7 @@
 					{#if $streamOptions.length === 0}
 						<option value="" disabled>Waiting for streams...</option>
 					{:else}
-						<option value="">All Streams</option>
-						{#each $streamOptions as stream}
+							{#each $streamOptions as stream}
 							<option value={stream.id} title={stream.projectPath || stream.id}>
 								{stream.displayName}
 							</option>

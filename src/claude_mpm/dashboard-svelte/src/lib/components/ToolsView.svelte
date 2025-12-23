@@ -4,7 +4,7 @@
 	let {
 		tools,
 		selectedTool = $bindable(null),
-		selectedStream = 'all'
+		selectedStream = ''
 	}: {
 		tools: Tool[];
 		selectedTool: Tool | null;
@@ -22,7 +22,7 @@
 
 	// Filter tools by selected stream
 	let filteredTools = $derived.by(() => {
-		const result = selectedStream === '' || selectedStream === 'all'
+		const result = selectedStream === ''
 			? tools
 			: tools.filter(tool => {
 				const preEvent = tool.preToolEvent;

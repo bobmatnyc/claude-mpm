@@ -13,7 +13,7 @@
   }
 
   let {
-    selectedStream = 'all',
+    selectedStream = '',
     selectedFile = $bindable(null),
     fileContent = $bindable(''),
     contentLoading = $bindable(false)
@@ -55,8 +55,8 @@
   let filteredFiles = $derived.by(() => {
     let files = uniqueFiles;
 
-    // Filter by stream
-    if (selectedStream !== 'all' && selectedStream !== '') {
+    // Filter by stream (empty string means show all)
+    if (selectedStream !== '') {
       files = files.filter(file => file.sessionId === selectedStream);
     }
 
