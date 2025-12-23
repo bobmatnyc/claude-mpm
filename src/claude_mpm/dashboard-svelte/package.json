@@ -26,7 +26,8 @@
     "diff": "^8.0.2",
     "diff2html": "^3.4.52",
     "shiki": "^3.20.0",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "svelte-highlight": "^7.9.0"
   },
   "type": "module"
 }

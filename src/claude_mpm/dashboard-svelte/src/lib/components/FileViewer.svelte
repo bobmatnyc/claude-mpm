@@ -1,7 +1,19 @@
 <script lang="ts">
   import type { FileEntry, FileOperation } from '$lib/stores/files.svelte';
   import { onMount } from 'svelte';
-  import { codeToHtml, type BundledLanguage } from 'shiki/bundle/full';
+  import Highlight, { HighlightSvelte } from 'svelte-highlight';
+  import python from 'svelte-highlight/languages/python';
+  import typescript from 'svelte-highlight/languages/typescript';
+  import javascript from 'svelte-highlight/languages/javascript';
+  import markdown from 'svelte-highlight/languages/markdown';
+  import json from 'svelte-highlight/languages/json';
+  import xml from 'svelte-highlight/languages/xml';
+  import css from 'svelte-highlight/languages/css';
+  import bash from 'svelte-highlight/languages/bash';
+  import yaml from 'svelte-highlight/languages/yaml';
+  import scss from 'svelte-highlight/languages/scss';
+  import sql from 'svelte-highlight/languages/sql';
+  import 'svelte-highlight/styles/github-dark.css';
   import * as Diff from 'diff';
   import * as Diff2Html from 'diff2html';
 
@@ -29,7 +41,7 @@
 
   // State
   let selectedOperation = $state<FileOperation | null>(null);
-  let highlightedContent = $state<string>('');
+  let fileContent = $state<string>('');
   let diffHtml = $state<string>('');
   let isLoading = $state<boolean>(false);
   let loadError = $state<string | null>(null);
@@ -44,6 +56,33 @@
     currentOperation?.type === 'Read' ||
     currentOperation?.type === 'Write'
   );
+
+  // Map file extensions to language modules
+  const langMap: Record<string, any> = {
+    py: python,
+    ts: typescript,
+    tsx: typescript,
+    js: javascript,
+    jsx: javascript,
+    md: markdown,
+    markdown: markdown,
+    json: json,
+    html: xml,
+    xml: xml,
+    css: css,
+    scss: scss,
+    sass: scss,
+    sh: bash,
+    bash: bash,
+    yaml: yaml,
+    yml: yaml,
+    sql: sql,
+  };
+
+  function getLanguage(filename: string) {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    return langMap[ext] || null;
+  }
 
   // Fetch file content from server API
   async function fetchFileContent(filePath: string): Promise<string> {
@@ -90,11 +129,11 @@
     }
   }
 
-  // Update highlighted content when operation or file changes
+  // Update content when operation or file changes
   $effect(() => {
     async function updateContent() {
       if (!currentOperation || !file) {
-        highlightedContent = '';
+        fileContent = '';
         diffHtml = '';
         isLoading = false;
         loadError = null;
@@ -141,49 +180,12 @@
           // Allow empty files - they're valid and should display as empty
           if (content === undefined || content === null) {
             loadError = 'Failed to load file content';
-            highlightedContent = '';
+            fileContent = '';
             return;
           }
 
-          const language = getLanguageFromFilename(file.filename);
-
-          // Handle empty files
-          if (content === '') {
-            highlightedContent = '<pre class="shiki github-light github-dark"><code></code></pre>';
-          } else {
-            try {
-              console.log('[FileViewer] Attempting to highlight:', {
-                language,
-                filename: file.filename,
-                contentLength: content.length
-              });
-
-              highlightedContent = await codeToHtml(content, {
-                lang: language as BundledLanguage,
-                themes: {
-                  light: 'github-light',
-                  dark: 'github-dark'
-                },
-                decorations: [
-                  {
-                    // Add line numbers via CSS counter
-                    start: { line: 0, character: 0 },
-                    end: { line: content.split('\n').length, character: 0 }
-                  }
-                ]
-              });
-
-              console.log('[FileViewer] Highlighting succeeded for', language);
-            } catch (e) {
-              // Fallback to plain text if syntax highlighting fails
-              console.error('[FileViewer] Syntax highlighting failed:', {
-                language,
-                filename: file.filename,
-                error: e instanceof Error ? e.message : String(e)
-              });
-              highlightedContent = addLineNumbers(content);
-            }
-          }
+          // Store content for rendering
+          fileContent = content;
         }
       } catch (e) {
         loadError = e instanceof Error ? e.message : 'Failed to render content';
@@ -219,65 +221,6 @@
 
     loadGitHistory();
   });
-
-  function getLanguageFromFilename(filename: string): string {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const langMap: Record<string, string> = {
-      ts: 'typescript',
-      tsx: 'tsx',
-      js: 'javascript',
-      jsx: 'jsx',
-      py: 'python',
-      svelte: 'svelte',
-      json: 'json',
-      md: 'markdown',
-      markdown: 'markdown',
-      html: 'html',
-      css: 'css',
-      scss: 'scss',
-      sass: 'sass',
-      sh: 'bash',
-      bash: 'bash',
-      yaml: 'yaml',
-      yml: 'yaml',
-      toml: 'toml',
-      rs: 'rust',
-      go: 'go',
-      java: 'java',
-      c: 'c',
-      cpp: 'cpp',
-      h: 'c',
-      hpp: 'cpp',
-      rb: 'ruby',
-      php: 'php',
-      sql: 'sql',
-      xml: 'xml',
-      vue: 'vue'
-    };
-    return langMap[ext || ''] || 'text';
-  }
-
-  function addLineNumbers(content: string): string {
-    const lines = content.split('\n');
-    const lineNumberWidth = String(lines.length).length;
-
-    const numberedLines = lines.map((line, i) => {
-      const lineNum = String(i + 1).padStart(lineNumberWidth, ' ');
-      const escaped = escapeHtml(line);
-      return `<span class="line"><span class="line-number">${lineNum}</span>${escaped}</span>`;
-    }).join('\n');
-
-    return `<pre class="code-with-lines"><code>${numberedLines}</code></pre>`;
-  }
-
-  function escapeHtml(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
 
   function formatTimestamp(timestamp: string): string {
     const date = new Date(timestamp);
@@ -372,7 +315,14 @@
       {:else if showContent}
         <!-- Syntax highlighted content for Read/Write -->
         <div class="code-container">
-          {@html highlightedContent}
+          {#if file.filename.endsWith('.svelte')}
+            <HighlightSvelte code={fileContent} />
+          {:else if getLanguage(file.filename)}
+            <Highlight language={getLanguage(file.filename)} code={fileContent} />
+          {:else}
+            <!-- Fallback for unsupported file types -->
+            <pre class="plaintext">{fileContent}</pre>
+          {/if}
         </div>
       {:else if currentOperation?.type === 'Grep' || currentOperation?.type === 'Glob'}
         <!-- Search results -->
@@ -548,61 +498,28 @@
     display: none;
   }
 
+  .code-container {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
   .code-container :global(pre) {
     margin: 0;
     padding: 1rem;
     border-radius: 0.375rem;
     overflow-x: auto;
-    font-size: 0.875rem;
-    line-height: 1.5;
   }
 
-  /* Line numbers for fallback rendering */
-  .code-container :global(.code-with-lines) {
-    counter-reset: line;
-  }
-
-  .code-container :global(.line) {
-    display: block;
-  }
-
-  .code-container :global(.line-number) {
-    display: inline-block;
-    width: 3em;
-    margin-right: 1em;
-    padding-right: 0.5em;
-    text-align: right;
-    color: var(--color-text-tertiary);
-    border-right: 1px solid var(--color-border);
-    user-select: none;
-  }
-
-  /* Shiki already handles line numbers via themes, but we enhance with CSS */
-  .code-container :global(.shiki) {
+  .code-container .plaintext {
+    margin: 0;
     padding: 1rem;
     border-radius: 0.375rem;
     overflow-x: auto;
-  }
-
-  .code-container :global(.shiki code) {
-    counter-reset: line;
-  }
-
-  .code-container :global(.shiki code .line) {
-    display: block;
-  }
-
-  .code-container :global(.shiki code .line::before) {
-    content: counter(line);
-    counter-increment: line;
-    display: inline-block;
-    width: 3em;
-    margin-right: 1em;
-    padding-right: 0.5em;
-    text-align: right;
-    color: var(--color-text-tertiary);
-    border-right: 1px solid var(--color-border);
-    user-select: none;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 
   .search-results {
