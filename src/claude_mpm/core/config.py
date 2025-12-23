@@ -563,7 +563,7 @@ class Config:
             # Instruction reinforcement system configuration
             "instruction_reinforcement": {
                 "enabled": True,
-                "test_mode": True,
+                "test_mode": False,
                 "injection_interval": 5,
                 "test_messages": [
                     "[TEST-REMINDER] This is an injected instruction reminder",
