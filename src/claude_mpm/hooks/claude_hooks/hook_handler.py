@@ -25,6 +25,7 @@ import signal
 import subprocess
 import sys
 import threading
+import uuid
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
@@ -394,6 +395,8 @@ class ClaudeHookHandler:
         Returns:
             Modified input for PreToolUse events (v2.0.30+), None otherwise
         """
+        import time
+
         # Try multiple field names for compatibility
         hook_type = (
             event.get("hook_event_name")
@@ -425,15 +428,40 @@ class ClaudeHookHandler:
         # Call appropriate handler if exists
         handler = event_handlers.get(hook_type)
         if handler:
+            # Track execution timing for hook emission
+            start_time = time.time()
+            success = False
+            error_message = None
+            result = None
+
             try:
                 # Handlers can optionally return modified input
                 result = handler(event)
+                success = True
                 # Only PreToolUse handlers should return modified input
                 if hook_type == "PreToolUse" and result is not None:
-                    return result
+                    return_value = result
+                else:
+                    return_value = None
             except Exception as e:
+                error_message = str(e)
+                return_value = None
                 if DEBUG:
                     print(f"Error handling {hook_type}: {e}", file=sys.stderr)
+            finally:
+                # Calculate duration
+                duration_ms = int((time.time() - start_time) * 1000)
+
+                # Emit hook execution event
+                self._emit_hook_execution_event(
+                    hook_type=hook_type,
+                    event=event,
+                    success=success,
+                    duration_ms=duration_ms,
+                    error_message=error_message
+                )
+
+            return return_value
 
         return None
 
@@ -477,6 +505,128 @@ class ClaudeHookHandler:
     def _get_event_key(self, event: dict) -> str:
         """Generate event key through duplicate detector (backward compatibility)."""
         return self.duplicate_detector.generate_event_key(event)
+
+    def _emit_hook_execution_event(
+        self,
+        hook_type: str,
+        event: dict,
+        success: bool,
+        duration_ms: int,
+        error_message: str = None
+    ):
+        """Emit a structured JSON event for hook execution.
+
+        This emits a normalized event following the claude_event schema to provide
+        visibility into hook processing, timing, and success/failure status.
+
+        Args:
+            hook_type: The type of hook that executed (e.g., "UserPromptSubmit", "PreToolUse")
+            event: The original hook event data
+            success: Whether the hook executed successfully
+            duration_ms: How long the hook took to execute in milliseconds
+            error_message: Optional error message if the hook failed
+        """
+        # Generate a human-readable summary based on hook type
+        summary = self._generate_hook_summary(hook_type, event, success)
+
+        # Extract common fields
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+        correlation_id = event.get("correlation_id") or str(uuid.uuid4())
+
+        # Build hook execution data
+        hook_data = {
+            "hook_name": hook_type,
+            "hook_type": hook_type,
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "success": success,
+            "duration_ms": duration_ms,
+            "result_summary": summary,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Add error information if present
+        if error_message:
+            hook_data["error_message"] = error_message
+
+        # Add hook-specific context
+        if hook_type == "PreToolUse":
+            hook_data["tool_name"] = event.get("tool_name", "")
+        elif hook_type == "PostToolUse":
+            hook_data["tool_name"] = event.get("tool_name", "")
+            hook_data["exit_code"] = event.get("exit_code", 0)
+        elif hook_type == "UserPromptSubmit":
+            prompt = event.get("prompt", "")
+            hook_data["prompt_preview"] = prompt[:100] if len(prompt) > 100 else prompt
+            hook_data["prompt_length"] = len(prompt)
+        elif hook_type == "SubagentStop":
+            hook_data["agent_type"] = event.get("agent_type", "unknown")
+            hook_data["reason"] = event.get("reason", "unknown")
+
+        # Emit through connection manager with proper structure
+        # This uses the existing event infrastructure
+        self._emit_socketio_event("", "hook_execution", hook_data)
+
+        if DEBUG:
+            print(
+                f"📊 Hook execution event: {hook_type} - {duration_ms}ms - {'✅' if success else '❌'}",
+                file=sys.stderr
+            )
+
+    def _generate_hook_summary(self, hook_type: str, event: dict, success: bool) -> str:
+        """Generate a human-readable summary of what the hook did.
+
+        Args:
+            hook_type: The type of hook
+            event: The hook event data
+            success: Whether the hook executed successfully
+
+        Returns:
+            A brief description of what happened
+        """
+        if not success:
+            return f"Hook {hook_type} failed during processing"
+
+        # Generate hook-specific summaries
+        if hook_type == "UserPromptSubmit":
+            prompt = event.get("prompt", "")
+            if prompt.startswith("/"):
+                return f"Processed command: {prompt.split()[0]}"
+            return f"Processed user prompt ({len(prompt)} chars)"
+
+        elif hook_type == "PreToolUse":
+            tool_name = event.get("tool_name", "unknown")
+            return f"Pre-processing tool call: {tool_name}"
+
+        elif hook_type == "PostToolUse":
+            tool_name = event.get("tool_name", "unknown")
+            exit_code = event.get("exit_code", 0)
+            status = "success" if exit_code == 0 else "failed"
+            return f"Completed tool call: {tool_name} ({status})"
+
+        elif hook_type == "SubagentStop":
+            agent_type = event.get("agent_type", "unknown")
+            reason = event.get("reason", "unknown")
+            return f"Subagent {agent_type} stopped: {reason}"
+
+        elif hook_type == "SessionStart":
+            return "New session started"
+
+        elif hook_type == "Stop":
+            reason = event.get("reason", "unknown")
+            return f"Session stopped: {reason}"
+
+        elif hook_type == "Notification":
+            notification_type = event.get("notification_type", "unknown")
+            return f"Notification received: {notification_type}"
+
+        elif hook_type == "AssistantResponse":
+            response_len = len(event.get("response", ""))
+            return f"Assistant response generated ({response_len} chars)"
+
+        # Default summary
+        return f"Hook {hook_type} processed successfully"
 
     def __del__(self):
         """Cleanup on handler destruction."""

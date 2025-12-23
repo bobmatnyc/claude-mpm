@@ -119,13 +119,25 @@ class ConnectionManagerService:
         tool_call_id = data.get("tool_call_id")
 
         # Create event data for normalization
+        # Extract session_id (try both camelCase and snake_case)
+        session_id = data.get("session_id") or data.get("sessionId")
+
+        # Extract working directory for project identification
+        # Try multiple field names for maximum compatibility
+        cwd = (
+            data.get("cwd") or
+            data.get("working_directory") or
+            data.get("workingDirectory")
+        )
+
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
-            "session_id": data.get("sessionId"),  # Include session if available
+            "session_id": session_id,  # Include session if available (supports both naming conventions)
+            "cwd": cwd,  # Add working directory at top level for easy frontend access
             "correlation_id": tool_call_id,  # Set from tool_call_id for event correlation
         }
 

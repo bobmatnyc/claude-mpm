@@ -90,7 +90,7 @@
     }
   }
 
-  // Compute whether to show the toggle
+  // Compute whether to enable the Changes button (only if git tracked and has changes)
   let showToggle = $derived(isGitTracked && hasGitChanges);
 
   // Format git diff with syntax highlighting
@@ -169,25 +169,30 @@
         </p>
       </div>
 
-      <!-- View Mode Toggle (only show if git tracked and has changes) -->
-      {#if showToggle}
-        <div class="view-toggle">
-          <button
-            class="toggle-btn"
-            class:active={viewMode === 'content'}
-            onclick={() => viewMode = 'content'}
-          >
-            Content
-          </button>
-          <button
-            class="toggle-btn"
-            class:active={viewMode === 'changes'}
-            onclick={() => viewMode = 'changes'}
-          >
-            Changes
-          </button>
-        </div>
-      {/if}
+      <!-- View Mode Toggle (always show, but disable Changes if no git changes) -->
+      <div class="view-toggle">
+        <button
+          class="toggle-btn"
+          class:active={viewMode === 'content'}
+          onclick={() => viewMode = 'content'}
+        >
+          Content
+        </button>
+        <button
+          class="toggle-btn"
+          class:active={viewMode === 'changes'}
+          class:disabled={!showToggle}
+          onclick={() => {
+            if (showToggle) {
+              viewMode = 'changes';
+            }
+          }}
+          disabled={!showToggle}
+          title={!showToggle ? 'No git changes detected' : 'View git changes'}
+        >
+          Changes
+        </button>
+      </div>
     </div>
 
     <!-- Content area -->
@@ -300,7 +305,7 @@
     transition: all 0.15s ease;
   }
 
-  .toggle-btn:hover {
+  .toggle-btn:hover:not(.disabled) {
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
   }
@@ -308,6 +313,11 @@
   .toggle-btn.active {
     background: var(--color-primary);
     color: white;
+  }
+
+  .toggle-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .toggle-btn:not(:last-child) {

@@ -6,6 +6,9 @@
 	// Use store subscriptions with $ prefix (auto-subscription)
 	const { isConnected, error, streams, streamMetadata, selectedStream } = socketStore;
 
+	// Reactive reference to theme for proper reactivity
+	let currentTheme = $derived(themeStore.current);
+
 	// Convert Set to Array for dropdown options and include metadata
 	const streamOptions = derived(
 		[streams, streamMetadata],
@@ -60,9 +63,9 @@
 			<button
 				onclick={() => themeStore.toggle()}
 				class="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
-				title={themeStore.current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+				title={currentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
 			>
-				{#if themeStore.current === 'dark'}
+				{#if currentTheme === 'dark'}
 					<!-- Moon icon (dark mode active) -->
 					<svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />

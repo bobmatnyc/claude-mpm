@@ -81,6 +81,8 @@ class NormalizedEvent:
     correlation_id: Optional[str] = (
         None  # For correlating related events (e.g., pre_tool/post_tool)
     )
+    session_id: Optional[str] = None  # Session identifier for stream grouping
+    cwd: Optional[str] = None  # Working directory for project identification
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for emission."""
@@ -95,6 +97,12 @@ class NormalizedEvent:
         # Include correlation_id if present
         if self.correlation_id:
             result["correlation_id"] = self.correlation_id
+        # Include session_id if present
+        if self.session_id:
+            result["session_id"] = self.session_id
+        # Include cwd if present
+        if self.cwd:
+            result["cwd"] = self.cwd
         return result
 
 
@@ -113,6 +121,7 @@ class EventNormalizer:
         "pre_response": (EventType.HOOK, "pre_response"),
         "post_response": (EventType.HOOK, "post_response"),
         "hook_event": (EventType.HOOK, "generic"),
+        "hook_execution": (EventType.HOOK, "execution"),  # Hook execution metadata
         "UserPrompt": (EventType.HOOK, "user_prompt"),  # Legacy format
         # Test events (legacy format)
         "TestStart": (EventType.TEST, "start"),
@@ -225,10 +234,20 @@ class EventNormalizer:
             # Get or generate timestamp
             timestamp = self._extract_timestamp(event_data)
 
-            # Extract correlation_id if present
+            # Extract correlation_id, session_id, and cwd if present
             correlation_id = None
+            session_id = None
+            cwd = None
             if isinstance(event_data, dict):
                 correlation_id = event_data.get("correlation_id")
+                # Try both naming conventions for session_id
+                session_id = event_data.get("session_id") or event_data.get("sessionId")
+                # Try multiple field names for working directory
+                cwd = (
+                    event_data.get("cwd") or
+                    event_data.get("working_directory") or
+                    event_data.get("workingDirectory")
+                )
 
             # Create normalized event
             normalized = NormalizedEvent(
@@ -239,6 +258,8 @@ class EventNormalizer:
                 timestamp=timestamp,
                 data=data,
                 correlation_id=correlation_id,
+                session_id=session_id,
+                cwd=cwd,
             )
 
             self.stats["normalized"] += 1
@@ -285,6 +306,14 @@ class EventNormalizer:
             # If source is not a valid EventSource value, keep it as-is
             pass
 
+        # Extract session_id and cwd, trying multiple naming conventions
+        session_id = event_data.get("session_id") or event_data.get("sessionId")
+        cwd = (
+            event_data.get("cwd") or
+            event_data.get("working_directory") or
+            event_data.get("workingDirectory")
+        )
+
         return NormalizedEvent(
             event="claude_event",  # Always use standard event name
             source=source,
@@ -295,6 +324,8 @@ class EventNormalizer:
             ),
             data=event_data.get("data", {}),
             correlation_id=event_data.get("correlation_id"),
+            session_id=session_id,
+            cwd=cwd,
         )
 
     def _extract_event_info(self, event_data: Any) -> Tuple[str, str, Dict[str, Any]]:
