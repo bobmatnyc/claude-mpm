@@ -30,3 +30,10 @@ export interface Tool {
 	postToolEvent: ClaudeEvent | null;
 	timestamp: string | number; // From pre_tool event
 }
+
+export interface StreamEvent {
+	event: string; // Event type (pre-tool, post-tool, etc.)
+	timestamp: string | number;
+	session_id?: string;
+	data: unknown;
+}

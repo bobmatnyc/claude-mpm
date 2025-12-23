@@ -5,7 +5,7 @@
  * Supports correlation by correlation_id with fallback matching strategies.
  */
 
-import type { StreamEvent } from '$lib/types';
+import type { StreamEvent } from '$lib/types/events';
 
 /**
  * Correlates pre-tool and post-tool events based on correlation_id

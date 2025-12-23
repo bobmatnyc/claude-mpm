@@ -14,6 +14,16 @@ export interface TouchedFile {
   eventId: string;
 }
 
+// FileEntry type for compatibility with FileViewer component
+export interface FileEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size: number;
+  modified: number;
+  extension?: string;
+}
+
 /**
  * Fetch file content from the server
  */
