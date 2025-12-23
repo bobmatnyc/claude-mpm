@@ -347,9 +347,7 @@ class MultiSourceAgentDeploymentService:
             agents_cache_dir = cache_dir / "agents"
 
         if not agents_cache_dir.exists():
-            self.logger.warning(
-                f"Agents cache directory not found: {agents_cache_dir}"
-            )
+            self.logger.warning(f"Agents cache directory not found: {agents_cache_dir}")
             return []
 
         # Use RemoteAgentDiscoveryService to get collection agents

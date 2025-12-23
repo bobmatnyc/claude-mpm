@@ -694,7 +694,11 @@ class UnifiedMonitorServer:
                     path = Path(file_path)
                     if not path.exists():
                         return web.json_response(
-                            {"success": False, "error": "File not found", "commits": []},
+                            {
+                                "success": False,
+                                "error": "File not found",
+                                "commits": [],
+                            },
                             status=404,
                         )
 
@@ -708,6 +712,7 @@ class UnifiedMonitorServer:
                             "--",
                             str(path),
                         ],
+                        check=False,
                         capture_output=True,
                         text=True,
                         cwd=str(path.parent),

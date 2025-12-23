@@ -603,9 +603,7 @@ class Config:
                     }
                 ],
                 "sync_interval": "startup",  # Options: "startup", "hourly", "daily", "manual"
-                "cache_dir": str(
-                    Path.home() / ".claude-mpm" / "cache" / "agents"
-                ),
+                "cache_dir": str(Path.home() / ".claude-mpm" / "cache" / "agents"),
             },
         }
 

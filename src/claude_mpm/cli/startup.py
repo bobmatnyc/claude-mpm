@@ -10,7 +10,6 @@ Part of cli/__init__.py refactoring to reduce file size and improve modularity.
 
 import os
 import sys
-import warnings
 from pathlib import Path
 
 
@@ -66,7 +65,6 @@ def check_legacy_cache() -> None:
     This function is kept for backward compatibility but does nothing.
     All agent cache operations now use the standardized cache/agents/ directory.
     """
-    pass
 
 
 def setup_early_environment(argv):

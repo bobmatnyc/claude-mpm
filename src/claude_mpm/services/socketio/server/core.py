@@ -32,7 +32,6 @@ except ImportError:
 # Import VersionService for dynamic version retrieval
 import contextlib
 
-import claude_mpm
 from claude_mpm.services.version_service import VersionService
 
 from ....core.constants import SystemLimits, TimeoutConfig
@@ -419,9 +418,13 @@ class SocketIOServerCore:
                         # Add to main server's event history UNCONDITIONALLY
                         # WHY: event_history is always initialized in SocketIOServer.__init__
                         # This ensures events persist for new clients who connect later
-                        if self.main_server and hasattr(self.main_server, 'event_history'):
+                        if self.main_server and hasattr(
+                            self.main_server, "event_history"
+                        ):
                             self.main_server.event_history.append(event_data)
-                            self.logger.debug(f"Added to history (total: {len(self.main_server.event_history)})")
+                            self.logger.debug(
+                                f"Added to history (total: {len(self.main_server.event_history)})"
+                            )
                         else:
                             # CRITICAL: Log warning if event_history is not available
                             # This indicates a configuration or initialization problem
@@ -464,9 +467,13 @@ class SocketIOServerCore:
 
                         # Add to main server's event history (fallback path)
                         # WHY: Ensure events persist even when broadcaster is unavailable
-                        if self.main_server and hasattr(self.main_server, 'event_history'):
+                        if self.main_server and hasattr(
+                            self.main_server, "event_history"
+                        ):
                             self.main_server.event_history.append(event_data)
-                            self.logger.debug(f"Added to history via fallback (total: {len(self.main_server.event_history)})")
+                            self.logger.debug(
+                                f"Added to history via fallback (total: {len(self.main_server.event_history)})"
+                            )
                         else:
                             self.logger.warning(
                                 "event_history not initialized on main_server (fallback path)! "
@@ -657,6 +664,7 @@ class SocketIOServerCore:
                         "--",
                         abs_path,
                     ],
+                    check=False,
                     capture_output=True,
                     text=True,
                     cwd=Path(abs_path).parent,
@@ -729,11 +737,11 @@ class SocketIOServerCore:
                 async def index_handler(request):
                     index_file = svelte_build_path / "index.html"
                     if index_file.exists():
-                        self.logger.debug(f"Serving Svelte dashboard from: {index_file}")
+                        self.logger.debug(
+                            f"Serving Svelte dashboard from: {index_file}"
+                        )
                         return web.FileResponse(index_file)
-                    self.logger.warning(
-                        f"Svelte index.html not found at: {index_file}"
-                    )
+                    self.logger.warning(f"Svelte index.html not found at: {index_file}")
                     return web.Response(text="Dashboard not available", status=404)
 
                 self.app.router.add_get("/", index_handler)
@@ -748,7 +756,9 @@ class SocketIOServerCore:
                         f"✅ Svelte dashboard available at http://{self.host}:{self.port}/ (build: {svelte_build_path})"
                     )
                 else:
-                    self.logger.warning(f"⚠️  Svelte _app directory not found at: {svelte_app_path}")
+                    self.logger.warning(
+                        f"⚠️  Svelte _app directory not found at: {svelte_app_path}"
+                    )
 
                 # Serve version.json from Svelte build directory
                 async def version_handler(request):
@@ -769,7 +779,9 @@ class SocketIOServerCore:
                 self.app.router.add_get("/version.json", version_handler)
 
             else:
-                self.logger.warning("⚠️  Svelte dashboard not found, serving fallback response")
+                self.logger.warning(
+                    "⚠️  Svelte dashboard not found, serving fallback response"
+                )
 
                 # Fallback handler
                 async def fallback_handler(request):
@@ -823,12 +835,22 @@ class SocketIOServerCore:
         # Try multiple possible locations for Svelte build directory
         possible_paths = [
             # Package-based paths (for pipx and pip installations)
-            package_root / "dashboard" / "static" / "svelte-build" if package_root else None,
+            package_root / "dashboard" / "static" / "svelte-build"
+            if package_root
+            else None,
             # Project-based paths (for development)
-            project_root / "src" / "claude_mpm" / "dashboard" / "static" / "svelte-build",
+            project_root
+            / "src"
+            / "claude_mpm"
+            / "dashboard"
+            / "static"
+            / "svelte-build",
             project_root / "dashboard" / "static" / "svelte-build",
             # Package installation locations (fallback)
-            Path(__file__).parent.parent.parent / "dashboard" / "static" / "svelte-build",
+            Path(__file__).parent.parent.parent
+            / "dashboard"
+            / "static"
+            / "svelte-build",
             # Scripts directory (for standalone installations)
             get_scripts_dir() / "dashboard" / "static" / "svelte-build",
             # Current working directory
@@ -937,7 +959,9 @@ class SocketIOServerCore:
                 # WHY: Heartbeat events should persist for new clients too
                 if self.main_server and hasattr(self.main_server, "event_history"):
                     self.main_server.event_history.append(heartbeat_data)
-                    self.logger.debug(f"Heartbeat added to history (total: {len(self.main_server.event_history)})")
+                    self.logger.debug(
+                        f"Heartbeat added to history (total: {len(self.main_server.event_history)})"
+                    )
                 else:
                     self.logger.warning("event_history not initialized for heartbeat!")
 

@@ -93,7 +93,7 @@ class RemoteAgentDiscoveryService:
 
             for i, part in enumerate(path_parts):
                 # Look for cache/agents pattern
-                if part == "agents" and i > 0 and path_parts[i-1] == "cache":
+                if part == "agents" and i > 0 and path_parts[i - 1] == "cache":
                     agents_cache_idx = i
                     break
 
@@ -139,7 +139,7 @@ class RemoteAgentDiscoveryService:
 
             for i, part in enumerate(path_parts):
                 # Look for cache/agents pattern
-                if part == "agents" and i > 0 and path_parts[i-1] == "cache":
+                if part == "agents" and i > 0 and path_parts[i - 1] == "cache":
                     agents_cache_idx = i
                     break
 
