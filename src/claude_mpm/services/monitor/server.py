@@ -767,7 +767,7 @@ class UnifiedMonitorServer:
                         except Exception as e:
                             self.logger.error(f"Error reading image file: {e}")
                             return web.json_response(
-                                {"success": False, "error": f"Failed to read image: {str(e)}"},
+                                {"success": False, "error": f"Failed to read image: {e!s}"},
                                 status=500,
                             )
 
