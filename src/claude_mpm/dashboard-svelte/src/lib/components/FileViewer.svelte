@@ -31,7 +31,7 @@
     try {
       const response = await fetch('/api/working-directory');
       const data = await response.json();
-      if (data.success && data.working_directory) {
+      if (data.working_directory) {
         projectRoot = data.working_directory;
       }
     } catch (error) {

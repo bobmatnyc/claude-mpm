@@ -539,7 +539,7 @@ class SocketIOServerCore:
             from pathlib import Path
 
             try:
-                working_dir = Path.cwd()
+                working_dir = str(Path.cwd())
                 home_dir = str(Path.home())
 
                 return web.json_response(
