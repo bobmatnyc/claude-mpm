@@ -1,3 +1,9 @@
+## v5.4.24 (2025-12-23)
+
+### Fixed
+- **Code Quality**: Removed unused imports in monitor and socketio servers
+- **Code Formatting**: Applied consistent formatting to server files
+
 ## v5.4.23 (2025-12-23)
 
 ### Changed
