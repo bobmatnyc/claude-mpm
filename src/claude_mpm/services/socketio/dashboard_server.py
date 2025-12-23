@@ -152,6 +152,7 @@ class DashboardServer(SocketIOServiceInterface):
 
         # Register handlers for all events we want to relay from monitor to dashboard
         relay_events = [
+            "claude_event",  # Tool events from Claude Code hooks
             "session_started",
             "session_ended",
             "claude_status",
