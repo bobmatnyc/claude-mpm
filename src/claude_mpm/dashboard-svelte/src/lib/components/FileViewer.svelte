@@ -39,6 +39,26 @@
     });
   });
 
+  // Debug logging for rendering
+  $effect(() => {
+    if (file && showContent) {
+      const lang = getLanguage(file.filename);
+      console.log('[FileViewer] Rendering state:', {
+        filename: file.filename,
+        extension: file.filename.split('.').pop(),
+        isSvelte: file.filename.endsWith('.svelte'),
+        hasLanguage: !!lang,
+        language: lang?.name || 'null',
+        hasContent: !!fileContent,
+        contentLength: fileContent?.length || 0,
+        contentPreview: fileContent?.substring(0, 50) || 'NO CONTENT',
+        showContent,
+        isLoading,
+        loadError
+      });
+    }
+  });
+
   // State
   let selectedOperation = $state<FileOperation | null>(null);
   let fileContent = $state<string>('');
@@ -81,7 +101,14 @@
 
   function getLanguage(filename: string) {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
-    return langMap[ext] || null;
+    const lang = langMap[ext] || null;
+    console.log('[FileViewer] Language detection:', {
+      filename,
+      extension: ext,
+      language: lang?.name || 'null',
+      hasLanguage: !!lang
+    });
+    return lang;
   }
 
   // Fetch file content from server API
@@ -315,13 +342,24 @@
       {:else if showContent}
         <!-- Syntax highlighted content for Read/Write -->
         <div class="code-container">
-          {#if file.filename.endsWith('.svelte')}
-            <HighlightSvelte code={fileContent} />
-          {:else if getLanguage(file.filename)}
-            <Highlight language={getLanguage(file.filename)} code={fileContent} />
+          {#if fileContent === '' || fileContent === null || fileContent === undefined}
+            <div class="no-content">
+              <p>File is empty or not loaded</p>
+            </div>
+          {:else if file.filename.endsWith('.svelte')}
+            <HighlightSvelte code={fileContent} let:highlighted>
+              <pre class="hljs"><code class="hljs">{@html highlighted}</code></pre>
+            </HighlightSvelte>
           {:else}
-            <!-- Fallback for unsupported file types -->
-            <pre class="plaintext">{fileContent}</pre>
+            {@const lang = getLanguage(file.filename)}
+            {#if lang}
+              <Highlight language={lang} code={fileContent} let:highlighted>
+                <pre class="hljs"><code class="hljs">{@html highlighted}</code></pre>
+              </Highlight>
+            {:else}
+              <!-- Fallback for unsupported file types -->
+              <pre class="plaintext">{fileContent}</pre>
+            {/if}
           {/if}
         </div>
       {:else if currentOperation?.type === 'Grep' || currentOperation?.type === 'Glob'}
@@ -505,9 +543,15 @@
 
   .code-container :global(pre) {
     margin: 0;
-    padding: 1rem;
+    padding: 0 !important; /* Let the syntax highlighter handle padding */
     border-radius: 0.375rem;
     overflow-x: auto;
+  }
+
+  .code-container :global(pre code.hljs) {
+    display: block;
+    padding: 1rem;
+    border-radius: 0.375rem;
   }
 
   .code-container .plaintext {
