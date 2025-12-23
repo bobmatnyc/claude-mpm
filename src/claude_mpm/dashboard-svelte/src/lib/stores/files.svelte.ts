@@ -149,8 +149,9 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       let operationType: FileOperation['type'] | undefined;
       let operation: FileOperation | undefined;
 
-      // Check for Read operations (use event.subtype, not event.type)
-      if (event.subtype === 'post_tool' && toolName === 'Read') {
+      // Check for Read operations
+      // Backend emits events as 'claude_event' with type='hook' and subtype='post_tool'
+      if (event.type === 'hook' && event.subtype === 'post_tool' && toolName === 'Read') {
         // Extract content from output field - prioritize tool_parameters, then check other locations
         const content = (
           typeof eventData.output === 'string' ? eventData.output :
@@ -178,8 +179,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Write operations (use event.subtype, not event.type)
-      else if (event.subtype === 'pre_tool' && toolName === 'Write') {
+      // Check for Write operations
+      else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Write') {
         // Extract content - prioritize tool_parameters (backend format)
         const content = (
           (eventData.tool_parameters as any)?.content ||
@@ -196,8 +197,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Edit operations (use event.subtype, not event.type)
-      else if (event.subtype === 'pre_tool' && toolName === 'Edit') {
+      // Check for Edit operations
+      else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Edit') {
         // Extract from tool_parameters first (backend format)
         const oldString = (
           (eventData.tool_parameters as any)?.old_string ||
@@ -221,8 +222,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Grep operations (use event.subtype, not event.type)
-      else if (event.subtype === 'pre_tool' && toolName === 'Grep') {
+      // Check for Grep operations
+      else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Grep') {
         // Extract pattern - prioritize tool_parameters (backend format)
         const pattern = (
           (eventData.tool_parameters as any)?.pattern ||
@@ -239,8 +240,8 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           post_event: event
         };
       }
-      // Check for Glob operations (use event.subtype, not event.type)
-      else if (event.subtype === 'pre_tool' && toolName === 'Glob') {
+      // Check for Glob operations
+      else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Glob') {
         // Extract pattern - prioritize tool_parameters (backend format)
         const pattern = (
           (eventData.tool_parameters as any)?.pattern ||
