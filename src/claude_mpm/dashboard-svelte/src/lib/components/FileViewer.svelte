@@ -107,8 +107,9 @@
               ]
             });
           } catch (e) {
-            // Fallback to plain text if language detection fails
-            console.warn('[FileViewer] Language detection failed for', language, ':', e);
+            // Fallback to plain text if syntax highlighting fails
+            console.warn('[FileViewer] Syntax highlighting failed for', language, ':', e);
+            // Always show content even if highlighting fails - use plain text fallback
             highlightedContent = addLineNumbers(content);
           }
         }

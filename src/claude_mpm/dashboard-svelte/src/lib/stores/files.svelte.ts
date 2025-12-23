@@ -154,18 +154,14 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       if (event.type === 'hook' && event.subtype === 'post_tool' && toolName === 'Read') {
         // Extract content from output field
         // Backend structure: { data: { output: "content", tool_name: "Read", tool_parameters: {...} } }
-        const innerData = eventData.data && typeof eventData.data === 'object' ? eventData.data as Record<string, unknown> : null;
+        // The output is directly in eventData.output (not nested)
         const content = (
-          // Check innerData.output first (backend format: data.data.output)
-          typeof (innerData as any)?.output === 'string' ? (innerData as any).output :
-          // Check eventData.output (direct format)
+          // Check eventData.output first (direct format from backend)
           typeof eventData.output === 'string' ? eventData.output :
           // Check eventData.result (alternative format)
           typeof eventData.result === 'string' ? eventData.result :
-          // Check tool_parameters.content (rare)
-          typeof (eventData.tool_parameters as any)?.content === 'string' ? (eventData.tool_parameters as any).content :
-          // Check hook_input_data.output (legacy format)
-          typeof (hookInputData as any)?.output === 'string' ? (hookInputData as any).output :
+          // Check for nested data.output (shouldn't be needed but defensive)
+          typeof (eventData.data as any)?.output === 'string' ? (eventData.data as any).output :
           undefined
         );
 
@@ -174,26 +170,13 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           hasContent: !!content,
           contentLength: content?.length,
           contentPreview: content ? content.substring(0, 100) : null,
-          innerData: innerData ? {
-            hasOutput: 'output' in innerData,
-            outputType: typeof (innerData as any).output,
-            outputIsString: typeof (innerData as any).output === 'string',
-            keys: Object.keys(innerData)
-          } : null,
-          eventData: {
-            hasOutput: 'output' in eventData,
-            outputType: typeof eventData.output,
-            outputIsString: typeof eventData.output === 'string',
-            hasData: 'data' in eventData,
-            dataType: typeof eventData.data,
-            hasToolParameters: !!eventData.tool_parameters,
-            toolParametersKeys: eventData.tool_parameters ? Object.keys(eventData.tool_parameters as any) : []
-          },
-          hookInputData: hookInputData ? {
-            hasOutput: 'output' in hookInputData,
-            outputType: typeof (hookInputData as any).output,
-            keys: Object.keys(hookInputData)
-          } : null
+          eventDataKeys: Object.keys(eventData),
+          eventDataOutput: {
+            exists: 'output' in eventData,
+            type: typeof eventData.output,
+            isString: typeof eventData.output === 'string',
+            lengthIfString: typeof eventData.output === 'string' ? (eventData.output as string).length : 0
+          }
         });
 
         operation = {
