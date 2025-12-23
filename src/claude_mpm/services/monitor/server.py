@@ -922,11 +922,12 @@ class UnifiedMonitorServer:
 
             # Git diff handler
             async def git_diff_handler(request: web.Request) -> web.Response:
-                """Get git diff for a file."""
+                """Get git diff for a file with optional commit selection."""
                 import subprocess
 
                 try:
                     file_path = request.query.get("path", "")
+                    commit_hash = request.query.get("commit", "")  # Optional commit hash
 
                     if not file_path:
                         return web.json_response(
@@ -968,6 +969,8 @@ class UnifiedMonitorServer:
                                 "diff": "",
                                 "has_changes": False,
                                 "tracked": False,
+                                "history": [],
+                                "has_uncommitted": False,
                             }
                         )
 
@@ -990,11 +993,44 @@ class UnifiedMonitorServer:
                                 "diff": "",
                                 "has_changes": False,
                                 "tracked": False,
+                                "history": [],
+                                "has_uncommitted": False,
                             }
                         )
 
-                    # Get git diff for file (using absolute path or relative to git root)
-                    result = subprocess.run(
+                    # Get commit history for this file (last 5 commits)
+                    history_result = subprocess.run(
+                        [
+                            "git",
+                            "log",
+                            "-5",
+                            "--pretty=format:%H|%s|%ar",
+                            "--",
+                            str(path),
+                        ],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        cwd=str(git_root),
+                    )
+
+                    history = []
+                    if history_result.returncode == 0 and history_result.stdout:
+                        for line in history_result.stdout.strip().split("\n"):
+                            if line:
+                                parts = line.split("|", 2)
+                                if len(parts) == 3:
+                                    history.append(
+                                        {
+                                            "hash": parts[0][:7],  # Short hash
+                                            "full_hash": parts[0],  # Full hash for API
+                                            "message": parts[1],
+                                            "time_ago": parts[2],
+                                        }
+                                    )
+
+                    # Check for uncommitted changes
+                    uncommitted_result = subprocess.run(
                         ["git", "diff", "HEAD", str(path)],
                         check=False,
                         capture_output=True,
@@ -1002,8 +1038,24 @@ class UnifiedMonitorServer:
                         cwd=str(git_root),
                     )
 
-                    diff_output = result.stdout if result.returncode == 0 else ""
-                    has_changes = bool(diff_output.strip())
+                    has_uncommitted = bool(uncommitted_result.stdout.strip())
+
+                    # Get diff based on commit parameter
+                    if commit_hash:
+                        # Get diff for specific commit
+                        result = subprocess.run(
+                            ["git", "show", commit_hash, "--", str(path)],
+                            check=False,
+                            capture_output=True,
+                            text=True,
+                            cwd=str(git_root),
+                        )
+                        diff_output = result.stdout if result.returncode == 0 else ""
+                        has_changes = bool(diff_output.strip())
+                    else:
+                        # Get uncommitted diff (default behavior)
+                        diff_output = uncommitted_result.stdout
+                        has_changes = has_uncommitted
 
                     return web.json_response(
                         {
@@ -1011,6 +1063,8 @@ class UnifiedMonitorServer:
                             "diff": diff_output,
                             "has_changes": has_changes,
                             "tracked": True,
+                            "history": history,
+                            "has_uncommitted": has_uncommitted,
                         }
                     )
                 except Exception as e:
@@ -1020,6 +1074,8 @@ class UnifiedMonitorServer:
                             "error": str(e),
                             "diff": "",
                             "has_changes": False,
+                            "history": [],
+                            "has_uncommitted": False,
                         },
                         status=500,
                     )

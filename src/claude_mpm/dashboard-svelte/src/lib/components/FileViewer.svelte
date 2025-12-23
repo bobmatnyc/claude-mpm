@@ -42,44 +42,71 @@
   type ViewMode = 'content' | 'changes';
   let viewMode = $state<ViewMode>('content');
 
+  // Git commit history
+  interface CommitInfo {
+    hash: string;
+    full_hash: string;
+    message: string;
+    time_ago: string;
+  }
+
   // Git diff state
   let gitDiff = $state<string>('');
   let hasGitChanges = $state<boolean>(false);
   let isGitTracked = $state<boolean>(false);
   let isDiffLoading = $state<boolean>(false);
+  let commitHistory = $state<CommitInfo[]>([]);
+  let hasUncommitted = $state<boolean>(false);
+  let selectedCommit = $state<string>('');  // Empty string means "uncommitted"
 
-  // Fetch git diff when file changes or when switching to changes view
+  // Fetch git diff when file changes, view mode changes, or commit selection changes
   $effect(() => {
     if (file && viewMode === 'changes') {
-      fetchGitDiff();
+      fetchGitDiff(selectedCommit);
     }
   });
 
-  async function fetchGitDiff() {
+  async function fetchGitDiff(commitHash: string = '') {
     if (!file) return;
 
     isDiffLoading = true;
     try {
-      const response = await fetch(`/api/file/diff?path=${encodeURIComponent(file.path)}`);
+      const url = commitHash
+        ? `/api/file/diff?path=${encodeURIComponent(file.path)}&commit=${encodeURIComponent(commitHash)}`
+        : `/api/file/diff?path=${encodeURIComponent(file.path)}`;
+
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
         gitDiff = data.diff || '';
         hasGitChanges = data.has_changes || false;
         isGitTracked = data.tracked !== false;
+        commitHistory = data.history || [];
+        hasUncommitted = data.has_uncommitted || false;
       } else {
         gitDiff = '';
         hasGitChanges = false;
         isGitTracked = false;
+        commitHistory = [];
+        hasUncommitted = false;
       }
     } catch (error) {
       console.error('Failed to fetch git diff:', error);
       gitDiff = '';
       hasGitChanges = false;
       isGitTracked = false;
+      commitHistory = [];
+      hasUncommitted = false;
     } finally {
       isDiffLoading = false;
     }
+  }
+
+  // Update commit selection
+  function selectCommit(commitHash: string) {
+    selectedCommit = commitHash;
+    fetchGitDiff(commitHash);
   }
 
   // Check for git changes on file load
@@ -108,27 +135,40 @@
       if (data.success) {
         hasGitChanges = data.has_changes || false;
         isGitTracked = data.tracked !== false;
+        commitHistory = data.history || [];
+        hasUncommitted = data.has_uncommitted || false;
+
+        // Reset selected commit when file changes
+        selectedCommit = '';
+
         console.log('[FileViewer] Git status updated:', {
           hasGitChanges,
           isGitTracked,
-          showToggle: isGitTracked && hasGitChanges,
+          showToggle: isGitTracked && (hasUncommitted || commitHistory.length > 0),
           tracked_value: data.tracked,
-          has_changes_value: data.has_changes
+          has_changes_value: data.has_changes,
+          history_count: commitHistory.length,
+          has_uncommitted: hasUncommitted
         });
       } else {
         console.log('[FileViewer] Git status check failed:', data.error);
         hasGitChanges = false;
         isGitTracked = false;
+        commitHistory = [];
+        hasUncommitted = false;
       }
     } catch (error) {
       console.error('[FileViewer] Failed to check git status:', error);
       hasGitChanges = false;
       isGitTracked = false;
+      commitHistory = [];
+      hasUncommitted = false;
     }
   }
 
-  // Compute whether to enable the Changes button (only if git tracked and has changes)
-  let showToggle = $derived(isGitTracked && hasGitChanges);
+  // Compute whether to enable the Changes button
+  // Show if tracked AND (has uncommitted changes OR has commit history)
+  let showToggle = $derived(isGitTracked && (hasUncommitted || commitHistory.length > 0));
 
   // Format git diff with syntax highlighting
   function formatGitDiff(diffText: string): string {
@@ -256,14 +296,39 @@
       {:else if viewMode === 'changes'}
         <!-- Git Diff View -->
         <div class="diff-container">
+          <!-- Commit selector dropdown -->
+          {#if commitHistory.length > 0 || hasUncommitted}
+            <div class="commit-selector">
+              <label for="commit-select">View changes from:</label>
+              <select
+                id="commit-select"
+                bind:value={selectedCommit}
+                onchange={() => selectCommit(selectedCommit)}
+              >
+                {#if hasUncommitted}
+                  <option value="">Uncommitted changes</option>
+                {/if}
+                {#each commitHistory as commit}
+                  <option value={commit.full_hash}>
+                    {commit.hash} - {commit.message} ({commit.time_ago})
+                  </option>
+                {/each}
+              </select>
+            </div>
+          {/if}
+
           {#if isDiffLoading}
             <div class="loading-state">
               <div class="spinner"></div>
               <p>Loading git diff...</p>
             </div>
-          {:else if !hasGitChanges}
+          {:else if !hasGitChanges && !selectedCommit}
             <div class="no-content">
-              <p>No git changes detected</p>
+              <p>No uncommitted changes detected</p>
+            </div>
+          {:else if !gitDiff}
+            <div class="no-content">
+              <p>No changes in selected commit</p>
             </div>
           {:else}
             <pre class="diff-content">{@html formatGitDiff(gitDiff)}</pre>
@@ -580,6 +645,48 @@
     line-height: 1.5;
     height: 100%;
     overflow: auto;
+  }
+
+  .commit-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .commit-selector label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+
+  .commit-selector select {
+    flex: 1;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+    color: var(--color-text-primary);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .commit-selector select:hover {
+    border-color: var(--color-primary);
+  }
+
+  .commit-selector select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   .diff-content {
