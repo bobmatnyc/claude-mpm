@@ -1,3 +1,16 @@
+## v5.4.28 (2025-12-23)
+
+### Added
+- **Dashboard**: New Agents tab with hierarchical agent tracking
+  - PM → sub-agent hierarchy visualization
+  - Agent type icons and formatted names
+  - Tool call grouping (deduplicate same tool+file)
+  - Stream activity highlighting (green dot for recent activity)
+  - Tool call click-through to Tools tab details
+  - User prompts, delegation prompts, and responses display
+  - Todo lists with status indicators per agent
+  - Work plans detection and display
+
 ## v5.4.27 (2025-12-23)
 
 ### Fixed
