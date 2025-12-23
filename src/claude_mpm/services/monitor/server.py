@@ -757,6 +757,16 @@ class UnifiedMonitorServer:
                         {"success": False, "error": str(e)}, status=500
                     )
 
+            # Favicon handler
+            async def favicon_handler(request):
+                """Serve favicon.svg from static directory."""
+                from aiohttp.web_fileresponse import FileResponse
+
+                favicon_path = static_dir / "favicon.svg"
+                if favicon_path.exists():
+                    return FileResponse(favicon_path, headers={"Content-Type": "image/svg+xml"})
+                raise web.HTTPNotFound()
+
             # Version endpoint for dashboard build tracker
             async def version_handler(request):
                 """Serve version information for dashboard build tracker."""
@@ -908,14 +918,98 @@ class UnifiedMonitorServer:
                         {"success": False, "error": str(e), "commits": []}, status=500
                     )
 
+            # Git diff handler
+            async def git_diff_handler(request: web.Request) -> web.Response:
+                """Get git diff for a file."""
+                import subprocess
+
+                try:
+                    file_path = request.query.get("path", "")
+
+                    if not file_path:
+                        return web.json_response(
+                            {
+                                "success": False,
+                                "error": "No path provided",
+                                "diff": "",
+                                "has_changes": False,
+                            },
+                            status=400,
+                        )
+
+                    path = Path(file_path)
+                    if not path.exists():
+                        return web.json_response(
+                            {
+                                "success": False,
+                                "error": "File not found",
+                                "diff": "",
+                                "has_changes": False,
+                            },
+                            status=404,
+                        )
+
+                    # Check if file is tracked by git
+                    ls_files_result = subprocess.run(
+                        ["git", "ls-files", "--error-unmatch", str(path)],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        cwd=str(path.parent),
+                    )
+
+                    if ls_files_result.returncode != 0:
+                        # File is not tracked by git
+                        return web.json_response(
+                            {
+                                "success": True,
+                                "diff": "",
+                                "has_changes": False,
+                                "tracked": False,
+                            }
+                        )
+
+                    # Get git diff for file
+                    result = subprocess.run(
+                        ["git", "diff", "HEAD", str(path)],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        cwd=str(path.parent),
+                    )
+
+                    diff_output = result.stdout if result.returncode == 0 else ""
+                    has_changes = bool(diff_output.strip())
+
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "diff": diff_output,
+                            "has_changes": has_changes,
+                            "tracked": True,
+                        }
+                    )
+                except Exception as e:
+                    return web.json_response(
+                        {
+                            "success": False,
+                            "error": str(e),
+                            "diff": "",
+                            "has_changes": False,
+                        },
+                        status=500,
+                    )
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
+            self.app.router.add_get("/favicon.svg", favicon_handler)
             self.app.router.add_get("/health", health_check)
             self.app.router.add_get("/version.json", version_handler)
             self.app.router.add_get("/api/config", config_handler)
             self.app.router.add_get("/api/working-directory", working_directory_handler)
             self.app.router.add_get("/api/files", api_files_handler)
             self.app.router.add_get("/api/file/read", api_file_read_handler)
+            self.app.router.add_get("/api/file/diff", git_diff_handler)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
             self.app.router.add_post("/api/git-history", git_history_handler)

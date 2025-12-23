@@ -1,7 +1,5 @@
 <script lang="ts">
   import type { FileEntry } from '$lib/stores/files.svelte';
-  import type { TouchedFile, DiffLine } from '$lib/stores/files.svelte';
-  import { generateDiff } from '$lib/stores/files.svelte';
   import Highlight, { HighlightSvelte } from 'svelte-highlight';
   import python from 'svelte-highlight/languages/python';
   import typescript from 'svelte-highlight/languages/typescript';
@@ -20,26 +18,108 @@
     file: FileEntry | null;
     content: string;
     isLoading?: boolean;
-    touchedFile?: TouchedFile | null; // Original TouchedFile with old/new content
   }
 
-  let { file, content, isLoading = false, touchedFile = null }: Props = $props();
+  let { file, content, isLoading = false }: Props = $props();
 
   type ViewMode = 'content' | 'changes';
   let viewMode = $state<ViewMode>('content');
 
-  // Compute whether changes are available
-  let hasChanges = $derived(
-    touchedFile?.oldContent !== undefined &&
-    touchedFile?.newContent !== undefined &&
-    (touchedFile.operation === 'write' || touchedFile.operation === 'edit')
-  );
+  // Git diff state
+  let gitDiff = $state<string>('');
+  let hasGitChanges = $state<boolean>(false);
+  let isGitTracked = $state<boolean>(false);
+  let isDiffLoading = $state<boolean>(false);
 
-  // Generate diff when in changes mode
-  let diff = $derived.by(() => {
-    if (!hasChanges || viewMode !== 'changes') return [];
-    return generateDiff(touchedFile!.oldContent!, touchedFile!.newContent!);
+  // Fetch git diff when file changes or when switching to changes view
+  $effect(() => {
+    if (file && viewMode === 'changes') {
+      fetchGitDiff();
+    }
   });
+
+  async function fetchGitDiff() {
+    if (!file) return;
+
+    isDiffLoading = true;
+    try {
+      const response = await fetch(`/api/file/diff?path=${encodeURIComponent(file.path)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        gitDiff = data.diff || '';
+        hasGitChanges = data.has_changes || false;
+        isGitTracked = data.tracked !== false;
+      } else {
+        gitDiff = '';
+        hasGitChanges = false;
+        isGitTracked = false;
+      }
+    } catch (error) {
+      console.error('Failed to fetch git diff:', error);
+      gitDiff = '';
+      hasGitChanges = false;
+      isGitTracked = false;
+    } finally {
+      isDiffLoading = false;
+    }
+  }
+
+  // Check for git changes on file load
+  $effect(() => {
+    if (file) {
+      checkGitStatus();
+    }
+  });
+
+  async function checkGitStatus() {
+    if (!file) return;
+
+    try {
+      const response = await fetch(`/api/file/diff?path=${encodeURIComponent(file.path)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        hasGitChanges = data.has_changes || false;
+        isGitTracked = data.tracked !== false;
+      }
+    } catch (error) {
+      console.error('Failed to check git status:', error);
+      hasGitChanges = false;
+      isGitTracked = false;
+    }
+  }
+
+  // Compute whether to show the toggle
+  let showToggle = $derived(isGitTracked && hasGitChanges);
+
+  // Format git diff with syntax highlighting
+  function formatGitDiff(diffText: string): string {
+    const lines = diffText.split('\n');
+    return lines.map(line => {
+      if (line.startsWith('@@')) {
+        return `<span class="diff-hunk">${escapeHtml(line)}</span>`;
+      } else if (line.startsWith('+++') || line.startsWith('---')) {
+        return `<span class="diff-file">${escapeHtml(line)}</span>`;
+      } else if (line.startsWith('+')) {
+        return `<span class="diff-add">${escapeHtml(line)}</span>`;
+      } else if (line.startsWith('-')) {
+        return `<span class="diff-remove">${escapeHtml(line)}</span>`;
+      } else if (line.startsWith('diff --git')) {
+        return `<span class="diff-header">${escapeHtml(line)}</span>`;
+      } else if (line.startsWith('index ')) {
+        return `<span class="diff-index">${escapeHtml(line)}</span>`;
+      } else {
+        return `<span class="diff-context">${escapeHtml(line)}</span>`;
+      }
+    }).join('\n');
+  }
+
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
   // Map file extensions to language modules
   const langMap: Record<string, any> = {
@@ -89,8 +169,8 @@
         </p>
       </div>
 
-      <!-- View Mode Toggle (only show if changes available) -->
-      {#if hasChanges}
+      <!-- View Mode Toggle (only show if git tracked and has changes) -->
+      {#if showToggle}
         <div class="view-toggle">
           <button
             class="toggle-btn"
@@ -122,15 +202,19 @@
           <p>File is empty or not loaded</p>
         </div>
       {:else if viewMode === 'changes'}
-        <!-- Diff View -->
+        <!-- Git Diff View -->
         <div class="diff-container">
-          {#if diff.length === 0}
+          {#if isDiffLoading}
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading git diff...</p>
+            </div>
+          {:else if !hasGitChanges}
             <div class="no-content">
-              <p>No changes detected</p>
+              <p>No git changes detected</p>
             </div>
           {:else}
-            <pre class="diff-content">{#each diff as line}<span class="diff-line diff-{line.type}">{#if line.type === 'add'}+{:else if line.type === 'remove'}-{:else} {/if}{line.content}
-</span>{/each}</pre>
+            <pre class="diff-content">{@html formatGitDiff(gitDiff)}</pre>
           {/if}
         </div>
       {:else}
@@ -319,48 +403,71 @@
   .diff-container {
     font-size: 0.875rem;
     line-height: 1.5;
+    height: 100%;
+    overflow: auto;
   }
 
   .diff-content {
     margin: 0;
-    padding: 0;
+    padding: 1rem;
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
     font-size: 0.875rem;
-    line-height: 1.5;
+    line-height: 1.6;
     overflow-x: auto;
-  }
-
-  .diff-line {
-    display: block;
-    padding: 0.125rem 1rem;
     white-space: pre;
+    tab-size: 4;
   }
 
-  .diff-line.diff-add {
+  /* Git diff syntax highlighting */
+  .diff-content :global(.diff-header) {
+    color: #a78bfa;
+    font-weight: 600;
+  }
+
+  .diff-content :global(.diff-file) {
+    color: #8b5cf6;
+    font-weight: 600;
+  }
+
+  .diff-content :global(.diff-hunk) {
+    color: #0891b2;
+    background-color: rgba(8, 145, 178, 0.1);
+    font-weight: 600;
+  }
+
+  .diff-content :global(.diff-add) {
     background-color: rgba(34, 197, 94, 0.15);
     color: #22c55e;
   }
 
-  .diff-line.diff-remove {
+  .diff-content :global(.diff-remove) {
     background-color: rgba(239, 68, 68, 0.15);
     color: #ef4444;
   }
 
-  .diff-line.diff-context {
-    background-color: transparent;
-    color: var(--color-text-primary);
+  .diff-content :global(.diff-context) {
+    color: var(--color-text-secondary);
   }
 
-  /* Dark mode adjustments for diff */
-  :global(.dark) .diff-line.diff-add {
+  .diff-content :global(.diff-index) {
+    color: var(--color-text-tertiary);
+    font-size: 0.8125rem;
+  }
+
+  /* Dark mode adjustments */
+  :global(.dark) .diff-content :global(.diff-add) {
     background-color: rgba(34, 197, 94, 0.2);
     color: #4ade80;
   }
 
-  :global(.dark) .diff-line.diff-remove {
+  :global(.dark) .diff-content :global(.diff-remove) {
     background-color: rgba(239, 68, 68, 0.2);
     color: #f87171;
+  }
+
+  :global(.dark) .diff-content :global(.diff-hunk) {
+    background-color: rgba(8, 145, 178, 0.15);
   }
 </style>

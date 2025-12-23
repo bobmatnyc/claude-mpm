@@ -195,7 +195,6 @@
 						}}
 						content={fileContent}
 						isLoading={contentLoading}
-						touchedFile={selectedFile}
 					/>
 				{:else}
 					<div class="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
