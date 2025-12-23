@@ -347,15 +347,11 @@
               <p>File is empty or not loaded</p>
             </div>
           {:else if file.filename.endsWith('.svelte')}
-            <HighlightSvelte code={fileContent} let:highlighted>
-              <pre class="hljs"><code class="hljs">{@html highlighted}</code></pre>
-            </HighlightSvelte>
+            <HighlightSvelte code={fileContent} />
           {:else}
             {@const lang = getLanguage(file.filename)}
             {#if lang}
-              <Highlight language={lang} code={fileContent} let:highlighted>
-                <pre class="hljs"><code class="hljs">{@html highlighted}</code></pre>
-              </Highlight>
+              <Highlight language={lang} code={fileContent} />
             {:else}
               <!-- Fallback for unsupported file types -->
               <pre class="plaintext">{fileContent}</pre>
