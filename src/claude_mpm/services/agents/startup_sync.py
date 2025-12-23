@@ -110,26 +110,31 @@ def sync_agents_on_startup(config: Optional[Dict[str, Any]] = None) -> Dict[str,
         else:
             cache_dir = None  # Will use default
 
-        # Check for legacy remote-agents cache directory and warn user
-        legacy_cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        # Check for old cache directory names and provide migration guidance
+        # This handles users upgrading from older versions
+        old_cache_paths = [
+            Path.home() / ".claude-mpm" / "cache" / "remote-agents",
+        ]
         new_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
 
-        if legacy_cache_dir.exists() and not new_cache_dir.exists():
-            logger.warning(
-                "Found legacy agent cache directory: ~/.claude-mpm/cache/remote-agents"
-            )
-            logger.warning(
-                "The cache directory has been renamed to: ~/.claude-mpm/cache/agents"
-            )
-            logger.warning(
-                "To migrate your existing cache, run:"
-            )
-            logger.warning(
-                f"  mv ~/.claude-mpm/cache/remote-agents ~/.claude-mpm/cache/agents"
-            )
-            logger.info(
-                "Agents will be re-synced to the new cache location automatically."
-            )
+        for old_cache in old_cache_paths:
+            if old_cache.exists() and not new_cache_dir.exists():
+                logger.warning(
+                    f"Found old cache directory: {old_cache}"
+                )
+                logger.warning(
+                    "The cache directory location has changed to: ~/.claude-mpm/cache/agents"
+                )
+                logger.warning(
+                    "To migrate your existing cache, run:"
+                )
+                logger.warning(
+                    f"  mv {old_cache} {new_cache_dir}"
+                )
+                logger.info(
+                    "Agents will be re-synced to the new cache location automatically."
+                )
+                break  # Only show warning once
 
         # Sync each enabled source
         for source_config in sources:

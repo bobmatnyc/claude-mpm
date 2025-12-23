@@ -111,14 +111,14 @@ class SimpleAgentManager:
         local_agents = self._discover_local_template_agents()
         agents.extend(local_agents)
 
-        # Discover remote agents if requested
+        # Discover Git-sourced agents if requested
         if include_remote:
             try:
-                remote_agents = self._discover_remote_agents()
-                agents.extend(remote_agents)
-                self.logger.info(f"Discovered {len(remote_agents)} remote agents")
+                git_agents = self._discover_git_agents()
+                agents.extend(git_agents)
+                self.logger.info(f"Discovered {len(git_agents)} Git-sourced agents")
             except Exception as e:
-                self.logger.warning(f"Failed to discover remote agents: {e}")
+                self.logger.warning(f"Failed to discover Git-sourced agents: {e}")
 
         # Sort agents by name for consistent display
         agents.sort(key=lambda a: a.name)
@@ -208,20 +208,20 @@ class SimpleAgentManager:
 
         return agents
 
-    def _discover_remote_agents(self) -> List[AgentConfig]:
-        """Discover agents from remote Git sources using GitSourceManager."""
+    def _discover_git_agents(self) -> List[AgentConfig]:
+        """Discover agents from Git sources using GitSourceManager."""
         try:
             from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
-            # Initialize source manager (uses ~/.claude-mpm/cache/remote-agents by default)
+            # Initialize source manager (uses ~/.claude-mpm/cache/agents by default)
             source_manager = GitSourceManager()
 
             # Discover all cached agents from all repositories
-            remote_agent_dicts = source_manager.list_cached_agents()
+            git_agent_dicts = source_manager.list_cached_agents()
 
             # Convert to AgentConfig objects for UI display
             agents = []
-            for agent_dict in remote_agent_dicts:
+            for agent_dict in git_agent_dicts:
                 # Extract metadata
                 metadata = agent_dict.get("metadata", {})
                 agent_id = agent_dict.get("agent_id", "unknown")

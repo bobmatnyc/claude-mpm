@@ -106,7 +106,7 @@ def main():
         Path.home()
         / ".claude-mpm"
         / "cache"
-        / "remote-agents"
+        / "agents"
         / "bobmatnyc"
         / "claude-mpm-agents"
         / "agents"

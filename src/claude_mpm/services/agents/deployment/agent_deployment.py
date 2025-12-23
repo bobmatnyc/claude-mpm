@@ -876,13 +876,13 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             user_agents_dir = potential_user_dir
             self.logger.info(f"Found user agents at: {user_agents_dir}")
 
-        # Check for remote agents (cached from GitHub)
-        remote_agents_dir = None
+        # Check for agents cache (from Git sources)
+        agents_cache_dir = None
         cache_dir = user_home / ".claude-mpm" / "cache"
-        potential_remote_dir = cache_dir / "agents"
-        if potential_remote_dir.exists():
-            remote_agents_dir = potential_remote_dir
-            self.logger.info(f"Found remote agents cache at: {remote_agents_dir}")
+        potential_cache_dir = cache_dir / "agents"
+        if potential_cache_dir.exists():
+            agents_cache_dir = potential_cache_dir
+            self.logger.info(f"Found agents cache at: {agents_cache_dir}")
 
         # Get agents with version comparison and cleanup (4-tier discovery)
         agents_to_deploy, agent_sources, cleanup_results = (
@@ -890,7 +890,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 system_templates_dir=system_templates_dir,
                 project_agents_dir=project_agents_dir,
                 user_agents_dir=user_agents_dir,
-                remote_agents_dir=remote_agents_dir,  # NEW: 4th tier
+                agents_cache_dir=agents_cache_dir,  # NEW: 4th tier
                 working_directory=self.working_directory,
                 excluded_agents=excluded_agents,
                 config=config,

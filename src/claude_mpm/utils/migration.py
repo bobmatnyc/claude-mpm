@@ -2,7 +2,7 @@
 
 WHY: Phase 3 of 1M-486 requires migrating from old single-tier deployment
      (~/.claude/agents/, ~/.claude/skills/) to new two-phase architecture:
-     - Cache: ~/.claude-mpm/cache/remote-agents/, ~/.claude-mpm/cache/skills/
+     - Cache: ~/.claude-mpm/cache/agents/, ~/.claude-mpm/cache/skills/
      - Deployment: .claude-mpm/agents/, .claude-mpm/skills/
 
 DESIGN DECISIONS:
@@ -41,7 +41,7 @@ class MigrationUtility:
         self.old_agent_dir = Path.home() / ".claude" / "agents"
         self.old_skill_dir = Path.home() / ".claude" / "skills"
 
-        self.new_agent_cache = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        self.new_agent_cache = Path.home() / ".claude-mpm" / "cache" / "agents"
         self.new_skill_cache = Path.home() / ".claude-mpm" / "cache" / "skills"
 
     def detect_old_locations(self) -> Dict[str, bool]:
@@ -80,7 +80,7 @@ class MigrationUtility:
     def migrate_agents(
         self, dry_run: bool = False, auto_confirm: bool = False
     ) -> Dict[str, any]:
-        """Migrate agents from ~/.claude/agents/ to ~/.claude-mpm/cache/remote-agents/.
+        """Migrate agents from ~/.claude/agents/ to ~/.claude-mpm/cache/agents/.
 
         Args:
             dry_run: Preview migration without making changes
@@ -329,7 +329,7 @@ class MigrationUtility:
 
         warning += "\nThe deployment architecture has changed:\n"
         warning += "  OLD: ~/.claude/agents/ (single-tier, global)\n"
-        warning += "  NEW: ~/.claude-mpm/cache/remote-agents/ → .claude-mpm/agents/ (two-phase, per-project)\n\n"
+        warning += "  NEW: ~/.claude-mpm/cache/agents/ → .claude-mpm/agents/ (two-phase, per-project)\n\n"
 
         warning += "To migrate:\n"
         warning += "  claude-mpm migrate\n\n"

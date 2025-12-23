@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 DRY_RUN=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-AGENTS_REPO="$HOME/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents"
+AGENTS_REPO="$HOME/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents"
 SKILLS_REPO="$HOME/.claude-mpm/cache/skills/system"
 VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "unknown")
 

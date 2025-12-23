@@ -179,14 +179,14 @@ class MultiSourceAgentDeploymentService:
         system_templates_dir: Optional[Path] = None,
         project_agents_dir: Optional[Path] = None,
         user_agents_dir: Optional[Path] = None,
-        remote_agents_dir: Optional[Path] = None,
+        agents_cache_dir: Optional[Path] = None,
         working_directory: Optional[Path] = None,
     ) -> Dict[str, List[Dict[str, Any]]]:
-        """Discover agents from all 4 tiers (system, user, remote, project).
+        """Discover agents from all 4 tiers (system, user, cache, project).
 
         Priority hierarchy (highest to lowest):
         4. Project agents - Highest priority, project-specific customizations
-        3. Remote agents - GitHub-synced agents from cache
+        3. Cached agents - GitHub-synced agents from cache
         2. User agents - DEPRECATED, user-level customizations
         1. System templates - Lowest priority, built-in agents
 
@@ -194,7 +194,7 @@ class MultiSourceAgentDeploymentService:
             system_templates_dir: Directory containing system agent templates
             project_agents_dir: Directory containing project-specific agents
             user_agents_dir: Directory containing user custom agents (DEPRECATED)
-            remote_agents_dir: Directory containing cached remote agents
+            agents_cache_dir: Directory containing cached agents from Git sources
             working_directory: Current working directory for finding project agents
 
         Returns:
@@ -225,12 +225,12 @@ class MultiSourceAgentDeploymentService:
             if not user_agents_dir.exists():
                 user_agents_dir = None
 
-        if not remote_agents_dir:
-            # Check for remote agents in cache directory
+        if not agents_cache_dir:
+            # Check for agents in cache directory
             cache_dir = Path.home() / ".claude-mpm" / "cache"
-            remote_agents_dir = cache_dir / "agents"
-            if not remote_agents_dir.exists():
-                remote_agents_dir = None
+            agents_cache_dir = cache_dir / "agents"
+            if not agents_cache_dir.exists():
+                agents_cache_dir = None
 
         # Discover agents from each source in priority order
         # Note: We process in reverse priority order (system first) and build up the dictionary
@@ -238,7 +238,7 @@ class MultiSourceAgentDeploymentService:
         sources = [
             ("system", system_templates_dir),
             ("user", user_agents_dir),
-            ("remote", remote_agents_dir),
+            ("remote", agents_cache_dir),
             ("project", project_agents_dir),
         ]
 
@@ -323,7 +323,7 @@ class MultiSourceAgentDeploymentService:
     def get_agents_by_collection(
         self,
         collection_id: str,
-        remote_agents_dir: Optional[Path] = None,
+        agents_cache_dir: Optional[Path] = None,
     ) -> List[Dict[str, Any]]:
         """Get all agents from a specific collection.
 
@@ -331,7 +331,7 @@ class MultiSourceAgentDeploymentService:
 
         Args:
             collection_id: Collection identifier (e.g., "bobmatnyc/claude-mpm-agents")
-            remote_agents_dir: Directory containing remote agents cache
+            agents_cache_dir: Directory containing agents cache
 
         Returns:
             List of agent dictionaries from the specified collection
@@ -342,18 +342,18 @@ class MultiSourceAgentDeploymentService:
             >>> len(agents)
             45
         """
-        if not remote_agents_dir:
+        if not agents_cache_dir:
             cache_dir = Path.home() / ".claude-mpm" / "cache"
-            remote_agents_dir = cache_dir / "agents"
+            agents_cache_dir = cache_dir / "agents"
 
-        if not remote_agents_dir.exists():
+        if not agents_cache_dir.exists():
             self.logger.warning(
-                f"Remote agents directory not found: {remote_agents_dir}"
+                f"Agents cache directory not found: {agents_cache_dir}"
             )
             return []
 
         # Use RemoteAgentDiscoveryService to get collection agents
-        remote_service = RemoteAgentDiscoveryService(remote_agents_dir)
+        remote_service = RemoteAgentDiscoveryService(agents_cache_dir)
         collection_agents = remote_service.get_agents_by_collection(collection_id)
 
         self.logger.info(
@@ -470,7 +470,7 @@ class MultiSourceAgentDeploymentService:
         system_templates_dir: Optional[Path] = None,
         project_agents_dir: Optional[Path] = None,
         user_agents_dir: Optional[Path] = None,
-        remote_agents_dir: Optional[Path] = None,
+        agents_cache_dir: Optional[Path] = None,
         working_directory: Optional[Path] = None,
         excluded_agents: Optional[List[str]] = None,
         config: Optional[Config] = None,
@@ -482,7 +482,7 @@ class MultiSourceAgentDeploymentService:
             system_templates_dir: Directory containing system agent templates
             project_agents_dir: Directory containing project-specific agents
             user_agents_dir: Directory containing user custom agents (DEPRECATED)
-            remote_agents_dir: Directory containing cached remote agents
+            agents_cache_dir: Directory containing cached agents from Git sources
             working_directory: Current working directory for finding project agents
             excluded_agents: List of agent names to exclude from deployment
             config: Configuration object for additional filtering
@@ -499,7 +499,7 @@ class MultiSourceAgentDeploymentService:
             system_templates_dir=system_templates_dir,
             project_agents_dir=project_agents_dir,
             user_agents_dir=user_agents_dir,
-            remote_agents_dir=remote_agents_dir,
+            agents_cache_dir=agents_cache_dir,
             working_directory=working_directory,
         )
 

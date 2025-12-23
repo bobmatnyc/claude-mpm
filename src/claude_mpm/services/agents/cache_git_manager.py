@@ -76,7 +76,7 @@ class CacheGitManager:
             timeout: Git command timeout in seconds (default: 30)
 
         Example:
-            >>> cache_dir = Path.home() / ".claude-mpm/cache/remote-agents"
+            >>> cache_dir = Path.home() / ".claude-mpm/cache/agents"
             >>> manager = CacheGitManager(cache_dir)
         """
         self.cache_path = Path(cache_path)

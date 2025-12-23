@@ -175,7 +175,7 @@ class UnifiedAgentRegistry:
             self.discovery_paths.append(project_path)
 
         # NOTE: .claude-mpm/agents/ is deprecated in the simplified architecture
-        # Source agents come from ~/.claude-mpm/cache/remote-agents/
+        # Source agents come from ~/.claude-mpm/cache/agents/
         # Deployed agents go to .claude/agents/
 
         # User-level agents (deprecated in simplified architecture)

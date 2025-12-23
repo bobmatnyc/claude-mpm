@@ -934,13 +934,13 @@ class AutoConfigureCommand(BaseCommand):
         )
 
         # Get managed agents from cache
-        remote_agents_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-        if not remote_agents_dir.exists():
-            self.logger.debug("No remote agents cache found")
+        agents_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+        if not agents_cache_dir.exists():
+            self.logger.debug("No agents cache found")
             return None
 
         # Discover managed agents
-        discovery_service = RemoteAgentDiscoveryService(remote_agents_dir)
+        discovery_service = RemoteAgentDiscoveryService(agents_cache_dir)
         managed_agents = discovery_service.discover_remote_agents()
 
         if not managed_agents:

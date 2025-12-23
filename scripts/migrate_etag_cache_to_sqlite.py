@@ -157,8 +157,8 @@ Examples:
     parser.add_argument(
         "--cache-dir",
         type=Path,
-        default=Path.home() / ".claude-mpm" / "cache" / "remote-agents",
-        help="Cache directory (default: ~/.claude-mpm/cache/remote-agents/)",
+        default=Path.home() / ".claude-mpm" / "cache" / "agents",
+        help="Cache directory (default: ~/.claude-mpm/cache/agents/)",
     )
 
     parser.add_argument(

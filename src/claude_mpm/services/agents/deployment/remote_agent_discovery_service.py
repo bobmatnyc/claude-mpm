@@ -61,13 +61,13 @@ class RemoteAgentDiscoveryService:
     - Flexibility: Supports optional sections with defaults
     """
 
-    def __init__(self, remote_agents_dir: Path):
+    def __init__(self, agents_cache_dir: Path):
         """Initialize the remote agent discovery service.
 
         Args:
-            remote_agents_dir: Directory containing cached remote agent Markdown files
+            agents_cache_dir: Directory containing cached agent Markdown files
         """
-        self.remote_agents_dir = remote_agents_dir
+        self.agents_cache_dir = agents_cache_dir
         self.logger = get_logger(__name__)
 
     def _extract_collection_id_from_path(self, file_path: Path) -> Optional[str]:
@@ -275,7 +275,7 @@ class RemoteAgentDiscoveryService:
 
         Supports both cache structures:
         1. Git repo: Calculate relative to /agents/ subdirectory
-        2. Flattened cache: Calculate relative to remote_agents_dir directly
+        2. Flattened cache: Calculate relative to agents_cache_dir directly
 
         Example (Git repo):
             Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
@@ -295,7 +295,7 @@ class RemoteAgentDiscoveryService:
         """
         try:
             # Try git repo structure first: /agents/ subdirectory
-            agents_dir = self.remote_agents_dir / "agents"
+            agents_dir = self.agents_cache_dir / "agents"
             if agents_dir.exists():
                 try:
                     relative_path = file_path.relative_to(agents_dir)
@@ -303,12 +303,12 @@ class RemoteAgentDiscoveryService:
                 except ValueError:
                     pass  # Not under agents_dir, try flattened structure
 
-            # Try flattened cache structure: calculate relative to remote_agents_dir
+            # Try flattened cache structure: calculate relative to agents_cache_dir
             try:
-                relative_path = file_path.relative_to(self.remote_agents_dir)
+                relative_path = file_path.relative_to(self.agents_cache_dir)
                 return str(relative_path.with_suffix("")).replace("\\", "/")
             except ValueError:
-                pass  # Not under remote_agents_dir either
+                pass  # Not under agents_cache_dir either
 
             # Fall back to filename
             self.logger.warning(
@@ -329,7 +329,7 @@ class RemoteAgentDiscoveryService:
 
         Supports both cache structures:
         1. Git repo: Calculate relative to /agents/ subdirectory
-        2. Flattened cache: Calculate relative to remote_agents_dir directly
+        2. Flattened cache: Calculate relative to agents_cache_dir directly
 
         Example (Git repo):
             Input:  /cache/bobmatnyc/claude-mpm-agents/agents/engineer/backend/python-engineer.md
@@ -349,7 +349,7 @@ class RemoteAgentDiscoveryService:
         """
         try:
             # Try git repo structure first: /agents/ subdirectory
-            agents_dir = self.remote_agents_dir / "agents"
+            agents_dir = self.agents_cache_dir / "agents"
             if agents_dir.exists():
                 try:
                     relative_path = file_path.relative_to(agents_dir)
@@ -358,13 +358,13 @@ class RemoteAgentDiscoveryService:
                 except ValueError:
                     pass  # Not under agents_dir, try flattened structure
 
-            # Try flattened cache structure: calculate relative to remote_agents_dir
+            # Try flattened cache structure: calculate relative to agents_cache_dir
             try:
-                relative_path = file_path.relative_to(self.remote_agents_dir)
+                relative_path = file_path.relative_to(self.agents_cache_dir)
                 parts = relative_path.parts[:-1]  # Exclude filename
                 return "/".join(parts) if parts else "universal"
             except ValueError:
-                pass  # Not under remote_agents_dir either
+                pass  # Not under agents_cache_dir either
 
             return "universal"
         except Exception:
@@ -396,9 +396,9 @@ class RemoteAgentDiscoveryService:
         """
         agents = []
 
-        if not self.remote_agents_dir.exists():
+        if not self.agents_cache_dir.exists():
             self.logger.debug(
-                f"Remote agents directory does not exist: {self.remote_agents_dir}"
+                f"Agents cache directory does not exist: {self.agents_cache_dir}"
             )
             return agents
 
@@ -408,8 +408,8 @@ class RemoteAgentDiscoveryService:
         # 3. Flattened cache: {path}/ - directly contains category directories (legacy)
 
         # Priority 1: Check for dist/agents/ (built output with BASE-AGENT composition)
-        dist_agents_dir = self.remote_agents_dir / "dist" / "agents"
-        agents_dir = self.remote_agents_dir / "agents"
+        dist_agents_dir = self.agents_cache_dir / "dist" / "agents"
+        agents_dir = self.agents_cache_dir / "agents"
 
         if dist_agents_dir.exists():
             # PREFERRED: Use built agents from dist/agents/
@@ -433,18 +433,18 @@ class RemoteAgentDiscoveryService:
                 "documentation",
             ]
             has_categories = any(
-                (self.remote_agents_dir / cat).exists() for cat in category_dirs
+                (self.agents_cache_dir / cat).exists() for cat in category_dirs
             )
 
             if has_categories:
                 self.logger.debug(
-                    f"Using flattened cache structure: {self.remote_agents_dir}"
+                    f"Using flattened cache structure: {self.agents_cache_dir}"
                 )
-                scan_dir = self.remote_agents_dir
+                scan_dir = self.agents_cache_dir
             else:
                 self.logger.warning(
                     f"No agent directories found. Checked: {dist_agents_dir}, {agents_dir}, "
-                    f"and category directories in {self.remote_agents_dir}. "
+                    f"and category directories in {self.agents_cache_dir}. "
                     f"Expected agents in /dist/agents/, /agents/, or category directories."
                 )
                 return agents
@@ -484,16 +484,16 @@ class RemoteAgentDiscoveryService:
 
         # In flattened cache mode, also exclude files from git repository subdirectories
         # (files under directories that contain .git folder)
-        if scan_dir == self.remote_agents_dir:
+        if scan_dir == self.agents_cache_dir:
             filtered_files = []
             for f in md_files:
                 # Check if this file is inside a git repository (has .git in path)
-                # Git repos are at {remote_agents_dir}/{owner}/{repo}/.git
-                path_parts = f.relative_to(self.remote_agents_dir).parts
+                # Git repos are at {agents_cache_dir}/{owner}/{repo}/.git
+                path_parts = f.relative_to(self.agents_cache_dir).parts
                 if len(path_parts) >= 2:
                     # Check if this looks like a git repo path (owner/repo)
                     potential_repo = (
-                        self.remote_agents_dir / path_parts[0] / path_parts[1]
+                        self.agents_cache_dir / path_parts[0] / path_parts[1]
                     )
                     if (potential_repo / ".git").exists():
                         # This file is in a git repo, skip it (we'll handle git repos separately)
@@ -520,7 +520,7 @@ class RemoteAgentDiscoveryService:
                 self.logger.warning(f"Failed to parse remote agent {md_file.name}: {e}")
 
         self.logger.info(
-            f"Discovered {len(agents)} remote agents from {self.remote_agents_dir.name}"
+            f"Discovered {len(agents)} remote agents from {self.agents_cache_dir.name}"
         )
         return agents
 
@@ -737,7 +737,7 @@ class RemoteAgentDiscoveryService:
             RemoteAgentMetadata if found, None otherwise
         """
         # Bug #4 fix: Search in /agents/ subdirectory, not root directory
-        agents_dir = self.remote_agents_dir / "agents"
+        agents_dir = self.agents_cache_dir / "agents"
         if not agents_dir.exists():
             return None
 

@@ -561,7 +561,7 @@ class AgentsCommand(AgentCommand):
         """Deploy agents using two-phase sync: cache → deploy.
 
         Phase 3 Integration (1M-486): Uses Git sync service for deployment.
-        - Phase 1: Sync agents to ~/.claude-mpm/cache/remote-agents/ (if needed)
+        - Phase 1: Sync agents to ~/.claude-mpm/cache/agents/ (if needed)
         - Phase 2: Deploy from cache to project .claude-mpm/agents/
 
         This replaces the old single-tier deployment with a multi-project

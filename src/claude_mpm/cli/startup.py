@@ -61,20 +61,11 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
 
 
 def check_legacy_cache() -> None:
-    """Check for legacy cache/remote-agents/ directory and inform user.
+    """Deprecated: Legacy cache checking is no longer needed.
 
-    WHY: cache/remote-agents/ is being renamed to cache/agents/ for consistency
-    with cache/skills/ directory naming. This provides a clearer, more intuitive
-    structure where "agents" refers to cached agents (not remote agents).
-
-    DESIGN DECISIONS:
-    - Non-blocking migration: Doesn't stop execution, agents will re-sync automatically
-    - Clear guidance: Provides simple mv command for manual migration
-    - Backward compatible: Old directory continues to work until migrated
+    This function is kept for backward compatibility but does nothing.
+    All agent cache operations now use the standardized cache/agents/ directory.
     """
-    # NOTE: Migration logic is now in startup_sync.py to provide better context
-    # during agent synchronization. This function is kept for backward compatibility
-    # but the actual warning is issued during sync_agents_on_startup().
     pass
 
 
