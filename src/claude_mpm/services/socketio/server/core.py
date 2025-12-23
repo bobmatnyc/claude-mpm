@@ -640,10 +640,14 @@ class SocketIOServerCore:
 
                 # Security check - ensure directory is accessible
                 if not abs_working_dir.exists():
-                    return web.json_response({"error": "Directory not found"}, status=404)
+                    return web.json_response(
+                        {"error": "Directory not found"}, status=404
+                    )
 
                 if not abs_working_dir.is_dir():
-                    return web.json_response({"error": "Path is not a directory"}, status=400)
+                    return web.json_response(
+                        {"error": "Path is not a directory"}, status=400
+                    )
 
                 # Collect files and directories
                 files = []
@@ -651,14 +655,26 @@ class SocketIOServerCore:
 
                 # Common patterns to exclude
                 exclude_patterns = {
-                    '.git', '.venv', 'venv', 'node_modules', '__pycache__',
-                    '.pytest_cache', '.mypy_cache', 'dist', 'build', '.next',
-                    'coverage', '.coverage', '.tox', '.eggs', '*.egg-info'
+                    ".git",
+                    ".venv",
+                    "venv",
+                    "node_modules",
+                    "__pycache__",
+                    ".pytest_cache",
+                    ".mypy_cache",
+                    "dist",
+                    "build",
+                    ".next",
+                    "coverage",
+                    ".coverage",
+                    ".tox",
+                    ".eggs",
+                    "*.egg-info",
                 }
 
                 for entry in abs_working_dir.iterdir():
                     # Skip hidden files and excluded patterns
-                    if entry.name.startswith('.'):
+                    if entry.name.startswith("."):
                         # Allow .py, .ts, .md, etc. files but skip directories like .git
                         if entry.is_dir():
                             continue
@@ -691,14 +707,16 @@ class SocketIOServerCore:
                 directories.sort(key=lambda x: x["name"].lower())
                 files.sort(key=lambda x: x["name"].lower())
 
-                return web.json_response({
-                    "success": True,
-                    "path": str(abs_working_dir),
-                    "directories": directories,
-                    "files": files,
-                    "total_files": len(files),
-                    "total_directories": len(directories),
-                })
+                return web.json_response(
+                    {
+                        "success": True,
+                        "path": str(abs_working_dir),
+                        "directories": directories,
+                        "files": files,
+                        "total_files": len(files),
+                        "total_directories": len(directories),
+                    }
+                )
 
             except Exception as e:
                 self.logger.error(f"Error listing files: {e}")

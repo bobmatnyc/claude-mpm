@@ -609,34 +609,65 @@ class UnifiedMonitorServer:
 
                     # Patterns to exclude
                     exclude_patterns = {
-                        ".git", "node_modules", "__pycache__", ".svelte-kit",
-                        "venv", ".venv", "dist", "build", ".next", ".cache",
-                        ".pytest_cache", ".mypy_cache", ".ruff_cache", "eggs",
-                        "*.egg-info", ".tox", ".nox", "htmlcov", ".coverage",
+                        ".git",
+                        "node_modules",
+                        "__pycache__",
+                        ".svelte-kit",
+                        "venv",
+                        ".venv",
+                        "dist",
+                        "build",
+                        ".next",
+                        ".cache",
+                        ".pytest_cache",
+                        ".mypy_cache",
+                        ".ruff_cache",
+                        "eggs",
+                        "*.egg-info",
+                        ".tox",
+                        ".nox",
+                        "htmlcov",
+                        ".coverage",
                     }
 
                     entries = []
                     try:
-                        for entry in sorted(dir_path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+                        for entry in sorted(
+                            dir_path.iterdir(),
+                            key=lambda x: (not x.is_dir(), x.name.lower()),
+                        ):
                             # Skip hidden files and excluded patterns
-                            if entry.name.startswith(".") and entry.name not in {".env", ".gitignore"}:
+                            if entry.name.startswith(".") and entry.name not in {
+                                ".env",
+                                ".gitignore",
+                            }:
                                 if entry.name in {".git", ".svelte-kit", ".cache"}:
                                     continue
                             if entry.name in exclude_patterns:
                                 continue
-                            if any(entry.name.endswith(p.replace("*", "")) for p in exclude_patterns if "*" in p):
+                            if any(
+                                entry.name.endswith(p.replace("*", ""))
+                                for p in exclude_patterns
+                                if "*" in p
+                            ):
                                 continue
 
                             try:
                                 stat = entry.stat()
-                                entries.append({
-                                    "name": entry.name,
-                                    "path": str(entry),
-                                    "type": "directory" if entry.is_dir() else "file",
-                                    "size": stat.st_size if entry.is_file() else 0,
-                                    "modified": stat.st_mtime,
-                                    "extension": entry.suffix.lstrip(".") if entry.is_file() else None,
-                                })
+                                entries.append(
+                                    {
+                                        "name": entry.name,
+                                        "path": str(entry),
+                                        "type": "directory"
+                                        if entry.is_dir()
+                                        else "file",
+                                        "size": stat.st_size if entry.is_file() else 0,
+                                        "modified": stat.st_mtime,
+                                        "extension": entry.suffix.lstrip(".")
+                                        if entry.is_file()
+                                        else None,
+                                    }
+                                )
                             except (PermissionError, OSError):
                                 continue
 
@@ -650,14 +681,16 @@ class UnifiedMonitorServer:
                     directories = [e for e in entries if e["type"] == "directory"]
                     files = [e for e in entries if e["type"] == "file"]
 
-                    return web.json_response({
-                        "success": True,
-                        "path": str(dir_path),
-                        "directories": directories,
-                        "files": files,
-                        "total_directories": len(directories),
-                        "total_files": len(files),
-                    })
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "path": str(dir_path),
+                            "directories": directories,
+                            "files": files,
+                            "total_directories": len(directories),
+                            "total_files": len(files),
+                        }
+                    )
 
                 except Exception as e:
                     self.logger.error(f"Error listing directory: {e}")
@@ -707,14 +740,16 @@ class UnifiedMonitorServer:
                     # Get file extension
                     file_ext = path.suffix.lstrip(".")
 
-                    return web.json_response({
-                        "success": True,
-                        "path": str(path),
-                        "content": content,
-                        "lines": lines,
-                        "size": file_size,
-                        "type": file_ext or "text",
-                    })
+                    return web.json_response(
+                        {
+                            "success": True,
+                            "path": str(path),
+                            "content": content,
+                            "lines": lines,
+                            "size": file_size,
+                            "type": file_ext or "text",
+                        }
+                    )
 
                 except Exception as e:
                     self.logger.error(f"Error reading file: {e}")
