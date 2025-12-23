@@ -162,6 +162,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
           typeof eventData.result === 'string' ? eventData.result :
           // Check for nested data.output (shouldn't be needed but defensive)
           typeof (eventData.data as any)?.output === 'string' ? (eventData.data as any).output :
+          // Check hook_output_data (alternative backend format)
+          typeof eventData.hook_output_data === 'string' ? eventData.hook_output_data :
+          // Check return_value (yet another backend format)
+          typeof eventData.return_value === 'string' ? eventData.return_value :
           undefined
         );
 
@@ -176,17 +180,34 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
             type: typeof eventData.output,
             isString: typeof eventData.output === 'string',
             lengthIfString: typeof eventData.output === 'string' ? (eventData.output as string).length : 0
+          },
+          // CRITICAL: Log ALL possible content fields
+          allPossibleContentFields: {
+            output: typeof eventData.output,
+            result: typeof eventData.result,
+            hook_output_data: typeof eventData.hook_output_data,
+            return_value: typeof eventData.return_value,
+            data_output: typeof (eventData.data as any)?.output
           }
         });
 
+        // ALWAYS store the operation, even without content (will fallback to pre/post events)
         operation = {
           type: 'Read',
           timestamp,
           correlation_id: event.correlation_id,
-          content,
+          content: content || undefined, // Explicitly set undefined if no content
           pre_event: event,
           post_event: event
         };
+
+        // Additional logging to verify operation was created
+        console.log(`[FILES] Created Read operation:`, {
+          hasContent: !!operation.content,
+          contentLength: operation.content?.length || 0,
+          hasPreEvent: !!operation.pre_event,
+          hasPostEvent: !!operation.post_event
+        });
       }
       // Check for Write operations
       else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Write') {

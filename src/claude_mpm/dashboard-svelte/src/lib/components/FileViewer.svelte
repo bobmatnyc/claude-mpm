@@ -49,6 +49,12 @@
       isLoading = true;
       loadError = null;
 
+      // CRITICAL DEBUG: Log the entire currentOperation object
+      console.log('[FileViewer] FULL currentOperation object:', JSON.stringify(currentOperation, null, 2));
+      console.log('[FileViewer] currentOperation keys:', Object.keys(currentOperation));
+      console.log('[FileViewer] showContent:', showContent);
+      console.log('[FileViewer] showDiff:', showDiff);
+
       try {
         if (showDiff && currentOperation.old_string && currentOperation.new_string) {
           // Generate diff HTML
@@ -66,8 +72,27 @@
             outputFormat: 'side-by-side'
           });
         } else if (showContent) {
-          // Syntax highlight content
-          const content = currentOperation.content || currentOperation.written_content || '';
+          // Try multiple content extraction strategies
+          let content = currentOperation.content || currentOperation.written_content || '';
+
+          // FALLBACK: Try extracting from post_event.data.output (backend format)
+          if (!content && currentOperation.post_event) {
+            const postEventData = currentOperation.post_event.data as Record<string, unknown> | undefined;
+            if (postEventData?.output && typeof postEventData.output === 'string') {
+              content = postEventData.output;
+              console.log('[FileViewer] Content extracted from post_event.data.output');
+            }
+          }
+
+          // FALLBACK 2: Try extracting from pre_event for Write operations
+          if (!content && currentOperation.type === 'Write' && currentOperation.pre_event) {
+            const preEventData = currentOperation.pre_event.data as Record<string, unknown> | undefined;
+            const toolParams = (preEventData?.tool_parameters as Record<string, unknown>) || null;
+            if (toolParams?.content && typeof toolParams.content === 'string') {
+              content = toolParams.content;
+              console.log('[FileViewer] Content extracted from pre_event.data.tool_parameters.content');
+            }
+          }
 
           // Enhanced debugging
           console.log('[FileViewer] Content extraction:', {
@@ -79,7 +104,8 @@
               hasContent: !!currentOperation.content,
               hasWrittenContent: !!currentOperation.written_content,
               hasPreEvent: !!currentOperation.pre_event,
-              hasPostEvent: !!currentOperation.post_event
+              hasPostEvent: !!currentOperation.post_event,
+              allKeys: Object.keys(currentOperation)
             }
           });
 
