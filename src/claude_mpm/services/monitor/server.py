@@ -671,6 +671,69 @@ class UnifiedMonitorServer:
                     return web.Response(text=content, content_type="text/html")
                 return web.Response(text="Page not found", status=404)
 
+            # Git history handler
+            async def git_history_handler(request: web.Request) -> web.Response:
+                """Get git history for a file."""
+                import subprocess
+
+                try:
+                    data = await request.json()
+                    file_path = data.get("path", "")
+                    limit = data.get("limit", 10)
+
+                    if not file_path:
+                        return web.json_response(
+                            {
+                                "success": False,
+                                "error": "No path provided",
+                                "commits": [],
+                            },
+                            status=400,
+                        )
+
+                    path = Path(file_path)
+                    if not path.exists():
+                        return web.json_response(
+                            {"success": False, "error": "File not found", "commits": []},
+                            status=404,
+                        )
+
+                    # Get git log for file
+                    result = subprocess.run(
+                        [
+                            "git",
+                            "log",
+                            f"-{limit}",
+                            "--pretty=format:%H|%an|%ar|%s",
+                            "--",
+                            str(path),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(path.parent),
+                    )
+
+                    commits = []
+                    if result.returncode == 0 and result.stdout:
+                        for line in result.stdout.strip().split("\n"):
+                            if line:
+                                parts = line.split("|", 3)
+                                if len(parts) == 4:
+                                    commits.append(
+                                        {
+                                            "hash": parts[0][:7],
+                                            "author": parts[1],
+                                            "date": parts[2],
+                                            "message": parts[3],
+                                        }
+                                    )
+
+                    return web.json_response({"success": True, "commits": commits})
+                except Exception as e:
+                    return web.json_response(
+                        {"success": False, "error": str(e), "commits": []}, status=500
+                    )
+
             # Register routes
             self.app.router.add_get("/", dashboard_index)
             self.app.router.add_get("/health", health_check)
@@ -680,6 +743,7 @@ class UnifiedMonitorServer:
             self.app.router.add_get("/api/directory", list_directory)
             self.app.router.add_post("/api/events", api_events_handler)
             self.app.router.add_post("/api/file", api_file_handler)
+            self.app.router.add_post("/api/git-history", git_history_handler)
 
             # Monitor page routes
             self.app.router.add_get("/monitor", lambda r: monitor_page_handler(r))

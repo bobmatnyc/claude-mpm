@@ -622,6 +622,72 @@ class SocketIOServerCore:
         self.app.router.add_get("/api/file/read", file_read_handler)
         self.logger.info("✅ File reading API registered at /api/file/read")
 
+        # Add git history endpoint
+        async def git_history_handler(request):
+            """Handle POST /api/git-history for getting file git history."""
+            import subprocess
+
+            try:
+                # Parse JSON body
+                data = await request.json()
+                file_path = data.get("path", "")
+                limit = data.get("limit", 10)
+
+                if not file_path:
+                    return web.json_response(
+                        {"success": False, "error": "No path provided", "commits": []},
+                        status=400,
+                    )
+
+                abs_path = Path(Path(file_path).resolve().expanduser())
+
+                if not Path(abs_path).exists():
+                    return web.json_response(
+                        {"success": False, "error": "File not found", "commits": []},
+                        status=404,
+                    )
+
+                # Get git log for file
+                result = subprocess.run(
+                    [
+                        "git",
+                        "log",
+                        f"-{limit}",
+                        "--pretty=format:%H|%an|%ar|%s",
+                        "--",
+                        abs_path,
+                    ],
+                    capture_output=True,
+                    text=True,
+                    cwd=Path(abs_path).parent,
+                )
+
+                commits = []
+                if result.returncode == 0 and result.stdout:
+                    for line in result.stdout.strip().split("\n"):
+                        if line:
+                            parts = line.split("|", 3)
+                            if len(parts) == 4:
+                                commits.append(
+                                    {
+                                        "hash": parts[0][:7],  # Short hash
+                                        "author": parts[1],
+                                        "date": parts[2],
+                                        "message": parts[3],
+                                    }
+                                )
+
+                return web.json_response({"success": True, "commits": commits})
+
+            except Exception as e:
+                self.logger.error(f"Error getting git history: {e}")
+                return web.json_response(
+                    {"success": False, "error": str(e), "commits": []}, status=500
+                )
+
+        self.app.router.add_post("/api/git-history", git_history_handler)
+        self.logger.info("✅ Git history API registered at /api/git-history")
+
     def _setup_directory_api(self):
         """Setup simple directory listing API.
 
