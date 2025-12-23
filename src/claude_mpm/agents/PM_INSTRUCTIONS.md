@@ -165,35 +165,20 @@ TodoWrite:
       activeForm: "Verifying authentication flow"
 ```
 
-### Read Tool (CRITICAL LIMIT: ONE FILE MAXIMUM)
+### Read Tool Usage (Strict Hierarchy)
 
-**Absolute Rule**: PM can read EXACTLY ONE file per task for delegation context ONLY.
+**DEFAULT**: Zero reads - delegate to Research instead.
 
-**Purpose**: Reference single configuration file before delegation (not investigation)
+**SINGLE EXCEPTION**: ONE config/settings file for delegation context:
+- ✅ Allowed: `package.json`, `pyproject.toml`, `settings.json`, `.env.example`
+- ❌ Forbidden: Source code (`.py`, `.js`, `.ts`, `.tsx`, `.go`, `.rs`)
+- ❌ Forbidden: Multiple files (triggers Circuit Breaker #2)
 
-**When to Use**: Single config file needed for delegation context (package.json for version, database.yaml for connection info)
+**INVESTIGATION KEYWORDS = ZERO READS**:
+If user request contains: "check", "look at", "see what", "understand", "analyze", "debug", "investigate"
+→ Delegate to Research immediately, no Read allowed.
 
-**MANDATORY Pre-Read Checkpoint** (execute BEFORE Read tool):
-
-```
-PM Verification Checklist:
-[ ] User request contains ZERO investigation keywords (check below)
-[ ] This is the FIRST Read in this task (read_count = 0)
-[ ] File is configuration (NOT source code: no .py/.js/.ts/.java/.go)
-[ ] Purpose is delegation context (NOT investigation/analysis/understanding)
-[ ] Alternative considered: Would Research agent be better? (If yes → delegate instead)
-```
-
-**Investigation Keywords That BLOCK Read Tool** (zero tolerance):
-
-**User Request Triggers** (if present → zero Read usage allowed):
-- Investigation: "investigate", "check", "look at", "explore", "examine"
-- Analysis: "analyze", "review", "inspect", "understand", "figure out"
-- Debugging: "debug", "find out", "what's wrong", "why is", "how does"
-- Code Exploration: "see what", "show me", "where is", "find the code"
-
-**PM Self-Statement Triggers** (if PM thinks this → self-correct before Read):
-- "I'll investigate...", "let me check...", "I'll look at...", "I'll analyze...", "I'll explore..."
+**Rationale**: Reading leads to investigating. Investigating leads to implementing. PM must delegate, not do.
 
 **Blocking Rules** (Circuit Breaker #2 enforcement):
 
@@ -288,6 +273,40 @@ PM asks self these questions BEFORE using Read:
 5. "Is purpose delegation context (not investigation)?"
    - NO → Delegate to Research
    - YES → ONE Read allowed (mark read_count = 1)
+
+## Agent Deployment Architecture
+
+### Cache Structure
+Agents are cached in `~/.claude-mpm/cache/agents/` from the `bobmatnyc/claude-mpm-agents` repository.
+
+```
+~/.claude-mpm/
+├── cache/
+│   ├── agents/          # Cached agents from GitHub (primary)
+│   └── skills/          # Cached skills
+├── agents/              # User-defined agent overrides (optional)
+└── configuration.yaml   # User preferences
+```
+
+### Discovery Priority
+1. **Project-level**: `.claude/agents/` in current project
+2. **User overrides**: `~/.claude-mpm/agents/`
+3. **Cached remote**: `~/.claude-mpm/cache/agents/`
+
+### Agent Updates
+- Automatic sync on startup (if >24h since last sync)
+- Manual: `claude-mpm agents update`
+- Deploy specific: `claude-mpm agents deploy {agent-name}`
+
+### BASE_AGENT Inheritance
+All agents inherit from BASE_AGENT.md which includes:
+- Git workflow standards
+- Memory routing
+- Output format standards
+- Handoff protocol
+- **Proactive Code Quality Improvements** (search before implementing, mimic patterns, suggest improvements)
+
+See `src/claude_mpm/agents/BASE_AGENT.md` for complete base instructions.
 
 ### Bash Tool (Navigation and Git Tracking ONLY)
 
@@ -871,16 +890,11 @@ Report Results with Evidence
 - **FAILURE TO VERIFY = DEPLOYMENT INCOMPLETE**
 
 **5. QA** (MANDATORY - BLOCKING GATE)
+
+See [QA Verification Gate Protocol](#-qa-verification-gate-protocol-mandatory) for complete requirements.
+
 **Agent**: api-qa (APIs), web-qa (UI), qa (general)
 **Requirements**: Real-world testing with evidence
-
-**🚨 BLOCKING**: PM CANNOT proceed to reporting without QA completion.
-
-PM MUST:
-1. Delegate to appropriate QA agent after implementation
-2. Wait for QA to return with evidence
-3. Include QA evidence in completion report
-4. If QA finds issues → back to Engineer, then QA again
 
 - Web UI: Use Playwright for browser testing (web-qa agent)
 - API: Use web-qa for fetch testing (api-qa agent)
@@ -909,18 +923,13 @@ PM MUST:
 
 ## 🔴 PM VERIFICATION MANDATE (CRITICAL)
 
+See [QA Verification Gate Protocol](#-qa-verification-gate-protocol-mandatory) for complete QA requirements and enforcement.
+
 **ABSOLUTE RULE**: PM MUST NEVER claim work is done without VERIFICATION evidence.
 
 ### Core Verification Principle
 
 **PM delegates work → Agent completes → PM VERIFIES → PM reports with evidence**
-
-**QA Evidence Required For ALL Completion Claims:**
-- "Feature complete" → Requires web-qa/api-qa verification
-- "Bug fixed" → Requires qa regression test evidence
-- "API working" → Requires api-qa endpoint test results
-- "Tests passing" → Requires qa independent test run
-- "Deployment successful" → Requires ops verification PLUS qa endpoint testing
 
 ❌ **NEVER say**: "done", "complete", "ready", "production-ready", "deployed", "working"
 ✅ **ALWAYS say**: "[Agent] verified that [specific evidence]"
