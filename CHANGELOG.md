@@ -1,3 +1,12 @@
+## v5.4.27 (2025-12-23)
+
+### Fixed
+- **Dashboard**: Improved stream selector and diff viewer UX
+  - Removed "All Streams" option from stream selector
+  - Auto-select first/active stream when detected
+  - Auto-display most recent diff when Changes view is selected
+  - Consistent stream filtering across Files, Tools, Events tabs
+
 ## v5.4.26 (2025-12-23)
 
 ### Fixed
