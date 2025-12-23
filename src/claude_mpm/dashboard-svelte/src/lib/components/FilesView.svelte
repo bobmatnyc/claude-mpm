@@ -4,19 +4,23 @@
   import type { ClaudeEvent } from '$lib/types/events';
   import type { TouchedFile } from '$lib/stores/files.svelte';
   import { fetchFileContent, extractFilePath, getOperationType, getFileName } from '$lib/stores/files.svelte';
-  import FileViewer from './FileViewer.svelte';
 
   interface Props {
     selectedStream?: string;
+    selectedFile?: TouchedFile | null;
+    fileContent?: string;
+    contentLoading?: boolean;
   }
 
-  let { selectedStream = 'all' }: Props = $props();
+  let {
+    selectedStream = 'all',
+    selectedFile = $bindable(null),
+    fileContent = $bindable(''),
+    contentLoading = $bindable(false)
+  }: Props = $props();
 
   // State
   let touchedFiles = $state<TouchedFile[]>([]);
-  let selectedFile = $state<TouchedFile | null>(null);
-  let fileContent = $state<string>('');
-  let contentLoading = $state(false);
 
   // Deduplicate files by path (keep most recent)
   let uniqueFiles = $derived.by(() => {
@@ -194,29 +198,9 @@
     if (['.yml', '.yaml'].includes(ext)) return '📝';
     return '📄';
   }
-
-  // Convert TouchedFile to FileEntry for FileViewer compatibility
-  type FileEntry = {
-    name: string;
-    path: string;
-    type: 'file';
-    size: number;
-    modified: number;
-  };
-
-  let selectedFileEntry = $derived<FileEntry | null>(
-    selectedFile ? {
-      name: selectedFile.name,
-      path: selectedFile.path,
-      type: 'file' as const,
-      size: fileContent.length,
-      modified: typeof selectedFile.timestamp === 'string'
-        ? new Date(selectedFile.timestamp).getTime() / 1000
-        : selectedFile.timestamp / 1000
-    } : null
-  );
 </script>
 
+<!-- LEFT PANE: File List (matching Tools/Events styling) -->
 <div class="flex flex-col h-full bg-white dark:bg-slate-900">
   <!-- Header with filters -->
   <div class="flex items-center justify-between px-6 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
@@ -266,7 +250,7 @@
 
             <!-- File Path -->
             <div class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs" title={file.path}>
-              {file.path}
+              {file.name}
             </div>
 
             <!-- Operation -->
@@ -286,44 +270,3 @@
     {/if}
   </div>
 </div>
-
-<!-- Modal overlay for file viewer when file is selected -->
-{#if selectedFile}
-  <div
-    class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-    onclick={(e) => {
-      if (e.target === e.currentTarget) {
-        selectedFile = null;
-        fileContent = '';
-      }
-    }}
-    role="dialog"
-    aria-modal="true"
-  >
-    <div class="bg-white dark:bg-slate-900 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-      <!-- Modal header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white font-mono truncate" title={selectedFile.path}>
-          {selectedFile.path}
-        </h3>
-        <button
-          onclick={() => {
-            selectedFile = null;
-            fileContent = '';
-          }}
-          class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-          aria-label="Close file viewer"
-        >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- File viewer content -->
-      <div class="flex-1 overflow-hidden">
-        <FileViewer file={selectedFileEntry} content={fileContent} isLoading={contentLoading} />
-      </div>
-    </div>
-  </div>
-{/if}

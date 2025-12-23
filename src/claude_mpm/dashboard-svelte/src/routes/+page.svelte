@@ -4,8 +4,9 @@
 	import ToolsView from '$lib/components/ToolsView.svelte';
 	import FilesView from '$lib/components/FilesView.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
+	import FileViewer from '$lib/components/FileViewer.svelte';
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
-	import type { FileEntry } from '$lib/stores/files.svelte';
+	import type { TouchedFile } from '$lib/stores/files.svelte';
 	import { socketStore } from '$lib/stores/socket.svelte';
 	import { createToolsStore } from '$lib/stores/tools.svelte';
 	import { derived } from 'svelte/store';
@@ -14,6 +15,9 @@
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
+	let selectedFile = $state<TouchedFile | null>(null);
+	let fileContent = $state<string>('');
+	let contentLoading = $state(false);
 	let viewMode = $state<ViewMode>('events');
 	let leftWidth = $state(40); // percentage - 40% event stream, 60% data explorer
 	let isDragging = $state(false);
@@ -62,8 +66,10 @@
 	$effect(() => {
 		if (viewMode === 'events') {
 			selectedTool = null;
+			selectedFile = null;
 		} else if (viewMode === 'tools') {
 			selectedEvent = null;
+			selectedFile = null;
 		} else if (viewMode === 'files') {
 			selectedEvent = null;
 			selectedTool = null;
@@ -77,6 +83,8 @@
 		// Clear all selections when stream changes
 		selectedEvent = null;
 		selectedTool = null;
+		selectedFile = null;
+		fileContent = '';
 	});
 
 	function startDrag(e: MouseEvent) {
@@ -151,30 +159,57 @@
 				{:else if viewMode === 'tools'}
 					<ToolsView {tools} bind:selectedTool selectedStream={$selectedStream} />
 				{:else if viewMode === 'files'}
-					<!-- FilesView now handles file browsing and content internally -->
-					<FilesView selectedStream={$selectedStream} />
+					<FilesView
+						selectedStream={$selectedStream}
+						bind:selectedFile
+						bind:fileContent
+						bind:contentLoading
+					/>
 				{/if}
 			</div>
 		</div>
 
-		<!-- Draggable Divider (hidden in files view since FilesView is full-width) -->
-		{#if viewMode !== 'files'}
-			<div
-				class="divider"
-				class:dragging={isDragging}
-				onmousedown={startDrag}
-				role="separator"
-				aria-label="Resize panels"
-				tabindex="0"
-			></div>
-		{/if}
+		<!-- Draggable Divider -->
+		<div
+			class="divider"
+			class:dragging={isDragging}
+			onmousedown={startDrag}
+			role="separator"
+			aria-label="Resize panels"
+			tabindex="0"
+		></div>
 
-		<!-- Right Panel: JSON Explorer (only shown for events/tools views) -->
-		{#if viewMode !== 'files'}
-			<div class="right-panel flex flex-col flex-1 min-w-0 min-h-0" style="width: {100 - leftWidth}%;">
+		<!-- Right Panel: JSON Explorer or File Viewer -->
+		<div class="right-panel flex flex-col flex-1 min-w-0 min-h-0" style="width: {100 - leftWidth}%;">
+			{#if viewMode === 'files'}
+				{#if selectedFile}
+					<FileViewer
+						file={{
+							name: selectedFile.name,
+							path: selectedFile.path,
+							type: 'file' as const,
+							size: fileContent.length,
+							modified: typeof selectedFile.timestamp === 'string'
+								? new Date(selectedFile.timestamp).getTime() / 1000
+								: selectedFile.timestamp / 1000
+						}}
+						content={fileContent}
+						isLoading={contentLoading}
+					/>
+				{:else}
+					<div class="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+						<div class="text-center">
+							<svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+							</svg>
+							<p class="text-lg">Select a file to view its content</p>
+						</div>
+					</div>
+				{/if}
+			{:else}
 				<JSONExplorer event={selectedEvent} tool={selectedTool} />
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 </div>
 
