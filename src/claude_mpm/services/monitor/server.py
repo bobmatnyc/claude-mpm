@@ -29,7 +29,6 @@ from watchdog.observers import Observer
 
 from ...core.enums import ServiceState
 from ...core.logging_config import get_logger
-from ...dashboard.api.simple_directory import list_directory
 from .event_emitter import get_event_emitter
 from .handlers.code_analysis import CodeAnalysisHandler
 from .handlers.dashboard import DashboardHandler

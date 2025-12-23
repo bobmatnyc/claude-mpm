@@ -632,7 +632,6 @@ class SocketIOServerCore:
         # Add files listing endpoint for file browser
         async def files_list_handler(request):
             """Handle GET /api/files for listing files in working directory."""
-            import os
 
             try:
                 # Get working directory from query params or use current directory
