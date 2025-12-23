@@ -277,9 +277,16 @@ class SocketIOServerCore:
                 # Extract event data from payload (handles both direct and wrapped formats)
                 # ConnectionManagerService sends: {"namespace": "...", "event": "...", "data": {...}}
                 # Direct hook events may send data directly
-                if "data" in payload and isinstance(payload.get("data"), dict):
+                # CRITICAL: Check if payload has the expected event structure (type, subtype, timestamp)
+                # If it does, use it directly. Only extract 'data' field if it's a wrapper object.
+                if "type" in payload and "subtype" in payload:
+                    # Payload is already in normalized format, use it directly
+                    event_data = payload
+                elif "data" in payload and isinstance(payload.get("data"), dict):
+                    # Payload is a wrapper with 'data' field (from ConnectionManagerService)
                     event_data = payload["data"]
                 else:
+                    # Fallback: use entire payload
                     event_data = payload
 
                 # Log receipt with more detail
