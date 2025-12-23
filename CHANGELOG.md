@@ -1,3 +1,14 @@
+## v5.4.30 (2025-12-23)
+
+### Fixed
+- **Dashboard**: FileViewer now displays images (PNG, JPG, GIF, SVG, WebP, etc.)
+  - Backend returns base64 encoded images with MIME type
+  - Image display with max-width constraints
+- **Dashboard**: Added project isolation with filter dropdown
+  - "Current Only" vs "All Projects" filter in header
+  - Default to current project to prevent cross-project event mixing
+  - Working directory-based filtering
+
 ## v5.4.29 (2025-12-23)
 
 ### Fixed
