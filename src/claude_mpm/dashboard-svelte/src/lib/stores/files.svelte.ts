@@ -114,11 +114,13 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         ? eventData.tool_parameters as Record<string, unknown>
         : null;
 
-      // Extract file path - prioritize hook event format (backend provides hook_input_data.params.file_path)
+      // Extract file path - prioritize tool_parameters (backend sends tool_parameters.file_path)
       const filePath = (
-        hookParams?.file_path ||      // Hook event format (PRIORITY 1)
+        (eventData.tool_parameters as any)?.file_path ||  // Backend format (PRIORITY 1)
+        (eventData.tool_parameters as any)?.path ||
+        hookParams?.file_path ||
         hookParams?.path ||
-        toolParams?.file_path ||      // Alternative format
+        toolParams?.file_path ||
         toolParams?.path ||
         eventData.file_path ||
         eventData.path
@@ -129,8 +131,11 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         return;
       }
 
-      // Get tool name (check both hook_input_data and direct field)
-      const toolName = (hookInputData?.tool_name || eventData.tool_name) as string | undefined;
+      // Get tool name - prioritize direct field (backend sends tool_name directly)
+      const toolName = (
+        eventData.tool_name ||  // Backend format (PRIORITY 1)
+        (hookInputData as any)?.tool_name
+      ) as string | undefined;
 
       // DEBUG: Log detailed extraction info
       console.log(`[FILES] Event ${index}: Found file path:`, {
@@ -146,17 +151,12 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
       // Check for Read operations (use event.subtype, not event.type)
       if (event.subtype === 'post_tool' && toolName === 'Read') {
-        // Extract content from output field - check multiple possible locations
+        // Extract content from output field - prioritize tool_parameters, then check other locations
         const content = (
-          typeof eventData.output === 'string'
-            ? eventData.output
-            : typeof hookInputData?.output === 'string'
-              ? (hookInputData.output as string)
-              : typeof (eventData as any).result?.output === 'string'
-                ? (eventData as any).result.output
-                : typeof (eventData as any).tool_result === 'string'
-                  ? (eventData as any).tool_result
-                  : undefined
+          typeof eventData.output === 'string' ? eventData.output :
+          typeof (eventData.tool_parameters as any)?.content === 'string' ? (eventData.tool_parameters as any).content :
+          typeof (hookInputData as any)?.output === 'string' ? (hookInputData as any).output :
+          undefined
         );
 
         // Debug logging to help diagnose content extraction
@@ -180,8 +180,12 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Write operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Write') {
-        // Extract content - prioritize hook params, fallback to tool_parameters
-        const content = (hookParams?.content || toolParams?.content) as string | undefined;
+        // Extract content - prioritize tool_parameters (backend format)
+        const content = (
+          (eventData.tool_parameters as any)?.content ||
+          hookParams?.content ||
+          toolParams?.content
+        ) as string | undefined;
 
         operation = {
           type: 'Write',
@@ -194,9 +198,18 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Edit operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Edit') {
-        // Extract from hook params first, fallback to tool_parameters
-        const oldString = (hookParams?.old_string || toolParams?.old_string) as string | undefined;
-        const newString = (hookParams?.new_string || toolParams?.new_string) as string | undefined;
+        // Extract from tool_parameters first (backend format)
+        const oldString = (
+          (eventData.tool_parameters as any)?.old_string ||
+          hookParams?.old_string ||
+          toolParams?.old_string
+        ) as string | undefined;
+
+        const newString = (
+          (eventData.tool_parameters as any)?.new_string ||
+          hookParams?.new_string ||
+          toolParams?.new_string
+        ) as string | undefined;
 
         operation = {
           type: 'Edit',
@@ -210,8 +223,12 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Grep operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Grep') {
-        // Extract pattern - prioritize hook params
-        const pattern = (hookParams?.pattern || toolParams?.pattern) as string | undefined;
+        // Extract pattern - prioritize tool_parameters (backend format)
+        const pattern = (
+          (eventData.tool_parameters as any)?.pattern ||
+          hookParams?.pattern ||
+          toolParams?.pattern
+        ) as string | undefined;
 
         operation = {
           type: 'Grep',
@@ -224,8 +241,12 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       }
       // Check for Glob operations (use event.subtype, not event.type)
       else if (event.subtype === 'pre_tool' && toolName === 'Glob') {
-        // Extract pattern - prioritize hook params
-        const pattern = (hookParams?.pattern || toolParams?.pattern) as string | undefined;
+        // Extract pattern - prioritize tool_parameters (backend format)
+        const pattern = (
+          (eventData.tool_parameters as any)?.pattern ||
+          hookParams?.pattern ||
+          toolParams?.pattern
+        ) as string | undefined;
 
         operation = {
           type: 'Glob',
