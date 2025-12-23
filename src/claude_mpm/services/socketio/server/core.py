@@ -409,9 +409,19 @@ class SocketIOServerCore:
                             self.event_buffer.append(event_data)
                             self.stats["events_buffered"] = len(self.event_buffer)
 
-                        # Add to main server's event history
-                        if hasattr(self.main_server, "event_history"):
+                        # Add to main server's event history UNCONDITIONALLY
+                        # WHY: event_history is always initialized in SocketIOServer.__init__
+                        # This ensures events persist for new clients who connect later
+                        if self.main_server and hasattr(self.main_server, 'event_history'):
                             self.main_server.event_history.append(event_data)
+                            self.logger.debug(f"Added to history (total: {len(self.main_server.event_history)})")
+                        else:
+                            # CRITICAL: Log warning if event_history is not available
+                            # This indicates a configuration or initialization problem
+                            self.logger.warning(
+                                "event_history not initialized on main_server! "
+                                "Events will not persist for new clients."
+                            )
 
                         # Use the broadcaster's sio to emit (it's the same as self.sio)
                         # This ensures the event goes through the proper channels
@@ -444,6 +454,17 @@ class SocketIOServerCore:
                         with self.buffer_lock:
                             self.event_buffer.append(event_data)
                             self.stats["events_buffered"] = len(self.event_buffer)
+
+                        # Add to main server's event history (fallback path)
+                        # WHY: Ensure events persist even when broadcaster is unavailable
+                        if self.main_server and hasattr(self.main_server, 'event_history'):
+                            self.main_server.event_history.append(event_data)
+                            self.logger.debug(f"Added to history via fallback (total: {len(self.main_server.event_history)})")
+                        else:
+                            self.logger.warning(
+                                "event_history not initialized on main_server (fallback path)! "
+                                "Events will not persist for new clients."
+                            )
 
                 # Return 204 No Content for success
                 self.logger.debug(f"✅ HTTP event processed successfully: {event_type}")
@@ -918,9 +939,13 @@ class SocketIOServerCore:
                     },
                 }
 
-                # Add to event history if main server is available
+                # Add to event history UNCONDITIONALLY
+                # WHY: Heartbeat events should persist for new clients too
                 if self.main_server and hasattr(self.main_server, "event_history"):
                     self.main_server.event_history.append(heartbeat_data)
+                    self.logger.debug(f"Heartbeat added to history (total: {len(self.main_server.event_history)})")
+                else:
+                    self.logger.warning("event_history not initialized for heartbeat!")
 
                 # Emit heartbeat to all connected clients (already using new schema)
                 await self.sio.emit("system_event", heartbeat_data)
