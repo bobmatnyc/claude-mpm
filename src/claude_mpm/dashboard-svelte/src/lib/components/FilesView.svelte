@@ -217,83 +217,113 @@
   );
 </script>
 
-<div class="flex h-full bg-white dark:bg-slate-900">
-  <!-- Left: Files List (40%) -->
-  <div class="flex flex-col w-2/5 border-r border-slate-200 dark:border-slate-700">
-    <!-- Header -->
-    <div
-      class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors"
-    >
-      <div class="flex items-center gap-2">
-        <h2 class="text-base font-semibold text-slate-900 dark:text-white">Files Touched by Claude</h2>
-      </div>
-      <div class="text-xs text-slate-600 dark:text-slate-400">
-        {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
-      </div>
+<div class="flex flex-col h-full bg-white dark:bg-slate-900">
+  <!-- Header with filters -->
+  <div class="flex items-center justify-between px-6 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
+    <div class="flex items-center gap-3">
+      <!-- Future: Add operation filter dropdown here if needed -->
     </div>
-
-    <!-- File list -->
-    <div class="flex-1 overflow-y-auto">
-      {#if filteredFiles.length === 0}
-        <div class="flex items-center justify-center h-full text-slate-600 dark:text-slate-400">
-          <div class="text-center px-4">
-            <div class="text-3xl mb-2">📂</div>
-            <p class="text-sm font-medium">No files touched yet</p>
-            <p class="text-xs mt-1 text-slate-500 dark:text-slate-500">
-              Files that Claude reads, writes, or edits will appear here
-            </p>
-          </div>
-        </div>
-      {:else}
-        <!-- File rows -->
-        <div class="focus:outline-none">
-          {#each filteredFiles as file, i (file.eventId)}
-            <button
-              onclick={() => selectFile(file)}
-              class="w-full text-left px-3 py-2.5 transition-colors border-l-2 flex items-start gap-2.5 text-xs hover:bg-slate-100 dark:hover:bg-slate-700/30
-                {selectedFile?.path === file.path
-                  ? 'bg-cyan-50 dark:bg-cyan-500/20 border-l-cyan-500 dark:border-l-cyan-400'
-                  : `border-l-transparent ${i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/40' : 'bg-white dark:bg-slate-800/20'}`}"
-            >
-              <!-- Icon -->
-              <div class="text-lg flex-shrink-0 mt-0.5">{getFileIcon(file.path)}</div>
-
-              <!-- File info -->
-              <div class="flex-1 min-w-0">
-                <!-- File name -->
-                <div class="font-mono text-slate-700 dark:text-slate-300 truncate text-xs" title={file.path}>
-                  {file.name}
-                </div>
-
-                <!-- Path (if different from name) -->
-                {#if file.path !== file.name}
-                  <div class="text-slate-500 dark:text-slate-600 text-[10px] mt-0.5 truncate" title={file.path}>
-                    {file.path}
-                  </div>
-                {/if}
-
-                <!-- Metadata row -->
-                <div class="flex items-center gap-2 mt-1.5">
-                  <!-- Operation badge -->
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase {getOperationColor(file.operation)}">
-                    {file.operation}
-                  </span>
-
-                  <!-- Timestamp -->
-                  <span class="text-slate-500 dark:text-slate-600 text-[10px]">
-                    {formatTimestamp(file.timestamp)}
-                  </span>
-                </div>
-              </div>
-            </button>
-          {/each}
-        </div>
-      {/if}
-    </div>
+    <span class="text-sm text-slate-700 dark:text-slate-300">{filteredFiles.length} files</span>
   </div>
 
-  <!-- Right: File Viewer (60%) -->
-  <div class="flex-1 min-w-0">
-    <FileViewer file={selectedFileEntry} content={fileContent} isLoading={contentLoading} />
+  <div class="flex-1 overflow-y-auto">
+    {#if filteredFiles.length === 0}
+      <div class="text-center py-12 text-slate-600 dark:text-slate-400">
+        <svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="text-lg mb-2 font-medium">No files touched yet</p>
+        <p class="text-sm text-slate-500 dark:text-slate-500">Files that Claude reads, writes, or edits will appear here</p>
+      </div>
+    {:else}
+      <!-- Table header -->
+      <div class="grid grid-cols-[50px_1fr_100px_120px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
+        <div></div>
+        <div>File Path</div>
+        <div>Operation</div>
+        <div class="text-right">Timestamp</div>
+      </div>
+
+      <!-- File rows - scrollable container -->
+      <div
+        tabindex="0"
+        role="list"
+        aria-label="File list"
+        class="focus:outline-none overflow-y-auto max-h-[calc(100vh-280px)]"
+      >
+        {#each filteredFiles as file, i (file.eventId)}
+          <button
+            onclick={() => selectFile(file)}
+            class="w-full text-left px-4 py-2.5 transition-colors border-l-4 grid grid-cols-[50px_1fr_100px_120px] gap-3 items-center text-xs
+              {selectedFile?.path === file.path
+                ? 'bg-cyan-50 dark:bg-cyan-500/20 border-l-cyan-500 dark:border-l-cyan-400 ring-1 ring-cyan-300 dark:ring-cyan-500/30'
+                : `border-l-transparent ${i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/40' : 'bg-white dark:bg-slate-800/20'} hover:bg-slate-100 dark:hover:bg-slate-700/30`}"
+          >
+            <!-- Icon -->
+            <div class="text-xl">
+              {getFileIcon(file.path)}
+            </div>
+
+            <!-- File Path -->
+            <div class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs" title={file.path}>
+              {file.path}
+            </div>
+
+            <!-- Operation -->
+            <div class="text-center">
+              <span class="px-2 py-0.5 rounded text-[10px] font-medium uppercase {getOperationColor(file.operation)}">
+                {file.operation}
+              </span>
+            </div>
+
+            <!-- Timestamp -->
+            <div class="text-slate-700 dark:text-slate-300 font-mono text-[11px] text-right">
+              {formatTimestamp(file.timestamp)}
+            </div>
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
+
+<!-- Modal overlay for file viewer when file is selected -->
+{#if selectedFile}
+  <div
+    class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) {
+        selectedFile = null;
+        fileContent = '';
+      }
+    }}
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white dark:bg-slate-900 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+      <!-- Modal header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white font-mono truncate" title={selectedFile.path}>
+          {selectedFile.path}
+        </h3>
+        <button
+          onclick={() => {
+            selectedFile = null;
+            fileContent = '';
+          }}
+          class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+          aria-label="Close file viewer"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- File viewer content -->
+      <div class="flex-1 overflow-hidden">
+        <FileViewer file={selectedFileEntry} content={fileContent} isLoading={contentLoading} />
+      </div>
+    </div>
+  </div>
+{/if}
