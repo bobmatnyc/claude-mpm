@@ -731,27 +731,38 @@ class UnifiedMonitorServer:
                     file_ext = path.suffix.lstrip(".").lower()
 
                     # Define image extensions
-                    image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'}
+                    image_extensions = {
+                        "png",
+                        "jpg",
+                        "jpeg",
+                        "gif",
+                        "svg",
+                        "webp",
+                        "ico",
+                        "bmp",
+                    }
 
                     # Check if file is an image
                     if file_ext in image_extensions:
                         # Read as binary and encode to base64
                         try:
                             binary_content = path.read_bytes()
-                            base64_content = base64.b64encode(binary_content).decode('utf-8')
+                            base64_content = base64.b64encode(binary_content).decode(
+                                "utf-8"
+                            )
 
                             # Map extension to MIME type
                             mime_types = {
-                                'png': 'image/png',
-                                'jpg': 'image/jpeg',
-                                'jpeg': 'image/jpeg',
-                                'gif': 'image/gif',
-                                'svg': 'image/svg+xml',
-                                'webp': 'image/webp',
-                                'ico': 'image/x-icon',
-                                'bmp': 'image/bmp'
+                                "png": "image/png",
+                                "jpg": "image/jpeg",
+                                "jpeg": "image/jpeg",
+                                "gif": "image/gif",
+                                "svg": "image/svg+xml",
+                                "webp": "image/webp",
+                                "ico": "image/x-icon",
+                                "bmp": "image/bmp",
                             }
-                            mime_type = mime_types.get(file_ext, 'image/png')
+                            mime_type = mime_types.get(file_ext, "image/png")
 
                             return web.json_response(
                                 {
@@ -767,7 +778,10 @@ class UnifiedMonitorServer:
                         except Exception as e:
                             self.logger.error(f"Error reading image file: {e}")
                             return web.json_response(
-                                {"success": False, "error": f"Failed to read image: {e!s}"},
+                                {
+                                    "success": False,
+                                    "error": f"Failed to read image: {e!s}",
+                                },
                                 status=500,
                             )
 
