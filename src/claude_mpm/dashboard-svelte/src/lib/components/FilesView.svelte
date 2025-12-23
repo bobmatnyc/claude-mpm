@@ -3,7 +3,7 @@
   import { socketStore } from '$lib/stores/socket.svelte';
   import type { ClaudeEvent } from '$lib/types/events';
   import type { TouchedFile } from '$lib/stores/files.svelte';
-  import { fetchFileContent, extractFilePath, getOperationType, getFileName } from '$lib/stores/files.svelte';
+  import { fetchFileContent, extractFilePath, getOperationType, getFileName, extractContent } from '$lib/stores/files.svelte';
 
   interface Props {
     selectedStream?: string;
@@ -21,6 +21,10 @@
 
   // State
   let touchedFiles = $state<TouchedFile[]>([]);
+
+  // Cache to track file content at the time of read operations
+  // This allows us to show diffs when files are edited/written later
+  const fileContentCache = new Map<string, string>();
 
   // Deduplicate files by path (keep most recent)
   let uniqueFiles = $derived.by(() => {
@@ -117,6 +121,15 @@
       return;
     }
 
+    // Extract content for write/edit operations
+    const { oldContent, newContent } = extractContent(data);
+
+    // For write/edit operations, use cached content as oldContent if not provided
+    let finalOldContent = oldContent;
+    if ((operation === 'write' || operation === 'edit') && !oldContent) {
+      finalOldContent = fileContentCache.get(filePath);
+    }
+
     // Add to touched files
     const fileName = getFileName(filePath);
     const touchedFile: TouchedFile = {
@@ -125,11 +138,18 @@
       operation,
       timestamp: event.timestamp,
       toolName,
-      eventId: event.id
+      eventId: event.id,
+      oldContent: finalOldContent,
+      newContent
     };
 
     console.log('[FilesView] File touched:', touchedFile);
     touchedFiles = [...touchedFiles, touchedFile];
+
+    // Update cache with new content for write/edit operations
+    if ((operation === 'write' || operation === 'edit') && newContent) {
+      fileContentCache.set(filePath, newContent);
+    }
   }
 
   // Load file content when a file is selected
@@ -145,10 +165,14 @@
     contentLoading = true;
 
     try {
+      // Load current file content
       fileContent = await fetchFileContent(file.path);
+
       console.log('[FilesView] Loaded file content:', {
         path: file.path,
         size: fileContent.length,
+        hasOldContent: !!file.oldContent,
+        hasNewContent: !!file.newContent,
       });
     } catch (error) {
       console.error('[FilesView] Error loading file content:', error);
