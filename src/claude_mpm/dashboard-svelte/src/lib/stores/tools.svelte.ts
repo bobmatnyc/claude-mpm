@@ -2,12 +2,13 @@ import { writable, derived } from 'svelte/store';
 import type { ClaudeEvent, Tool } from '$lib/types/events';
 import { correlateToolEvents, getToolName, getCorrelationId } from '$lib/utils/event-correlation';
 
-function createToolsStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>>) {
+function createToolsStore(eventsStore: any) {
 	const tools = derived(eventsStore, ($events) => {
+		const events = $events as ClaudeEvent[];
 		const toolMap = new Map<string, Tool>();
 
 		// Filter to tool events only
-		const toolEvents = $events.filter(event => {
+		const toolEvents = events.filter((event: ClaudeEvent) => {
 			// Add type guards to prevent runtime errors when event.data is array/string
 			const data = event.data;
 			const dataSubtype =
@@ -20,7 +21,7 @@ function createToolsStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
 		// Correlate pre/post events using utility
 		const correlations = correlateToolEvents(
-			toolEvents.map(e => ({
+			toolEvents.map((e: ClaudeEvent) => ({
 				event: e.subtype === 'pre_tool' ? 'pre-tool' : 'post-tool',
 				timestamp: e.timestamp,
 				session_id: e.session_id,
@@ -30,12 +31,12 @@ function createToolsStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
 		// Build tool map from correlations
 		correlations.forEach((pair, correlationId) => {
-			const preEvent = toolEvents.find(e =>
+			const preEvent = toolEvents.find((e: ClaudeEvent) =>
 				e.subtype === 'pre_tool' &&
 				(getCorrelationId({ event: 'pre-tool', timestamp: e.timestamp, session_id: e.session_id, data: e.data }) === correlationId)
 			);
 
-			const postEvent = toolEvents.find(e =>
+			const postEvent = toolEvents.find((e: ClaudeEvent) =>
 				e.subtype === 'post_tool' &&
 				(getCorrelationId({ event: 'post-tool', timestamp: e.timestamp, session_id: e.session_id, data: e.data }) === correlationId)
 			);

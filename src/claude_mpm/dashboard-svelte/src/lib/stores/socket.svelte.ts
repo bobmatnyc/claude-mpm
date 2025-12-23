@@ -73,6 +73,7 @@ function createSocketStore() {
 	const events = writable<ClaudeEvent[]>([]);
 	const streams = writable<Set<string>>(new Set());
 	const streamMetadata = writable<Map<string, { projectPath: string; projectName: string }>>(new Map());
+	const streamActivity = writable<Map<string, number>>(new Map()); // Track last activity timestamp per stream
 	const error = writable<string | null>(null);
 	const selectedStream = writable<string>('');
 
@@ -255,6 +256,13 @@ function createSocketStore() {
 		});
 
 		if (streamId) {
+			// Update activity timestamp for this stream
+			streamActivity.update(a => {
+				const newActivity = new Map(a);
+				newActivity.set(streamId, Date.now());
+				return newActivity;
+			});
+
 			streams.update(s => {
 				const prevSize = s.size;
 				console.log('Socket store: Adding stream:', streamId, 'Previous streams:', Array.from(s));
@@ -330,6 +338,7 @@ function createSocketStore() {
 		events,
 		streams,
 		streamMetadata,
+		streamActivity,
 		error,
 		selectedStream,
 		connect,

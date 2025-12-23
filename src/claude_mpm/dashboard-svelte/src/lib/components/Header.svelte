@@ -4,25 +4,70 @@
 	import { derived } from 'svelte/store';
 
 	// Use store subscriptions with $ prefix (auto-subscription)
-	const { isConnected, error, streams, streamMetadata, selectedStream } = socketStore;
+	const { isConnected, error, streams, streamMetadata, streamActivity, selectedStream } = socketStore;
 
 	// Reactive reference to theme for proper reactivity
 	let currentTheme = $derived(themeStore.current);
 
-	// Convert Set to Array for dropdown options and include metadata
+	// Configuration: how many seconds to consider a stream "active"
+	const ACTIVITY_THRESHOLD_MS = 30 * 1000; // 30 seconds
+
+	// Track current time for reactivity (update every second)
+	let currentTime = $state(Date.now());
+	let intervalId: number | null = null;
+
+	// Start interval on mount, cleanup on destroy
+	$effect(() => {
+		if (typeof window !== 'undefined') {
+			intervalId = window.setInterval(() => {
+				currentTime = Date.now();
+			}, 1000);
+
+			return () => {
+				if (intervalId !== null) {
+					window.clearInterval(intervalId);
+				}
+			};
+		}
+	});
+
+	// Helper to format time since last activity
+	function formatTimeSince(timestamp: number): string {
+		const seconds = Math.floor((currentTime - timestamp) / 1000);
+		if (seconds < 60) return `${seconds}s ago`;
+		const minutes = Math.floor(seconds / 60);
+		if (minutes < 60) return `${minutes}m ago`;
+		const hours = Math.floor(minutes / 60);
+		return `${hours}h ago`;
+	}
+
+	// Convert Set to Array for dropdown options and include metadata + activity
 	const streamOptions = derived(
-		[streams, streamMetadata],
-		([$streams, $metadata]) => {
+		[streams, streamMetadata, streamActivity],
+		([$streams, $metadata, $activity]) => {
 			return Array.from($streams).map(streamId => {
 				const meta = $metadata.get(streamId);
 				const projectName = meta?.projectName || 'Unknown Project';
-				// Format: "ProjectName (session-id)"
+				const lastActivity = $activity.get(streamId) || 0;
+				const isActive = currentTime - lastActivity < ACTIVITY_THRESHOLD_MS;
+				const timeSince = lastActivity > 0 ? formatTimeSince(lastActivity) : '';
+
+				// Format: "🟢 ProjectName (session-id)" for active, "ProjectName (session-id)" for inactive
 				const displayName = `${projectName} (${streamId})`;
+
 				return {
 					id: streamId,
 					displayName: displayName,
-					projectPath: meta?.projectPath || null
+					projectPath: meta?.projectPath || null,
+					isActive,
+					timeSince,
+					lastActivity
 				};
+			}).sort((a, b) => {
+				// Sort by activity: active streams first, then by most recent activity
+				if (a.isActive && !b.isActive) return -1;
+				if (!a.isActive && b.isActive) return 1;
+				return b.lastActivity - a.lastActivity;
 			});
 		}
 	);
@@ -49,9 +94,13 @@
 					{#if $streamOptions.length === 0}
 						<option value="" disabled>Waiting for streams...</option>
 					{:else}
-							{#each $streamOptions as stream}
-							<option value={stream.id} title={stream.projectPath || stream.id}>
-								{stream.displayName}
+						{#each $streamOptions as stream}
+							<option
+								value={stream.id}
+								title={stream.projectPath || stream.id}
+								class:active-stream={stream.isActive}
+							>
+								{stream.isActive ? '🟢' : '⚪'} {stream.displayName} {stream.timeSince ? `(${stream.timeSince})` : ''}
 							</option>
 						{/each}
 					{/if}
@@ -96,3 +145,26 @@
 		</div>
 	</div>
 </header>
+
+<style>
+	/* Active stream highlighting */
+	option.active-stream {
+		font-weight: 600;
+		background-color: rgba(34, 197, 94, 0.1); /* light green tint */
+	}
+
+	/* Pulsing animation for active indicator */
+	@keyframes pulse-green {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
+	}
+
+	/* Apply pulse to green dots in dropdown (though emojis can't be directly styled) */
+	select option:first-child {
+		animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+</style>

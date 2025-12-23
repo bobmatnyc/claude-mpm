@@ -11,6 +11,7 @@ export interface ClaudeEvent {
 	source?: string;
 	metadata?: unknown;
 	cwd?: string; // Working directory (from Claude Code hooks)
+	working_directory?: string; // Alternative field for working directory
 	correlation_id?: string; // For correlating related events (e.g., pre_tool/post_tool pairs)
 }
 

@@ -3,19 +3,25 @@
 	import EventStream from '$lib/components/EventStream.svelte';
 	import ToolsView from '$lib/components/ToolsView.svelte';
 	import FilesView from '$lib/components/FilesView.svelte';
+	import AgentsView from '$lib/components/AgentsView.svelte';
+	import AgentDetail from '$lib/components/AgentDetail.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
 	import FileViewer from '$lib/components/FileViewer.svelte';
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
 	import type { TouchedFile } from '$lib/stores/files.svelte';
+	import type { AgentNode } from '$lib/stores/agents.svelte';
+	import type { ToolCall } from '$lib/stores/agents.svelte';
 	import { socketStore } from '$lib/stores/socket.svelte';
 	import { createToolsStore } from '$lib/stores/tools.svelte';
+	import { createAgentsStore } from '$lib/stores/agents.svelte';
 	import { derived } from 'svelte/store';
 
-	type ViewMode = 'events' | 'tools' | 'files';
+	type ViewMode = 'events' | 'tools' | 'files' | 'agents';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
 	let selectedFile = $state<TouchedFile | null>(null);
+	let selectedAgent = $state<AgentNode | null>(null);
 	let fileContent = $state<string>('');
 	let contentLoading = $state(false);
 	let viewMode = $state<ViewMode>('events');
@@ -52,6 +58,9 @@
 	// Create tools store from filtered events
 	const toolsStore = createToolsStore(filteredEventsStore);
 
+	// Create agents store from filtered events
+	const agentsStore = createAgentsStore(filteredEventsStore);
+
 	// Subscribe to tools store
 	let tools = $state<Tool[]>([]);
 
@@ -62,17 +71,34 @@
 		return unsubscribe;
 	});
 
+	// Subscribe to agents store
+	let rootAgent = $state<AgentNode | null>(null);
+
+	$effect(() => {
+		const unsubscribe = agentsStore.subscribe((value: unknown) => {
+			rootAgent = value as AgentNode;
+		});
+		return unsubscribe;
+	});
+
 	// Clear selections when switching views
 	$effect(() => {
 		if (viewMode === 'events') {
 			selectedTool = null;
 			selectedFile = null;
+			selectedAgent = null;
 		} else if (viewMode === 'tools') {
 			selectedEvent = null;
 			selectedFile = null;
+			selectedAgent = null;
 		} else if (viewMode === 'files') {
 			selectedEvent = null;
 			selectedTool = null;
+			selectedAgent = null;
+		} else if (viewMode === 'agents') {
+			selectedEvent = null;
+			selectedTool = null;
+			selectedFile = null;
 		}
 	});
 
@@ -84,6 +110,7 @@
 		selectedEvent = null;
 		selectedTool = null;
 		selectedFile = null;
+		selectedAgent = null;
 		fileContent = '';
 	});
 
@@ -110,6 +137,24 @@
 
 	function stopDrag() {
 		isDragging = false;
+	}
+
+	function handleToolClickFromAgent(toolCall: ToolCall) {
+		console.log('[AgentToolClick] Clicked tool:', toolCall);
+		console.log('[AgentToolClick] Available tools count:', tools.length);
+		console.log('[AgentToolClick] Looking for correlation ID:', toolCall.id);
+
+		// Find the corresponding Tool from the tools store by correlation ID
+		const tool = tools.find(t => t.id === toolCall.id);
+		if (tool) {
+			console.log('[AgentToolClick] Found matching tool:', tool);
+			// Switch to tools view and select the tool
+			viewMode = 'tools';
+			selectedTool = tool;
+		} else {
+			console.warn('[AgentToolClick] Tool not found for correlation ID:', toolCall.id);
+			console.warn('[AgentToolClick] Available tool IDs:', tools.map(t => t.id));
+		}
 	}
 </script>
 
@@ -143,6 +188,13 @@
 						Tools
 					</button>
 					<button
+						onclick={() => viewMode = 'agents'}
+						class="tab"
+						class:active={viewMode === 'agents'}
+					>
+						Agents
+					</button>
+					<button
 						onclick={() => viewMode = 'files'}
 						class="tab"
 						class:active={viewMode === 'files'}
@@ -158,6 +210,14 @@
 					<EventStream bind:selectedEvent selectedStream={$selectedStream} />
 				{:else if viewMode === 'tools'}
 					<ToolsView {tools} bind:selectedTool selectedStream={$selectedStream} />
+				{:else if viewMode === 'agents'}
+					{#if rootAgent}
+						<AgentsView {rootAgent} bind:selectedAgent selectedStream={$selectedStream} />
+					{:else}
+						<div class="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+							<p>Loading agent data...</p>
+						</div>
+					{/if}
 				{:else if viewMode === 'files'}
 					<FilesView
 						selectedStream={$selectedStream}
@@ -179,7 +239,7 @@
 			tabindex="0"
 		></div>
 
-		<!-- Right Panel: JSON Explorer or File Viewer -->
+		<!-- Right Panel: JSON Explorer, File Viewer, or Agent Detail -->
 		<div class="right-panel flex flex-col flex-1 min-w-0 min-h-0" style="width: {100 - leftWidth}%;">
 			{#if viewMode === 'files'}
 				{#if selectedFile}
@@ -206,6 +266,8 @@
 						</div>
 					</div>
 				{/if}
+			{:else if viewMode === 'agents'}
+				<AgentDetail agent={selectedAgent} onToolClick={handleToolClickFromAgent} />
 			{:else}
 				<JSONExplorer event={selectedEvent} tool={selectedTool} />
 			{/if}

@@ -98,7 +98,7 @@
 		Array.from(new Set(streamFilteredEvents.map(e => e.subtype).filter(Boolean))).sort()
 	);
 
-	function formatTimestamp(timestamp: string): string {
+	function formatTimestamp(timestamp: string | number): string {
 		return new Date(timestamp).toLocaleTimeString();
 	}
 
