@@ -135,8 +135,8 @@ class AgentTemplateBuilder:
                 break
 
             # Stop at common repository root indicators (check AFTER finding BASE-AGENT.md)
-            # This ensures we check the 'agents' directory before stopping at 'remote-agents'
-            if current_dir.name in [".claude-mpm", "remote-agents", "cache"]:
+            # Stop at cache root or .claude-mpm directory
+            if current_dir.name in [".claude-mpm", "cache"]:
                 self.logger.debug(
                     f"Reached repository root indicator at: {current_dir}"
                 )

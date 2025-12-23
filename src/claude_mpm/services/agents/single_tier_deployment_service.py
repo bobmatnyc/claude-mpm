@@ -78,14 +78,14 @@ class SingleTierDeploymentService:
             config: Agent source configuration with repositories
             deployment_dir: Target deployment directory (.claude/agents/)
             cache_root: Cache root for repositories
-                       (defaults to ~/.claude-mpm/cache/remote-agents/)
+                       (defaults to ~/.claude-mpm/cache/agents/)
         """
         self.config = config
         self.deployment_dir = deployment_dir
         self.deployment_dir.mkdir(parents=True, exist_ok=True)
 
         if cache_root is None:
-            cache_root = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_root = Path.home() / ".claude-mpm" / "cache" / "agents"
 
         self.cache_root = cache_root
         self.git_source_manager = GitSourceManager(cache_root)

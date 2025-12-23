@@ -879,7 +879,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         # Check for remote agents (cached from GitHub)
         remote_agents_dir = None
         cache_dir = user_home / ".claude-mpm" / "cache"
-        potential_remote_dir = cache_dir / "remote-agents"
+        potential_remote_dir = cache_dir / "agents"
         if potential_remote_dir.exists():
             remote_agents_dir = potential_remote_dir
             self.logger.info(f"Found remote agents cache at: {remote_agents_dir}")

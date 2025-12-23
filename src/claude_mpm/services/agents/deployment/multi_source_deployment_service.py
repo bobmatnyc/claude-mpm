@@ -228,7 +228,7 @@ class MultiSourceAgentDeploymentService:
         if not remote_agents_dir:
             # Check for remote agents in cache directory
             cache_dir = Path.home() / ".claude-mpm" / "cache"
-            remote_agents_dir = cache_dir / "remote-agents"
+            remote_agents_dir = cache_dir / "agents"
             if not remote_agents_dir.exists():
                 remote_agents_dir = None
 
@@ -344,7 +344,7 @@ class MultiSourceAgentDeploymentService:
         """
         if not remote_agents_dir:
             cache_dir = Path.home() / ".claude-mpm" / "cache"
-            remote_agents_dir = cache_dir / "remote-agents"
+            remote_agents_dir = cache_dir / "agents"
 
         if not remote_agents_dir.exists():
             self.logger.warning(

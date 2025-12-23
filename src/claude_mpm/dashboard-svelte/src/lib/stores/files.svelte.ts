@@ -77,6 +77,14 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
     // Extract file operations from events
     $events.forEach((event, index) => {
+      // 🔴 RAW EVENT LOGGING - Debug content extraction
+      console.log('🔴 RAW EVENT:', JSON.stringify(event, null, 2));
+      console.log('🔴 EVENT KEYS:', Object.keys(event));
+      console.log('🔴 EVENT.DATA:', event.data);
+      console.log('🔴 EVENT.DATA KEYS:', event.data ? Object.keys(event.data) : 'no data');
+      console.log('🔴 EVENT.TYPE:', event.type);
+      console.log('🔴 EVENT.SUBTYPE:', event.subtype);
+
       console.log(`[FILES] Event ${index}:`, {
         type: event.type,
         hasData: !!event.data,
@@ -156,10 +164,22 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
         // Backend structure: { data: { output: "content", tool_name: "Read", tool_parameters: {...} } }
         // CRITICAL: The event structure from SSE might wrap the data
 
+        // 🔴 DEBUG: Check if event.data.data exists (nested wrapping)
+        console.log('🔴 CHECKING NESTED DATA:');
+        console.log('🔴 eventData.data exists?', !!eventData.data);
+        console.log('🔴 eventData.data type:', typeof eventData.data);
+        if (eventData.data && typeof eventData.data === 'object') {
+          console.log('🔴 eventData.data keys:', Object.keys(eventData.data));
+          console.log('🔴 eventData.data.output?', (eventData.data as any).output);
+        }
+
         // Try to unwrap if event.data is the actual payload
         const actualEventData = eventData.data && typeof eventData.data === 'object'
           ? eventData.data as Record<string, unknown>
           : eventData;
+
+        console.log('🔴 actualEventData === eventData?', actualEventData === eventData);
+        console.log('🔴 actualEventData.output type:', typeof actualEventData.output);
 
         const content = (
           // PRIORITY 1: Check actualEventData.output (unwrapped from event.data.data.output)

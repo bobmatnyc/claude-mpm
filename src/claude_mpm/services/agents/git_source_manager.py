@@ -50,10 +50,10 @@ class GitSourceManager:
 
         Args:
             cache_root: Root directory for repository caches.
-                       Defaults to ~/.claude-mpm/cache/remote-agents/
+                       Defaults to ~/.claude-mpm/cache/agents/
         """
         if cache_root is None:
-            cache_root = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_root = Path.home() / ".claude-mpm" / "cache" / "agents"
 
         self.cache_root = cache_root
         self.cache_root.mkdir(parents=True, exist_ok=True)

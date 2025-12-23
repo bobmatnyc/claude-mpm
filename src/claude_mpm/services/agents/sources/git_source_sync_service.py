@@ -188,10 +188,10 @@ class GitSourceSyncService:
 
         Args:
             source_url: Base URL for raw files (without trailing slash)
-            cache_dir: Local cache directory (defaults to ~/.claude-mpm/cache/remote-agents/)
+            cache_dir: Local cache directory (defaults to ~/.claude-mpm/cache/agents/)
             source_id: Unique identifier for this source (for multi-source support)
 
-        Design Decision: Cache to ~/.claude-mpm/cache/remote-agents/ (canonical location)
+        Design Decision: Cache to ~/.claude-mpm/cache/agents/ (canonical location)
 
         Rationale: Separates cached repository structure from deployed agents.
         This allows preserving nested directory structure in cache while
@@ -207,13 +207,13 @@ class GitSourceSyncService:
         self.source_url = source_url.rstrip("/")
         self.source_id = source_id
 
-        # Setup cache directory (canonical: ~/.claude-mpm/cache/remote-agents/)
+        # Setup cache directory (canonical: ~/.claude-mpm/cache/agents/)
         if cache_dir:
             self.cache_dir = Path(cache_dir)
         else:
-            # Default to ~/.claude-mpm/cache/remote-agents/ (canonical cache location)
+            # Default to ~/.claude-mpm/cache/agents/ (canonical cache location)
             home = Path.home()
-            self.cache_dir = home / ".claude-mpm" / "cache" / "remote-agents"
+            self.cache_dir = home / ".claude-mpm" / "cache" / "agents"
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 

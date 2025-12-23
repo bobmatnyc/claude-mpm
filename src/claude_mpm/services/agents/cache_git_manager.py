@@ -29,7 +29,7 @@ Error Handling:
 
 Example:
     >>> from pathlib import Path
-    >>> manager = CacheGitManager(Path.home() / ".claude-mpm/cache/remote-agents")
+    >>> manager = CacheGitManager(Path.home() / ".claude-mpm/cache/agents")
     >>> if manager.is_git_repo():
     ...     status = manager.get_status()
     ...     print(f"Branch: {status['branch']}, Uncommitted: {len(status['uncommitted'])}")

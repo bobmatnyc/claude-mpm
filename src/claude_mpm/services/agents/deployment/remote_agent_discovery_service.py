@@ -42,7 +42,7 @@ class RemoteAgentMetadata:
 class RemoteAgentDiscoveryService:
     """Discovers and converts remote Markdown agents to JSON format.
 
-    Remote agents are discovered from the cache directory (~/.claude-mpm/cache/remote-agents/)
+    Remote agents are discovered from the cache directory (~/.claude-mpm/cache/agents/)
     where they are stored as Markdown files. This service:
     1. Discovers all *.md files in the remote agents cache
     2. Parses Markdown frontmatter and content to extract metadata
@@ -74,7 +74,7 @@ class RemoteAgentDiscoveryService:
         """Extract collection_id from repository path structure.
 
         Collection ID is derived from the repository path structure:
-        ~/.claude-mpm/cache/remote-agents/{owner}/{repo}/agents/...
+        ~/.claude-mpm/cache/agents/{owner}/{repo}/agents/...
 
         Args:
             file_path: Absolute path to agent Markdown file
@@ -83,28 +83,29 @@ class RemoteAgentDiscoveryService:
             Collection ID in format "owner/repo-name" or None if not found
 
         Example:
-            Input:  ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/pm.md
+            Input:  ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/pm.md
             Output: "bobmatnyc/claude-mpm-agents"
         """
         try:
-            # Find "remote-agents" in the path
+            # Find "agents" cache directory in the path (looking for .claude-mpm/cache/agents)
             path_parts = file_path.parts
-            remote_agents_idx = -1
+            agents_cache_idx = -1
 
             for i, part in enumerate(path_parts):
-                if part == "remote-agents":
-                    remote_agents_idx = i
+                # Look for cache/agents pattern
+                if part == "agents" and i > 0 and path_parts[i-1] == "cache":
+                    agents_cache_idx = i
                     break
 
-            if remote_agents_idx == -1 or remote_agents_idx + 2 >= len(path_parts):
+            if agents_cache_idx == -1 or agents_cache_idx + 2 >= len(path_parts):
                 self.logger.debug(
                     f"Could not extract collection_id from path: {file_path}"
                 )
                 return None
 
-            # Extract owner and repo (next two parts after "remote-agents")
-            owner = path_parts[remote_agents_idx + 1]
-            repo = path_parts[remote_agents_idx + 2]
+            # Extract owner and repo (next two parts after "cache/agents")
+            owner = path_parts[agents_cache_idx + 1]
+            repo = path_parts[agents_cache_idx + 2]
 
             collection_id = f"{owner}/{repo}"
             self.logger.debug(f"Extracted collection_id: {collection_id}")
@@ -128,25 +129,26 @@ class RemoteAgentDiscoveryService:
             Relative path from repo root, or None if not found
 
         Example:
-            Input:  ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/pm.md
+            Input:  ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/pm.md
             Output: "agents/pm.md"
         """
         try:
-            # Find "remote-agents" in the path
+            # Find "agents" cache directory in the path
             path_parts = file_path.parts
-            remote_agents_idx = -1
+            agents_cache_idx = -1
 
             for i, part in enumerate(path_parts):
-                if part == "remote-agents":
-                    remote_agents_idx = i
+                # Look for cache/agents pattern
+                if part == "agents" and i > 0 and path_parts[i-1] == "cache":
+                    agents_cache_idx = i
                     break
 
-            if remote_agents_idx == -1 or remote_agents_idx + 3 >= len(path_parts):
+            if agents_cache_idx == -1 or agents_cache_idx + 3 >= len(path_parts):
                 return None
 
             # Path after owner/repo is the source path
-            # remote-agents/{owner}/{repo}/{source_path}
-            repo_root_idx = remote_agents_idx + 3
+            # cache/agents/{owner}/{repo}/{source_path}
+            repo_root_idx = agents_cache_idx + 3
             source_parts = path_parts[repo_root_idx:]
 
             return "/".join(source_parts)
@@ -281,8 +283,8 @@ class RemoteAgentDiscoveryService:
             Output: engineer/backend/python-engineer
 
         Example (Flattened cache):
-            Input:  /cache/remote-agents/engineer/python-engineer.md
-            Root:   /cache/remote-agents
+            Input:  /cache/agents/engineer/python-engineer.md
+            Root:   /cache/agents
             Output: engineer/python-engineer
 
         Args:
@@ -335,8 +337,8 @@ class RemoteAgentDiscoveryService:
             Output: engineer/backend
 
         Example (Flattened cache):
-            Input:  /cache/remote-agents/engineer/python-engineer.md
-            Root:   /cache/remote-agents
+            Input:  /cache/agents/engineer/python-engineer.md
+            Root:   /cache/agents
             Output: engineer
 
         Args:
@@ -385,7 +387,7 @@ class RemoteAgentDiscoveryService:
             List of agent dictionaries in JSON template format
 
         Example:
-            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/remote-agents"))
+            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/agents"))
             >>> agents = service.discover_remote_agents()
             >>> len(agents)
             5
@@ -767,7 +769,7 @@ class RemoteAgentDiscoveryService:
             List of agent dictionaries from the specified collection
 
         Example:
-            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/remote-agents"))
+            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/agents"))
             >>> agents = service.get_agents_by_collection("bobmatnyc/claude-mpm-agents")
             >>> len(agents)
             45
@@ -795,7 +797,7 @@ class RemoteAgentDiscoveryService:
             - agents: List of agent IDs in collection
 
         Example:
-            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/remote-agents"))
+            >>> service = RemoteAgentDiscoveryService(Path("~/.claude-mpm/cache/agents"))
             >>> collections = service.list_collections()
             >>> collections
             [
