@@ -23,6 +23,11 @@
 
   let { file, content, isLoading = false }: Props = $props();
 
+  // Image display state
+  let isImage = $state<boolean>(false);
+  let imageMime = $state<string>('');
+  let imageData = $state<string>('');
+
   // Project root for relative path display
   let projectRoot = $state<string>('');
 
@@ -254,6 +259,38 @@
     const relativePath = fullPath.substring(projectRoot.length);
     return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
   }
+
+  // Check if file is an image based on extension
+  function isImageFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    return ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'].includes(ext);
+  }
+
+  // Update image state when content changes
+  $effect(() => {
+    if (file && isImageFile(file.name) && content) {
+      // Content is base64 encoded image data from server
+      isImage = true;
+      // Get MIME type from extension
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const mimeTypes: Record<string, string> = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif',
+        'svg': 'image/svg+xml',
+        'webp': 'image/webp',
+        'ico': 'image/x-icon',
+        'bmp': 'image/bmp'
+      };
+      imageMime = mimeTypes[ext] || 'image/png';
+      imageData = content;
+    } else {
+      isImage = false;
+      imageMime = '';
+      imageData = '';
+    }
+  });
 </script>
 
 {#if file}
@@ -345,6 +382,15 @@
           {:else}
             <pre class="diff-content">{@html formatGitDiff(gitDiff)}</pre>
           {/if}
+        </div>
+      {:else if isImage}
+        <!-- Image display -->
+        <div class="image-container">
+          <img
+            src="data:{imageMime};base64,{imageData}"
+            alt={file.name}
+            class="image-preview"
+          />
         </div>
       {:else}
         <!-- Syntax highlighted content -->
@@ -615,6 +661,24 @@
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
     font-size: 0.875rem;
     line-height: 1.5;
+  }
+
+  /* Image viewer styles */
+  .image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: var(--color-bg-secondary);
+    min-height: 300px;
+  }
+
+  .image-preview {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
   .no-content {

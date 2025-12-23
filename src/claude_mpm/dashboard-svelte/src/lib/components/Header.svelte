@@ -4,7 +4,7 @@
 	import { derived } from 'svelte/store';
 
 	// Use store subscriptions with $ prefix (auto-subscription)
-	const { isConnected, error, streams, streamMetadata, streamActivity, selectedStream } = socketStore;
+	const { isConnected, error, streams, streamMetadata, streamActivity, selectedStream, currentWorkingDirectory, projectFilter } = socketStore;
 
 	// Reactive reference to theme for proper reactivity
 	let currentTheme = $derived(themeStore.current);
@@ -42,10 +42,21 @@
 	}
 
 	// Convert Set to Array for dropdown options and include metadata + activity
+	// Filter by project if projectFilter is set to 'current'
 	const streamOptions = derived(
-		[streams, streamMetadata, streamActivity],
-		([$streams, $metadata, $activity]) => {
-			return Array.from($streams).map(streamId => {
+		[streams, streamMetadata, streamActivity, currentWorkingDirectory, projectFilter],
+		([$streams, $metadata, $activity, $currentWd, $filter]) => {
+			let filteredStreams = Array.from($streams);
+
+			// Apply project filter if set to 'current' and we have a working directory
+			if ($filter === 'current' && $currentWd) {
+				filteredStreams = filteredStreams.filter(streamId => {
+					const meta = $metadata.get(streamId);
+					return meta?.projectPath === $currentWd;
+				});
+			}
+
+			return filteredStreams.map(streamId => {
 				const meta = $metadata.get(streamId);
 				const projectName = meta?.projectName || 'Unknown Project';
 				const lastActivity = $activity.get(streamId) || 0;
@@ -81,6 +92,21 @@
 		</div>
 
 		<div class="flex items-center gap-3">
+			<!-- Project Filter Toggle -->
+			<div class="flex items-center gap-2">
+				<label for="project-filter" class="text-sm text-slate-700 dark:text-slate-300">Project:</label>
+				<select
+					id="project-filter"
+					bind:value={$projectFilter}
+					onchange={() => socketStore.setProjectFilter($projectFilter)}
+					class="px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
+					title={$projectFilter === 'current' ? `Showing only: ${$currentWorkingDirectory}` : 'Showing all projects'}
+				>
+					<option value="current">Current Only</option>
+					<option value="all">All Projects</option>
+				</select>
+			</div>
+
 			<!-- Stream Filter Dropdown -->
 			<div class="flex items-center gap-2">
 				<label for="stream-filter" class="text-sm text-slate-700 dark:text-slate-300">Stream:</label>

@@ -701,6 +701,8 @@ class UnifiedMonitorServer:
             # File read endpoint (GET) for file browser
             async def api_file_read_handler(request):
                 """Read file content via GET request."""
+                import base64
+
                 try:
                     file_path = request.query.get("path", "")
 
@@ -726,8 +728,50 @@ class UnifiedMonitorServer:
 
                     # Get file info
                     file_size = path.stat().st_size
+                    file_ext = path.suffix.lstrip(".").lower()
 
-                    # Read file content
+                    # Define image extensions
+                    image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'}
+
+                    # Check if file is an image
+                    if file_ext in image_extensions:
+                        # Read as binary and encode to base64
+                        try:
+                            binary_content = path.read_bytes()
+                            base64_content = base64.b64encode(binary_content).decode('utf-8')
+
+                            # Map extension to MIME type
+                            mime_types = {
+                                'png': 'image/png',
+                                'jpg': 'image/jpeg',
+                                'jpeg': 'image/jpeg',
+                                'gif': 'image/gif',
+                                'svg': 'image/svg+xml',
+                                'webp': 'image/webp',
+                                'ico': 'image/x-icon',
+                                'bmp': 'image/bmp'
+                            }
+                            mime_type = mime_types.get(file_ext, 'image/png')
+
+                            return web.json_response(
+                                {
+                                    "success": True,
+                                    "path": str(path),
+                                    "content": base64_content,
+                                    "size": file_size,
+                                    "type": "image",
+                                    "mime": mime_type,
+                                    "extension": file_ext,
+                                }
+                            )
+                        except Exception as e:
+                            self.logger.error(f"Error reading image file: {e}")
+                            return web.json_response(
+                                {"success": False, "error": f"Failed to read image: {str(e)}"},
+                                status=500,
+                            )
+
+                    # Read text file content
                     try:
                         content = path.read_text(encoding="utf-8")
                         lines = content.count("\n") + 1
@@ -736,9 +780,6 @@ class UnifiedMonitorServer:
                             {"success": False, "error": "File is not a text file"},
                             status=415,
                         )
-
-                    # Get file extension
-                    file_ext = path.suffix.lstrip(".")
 
                     return web.json_response(
                         {

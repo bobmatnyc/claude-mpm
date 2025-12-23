@@ -76,6 +76,8 @@ function createSocketStore() {
 	const streamActivity = writable<Map<string, number>>(new Map()); // Track last activity timestamp per stream
 	const error = writable<string | null>(null);
 	const selectedStream = writable<string>('');
+	const currentWorkingDirectory = writable<string>('');
+	const projectFilter = writable<'current' | 'all'>('current'); // Default to current project only
 
 	// Load cached events on initialization (client-side only)
 	if (typeof window !== 'undefined') {
@@ -151,6 +153,19 @@ function createSocketStore() {
 		return streamIds;
 	}
 
+	async function fetchWorkingDirectory(url: string = 'http://localhost:8765') {
+		try {
+			const response = await fetch(`${url}/api/working-directory`);
+			const data = await response.json();
+			if (data.success && data.working_directory) {
+				currentWorkingDirectory.set(data.working_directory);
+				console.log('[WorkingDirectory] Set to:', data.working_directory);
+			}
+		} catch (err) {
+			console.warn('[WorkingDirectory] Failed to fetch:', err);
+		}
+	}
+
 	function connect(url: string = 'http://localhost:8765') {
 		const currentSocket = get(socket);
 		if (currentSocket?.connected) {
@@ -158,6 +173,9 @@ function createSocketStore() {
 		}
 
 		console.log('Connecting to Socket.IO server:', url);
+
+		// Fetch working directory when connecting
+		fetchWorkingDirectory(url);
 
 		const newSocket = io(url, {
 			// Use polling first for reliability, then upgrade to websocket
@@ -332,6 +350,10 @@ function createSocketStore() {
 		selectedStream.set(streamId);
 	}
 
+	function setProjectFilter(filter: 'current' | 'all') {
+		projectFilter.set(filter);
+	}
+
 	return {
 		socket,
 		isConnected,
@@ -341,10 +363,13 @@ function createSocketStore() {
 		streamActivity,
 		error,
 		selectedStream,
+		currentWorkingDirectory,
+		projectFilter,
 		connect,
 		disconnect,
 		clearEvents,
-		setSelectedStream
+		setSelectedStream,
+		setProjectFilter
 	};
 }
 
