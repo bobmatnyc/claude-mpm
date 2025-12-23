@@ -25,7 +25,6 @@ import signal
 import subprocess
 import sys
 import threading
-import uuid
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
@@ -594,7 +593,7 @@ class ClaudeHookHandler:
                 return f"Processed command: {prompt.split()[0]}"
             return f"Processed user prompt ({len(prompt)} chars)"
 
-        elif hook_type == "PreToolUse":
+        if hook_type == "PreToolUse":
             tool_name = event.get("tool_name", "unknown")
             return f"Pre-processing tool call: {tool_name}"
 
