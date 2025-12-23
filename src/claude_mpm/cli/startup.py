@@ -61,42 +61,21 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
 
 
 def check_legacy_cache() -> None:
-    """Check for legacy cache/agents/ directory and warn user.
+    """Check for legacy cache/remote-agents/ directory and inform user.
 
-    WHY: cache/agents/ is deprecated in favor of cache/remote-agents/.
-    Research confirmed that cache/remote-agents/ is the canonical location
-    with 26 active code references, while cache/agents/ has only 7 legacy references.
+    WHY: cache/remote-agents/ is being renamed to cache/agents/ for consistency
+    with cache/skills/ directory naming. This provides a clearer, more intuitive
+    structure where "agents" refers to cached agents (not remote agents).
 
     DESIGN DECISIONS:
-    - Non-blocking warning: Doesn't stop execution, just informs user
-    - Migration guidance: Provides clear path to migrate
-    - One-time check: Only warns if legacy cache contains files
+    - Non-blocking migration: Doesn't stop execution, agents will re-sync automatically
+    - Clear guidance: Provides simple mv command for manual migration
+    - Backward compatible: Old directory continues to work until migrated
     """
-    home = Path.home()
-    legacy_cache = home / ".claude-mpm" / "cache" / "agents"
-    canonical_cache = home / ".claude-mpm" / "cache" / "remote-agents"
-    migration_marker = home / ".claude-mpm" / "cache" / ".migrated_to_remote_agents"
-
-    # Skip if already migrated or no legacy cache
-    if migration_marker.exists() or not legacy_cache.exists():
-        return
-
-    # Check if legacy cache has actual agent files
-    legacy_files = list(legacy_cache.glob("*.md")) + list(legacy_cache.glob("*.json"))
-    if not legacy_files:
-        return
-
-    # Only warn if canonical cache doesn't exist (indicating unmigrated system)
-    if not canonical_cache.exists():
-        warnings.warn(
-            f"\n⚠️  DEPRECATION: Legacy cache directory detected\n"
-            f"   Location: {legacy_cache}\n"
-            f"   Files found: {len(legacy_files)}\n\n"
-            f"The 'cache/agents/' directory is deprecated. Please migrate to 'cache/remote-agents/'.\n"
-            f"Run: python scripts/migrate_cache_to_remote_agents.py\n",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+    # NOTE: Migration logic is now in startup_sync.py to provide better context
+    # during agent synchronization. This function is kept for backward compatibility
+    # but the actual warning is issued during sync_agents_on_startup().
+    pass
 
 
 def setup_early_environment(argv):
@@ -476,7 +455,7 @@ def sync_remote_agents_on_startup():
                 # Count agents in cache to show accurate progress
                 from pathlib import Path
 
-                cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+                cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
                 agent_count = 0
 
                 if cache_dir.exists():
@@ -921,7 +900,7 @@ def show_agent_summary():
             installed_count = len(agent_files)
 
         # Count available agents in cache (from remote sources)
-        cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
         available_count = 0
         if cache_dir.exists():
             # Use same filtering logic as agent deployment (lines 486-533 in startup.py)

@@ -8,7 +8,7 @@ DEPLOYMENT ARCHITECTURE:
 
 Agent Source Locations (Discovery):
 -----------------------------------
-1. System Agents:  ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/
+1. System Agents:  ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/
    - Synced from GitHub repository
    - Read-only (managed by git pull)
    - 44+ agents organized by category
@@ -39,7 +39,7 @@ Why Project-Level Deployment?
 Example Flow:
 -------------
 1. User runs: claude-mpm agents deploy
-2. Agents synced from GitHub → ~/.claude-mpm/cache/remote-agents/
+2. Agents synced from GitHub → ~/.claude-mpm/cache/agents/
 3. Agents deployed FROM cache → .claude/agents/
 4. Claude Code discovers agents FROM .claude/agents/
 

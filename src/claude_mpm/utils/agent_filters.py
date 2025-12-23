@@ -5,7 +5,7 @@ WHY: This module provides centralized filtering logic to remove non-deployable
 agents (BASE_AGENT) and already-deployed agents from user-facing displays.
 
 ARCHITECTURE:
-- SOURCE: ~/.claude-mpm/cache/remote-agents/ (git repository cache)
+- SOURCE: ~/.claude-mpm/cache/agents/ (git repository cache)
 - DEPLOYMENT: .claude/agents/ (project-level deployment location)
 
 DESIGN DECISIONS:

@@ -118,7 +118,7 @@ class AgentLoader:
         """Discover local JSON agent templates.
 
         NOTE: This method is kept for backward compatibility but is deprecated.
-        The new architecture uses SOURCE (~/.claude-mpm/cache/remote-agents/)
+        The new architecture uses SOURCE (~/.claude-mpm/cache/agents/)
         and DEPLOYMENT (.claude/agents/) locations only.
 
         Returns:

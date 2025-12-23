@@ -1015,7 +1015,7 @@ class ConfigureCommand(BaseCommand):
                 # Count agents in cache
                 # Note: identifier already includes subdirectory path (e.g., "bobmatnyc/claude-mpm-agents/agents")
                 cache_dir = (
-                    Path.home() / ".claude-mpm" / "cache" / "remote-agents" / identifier
+                    Path.home() / ".claude-mpm" / "cache" / "agents" / identifier
                 )
                 agent_count = 0
                 if cache_dir.exists():

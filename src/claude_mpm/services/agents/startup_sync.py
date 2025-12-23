@@ -110,6 +110,27 @@ def sync_agents_on_startup(config: Optional[Dict[str, Any]] = None) -> Dict[str,
         else:
             cache_dir = None  # Will use default
 
+        # Check for legacy remote-agents cache directory and warn user
+        legacy_cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        new_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+
+        if legacy_cache_dir.exists() and not new_cache_dir.exists():
+            logger.warning(
+                "Found legacy agent cache directory: ~/.claude-mpm/cache/remote-agents"
+            )
+            logger.warning(
+                "The cache directory has been renamed to: ~/.claude-mpm/cache/agents"
+            )
+            logger.warning(
+                "To migrate your existing cache, run:"
+            )
+            logger.warning(
+                f"  mv ~/.claude-mpm/cache/remote-agents ~/.claude-mpm/cache/agents"
+            )
+            logger.info(
+                "Agents will be re-synced to the new cache location automatically."
+            )
+
         # Sync each enabled source
         for source_config in sources:
             try:
@@ -217,7 +238,7 @@ def get_sync_status() -> Dict[str, Any]:
             "enabled": agent_sync_config.get("enabled", True),
             "sources_configured": len(enabled_sources),
             "cache_dir": agent_sync_config.get(
-                "cache_dir", "~/.claude-mpm/cache/remote-agents"
+                "cache_dir", "~/.claude-mpm/cache/agents"
             ),
         }
 
@@ -233,7 +254,7 @@ def get_sync_status() -> Dict[str, Any]:
         return {
             "enabled": False,
             "sources_configured": 0,
-            "cache_dir": "~/.claude-mpm/cache/remote-agents",
+            "cache_dir": "~/.claude-mpm/cache/agents",
             "last_sync": None,
             "error": str(e),
         }

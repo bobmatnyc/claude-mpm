@@ -432,7 +432,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
 
     def _check_cache_directory(self) -> DiagnosticResult:
         """Check cache directory health."""
-        cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+        cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
 
         if not cache_dir.exists():
             return DiagnosticResult(

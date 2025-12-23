@@ -14,16 +14,13 @@ export interface FileOperation {
   correlation_id?: string;
   pre_event?: ClaudeEvent;
   post_event?: ClaudeEvent;
-  // For Edit operations
+  // For Edit operations (extracted from hook events)
   old_string?: string;
   new_string?: string;
-  // For Read operations
-  content?: string;
-  // For Write operations
-  written_content?: string;
   // For Grep/Glob
   pattern?: string;
   matches?: number;
+  // Note: File content for Read/Write is fetched from server API, not stored here
 }
 
 export interface FileEntry {
@@ -77,18 +74,10 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
 
     // Extract file operations from events
     $events.forEach((event, index) => {
-      // 🔴 RAW EVENT LOGGING - Debug content extraction
-      console.log('🔴 RAW EVENT:', JSON.stringify(event, null, 2));
-      console.log('🔴 EVENT KEYS:', Object.keys(event));
-      console.log('🔴 EVENT.DATA:', event.data);
-      console.log('🔴 EVENT.DATA KEYS:', event.data ? Object.keys(event.data) : 'no data');
-      console.log('🔴 EVENT.TYPE:', event.type);
-      console.log('🔴 EVENT.SUBTYPE:', event.subtype);
-
-      console.log(`[FILES] Event ${index}:`, {
+      console.log(`[FILES] Processing event ${index}:`, {
         type: event.type,
-        hasData: !!event.data,
-        dataKeys: event.data ? Object.keys(event.data as any) : []
+        subtype: event.subtype,
+        hasData: !!event.data
       });
 
       const eventData = event.data as Record<string, unknown> | undefined;
@@ -158,99 +147,24 @@ function createFilesStore(eventsStore: ReturnType<typeof writable<ClaudeEvent[]>
       let operation: FileOperation | undefined;
 
       // Check for Read operations
-      // Backend emits events as 'claude_event' with type='hook' and subtype='post_tool'
       if (event.type === 'hook' && event.subtype === 'post_tool' && toolName === 'Read') {
-        // Extract content from output field
-        // Backend structure: { data: { output: "content", tool_name: "Read", tool_parameters: {...} } }
-        // CRITICAL: The event structure from SSE might wrap the data
-
-        // 🔴 DEBUG: Check if event.data.data exists (nested wrapping)
-        console.log('🔴 CHECKING NESTED DATA:');
-        console.log('🔴 eventData.data exists?', !!eventData.data);
-        console.log('🔴 eventData.data type:', typeof eventData.data);
-        if (eventData.data && typeof eventData.data === 'object') {
-          console.log('🔴 eventData.data keys:', Object.keys(eventData.data));
-          console.log('🔴 eventData.data.output?', (eventData.data as any).output);
-        }
-
-        // Try to unwrap if event.data is the actual payload
-        const actualEventData = eventData.data && typeof eventData.data === 'object'
-          ? eventData.data as Record<string, unknown>
-          : eventData;
-
-        console.log('🔴 actualEventData === eventData?', actualEventData === eventData);
-        console.log('🔴 actualEventData.output type:', typeof actualEventData.output);
-
-        const content = (
-          // PRIORITY 1: Check actualEventData.output (unwrapped from event.data.data.output)
-          typeof actualEventData.output === 'string' ? actualEventData.output :
-          // PRIORITY 2: Check eventData.output (direct format from backend)
-          typeof eventData.output === 'string' ? eventData.output :
-          // Check eventData.result (alternative format)
-          typeof eventData.result === 'string' ? eventData.result :
-          // Check for nested data.output (shouldn't be needed but defensive)
-          typeof (eventData.data as any)?.output === 'string' ? (eventData.data as any).output :
-          // Check hook_output_data (alternative backend format)
-          typeof eventData.hook_output_data === 'string' ? eventData.hook_output_data :
-          // Check return_value (yet another backend format)
-          typeof eventData.return_value === 'string' ? eventData.return_value :
-          undefined
-        );
-
-        // Enhanced debug logging to help diagnose content extraction
-        console.log(`[FILES] Read operation for ${filePath}:`, {
-          hasContent: !!content,
-          contentLength: content?.length,
-          contentPreview: content ? content.substring(0, 100) : null,
-          eventDataKeys: Object.keys(eventData),
-          eventDataOutput: {
-            exists: 'output' in eventData,
-            type: typeof eventData.output,
-            isString: typeof eventData.output === 'string',
-            lengthIfString: typeof eventData.output === 'string' ? (eventData.output as string).length : 0
-          },
-          // CRITICAL: Log ALL possible content fields
-          allPossibleContentFields: {
-            output: typeof eventData.output,
-            result: typeof eventData.result,
-            hook_output_data: typeof eventData.hook_output_data,
-            return_value: typeof eventData.return_value,
-            data_output: typeof (eventData.data as any)?.output
-          }
-        });
-
-        // ALWAYS store the operation, even without content (will fallback to pre/post events)
+        // Read operations: we don't extract content here anymore
+        // Content will be fetched from server when user selects the file
         operation = {
           type: 'Read',
           timestamp,
           correlation_id: event.correlation_id,
-          content: content || undefined, // Explicitly set undefined if no content
           pre_event: event,
           post_event: event
         };
-
-        // Additional logging to verify operation was created
-        console.log(`[FILES] Created Read operation:`, {
-          hasContent: !!operation.content,
-          contentLength: operation.content?.length || 0,
-          hasPreEvent: !!operation.pre_event,
-          hasPostEvent: !!operation.post_event
-        });
       }
       // Check for Write operations
       else if (event.type === 'hook' && event.subtype === 'pre_tool' && toolName === 'Write') {
-        // Extract content - prioritize tool_parameters (backend format)
-        const content = (
-          (eventData.tool_parameters as any)?.content ||
-          hookParams?.content ||
-          toolParams?.content
-        ) as string | undefined;
-
+        // Write operations: content will be fetched from server when user selects the file
         operation = {
           type: 'Write',
           timestamp,
           correlation_id: event.correlation_id,
-          written_content: content,
           pre_event: event,
           post_event: event
         };

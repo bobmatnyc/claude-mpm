@@ -34,7 +34,7 @@ class GitRepository:
     def cache_path(self) -> Path:
         """Return cache directory path for this repository.
 
-        Cache structure: ~/.claude-mpm/cache/remote-agents/{owner}/{repo}/{subdirectory}/
+        Cache structure: ~/.claude-mpm/cache/agents/{owner}/{repo}/{subdirectory}/
 
         Returns:
             Absolute path to cache directory for this repository
@@ -45,10 +45,10 @@ class GitRepository:
             ...     subdirectory="agents"
             ... )
             >>> repo.cache_path
-            Path('/Users/user/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents')
+            Path('/Users/user/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents')
         """
         home = Path.home()
-        base_cache = home / ".claude-mpm" / "cache" / "remote-agents"
+        base_cache = home / ".claude-mpm" / "cache" / "agents"
 
         # Extract owner and repo from URL
         owner, repo = self._parse_github_url(self.url)

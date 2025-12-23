@@ -1374,7 +1374,7 @@ class AgentWizard:
                         Path.home()
                         / ".claude-mpm"
                         / "cache"
-                        / "remote-agents"
+                        / "agents"
                         / "bobmatnyc"
                         / "claude-mpm-agents"
                         / "AUTO-DEPLOY-INDEX.md"
@@ -1419,7 +1419,7 @@ class AgentWizard:
                         Path.home()
                         / ".claude-mpm"
                         / "cache"
-                        / "remote-agents"
+                        / "agents"
                         / "bobmatnyc"
                         / "claude-mpm-agents"
                         / "AUTO-DEPLOY-INDEX.md"

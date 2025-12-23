@@ -2144,7 +2144,7 @@ class AgentsCommand(AgentCommand):
             )
 
             # Get remote agents cache directory
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
 
             if not cache_dir.exists():
                 return CommandResult.error_result(
@@ -2192,7 +2192,7 @@ class AgentsCommand(AgentCommand):
 
             # Get agents from collection
             service = MultiSourceAgentDeploymentService()
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             agents = service.get_agents_by_collection(collection_id, cache_dir)
 
             if not agents:
@@ -2249,7 +2249,7 @@ class AgentsCommand(AgentCommand):
 
             # Get agents from collection
             service = MultiSourceAgentDeploymentService()
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             agents = service.get_agents_by_collection(collection_id, cache_dir)
 
             if not agents:
@@ -2304,7 +2304,7 @@ class AgentsCommand(AgentCommand):
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             manager = CacheGitManager(cache_dir)
 
             if not manager.is_git_repo():
@@ -2377,7 +2377,7 @@ class AgentsCommand(AgentCommand):
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             manager = CacheGitManager(cache_dir)
 
             if not manager.is_git_repo():
@@ -2404,7 +2404,7 @@ class AgentsCommand(AgentCommand):
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             manager = CacheGitManager(cache_dir)
 
             if not manager.is_git_repo():
@@ -2436,7 +2436,7 @@ class AgentsCommand(AgentCommand):
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             manager = CacheGitManager(cache_dir)
 
             if not manager.is_git_repo():
@@ -2484,7 +2484,7 @@ class AgentsCommand(AgentCommand):
         try:
             from ...services.agents.cache_git_manager import CacheGitManager
 
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "remote-agents"
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
             manager = CacheGitManager(cache_dir)
 
             if not manager.is_git_repo():

@@ -35,6 +35,29 @@
     currentOperation?.type === 'Write'
   );
 
+  // Fetch file content from server API
+  async function fetchFileContent(filePath: string): Promise<string> {
+    console.log('[FileViewer] Fetching content from server:', filePath);
+
+    const response = await fetch('/api/file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Failed to read file' }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to read file');
+    }
+
+    return data.content;
+  }
+
   // Update highlighted content when operation or file changes
   $effect(() => {
     async function updateContent() {
@@ -49,11 +72,12 @@
       isLoading = true;
       loadError = null;
 
-      // CRITICAL DEBUG: Log the entire currentOperation object
-      console.log('[FileViewer] FULL currentOperation object:', JSON.stringify(currentOperation, null, 2));
-      console.log('[FileViewer] currentOperation keys:', Object.keys(currentOperation));
-      console.log('[FileViewer] showContent:', showContent);
-      console.log('[FileViewer] showDiff:', showDiff);
+      console.log('[FileViewer] Rendering operation:', {
+        type: currentOperation.type,
+        filePath: file.file_path,
+        showDiff,
+        showContent
+      });
 
       try {
         if (showDiff && currentOperation.old_string && currentOperation.new_string) {
@@ -72,48 +96,20 @@
             outputFormat: 'side-by-side'
           });
         } else if (showContent) {
-          // Try multiple content extraction strategies
-          let content = currentOperation.content || currentOperation.written_content || '';
-
-          // FALLBACK: Try extracting from post_event.data.output (backend format)
-          if (!content && currentOperation.post_event) {
-            const postEventData = currentOperation.post_event.data as Record<string, unknown> | undefined;
-            if (postEventData?.output && typeof postEventData.output === 'string') {
-              content = postEventData.output;
-              console.log('[FileViewer] Content extracted from post_event.data.output');
-            }
-          }
-
-          // FALLBACK 2: Try extracting from pre_event for Write operations
-          if (!content && currentOperation.type === 'Write' && currentOperation.pre_event) {
-            const preEventData = currentOperation.pre_event.data as Record<string, unknown> | undefined;
-            const toolParams = (preEventData?.tool_parameters as Record<string, unknown>) || null;
-            if (toolParams?.content && typeof toolParams.content === 'string') {
-              content = toolParams.content;
-              console.log('[FileViewer] Content extracted from pre_event.data.tool_parameters.content');
-            }
-          }
-
-          // Enhanced debugging
-          console.log('[FileViewer] Content extraction:', {
-            hasContent: !!content,
-            contentLength: content?.length,
-            contentPreview: content ? content.substring(0, 100) : null,
-            currentOperation: {
-              type: currentOperation.type,
-              hasContent: !!currentOperation.content,
-              hasWrittenContent: !!currentOperation.written_content,
-              hasPreEvent: !!currentOperation.pre_event,
-              hasPostEvent: !!currentOperation.post_event,
-              allKeys: Object.keys(currentOperation)
-            }
-          });
+          // For Read/Write operations, fetch current file content from server
+          console.log('[FileViewer] Fetching file content from server API');
+          const content = await fetchFileContent(file.file_path);
 
           if (!content) {
-            loadError = 'No content available for this operation';
+            loadError = 'File is empty';
             highlightedContent = '';
             return;
           }
+
+          console.log('[FileViewer] Fetched content:', {
+            length: content.length,
+            preview: content.substring(0, 100)
+          });
 
           const language = getLanguageFromFilename(file.filename);
 
@@ -135,7 +131,6 @@
           } catch (e) {
             // Fallback to plain text if syntax highlighting fails
             console.warn('[FileViewer] Syntax highlighting failed for', language, ':', e);
-            // Always show content even if highlighting fails - use plain text fallback
             highlightedContent = addLineNumbers(content);
           }
         }
@@ -263,14 +258,6 @@
 
     <!-- Content area -->
     <div class="viewer-content">
-      <!-- VISIBLE DEBUG OUTPUT -->
-      <p style="color: red; font-size: 12px; padding: 8px; background: #ffebee; border: 1px solid #ef5350;">
-        DEBUG: content={currentOperation?.content?.length || 'NO CONTENT'} |
-        written_content={currentOperation?.written_content?.length || 'NO'} |
-        post_event.output={currentOperation?.post_event?.data ?
-          ((currentOperation.post_event.data as any).output?.length || 'NO') : 'NO POST EVENT'}
-      </p>
-
       {#if isLoading}
         <div class="loading-state">
           <div class="spinner"></div>

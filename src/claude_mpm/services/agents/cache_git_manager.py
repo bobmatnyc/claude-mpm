@@ -105,12 +105,12 @@ class CacheGitManager:
 
         Example:
             >>> # Case 1: cache_path inside repo (searches upward)
-            >>> # cache_path: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents
-            >>> # Found at: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+            >>> # cache_path: ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents
+            >>> # Found at: ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
 
             >>> # Case 2: repo nested in cache_path (searches downward)
-            >>> # cache_path: ~/.claude-mpm/cache/remote-agents
-            >>> # Found at: ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents
+            >>> # cache_path: ~/.claude-mpm/cache/agents
+            >>> # Found at: ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents
         """
         # Strategy 1: Search upward (cache_path is inside repo)
         current = self.cache_path

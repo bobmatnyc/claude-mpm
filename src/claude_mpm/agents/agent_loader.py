@@ -86,7 +86,7 @@ def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     Get directories containing agent JSON files across all tiers.
 
     SIMPLIFIED ARCHITECTURE:
-    - SOURCE: ~/.claude-mpm/cache/remote-agents/ (git cache from GitHub)
+    - SOURCE: ~/.claude-mpm/cache/agents/ (git cache from GitHub)
     - DEPLOYMENT: .claude/agents/ (project-level Claude Code discovery)
 
     This function is kept for backward compatibility but the tier-based
