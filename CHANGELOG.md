@@ -1,3 +1,10 @@
+## v5.4.31 (2025-12-23)
+
+### Changed
+- **PM Instructions**: Holistic cleanup reducing 313 lines (22%)
+  - Removed redundant sections and outdated patterns
+  - Improved clarity and organization
+
 ## v5.4.30 (2025-12-23)
 
 ### Fixed
