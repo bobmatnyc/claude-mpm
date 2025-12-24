@@ -88,39 +88,80 @@ class InstructionLoader:
                 self.packaged_loader.framework_last_modified
             )
 
+    def _extract_version(self, file_content: str) -> int:
+        """Extract version number from PM_INSTRUCTIONS_VERSION comment.
+
+        Args:
+            file_content: Content of the file to extract version from
+
+        Returns:
+            Version number as integer, or 0 if not found
+        """
+        import re
+
+        match = re.search(r"PM_INSTRUCTIONS_VERSION:\s*(\d+)", file_content)
+        if match:
+            return int(match.group(1))
+        return 0  # No version = oldest
+
     def _load_filesystem_framework_instructions(self, content: Dict[str, Any]) -> None:
         """Load framework instructions from filesystem.
 
         Priority order:
-        1. Deployed compiled file: .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md (HIGHEST PRIORITY)
+        1. Deployed compiled file: .claude-mpm/PM_INSTRUCTIONS_DEPLOYED.md (if version >= source)
         2. Source file (development): src/claude_mpm/agents/PM_INSTRUCTIONS.md
         3. Legacy file (backward compat): src/claude_mpm/agents/INSTRUCTIONS.md
+
+        Version validation ensures deployed file is never stale compared to source.
 
         Args:
             content: Dictionary to update with framework instructions
         """
+        # Define source path for version checking
+        pm_instructions_path = (
+            self.framework_path / "src" / "claude_mpm" / "agents" / "PM_INSTRUCTIONS.md"
+        )
+
         # PRIORITY 1: Check for compiled/deployed version in .claude-mpm/
         # This is the merged PM_INSTRUCTIONS.md + WORKFLOW.md + MEMORY.md
         deployed_path = self.current_dir / ".claude-mpm" / "PM_INSTRUCTIONS_DEPLOYED.md"
         if deployed_path.exists():
-            loaded_content = self.file_loader.try_load_file(
-                deployed_path, "deployed PM_INSTRUCTIONS_DEPLOYED.md"
-            )
-            if loaded_content:
-                content["framework_instructions"] = loaded_content
+            # Validate version before using deployed file
+            deployed_content = deployed_path.read_text()
+            deployed_version = self._extract_version(deployed_content)
+
+            # Check source version for comparison
+            if pm_instructions_path.exists():
+                source_content = pm_instructions_path.read_text()
+                source_version = self._extract_version(source_content)
+
+                if deployed_version < source_version:
+                    self.logger.warning(
+                        f"Deployed PM instructions v{deployed_version:04d} is stale, "
+                        f"source is v{source_version:04d}. Using source instead."
+                    )
+                    # Fall through to source loading - don't return early
+                else:
+                    # Version OK, use deployed
+                    content["framework_instructions"] = deployed_content
+                    content["loaded"] = True
+                    self.logger.info(
+                        f"Loaded PM_INSTRUCTIONS_DEPLOYED.md v{deployed_version:04d} from .claude-mpm/"
+                    )
+                    return  # Stop here - deployed version is current
+            else:
+                # Source doesn't exist, use deployed even without version check
+                content["framework_instructions"] = deployed_content
                 content["loaded"] = True
                 self.logger.info("Loaded PM_INSTRUCTIONS_DEPLOYED.md from .claude-mpm/")
-                return  # Stop here - deployed version takes precedence
+                return
 
         # PRIORITY 2: Development mode - load from source PM_INSTRUCTIONS.md
-        pm_instructions_path = (
-            self.framework_path / "src" / "claude_mpm" / "agents" / "PM_INSTRUCTIONS.md"
-        )
         framework_instructions_path = (
             self.framework_path / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
         )
 
-        # Try loading new consolidated file
+        # Try loading new consolidated file (pm_instructions_path already defined above)
         if pm_instructions_path.exists():
             loaded_content = self.file_loader.try_load_file(
                 pm_instructions_path, "source PM_INSTRUCTIONS.md (development mode)"

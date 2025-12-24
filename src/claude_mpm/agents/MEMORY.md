@@ -30,7 +30,7 @@ This system provides **Static Memory** support where you (PM) directly manage me
 
 **When memory indicators detected**:
 1. **Identify** which agent should store this knowledge
-2. **Read** current memory file: `.claude-mpm/memories/{agent_id}_agent.md`
+2. **Read** current memory file: `.claude-mpm/memories/{agent_name}.md`
 3. **Consolidate** new information with existing content
 4. **Write** updated memory file maintaining structure and limits
 5. **Confirm** to user: "Updated {agent} memory with: [brief summary]"
