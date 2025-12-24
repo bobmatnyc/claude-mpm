@@ -10,7 +10,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 > - Minimum: v1.0.92 (hooks support)
 > - Recommended: v2.0.30+ (latest features)
 
-> **Quick Start**: See [docs/user/getting-started.md](docs/user/getting-started.md) to get running in 5 minutes!
+> **Quick Start**: See [docs/user/getting-started.md](docs/getting-started/README.md) to get running in 5 minutes!
 
 ## 🚀 What's New in v5.0
 
