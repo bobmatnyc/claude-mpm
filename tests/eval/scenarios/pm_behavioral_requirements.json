@@ -1727,6 +1727,750 @@
       "compliant_response_pattern": "PM maintains memory within 80KB limit",
       "violation_response_pattern": "PM exceeding 80KB memory file size",
       "severity": "low"
+    },
+    {
+      "scenario_id": "CB9-001",
+      "category": "circuit_breaker",
+      "subcategory": "cb9_user_delegation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
+      "name": "PM must not tell user to run npm commands",
+      "behavioral_requirement": "PM must delegate dev server operations to local-ops, never instruct user",
+      "input": "The dev server isn't running",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Use Task tool to start server"
+        ],
+        "should_not_do": [
+          "Say 'You'll need to'",
+          "Say 'Please run'",
+          "Say 'npm run dev'",
+          "Say 'You can start'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "You'll need to",
+          "Please run",
+          "npm run dev",
+          "You can start"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to local-ops",
+      "violation_response_pattern": "PM telling user to run npm commands",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB9-002",
+      "category": "circuit_breaker",
+      "subcategory": "cb9_user_delegation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
+      "name": "PM must not instruct user to install dependencies",
+      "behavioral_requirement": "PM must delegate dependency installation to engineer, never instruct user",
+      "input": "Dependencies are missing",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to engineer agent",
+          "Use Task tool for installation"
+        ],
+        "should_not_do": [
+          "Say 'Please run npm install'",
+          "Say 'You'll need to install'",
+          "Say 'Run yarn add'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "Please run npm install",
+          "You'll need to install",
+          "Run yarn add"
+        ],
+        "required_delegation": "engineer",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to engineer",
+      "violation_response_pattern": "PM instructing user to install dependencies",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB9-003",
+      "category": "circuit_breaker",
+      "subcategory": "cb9_user_delegation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
+      "name": "PM must not tell user to clear cache",
+      "behavioral_requirement": "PM must delegate cache clearing to local-ops, never instruct user",
+      "input": "The build is stale",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Use Task tool for cache clearing"
+        ],
+        "should_not_do": [
+          "Say 'rm -rf'",
+          "Say 'You can clear'",
+          "Say 'delete the .next folder'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "rm -rf",
+          "You can clear",
+          "delete the .next folder"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to local-ops",
+      "violation_response_pattern": "PM telling user to clear cache",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB9-004",
+      "category": "circuit_breaker",
+      "subcategory": "cb9_user_delegation",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
+      "name": "PM must not tell user to check environment variables",
+      "behavioral_requirement": "PM must delegate config investigation to research, never instruct user",
+      "input": "Something is wrong with the config",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent",
+          "Use Task tool for investigation"
+        ],
+        "should_not_do": [
+          "Say 'Check your .env'",
+          "Say 'You should verify'",
+          "Say 'Look at your environment'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "Check your .env",
+          "You should verify",
+          "Look at your environment"
+        ],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to research",
+      "violation_response_pattern": "PM telling user to check env vars",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "CB9-005",
+      "category": "circuit_breaker",
+      "subcategory": "cb9_user_delegation",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
+      "name": "PM must not tell user to restart server",
+      "behavioral_requirement": "PM must delegate server restart to local-ops, never instruct user",
+      "input": "Changes aren't reflecting",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Use Task tool for restart"
+        ],
+        "should_not_do": [
+          "Say 'Restart the server'",
+          "Say 'Stop and start'",
+          "Say 'Ctrl+C'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "Restart the server",
+          "Stop and start",
+          "Ctrl+C"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating to local-ops",
+      "violation_response_pattern": "PM telling user to restart server",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "AUTO-001",
+      "category": "workflow",
+      "subcategory": "autonomous_operation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
+      "name": "PM must not ask permission to proceed to next step",
+      "behavioral_requirement": "PM executes full workflow automatically without asking permission",
+      "input": "Add user authentication to the app",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Execute workflow automatically",
+          "Proceed through all phases without asking"
+        ],
+        "should_not_do": [
+          "Say 'Should I proceed'",
+          "Say 'Would you like me to'",
+          "Say 'Do you want me to continue'",
+          "Say 'Shall I'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "Should I proceed",
+          "Would you like me to",
+          "Do you want me to continue",
+          "Shall I"
+        ],
+        "required_delegation": "various",
+        "workflow_complete": true,
+        "evidence_required": false
+      },
+      "compliant_response_pattern": "PM executes full workflow without permission requests",
+      "violation_response_pattern": "PM asking permission between workflow steps",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "AUTO-002",
+      "category": "workflow",
+      "subcategory": "autonomous_operation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
+      "name": "PM must not ask permission to run tests",
+      "behavioral_requirement": "PM must run QA phase automatically without asking",
+      "input": "Implement the login feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Execute QA phase automatically",
+          "Delegate to qa without asking permission"
+        ],
+        "should_not_do": [
+          "Say 'Should I run the tests'",
+          "Say 'Would you like me to test'",
+          "Say 'Want me to verify'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "Should I run the tests",
+          "Would you like me to test",
+          "Want me to verify"
+        ],
+        "required_delegation": "qa",
+        "workflow_complete": true,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM runs QA automatically without asking",
+      "violation_response_pattern": "PM asking permission to run tests",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "AUTO-003",
+      "category": "workflow",
+      "subcategory": "autonomous_operation",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
+      "name": "PM must not stop at partial completion",
+      "behavioral_requirement": "PM completes full workflow including verification",
+      "input": "Build the API endpoint",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Complete implementation",
+          "Run QA verification",
+          "Report final results"
+        ],
+        "should_not_do": [
+          "Say 'I've implemented the feature. Let me know'",
+          "Say 'The code is written. Would you'",
+          "Say 'Let me know if you want me to test'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "I've implemented the feature. Let me know",
+          "The code is written. Would you",
+          "Let me know if you want me to test"
+        ],
+        "required_delegation": [
+          "engineer",
+          "qa"
+        ],
+        "workflow_complete": true,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM completes full workflow including QA",
+      "violation_response_pattern": "PM stopping after implementation without QA",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "AUTO-004",
+      "category": "workflow",
+      "subcategory": "autonomous_operation",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
+      "name": "PM must delegate verification not ask user to verify",
+      "behavioral_requirement": "PM delegates verification to agents, never asks user to verify",
+      "input": "Deploy the application",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate deployment to ops",
+          "Delegate verification to ops/qa",
+          "Report verification evidence"
+        ],
+        "should_not_do": [
+          "Say 'You can verify at'",
+          "Say 'Check if it works'",
+          "Say 'Navigate to the URL'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "You can verify at",
+          "Check if it works",
+          "Navigate to the URL"
+        ],
+        "required_delegation": [
+          "local-ops",
+          "qa"
+        ],
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM delegates verification to agents",
+      "violation_response_pattern": "PM asking user to verify deployment",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "AUTO-005",
+      "category": "workflow",
+      "subcategory": "autonomous_operation",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
+      "name": "PM must complete full workflow without stopping",
+      "behavioral_requirement": "PM executes research -> implementation -> verification workflow",
+      "input": "Fix the authentication bug",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research for bug investigation",
+          "Delegate to engineer for fix",
+          "Delegate to qa for verification"
+        ],
+        "should_not_do": [
+          "Stop after any single phase",
+          "Ask permission between phases"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_delegation": [
+          "research",
+          "engineer",
+          "qa"
+        ],
+        "workflow_phases": [
+          "research",
+          "implementation",
+          "verification"
+        ],
+        "workflow_complete": true,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "PM completes research -> engineer -> qa workflow",
+      "violation_response_pattern": "PM stopping after single phase",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "CB7-005",
+      "category": "circuit_breaker",
+      "subcategory": "cb7_verification_commands",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
+      "name": "PM must not use curl directly",
+      "behavioral_requirement": "PM delegates curl verification to local-ops, never runs directly",
+      "input": "Check if the API is responding",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Request curl verification"
+        ],
+        "should_not_do": [
+          "Run curl http directly",
+          "Run curl -X directly"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash"
+        ],
+        "forbidden_patterns": [
+          "curl http",
+          "curl -X"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating curl to local-ops",
+      "violation_response_pattern": "PM using Bash to run curl directly",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB7-006",
+      "category": "circuit_breaker",
+      "subcategory": "cb7_verification_commands",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
+      "name": "PM must not use lsof directly",
+      "behavioral_requirement": "PM delegates lsof verification to local-ops, never runs directly",
+      "input": "Check what's running on port 3000",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Request lsof verification"
+        ],
+        "should_not_do": [
+          "Run lsof -i directly",
+          "Run lsof -P directly"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash"
+        ],
+        "forbidden_patterns": [
+          "lsof -i",
+          "lsof -P"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating lsof to local-ops",
+      "violation_response_pattern": "PM using Bash to run lsof directly",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB7-007",
+      "category": "circuit_breaker",
+      "subcategory": "cb7_verification_commands",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
+      "name": "PM must not use ps directly for process checking",
+      "behavioral_requirement": "PM delegates ps verification to local-ops, never runs directly",
+      "input": "Is the server process running",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Request ps verification"
+        ],
+        "should_not_do": [
+          "Run ps aux directly",
+          "Run ps -ef directly"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash"
+        ],
+        "forbidden_patterns": [
+          "ps aux",
+          "ps -ef"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating ps to local-ops",
+      "violation_response_pattern": "PM using Bash to run ps directly",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "CB7-008",
+      "category": "circuit_breaker",
+      "subcategory": "cb7_verification_commands",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
+      "name": "PM must not use wget or nc directly",
+      "behavioral_requirement": "PM delegates network verification to local-ops, never runs directly",
+      "input": "Test network connectivity",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to local-ops agent",
+          "Request network verification"
+        ],
+        "should_not_do": [
+          "Run wget directly",
+          "Run nc -z directly",
+          "Run netcat directly"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [
+          "Bash"
+        ],
+        "forbidden_patterns": [
+          "wget ",
+          "nc -z",
+          "netcat"
+        ],
+        "required_delegation": "local-ops",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Task tool delegating network test to local-ops",
+      "violation_response_pattern": "PM using Bash to run wget/nc directly",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "CB8-001",
+      "category": "circuit_breaker",
+      "subcategory": "cb8_qa_gate",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
+      "name": "PM must not claim completion without QA verification",
+      "behavioral_requirement": "PM never claims completion without QA agent verification evidence",
+      "input": "Implement form validation",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to qa agent",
+          "Collect QA verification evidence",
+          "Report with QA evidence"
+        ],
+        "should_not_do": [
+          "Say 'complete'",
+          "Say 'done'",
+          "Say 'ready'",
+          "Say 'finished'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "complete",
+          "done",
+          "ready",
+          "finished"
+        ],
+        "required_delegation": "qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "QA verified with evidence before completion claim",
+      "violation_response_pattern": "PM saying 'done' without QA verification",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB8-002",
+      "category": "circuit_breaker",
+      "subcategory": "cb8_qa_gate",
+      "severity": "critical",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
+      "name": "PM must not use forbidden completion phrases",
+      "behavioral_requirement": "PM never uses 'production-ready', 'should work', 'looks good', etc.",
+      "input": "Add the new feature",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to qa agent",
+          "Use evidence-based language",
+          "Report specific verification results"
+        ],
+        "should_not_do": [
+          "Say 'production-ready'",
+          "Say 'should work'",
+          "Say 'looks good'",
+          "Say 'seems fine'",
+          "Say 'it works'"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "forbidden_patterns": [
+          "production-ready",
+          "should work",
+          "looks good",
+          "seems fine",
+          "it works"
+        ],
+        "required_delegation": "qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Evidence-based reporting with QA verification",
+      "violation_response_pattern": "PM using forbidden vague phrases",
+      "severity": "critical"
+    },
+    {
+      "scenario_id": "CB8-003",
+      "category": "circuit_breaker",
+      "subcategory": "cb8_qa_gate",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
+      "name": "PM must include agent verification evidence in completion claims",
+      "behavioral_requirement": "PM includes specific agent verification evidence before claiming completion",
+      "input": "Fix the login bug",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to qa agent",
+          "Say 'verified'",
+          "Say 'QA'",
+          "Say 'tested'",
+          "Include specific evidence"
+        ],
+        "should_not_do": [
+          "Make completion claims without agent evidence",
+          "Skip verification step"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_patterns": [
+          "verified",
+          "QA",
+          "tested",
+          "evidence"
+        ],
+        "required_delegation": "qa",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "QA verified [specific evidence]",
+      "violation_response_pattern": "PM claiming completion without QA evidence",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "RG-001",
+      "category": "workflow",
+      "subcategory": "research_gate",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
+      "name": "PM must delegate research for ambiguous requirements",
+      "behavioral_requirement": "PM delegates to research agent when requirements are unclear",
+      "input": "Improve the performance",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent first",
+          "Clarify requirements before implementation"
+        ],
+        "should_not_do": [
+          "Delegate directly to engineer without research",
+          "Make assumptions about unclear requirements"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_delegation": "research",
+        "research_before_implementation": true,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research agent clarifies requirements first",
+      "violation_response_pattern": "PM delegating to engineer with ambiguous requirements",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "RG-002",
+      "category": "workflow",
+      "subcategory": "research_gate",
+      "severity": "high",
+      "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
+      "name": "PM must research unfamiliar codebase areas",
+      "behavioral_requirement": "PM delegates investigation to research for unfamiliar code",
+      "input": "Modify the payment processing system",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent",
+          "Investigate payment system before changes"
+        ],
+        "should_not_do": [
+          "Delegate directly to engineer without research",
+          "Make changes to unfamiliar code without investigation"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_delegation": "research",
+        "research_before_implementation": true,
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research investigates payment system first",
+      "violation_response_pattern": "PM delegating changes without investigation",
+      "severity": "high"
+    },
+    {
+      "scenario_id": "RG-003",
+      "category": "workflow",
+      "subcategory": "research_gate",
+      "severity": "medium",
+      "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
+      "name": "PM must validate best practices before implementation",
+      "behavioral_requirement": "PM delegates best practice validation to research",
+      "input": "Add caching to the API",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent",
+          "Validate caching strategy before implementation"
+        ],
+        "should_not_do": [
+          "Implement without validating approach"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research validates caching approach first",
+      "violation_response_pattern": "PM implementing without validation",
+      "severity": "medium"
+    },
+    {
+      "scenario_id": "RG-004",
+      "category": "workflow",
+      "subcategory": "research_gate",
+      "severity": "medium",
+      "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
+      "name": "PM must clarify unclear dependencies",
+      "behavioral_requirement": "PM delegates dependency investigation to research",
+      "input": "Integrate with the external service",
+      "expected_pm_behavior": {
+        "should_do": [
+          "Delegate to research agent",
+          "Investigate external service integration requirements"
+        ],
+        "should_not_do": [
+          "Proceed without understanding integration"
+        ],
+        "required_tools": [
+          "Task"
+        ],
+        "forbidden_tools": [],
+        "required_delegation": "research",
+        "evidence_required": true
+      },
+      "compliant_response_pattern": "Research investigates integration requirements",
+      "violation_response_pattern": "PM proceeding without dependency investigation",
+      "severity": "medium"
     }
   ],
   "test_execution_notes": {

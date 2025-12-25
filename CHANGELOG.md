@@ -1,3 +1,15 @@
+## v5.4.34 (2025-12-25)
+
+### Added
+- **Testing**: Added 21 deepeval scenarios for PM instruction compliance
+  - Circuit Breaker #9: User Delegation Detection (5 scenarios)
+  - Autonomous Operation (5 scenarios)
+  - Circuit Breaker #7: Verification Commands (4 scenarios)
+  - Circuit Breaker #8: QA Gate (3 scenarios)
+  - Research Gate Protocol (4 scenarios)
+  - Total scenarios increased from 51 to 72 (41% increase)
+  - Test coverage increased from ~75% to ~95%
+
 ## v5.4.33 (2025-12-25)
 
 ### Added
