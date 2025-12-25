@@ -39,7 +39,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "python_engineer.json"
+      template_file: "python-engineer.md"
       category: "engineering"
       tags:
         - python
@@ -76,7 +76,7 @@ agent_capabilities:
     confidence_weight: 0.85
     auto_deploy: true
     metadata:
-      template_file: "typescript_engineer.json"
+      template_file: "typescript-engineer.md"
       category: "engineering"
       tags:
         - typescript
@@ -109,7 +109,7 @@ agent_capabilities:
     confidence_weight: 0.95  # Higher priority than typescript-engineer for Next.js projects
     auto_deploy: true
     metadata:
-      template_file: "nextjs_engineer.json"
+      template_file: "nextjs-engineer.md"
       category: "engineering"
       tags:
         - nextjs
@@ -147,7 +147,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "golang_engineer.json"
+      template_file: "golang-engineer.md"
       category: "engineering"
       tags:
         - golang
@@ -182,7 +182,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "java_engineer.json"
+      template_file: "java-engineer.md"
       category: "engineering"
       tags:
         - java
@@ -212,7 +212,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "rust_engineer.json"
+      template_file: "rust-engineer.md"
       category: "engineering"
       tags:
         - rust
@@ -246,7 +246,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "php-engineer.json"
+      template_file: "php-engineer.md"
       category: "engineering"
       tags:
         - php
@@ -278,7 +278,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "ruby-engineer.json"
+      template_file: "ruby-engineer.md"
       category: "engineering"
       tags:
         - ruby
@@ -315,7 +315,7 @@ agent_capabilities:
     confidence_weight: 0.6  # Lower than specialized agents
     auto_deploy: false  # Only deploy when no better match
     metadata:
-      template_file: "engineer.json"
+      template_file: "engineer.md"
       category: "engineering"
       tags:
         - general
@@ -343,7 +343,7 @@ agent_capabilities:
     confidence_weight: 0.7
     auto_deploy: false
     metadata:
-      template_file: "research.json"
+      template_file: "research.md"
       category: "analysis"
       tags:
         - research
@@ -371,7 +371,7 @@ agent_capabilities:
     confidence_weight: 0.7
     auto_deploy: false
     metadata:
-      template_file: "qa.json"
+      template_file: "qa.md"
       category: "quality_assurance"
       tags:
         - qa
@@ -399,7 +399,7 @@ agent_capabilities:
     confidence_weight: 0.7
     auto_deploy: false
     metadata:
-      template_file: "documentation.json"
+      template_file: "documentation.md"
       category: "documentation"
       tags:
         - documentation
@@ -433,7 +433,7 @@ agent_capabilities:
     confidence_weight: 0.95  # Very high confidence for Vercel projects
     auto_deploy: true
     metadata:
-      template_file: "vercel_ops_agent.json"
+      template_file: "vercel-ops.md"
       category: "devops"
       tags:
         - vercel
@@ -464,7 +464,7 @@ agent_capabilities:
     confidence_weight: 0.9
     auto_deploy: true
     metadata:
-      template_file: "gcp_ops_agent.json"
+      template_file: "gcp-ops.md"
       category: "devops"
       tags:
         - gcp
@@ -494,7 +494,7 @@ agent_capabilities:
     confidence_weight: 0.7  # Lower confidence, fallback option
     auto_deploy: false  # Only deploy when explicitly needed
     metadata:
-      template_file: "local_ops_agent.json"
+      template_file: "local-ops.md"
       category: "devops"
       tags:
         - local
@@ -526,7 +526,7 @@ agent_capabilities:
     confidence_weight: 0.75  # Medium confidence, general fallback
     auto_deploy: false  # Only deploy when explicitly needed
     metadata:
-      template_file: "ops.json"
+      template_file: "ops.md"
       category: "devops"
       tags:
         - devops

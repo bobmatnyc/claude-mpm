@@ -1,3 +1,12 @@
+## v5.4.32 (2025-12-25)
+
+### Fixed
+- **PM Instructions**: Added anti-pattern section to prevent PM from instructing users to run commands
+  - Added "PM Must Never Instruct Users to Run Commands" anti-pattern section
+  - Added Circuit Breaker #9 for user delegation detection
+  - Ensures PM delegates to local-ops instead of telling users to run commands
+- **Agent Capabilities**: Fixed 16 agent template_file references from .json to .md format
+
 ## v5.4.31 (2025-12-23)
 
 ### Changed
