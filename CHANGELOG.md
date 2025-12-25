@@ -1,3 +1,14 @@
+## v5.4.33 (2025-12-25)
+
+### Added
+- **PM Instructions**: Added "Autonomous Operation Principle" section
+  - PM now operates independently until ALL work is complete
+  - 90% success threshold for upfront clarification only
+  - Anti-patterns documented: no nanny coding, permission seeking, or partial completion
+
+### Fixed
+- **Agent Discovery Service**: Fixed misleading ERROR → WARNING for non-critical YAML parsing
+
 ## v5.4.32 (2025-12-25)
 
 ### Fixed
