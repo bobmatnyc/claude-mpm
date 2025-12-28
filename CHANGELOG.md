@@ -1,3 +1,14 @@
+## v5.4.35 (2025-12-28)
+
+### Fixed
+- **Agent Recommender**: Apply default agents when scoring produces empty recommendations
+  - Previously, default agents only applied when language was "unknown"
+  - Now defaults apply for any empty result, including:
+    - Language detected but no frameworks (score below threshold)
+    - Unknown deployment environments
+    - New/unsupported toolchains
+  - Fixes auto-configuration failure on plain Python projects
+
 ## v5.4.34 (2025-12-25)
 
 ### Added

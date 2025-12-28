@@ -226,9 +226,11 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         if max_agents is not None:
             recommendations = recommendations[:max_agents]
 
-        # Check if toolchain is unknown and we have no recommendations
-        if not recommendations and toolchain.primary_language.lower() == "unknown":
-            self.logger.info("Toolchain unknown - applying default configuration")
+        # Check if we have no recommendations (any reason: unknown language, low scores, etc.)
+        if not recommendations:
+            self.logger.info(
+                f"No agents scored above threshold for {toolchain.primary_language}; using defaults"
+            )
 
             # Get default configuration
             default_config = self._capabilities_config.get("default_configuration", {})
