@@ -1,3 +1,10 @@
+## v5.4.37 (2025-12-28)
+
+### Fixed
+- **Agent List Display**: Add installed/total count summary to agent list
+  - Shows "📊 Agents: XX Installed / YY Total" after table
+  - Provides quick visibility into deployment status
+
 ## v5.4.36 (2025-12-28)
 
 ### Fixed

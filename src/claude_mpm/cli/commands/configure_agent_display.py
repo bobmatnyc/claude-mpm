@@ -83,12 +83,19 @@ class AgentDisplay:
         # Get deployed agent IDs
         deployed_ids = get_deployed_agent_ids()
 
+        # Track installed count for summary
+        installed_count = 0
+
         for idx, agent in enumerate(agents, 1):
             # Check if agent is deployed to .claude/agents/
             # Use agent_id (technical ID) for comparison, not display name
             agent_id = getattr(agent, "agent_id", agent.name)
             agent_leaf_name = agent_id.split("/")[-1]
             is_deployed = agent_leaf_name in deployed_ids
+
+            # Increment installed count
+            if is_deployed:
+                installed_count += 1
 
             # Show "Installed" for deployed agents, "Available" otherwise
             status = "[green]Installed[/green]" if is_deployed else "Available"
@@ -123,6 +130,9 @@ class AgentDisplay:
             table.add_row(str(idx), agent.name, status, desc_display, tools_display)
 
         self.console.print(table)
+
+        # Display summary count
+        self.console.print(f"\n📊 Agents: {installed_count} Installed / {len(agents)} Total")
 
     def display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
         """Display agents table with pending state indicators.
