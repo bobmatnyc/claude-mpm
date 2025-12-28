@@ -658,11 +658,23 @@ class AgentDependencyLoader:
                 "Robust installer not available, falling back to simple installation"
             )
             try:
-                cmd = [sys.executable, "-m", "pip", "install"]
-
                 # Check environment and add appropriate flags
                 import os
                 import sysconfig
+
+                # Check if in UV tool environment (no pip available)
+                uv_tool_dir = os.environ.get("UV_TOOL_DIR", "")
+                is_uv_tool = (
+                    (uv_tool_dir and "claude-mpm" in uv_tool_dir)
+                    or ".local/share/uv/tools/" in sys.executable
+                    or "/uv/tools/" in sys.executable
+                )
+
+                if is_uv_tool:
+                    cmd = ["uv", "pip", "install"]
+                    logger.debug("Using 'uv pip install' for UV tool environment")
+                else:
+                    cmd = [sys.executable, "-m", "pip", "install"]
 
                 # Check if in virtualenv
                 in_virtualenv = (

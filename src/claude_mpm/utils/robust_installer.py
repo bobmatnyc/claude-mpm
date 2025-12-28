@@ -82,6 +82,7 @@ class RobustPackageInstaller:
         self.attempts: List[InstallAttempt] = []
         self.success_cache: Dict[str, bool] = {}
         self.in_virtualenv = self._check_virtualenv()
+        self.is_uv_tool = self._check_uv_tool_installation()
         self.is_pep668_managed = self._check_pep668_managed()
         self.pep668_warning_shown = False
 
@@ -261,6 +262,36 @@ class RobustPackageInstaller:
 
         return False
 
+    def _check_uv_tool_installation(self) -> bool:
+        """
+        Check if running in UV tool environment (no pip available).
+
+        WHY: UV tool environments don't have pip installed. The executable
+        path typically contains ".local/share/uv/tools/" and the UV_TOOL_DIR
+        environment variable is set. In such environments, we need to use
+        'uv pip' instead of 'python -m pip'.
+
+        Returns:
+            True if UV tool environment, False otherwise
+        """
+        import os
+
+        # Check UV_TOOL_DIR environment variable
+        uv_tool_dir = os.environ.get("UV_TOOL_DIR", "")
+        if uv_tool_dir and "claude-mpm" in uv_tool_dir:
+            logger.debug(f"UV tool environment detected via UV_TOOL_DIR: {uv_tool_dir}")
+            return True
+
+        # Check executable path for UV tool patterns
+        executable = sys.executable
+        if ".local/share/uv/tools/" in executable or "/uv/tools/" in executable:
+            logger.debug(
+                f"UV tool environment detected via executable path: {executable}"
+            )
+            return True
+
+        return False
+
     def _show_pep668_warning(self) -> None:
         """
         Show warning about PEP 668 managed environment.
@@ -301,7 +332,12 @@ class RobustPackageInstaller:
         Returns:
             Command as list of arguments
         """
-        base_cmd = [sys.executable, "-m", "pip", "install"]
+        # UV tool environments don't have pip; use uv pip instead
+        if self.is_uv_tool:
+            base_cmd = ["uv", "pip", "install"]
+            logger.debug("Using 'uv pip install' for UV tool environment")
+        else:
+            base_cmd = [sys.executable, "-m", "pip", "install"]
 
         # Determine appropriate flags based on environment
         if self.in_virtualenv:
@@ -651,7 +687,12 @@ class RobustPackageInstaller:
             Tuple of (success, error_message)
         """
         try:
-            cmd = [sys.executable, "-m", "pip", "install"]
+            # UV tool environments don't have pip; use uv pip instead
+            if self.is_uv_tool:
+                cmd = ["uv", "pip", "install"]
+                logger.debug("Using 'uv pip install' for batch installation")
+            else:
+                cmd = [sys.executable, "-m", "pip", "install"]
 
             # Add appropriate flags based on environment
             if self.in_virtualenv:
@@ -702,7 +743,10 @@ class RobustPackageInstaller:
 
         # Add environment status
         lines.append("")
-        if self.in_virtualenv:
+        if self.is_uv_tool:
+            lines.append("✓ Environment: UV Tool Environment")
+            lines.append("  Using 'uv pip' command (pip not available)")
+        elif self.in_virtualenv:
             lines.append("✓ Environment: Virtual Environment (isolated)")
             lines.append("  No special pip flags needed")
         elif self.is_pep668_managed:

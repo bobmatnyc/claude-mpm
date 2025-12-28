@@ -1,3 +1,12 @@
+## v5.4.36 (2025-12-28)
+
+### Fixed
+- **Dependency Installer**: Detect UV tool environments and use uv pip for installations
+  - UV tool environments don't have pip module available
+  - Detects UV environments via UV_TOOL_DIR variable or executable path
+  - Uses 'uv pip install' instead of 'python -m pip install'
+  - Fixes "No module named pip" error in UV tool installations
+
 ## v5.4.35 (2025-12-28)
 
 ### Fixed
