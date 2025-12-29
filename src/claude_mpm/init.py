@@ -163,12 +163,75 @@ class ProjectInitializer:
                         f"✓ Found {agent_count} project agent(s) in .claude-mpm/agents/"
                     )
 
+            # Verify and deploy PM skills (non-blocking)
+            self._verify_and_deploy_pm_skills(project_root, is_mcp_mode)
+
             return True
 
         except Exception as e:
             self.logger.error(f"Failed to initialize project directory: {e}")
             print(f"✗ Failed to create .claude-mpm/ directory: {e}")
             return False
+
+    def _verify_and_deploy_pm_skills(
+        self, project_root: Path, is_mcp_mode: bool = False
+    ) -> None:
+        """Verify PM skills are deployed and auto-deploy if missing.
+
+        Non-blocking operation that gracefully handles errors.
+
+        Args:
+            project_root: Project root directory
+            is_mcp_mode: Whether running in MCP mode (suppress console output)
+        """
+        try:
+            from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
+
+            deployer = PMSkillsDeployerService()
+            result = deployer.verify_pm_skills(project_root)
+
+            if not result.verified:
+                # Log warnings
+                for warning in result.warnings:
+                    self.logger.warning(warning)
+
+                # Auto-deploy PM skills
+                self.logger.info("Auto-deploying PM skills...")
+                deploy_result = deployer.deploy_pm_skills(project_root)
+
+                if deploy_result.success:
+                    self.logger.info(
+                        f"PM skills deployed: {len(deploy_result.deployed)} deployed, "
+                        f"{len(deploy_result.skipped)} skipped"
+                    )
+
+                    # Print to console if not in MCP mode
+                    if not is_mcp_mode:
+                        if deploy_result.deployed:
+                            print(
+                                f"✓ Deployed {len(deploy_result.deployed)} PM skill(s) "
+                                f"to .claude-mpm/skills/pm/"
+                            )
+                else:
+                    self.logger.warning(
+                        f"PM skills deployment had errors: {len(deploy_result.errors)}"
+                    )
+                    if not is_mcp_mode and deploy_result.errors:
+                        print(f"⚠ PM skills deployment had {len(deploy_result.errors)} error(s)")
+            else:
+                # Skills verified successfully
+                registry = deployer._load_registry(project_root)
+                skill_count = len(registry.get("skills", []))
+                self.logger.debug(f"PM skills verified: {skill_count} skills")
+
+                if not is_mcp_mode and skill_count > 0:
+                    print(f"✓ Verified {skill_count} PM skill(s)")
+
+        except ImportError:
+            self.logger.debug("PM skills deployer not available")
+        except Exception as e:
+            self.logger.warning(f"PM skills verification failed: {e}")
+            # Don't print to console - this is a non-critical failure
 
     def _migrate_project_agents(self):
         """Migrate agents from old subdirectory structure to direct agents directory.

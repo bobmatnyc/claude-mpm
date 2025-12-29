@@ -203,6 +203,10 @@ class MPMInitCommand:
             if update_mode and result.get("status") == OperationResult.SUCCESS:
                 self._handle_update_post_processing()
 
+            # Deploy PM skills after successful initialization
+            if result.get("status") == OperationResult.SUCCESS:
+                self._deploy_pm_skills()
+
             return result
 
         except Exception as e:
@@ -682,6 +686,53 @@ class MPMInitCommand:
         This is a rough estimate but sufficient for displaying progress.
         """
         return len(text) // 4
+
+    def _deploy_pm_skills(self) -> None:
+        """Deploy PM skills templates to project .claude-mpm directory.
+
+        Copies PM skills from bundled templates to .claude-mpm/skills/pm/
+        with version tracking and checksum validation.
+        """
+        try:
+            from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
+
+            self.console.print("\n[cyan]Deploying PM skills templates...[/cyan]")
+
+            deployer = PMSkillsDeployerService()
+            result = deployer.deploy_pm_skills(self.project_path)
+
+            if result.success:
+                if result.deployed:
+                    self.console.print(
+                        f"[green]✓ Deployed {len(result.deployed)} PM skills[/green]"
+                    )
+                    for skill_name in result.deployed:
+                        self.console.print(f"  • {skill_name}")
+
+                if result.skipped:
+                    self.console.print(
+                        f"[dim]  Skipped {len(result.skipped)} (already deployed)[/dim]"
+                    )
+
+                if result.errors:
+                    self.console.print(f"[yellow]⚠️  {len(result.errors)} errors:[/yellow]")
+                    for error in result.errors[:3]:  # Show first 3 errors
+                        self.console.print(f"  • {error['skill']}: {error['error']}")
+            else:
+                self.console.print(
+                    f"[yellow]⚠️  PM skills deployment had errors: {result.message}[/yellow]"
+                )
+
+        except ImportError as e:
+            logger.warning(f"PM skills deployer not available: {e}")
+            self.console.print(
+                "[yellow]⚠️  PM skills deployment skipped (service not available)[/yellow]"
+            )
+        except Exception as e:
+            logger.error(f"Failed to deploy PM skills: {e}")
+            self.console.print(
+                f"[yellow]⚠️  PM skills deployment failed: {e}[/yellow]"
+            )
 
 
 __all__ = ["MPMInitCommand"]

@@ -165,6 +165,9 @@ class OptimizedStartup:
             # Just setup agent registry, load on demand
             self._setup_agent_registry()
 
+        # Verify PM skills after agent setup (non-blocking)
+        self._verify_pm_skills()
+
         elapsed = time.time() - phase_start
         self.metrics.phases["agents"] = elapsed
         self.metrics.agent_time = elapsed
@@ -197,6 +200,62 @@ class OptimizedStartup:
         self.logger.info(f"Async startup completed in {self.metrics.total_time:.2f}s")
 
         return self.metrics
+
+    def _verify_pm_skills(self) -> None:
+        """Verify PM skills are deployed. Non-blocking with warnings."""
+        try:
+            from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
+
+            deployer = PMSkillsDeployerService()
+            project_dir = Path.cwd()
+
+            result = deployer.verify_pm_skills(project_dir)
+
+            if not result.verified:
+                for warning in result.warnings:
+                    self.logger.warning(warning)
+
+                # Check if auto-deploy is enabled
+                if self._should_auto_deploy_pm_skills():
+                    self.logger.info("Auto-deploying PM skills...")
+                    deploy_result = deployer.deploy_pm_skills(project_dir)
+                    if deploy_result.success:
+                        self.logger.info(
+                            f"PM skills deployed: {len(deploy_result.deployed)} deployed, "
+                            f"{len(deploy_result.skipped)} skipped"
+                        )
+                    else:
+                        self.logger.warning(
+                            f"PM skills deployment had errors: {len(deploy_result.errors)}"
+                        )
+            else:
+                # Count skills from registry
+                registry = deployer._load_registry(project_dir)
+                skill_count = len(registry.get("skills", []))
+                self.logger.debug(f"PM skills verified: {skill_count} skills")
+
+        except ImportError:
+            self.logger.debug("PM skills deployer not available")
+        except Exception as e:
+            self.logger.warning(f"PM skills verification failed: {e}")
+
+    def _should_auto_deploy_pm_skills(self) -> bool:
+        """Check if auto-deploy is enabled via config.
+
+        Returns:
+            True if auto-deploy should be performed (default: True for convenience)
+        """
+        # Default to True for convenience - PM skills are essential for PM agents
+        # Users can disable by setting environment variable or config
+        import os
+
+        # Check environment variable override
+        env_disable = os.environ.get("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", "").lower()
+        if env_disable in ("1", "true", "yes"):
+            return False
+
+        # Default to enabled
+        return True
 
     def _setup_logging(self):
         """Setup basic logging (critical path)."""
