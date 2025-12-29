@@ -545,12 +545,13 @@ def sync_remote_agents_on_startup():
                     cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
                     if cache_dir.exists():
                         # Find all agent files
+                        # Supports both flat cache and {owner}/{repo}/agents/ structure
                         all_agent_files = [
                             f
                             for f in cache_dir.rglob("*.md")
                             if "/agents/" in str(f)
-                            and str(f).count("/agents/") == 1
                             and f.stem.lower() != "base-agent"
+                            and f.name.lower() not in {"readme.md", "changelog.md", "contributing.md"}
                         ]
 
                         # Build exclusion list for agents not in profile
@@ -674,8 +675,8 @@ def sync_remote_agents_on_startup():
                     all_md_files = list(cache_dir.rglob("*.md"))
 
                     # Filter to only agent files:
-                    # 1. Must have "/agents/" in path exactly ONCE
-                    #    (current structure)
+                    # 1. Must have "/agents/" in path (current structure supports
+                    #    both flat and {owner}/{repo}/agents/ patterns)
                     # 2. Must not be in PM templates or doc files
                     # 3. Exclude BASE-AGENT.md which is not a deployable agent
                     # 4. Exclude build artifacts (dist/, build/, .cache/)
@@ -684,14 +685,10 @@ def sync_remote_agents_on_startup():
                         f
                         for f in all_md_files
                         if (
-                            # Must be in an agent directory (from current
-                            # cache structure)
+                            # Must be in an agent directory
+                            # Supports: cache/agents/{category}/... (flat)
+                            # Supports: cache/agents/{owner}/{repo}/agents/{category}/... (GitHub sync)
                             "/agents/" in str(f)
-                            # NEW: Only ONE /agents/ in path (excludes old
-                            # nested repos)
-                            # This prevents counting old caches like
-                            # bobmatnyc/claude-mpm-agents/agents/...
-                            and str(f).count("/agents/") == 1
                             # Exclude PM templates, doc files, and BASE-AGENT
                             and f.name.lower() not in pm_templates
                             and f.name.lower() not in doc_files

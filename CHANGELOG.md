@@ -1,3 +1,12 @@
+## [5.4.44] - 2025-12-29
+
+### Fixed
+- **Agent Discovery**: Support nested `{owner}/{repo}/agents/` cache structure
+  - Fixed RemoteAgentDiscoveryService to find agents in GitHub sync cache
+  - Updated startup agent counting to support both flat and nested structures
+  - Agents now correctly discovered and deployed to `.claude/agents/`
+  - Fixes "29 deployed / 0 cached" but "/agents shows nothing" issue
+
 ## [5.4.43] - 2025-12-29
 
 ### Fixed

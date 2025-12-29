@@ -402,10 +402,11 @@ class RemoteAgentDiscoveryService:
             )
             return agents
 
-        # Support three cache structures (PRIORITY ORDER):
+        # Support four cache structures (PRIORITY ORDER):
         # 1. Built output: {path}/dist/agents/ - PREFERRED (built with BASE-AGENT composition)
         # 2. Git repo path: {path}/agents/ - source files (fallback)
-        # 3. Flattened cache: {path}/ - directly contains category directories (legacy)
+        # 3. Owner/repo structure: {path}/{owner}/{repo}/agents/ - GitHub sync structure
+        # 4. Flattened cache: {path}/ - directly contains category directories (legacy)
 
         # Priority 1: Check for dist/agents/ (built output with BASE-AGENT composition)
         dist_agents_dir = self.agents_cache_dir / "dist" / "agents"
@@ -422,32 +423,52 @@ class RemoteAgentDiscoveryService:
             self.logger.debug(f"Using source agents (no dist/ found): {agents_dir}")
             scan_dir = agents_dir
         else:
-            # LEGACY: Flattened cache structure - scan root directly
-            # Check if this looks like the flattened cache (has category subdirectories)
-            category_dirs = [
-                "universal",
-                "engineer",
-                "ops",
-                "qa",
-                "security",
-                "documentation",
-            ]
-            has_categories = any(
-                (self.agents_cache_dir / cat).exists() for cat in category_dirs
-            )
+            # Priority 3: Check for {owner}/{repo}/agents/ structure (GitHub sync)
+            # e.g., ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/
+            owner_repo_agents_dir = None
+            for owner_dir in self.agents_cache_dir.iterdir():
+                if owner_dir.is_dir() and not owner_dir.name.startswith("."):
+                    for repo_dir in owner_dir.iterdir():
+                        if repo_dir.is_dir():
+                            potential_agents = repo_dir / "agents"
+                            if potential_agents.exists():
+                                owner_repo_agents_dir = potential_agents
+                                self.logger.debug(
+                                    f"Using GitHub sync structure: {owner_repo_agents_dir}"
+                                )
+                                break
+                    if owner_repo_agents_dir:
+                        break
 
-            if has_categories:
-                self.logger.debug(
-                    f"Using flattened cache structure: {self.agents_cache_dir}"
-                )
-                scan_dir = self.agents_cache_dir
+            if owner_repo_agents_dir:
+                scan_dir = owner_repo_agents_dir
             else:
-                self.logger.warning(
-                    f"No agent directories found. Checked: {dist_agents_dir}, {agents_dir}, "
-                    f"and category directories in {self.agents_cache_dir}. "
-                    f"Expected agents in /dist/agents/, /agents/, or category directories."
+                # LEGACY: Flattened cache structure - scan root directly
+                # Check if this looks like the flattened cache (has category subdirectories)
+                category_dirs = [
+                    "universal",
+                    "engineer",
+                    "ops",
+                    "qa",
+                    "security",
+                    "documentation",
+                ]
+                has_categories = any(
+                    (self.agents_cache_dir / cat).exists() for cat in category_dirs
                 )
-                return agents
+
+                if has_categories:
+                    self.logger.debug(
+                        f"Using flattened cache structure: {self.agents_cache_dir}"
+                    )
+                    scan_dir = self.agents_cache_dir
+                else:
+                    self.logger.warning(
+                        f"No agent directories found. Checked: {dist_agents_dir}, {agents_dir}, "
+                        f"owner/repo/agents/ structure, and category directories in {self.agents_cache_dir}. "
+                        f"Expected agents in /dist/agents/, /agents/, {owner}/{repo}/agents/, or category directories."
+                    )
+                    return agents
 
         # Find all Markdown files recursively
         md_files = list(scan_dir.rglob("*.md"))
