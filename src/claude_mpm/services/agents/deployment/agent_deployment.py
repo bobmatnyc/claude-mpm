@@ -954,6 +954,23 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                         f"All {len(comparison_results.get('up_to_date', []))} agents are up to date"
                     )
 
+        # Cleanup excluded agents (remove agents not in deployment list)
+        # This ensures agents filtered out by profile configuration are removed
+        exclusion_cleanup_results = self.multi_source_service.cleanup_excluded_agents(
+            deployed_agents_dir=agents_dir,
+            agents_to_deploy=agents_to_deploy,
+        )
+
+        # Add exclusion cleanup results to main cleanup results
+        if exclusion_cleanup_results.get("removed"):
+            cleanup_results.setdefault("excluded_removed", []).extend(
+                exclusion_cleanup_results["removed"]
+            )
+            self.logger.info(
+                f"Removed {len(exclusion_cleanup_results['removed'])} excluded agents: "
+                f"{', '.join(exclusion_cleanup_results['removed'])}"
+            )
+
         # Convert to list of Path objects
         template_files = list(agents_to_deploy.values())
 

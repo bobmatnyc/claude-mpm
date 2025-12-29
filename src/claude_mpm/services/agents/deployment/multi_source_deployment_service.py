@@ -601,6 +601,105 @@ class MultiSourceAgentDeploymentService:
 
         return agents_to_deploy, agent_sources, cleanup_results
 
+    def cleanup_excluded_agents(
+        self,
+        deployed_agents_dir: Path,
+        agents_to_deploy: Dict[str, Path],
+    ) -> Dict[str, Any]:
+        """Remove agents from deployed directory that aren't in the deployment list.
+
+        Similar to skill cleanup logic, this removes agents that were previously
+        deployed but are no longer in the enabled agents list (e.g., filtered out
+        by profile configuration).
+
+        Args:
+            deployed_agents_dir: Directory containing deployed agents (~/.claude/agents)
+            agents_to_deploy: Dictionary mapping agent file stems to template paths
+
+        Returns:
+            Dictionary with cleanup results:
+            - removed: List of removed agent names
+            - errors: List of errors during cleanup
+        """
+        cleanup_results = {"removed": [], "errors": []}
+
+        # Safety check - only operate on deployed agents directory
+        if not deployed_agents_dir.exists():
+            self.logger.debug("Deployed agents directory does not exist, no cleanup needed")
+            return cleanup_results
+
+        # Build set of agent names that should exist (file stems without .md extension)
+        expected_agents = set(agents_to_deploy.keys())
+
+        try:
+            # Check each file in deployed_agents_dir
+            for item in deployed_agents_dir.iterdir():
+                # Only process .md files
+                if not item.is_file() or item.suffix != ".md":
+                    continue
+
+                # Skip hidden files
+                if item.name.startswith("."):
+                    continue
+
+                # Get agent name (file stem)
+                agent_name = item.stem
+
+                # Check if this agent should be kept
+                if agent_name not in expected_agents:
+                    try:
+                        # Security: Validate path is within deployed_agents_dir
+                        resolved_item = item.resolve()
+                        resolved_target = deployed_agents_dir.resolve()
+
+                        if not str(resolved_item).startswith(str(resolved_target)):
+                            self.logger.error(
+                                f"Refusing to remove path outside target directory: {item}"
+                            )
+                            cleanup_results["errors"].append(
+                                {
+                                    "agent": agent_name,
+                                    "error": "Path outside target directory",
+                                }
+                            )
+                            continue
+
+                        # Remove the agent file
+                        item.unlink()
+                        cleanup_results["removed"].append(agent_name)
+                        self.logger.info(f"Removed excluded agent: {agent_name}")
+
+                    except PermissionError as e:
+                        error_msg = f"Permission denied removing {agent_name}: {e}"
+                        self.logger.error(error_msg)
+                        cleanup_results["errors"].append(
+                            {"agent": agent_name, "error": error_msg}
+                        )
+                    except Exception as e:
+                        error_msg = f"Error removing {agent_name}: {e}"
+                        self.logger.error(error_msg)
+                        cleanup_results["errors"].append(
+                            {"agent": agent_name, "error": error_msg}
+                        )
+
+        except Exception as e:
+            self.logger.error(f"Error during agent cleanup: {e}")
+            cleanup_results["errors"].append(
+                {"agent": "cleanup_process", "error": str(e)}
+            )
+
+        # Log cleanup summary
+        if cleanup_results["removed"]:
+            self.logger.info(
+                f"Cleanup complete: removed {len(cleanup_results['removed'])} excluded agents"
+            )
+        if cleanup_results["errors"]:
+            self.logger.warning(
+                f"Encountered {len(cleanup_results['errors'])} errors during cleanup"
+            )
+
+        return cleanup_results
+
     def cleanup_outdated_user_agents(
         self,
         agents_by_name: Dict[str, List[Dict[str, Any]]],
