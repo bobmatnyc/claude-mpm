@@ -1,3 +1,12 @@
+## [5.4.49] - 2025-12-29
+
+### Fixed
+- **Selective Skill Deployment**: Fixed path matching for agent-referenced skills
+  - Use configuration-based skill discovery instead of agent frontmatter scanning
+  - Added path normalization to match skills by source_path
+  - Skills now correctly deployed as individual directories
+  - Fixed "0/108 skills" bug caused by path format mismatch
+
 ## [5.4.48] - 2025-12-29
 
 ### Changed

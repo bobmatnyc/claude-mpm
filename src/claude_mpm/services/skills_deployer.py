@@ -174,44 +174,64 @@ class SkillsDeployerService(LoggerMixin):
         if selective:
             # Auto-detect project root if not provided
             if project_root is None:
-                # Try to find project root by looking for .claude directory
+                # Try to find project root by looking for .claude-mpm directory
                 # Start from current directory and walk up
                 current = Path.cwd()
                 while current != current.parent:
-                    if (current / ".claude").exists():
+                    if (current / ".claude-mpm").exists():
                         project_root = current
                         break
                     current = current.parent
 
+            # Read skills from configuration.yaml instead of agent frontmatter
             if project_root:
-                agents_dir = Path(project_root) / ".claude" / "agents"
+                config_path = Path(project_root) / ".claude-mpm" / "configuration.yaml"
             else:
-                # Fallback to current directory's .claude/agents
-                agents_dir = Path.cwd() / ".claude" / "agents"
+                # Fallback to current directory's configuration
+                config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
 
             from claude_mpm.services.skills.selective_skill_deployer import (
-                get_required_skills_from_agents,
+                get_skills_to_deploy,
             )
 
-            required_skill_names = get_required_skills_from_agents(agents_dir)
+            required_skill_names, source = get_skills_to_deploy(config_path)
 
             if required_skill_names:
+                # Convert required_skill_names to a set for O(1) lookup
+                required_set = set(required_skill_names)
+
                 # Filter to only required skills
-                # Match on either 'name' or 'skill_id' field
-                filtered_skills = [
-                    s
-                    for s in filtered_skills
-                    if s.get("name") in required_skill_names
-                    or s.get("skill_id") in required_skill_names
-                ]
+                # Match on: 'name', 'skill_id', or normalized 'source_path'
+                # source_path example: "universal/web/api-design-patterns/SKILL.md"
+                # normalized: "universal-web-api-design-patterns"
+                def skill_matches_requirement(skill):
+                    # Check basic name and skill_id
+                    if skill.get("name") in required_set:
+                        return True
+                    if skill.get("skill_id") in required_set:
+                        return True
+
+                    # Check normalized source_path
+                    source_path = skill.get("source_path", "")
+                    if source_path:
+                        # Remove /SKILL.md suffix and replace / with -
+                        normalized = (
+                            source_path.replace("/SKILL.md", "").replace("/", "-")
+                        )
+                        if normalized in required_set:
+                            return True
+
+                    return False
+
+                filtered_skills = [s for s in filtered_skills if skill_matches_requirement(s)]
 
                 self.logger.info(
                     f"Selective deployment: {len(filtered_skills)}/{total_available} skills "
-                    f"(agent-referenced only)"
+                    f"(source: {source})"
                 )
             else:
                 self.logger.warning(
-                    f"No skills found in agent frontmatter at {agents_dir}. "
+                    f"No skills found in configuration at {config_path}. "
                     f"Deploying all {total_available} skills."
                 )
         else:
@@ -224,12 +244,19 @@ class SkillsDeployerService(LoggerMixin):
         skipped = []
         errors = []
 
-        # Extract skill names for cleanup (needed regardless of deployment outcome)
-        filtered_skills_names = [
-            skill["name"]
-            for skill in filtered_skills
-            if isinstance(skill, dict) and "name" in skill
-        ]
+        # Extract normalized skill names for cleanup (needed regardless of deployment outcome)
+        # Must match the names used during deployment (normalized from source_path)
+        filtered_skills_names = []
+        for skill in filtered_skills:
+            if isinstance(skill, dict) and "name" in skill:
+                source_path = skill.get("source_path", "")
+                if source_path:
+                    # Normalize: "universal/web/api-design-patterns/SKILL.md" -> "universal-web-api-design-patterns"
+                    normalized = source_path.replace("/SKILL.md", "").replace("/", "-")
+                    filtered_skills_names.append(normalized)
+                else:
+                    # Fallback to skill name
+                    filtered_skills_names.append(skill["name"])
 
         for skill in filtered_skills:
             try:
@@ -243,9 +270,21 @@ class SkillsDeployerService(LoggerMixin):
                     skill, skills_data["temp_dir"], collection_name, force=force
                 )
                 if result["deployed"]:
-                    deployed.append(skill["name"])
+                    # Use normalized name for reporting
+                    source_path = skill.get("source_path", "")
+                    if source_path:
+                        normalized = source_path.replace("/SKILL.md", "").replace("/", "-")
+                        deployed.append(normalized)
+                    else:
+                        deployed.append(skill["name"])
                 elif result["skipped"]:
-                    skipped.append(skill["name"])
+                    # Use normalized name for reporting
+                    source_path = skill.get("source_path", "")
+                    if source_path:
+                        normalized = source_path.replace("/SKILL.md", "").replace("/", "-")
+                        skipped.append(normalized)
+                    else:
+                        skipped.append(skill["name"])
                 if result["error"]:
                     errors.append(result["error"])
             except Exception as e:
@@ -805,54 +844,75 @@ class SkillsDeployerService(LoggerMixin):
             Dict with deployed, skipped, error flags
         """
         skill_name = skill["name"]
-        target_dir = self.CLAUDE_SKILLS_DIR / skill_name
+
+        # Use normalized source_path for both target directory and deployment tracking
+        # This ensures consistency with configuration.yaml skill names
+        source_path = skill.get("source_path", "")
+        if source_path:
+            # Normalize: "universal/web/api-design-patterns/SKILL.md" -> "universal-web-api-design-patterns"
+            normalized_name = source_path.replace("/SKILL.md", "").replace("/", "-")
+            target_dir = self.CLAUDE_SKILLS_DIR / normalized_name
+        else:
+            # Fallback to skill name if no source_path
+            target_dir = self.CLAUDE_SKILLS_DIR / skill_name
 
         # Check if already deployed
         if target_dir.exists() and not force:
             self.logger.debug(f"Skipped {skill_name} (already deployed)")
             return {"deployed": False, "skipped": True, "error": None}
 
-        # Find skill source in collection directory
-        # Updated structure: collection_dir / skills / category / skill-name
-        # OR: collection_dir / universal / skill-name
-        # OR: collection_dir / toolchains / toolchain-name / skill-name
-
-        skills_base = collection_dir / "skills"
-        category = skill.get("category", "")
-
-        # Try multiple possible locations
+        # Find skill source using source_path from manifest
         source_dir = None
-        search_paths = []
 
-        # Try category-based path
-        if category and skills_base.exists():
-            search_paths.append(skills_base / category / skill_name)
+        if source_path:
+            # Direct lookup using source_path (most reliable)
+            # Example: "universal/web/api-design-patterns/SKILL.md" -> "universal/web/api-design-patterns"
+            skill_dir_path = source_path.replace("/SKILL.md", "")
+            potential_source = collection_dir / skill_dir_path
+            if potential_source.exists():
+                source_dir = potential_source
+            else:
+                self.logger.debug(
+                    f"Source path {skill_dir_path} not found, trying fallback search"
+                )
 
-        # Try universal/toolchains structure
-        if (collection_dir / "universal").exists():
-            search_paths.append(collection_dir / "universal" / skill_name)
+        # Fallback: search using old logic (for backward compatibility)
+        if not source_dir:
+            skills_base = collection_dir / "skills"
+            category = skill.get("category", "")
 
-        if (collection_dir / "toolchains").exists():
-            toolchain_dir = collection_dir / "toolchains"
-            for tc in toolchain_dir.iterdir():
-                if tc.is_dir():
-                    search_paths.append(tc / skill_name)
+            # Try multiple possible locations
+            search_paths = []
 
-        # Search in all possible locations
-        for path in search_paths:
-            if path.exists():
-                source_dir = path
-                break
+            # Try category-based path
+            if category and skills_base.exists():
+                search_paths.append(skills_base / category / skill_name)
 
-        # Fallback: search recursively for skill in skills directory
-        if not source_dir and skills_base.exists():
-            for cat_dir in skills_base.iterdir():
-                if not cat_dir.is_dir():
-                    continue
-                potential = cat_dir / skill_name
-                if potential.exists():
-                    source_dir = potential
+            # Try universal/toolchains structure
+            if (collection_dir / "universal").exists():
+                search_paths.append(collection_dir / "universal" / skill_name)
+
+            if (collection_dir / "toolchains").exists():
+                toolchain_dir = collection_dir / "toolchains"
+                for tc in toolchain_dir.iterdir():
+                    if tc.is_dir():
+                        search_paths.append(tc / skill_name)
+
+            # Search in all possible locations
+            for path in search_paths:
+                if path.exists():
+                    source_dir = path
                     break
+
+            # Final fallback: search recursively for skill in skills directory
+            if not source_dir and skills_base.exists():
+                for cat_dir in skills_base.iterdir():
+                    if not cat_dir.is_dir():
+                        continue
+                    potential = cat_dir / skill_name
+                    if potential.exists():
+                        source_dir = potential
+                        break
 
         if not source_dir or not source_dir.exists():
             return {
@@ -888,12 +948,14 @@ class SkillsDeployerService(LoggerMixin):
             # NOTE: We use copy instead of symlink to maintain Claude Code compatibility
             shutil.copytree(source_dir, target_dir)
 
-            # Track deployment in index
+            # Track deployment in index using normalized name
             from claude_mpm.services.skills.selective_skill_deployer import (
                 track_deployed_skill,
             )
 
-            track_deployed_skill(self.CLAUDE_SKILLS_DIR, skill_name, collection_name)
+            # Use normalized name for tracking (matches configuration.yaml format)
+            track_name = normalized_name if source_path else skill_name
+            track_deployed_skill(self.CLAUDE_SKILLS_DIR, track_name, collection_name)
 
             self.logger.debug(
                 f"Deployed {skill_name} from {source_dir} to {target_dir}"
