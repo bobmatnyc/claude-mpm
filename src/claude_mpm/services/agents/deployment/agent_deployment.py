@@ -898,6 +898,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             )
         )
 
+        # Keep track of all enabled agents before filtering (for cleanup)
+        all_enabled_agents = agents_to_deploy.copy()
+
         # Compare with deployed versions if agents directory exists
         if agents_dir.exists():
             comparison_results = self.multi_source_service.compare_deployed_versions(
@@ -955,10 +958,12 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                     )
 
         # Cleanup excluded agents (remove agents not in deployment list)
-        # This ensures agents filtered out by profile configuration are removed
+        # CRITICAL: Use all_enabled_agents (before filtering for updates) to preserve up-to-date agents
+        # Bug fix (1M-XXX): Previously used filtered agents_to_deploy which could be empty,
+        # causing all agents to be removed when everything was up-to-date
         exclusion_cleanup_results = self.multi_source_service.cleanup_excluded_agents(
             deployed_agents_dir=agents_dir,
-            agents_to_deploy=agents_to_deploy,
+            agents_to_deploy=all_enabled_agents,
         )
 
         # Add exclusion cleanup results to main cleanup results
