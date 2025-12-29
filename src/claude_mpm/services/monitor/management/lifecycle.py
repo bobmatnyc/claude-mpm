@@ -14,6 +14,7 @@ DESIGN DECISIONS:
 """
 
 import json
+import logging.handlers
 import os
 import signal
 import socket
@@ -482,7 +483,13 @@ class DaemonLifecycle:
             # Configure logger to write to file immediately
             import logging
 
-            file_handler = logging.FileHandler(self.log_file)
+            # Use RotatingFileHandler for automatic log rotation
+            # 5MB max size, 5 backup files (consistent with project logging standards)
+            file_handler = logging.handlers.RotatingFileHandler(
+                self.log_file,
+                maxBytes=5 * 1024 * 1024,  # 5MB
+                backupCount=5,
+            )
             file_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter(
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -1,3 +1,12 @@
+## v5.4.38 (2025-12-28)
+
+### Fixed
+- **Monitor Daemon**: Add automatic log rotation to prevent unbounded log growth
+  - Uses RotatingFileHandler instead of FileHandler
+  - Max file size: 5MB
+  - Backup files: 5 (25MB total max)
+  - Consistent with project logging standards in logging_utils.py
+
 ## v5.4.37 (2025-12-28)
 
 ### Fixed
