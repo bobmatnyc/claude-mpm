@@ -415,7 +415,11 @@ def sync_remote_agents_on_startup():
         from ..utils.progress import ProgressBar
 
         # Load active profile if configured
-        profile_manager = ProfileManager()
+        # Get project root (where .claude-mpm exists)
+        from pathlib import Path
+        project_root = Path.cwd()
+
+        profile_manager = ProfileManager(project_dir=project_root)
         config_loader = ConfigLoader()
         main_config = config_loader.load_main_config()
         active_profile = main_config.get("active_profile")
@@ -799,7 +803,10 @@ def sync_remote_skills_on_startup():
         from ..utils.progress import ProgressBar
 
         # Load active profile if configured
-        profile_manager = ProfileManager()
+        # Get project root (where .claude-mpm exists)
+        project_root = Path.cwd()
+
+        profile_manager = ProfileManager(project_dir=project_root)
         config_loader = ConfigLoader()
         main_config = config_loader.load_main_config()
         active_profile = main_config.get("active_profile")

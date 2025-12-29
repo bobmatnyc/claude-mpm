@@ -30,7 +30,12 @@ Profile Structure:
         - react-*
 
 Usage:
+    # Auto-detect project directory (searches for .claude-mpm in cwd and parents)
     profile_manager = ProfileManager()
+
+    # Or explicitly specify project directory
+    profile_manager = ProfileManager(project_dir=Path("/path/to/project"))
+
     profile_manager.load_profile("framework-development")
 
     if profile_manager.is_agent_enabled("python-engineer"):
@@ -64,15 +69,24 @@ class ProfileManager:
     - Get lists of enabled/disabled entities
     """
 
-    def __init__(self, profiles_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Optional[Path] = None, profiles_dir: Optional[Path] = None):
         """
         Initialize ProfileManager.
 
         Args:
-            profiles_dir: Directory containing profile YAML files
-                         (defaults to .claude-mpm/profiles/)
+            project_dir: Project root directory. If not provided, tries to find
+                         .claude-mpm directory in current or parent directories.
+            profiles_dir: Directory containing profile YAML files. If provided,
+                         takes precedence over project_dir.
         """
-        self.profiles_dir = profiles_dir or Path.cwd() / ".claude-mpm" / "profiles"
+        if profiles_dir:
+            self.profiles_dir = profiles_dir
+        elif project_dir:
+            self.profiles_dir = Path(project_dir) / ".claude-mpm" / "profiles"
+        else:
+            # Try to find .claude-mpm directory automatically
+            self.profiles_dir = self._find_profiles_dir()
+
         self.active_profile: Optional[str] = None
         self._profile_data: Dict[str, Any] = {}
 
@@ -81,6 +95,29 @@ class ProfileManager:
         self._disabled_agents: Set[str] = set()
         self._enabled_skills: Set[str] = set()
         self._disabled_skill_patterns: list[str] = []
+
+    def _find_profiles_dir(self) -> Path:
+        """Find profiles directory by searching for .claude-mpm in cwd and parents.
+
+        Returns:
+            Path to profiles directory (may not exist yet)
+        """
+        current = Path.cwd()
+
+        # Search current directory and up to 5 parent directories
+        for _ in range(6):
+            profiles_dir = current / ".claude-mpm" / "profiles"
+            if profiles_dir.exists():
+                logger.debug(f"Found profiles directory at: {profiles_dir}")
+                return profiles_dir
+            if current.parent == current:  # Reached filesystem root
+                break
+            current = current.parent
+
+        # Fallback to cwd (directory may not exist yet, which is fine)
+        fallback = Path.cwd() / ".claude-mpm" / "profiles"
+        logger.debug(f"Profiles directory not found, using fallback: {fallback}")
+        return fallback
 
     def load_profile(self, profile_name: str) -> bool:
         """
@@ -93,6 +130,8 @@ class ProfileManager:
             bool: True if profile loaded successfully, False otherwise
         """
         profile_path = self.profiles_dir / f"{profile_name}.yaml"
+
+        logger.debug(f"Looking for profile at: {profile_path}")
 
         if not profile_path.exists():
             logger.warning(f"Profile not found: {profile_path}")

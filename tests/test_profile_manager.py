@@ -314,3 +314,76 @@ skills:
 
         # Non-matching should return False
         assert manager.is_skill_enabled("toolchains-java-frameworks-spring") is False
+
+
+def test_find_profiles_dir_in_parent():
+    """Test that ProfileManager can find profiles directory in parent directories."""
+    import os
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create project structure:
+        # tmpdir/
+        #   .claude-mpm/
+        #     profiles/
+        #       test.yaml
+        #   subdir/
+        #     deep_subdir/
+        project_dir = Path(tmpdir).resolve()  # Resolve to canonical path
+        profiles_dir = project_dir / ".claude-mpm" / "profiles"
+        profiles_dir.mkdir(parents=True)
+
+        # Create test profile
+        test_profile = profiles_dir / "test.yaml"
+        test_profile.write_text('''profile:
+  name: test
+agents:
+  enabled:
+    - python-engineer
+''')
+
+        # Create subdirectories
+        deep_subdir = project_dir / "subdir" / "deep_subdir"
+        deep_subdir.mkdir(parents=True)
+
+        # Change to deep subdirectory
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(deep_subdir)
+
+            # ProfileManager should find profiles dir in parent
+            manager = ProfileManager()
+            # Compare resolved paths to handle symlinks
+            assert manager.profiles_dir.resolve() == profiles_dir.resolve()
+            assert manager.profiles_dir.exists()
+
+            # Should be able to load profile
+            success = manager.load_profile("test")
+            assert success is True
+            assert manager.is_agent_enabled("python-engineer") is True
+
+        finally:
+            # Restore original directory
+            os.chdir(original_cwd)
+
+
+def test_find_profiles_dir_fallback():
+    """Test that ProfileManager falls back to cwd when no .claude-mpm found."""
+    import os
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create directory without .claude-mpm
+        test_dir = Path(tmpdir).resolve() / "no_claude_mpm"
+        test_dir.mkdir()
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(test_dir)
+
+            # Should fallback to cwd/.claude-mpm/profiles
+            manager = ProfileManager()
+            expected = test_dir / ".claude-mpm" / "profiles"
+            # Compare resolved paths to handle symlinks
+            assert manager.profiles_dir.resolve() == expected.resolve()
+
+        finally:
+            os.chdir(original_cwd)

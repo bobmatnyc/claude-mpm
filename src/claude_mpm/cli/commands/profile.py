@@ -30,6 +30,7 @@ class ProfileCommand(BaseCommand):
 
     def __init__(self):
         super().__init__("profile")
+        # ProfileManager will auto-detect project directory
         self.profile_manager = ProfileManager()
         self.config_loader = ConfigLoader()
 
