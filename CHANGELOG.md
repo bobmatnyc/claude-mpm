@@ -1,3 +1,11 @@
+## [5.4.42] - 2025-12-29
+
+### Fixed
+- **Dependencies**: Make kuzu-memory optional to avoid cmake build requirement
+  - Users without cmake can now install claude-mpm without errors
+  - Install kuzu-memory with: `pip install claude-mpm[memory]`
+- **PM Skills**: Fix path resolution for installed packages
+
 ## [5.4.41] - 2025-12-29
 
 ### Changed

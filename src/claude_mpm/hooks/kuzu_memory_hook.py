@@ -13,9 +13,9 @@ for structured memory storage with semantic search capabilities.
 DESIGN DECISIONS:
 - Priority 10 for early execution to enrich prompts before other hooks
 - Uses subprocess to call kuzu-memory directly for maximum compatibility
-- Graceful degradation if kuzu-memory is not in PATH (though it's now required)
+- Graceful degradation if kuzu-memory is not installed
 - Automatic extraction and storage of important information
-- kuzu-memory>=1.1.5 is now a REQUIRED dependency (moved from optional in v4.8.6)
+- kuzu-memory is an OPTIONAL dependency (install with: pip install claude-mpm[memory])
 """
 
 import json
@@ -51,9 +51,9 @@ class KuzuMemoryHook(SubmitHook):
         self.enabled = self.kuzu_memory_cmd is not None
 
         if not self.enabled:
-            logger.warning(
-                "Kuzu-memory not found in PATH. As of v4.8.6, it's a required dependency. "
-                "Install with: pip install kuzu-memory>=1.1.5 or pipx install kuzu-memory"
+            logger.debug(
+                "Kuzu-memory not found. Graph-based memory disabled. "
+                "To enable: pip install claude-mpm[memory] (requires cmake)"
             )
         else:
             logger.info(f"Kuzu-memory integration enabled: {self.kuzu_memory_cmd}")

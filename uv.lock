@@ -668,7 +668,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "5.4.41"
+version = "5.4.42"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
@@ -679,7 +679,6 @@ dependencies = [
     { name = "flask" },
     { name = "flask-cors" },
     { name = "ijson" },
-    { name = "kuzu-memory" },
     { name = "mistune" },
     { name = "packaging" },
     { name = "pathspec" },
@@ -755,6 +754,9 @@ mcp = [
     { name = "mcp-ticketer" },
     { name = "mcp-vector-search" },
 ]
+memory = [
+    { name = "kuzu-memory" },
+]
 monitor = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -794,7 +796,7 @@ requires-dist = [
     { name = "flask-cors", specifier = ">=4.0.0" },
     { name = "ijson", specifier = ">=3.2.0" },
     { name = "jsonschema", marker = "extra == 'data-processing'", specifier = ">=4.19.0" },
-    { name = "kuzu-memory", specifier = ">=1.1.5" },
+    { name = "kuzu-memory", marker = "extra == 'memory'", specifier = ">=1.1.5" },
     { name = "lxml", marker = "extra == 'data-processing'", specifier = ">=4.9.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=0.1.0" },
     { name = "mcp-browser", marker = "extra == 'mcp'", specifier = ">=0.1.0" },
@@ -853,7 +855,7 @@ requires-dist = [
     { name = "xlsxwriter", marker = "extra == 'data-processing'", specifier = ">=3.1.0" },
     { name = "xlwt", marker = "extra == 'data-processing'", specifier = ">=1.3.0" },
 ]
-provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing"]
+provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2117,7 +2119,7 @@ wheels = [
 
 [[package]]
 name = "kuzu-memory"
-version = "1.6.1"
+version = "1.6.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2133,9 +2135,9 @@ dependencies = [
     { name = "tomli-w" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/77/28fb38f9aeef3c4393331864233807809b4bef97b994a97ae1227f605882/kuzu_memory-1.6.1.tar.gz", hash = "sha256:dad0f4a50848db6b4ae4eddc75fa51f45b92cb2ff3d4f0f055fdf7708b000925", size = 452510, upload-time = "2025-12-04T22:23:50.8Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/df/0c0eddcdc82097af7bbb5b22c182695aaeec00b17ccfdc7a890d1bcbe820/kuzu_memory-1.6.10.tar.gz", hash = "sha256:490befd23f62d6904fb1c2adcd8f09406912fb99100ca67941deefd24585df65", size = 470703, upload-time = "2025-12-19T19:51:41.691Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/af/34b63139eb1ecbd054f95f198cab087f66f8a221136e73b54740b016774e/kuzu_memory-1.6.1-py3-none-any.whl", hash = "sha256:2d9fcabcd943cc44750497ddeab9906c65a5cec67a8f881eb2014febb99a2fa7", size = 501464, upload-time = "2025-12-04T22:23:49.516Z" },
+    { url = "https://files.pythonhosted.org/packages/31/e8/7de270bb0f8ee7816448af96eadec7621b2a3bf47083eed1901347b5d8f8/kuzu_memory-1.6.10-py3-none-any.whl", hash = "sha256:df59e012ef8564a6dcdd18090e02efce1461819d83b3c36bc5bd413b88d2898f", size = 520532, upload-time = "2025-12-19T19:51:40.222Z" },
 ]
 
 [[package]]
