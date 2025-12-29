@@ -1083,6 +1083,16 @@ class GitSkillSourceManager:
                 f"match agent requirements ({filtered_count} filtered out)"
             )
 
+            # Cleanup: Remove skills from target directory that aren't in the filtered set
+            # This ensures only the skills in the profile are deployed
+            removed_skills = self._cleanup_unfiltered_skills(
+                target_dir, all_skills
+            )
+            if removed_skills:
+                self.logger.info(
+                    f"Removed {len(removed_skills)} skills not in profile filter: {removed_skills}"
+                )
+
         self.logger.info(
             f"Deploying {len(all_skills)} skills to {target_dir} (force={force})"
         )
@@ -1135,6 +1145,73 @@ class GitSkillSourceManager:
             "errors": errors,
             "filtered_count": filtered_count,
         }
+
+    def _cleanup_unfiltered_skills(
+        self, target_dir: Path, filtered_skills: List[Dict[str, Any]]
+    ) -> List[str]:
+        """Remove skills from target directory that aren't in the filtered skill list.
+
+        Args:
+            target_dir: Target deployment directory
+            filtered_skills: List of skills that should remain deployed
+
+        Returns:
+            List of skill names that were removed
+        """
+        import shutil
+
+        removed_skills = []
+
+        # Build set of deployment names that should exist
+        expected_deployments = {
+            skill.get("deployment_name") for skill in filtered_skills
+            if skill.get("deployment_name")
+        }
+
+        # Check each directory in target_dir
+        if not target_dir.exists():
+            return removed_skills
+
+        try:
+            for item in target_dir.iterdir():
+                # Skip files, only process directories
+                if not item.is_dir():
+                    continue
+
+                # Skip hidden directories
+                if item.name.startswith("."):
+                    continue
+
+                # Check if this skill directory should be kept
+                if item.name not in expected_deployments:
+                    try:
+                        # Security: Validate path is within target_dir
+                        if not self._validate_safe_path(target_dir, item):
+                            self.logger.error(
+                                f"Refusing to remove path outside target directory: {item}"
+                            )
+                            continue
+
+                        # Remove the skill directory
+                        if item.is_symlink():
+                            item.unlink()
+                        else:
+                            shutil.rmtree(item)
+
+                        removed_skills.append(item.name)
+                        self.logger.debug(
+                            f"Removed unfiltered skill: {item.name}"
+                        )
+
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to remove skill directory {item.name}: {e}"
+                        )
+
+        except Exception as e:
+            self.logger.error(f"Error during skill cleanup: {e}")
+
+        return removed_skills
 
     def _deploy_single_skill(
         self, skill: Dict[str, Any], target_dir: Path, deployment_name: str, force: bool

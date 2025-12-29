@@ -531,10 +531,28 @@ class MultiSourceAgentDeploymentService:
 
         # Apply exclusion filters
         if excluded_agents:
-            for agent_name in excluded_agents:
-                if agent_name in selected_agents:
-                    self.logger.info(f"Excluding agent '{agent_name}' from deployment")
-                    del selected_agents[agent_name]
+            # Find agents to remove by matching name field or agent_id portion of canonical_id
+            agents_to_remove = []
+            excluded_set = {name.lower() for name in excluded_agents}
+
+            for canonical_id, agent_info in list(selected_agents.items()):
+                # Check agent name field
+                agent_name = agent_info.get("name", "").lower()
+
+                # Also check the agent_id portion of canonical_id (after the colon)
+                # Example: "bobmatnyc/claude-mpm-agents:pm" -> "pm"
+                agent_id = canonical_id.split(":")[-1].lower() if ":" in canonical_id else canonical_id.lower()
+
+                if agent_name in excluded_set or agent_id in excluded_set:
+                    agents_to_remove.append(canonical_id)
+                    self.logger.info(
+                        f"Excluding agent '{agent_info.get('name', agent_id)}' "
+                        f"(canonical_id: {canonical_id}) from deployment"
+                    )
+
+            # Remove matched agents
+            for canonical_id in agents_to_remove:
+                del selected_agents[canonical_id]
 
         # Apply config-based filtering if provided
         if config:
