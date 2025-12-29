@@ -1089,6 +1089,45 @@ def show_skill_summary():
         logger.debug(f"Failed to generate skill summary: {e}")
 
 
+def verify_and_show_pm_skills():
+    """Verify PM skills and display status.
+
+    WHY: PM skills are essential for PM agent operation.
+    Shows deployment status and auto-deploys if missing.
+    """
+    try:
+        from pathlib import Path
+
+        from ..services.pm_skills_deployer import PMSkillsDeployerService
+
+        deployer = PMSkillsDeployerService()
+        project_dir = Path.cwd()
+
+        result = deployer.verify_pm_skills(project_dir)
+
+        if result.verified:
+            # Show verified status
+            print(f"✓ PM skills: {result.skill_count} verified", flush=True)
+        else:
+            # Auto-deploy if missing
+            print("Deploying PM skills...", end="", flush=True)
+            deploy_result = deployer.deploy_pm_skills(project_dir)
+            if deploy_result.success:
+                total = len(deploy_result.deployed) + len(deploy_result.skipped)
+                print(f"\r✓ PM skills: {total} deployed" + " " * 20, flush=True)
+            else:
+                print(f"\r⚠ PM skills: deployment failed" + " " * 20, flush=True)
+
+    except ImportError:
+        # PM skills deployer not available - skip silently
+        pass
+    except Exception as e:
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"PM skills verification failed: {e}")
+
+
 def auto_install_chrome_devtools_on_startup():
     """
     Automatically install chrome-devtools-mcp on startup if enabled.
@@ -1163,6 +1202,7 @@ def run_background_services():
     sync_remote_skills_on_startup()  # Override layer: Git-based skills (takes precedence)
     discover_and_link_runtime_skills()  # Discovery: user-added skills
     show_skill_summary()  # Display skill counts after deployment
+    verify_and_show_pm_skills()  # PM skills verification and status
 
     deploy_output_style_on_startup()
 
