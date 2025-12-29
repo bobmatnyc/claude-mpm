@@ -490,16 +490,14 @@ def sync_remote_agents_on_startup():
                                 excluded_agents.append(agent_name)
 
                         if excluded_agents:
-                            deploy_config = Config(
-                                {
-                                    "agent_deployment": {
-                                        "excluded_agents": excluded_agents,
-                                        "filter_non_mpm_agents": False,
-                                        "case_sensitive": False,
-                                        "exclude_dependencies": False,
-                                    }
-                                }
-                            )
+                            # Get singleton config and update with profile settings
+                            # BUGFIX: Config is a singleton that ignores dict parameter if already initialized.
+                            # Creating Config({...}) doesn't store excluded_agents - use set() instead.
+                            deploy_config = Config()
+                            deploy_config.set("agent_deployment.excluded_agents", excluded_agents)
+                            deploy_config.set("agent_deployment.filter_non_mpm_agents", False)
+                            deploy_config.set("agent_deployment.case_sensitive", False)
+                            deploy_config.set("agent_deployment.exclude_dependencies", False)
                             logger.info(
                                 f"Profile '{active_profile}': Excluding {len(excluded_agents)} agents from deployment"
                             )
