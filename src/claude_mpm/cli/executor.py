@@ -150,6 +150,16 @@ def execute_command(command: str, args) -> int:
         result = summarize_command(args)
         return result if result is not None else 0
 
+    # Handle profile command with lazy import
+    if command == "profile":
+        # Lazy import to avoid loading unless needed
+        from .commands.profile import ProfileCommand
+
+        cmd = ProfileCommand()
+        result = cmd.run(args)
+        # Convert CommandResult to exit code
+        return result.exit_code if result else 0
+
     # Handle auto-configure command with lazy import
     if command == "auto-configure":
         # Lazy import to avoid loading unless needed

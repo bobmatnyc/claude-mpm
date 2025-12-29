@@ -439,6 +439,13 @@ def create_parser(
         pass
 
     try:
+        from .profile_parser import add_profile_subparser
+
+        add_profile_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .monitor_parser import add_monitor_subparser
 
         add_monitor_subparser(subparsers)

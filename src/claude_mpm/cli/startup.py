@@ -408,9 +408,29 @@ def sync_remote_agents_on_startup():
     check_legacy_cache()
 
     try:
+        from ..core.shared.config_loader import ConfigLoader
         from ..services.agents.deployment.agent_deployment import AgentDeploymentService
         from ..services.agents.startup_sync import sync_agents_on_startup
+        from ..services.profile_manager import ProfileManager
         from ..utils.progress import ProgressBar
+
+        # Load active profile if configured
+        profile_manager = ProfileManager()
+        config_loader = ConfigLoader()
+        main_config = config_loader.load_main_config()
+        active_profile = main_config.get("active_profile")
+
+        if active_profile:
+            success = profile_manager.load_profile(active_profile)
+            if success:
+                summary = profile_manager.get_filtering_summary()
+                from ..core.logger import get_logger
+
+                logger = get_logger("cli")
+                logger.info(
+                    f"Profile '{active_profile}' active: "
+                    f"{summary['enabled_agents_count']} agents enabled"
+                )
 
         # Phase 1: Sync files from Git sources
         result = sync_agents_on_startup()
@@ -438,8 +458,49 @@ def sync_remote_agents_on_startup():
             # Phase 2: Deploy agents from cache to ~/.claude/agents/
             # This mirrors the skills deployment pattern (lines 371-407)
             try:
-                # Initialize deployment service
-                deployment_service = AgentDeploymentService()
+                # Initialize deployment service with profile-filtered configuration
+                from ..core.config import Config
+
+                deploy_config = None
+                if active_profile and profile_manager.active_profile:
+                    # Create config with excluded agents based on profile
+                    # Get all agents that should be excluded (not in enabled list)
+                    from pathlib import Path
+
+                    cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+                    if cache_dir.exists():
+                        # Find all agent files
+                        all_agent_files = [
+                            f
+                            for f in cache_dir.rglob("*.md")
+                            if "/agents/" in str(f)
+                            and str(f).count("/agents/") == 1
+                            and f.stem.lower() != "base-agent"
+                        ]
+
+                        # Build exclusion list for agents not in profile
+                        excluded_agents = []
+                        for agent_file in all_agent_files:
+                            agent_name = agent_file.stem
+                            if not profile_manager.is_agent_enabled(agent_name):
+                                excluded_agents.append(agent_name)
+
+                        if excluded_agents:
+                            deploy_config = Config(
+                                {
+                                    "agent_deployment": {
+                                        "excluded_agents": excluded_agents,
+                                        "filter_non_mpm_agents": False,
+                                        "case_sensitive": False,
+                                        "exclude_dependencies": False,
+                                    }
+                                }
+                            )
+                            logger.info(
+                                f"Profile '{active_profile}': Excluding {len(excluded_agents)} agents from deployment"
+                            )
+
+                deployment_service = AgentDeploymentService(config=deploy_config)
 
                 # Count agents in cache to show accurate progress
                 from pathlib import Path
@@ -719,13 +780,16 @@ def sync_remote_skills_on_startup():
     1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
     2. Scan deployed agents for skill requirements → save to configuration.yaml
     3. Resolve which skills to deploy (user_defined vs agent_referenced)
-    4. Deploy resolved skills to ~/.claude/skills/ - Phase 2 progress bar
-    5. Log deployment results with source indication
+    4. Apply profile filtering if active
+    5. Deploy resolved skills to ~/.claude/skills/ - Phase 2 progress bar
+    6. Log deployment results with source indication
     """
     try:
         from pathlib import Path
 
         from ..config.skill_sources import SkillSourceConfiguration
+        from ..core.shared.config_loader import ConfigLoader
+        from ..services.profile_manager import ProfileManager
         from ..services.skills.git_skill_source_manager import GitSkillSourceManager
         from ..services.skills.selective_skill_deployer import (
             get_required_skills_from_agents,
@@ -733,6 +797,25 @@ def sync_remote_skills_on_startup():
             save_agent_skills_to_config,
         )
         from ..utils.progress import ProgressBar
+
+        # Load active profile if configured
+        profile_manager = ProfileManager()
+        config_loader = ConfigLoader()
+        main_config = config_loader.load_main_config()
+        active_profile = main_config.get("active_profile")
+
+        if active_profile:
+            success = profile_manager.load_profile(active_profile)
+            if success:
+                from ..core.logger import get_logger
+
+                logger = get_logger("cli")
+                summary = profile_manager.get_filtering_summary()
+                logger.info(
+                    f"Profile '{active_profile}' active: "
+                    f"{summary['enabled_skills_count']} skills enabled, "
+                    f"{summary['disabled_patterns_count']} patterns disabled"
+                )
 
         config = SkillSourceConfiguration()
         manager = GitSkillSourceManager(config)
@@ -834,6 +917,39 @@ def sync_remote_skills_on_startup():
 
             # Phase 3: Resolve which skills to deploy (user_defined or agent_referenced)
             skills_to_deploy, skill_source = get_skills_to_deploy(project_config_path)
+
+            # Phase 4: Apply profile filtering if active
+            if active_profile and profile_manager.active_profile:
+                # Filter skills based on profile
+                if skills_to_deploy:
+                    # Filter the resolved skill list
+                    filtered_skills = [
+                        skill
+                        for skill in skills_to_deploy
+                        if profile_manager.is_skill_enabled(skill)
+                    ]
+                    filtered_count = len(skills_to_deploy) - len(filtered_skills)
+                    if filtered_count > 0:
+                        logger.info(
+                            f"Profile '{active_profile}' filtered {filtered_count} skills "
+                            f"({len(filtered_skills)} remaining)"
+                        )
+                    skills_to_deploy = filtered_skills
+                    skill_source = f"{skill_source} + profile filtered"
+                else:
+                    # No explicit skill list - filter from all available
+                    all_skills = manager.get_all_skills()
+                    filtered_skills = [
+                        skill["name"]
+                        for skill in all_skills
+                        if profile_manager.is_skill_enabled(skill["name"])
+                    ]
+                    skills_to_deploy = filtered_skills
+                    skill_source = "profile filtered"
+                    logger.info(
+                        f"Profile '{active_profile}': "
+                        f"{len(filtered_skills)} skills enabled from {len(all_skills)} available"
+                    )
 
             # Get all skills to determine counts
             all_skills = manager.get_all_skills()
