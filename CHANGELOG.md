@@ -1,3 +1,8 @@
+## [5.4.41] - 2025-12-29
+
+### Changed
+- **Version**: Patch version bump for release
+
 ## v5.4.39 (2025-12-28)
 
 ### Changed
