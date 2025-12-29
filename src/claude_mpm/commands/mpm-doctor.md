@@ -4,30 +4,17 @@ command: doctor
 aliases: [mpm-doctor]
 migration_target: /mpm/system:doctor
 category: system
-deprecated_aliases: []
-description: Run comprehensive diagnostic checks on Claude MPM installation
+description: Run diagnostic checks on Claude MPM installation
 ---
-# Run diagnostic checks on claude-mpm installation
+# /mpm-doctor
 
-Run comprehensive diagnostic checks on your Claude MPM installation to identify and fix common issues.
+Run comprehensive diagnostics on Claude MPM installation.
 
-This command checks:
-- Installation integrity
-- Configuration validity
-- WebSocket connectivity
-- Agent deployment status
-- Memory system health
-- Hook service status
+## Usage
+```
+/mpm-doctor [--verbose] [--fix]
+```
 
-Usage: /mpm-doctor [options]
+Checks: installation, configuration, WebSocket, agents, memory, hooks.
 
-Options:
-- --verbose: Show detailed output
-- --no-color: Disable colored output  
-- --checks [list]: Run specific checks only
-- --fix: Attempt to fix identified issues
-
-Examples:
-- /mpm-doctor
-- /mpm-doctor --verbose
-- /mpm-doctor --fix
+See docs/commands/doctor.md for details.
