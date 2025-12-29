@@ -644,6 +644,7 @@ def sync_remote_agents_on_startup():
                         target_dir=deploy_target,
                         force_rebuild=False,  # Only deploy if versions differ
                         deployment_mode="update",  # Version-aware updates
+                        config=deploy_config,  # Pass config to respect profile filtering
                     )
 
                     # Get actual counts from deployment result (reflects configured agents)
