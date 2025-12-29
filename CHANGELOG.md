@@ -8,7 +8,17 @@
 ### Fixed
 - **Monitor Daemon**: Add automatic log rotation to prevent unbounded log growth
   - Uses RotatingFileHandler instead of FileHandler
-  - Max file size: 5MB
+## [5.4.40] - 2025-12-29
+
+### Fixed
+- Profile filtering now correctly excludes agents from deployment
+- Pass config to deploy_agents() for profile filtering
+- Auto-detect project root for profile loading
+- Short skill names match full skill names in profile filtering
+
+### Changed
+- Optimized slash commands for 86% token reduction (25K → 3.5K tokens)
+
   - Backup files: 5 (25MB total max)
   - Consistent with project logging standards in logging_utils.py
 
