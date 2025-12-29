@@ -185,7 +185,6 @@
     "capabilities": {
       "type": "object",
       "required": [
-        "model",
         "resource_tier"
       ],
       "properties": {
@@ -196,7 +195,7 @@
             "sonnet",
             "haiku"
           ],
-          "description": "Claude model tier to use for this agent. Choose based on task complexity and performance requirements: opus (most capable), sonnet (balanced), haiku (fastest)."
+          "description": "Claude model tier to use for this agent. Choose based on task complexity and performance requirements: opus (most capable), sonnet (balanced), haiku (fastest). Optional - if not specified, Claude Code will choose the model based on task complexity."
         },
         "tools": {
           "type": "array",

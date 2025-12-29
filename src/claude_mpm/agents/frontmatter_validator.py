@@ -200,9 +200,9 @@ class FrontmatterValidator:
     ) -> None:
         """Check that all required fields are present."""
         required_fields = (
-            self.schema.get("required", ["name", "description", "version", "model"])
+            self.schema.get("required", ["name", "description", "version"])
             if self.schema
-            else ["name", "description", "version", "model"]
+            else ["name", "description", "version"]
         )
         for field in required_fields:
             if field not in corrected:

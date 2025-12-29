@@ -206,8 +206,8 @@ class AgentBuilderService:
         """
         errors = []
 
-        # Required fields
-        required_fields = ["id", "name", "prompt", "model"]
+        # Required fields (model is optional - defaults to sonnet if not specified)
+        required_fields = ["id", "name", "prompt"]
         for field in required_fields:
             if field not in config:
                 errors.append(f"Missing required field: {field}")
@@ -219,7 +219,7 @@ class AgentBuilderService:
             except AgentDeploymentError as e:
                 errors.append(str(e))
 
-        # Validate model
+        # Validate model (only if present)
         if "model" in config:
             try:
                 self._validate_model(config["model"])

@@ -51,7 +51,7 @@ class ConfigLoader:
         search_paths=[".", ".claude-mpm", "agents"],
         env_prefix="CLAUDE_MPM_AGENT_",
         defaults={"timeout": 30, "max_retries": 3, "log_level": "INFO"},
-        required_keys=["name", "model"],
+        required_keys=["name"],  # model is optional - defaults to sonnet if not specified
     )
 
     MEMORY_CONFIG = ConfigPattern(
