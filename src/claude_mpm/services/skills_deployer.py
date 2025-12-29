@@ -257,9 +257,9 @@ class SkillsDeployerService(LoggerMixin):
                 self.logger.error(f"Failed to deploy {skill_name}: {e}")
                 errors.append(f"{skill_name}: {e}")
 
-        # Step 5: Cleanup orphaned skills (if selective mode enabled)
+        # Step 5: Cleanup orphaned skills (always run in selective mode)
         cleanup_result = {"removed_count": 0, "removed_skills": []}
-        if selective and len(deployed) > 0:
+        if selective:
             # Get the set of skills that should remain deployed
             # This is the union of what we just deployed and what was already there
             try:
@@ -267,7 +267,8 @@ class SkillsDeployerService(LoggerMixin):
                     cleanup_orphan_skills,
                 )
 
-                # Only cleanup if we're in selective mode
+                # Cleanup orphaned skills not referenced by agents
+                # This runs even if nothing new was deployed to remove stale skills
                 cleanup_result = cleanup_orphan_skills(
                     self.CLAUDE_SKILLS_DIR, set(filtered_skills_names)
                 )

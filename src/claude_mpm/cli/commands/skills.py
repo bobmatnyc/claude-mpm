@@ -537,7 +537,6 @@ class SkillsManagementCommand(BaseCommand):
             toolchain = getattr(args, "toolchain", None)
             categories = getattr(args, "categories", None)
             force = getattr(args, "force", False)
-            all_skills = getattr(args, "all_skills", False)
 
             if collection:
                 console.print(
@@ -548,23 +547,14 @@ class SkillsManagementCommand(BaseCommand):
                     "\n[bold cyan]Deploying skills from default collection...[/bold cyan]\n"
                 )
 
-            # Auto-detect toolchain if not specified and not deploying all
-            if not toolchain and not all_skills:
-                console.print(
-                    "[yellow]No toolchain specified. Use --toolchain to filter by language,[/yellow]"
-                )
-                console.print(
-                    "[yellow]or --all-skills to deploy all available skills (not just agent-referenced).[/yellow]\n"
-                )
-
-            # Selective deployment is enabled by default (deploy only agent-referenced skills)
-            # Use --all-skills to disable selective mode
+            # Selective deployment is ALWAYS enabled (deploy only agent-referenced skills)
+            # This ensures only skills linked to deployed agents are deployed
             result = self.skills_deployer.deploy_skills(
                 collection=collection,
                 toolchain=toolchain,
                 categories=categories,
                 force=force,
-                selective=not all_skills,  # Disable selective mode if --all-skills is set
+                selective=True,  # Always use selective deployment
             )
 
             # Display results
@@ -577,11 +567,7 @@ class SkillsManagementCommand(BaseCommand):
                     f"(out of {total_available} available)[/cyan]"
                 )
                 console.print(
-                    "[dim]Use --all-skills to deploy all available skills[/dim]\n"
-                )
-            else:
-                console.print(
-                    "[cyan]📦 Deploying all available skills (selective mode disabled)[/cyan]\n"
+                    "[dim]Use 'claude-mpm skills configure' to manually select skills[/dim]\n"
                 )
 
             if result["deployed_count"] > 0:
@@ -604,6 +590,16 @@ class SkillsManagementCommand(BaseCommand):
                 console.print(f"[red]✗ {len(result['errors'])} error(s):[/red]")
                 for error in result["errors"]:
                     console.print(f"  • {error}")
+                console.print()
+
+            # Show cleanup results
+            cleanup = result.get("cleanup", {})
+            if cleanup.get("removed_count", 0) > 0:
+                console.print(
+                    f"[yellow]🧹 Removed {cleanup['removed_count']} orphaned skill(s):[/yellow]"
+                )
+                for skill in cleanup.get("removed_skills", []):
+                    console.print(f"  • {skill}")
                 console.print()
 
             # Show restart instructions
