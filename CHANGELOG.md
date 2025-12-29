@@ -1,4 +1,4 @@
-## [5.4.42] - 2025-12-29
+## [5.4.43] - 2025-12-29
 
 ### Fixed
 - **Dependencies**: Make kuzu-memory optional to avoid cmake build requirement
