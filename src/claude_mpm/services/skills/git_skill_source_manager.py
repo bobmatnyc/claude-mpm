@@ -1049,12 +1049,33 @@ class GitSkillSourceManager:
             original_count = len(all_skills)
             # Normalize filter to lowercase for case-insensitive matching
             normalized_filter = {s.lower() for s in skill_filter}
-            # Match against deployment_name (not display name) since skill_filter contains
-            # deployment-style names like "toolchains-python-frameworks-django"
+
+            def matches_filter(deployment_name: str) -> bool:
+                """Match using same fuzzy logic as ProfileManager.is_skill_enabled()"""
+                deployment_lower = deployment_name.lower()
+
+                # Exact match
+                if deployment_lower in normalized_filter:
+                    return True
+
+                # Fuzzy match: check if deployment name ends with or contains short name
+                # Example: "toolchains-python-frameworks-flask" matches "flask"
+                for short_name in normalized_filter:
+                    if deployment_lower.endswith(f"-{short_name}"):
+                        return True
+                    # Check if short name is contained as a segment
+                    if f"-{short_name}-" in deployment_lower:
+                        return True
+                    if deployment_lower.startswith(f"{short_name}-"):
+                        return True
+
+                return False
+
+            # Match against deployment_name using fuzzy matching
             all_skills = [
                 s
                 for s in all_skills
-                if s.get("deployment_name", "").lower() in normalized_filter
+                if matches_filter(s.get("deployment_name", ""))
             ]
             filtered_count = original_count - len(all_skills)
             self.logger.info(

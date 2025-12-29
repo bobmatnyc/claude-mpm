@@ -742,3 +742,98 @@ Skill one
 
             # Relative path should show nested structure
             assert "/" in skill["relative_path"] or "\\" in skill["relative_path"]
+
+    def test_selective_deployment_with_fuzzy_matching(
+        self, temp_cache_dir, temp_config_file, temp_deploy_dir
+    ):
+        """Test that skill_filter uses fuzzy matching like ProfileManager."""
+        system_dir = temp_cache_dir / "system"
+
+        # Create skills with full deployment names
+        skills_to_create = [
+            ("toolchains/python/frameworks/flask", "Flask Framework", "toolchains-python-frameworks-flask"),
+            ("toolchains/python/frameworks/django", "Django Framework", "toolchains-python-frameworks-django"),
+            ("toolchains/javascript/frameworks/react", "React Framework", "toolchains-javascript-frameworks-react"),
+            ("universal/testing/pytest", "Pytest Testing", "universal-testing-pytest"),
+        ]
+
+        for path, name, _ in skills_to_create:
+            skill_dir = system_dir / path.replace("/", "-")
+            skill_dir.mkdir(parents=True)
+            skill_content = f"""---
+name: {name}
+description: Test skill for {name}
+skill_version: 1.0.0
+---
+# {name}
+"""
+            (skill_dir / "SKILL.md").write_text(skill_content, encoding="utf-8")
+
+        # Setup manager
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="system", type="git", url="https://github.com/test/skills", enabled=True
+        )
+        config.save([source])
+        manager = GitSkillSourceManager(config=config, cache_dir=temp_cache_dir)
+
+        # Test 1: Exact match (short name)
+        result1 = manager.deploy_skills(
+            target_dir=temp_deploy_dir,
+            skill_filter=["flask"],
+            force=False
+        )
+        assert result1["deployed_count"] == 1, "Should deploy only flask"
+
+        # Clean up for next test
+        import shutil
+        shutil.rmtree(temp_deploy_dir)
+        temp_deploy_dir.mkdir()
+
+        # Test 2: Multiple short names
+        result2 = manager.deploy_skills(
+            target_dir=temp_deploy_dir,
+            skill_filter=["flask", "django"],
+            force=False
+        )
+        assert result2["deployed_count"] == 2, "Should deploy flask and django"
+
+        # Clean up for next test
+        shutil.rmtree(temp_deploy_dir)
+        temp_deploy_dir.mkdir()
+
+        # Test 3: Full deployment name
+        result3 = manager.deploy_skills(
+            target_dir=temp_deploy_dir,
+            skill_filter=["toolchains-python-frameworks-flask"],
+            force=False
+        )
+        assert result3["deployed_count"] == 1, "Should deploy with full name"
+
+        # Clean up for next test
+        shutil.rmtree(temp_deploy_dir)
+        temp_deploy_dir.mkdir()
+
+        # Test 4: Mix of short and full names
+        result4 = manager.deploy_skills(
+            target_dir=temp_deploy_dir,
+            skill_filter=["flask", "toolchains-javascript-frameworks-react"],
+            force=False
+        )
+        assert result4["deployed_count"] == 2, "Should deploy with mixed names"
+
+        # Clean up for next test
+        shutil.rmtree(temp_deploy_dir)
+        temp_deploy_dir.mkdir()
+
+        # Test 5: Partial segment match
+        result5 = manager.deploy_skills(
+            target_dir=temp_deploy_dir,
+            skill_filter=["pytest"],
+            force=False
+        )
+        assert result5["deployed_count"] == 1, "Should match pytest at end"
+
+        # Verify deployed skills
+        deployed_dirs = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
+        assert "universal-testing-pytest" in deployed_dirs
