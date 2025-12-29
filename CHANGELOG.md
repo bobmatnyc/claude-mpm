@@ -1,3 +1,9 @@
+## [5.4.47] - 2025-12-29
+
+### Fixed
+- **Agent Count Display**: Fixed agent count display bug showing 0 cached instead of correct count
+- **PM Delegation**: Added PM delegation enforcement with Circuit Breakers #1-5 and vector search protocol
+
 ## [5.4.46] - 2025-12-29
 
 ### Fixed
