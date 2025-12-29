@@ -13,11 +13,16 @@ import logging
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import requests
 
 from claude_mpm.core.file_utils import get_file_hash
+
+# Import normalize function for exclusion filtering
+from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
+    _normalize_agent_name,
+)
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
 from claude_mpm.utils.progress import create_progress_bar
 
@@ -923,6 +928,62 @@ class GitSourceSyncService:
         """
         return self.cache_dir
 
+    def _cleanup_excluded_agents(
+        self,
+        deployment_dir: Path,
+        excluded_set: Set[str],
+    ) -> Dict[str, List[str]]:
+        """Remove excluded agents from deployment directory.
+
+        Removes any agents in the deployment directory whose normalized
+        names match the exclusion list. This ensures that excluded agents
+        are cleaned up from previous deployments.
+
+        Args:
+            deployment_dir: Directory containing deployed agents
+            excluded_set: Set of normalized agent names to exclude
+
+        Returns:
+            Dictionary with cleanup results:
+            - removed: List of agent names that were removed
+        """
+        cleanup_results: Dict[str, List[str]] = {"removed": []}
+
+        if not deployment_dir.exists():
+            logger.debug("Deployment directory does not exist, no cleanup needed")
+            return cleanup_results
+
+        for item in deployment_dir.iterdir():
+            # Only process .md files
+            if not item.is_file() or item.suffix != ".md":
+                continue
+
+            # Skip hidden files
+            if item.name.startswith("."):
+                continue
+
+            # Normalize agent name for comparison
+            agent_name = _normalize_agent_name(item.stem)
+
+            # Check if this agent is excluded
+            if agent_name in excluded_set:
+                try:
+                    item.unlink()
+                    cleanup_results["removed"].append(item.stem)
+                    logger.info(f"Removed excluded agent: {item.stem}")
+                except PermissionError as e:
+                    logger.error(f"Permission denied removing {item.stem}: {e}")
+                except Exception as e:
+                    logger.error(f"Failed to remove {item.stem}: {e}")
+
+        # Log summary
+        if cleanup_results["removed"]:
+            logger.info(
+                f"Cleanup complete: removed {len(cleanup_results['removed'])} excluded agents"
+            )
+
+        return cleanup_results
+
     def deploy_agents_to_project(
         self,
         project_dir: Path,
@@ -977,6 +1038,8 @@ class GitSourceSyncService:
         """
         import shutil
 
+        from claude_mpm.core.config import Config
+
         # Deploy to .claude/agents/ where Claude Code expects them
         deployment_dir = project_dir / ".claude" / "agents"
         deployment_dir.mkdir(parents=True, exist_ok=True)
@@ -989,9 +1052,52 @@ class GitSourceSyncService:
             "deployment_dir": str(deployment_dir),
         }
 
+        # Load project config to get exclusion list
+        config_file = project_dir / ".claude-mpm" / "configuration.yaml"
+        if config_file.exists():
+            config = Config(config_file=config_file)
+            excluded_agents = config.get("excluded_agents", [])
+        else:
+            # No project config, no exclusions
+            excluded_agents = []
+
+        # Create normalized exclusion set
+        excluded_set: Set[str] = (
+            {_normalize_agent_name(name) for name in excluded_agents}
+            if excluded_agents
+            else set()
+        )
+
+        if excluded_set:
+            logger.info(
+                f"Applying exclusions: {', '.join(sorted(excluded_agents))} "
+                f"(normalized: {', '.join(sorted(excluded_set))})"
+            )
+
         # Get agents from cache or use provided list
         if agent_list is None:
             agent_list = self._discover_cached_agents()
+
+        # Filter out excluded agents
+        if excluded_set:
+            original_count = len(agent_list)
+            agent_list = [
+                agent_path
+                for agent_path in agent_list
+                if _normalize_agent_name(Path(agent_path).stem) not in excluded_set
+            ]
+            filtered_count = original_count - len(agent_list)
+            if filtered_count > 0:
+                logger.info(f"Filtered out {filtered_count} excluded agents")
+
+        # Clean up any previously deployed excluded agents
+        if excluded_set:
+            cleanup_results = self._cleanup_excluded_agents(deployment_dir, excluded_set)
+            if cleanup_results["removed"]:
+                logger.info(
+                    f"Cleaned up {len(cleanup_results['removed'])} excluded agents: "
+                    f"{', '.join(cleanup_results['removed'])}"
+                )
 
         logger.info(
             f"Deploying {len(agent_list)} agents from cache to {deployment_dir}"
