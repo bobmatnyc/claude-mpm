@@ -6,6 +6,10 @@ package to individual project .claude-mpm directories with version tracking.
 
 DESIGN DECISIONS:
 - Deploys from src/claude_mpm/skills/bundled/pm/ to .claude-mpm/skills/pm/
+- Uses package-relative paths (works for both installed and dev mode)
+- Supports two skill formats:
+  1. Directory structure: pm-skill-name/SKILL.md (new format)
+  2. Flat files: skill-name.md (legacy format in .claude-mpm/templates/)
 - Per-project deployment (NOT global like Claude Code skills)
 - Version tracking via .claude-mpm/pm_skills_registry.yaml
 - Checksum validation for integrity verification
@@ -13,11 +17,16 @@ DESIGN DECISIONS:
 - Force flag to redeploy even if versions match
 
 ARCHITECTURE:
-1. Discovery: Find bundled PM skills in package
-2. Deployment: Copy to project .claude-mpm/skills/pm/
+1. Discovery: Find bundled PM skills in package (skills/bundled/pm/)
+2. Deployment: Copy SKILL.md files to .claude-mpm/skills/pm/{name}.md
 3. Registry: Track deployed versions and checksums
 4. Verification: Check deployment status (non-blocking)
 5. Updates: Compare bundled vs deployed versions
+
+PATH RESOLUTION:
+- Installed package: Uses __file__ to find skills/bundled/pm/
+- Dev mode fallback: .claude-mpm/templates/ at project root
+- Works correctly in both site-packages and development environments
 
 References:
 - Parent Service: src/claude_mpm/services/skills_deployer.py
@@ -143,22 +152,27 @@ class PMSkillsDeployerService(LoggerMixin):
         """Initialize PM Skills Deployer Service.
 
         Sets up paths for:
-        - bundled_pm_skills_path: Source bundled PM skills (.claude-mpm/templates/)
+        - bundled_pm_skills_path: Source bundled PM skills (skills/bundled/pm/)
         - Deployment paths are project-specific (passed to methods)
         """
         super().__init__()
 
-        # Bundled PM skills are in .claude-mpm/templates/ at project root
-        # Find project root by traversing up from this file
-        self.project_root = self._find_project_root()
-        self.bundled_pm_skills_path = (
-            self.project_root / ".claude-mpm" / "templates"
-        )
+        # Bundled PM skills are in the package's skills/bundled/pm/ directory
+        # This works for both installed packages and development mode
+        package_dir = Path(__file__).resolve().parent.parent  # Go up to claude_mpm
+        self.bundled_pm_skills_path = package_dir / "skills" / "bundled" / "pm"
 
         if not self.bundled_pm_skills_path.exists():
-            self.logger.warning(
-                f"Bundled PM skills path not found: {self.bundled_pm_skills_path}"
-            )
+            # Fallback: try .claude-mpm/templates/ at project root for dev mode
+            self.project_root = self._find_project_root()
+            alt_path = self.project_root / ".claude-mpm" / "templates"
+            if alt_path.exists():
+                self.bundled_pm_skills_path = alt_path
+                self.logger.debug(f"Using dev templates path: {alt_path}")
+            else:
+                self.logger.warning(
+                    f"PM skills templates path not found (non-critical, uses defaults)"
+                )
 
     def _find_project_root(self) -> Path:
         """Find project root by traversing up from current file.
@@ -306,11 +320,15 @@ class PMSkillsDeployerService(LoggerMixin):
     def _discover_bundled_pm_skills(self) -> List[Dict[str, Any]]:
         """Discover all PM skills in bundled templates directory.
 
+        PM skills can be in two formats:
+        1. Directory structure: pm-skill-name/SKILL.md (new format)
+        2. Flat files: skill-name.md (legacy format for .claude-mpm/templates/)
+
         Returns:
             List of skill dictionaries containing:
-            - name: Skill name (filename without extension)
-            - path: Full path to skill file
-            - type: File type (md, json, yaml, etc.)
+            - name: Skill name (directory/filename without extension)
+            - path: Full path to skill file (SKILL.md or .md file)
+            - type: File type (always 'md')
         """
         skills = []
 
@@ -320,7 +338,22 @@ class PMSkillsDeployerService(LoggerMixin):
             )
             return skills
 
-        # Scan for skill files (.md templates)
+        # Scan for skill directories containing SKILL.md (new format)
+        for skill_dir in self.bundled_pm_skills_path.iterdir():
+            if not skill_dir.is_dir() or skill_dir.name.startswith("."):
+                continue
+
+            skill_file = skill_dir / "SKILL.md"
+            if skill_file.exists():
+                skills.append(
+                    {
+                        "name": skill_dir.name,
+                        "path": skill_file,
+                        "type": "md",
+                    }
+                )
+
+        # Fallback: Scan for .md files directly (legacy format)
         for skill_file in self.bundled_pm_skills_path.glob("*.md"):
             if skill_file.name.startswith("."):
                 continue
@@ -329,7 +362,7 @@ class PMSkillsDeployerService(LoggerMixin):
                 {
                     "name": skill_file.stem,
                     "path": skill_file,
-                    "type": skill_file.suffix[1:],  # Remove leading dot
+                    "type": "md",
                 }
             )
 
@@ -413,7 +446,9 @@ class PMSkillsDeployerService(LoggerMixin):
                 # Report progress if callback provided
                 if progress_callback:
                     progress_callback(skill_name, idx + 1, total_skills)
-                target_path = deployment_dir / source_path.name
+
+                # Use skill name for target file (e.g., pm-delegation-patterns.md)
+                target_path = deployment_dir / f"{skill_name}.md"
 
                 # SECURITY: Validate target path
                 if not self._validate_safe_path(deployment_dir, target_path):
