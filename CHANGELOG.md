@@ -1,3 +1,11 @@
+## [5.4.48] - 2025-12-29
+
+### Changed
+- **Skills Auto-Linking**: Selective deployment is now the default behavior
+  - Removed --all-skills flag (no longer needed)
+  - Enhanced cleanup runs on every deployment
+  - Skills are automatically linked based on agent dependencies
+
 ## [5.4.47] - 2025-12-29
 
 ### Fixed
