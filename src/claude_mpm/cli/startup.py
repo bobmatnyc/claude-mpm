@@ -59,6 +59,73 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         return False
 
 
+def cleanup_legacy_agent_cache() -> None:
+    """Remove legacy hierarchical agent cache directories.
+
+    WHY: Old agent cache used category-based directory structure directly in cache.
+    New structure uses remote source paths. This cleanup prevents confusion from
+    stale cache directories.
+
+    Old structure (removed):
+        ~/.claude-mpm/cache/agents/engineer/
+        ~/.claude-mpm/cache/agents/ops/
+        ~/.claude-mpm/cache/agents/qa/
+        ...
+
+    New structure (kept):
+        ~/.claude-mpm/cache/agents/bobmatnyc/claude-mpm-agents/agents/...
+
+    DESIGN DECISION: Runs early in startup before agent deployment to ensure
+    clean cache state. Removes only known legacy directories to avoid deleting
+    user data.
+    """
+    import shutil
+    from pathlib import Path
+
+    from ..core.logger import get_logger
+
+    logger = get_logger("startup")
+
+    cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+    if not cache_dir.exists():
+        return
+
+    # Known legacy category directories (from old hierarchical structure)
+    legacy_dirs = [
+        "claude-mpm",
+        "documentation",
+        "engineer",
+        "ops",
+        "qa",
+        "security",
+        "universal",
+    ]
+
+    removed = []
+
+    # Remove legacy category directories
+    for dir_name in legacy_dirs:
+        legacy_path = cache_dir / dir_name
+        if legacy_path.exists() and legacy_path.is_dir():
+            try:
+                shutil.rmtree(legacy_path)
+                removed.append(dir_name)
+            except Exception as e:
+                logger.debug(f"Failed to remove legacy directory {dir_name}: {e}")
+
+    # Also remove stray BASE-AGENT.md in cache root
+    base_agent = cache_dir / "BASE-AGENT.md"
+    if base_agent.exists():
+        try:
+            base_agent.unlink()
+            removed.append("BASE-AGENT.md")
+        except Exception as e:
+            logger.debug(f"Failed to remove BASE-AGENT.md: {e}")
+
+    if removed:
+        logger.info(f"Cleaned up legacy agent cache: {', '.join(removed)}")
+
+
 def check_legacy_cache() -> None:
     """Deprecated: Legacy cache checking is no longer needed.
 
@@ -399,12 +466,16 @@ def sync_remote_agents_on_startup():
     block startup to ensure claude-mpm remains functional.
 
     Workflow:
-    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
-    2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
-    3. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
-    4. Log deployment results
+    1. Cleanup legacy agent cache directories (if any)
+    2. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
+    3. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
+    4. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
+    5. Log deployment results
     """
-    # Check for legacy cache and warn user if found
+    # Cleanup legacy cache directories first (before syncing)
+    cleanup_legacy_agent_cache()
+
+    # DEPRECATED: Legacy warning - replaced by automatic cleanup above
     check_legacy_cache()
 
     try:
