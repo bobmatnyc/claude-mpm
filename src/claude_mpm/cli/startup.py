@@ -1296,18 +1296,10 @@ def verify_mcp_gateway_startup():
     DESIGN DECISION: This is non-blocking - failures are logged but don't prevent
     startup to ensure claude-mpm remains functional even if MCP gateway has issues.
     """
-    # Quick verification of MCP services installation
-    try:
-        from ..core.logger import get_logger
-        from ..services.mcp_service_verifier import verify_mcp_services_on_startup
-
-        logger = get_logger("mcp_verify")
-        all_ok, message = verify_mcp_services_on_startup()
-        if not all_ok:
-            logger.warning(message)
-    except Exception:
-        # Non-critical - continue with startup
-        pass
+    # DISABLED: MCP service verification removed - Claude Code handles MCP natively
+    # The previous check warned about missing MCP services, but users should configure
+    # MCP servers through Claude Code's native MCP management, not through claude-mpm.
+    # See: https://docs.anthropic.com/en/docs/claude-code/mcp
 
     try:
         import asyncio
