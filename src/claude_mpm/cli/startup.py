@@ -1205,7 +1205,7 @@ def show_agent_summary():
         # Display summary if we have agents
         if installed_count > 0 or available_count > 0:
             print(
-                f"✓ Agents: {installed_count} deployed / {available_count} cached",
+                f"✓ Agents: {installed_count} deployed / {max(0, available_count - installed_count)} cached",
                 flush=True,
             )
 
