@@ -694,20 +694,34 @@ class MPMInitCommand:
         with version tracking and checksum validation.
         """
         try:
+            from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
+
             from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
 
-            self.console.print("\n[cyan]Deploying PM skills templates...[/cyan]")
-
             deployer = PMSkillsDeployerService()
-            result = deployer.deploy_pm_skills(self.project_path)
+
+            # Use progress bar for deployment
+            with Progress(
+                TextColumn("[cyan]Deploying PM skills[/cyan]"),
+                BarColumn(bar_width=30),
+                TaskProgressColumn(),
+                TextColumn("[dim]{task.description}[/dim]"),
+                console=self.console,
+            ) as progress:
+                task = progress.add_task("", total=None)  # Unknown total initially
+
+                def update_progress(skill_name: str, current: int, total: int) -> None:
+                    progress.update(task, total=total, completed=current, description=skill_name)
+
+                result = deployer.deploy_pm_skills(
+                    self.project_path, progress_callback=update_progress
+                )
 
             if result.success:
                 if result.deployed:
                     self.console.print(
                         f"[green]✓ Deployed {len(result.deployed)} PM skills[/green]"
                     )
-                    for skill_name in result.deployed:
-                        self.console.print(f"  • {skill_name}")
 
                 if result.skipped:
                     self.console.print(

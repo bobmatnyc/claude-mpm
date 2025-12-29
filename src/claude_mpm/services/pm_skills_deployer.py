@@ -29,7 +29,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
@@ -337,7 +337,10 @@ class PMSkillsDeployerService(LoggerMixin):
         return skills
 
     def deploy_pm_skills(
-        self, project_dir: Path, force: bool = False
+        self,
+        project_dir: Path,
+        force: bool = False,
+        progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> DeploymentResult:
         """Deploy bundled PM skills to project directory.
 
@@ -347,6 +350,7 @@ class PMSkillsDeployerService(LoggerMixin):
         Args:
             project_dir: Project root directory
             force: If True, redeploy even if skill already exists
+            progress_callback: Optional callback(skill_name, current, total) for progress
 
         Returns:
             DeploymentResult with deployment status and details
@@ -399,11 +403,16 @@ class PMSkillsDeployerService(LoggerMixin):
 
         new_deployed_skills = []
         timestamp = datetime.utcnow().isoformat() + "Z"
+        total_skills = len(skills)
 
-        for skill in skills:
+        for idx, skill in enumerate(skills):
             try:
                 skill_name = skill["name"]
                 source_path = skill["path"]
+
+                # Report progress if callback provided
+                if progress_callback:
+                    progress_callback(skill_name, idx + 1, total_skills)
                 target_path = deployment_dir / source_path.name
 
                 # SECURITY: Validate target path
