@@ -419,7 +419,7 @@ class AgentTemplateBuilder:
         if non_standard:
             self.logger.info(f"Using non-standard tools: {non_standard}")
 
-        # Extract model from template with fallback
+        # Extract model from template (no fallback - preserve None if not specified)
         capabilities_model = (
             capabilities.get("model") if isinstance(capabilities, dict) else None
         )
@@ -428,7 +428,7 @@ class AgentTemplateBuilder:
             template_data.get("model")
             or capabilities_model
             or template_data.get("configuration_fields", {}).get("model")
-            or "sonnet"  # Default fallback
+            # No default fallback - preserve None if not set
         )
 
         # Convert tools list to comma-separated string (without spaces for compatibility)
@@ -448,11 +448,11 @@ class AgentTemplateBuilder:
             "opus": "opus",
         }
 
-        if model in model_map:
-            model = model_map[model]
-        else:
-            # Default to sonnet if model not found in map
-            model = "sonnet"
+        # Only map model if it's not None
+        if model is not None:
+            if model in model_map:
+                model = model_map[model]
+            # If model is specified but not in map, keep as-is (no default)
 
         # Get response format from template or use base agent default
         template_data.get("response", {}).get("format", "structured")
@@ -559,8 +559,9 @@ class AgentTemplateBuilder:
             f"description: {self._format_description_for_yaml(description)}"
         )
 
-        # Add model field (required for Claude Code)
-        frontmatter_lines.append(f"model: {model}")
+        # Add model field only if explicitly set (not required for Claude Code)
+        if model is not None:
+            frontmatter_lines.append(f"model: {model}")
 
         # Add type field (important for agent categorization)
         if agent_type and agent_type != "general":
@@ -718,21 +719,30 @@ Only include memories that are:
             "description", f"{name} agent for specialized tasks"
         )
 
-        # Get tools and model with fallbacks
+        # Get tools and model (no fallback for model)
         raw_tools = merged_config.get("tools")
         tools = self.normalize_tools_input(raw_tools)
-        model = merged_config.get("model", "sonnet")
+        model = merged_config.get("model")  # No default - preserve None
 
         # Format tools as YAML list
         tools_yaml = self.format_yaml_list(tools, 2)
 
         # Build YAML content with only essential fields
-        return f"""name: {name}
-description: {description}
-model: {model}
-tools:
-{tools_yaml}
-"""
+        yaml_lines = [
+            f"name: {name}",
+            f"description: {description}",
+        ]
+
+        # Only include model if explicitly set
+        if model is not None:
+            yaml_lines.append(f"model: {model}")
+
+        yaml_lines.extend([
+            "tools:",
+            tools_yaml,
+        ])
+
+        return "\n".join(yaml_lines) + "\n"
 
     def merge_narrative_fields(self, base_data: dict, template_data: dict) -> dict:
         """

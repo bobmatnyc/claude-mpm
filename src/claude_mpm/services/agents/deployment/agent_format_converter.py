@@ -137,8 +137,8 @@ class AgentFormatConverter:
         else:
             pass
 
-        # Extract additional fields
-        model = self.extract_yaml_field(yaml_content, "model") or "sonnet"
+        # Extract additional fields - model is optional (Claude Code uses conversation model if not set)
+        model = self.extract_yaml_field(yaml_content, "model")  # None if not specified
         author = (
             self.extract_yaml_field(yaml_content, "author")
             or "claude-mpm@anthropic.com"
@@ -147,7 +147,7 @@ class AgentFormatConverter:
         # Extract instructions from YAML content
         instructions = self._extract_instructions_from_yaml(yaml_content, agent_name)
 
-        # Map model names to Claude Code format
+        # Map model names to Claude Code format (only if model is specified)
         model_map = {
             "claude-3-5-sonnet-20241022": "sonnet",
             "claude-3-5-sonnet": "sonnet",
@@ -159,7 +159,8 @@ class AgentFormatConverter:
             "opus": "opus",
         }
 
-        mapped_model = model_map.get(model, "sonnet")
+        # Only map model if it's not None (preserve None for agents without model field)
+        mapped_model = model_map.get(model, model) if model is not None else None
 
         # Create multiline description with example (Claude Code format)
         multiline_description = f"""{description}
@@ -172,16 +173,25 @@ assistant: "I'll use the {name} agent to provide specialized assistance."
 
         # Build new YAML frontmatter - Claude Code compatible format
         # NOTE: Removed tags field and other non-essential fields for Claude Code compatibility
-        new_frontmatter = f"""---
-name: {name}
-description: |
-  {self._indent_text(multiline_description, 2)}
-model: {mapped_model}
-version: "{version}"
-author: "{author}"
----
+        frontmatter_lines = [
+            "---",
+            f"name: {name}",
+            "description: |",
+            f"  {self._indent_text(multiline_description, 2)}",
+        ]
 
-"""
+        # Only include model field if explicitly set in source
+        if mapped_model is not None:
+            frontmatter_lines.append(f"model: {mapped_model}")
+
+        frontmatter_lines.extend([
+            f'version: "{version}"',
+            f'author: "{author}"',
+            "---",
+            "",
+        ])
+
+        new_frontmatter = "\n".join(frontmatter_lines)
 
         return new_frontmatter + instructions
 

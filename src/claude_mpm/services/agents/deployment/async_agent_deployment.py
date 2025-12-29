@@ -551,38 +551,39 @@ class AsyncAgentDeploymentService:
             or ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
         )
 
-        # Get model from capabilities.model in new format
+        # Get model from capabilities.model in new format (no default fallback)
         model = (
             agent_data.get("capabilities", {}).get("model")
             or agent_data.get("configuration_fields", {}).get("model")
-            or "sonnet"  # Default fallback
+            # No default fallback - preserve None if not set
         )
 
-        # Simplify model name for Claude Code
-        model_map = {
-            "claude-4-sonnet-20250514": "sonnet",
-            "claude-sonnet-4-20250514": "sonnet",
-            "claude-opus-4-20250514": "opus",
-            "claude-3-opus-20240229": "opus",
-            "claude-3-haiku-20240307": "haiku",
-            "claude-3.5-sonnet": "sonnet",
-            "claude-3-sonnet": "sonnet",
-        }
-        # Better fallback: extract the model type (opus/sonnet/haiku) from the string
-        if model not in model_map:
-            if "opus" in model.lower():
-                model = "opus"
-            elif "sonnet" in model.lower():
-                model = "sonnet"
-            elif "haiku" in model.lower():
-                model = "haiku"
+        # Simplify model name for Claude Code (only if model is specified)
+        if model is not None:
+            model_map = {
+                "claude-4-sonnet-20250514": "sonnet",
+                "claude-sonnet-4-20250514": "sonnet",
+                "claude-opus-4-20250514": "opus",
+                "claude-3-opus-20240229": "opus",
+                "claude-3-haiku-20240307": "haiku",
+                "claude-3.5-sonnet": "sonnet",
+                "claude-3-sonnet": "sonnet",
+            }
+            # Better fallback: extract the model type (opus/sonnet/haiku) from the string
+            if model not in model_map:
+                if "opus" in model.lower():
+                    model = "opus"
+                elif "sonnet" in model.lower():
+                    model = "sonnet"
+                elif "haiku" in model.lower():
+                    model = "haiku"
+                else:
+                    # Last resort: try to extract from hyphenated format
+                    model = model_map.get(
+                        model, model.split("-")[-1] if "-" in model else model
+                    )
             else:
-                # Last resort: try to extract from hyphenated format
-                model = model_map.get(
-                    model, model.split("-")[-1] if "-" in model else model
-                )
-        else:
-            model = model_map[model]
+                model = model_map[model]
 
         # Convert tools list to comma-separated string for Claude Code compatibility
         # IMPORTANT: No spaces after commas - Claude Code requires exact format
@@ -601,8 +602,11 @@ class AsyncAgentDeploymentService:
             f"base_version: {self._format_version_display(base_version)}",
             "author: claude-mpm",  # Identify as system agent for deployment
             f"tools: {tools_str}",
-            f"model: {model}",
         ]
+
+        # Only include model field if explicitly set
+        if model is not None:
+            frontmatter_lines.append(f"model: {model}")
 
         # Add optional fields if present
         # Check for color in metadata section (new format) or root (old format)

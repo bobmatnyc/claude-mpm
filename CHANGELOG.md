@@ -1,3 +1,18 @@
+## [5.4.45] - 2025-12-29
+
+### Fixed
+- **Agent Exclusion Matching**: Normalize agent names for consistent exclusion filtering
+  - Handles "Dart Engineer", "dart_engineer", and "dart-engineer" as the same agent
+  - Added `_normalize_agent_name()` helper function for name normalization
+  - Excluded agents now properly filtered from deployment
+- **Model Field Optional**: Stop defaulting to `model: sonnet` in deployed agents
+  - If source agent has no model field, deployed agent also omits model field
+  - Allows Claude Code to use its own default model
+  - Fixed in agent_format_converter, agent_template_builder, async_agent_deployment, local_template_deployment
+- **Duplicate Agent Entries**: Fixed duplicate agents appearing in configurator
+  - Added deduplication logic to git_source_manager list_cached_agents()
+  - Fixes memory-manager-agent appearing twice
+
 ## [5.4.44] - 2025-12-29
 
 ### Fixed

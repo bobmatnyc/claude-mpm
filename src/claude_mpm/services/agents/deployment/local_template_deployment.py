@@ -157,7 +157,9 @@ class LocalTemplateDeploymentService:
 
         # Add capabilities
         if template.capabilities:
-            frontmatter["model"] = template.capabilities.get("model", "sonnet")
+            # Only include model if explicitly set (no default)
+            if "model" in template.capabilities:
+                frontmatter["model"] = template.capabilities["model"]
             tools = template.capabilities.get("tools", "*")
             if tools == "*":
                 frontmatter["tools"] = "all"

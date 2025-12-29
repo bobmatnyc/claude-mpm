@@ -26,6 +26,18 @@ from .agent_version_manager import AgentVersionManager
 from .remote_agent_discovery_service import RemoteAgentDiscoveryService
 
 
+def _normalize_agent_name(name: str) -> str:
+    """Normalize agent name for consistent comparison.
+
+    Converts spaces, underscores to hyphens and lowercases.
+    Examples:
+        "Dart Engineer" -> "dart-engineer"
+        "dart_engineer" -> "dart-engineer"
+        "DART-ENGINEER" -> "dart-engineer"
+    """
+    return name.lower().replace(" ", "-").replace("_", "-")
+
+
 class MultiSourceAgentDeploymentService:
     """Service for deploying agents from multiple sources with version comparison.
 
@@ -531,22 +543,38 @@ class MultiSourceAgentDeploymentService:
 
         # Apply exclusion filters
         if excluded_agents:
-            # Find agents to remove by matching name field or agent_id portion of canonical_id
+            # Find agents to remove by matching normalized names
+            # Normalization handles: "Dart Engineer", "dart_engineer", "dart-engineer"
             agents_to_remove = []
-            excluded_set = {name.lower() for name in excluded_agents}
+            excluded_set = {_normalize_agent_name(name) for name in excluded_agents}
 
             for canonical_id, agent_info in list(selected_agents.items()):
-                # Check agent name field
-                agent_name = agent_info.get("name", "").lower()
+                # Check agent name field (normalized)
+                agent_name = _normalize_agent_name(agent_info.get("name", ""))
 
                 # Also check the agent_id portion of canonical_id (after the colon)
                 # Example: "bobmatnyc/claude-mpm-agents:pm" -> "pm"
-                agent_id = canonical_id.split(":")[-1].lower() if ":" in canonical_id else canonical_id.lower()
+                raw_agent_id = (
+                    canonical_id.split(":")[-1]
+                    if ":" in canonical_id
+                    else canonical_id
+                )
+                agent_id = _normalize_agent_name(raw_agent_id)
 
-                if agent_name in excluded_set or agent_id in excluded_set:
+                # Check file stem from path (most reliable match)
+                file_stem = ""
+                path_str = agent_info.get("path") or agent_info.get("file_path")
+                if path_str:
+                    file_stem = _normalize_agent_name(Path(path_str).stem)
+
+                if (
+                    agent_name in excluded_set
+                    or agent_id in excluded_set
+                    or file_stem in excluded_set
+                ):
                     agents_to_remove.append(canonical_id)
                     self.logger.info(
-                        f"Excluding agent '{agent_info.get('name', agent_id)}' "
+                        f"Excluding agent '{agent_info.get('name', raw_agent_id)}' "
                         f"(canonical_id: {canonical_id}) from deployment"
                     )
 
