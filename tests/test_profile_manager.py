@@ -285,3 +285,32 @@ def test_profile_with_only_disabled_agents(profiles_dir):
 
     # Other agents should be enabled (not in disabled list)
     assert manager.is_agent_enabled("java-engineer") is True
+
+
+def test_is_skill_enabled_short_name_to_full_name():
+    """Test that short names match full skill names."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        profile_dir = Path(tmpdir) / ".claude-mpm" / "profiles"
+        profile_dir.mkdir(parents=True)
+
+        # Profile uses short names
+        profile = profile_dir / "test.yaml"
+        profile.write_text('''profile:
+  name: test
+skills:
+  enabled:
+    - flask
+    - pytest
+    - svelte
+''')
+
+        manager = ProfileManager(profiles_dir=profile_dir)
+        manager.load_profile("test")
+
+        # Full names should match short names
+        assert manager.is_skill_enabled("toolchains-python-frameworks-flask") is True
+        assert manager.is_skill_enabled("toolchains-python-testing-pytest") is True
+        assert manager.is_skill_enabled("toolchains-javascript-frameworks-svelte") is True
+
+        # Non-matching should return False
+        assert manager.is_skill_enabled("toolchains-java-frameworks-spring") is False

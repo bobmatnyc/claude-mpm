@@ -923,17 +923,26 @@ def sync_remote_skills_on_startup():
                 # Filter skills based on profile
                 if skills_to_deploy:
                     # Filter the resolved skill list
+                    original_count = len(skills_to_deploy)
                     filtered_skills = [
                         skill
                         for skill in skills_to_deploy
                         if profile_manager.is_skill_enabled(skill)
                     ]
-                    filtered_count = len(skills_to_deploy) - len(filtered_skills)
-                    if filtered_count > 0:
+                    filtered_count = original_count - len(filtered_skills)
+
+                    # SAFEGUARD: Warn if all skills were filtered out (misconfiguration)
+                    if not filtered_skills and original_count > 0:
+                        logger.warning(
+                            f"Profile '{active_profile}' filtered ALL {original_count} skills. "
+                            f"This may indicate a naming mismatch in the profile."
+                        )
+                    elif filtered_count > 0:
                         logger.info(
                             f"Profile '{active_profile}' filtered {filtered_count} skills "
                             f"({len(filtered_skills)} remaining)"
                         )
+
                     skills_to_deploy = filtered_skills
                     skill_source = f"{skill_source} + profile filtered"
                 else:

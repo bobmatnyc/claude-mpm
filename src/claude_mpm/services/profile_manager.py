@@ -155,12 +155,13 @@ class ProfileManager:
         """
         Check if skill is enabled in active profile.
 
+        Supports both short names (flask) and full names (toolchains-python-frameworks-flask).
         Supports glob pattern matching for disabled_categories.
 
         If no profile is loaded, all skills are enabled by default.
 
         Args:
-            skill_name: Name of skill to check (e.g., "flask", "wordpress-plugin")
+            skill_name: Name of skill to check (e.g., "flask", "toolchains-python-frameworks-flask")
 
         Returns:
             bool: True if skill should be deployed
@@ -175,9 +176,22 @@ class ProfileManager:
                 logger.debug(f"Skill '{skill_name}' matched disabled pattern '{pattern}'")
                 return False
 
-        # If enabled list exists, skill must be in it
+        # If enabled list exists, check for match
         if self._enabled_skills:
-            return skill_name in self._enabled_skills
+            # Exact match
+            if skill_name in self._enabled_skills:
+                return True
+
+            # Check if full skill name ends with short name from enabled list
+            # Example: "toolchains-python-frameworks-flask" matches "flask"
+            for short_name in self._enabled_skills:
+                if skill_name.endswith(f"-{short_name}"):
+                    return True
+                # Also check if short name is contained as a segment
+                if f"-{short_name}-" in skill_name or skill_name.startswith(f"{short_name}-"):
+                    return True
+
+            return False
 
         # No enabled list and didn't match disabled pattern - allow it
         return True
