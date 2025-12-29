@@ -143,11 +143,20 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
     Uses SkillToAgentMapper to find all skills associated with given agent IDs.
     This provides pattern-based skill discovery beyond explicit frontmatter declarations.
 
+    IMPORTANT: This function ONLY returns skills that are mapped to the specific
+    agent_ids provided. It does NOT return skills for all agents in the mapping configuration.
+    This ensures that only skills for DEPLOYED agents are included.
+
+    GENERIC AGENT HANDLING: The generic "engineer" agent is mapped to 100+ skills in the
+    configuration because it's designed as a fallback. To prevent over-deployment when
+    specialized agents exist, we skip "engineer" if specialized agents are present.
+
     Args:
         agent_ids: List of agent identifiers (e.g., ["python-engineer", "typescript-engineer"])
+                  These should be the IDs of DEPLOYED agents only.
 
     Returns:
-        Set of unique skill names inferred from mapping configuration
+        Set of unique skill names inferred from mapping configuration for DEPLOYED agents only
 
     Example:
         >>> agent_ids = ["python-engineer", "typescript-engineer"]
@@ -158,14 +167,36 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
         mapper = SkillToAgentMapper()
         all_skills = set()
 
-        for agent_id in agent_ids:
+        # CRITICAL FIX: Skip generic "engineer" agent if specialized agents exist
+        # The "engineer" agent is mapped to ~107 skills (almost all skills) because
+        # it's a fallback agent. This causes over-deployment when you have specialized
+        # agents like "python-engineer", "typescript-engineer", etc.
+        #
+        # Solution: Filter out "engineer" from agent_ids if specialized agents exist
+        specialized_engineers = [
+            aid for aid in agent_ids
+            if aid.endswith("-engineer") and aid != "engineer"
+        ]
+
+        # If specialized engineers exist, exclude generic "engineer" from skill mapping
+        # This prevents deploying 100+ skills when only a subset is needed
+        agents_to_query = agent_ids
+        if specialized_engineers and "engineer" in agent_ids:
+            agents_to_query = [aid for aid in agent_ids if aid != "engineer"]
+            logger.info(
+                f"Excluding generic 'engineer' agent from skill mapping "
+                f"(found {len(specialized_engineers)} specialized engineers: "
+                f"{', '.join(specialized_engineers[:5])}{'...' if len(specialized_engineers) > 5 else ''})"
+            )
+
+        for agent_id in agents_to_query:
             agent_skills = mapper.get_skills_for_agent(agent_id)
             if agent_skills:
                 all_skills.update(agent_skills)
                 logger.debug(f"Mapped {len(agent_skills)} skills to {agent_id}")
 
         logger.info(
-            f"Mapped {len(all_skills)} unique skills for {len(agent_ids)} agents"
+            f"Mapped {len(all_skills)} unique skills for {len(agents_to_query)} deployed agents"
         )
         return all_skills
 

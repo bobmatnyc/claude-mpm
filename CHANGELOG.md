@@ -1,3 +1,13 @@
+## [5.4.50] - 2025-12-29
+
+### Fixed
+- **Agent Count Display**: Fixed cache cleanup deleting all agents due to path counting bug
+  - Changed from absolute to relative path counting for nested structure detection
+  - Cache now properly preserved during agent sync
+  - Display correctly shows "X deployed / Y cached"
+- **Skill Deployment**: Exclude generic "engineer" agent when specialized engineers exist
+  - Prevents over-deployment of skills mapped to generic agent
+
 ## [5.4.49] - 2025-12-29
 
 ### Fixed

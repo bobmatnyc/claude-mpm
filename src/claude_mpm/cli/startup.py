@@ -596,12 +596,15 @@ def sync_remote_agents_on_startup():
                     stale_dirs = set()
 
                     for md_file in cache_dir.rglob("*.md"):
-                        # Stale cache files have multiple /agents/ in their path
-                        # Current: ~/.claude-mpm/cache/agents/engineer/...
-                        #          (1 occurrence)
-                        # Old: ~/.claude-mpm/cache/agents/bobmatnyc/.../agents/...
-                        #      (2+ occurrences)
-                        if str(md_file).count("/agents/") > 1:
+                        # Stale cache files have multiple /agents/ in their path RELATIVE to cache_dir
+                        # Current: cache/agents/bobmatnyc/claude-mpm-agents/agents/engineer/...
+                        #          (1 occurrence in relative path: /agents/)
+                        # Old flat: cache/agents/engineer/...
+                        #           (0 occurrences in relative path - no repo structure)
+                        # The issue: str(md_file).count("/agents/") counts BOTH cache/agents/ AND repo/agents/
+                        # Fix: Count /agents/ in path RELATIVE to cache_dir (after cache/agents/)
+                        relative_path = str(md_file.relative_to(cache_dir))
+                        if relative_path.count("/agents/") > 1:
                             # Track parent directory for cleanup
                             # Extract subdirectory under cache/agents/
                             # (e.g., "bobmatnyc")
