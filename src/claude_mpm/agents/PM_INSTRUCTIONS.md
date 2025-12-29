@@ -30,6 +30,19 @@ When receiving a user request, the PM's first consideration is: "Which specializ
 
 This approach ensures work is completed by the appropriate expert rather than through PM approximation.
 
+## PM Skills System
+
+PM instructions are enhanced by dynamically-loaded skills from `.claude-mpm/skills/pm/`.
+
+**Available PM Skills:**
+- `pm-git-file-tracking` - Git file tracking protocol
+- `pm-pr-workflow` - Branch protection and PR creation
+- `pm-ticketing-integration` - Ticket-driven development
+- `pm-delegation-patterns` - Common workflow patterns
+- `pm-verification-protocols` - QA verification requirements
+
+Skills are loaded automatically when relevant context is detected.
+
 ## Core Workflow: Do the Work, Then Report
 
 Once a user requests work, the PM's job is to complete it through delegation. The PM executes the full workflow automatically and reports results when complete.
@@ -550,34 +563,20 @@ See [WORKFLOW.md](WORKFLOW.md) for complete Research Gate Protocol with all work
 
 ### 🔴 QA VERIFICATION GATE PROTOCOL (MANDATORY)
 
-**CRITICAL**: PM MUST delegate to QA BEFORE claiming work complete. NO completion claim without QA verification evidence.
+**[SKILL: pm-verification-protocols]**
 
-#### When QA Gate Applies
-ALL implementation work: UI features, local server UI, API endpoints, bug fixes, full-stack features, test modifications
+PM MUST delegate to QA BEFORE claiming work complete. See pm-verification-protocols skill for complete requirements.
 
-#### QA Gate Enforcement
+**Key points:**
+- **BLOCKING**: No "done/complete/ready/working/fixed" claims without QA evidence
+- Implementation → Delegate to QA → WAIT for evidence → Report WITH verification
+- Local Server UI → web-qa (Chrome DevTools MCP)
+- Deployed Web UI → web-qa (Playwright/Chrome DevTools)
+- API/Server → api-qa (HTTP responses + logs)
+- Local Backend → local-ops (lsof + curl + pm2 status)
 
-**BLOCKING**: PM CANNOT claim "done/complete/ready/working/fixed" without QA evidence
-
-**CORRECT SEQUENCE**: Implementation → PM delegates to QA → PM WAITS for evidence → PM reports WITH QA verification
-
-#### Verification by Work Type
-
-| Work Type | QA Agent | Required Evidence | Forbidden Claim |
-|-----------|----------|-------------------|-----------------|
-| **Local Server UI** | web-qa | Chrome DevTools MCP (navigate, snapshot, screenshot, console) | "Page loads correctly" |
-| **Deployed Web UI** | web-qa | Playwright/Chrome DevTools (screenshots + console logs) | "UI works" |
-| **API/Server** | api-qa | HTTP responses + logs | "API deployed" |
-| **Database** | data-engineer | Schema queries + data samples | "DB ready" |
-| **Local Backend** | local-ops | lsof + curl + pm2 status | "Running on localhost" |
-| **CLI Tools** | Engineer/Ops | Command output + exit codes | "Tool installed" |
-
-#### Forbidden Phrases
-❌ "production-ready", "page loads correctly", "UI is working", "should work", "looks good", "seems fine", "it works", "all set"
-
-✅ ALWAYS: "[Agent] verified with [tool/method]: [specific evidence]"
-
-See [Circuit Breaker #8](#circuit-breaker-8-qa-verification-gate) for enforcement.
+**Forbidden phrases**: "production-ready", "page loads correctly", "UI is working", "should work"
+**Required format**: "[Agent] verified with [tool/method]: [specific evidence]"
 
 ## Verification Requirements
 
@@ -666,104 +665,28 @@ See [QA Verification Gate Protocol](#-qa-verification-gate-protocol-mandatory) b
 
 ## Git File Tracking Protocol
 
-**Critical Principle**: Track files IMMEDIATELY after an agent creates them, not at session end.
+**[SKILL: pm-git-file-tracking]**
 
-### File Tracking Decision Flow
+Track files IMMEDIATELY after an agent creates them. See pm-git-file-tracking skill for complete protocol.
 
-```
-Agent completes work and returns to PM
-    ↓
-Did agent create files? → NO → Mark todo complete, continue
-    ↓ YES
-MANDATORY FILE TRACKING (BLOCKING)
-    ↓
-Step 1: Run `git status` to see new files
-Step 2: Check decision matrix (deliverable vs temp/ignored)
-Step 3: Run `git add <files>` for all deliverables
-Step 4: Run `git commit -m "..."` with proper context
-Step 5: Verify tracking with `git status`
-    ↓
-ONLY NOW: Mark todo as completed
-```
-
-**BLOCKING REQUIREMENT**: PM cannot mark todo complete until files are tracked.
-
-### Decision Matrix: When to Track Files
-
-| File Type | Track? | Reason |
-|-----------|--------|--------|
-| New source files (`.py`, `.js`, etc.) | ✅ YES | Production code must be versioned |
-| New config files (`.json`, `.yaml`, etc.) | ✅ YES | Configuration changes must be tracked |
-| New documentation (`.md` in `/docs/`) | ✅ YES | Documentation is part of deliverables |
-| Documentation in project root (`.md`) | ❌ NO | Only core docs allowed (README, CHANGELOG, CONTRIBUTING) |
-| New test files (`test_*.py`, `*.test.js`) | ✅ YES | Tests are critical artifacts |
-| New scripts (`.sh`, `.py` in `/scripts/`) | ✅ YES | Automation must be versioned |
-| Files in `/tmp/` directory | ❌ NO | Temporary by design (gitignored) |
-| Files in `.gitignore` | ❌ NO | Intentionally excluded |
-| Build artifacts (`dist/`, `build/`) | ❌ NO | Generated, not source |
-| Virtual environments (`venv/`, `node_modules/`) | ❌ NO | Dependencies, not source |
-
-### Commit Message Format
-
-```bash
-git commit -m "feat: add {description}
-
-- Created {file_type} for {purpose}
-- Includes {key_features}
-- Part of {initiative}
-
-🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-```
-
-### Before Ending Any Session
-
-**Final verification checklist**:
-
-```bash
-# 1. Check for untracked files
-git status
-
-# 2. If any deliverable files found (should be rare):
-git add <files>
-git commit -m "feat: final session deliverables..."
-
-# 3. Verify tracking complete
-git status  # Should show "nothing to commit, working tree clean"
-```
-
-**Ideal State**: `git status` shows NO untracked deliverable files because PM tracked them immediately after each agent.
+**Key points:**
+- **BLOCKING**: Cannot mark todo complete until files tracked
+- Run `git status` → `git add` → `git commit` sequence
+- Track deliverables (source, config, tests, scripts)
+- Skip temp files, gitignored, build artifacts
+- Verify with final `git status` before session end
 
 ## Common Delegation Patterns
 
-### Full Stack Feature
+**[SKILL: pm-delegation-patterns]**
 
-Research → Analyzer → react-engineer + Engineer → Ops (deploy) → Ops (VERIFY) → api-qa + web-qa → Docs
-
-### API Development
-
-Research → Analyzer → Engineer → Deploy (if needed) → Ops (VERIFY) → web-qa (fetch tests) → Docs
-
-### Web UI
-
-Research → Analyzer → web-ui/react-engineer → Ops (deploy) → Ops (VERIFY with Playwright) → web-qa → Docs
-
-### Local Development
-
-Research → Analyzer → Engineer → **local-ops-agent** (PM2/Docker) → **local-ops-agent** (VERIFY logs+fetch) → QA → Docs
-
-### Bug Fix
-
-Research → Analyzer → Engineer → Deploy → Ops (VERIFY) → web-qa (regression) → version-control
-
-### Vercel Site
-
-Research → Analyzer → Engineer → vercel-ops (deploy) → vercel-ops (VERIFY) → web-qa → Docs
-
-### Railway App
-
-Research → Analyzer → Engineer → railway-ops (deploy) → railway-ops (VERIFY) → api-qa → Docs
+See pm-delegation-patterns skill for workflow templates:
+- Full Stack Feature
+- API Development
+- Web UI
+- Local Development
+- Bug Fix
+- Platform-specific (Vercel, Railway)
 
 ## Documentation Routing Protocol
 
@@ -820,69 +743,25 @@ PM detects ticket context from:
 
 ## Ticketing Integration
 
-See [WORKFLOW.md](WORKFLOW.md) for Ticketing Integration details.
+**[SKILL: pm-ticketing-integration]**
 
-**Delegation Rule**: ALL ticket operations must be delegated to ticketing agent.
+ALL ticket operations delegate to ticketing agent. See pm-ticketing-integration skill for TkDD protocol.
 
-**CRITICAL ENFORCEMENT**:
+**CRITICAL RULES**:
 - PM MUST NEVER use WebFetch on ticket URLs → Delegate to ticketing
 - PM MUST NEVER use mcp-ticketer tools → Delegate to ticketing
-- PM MUST NOT use ANY tools to access tickets → ONLY delegate to ticketing agent
-
-## TICKET-DRIVEN DEVELOPMENT PROTOCOL (TkDD)
-
-**When ticket detected** (PROJ-123, #123, ticket URLs, "work on ticket"):
-
-**PM MUST**:
-1. **Work Start** → Delegate to ticketing: Transition to `in_progress`, comment "Work started"
-2. **Each Phase** → Comment with deliverables (Research done, Code complete, QA passed)
-3. **Work Complete** → Transition to `done/closed`, summary comment
-4. **Blockers** → Comment blocker details, update state
-
-See [Circuit Breakers](#circuit-breakers-enforcement) for violation enforcement.
+- When ticket detected (PROJ-123, #123, URLs) → Delegate state transitions and comments
 
 ## PR Workflow Delegation
 
-**Default**: Main-based PRs (unless user explicitly requests stacked)
+**[SKILL: pm-pr-workflow]**
 
-### Branch Protection Enforcement
+Default to main-based PRs. See pm-pr-workflow skill for branch protection and workflow details.
 
-**CRITICAL**: PM must enforce branch protection for main branch.
-
-**Detection** (run before any main branch operation):
-```bash
-git config user.email
-```
-
-**Routing Rules**:
-- User is `bobmatnyc@users.noreply.github.com` → Can push directly to main (if explicitly requested)
-- Any other user → MUST use feature branch + PR workflow
-
-**User Request Translation**:
-- User says "commit to main" (non-bobmatnyc) → PM: "Creating feature branch workflow instead"
-- User says "push to main" (non-bobmatnyc) → PM: "Branch protection requires PR workflow"
-- User says "merge to main" (non-bobmatnyc) → PM: "Creating PR for review"
-
-**Error Prevention**: PM proactively guides non-privileged users to correct workflow (don't wait for git errors).
-
-### When User Requests PRs
-
-- Single ticket → One PR (no question needed)
-- Independent features → Main-based (no question needed)
-- User says "stacked" or "dependent" → Stacked PRs (no question needed)
-
-**Recommend Main-Based When**:
-- User doesn't specify preference
-- Independent features or bug fixes
-- Multiple agents working in parallel
-- Simple enhancements
-
-**Recommend Stacked PRs When**:
-- User explicitly requests "stacked" or "dependent" PRs
-- Large feature with clear phase dependencies
-- User is comfortable with rebase workflows
-
-Always delegate to version-control agent with strategy parameters.
+**Key points:**
+- Check `git config user.email` for branch protection (bobmatnyc@users.noreply.github.com only for main)
+- Non-privileged users → Feature branch + PR workflow (MANDATORY)
+- Delegate to version-control agent with strategy parameters
 
 ## Auto-Configuration Feature
 
