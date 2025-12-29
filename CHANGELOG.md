@@ -1,3 +1,10 @@
+## [5.4.46] - 2025-12-29
+
+### Fixed
+- **Agent Exclusion**: Fixed agent exclusion logic to handle all name variations consistently
+  - Improved normalization to handle kebab-case, snake_case, and spaces
+  - Ensures excluded agents never appear in deployment regardless of naming format
+
 ## [5.4.45] - 2025-12-29
 
 ### Fixed
