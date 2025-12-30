@@ -334,15 +334,19 @@ def deploy_output_style_on_startup():
         # Create directory if it doesn't exist
         output_styles_dir.mkdir(parents=True, exist_ok=True)
 
-        # Check if already deployed (both files exist and have content)
-        already_deployed = (
+        # Check if already deployed AND up-to-date (compare sizes to detect changes)
+        professional_up_to_date = (
             professional_target.exists()
-            and teacher_target.exists()
-            and professional_target.stat().st_size > 0
-            and teacher_target.stat().st_size > 0
+            and professional_source.exists()
+            and professional_target.stat().st_size == professional_source.stat().st_size
+        )
+        teacher_up_to_date = (
+            teacher_target.exists()
+            and teacher_source.exists()
+            and teacher_target.stat().st_size == teacher_source.stat().st_size
         )
 
-        if already_deployed:
+        if professional_up_to_date and teacher_up_to_date:
             # Show feedback that output styles are ready
             print("✓ Output styles ready", flush=True)
             return

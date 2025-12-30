@@ -1,3 +1,12 @@
+## [5.4.63] - 2025-12-30
+
+### Fixed
+- **Output Style Auto-Update**: Compare file sizes to detect updated styles
+  - Previously only checked if output style files exist
+  - Now compares file sizes between source and deployed versions
+  - Automatically redeploys when package includes updated styles
+  - Ensures users get latest style updates after package upgrade
+
 ## [5.4.62] - 2025-12-30
 
 ### Fixed
