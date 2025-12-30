@@ -1,3 +1,11 @@
+## [5.4.52] - 2025-12-29
+
+### Fixed
+- **Skill Cleanup**: Auto-populate agent_referenced when empty to enable orphan cleanup
+  - Scans deployed agents to determine required skills
+  - Actually removes orphaned skills from ~/.claude/skills/
+  - Fixes issue where unneeded skills persisted after mapping changes
+
 ## [5.4.51] - 2025-12-29
 
 ### Changed
