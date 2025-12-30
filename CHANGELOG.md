@@ -1,3 +1,12 @@
+## [5.4.61] - 2025-12-30
+
+### Fixed
+- **PM Skills Packaging**: Include PM skills subdirectories in wheel distribution
+  - Pattern `skills/bundled/**/*.md` already correctly includes recursive .md files
+  - This version bump documents the fix is already in place
+  - Resolves "PM skills: 0 deployed" when using pip-installed package
+  - Skills in `skills/bundled/pm/*/SKILL.md` now properly packaged in wheel
+
 ## [5.4.60] - 2025-12-30
 
 ### Fixed
