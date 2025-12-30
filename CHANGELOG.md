@@ -1,3 +1,11 @@
+## [5.4.58] - 2025-12-30
+
+### Fixed
+- **Agent Deployment**: Use content comparison instead of mtime
+  - Previous mtime-based comparison missed updates when cache had older timestamps
+  - Now compares file content directly to detect any changes
+  - Ensures agent frontmatter updates (like skills field) are properly deployed
+
 ## [5.4.57] - 2025-12-30
 
 ### Changed

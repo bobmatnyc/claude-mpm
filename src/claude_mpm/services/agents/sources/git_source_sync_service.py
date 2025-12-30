@@ -1118,14 +1118,17 @@ class GitSourceSyncService:
                 deploy_filename = Path(agent_path).name
                 deploy_file = deployment_dir / deploy_filename
 
-                # Check if update needed (compare modification times)
+                # Check if update needed (compare content, not just mtime)
+                # DESIGN: Use content hash comparison for reliable change detection
+                # Mtime comparison can fail when cache downloads have older timestamps
                 should_deploy = force
                 was_existing = deploy_file.exists()
 
                 if not force and was_existing:
-                    cache_mtime = cache_file.stat().st_mtime
-                    deploy_mtime = deploy_file.stat().st_mtime
-                    should_deploy = cache_mtime > deploy_mtime
+                    # Compare file contents using hash
+                    cache_content = cache_file.read_bytes()
+                    deploy_content = deploy_file.read_bytes()
+                    should_deploy = cache_content != deploy_content
 
                 if not should_deploy and was_existing:
                     results["skipped"].append(deploy_filename)
