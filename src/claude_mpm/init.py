@@ -166,6 +166,9 @@ class ProjectInitializer:
             # Verify and deploy PM skills (non-blocking)
             self._verify_and_deploy_pm_skills(project_root, is_mcp_mode)
 
+            # Perform security checks (non-blocking)
+            self._check_security_risks(project_root, is_mcp_mode)
+
             return True
 
         except Exception as e:
@@ -381,6 +384,98 @@ class ProjectInitializer:
                 dst_file = templates_dst / template_file.name
                 if not dst_file.exists():
                     shutil.copy2(template_file, dst_file)
+
+    def _check_security_risks(
+        self, project_root: Path, is_mcp_mode: bool = False
+    ) -> None:
+        """Check for potential security risks like exposed config files.
+
+        Non-blocking operation that warns about security issues.
+
+        Args:
+            project_root: Project root directory
+            is_mcp_mode: Whether running in MCP mode (suppress console output)
+        """
+        try:
+            import subprocess
+
+            security_issues = []
+
+            # Common secret file patterns to check
+            secret_patterns = [
+                ".mcp-vector-search/config.json",
+                ".mcp/config.json",
+                "openrouter.json",
+                "anthropic-config.json",
+                "credentials.json",
+                "secrets.json",
+                "api-keys.json",
+            ]
+
+            for pattern in secret_patterns:
+                file_path = project_root / pattern
+                if file_path.exists():
+                    # Check if file is tracked by git
+                    try:
+                        result = subprocess.run(
+                            ["git", "ls-files", str(file_path)],
+                            cwd=str(project_root),
+                            capture_output=True,
+                            text=True,
+                            timeout=2,
+                        )
+                        if result.stdout.strip():
+                            security_issues.append(
+                                f"⚠️  SECURITY: {pattern} is tracked by git (may contain secrets)"
+                            )
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        pass
+
+                    # Check if file is ignored by .gitignore
+                    try:
+                        result = subprocess.run(
+                            ["git", "check-ignore", str(file_path)],
+                            cwd=str(project_root),
+                            capture_output=True,
+                            text=True,
+                            timeout=2,
+                        )
+                        if result.returncode != 0:  # File NOT ignored
+                            security_issues.append(
+                                f"⚠️  WARNING: {pattern} exists but not in .gitignore"
+                            )
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        pass
+
+            # Check if pre-commit hooks are installed
+            pre_commit_installed = False
+            try:
+                result = subprocess.run(
+                    ["pre-commit", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                pre_commit_installed = result.returncode == 0
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+
+            if not pre_commit_installed and not is_mcp_mode:
+                security_issues.append(
+                    "ℹ️  RECOMMENDED: Install pre-commit hooks for automatic secret scanning\n"
+                    "   Run: pip install pre-commit && pre-commit install"
+                )
+
+            # Print security warnings if not in MCP mode
+            if security_issues and not is_mcp_mode:
+                print("\n🔒 Security Check:")
+                for issue in security_issues:
+                    print(f"   {issue}")
+                print()
+
+        except Exception as e:
+            self.logger.debug(f"Security check failed: {e}")
+            # Don't print to console - this is a non-critical failure
 
     def validate_dependencies(self) -> Dict[str, bool]:
         """Validate that all required dependencies are available."""

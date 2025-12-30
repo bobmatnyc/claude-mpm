@@ -81,6 +81,36 @@ API_KEY = "sk-1234567890abcdef"  # In code!  # pragma: allowlist secret
 
 # ✅ Safe: Use environment variables
 API_KEY = os.getenv("API_KEY")
+
+# ❌ CRITICAL: MCP config files with API keys
+# NEVER commit these files:
+# - .mcp-vector-search/config.json (OpenRouter API keys)
+# - .mcp/config.json (MCP server credentials)
+# - openrouter.json, anthropic-config.json
+# - credentials.json, secrets.json, api-keys.json
+
+# ✅ Safe: Verify .gitignore before committing
+# Check file is ignored: git check-ignore <file_path>
+# Check file not tracked: git ls-files <file_path>
+```
+
+**MCP Secret File Patterns (High Risk):**
+```bash
+# Files that commonly contain API keys:
+.mcp-vector-search/config.json     # OpenRouter, OpenAI keys
+.mcp/config.json                    # MCP server credentials
+**/mcp-config.json
+openrouter.json
+anthropic-config.json
+openai-config.json
+credentials.json
+secrets.json
+api-keys.json
+
+# ALWAYS add to .gitignore:
+echo ".mcp-vector-search/" >> .gitignore
+echo "credentials.json" >> .gitignore
+echo "secrets.json" >> .gitignore
 ```
 
 ### 4. XML External Entities (XXE)
@@ -177,6 +207,88 @@ logger.error(f"Unauthorized access attempt to {resource} by {user}")
 if failed_login_count > 5:
     alert_security_team()
 ```
+
+## Secret Detection and Prevention
+
+### Pre-commit Hooks with detect-secrets
+```bash
+# Install detect-secrets
+pip install detect-secrets
+
+# Create baseline of existing secrets
+detect-secrets scan > .secrets.baseline
+
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+
+# Add to .pre-commit-config.yaml:
+# - repo: https://github.com/Yelp/detect-secrets
+#   rev: v1.5.0
+#   hooks:
+#     - id: detect-secrets
+#       args: ['--baseline', '.secrets.baseline']
+
+# Scan for new secrets
+detect-secrets scan --baseline .secrets.baseline
+
+# Audit baseline (mark false positives)
+detect-secrets audit .secrets.baseline
+```
+
+### Manual Secret Scanning
+```bash
+# Check if file is ignored by git
+git check-ignore .mcp-vector-search/config.json
+# Exit code 0 = ignored (safe)
+# Exit code 1 = NOT ignored (DANGER!)
+
+# Check if file is tracked by git
+git ls-files .mcp-vector-search/config.json
+# Output present = tracked (CRITICAL - remove immediately!)
+# No output = not tracked (safe if also in .gitignore)
+
+# Search git history for committed secrets
+git log --all --full-history -- .mcp-vector-search/config.json
+
+# Remove file from git history (if accidentally committed)
+git filter-branch --force --index-filter \
+  'git rm --cached --ignore-unmatch .mcp-vector-search/config.json' \
+  --prune-empty --tag-name-filter cat -- --all
+```
+
+### Incident Response: Exposed API Key
+If you've committed an API key to git:
+
+1. **IMMEDIATELY rotate the exposed credential**
+   - OpenRouter: https://openrouter.ai/settings/keys
+   - Anthropic: https://console.anthropic.com/settings/keys
+   - OpenAI: https://platform.openai.com/api-keys
+
+2. **Remove from git history**
+   ```bash
+   # Using git-filter-repo (recommended)
+   git filter-repo --path .mcp-vector-search/config.json --invert-paths
+
+   # Force push to remote (WARNING: destructive)
+   git push origin --force --all
+   git push origin --force --tags
+   ```
+
+3. **Add to .gitignore** (if not already there)
+   ```bash
+   echo ".mcp-vector-search/" >> .gitignore
+   git add .gitignore
+   git commit -m "chore: add MCP config to gitignore"
+   ```
+
+4. **Verify cleanup**
+   ```bash
+   git log --all --full-history -- .mcp-vector-search/config.json
+   # Should show no results
+   ```
+
+5. **Notify stakeholders** if the key had production access
 
 ## Security Scanning Tools
 

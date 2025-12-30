@@ -1,3 +1,13 @@
+## [5.4.53] - 2025-12-29
+
+### Added
+- **Security Scanning**: Comprehensive secret detection improvements
+  - Added detect-secrets pre-commit hook
+  - Enhanced .gitignore with MCP/credential patterns
+  - Security checks during `claude-mpm init`
+  - SECURITY.md with incident response procedures
+  - Scans for OpenRouter, Anthropic, OpenAI API key patterns
+
 ## [5.4.52] - 2025-12-29
 
 ### Fixed

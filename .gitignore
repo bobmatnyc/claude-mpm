@@ -76,11 +76,33 @@ agent_metadata_backup/
 # If you want to track specific config files, use:
 # !.claude-mpm/configuration.yaml
 
-# MCP Vector Search cache
+# MCP Vector Search cache (contains config.json with API keys)
 .mcp-vector-search/
+.mcp-vector-search/config.json
+.mcp-vector-search/*.json
 
 # MCP local configuration (contains API keys)
 .mcp/
+.mcp/config.json
+**/mcp-config.json
+**/mcp_config.json
+
+# OpenRouter and AI provider configuration files
+openrouter.json
+openrouter-config.json
+anthropic-config.json
+openai-config.json
+*-api-config.json
+
+# Generic secret/credential files
+credentials.json
+credentials.yaml
+credentials.yml
+secrets.json
+secrets.yaml
+secrets.yml
+api-keys.json
+api_keys.json
 
 # Auto-generated version file (no longer used)
 src/claude_mpm/_version.py

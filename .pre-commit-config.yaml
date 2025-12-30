@@ -51,6 +51,24 @@ repos:
         args: ['-r', '-f', 'json']
         exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py)
 
+  # Secret detection with detect-secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            venv/.*|
+            \.venv/.*|
+            node_modules/.*|
+            \.git/.*|
+            __pycache__/.*|
+            .*\.lock|
+            .*package-lock\.json|
+            .*\.pyc
+          )$
+
   # Documentation linting
   - repo: https://github.com/pycqa/doc8
     rev: v1.1.1
