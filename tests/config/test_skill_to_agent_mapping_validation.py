@@ -352,7 +352,7 @@ def test_skill_paths_use_forward_slashes(skill_mapping_config):
     skill_mappings = skill_mapping_config["skill_mappings"]
 
     violations = []
-    for skill_path in skill_mappings.keys():
+    for skill_path in skill_mappings:
         # Skip universal/* paths (they can use hyphens in names)
         if skill_path.startswith("universal/") or skill_path.startswith("examples/"):
             continue
