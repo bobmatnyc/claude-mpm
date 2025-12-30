@@ -1,3 +1,11 @@
+## [5.4.64] - 2025-12-30
+
+### Fixed
+- **Output Style Deployment**: Deploy styles to user-level directory for global availability
+  - Changed deployment target from project `.claude/` to `~/.claude/settings/output-styles/`
+  - Claude Code reads output styles from user-level directory, not project-level
+  - Ensures styles are available globally across all projects
+
 ## [5.4.63] - 2025-12-30
 
 ### Fixed

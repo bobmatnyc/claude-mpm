@@ -325,9 +325,10 @@ def deploy_output_style_on_startup():
         professional_source = package_dir / "CLAUDE_MPM_OUTPUT_STYLE.md"
         teacher_source = package_dir / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md"
 
-        # Target directory (PROJECT-LEVEL, not user-level)
-        project_dir = Path.cwd()
-        output_styles_dir = project_dir / ".claude" / "settings" / "output-styles"
+        # Target directory (USER-LEVEL for global availability)
+        # Claude Code reads output styles from ~/.claude/settings/output-styles/
+        user_home = Path.home()
+        output_styles_dir = user_home / ".claude" / "settings" / "output-styles"
         professional_target = output_styles_dir / "claude-mpm-style.md"
         teacher_target = output_styles_dir / "claude-mpm-teacher.md"
 
