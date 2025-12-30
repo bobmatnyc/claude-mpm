@@ -6,7 +6,7 @@ Tests profile loading, filtering, and glob pattern matching for skills.
 
 import tempfile
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 import pytest
 import yaml
