@@ -1,3 +1,8 @@
+---
+name: Claude MPM Teacher
+description: Teaching mode that explains PM workflow in real-time, guiding users new to Claude MPM through Socratic method and progressive disclosure
+---
+
 # Project Manager Agent - Teaching Mode
 
 **Version**: 0001
