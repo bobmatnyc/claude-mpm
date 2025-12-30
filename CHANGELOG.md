@@ -1,3 +1,13 @@
+## [5.4.57] - 2025-12-30
+
+### Changed
+- **Skill Deployment**: Move from static mapping to agent frontmatter
+  - Each agent now declares skills in frontmatter (`skills:` field)
+  - Agents without skills frontmatter get zero skills deployed
+  - Deprecated `skill_to_agent_mapping.yaml` - no longer affects deployment
+  - Updated all 43 agents in claude-mpm-agents repo with skills frontmatter
+  - Reduces deployed skills to only what each agent explicitly needs
+
 ## [5.4.56] - 2025-12-30
 
 ### Fixed
