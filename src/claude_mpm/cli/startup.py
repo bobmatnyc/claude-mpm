@@ -990,160 +990,161 @@ def sync_remote_skills_on_startup():
 
         # Phase 2: Scan agents and save to configuration.yaml
         # This step populates configuration.yaml with agent-referenced skills
-        if results["synced_count"] > 0:
-            agents_dir = Path.cwd() / ".claude" / "agents"
+        # BUGFIX: Removed `if results["synced_count"] > 0` condition to ensure
+        # agent_referenced is always populated, even when using cached skills.
+        # Previous behavior: If skills were cached, agent scan was skipped,
+        # leaving agent_referenced: [] empty, which prevented cleanup.
+        agents_dir = Path.cwd() / ".claude" / "agents"
 
-            # Scan agents for skill requirements
-            agent_skills = get_required_skills_from_agents(agents_dir)
+        # Scan agents for skill requirements (always run, not just on sync)
+        agent_skills = get_required_skills_from_agents(agents_dir)
 
-            # Save to project-level configuration.yaml
-            project_config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
-            save_agent_skills_to_config(list(agent_skills), project_config_path)
+        # Save to project-level configuration.yaml
+        project_config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+        save_agent_skills_to_config(list(agent_skills), project_config_path)
 
-            # Phase 3: Resolve which skills to deploy (user_defined or agent_referenced)
-            skills_to_deploy, skill_source = get_skills_to_deploy(project_config_path)
+        # Phase 3: Resolve which skills to deploy (user_defined or agent_referenced)
+        skills_to_deploy, skill_source = get_skills_to_deploy(project_config_path)
 
-            # Phase 4: Apply profile filtering if active
-            if active_profile and profile_manager.active_profile:
-                # Filter skills based on profile
-                if skills_to_deploy:
-                    # Filter the resolved skill list
-                    original_count = len(skills_to_deploy)
-                    filtered_skills = [
-                        skill
-                        for skill in skills_to_deploy
-                        if profile_manager.is_skill_enabled(skill)
-                    ]
-                    filtered_count = original_count - len(filtered_skills)
+        # Phase 4: Apply profile filtering if active
+        if active_profile and profile_manager.active_profile:
+            # Filter skills based on profile
+            if skills_to_deploy:
+                # Filter the resolved skill list
+                original_count = len(skills_to_deploy)
+                filtered_skills = [
+                    skill
+                    for skill in skills_to_deploy
+                    if profile_manager.is_skill_enabled(skill)
+                ]
+                filtered_count = original_count - len(filtered_skills)
 
-                    # SAFEGUARD: Warn if all skills were filtered out (misconfiguration)
-                    if not filtered_skills and original_count > 0:
-                        logger.warning(
-                            f"Profile '{active_profile}' filtered ALL {original_count} skills. "
-                            f"This may indicate a naming mismatch in the profile."
-                        )
-                    elif filtered_count > 0:
-                        logger.info(
-                            f"Profile '{active_profile}' filtered {filtered_count} skills "
-                            f"({len(filtered_skills)} remaining)"
-                        )
-
-                    skills_to_deploy = filtered_skills
-                    skill_source = f"{skill_source} + profile filtered"
-                else:
-                    # No explicit skill list - filter from all available
-                    all_skills = manager.get_all_skills()
-                    filtered_skills = [
-                        skill["name"]
-                        for skill in all_skills
-                        if profile_manager.is_skill_enabled(skill["name"])
-                    ]
-                    skills_to_deploy = filtered_skills
-                    skill_source = "profile filtered"
+                # SAFEGUARD: Warn if all skills were filtered out (misconfiguration)
+                if not filtered_skills and original_count > 0:
+                    logger.warning(
+                        f"Profile '{active_profile}' filtered ALL {original_count} skills. "
+                        f"This may indicate a naming mismatch in the profile."
+                    )
+                elif filtered_count > 0:
                     logger.info(
-                        f"Profile '{active_profile}': "
-                        f"{len(filtered_skills)} skills enabled from {len(all_skills)} available"
+                        f"Profile '{active_profile}' filtered {filtered_count} skills "
+                        f"({len(filtered_skills)} remaining)"
                     )
 
-            # Get all skills to determine counts
-            all_skills = manager.get_all_skills()
-            total_skill_count = len(all_skills)
+                skills_to_deploy = filtered_skills
+                skill_source = f"{skill_source} + profile filtered"
+            else:
+                # No explicit skill list - filter from all available
+                all_skills = manager.get_all_skills()
+                filtered_skills = [
+                    skill["name"]
+                    for skill in all_skills
+                    if profile_manager.is_skill_enabled(skill["name"])
+                ]
+                skills_to_deploy = filtered_skills
+                skill_source = "profile filtered"
+                logger.info(
+                    f"Profile '{active_profile}': "
+                    f"{len(filtered_skills)} skills enabled from {len(all_skills)} available"
+                )
 
-            # Determine skill count based on resolution
-            skill_count = (
-                len(skills_to_deploy) if skills_to_deploy else total_skill_count
+        # Get all skills to determine counts
+        all_skills = manager.get_all_skills()
+        total_skill_count = len(all_skills)
+
+        # Determine skill count based on resolution
+        skill_count = (
+            len(skills_to_deploy) if skills_to_deploy else total_skill_count
+        )
+
+        if skill_count > 0:
+            # Deploy skills with resolved filter
+            # Deploy ONLY to project directory (not user-level)
+            # DESIGN DECISION: Project-level deployment keeps skills isolated per project,
+            # avoiding pollution of user's global ~/.claude/skills/ directory.
+
+            # Deploy to project-local directory with cleanup
+            deployment_result = manager.deploy_skills(
+                target_dir=Path.cwd() / ".claude" / "skills",
+                force=False,
+                skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
             )
 
-            if skill_count > 0:
-                # Deploy skills with resolved filter
-                # Deploy to BOTH project directory (for local dev) AND global directory (for Claude Code)
+            # REMOVED: User-level deployment (lines 1068-1074)
+            # Reason: Skills should be project-specific, not user-global.
+            # Claude Code can read from project-level .claude/skills/ directory.
 
-                # 1. Deploy to project-local directory
-                deployment_result = manager.deploy_skills(
-                    target_dir=Path.cwd() / ".claude" / "skills",
-                    force=False,
-                    skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
+            # Get actual counts from deployment result (use project-local for display)
+            deployed = deployment_result.get("deployed_count", 0)
+            skipped = deployment_result.get("skipped_count", 0)
+            filtered = deployment_result.get("filtered_count", 0)
+            total_available = deployed + skipped
+
+            # Only show progress bar if there are skills to deploy
+            if total_available > 0:
+                deploy_progress = ProgressBar(
+                    total=total_available,
+                    prefix="Deploying skill directories",
+                    show_percentage=True,
+                    show_counter=True,
                 )
-
-                # 2. Deploy to global directory (this is where Claude Code reads from)
-                # Also cleans up orphaned skills via _cleanup_unfiltered_skills()
-                manager.deploy_skills(
-                    target_dir=Path.home() / ".claude" / "skills",
-                    force=False,
-                    skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
+                # Update progress bar to completion
+                deploy_progress.update(total_available)
+            else:
+                # No skills to deploy - create dummy progress for message only
+                deploy_progress = ProgressBar(
+                    total=1,
+                    prefix="Deploying skill directories",
+                    show_percentage=False,
+                    show_counter=False,
                 )
+                deploy_progress.update(1)
 
-                # Get actual counts from deployment result (use project-local for display)
-                deployed = deployment_result.get("deployed_count", 0)
-                skipped = deployment_result.get("skipped_count", 0)
-                filtered = deployment_result.get("filtered_count", 0)
-                total_available = deployed + skipped
+            # Show total available skills (deployed + already existing)
+            # Include source indication (user_defined vs agent_referenced)
+            # Note: total_skill_count is from cache, total_available is what's deployed/needed
+            source_label = (
+                "user override" if skill_source == "user_defined" else "from agents"
+            )
 
-                # Only show progress bar if there are skills to deploy
-                if total_available > 0:
-                    deploy_progress = ProgressBar(
-                        total=total_available,
-                        prefix="Deploying skill directories",
-                        show_percentage=True,
-                        show_counter=True,
-                    )
-                    # Update progress bar to completion
-                    deploy_progress.update(total_available)
-                else:
-                    # No skills to deploy - create dummy progress for message only
-                    deploy_progress = ProgressBar(
-                        total=1,
-                        prefix="Deploying skill directories",
-                        show_percentage=False,
-                        show_counter=False,
-                    )
-                    deploy_progress.update(1)
-
-                # Show total available skills (deployed + already existing)
-                # Include source indication (user_defined vs agent_referenced)
-                # Note: total_skill_count is from cache, total_available is what's deployed/needed
-                source_label = (
-                    "user override" if skill_source == "user_defined" else "from agents"
-                )
-
-                if deployed > 0:
-                    if filtered > 0:
-                        deploy_progress.finish(
-                            f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} {source_label}, {filtered} files in cache)"
-                        )
-                    else:
-                        deploy_progress.finish(
-                            f"Complete: {deployed} new, {skipped} unchanged "
-                            f"({total_available} skills {source_label} from {total_skill_count} files in cache)"
-                        )
-                elif filtered > 0:
-                    # Skills filtered means agents require fewer skills than available
+            if deployed > 0:
+                if filtered > 0:
                     deploy_progress.finish(
-                        f"No skills needed ({source_label}, {total_skill_count} files in cache)"
+                        f"Complete: {deployed} new, {skipped} unchanged "
+                        f"({total_available} {source_label}, {filtered} files in cache)"
                     )
                 else:
                     deploy_progress.finish(
-                        f"Complete: {total_available} skills {source_label} "
-                        f"({total_skill_count} files in cache)"
+                        f"Complete: {deployed} new, {skipped} unchanged "
+                        f"({total_available} skills {source_label} from {total_skill_count} files in cache)"
                     )
+            elif filtered > 0:
+                # Skills filtered means agents require fewer skills than available
+                deploy_progress.finish(
+                    f"No skills needed ({source_label}, {total_skill_count} files in cache)"
+                )
+            else:
+                deploy_progress.finish(
+                    f"Complete: {total_available} skills {source_label} "
+                    f"({total_skill_count} files in cache)"
+                )
 
-                # Log deployment errors if any
-                from ..core.logger import get_logger
+            # Log deployment errors if any
+            from ..core.logger import get_logger
 
-                logger = get_logger("cli")
+            logger = get_logger("cli")
 
-                errors = deployment_result.get("errors", [])
-                if errors:
-                    logger.warning(
-                        f"Skill deployment completed with {len(errors)} errors: {errors}"
-                    )
+            errors = deployment_result.get("errors", [])
+            if errors:
+                logger.warning(
+                    f"Skill deployment completed with {len(errors)} errors: {errors}"
+                )
 
-                # Log sync errors if any
-                if results["failed_count"] > 0:
-                    logger.warning(
-                        f"Skill sync completed with {results['failed_count']} failures"
-                    )
+            # Log sync errors if any
+            if results["failed_count"] > 0:
+                logger.warning(
+                    f"Skill sync completed with {results['failed_count']} failures"
+                )
 
     except Exception as e:
         # Non-critical - log but don't fail startup

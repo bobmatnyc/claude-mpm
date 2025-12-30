@@ -1,3 +1,13 @@
+## [5.4.55] - 2025-12-30
+
+### Fixed
+- **Skill Deployment Location**: Skills now deploy ONLY to project-level `.claude/skills/`
+  - Removed user-level deployment to `~/.claude/skills/`
+  - Keeps skills isolated per project
+- **Skill Cleanup**: Always run agent scanning to enable orphan removal
+  - Removed conditional that skipped scanning when using cached skills
+  - Ensures `agent_referenced` is always populated for cleanup
+
 ## [5.4.54] - 2025-12-30
 
 ### Fixed
