@@ -586,6 +586,14 @@ class AgentTemplateBuilder:
             tags_str = ",".join(metadata["tags"])
             frontmatter_lines.append(f"tags: {tags_str}")
 
+        # CRITICAL: Preserve skills field from template for selective skill deployment
+        # Skills are used by startup.py to determine which skills to deploy
+        skills = template_data.get("skills", [])
+        if skills and isinstance(skills, list):
+            frontmatter_lines.append("skills:")
+            for skill in skills:
+                frontmatter_lines.append(f"- {skill}")
+
         frontmatter_lines.extend(
             [
                 "---",

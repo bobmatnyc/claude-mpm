@@ -1,3 +1,12 @@
+## [5.4.60] - 2025-12-30
+
+### Fixed
+- **Agent Frontmatter**: Preserve skills field during agent deployment
+  - Fixed: `build_agent_markdown` was stripping skills field from agent templates
+  - This caused v5.4.59's selective skill deployment to deploy 0 skills
+  - Skills list from template data now written to deployed agent frontmatter
+  - Resolves issue where deployed agents had no skills frontmatter
+
 ## [5.4.59] - 2025-12-30
 
 ### Fixed
