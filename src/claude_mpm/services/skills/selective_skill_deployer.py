@@ -51,6 +51,59 @@ logger = get_logger(__name__)
 # Deployment tracking index file
 DEPLOYED_INDEX_FILE = ".mpm-deployed-skills.json"
 
+# Core skills that are universally useful across all projects
+# These are deployed when skill mapping returns too many skills (>60)
+# Target: ~25-30 core skills for balanced functionality
+CORE_SKILLS = {
+    # Universal debugging and verification (4 skills)
+    "universal-debugging-systematic-debugging",
+    "universal-debugging-verification-before-completion",
+    "universal-verification-pre-merge",
+    "universal-verification-screenshot",
+
+    # Universal testing patterns (2 skills)
+    "universal-testing-test-driven-development",
+    "universal-testing-testing-anti-patterns",
+
+    # Universal architecture and design (1 skill)
+    "universal-architecture-software-patterns",
+
+    # Universal infrastructure (3 skills)
+    "universal-infrastructure-env-manager",
+    "universal-infrastructure-docker",
+    "universal-infrastructure-github-actions",
+
+    # Universal collaboration (1 skill)
+    "universal-collaboration-stacked-prs",
+
+    # Universal emergency/operations (1 skill)
+    "toolchains-universal-emergency-release",
+    "toolchains-universal-dependency-audit",
+
+    # Common language toolchains (6 skills)
+    "toolchains-typescript-core",
+    "toolchains-python-core",
+    "toolchains-javascript-tooling-biome",
+    "toolchains-python-tooling-mypy",
+    "toolchains-typescript-testing-vitest",
+    "toolchains-python-frameworks-flask",
+
+    # Common web frameworks (4 skills)
+    "toolchains-javascript-frameworks-nextjs",
+    "toolchains-nextjs-core",
+    "toolchains-typescript-frameworks-nodejs-backend",
+    "toolchains-javascript-frameworks-react-state-machine",
+
+    # Common testing tools (2 skills)
+    "toolchains-javascript-testing-playwright",
+    "toolchains-typescript-testing-jest",
+
+    # Common data/UI tools (3 skills)
+    "universal-data-xlsx",
+    "toolchains-ui-styling-tailwind",
+    "toolchains-ui-components-headlessui",
+}
+
 
 def parse_agent_frontmatter(agent_file: Path) -> Dict[str, Any]:
     """Parse YAML frontmatter from agent markdown file.
@@ -140,22 +193,14 @@ def get_skills_from_agent(frontmatter: Dict[str, Any]) -> Set[str]:
 def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
     """Get skills for agents using SkillToAgentMapper inference.
 
-    Uses SkillToAgentMapper to find all skills associated with given agent IDs.
-    This provides pattern-based skill discovery beyond explicit frontmatter declarations.
+    DEPRECATED: This function is deprecated as of Phase 3 refactor.
+    Skills are now declared exclusively in agent frontmatter.
 
-    CRITICAL DESIGN DECISION: This function ONLY returns skills for the DEPLOYED agents
-    provided in agent_ids. It does NOT return skills for all agents in the mapping
-    configuration (skill_to_agent_mapping.yaml lists 41 agents, but only 33 may be deployed).
+    The static skill_to_agent_mapping.yaml is no longer used for skill deployment.
+    Each agent must declare its skills in frontmatter or it gets zero skills.
 
-    GENERIC AGENT HANDLING: The generic "engineer" agent is mapped to 100+ skills in the
-    configuration because it's designed as a fallback. To prevent over-deployment when
-    specialized agents exist, we skip "engineer" if specialized agents are present.
-
-    WHY THIS MATTERS:
-    - skill_to_agent_mapping.yaml lists ALL possible agents (41 total)
-    - User may only have 33 agents deployed in ~/.claude/agents/
-    - Without filtering, we'd deploy skills for all 41 agents (over-deployment)
-    - Solution: Only query skills for DEPLOYED agents (passed in agent_ids)
+    This function remains for backward compatibility but is NO LONGER CALLED
+    by get_required_skills_from_agents().
 
     Args:
         agent_ids: List of DEPLOYED agent identifiers (e.g., ["python-engineer", "typescript-engineer"])
@@ -163,67 +208,34 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
 
     Returns:
         Set of unique skill names inferred from mapping configuration for DEPLOYED agents only
+        NOTE: This is now an empty set as the function is deprecated.
 
     Example:
-        >>> # DEPLOYED agents only (from ~/.claude/agents/)
+        >>> # DEPRECATED - use frontmatter instead
         >>> deployed_agent_ids = ["python-engineer", "typescript-engineer", "qa"]
-        >>> skills = get_skills_from_mapping(deployed_agent_ids)
-        >>> print(f"Found {len(skills)} skills for {len(deployed_agent_ids)} deployed agents")
+        >>> skills = get_skills_from_mapping(deployed_agent_ids)  # Returns empty set
     """
-    try:
-        mapper = SkillToAgentMapper()
-        all_skills = set()
-
-        # CRITICAL FIX: Skip generic "engineer" agent if specialized agents exist
-        # The "engineer" agent is mapped to ~107 skills (almost all skills) because
-        # it's a fallback agent. This causes over-deployment when you have specialized
-        # agents like "python-engineer", "typescript-engineer", etc.
-        #
-        # Solution: Filter out "engineer" from agent_ids if specialized agents exist
-        specialized_engineers = [
-            aid for aid in agent_ids if aid.endswith("-engineer") and aid != "engineer"
-        ]
-
-        # If specialized engineers exist, exclude generic "engineer" from skill mapping
-        # This prevents deploying 100+ skills when only a subset is needed
-        agents_to_query = agent_ids
-        if specialized_engineers and "engineer" in agent_ids:
-            agents_to_query = [aid for aid in agent_ids if aid != "engineer"]
-            logger.info(
-                f"Excluding generic 'engineer' agent from skill mapping "
-                f"(found {len(specialized_engineers)} specialized engineers: "
-                f"{', '.join(specialized_engineers[:5])}{'...' if len(specialized_engineers) > 5 else ''})"
-            )
-
-        # IMPORTANT: Only query skills for DEPLOYED agents (those in agent_ids)
-        # Do NOT query all agents from skill_to_agent_mapping.yaml (that's 41 agents)
-        for agent_id in agents_to_query:
-            agent_skills = mapper.get_skills_for_agent(agent_id)
-            if agent_skills:
-                all_skills.update(agent_skills)
-                logger.debug(f"Mapped {len(agent_skills)} skills to {agent_id}")
-
-        logger.info(
-            f"Mapped {len(all_skills)} unique skills for {len(agents_to_query)} deployed agents "
-            f"(out of {len(agent_ids)} total deployed, excluding generic 'engineer' if specialized exist)"
-        )
-        return all_skills
-
-    except Exception as e:
-        logger.warning(f"Failed to load SkillToAgentMapper: {e}")
-        logger.info("Falling back to frontmatter-only skill discovery")
-        return set()
+    # DEPRECATED: Return empty set
+    logger.warning(
+        "get_skills_from_mapping() is DEPRECATED and returns empty set. "
+        "Skills are now declared in agent frontmatter only. "
+        "Update your agents with 'skills:' field in frontmatter."
+    )
+    return set()
 
 
 def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     """Extract all skills referenced by deployed agents.
 
-    Combines skills from two sources:
-    1. Explicit frontmatter declarations (skills: field in agent .md files)
-    2. SkillToAgentMapper inference (pattern-based skill discovery)
+    MAJOR CHANGE (Phase 3): Now ONLY uses frontmatter-declared skills.
+    The static skill_to_agent_mapping.yaml is DEPRECATED. Each agent must
+    declare its skills in frontmatter or it gets zero skills deployed.
 
-    This dual-source approach ensures agents get both explicitly declared skills
-    and skills inferred from their domain/toolchain patterns.
+    This change:
+    - Eliminates dual-source complexity (frontmatter + mapping)
+    - Makes skill requirements explicit per agent
+    - Enables per-agent customization via frontmatter
+    - Removes dependency on static YAML mapping
 
     Args:
         agents_dir: Path to deployed agents directory (e.g., .claude/agents/)
@@ -244,13 +256,11 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     agent_files = list(agents_dir.glob("*.md"))
     logger.debug(f"Scanning {len(agent_files)} agent files in {agents_dir}")
 
-    # Source 1: Extract skills from frontmatter
+    # ONLY use frontmatter skills - no more mapping inference
     frontmatter_skills = set()
-    agent_ids = []
 
     for agent_file in agent_files:
         agent_id = agent_file.stem
-        agent_ids.append(agent_id)
 
         frontmatter = parse_agent_frontmatter(agent_file)
         agent_skills = get_skills_from_agent(frontmatter)
@@ -260,24 +270,23 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
             logger.debug(
                 f"Agent {agent_id}: {len(agent_skills)} skills from frontmatter"
             )
-
-    logger.info(f"Found {len(frontmatter_skills)} unique skills from frontmatter")
-
-    # Source 2: Get skills from SkillToAgentMapper
-    mapped_skills = get_skills_from_mapping(agent_ids)
-
-    # Combine both sources
-    required_skills = frontmatter_skills | mapped_skills
-
-    # Normalize skill paths: convert slashes to dashes for compatibility with deployment
-    # SkillToAgentMapper returns paths like "toolchains/python/frameworks/django"
-    # but deployment expects "toolchains-python-frameworks-django"
-    normalized_skills = {skill.replace("/", "-") for skill in required_skills}
+        else:
+            logger.debug(f"Agent {agent_id}: No skills declared in frontmatter")
 
     logger.info(
-        f"Combined {len(frontmatter_skills)} frontmatter + {len(mapped_skills)} mapped "
-        f"= {len(required_skills)} total unique skills (normalized to {len(normalized_skills)})"
+        f"Found {len(frontmatter_skills)} unique skills from agent frontmatter "
+        f"(static mapping no longer used)"
     )
+
+    # Normalize skill paths: convert slashes to dashes for compatibility with deployment
+    # Some skills may use slash format, normalize to dashes
+    normalized_skills = {skill.replace("/", "-") for skill in frontmatter_skills}
+
+    if normalized_skills != frontmatter_skills:
+        logger.debug(
+            f"Normalized {len(frontmatter_skills)} skills to {len(normalized_skills)} "
+            "(converted slashes to dashes)"
+        )
 
     return normalized_skills
 
