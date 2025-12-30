@@ -991,11 +991,16 @@ class GitSkillSourceManager:
         progress_callback=None,
         skill_filter: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
-        """Deploy skills from cache to target directory with flat structure.
+        """Deploy skills from cache to target directory with flat structure and automatic cleanup.
 
         Flattens nested Git repository structure into Claude Code compatible
         flat directory structure. Each skill directory is copied with a
         hyphen-separated name derived from its path.
+
+        CRITICAL: When skill_filter is provided (agent-referenced skills), this function:
+        1. Deploys ONLY the filtered skills
+        2. REMOVES orphaned skills (deployed but not in filter)
+        3. Returns removed_count and removed_skills in result
 
         Transformation Example:
             Cache: collaboration/dispatching-parallel-agents/SKILL.md
@@ -1006,8 +1011,8 @@ class GitSkillSourceManager:
             force: Overwrite existing skills
             progress_callback: Optional callback(increment: int) called for each skill deployed
             skill_filter: Optional set of skill names to deploy (selective deployment).
-                         If None, deploys all skills. If provided, only deploys skills
-                         whose name matches an entry in the filter set.
+                         If None, deploys ALL skills WITHOUT cleanup.
+                         If provided, deploys ONLY filtered skills AND removes orphans.
 
         Returns:
             Dict with deployment results:
@@ -1018,7 +1023,9 @@ class GitSkillSourceManager:
                 "deployed_skills": List[str],
                 "skipped_skills": List[str],
                 "errors": List[str],
-                "filtered_count": int  # Number of skills filtered out
+                "filtered_count": int,  # Number of skills filtered out
+                "removed_count": int,   # Number of orphaned skills removed
+                "removed_skills": List[str]  # Names of removed orphaned skills
             }
 
         Example:
@@ -1026,10 +1033,10 @@ class GitSkillSourceManager:
             >>> result = manager.deploy_skills()
             >>> print(f"Deployed {result['deployed_count']} skills")
 
-            # Selective deployment based on agent requirements:
+            # Selective deployment based on agent requirements (with cleanup):
             >>> required = {"typescript-core", "react-patterns"}
             >>> result = manager.deploy_skills(skill_filter=required)
-            >>> print(f"Deployed {result['deployed_count']} of {len(required)} required skills")
+            >>> print(f"Deployed {result['deployed_count']}, removed {result['removed_count']} orphans")
         """
         if target_dir is None:
             target_dir = Path.home() / ".claude" / "skills"
@@ -1040,6 +1047,7 @@ class GitSkillSourceManager:
         skipped = []
         errors = []
         filtered_count = 0
+        removed_skills = []  # Track removed orphaned skills
 
         # Get all skills from all sources
         all_skills = self.get_all_skills()
@@ -1082,11 +1090,12 @@ class GitSkillSourceManager:
             )
 
             # Cleanup: Remove skills from target directory that aren't in the filtered set
-            # This ensures only the skills in the profile are deployed
+            # This ensures only agent-referenced skills remain deployed
             removed_skills = self._cleanup_unfiltered_skills(target_dir, all_skills)
             if removed_skills:
                 self.logger.info(
-                    f"Removed {len(removed_skills)} skills not in profile filter: {removed_skills}"
+                    f"Removed {len(removed_skills)} orphaned skills not referenced by agents: {removed_skills[:10]}"
+                    + (f" (and {len(removed_skills) - 10} more)" if len(removed_skills) > 10 else "")
                 )
 
         self.logger.info(
@@ -1130,6 +1139,7 @@ class GitSkillSourceManager:
         self.logger.info(
             f"Deployment complete: {len(deployed)} deployed, "
             f"{len(skipped)} skipped, {len(errors)} errors"
+            + (f", {len(removed_skills)} removed" if removed_skills else "")
         )
 
         return {
@@ -1140,6 +1150,8 @@ class GitSkillSourceManager:
             "skipped_skills": skipped,
             "errors": errors,
             "filtered_count": filtered_count,
+            "removed_count": len(removed_skills),
+            "removed_skills": removed_skills,
         }
 
     def _cleanup_unfiltered_skills(

@@ -1,3 +1,12 @@
+## [5.4.56] - 2025-12-30
+
+### Fixed
+- **Skills Status Display**: Add skills status matching agents format
+  - Display '✓ Skills: X deployed / Y cached' during startup
+  - Track and report removed orphaned skills count
+  - Enhanced logging for agent scan and cleanup debugging
+  - Show removed count in cleanup output
+
 ## [5.4.55] - 2025-12-30
 
 ### Fixed

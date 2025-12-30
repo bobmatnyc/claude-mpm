@@ -990,21 +990,36 @@ def sync_remote_skills_on_startup():
 
         # Phase 2: Scan agents and save to configuration.yaml
         # This step populates configuration.yaml with agent-referenced skills
-        # BUGFIX: Removed `if results["synced_count"] > 0` condition to ensure
-        # agent_referenced is always populated, even when using cached skills.
-        # Previous behavior: If skills were cached, agent scan was skipped,
-        # leaving agent_referenced: [] empty, which prevented cleanup.
+        # CRITICAL: Always scan agents to populate agent_referenced, even when using cached skills.
+        # Without this, skill_filter=None causes ALL skills to deploy and NO cleanup to run.
         agents_dir = Path.cwd() / ".claude" / "agents"
 
-        # Scan agents for skill requirements (always run, not just on sync)
+        # Scan agents for skill requirements (ALWAYS run to ensure cleanup works)
         agent_skills = get_required_skills_from_agents(agents_dir)
+        logger.info(
+            f"Agent scan found {len(agent_skills)} unique skills across deployed agents"
+        )
 
         # Save to project-level configuration.yaml
         project_config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
         save_agent_skills_to_config(list(agent_skills), project_config_path)
+        logger.debug(
+            f"Saved {len(agent_skills)} agent-referenced skills to {project_config_path}"
+        )
 
         # Phase 3: Resolve which skills to deploy (user_defined or agent_referenced)
         skills_to_deploy, skill_source = get_skills_to_deploy(project_config_path)
+
+        # CRITICAL DEBUG: Log deployment resolution to diagnose cleanup issues
+        if skills_to_deploy:
+            logger.info(
+                f"Resolved {len(skills_to_deploy)} skills from {skill_source} (cleanup will run)"
+            )
+        else:
+            logger.warning(
+                f"No skills resolved from {skill_source} - will deploy ALL skills WITHOUT cleanup! "
+                f"This may indicate agent_referenced is empty in configuration.yaml."
+            )
 
         # Phase 4: Apply profile filtering if active
         if active_profile and profile_manager.active_profile:
@@ -1078,6 +1093,7 @@ def sync_remote_skills_on_startup():
             deployed = deployment_result.get("deployed_count", 0)
             skipped = deployment_result.get("skipped_count", 0)
             filtered = deployment_result.get("filtered_count", 0)
+            removed = deployment_result.get("removed_count", 0)
             total_available = deployed + skipped
 
             # Only show progress bar if there are skills to deploy
@@ -1107,16 +1123,25 @@ def sync_remote_skills_on_startup():
                 "user override" if skill_source == "user_defined" else "from agents"
             )
 
-            if deployed > 0:
+            # Build finish message with cleanup info
+            if deployed > 0 or removed > 0:
+                parts = []
+                if deployed > 0:
+                    parts.append(f"{deployed} new")
+                if skipped > 0:
+                    parts.append(f"{skipped} unchanged")
+                if removed > 0:
+                    parts.append(f"{removed} removed")
+
+                status = ", ".join(parts)
+
                 if filtered > 0:
                     deploy_progress.finish(
-                        f"Complete: {deployed} new, {skipped} unchanged "
-                        f"({total_available} {source_label}, {filtered} files in cache)"
+                        f"Complete: {status} ({total_available} {source_label}, {filtered} files in cache)"
                     )
                 else:
                     deploy_progress.finish(
-                        f"Complete: {deployed} new, {skipped} unchanged "
-                        f"({total_available} skills {source_label} from {total_skill_count} files in cache)"
+                        f"Complete: {status} ({total_available} skills {source_label} from {total_skill_count} files in cache)"
                     )
             elif filtered > 0:
                 # Skills filtered means agents require fewer skills than available
@@ -1124,10 +1149,12 @@ def sync_remote_skills_on_startup():
                     f"No skills needed ({source_label}, {total_skill_count} files in cache)"
                 )
             else:
-                deploy_progress.finish(
-                    f"Complete: {total_available} skills {source_label} "
-                    f"({total_skill_count} files in cache)"
-                )
+                # No changes - all skills already deployed
+                msg = f"Complete: {total_available} skills {source_label}"
+                if removed > 0:
+                    msg += f", {removed} removed"
+                msg += f" ({total_skill_count} files in cache)"
+                deploy_progress.finish(msg)
 
             # Log deployment errors if any
             from ..core.logger import get_logger
@@ -1244,61 +1271,64 @@ def show_skill_summary():
     Display skill availability summary on startup.
 
     WHY: Users should see at a glance how many skills are deployed and available
-    from collections, similar to the agent summary.
+    from cache, similar to the agent summary showing "X deployed / Y cached".
 
-    DESIGN DECISION: Fast, non-blocking check that counts skills from deployment
-    directory and collection repos. Shows "X installed (Y available)" format.
+    DESIGN DECISION: Fast, non-blocking check that counts skills from:
+    - Deployed skills: PROJECT-level .claude/skills/ directory
+    - Cached skills: ~/.claude-mpm/cache/skills/ directory (from remote sources)
+
+    Shows format: "✓ Skills: X deployed / Y cached"
     Failures are silent to avoid blocking startup.
     """
     try:
         from pathlib import Path
 
-        # Count deployed skills (installed)
-        skills_dir = Path.home() / ".claude" / "skills"
-        installed_count = 0
-        if skills_dir.exists():
+        # Count deployed skills (PROJECT-level, not user-level)
+        project_skills_dir = Path.cwd() / ".claude" / "skills"
+        deployed_count = 0
+        if project_skills_dir.exists():
             # Count directories with SKILL.md (excludes collection repos)
             # Exclude collection directories (obra-superpowers, etc.)
             skill_dirs = [
                 d
-                for d in skills_dir.iterdir()
+                for d in project_skills_dir.iterdir()
                 if d.is_dir()
                 and (d / "SKILL.md").exists()
                 and not (d / ".git").exists()  # Exclude collection repos
             ]
-            installed_count = len(skill_dirs)
+            deployed_count = len(skill_dirs)
 
-        # Count available skills in collections
-        available_count = 0
-        if skills_dir.exists():
-            # Scan all collection directories (those with .git)
-            for collection_dir in skills_dir.iterdir():
-                if (
-                    not collection_dir.is_dir()
-                    or not (collection_dir / ".git").exists()
-                ):
+        # Count cached skills (from remote sources, not deployed yet)
+        # This matches the agent summary pattern: deployed vs cached
+        cache_dir = Path.home() / ".claude-mpm" / "cache" / "skills"
+        cached_count = 0
+        if cache_dir.exists():
+            # Scan all repository directories in cache
+            # Cache structure: ~/.claude-mpm/cache/skills/{owner}/{repo}/...
+            for repo_dir in cache_dir.rglob("*"):
+                if not repo_dir.is_dir():
                     continue
 
-                # Count skill directories in this collection
+                # Count skill directories (those with SKILL.md)
                 # Skills can be nested in: skills/category/skill-name/SKILL.md
                 # or in flat structure: skill-name/SKILL.md
-                for root, dirs, files in os.walk(collection_dir):
+                for root, dirs, files in os.walk(repo_dir):
                     if "SKILL.md" in files:
-                        # Exclude build artifacts and hidden directories (within the collection)
-                        # Get relative path from collection_dir to avoid excluding based on .claude parent
+                        # Exclude build artifacts and hidden directories
                         root_path = Path(root)
-                        relative_parts = root_path.relative_to(collection_dir).parts
                         if not any(
                             part.startswith(".")
                             or part in ["dist", "build", "__pycache__"]
-                            for part in relative_parts
+                            for part in root_path.parts
                         ):
-                            available_count += 1
+                            cached_count += 1
 
-        # Display summary if we have skills
-        if installed_count > 0 or available_count > 0:
+        # Display summary using agent summary format: "X deployed / Y cached"
+        # Only show non-deployed cached skills (subtract deployed from cached)
+        non_deployed_cached = max(0, cached_count - deployed_count)
+        if deployed_count > 0 or non_deployed_cached > 0:
             print(
-                f"✓ Skills: {installed_count} installed ({available_count} available)",
+                f"✓ Skills: {deployed_count} deployed / {non_deployed_cached} cached",
                 flush=True,
             )
 
