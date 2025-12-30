@@ -314,7 +314,7 @@ def deploy_output_style_on_startup():
 
     Deploys two styles:
     - claude-mpm-style.md (professional mode)
-    - claude-mpm-teacher.md (teaching mode)
+    - claude-mpm-teach.md (teaching mode)
     """
     try:
         import shutil
@@ -330,7 +330,7 @@ def deploy_output_style_on_startup():
         user_home = Path.home()
         output_styles_dir = user_home / ".claude" / "settings" / "output-styles"
         professional_target = output_styles_dir / "claude-mpm-style.md"
-        teacher_target = output_styles_dir / "claude-mpm-teacher.md"
+        teacher_target = output_styles_dir / "claude-mpm-teach.md"
 
         # Create directory if it doesn't exist
         output_styles_dir.mkdir(parents=True, exist_ok=True)
@@ -471,16 +471,13 @@ def sync_remote_agents_on_startup():
     block startup to ensure claude-mpm remains functional.
 
     Workflow:
-    1. Cleanup legacy agent cache directories (if any)
-    2. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
-    3. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
-    4. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
+    1. Sync all enabled Git sources (download/cache files) - Phase 1 progress bar
+    2. Deploy agents to ~/.claude/agents/ - Phase 2 progress bar
+    3. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
+    4. Cleanup legacy agent cache directories (after sync/deployment) - Phase 4
     5. Log deployment results
     """
-    # Cleanup legacy cache directories first (before syncing)
-    cleanup_legacy_agent_cache()
-
-    # DEPRECATED: Legacy warning - replaced by automatic cleanup above
+    # DEPRECATED: Legacy warning - no-op function, kept for compatibility
     check_legacy_cache()
 
     try:
@@ -700,7 +697,8 @@ def sync_remote_agents_on_startup():
                     agent_files = [
                         f
                         for f in all_md_files
-                        if (
+                        if
+                        (
                             # Must be in an agent directory
                             # Supports: cache/agents/{category}/... (flat)
                             # Supports: cache/agents/{owner}/{repo}/agents/{category}/... (GitHub sync)
@@ -843,6 +841,11 @@ def sync_remote_agents_on_startup():
                 logger = get_logger("cli")
                 logger.warning(f"Failed to deploy agents from cache: {e}")
 
+        # Phase 4: Cleanup legacy agent cache directories (after sync/deployment)
+        # CRITICAL: This must run AFTER sync completes because sync may recreate
+        # legacy directories. Running cleanup here ensures they're removed.
+        cleanup_legacy_agent_cache()
+
     except Exception as e:
         # Non-critical - log but don't fail startup
         from ..core.logger import get_logger
@@ -850,6 +853,12 @@ def sync_remote_agents_on_startup():
         logger = get_logger("cli")
         logger.debug(f"Failed to sync remote agents: {e}")
         # Continue execution - agent sync failure shouldn't block startup
+
+        # Cleanup legacy cache even if sync failed
+        try:
+            cleanup_legacy_agent_cache()
+        except Exception:
+            pass  # Ignore cleanup errors
 
 
 def sync_remote_skills_on_startup():
@@ -1073,9 +1082,7 @@ def sync_remote_skills_on_startup():
         total_skill_count = len(all_skills)
 
         # Determine skill count based on resolution
-        skill_count = (
-            len(skills_to_deploy) if skills_to_deploy else total_skill_count
-        )
+        skill_count = len(skills_to_deploy) if skills_to_deploy else total_skill_count
 
         if skill_count > 0:
             # Deploy skills with resolved filter
@@ -1090,7 +1097,9 @@ def sync_remote_skills_on_startup():
                 # CRITICAL FIX: Empty list should mean "deploy no skills", not "deploy all"
                 # When skills_to_deploy is [], we want skill_filter=set() NOT skill_filter=None
                 # None means "no filtering" (deploy all), empty set means "filter to nothing"
-                skill_filter=set(skills_to_deploy) if skills_to_deploy is not None else None,
+                skill_filter=set(skills_to_deploy)
+                if skills_to_deploy is not None
+                else None,
             )
 
             # REMOVED: User-level deployment (lines 1068-1074)

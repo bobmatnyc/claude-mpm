@@ -65,6 +65,7 @@ class AgentDependencyLoader:
         self.deployment_state_file = (
             Path.cwd() / ".claude" / "agents" / ".mpm_deployment_state"
         )
+        self.is_uv_tool = self._check_uv_tool_installation()
 
     def discover_deployed_agents(self) -> Dict[str, Path]:
         """
@@ -191,9 +192,42 @@ class AgentDependencyLoader:
         logger.debug(f"Loaded dependencies for {len(agent_dependencies)} agents")
         return agent_dependencies
 
+    def _check_uv_tool_installation(self) -> bool:
+        """
+        Check if running in UV tool environment (no pip available).
+
+        WHY: UV tool environments don't have pip installed. The executable
+        path typically contains ".local/share/uv/tools/" and the UV_TOOL_DIR
+        environment variable is set. In such environments, we need to use
+        'uv pip' instead of 'python -m pip'.
+
+        Returns:
+            True if UV tool environment, False otherwise
+        """
+        import os
+
+        # Check UV_TOOL_DIR environment variable
+        uv_tool_dir = os.environ.get("UV_TOOL_DIR", "")
+        if uv_tool_dir and "claude-mpm" in uv_tool_dir:
+            logger.debug(f"UV tool environment detected via UV_TOOL_DIR: {uv_tool_dir}")
+            return True
+
+        # Check executable path for UV tool patterns
+        executable = sys.executable
+        if ".local/share/uv/tools/" in executable or "/uv/tools/" in executable:
+            logger.debug(
+                f"UV tool environment detected via executable path: {executable}"
+            )
+            return True
+
+        return False
+
     def check_python_dependency(self, package_spec: str) -> Tuple[bool, Optional[str]]:
         """
-        Check if a Python package dependency is satisfied.
+        Check if a Python package dependency is satisfied in the TARGET environment.
+
+        WHY: UV tool environments use a separate Python installation. We must check
+        packages in the same environment where they would be installed/used.
 
         Args:
             package_spec: Package specification (e.g., "pandas>=2.0.0")
@@ -221,7 +255,70 @@ class AgentDependencyLoader:
                 )
                 return True, "optional-skipped"
 
-            # Try to import and check version
+            # For UV tool environments, check via UV's Python
+            if self.is_uv_tool:
+                try:
+                    verify_cmd = [
+                        "uv",
+                        "run",
+                        "--no-project",
+                        "python",
+                        "-c",
+                        f"import importlib.metadata; print(importlib.metadata.version('{package_name}'))",
+                    ]
+                    result = subprocess.run(
+                        verify_cmd, capture_output=True, timeout=30, check=False
+                    )
+                    if result.returncode == 0:
+                        version = result.stdout.decode().strip()
+                        self.checked_packages.add(package_name)
+                        if req.specifier.contains(version):
+                            logger.debug(
+                                f"Package {package_name} {version} satisfied in UV environment"
+                            )
+                            return True, version
+                        logger.debug(
+                            f"{package_name} {version} does not satisfy {req.specifier}"
+                        )
+                        return False, version
+                    # Check alternatives for optional packages
+                    if package_name in self.OPTIONAL_DB_PACKAGES:
+                        for alternative in self.OPTIONAL_DB_PACKAGES[package_name]:
+                            alt_cmd = [
+                                "uv",
+                                "run",
+                                "--no-project",
+                                "python",
+                                "-c",
+                                f"import importlib.metadata; print(importlib.metadata.version('{alternative}'))",
+                            ]
+                            alt_result = subprocess.run(
+                                alt_cmd, capture_output=True, timeout=30, check=False
+                            )
+                            if alt_result.returncode == 0:
+                                alt_version = alt_result.stdout.decode().strip()
+                                logger.info(
+                                    f"Using {alternative} as alternative to {package_name}"
+                                )
+                                self.checked_packages.add(package_name)
+                                return True, f"{alternative}:{alt_version}"
+                        # If no alternatives work, mark as optional failure
+                        self.optional_failed[package_name] = "No alternatives available"
+                        logger.warning(
+                            f"Optional package {package_name} not found, marking as optional"
+                        )
+                        return True, "optional-not-found"
+                    return False, None
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"Timeout checking {package_name} in UV environment")
+                    return False, None
+                except Exception as e:
+                    logger.debug(
+                        f"Error checking {package_name} in UV environment: {e}"
+                    )
+                    return False, None
+
+            # For normal Python, try to import and check version
             try:
                 import importlib.metadata
 

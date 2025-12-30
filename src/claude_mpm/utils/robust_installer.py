@@ -478,42 +478,56 @@ class RobustPackageInstaller:
 
     def _verify_installation(self, package_spec: str) -> bool:
         """
-        Verify that a package was successfully installed.
+        Verify that a package was successfully installed in the TARGET environment.
+
+        WHY: UV installs packages to its own Python environment, not the current process.
+        We must verify in the same environment where packages were installed.
 
         Args:
             package_spec: Package specification
 
         Returns:
-            True if package is installed and importable
+            True if package is installed and importable in the target environment
         """
         package_name = self._extract_package_name(package_spec)
 
-        # Convert package name to import name (e.g., tree-sitter-ruby -> tree_sitter_ruby)
-        import_name = package_name.replace("-", "_")
-
         try:
-            # Check if package is installed
+            if self.is_uv_tool:
+                # For UV tool, verify via UV's Python environment
+                verify_cmd = [
+                    "uv",
+                    "run",
+                    "--no-project",
+                    "python",
+                    "-c",
+                    f"import importlib.metadata; print(importlib.metadata.version('{package_name}'))",
+                ]
+                result = subprocess.run(
+                    verify_cmd, capture_output=True, timeout=30, check=False
+                )
+                if result.returncode == 0:
+                    logger.debug(
+                        f"Package {package_name} verified in UV environment: {result.stdout.decode().strip()}"
+                    )
+                    return True
+                logger.debug(
+                    f"Package {package_name} not found in UV environment: {result.stderr.decode().strip()}"
+                )
+                return False
+            # For normal Python, use importlib.metadata in current process
             import importlib.metadata
 
             try:
                 version = importlib.metadata.version(package_name)
                 logger.debug(f"Package {package_name} version {version} is installed")
-
-                # For tree-sitter packages, don't try to import (they have C extensions)
-                if package_name.startswith("tree-sitter-"):
-                    return True
-
-                # Try to import the package
-                try:
-                    __import__(import_name)
-                    return True
-                except ImportError:
-                    # Some packages have different import names, that's OK
-                    return True
+                return True
 
             except importlib.metadata.PackageNotFoundError:
                 return False
 
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Verification timeout for {package_name}")
+            return False
         except ImportError:
             # Fallback for older Python versions
             try:
@@ -523,6 +537,9 @@ class RobustPackageInstaller:
                 return True
             except pkg_resources.DistributionNotFound:
                 return False
+        except Exception as e:
+            logger.debug(f"Verification error for {package_name}: {e}")
+            return False
 
     def _is_retryable_error(self, error: Optional[str]) -> bool:
         """
