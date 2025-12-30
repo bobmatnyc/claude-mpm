@@ -1,3 +1,11 @@
+## [5.4.62] - 2025-12-30
+
+### Fixed
+- **Teacher Output Style**: Add YAML frontmatter to make style discoverable
+  - Added `name` and `description` frontmatter to CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md
+  - Claude Code requires YAML frontmatter to recognize output style files
+  - Style now appears in `/output-style` selector
+
 ## [5.4.61] - 2025-12-30
 
 ### Fixed
