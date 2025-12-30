@@ -14,6 +14,7 @@
   import yaml from 'svelte-highlight/languages/yaml';
   import scss from 'svelte-highlight/languages/scss';
   import sql from 'svelte-highlight/languages/sql';
+  import MarkdownViewer from './MarkdownViewer.svelte';
 
   interface Props {
     file: FileEntry | null;
@@ -266,6 +267,12 @@
     return ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp'].includes(ext);
   }
 
+  // Check if file is markdown based on extension
+  function isMarkdownFile(filename: string): boolean {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    return ['md', 'markdown'].includes(ext);
+  }
+
   // Update image state when content changes
   $effect(() => {
     if (file && isImageFile(file.name) && content) {
@@ -392,6 +399,9 @@
             class="image-preview"
           />
         </div>
+      {:else if file && isMarkdownFile(file.name)}
+        <!-- Markdown rendering with mermaid support -->
+        <MarkdownViewer content={content} />
       {:else}
         <!-- Syntax highlighted content -->
         <div class="code-container" data-theme={themeStore.current}>

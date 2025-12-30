@@ -1,3 +1,17 @@
+## [5.4.51] - 2025-12-29
+
+### Changed
+- **Skill Mappings**: Removed framework-specific skills from generic agents
+  - Generic agents (engineer, qa, ops) no longer receive framework-specific skills
+  - Phoenix, WordPress, Django, etc. skills only go to their specialized agents
+  - Reduces skill bloat significantly for users with fewer specialized agents
+
+### Added
+- **Dashboard Markdown Rendering**: Markdown files now render with proper formatting
+  - Headers, lists, tables, code blocks with syntax highlighting
+  - Mermaid diagram support for flowcharts, sequence diagrams, etc.
+  - Theme-aware styling (dark/light mode)
+
 ## [5.4.50] - 2025-12-29
 
 ### Fixed

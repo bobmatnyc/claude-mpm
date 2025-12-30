@@ -143,25 +143,32 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
     Uses SkillToAgentMapper to find all skills associated with given agent IDs.
     This provides pattern-based skill discovery beyond explicit frontmatter declarations.
 
-    IMPORTANT: This function ONLY returns skills that are mapped to the specific
-    agent_ids provided. It does NOT return skills for all agents in the mapping configuration.
-    This ensures that only skills for DEPLOYED agents are included.
+    CRITICAL DESIGN DECISION: This function ONLY returns skills for the DEPLOYED agents
+    provided in agent_ids. It does NOT return skills for all agents in the mapping
+    configuration (skill_to_agent_mapping.yaml lists 41 agents, but only 33 may be deployed).
 
     GENERIC AGENT HANDLING: The generic "engineer" agent is mapped to 100+ skills in the
     configuration because it's designed as a fallback. To prevent over-deployment when
     specialized agents exist, we skip "engineer" if specialized agents are present.
 
+    WHY THIS MATTERS:
+    - skill_to_agent_mapping.yaml lists ALL possible agents (41 total)
+    - User may only have 33 agents deployed in ~/.claude/agents/
+    - Without filtering, we'd deploy skills for all 41 agents (over-deployment)
+    - Solution: Only query skills for DEPLOYED agents (passed in agent_ids)
+
     Args:
-        agent_ids: List of agent identifiers (e.g., ["python-engineer", "typescript-engineer"])
-                  These should be the IDs of DEPLOYED agents only.
+        agent_ids: List of DEPLOYED agent identifiers (e.g., ["python-engineer", "typescript-engineer"])
+                  These should be extracted from ~/.claude/agents/*.md files only.
 
     Returns:
         Set of unique skill names inferred from mapping configuration for DEPLOYED agents only
 
     Example:
-        >>> agent_ids = ["python-engineer", "typescript-engineer"]
-        >>> skills = get_skills_from_mapping(agent_ids)
-        >>> print(f"Found {len(skills)} skills from mapping")
+        >>> # DEPLOYED agents only (from ~/.claude/agents/)
+        >>> deployed_agent_ids = ["python-engineer", "typescript-engineer", "qa"]
+        >>> skills = get_skills_from_mapping(deployed_agent_ids)
+        >>> print(f"Found {len(skills)} skills for {len(deployed_agent_ids)} deployed agents")
     """
     try:
         mapper = SkillToAgentMapper()
@@ -189,6 +196,8 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
                 f"{', '.join(specialized_engineers[:5])}{'...' if len(specialized_engineers) > 5 else ''})"
             )
 
+        # IMPORTANT: Only query skills for DEPLOYED agents (those in agent_ids)
+        # Do NOT query all agents from skill_to_agent_mapping.yaml (that's 41 agents)
         for agent_id in agents_to_query:
             agent_skills = mapper.get_skills_for_agent(agent_id)
             if agent_skills:
@@ -196,7 +205,8 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
                 logger.debug(f"Mapped {len(agent_skills)} skills to {agent_id}")
 
         logger.info(
-            f"Mapped {len(all_skills)} unique skills for {len(agents_to_query)} deployed agents"
+            f"Mapped {len(all_skills)} unique skills for {len(agents_to_query)} deployed agents "
+            f"(out of {len(agent_ids)} total deployed, excluding generic 'engineer' if specialized exist)"
         )
         return all_skills
 
