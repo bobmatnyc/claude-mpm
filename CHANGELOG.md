@@ -1,3 +1,18 @@
+## [5.4.54] - 2025-12-30
+
+### Fixed
+- **Skill Orphan Detection**: Fixed mappings that caused over-deployment
+  - Removed generic agents (web-ui, data-engineer, security) from language-specific skills
+  - Phoenix/Elixir skills now ONLY map to phoenix-engineer
+  - Golang skills now ONLY map to golang-engineer
+  - PHP/WordPress skills now ONLY map to php-engineer
+  - Reduces skill count from ~97 to ~50-60 for typical deployments
+
+### Added
+- **Auto Pre-commit Hooks**: `claude-mpm init` automatically installs security hooks
+  - Installs pre-commit and detect-secrets if missing
+  - Sets up hooks without manual user steps
+
 ## [5.4.53] - 2025-12-29
 
 ### Added

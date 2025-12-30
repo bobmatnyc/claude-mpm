@@ -1151,6 +1151,11 @@ class GitSkillSourceManager:
     ) -> List[str]:
         """Remove skills from target directory that aren't in the filtered skill list.
 
+        Uses fuzzy matching to handle both exact deployment names and short skill names.
+        For example:
+        - "toolchains-python-frameworks-flask" (deployed dir) matches "flask" (filter)
+        - "toolchains-elixir-frameworks-phoenix-liveview" matches "phoenix-liveview"
+
         Args:
             target_dir: Target deployment directory
             filtered_skills: List of skills that should remain deployed
@@ -1162,11 +1167,38 @@ class GitSkillSourceManager:
 
         removed_skills = []
 
-        # Build set of deployment names that should exist
+        # Build set of deployment names (exact matches)
         expected_deployments = {
-            skill.get("deployment_name") for skill in filtered_skills
+            skill.get("deployment_name").lower() for skill in filtered_skills
             if skill.get("deployment_name")
         }
+
+        # Build helper function for fuzzy matching (matches logic from deploy_skills)
+        def should_keep_skill(deployed_dir_name: str) -> bool:
+            """Check if deployed skill matches any expected deployment using fuzzy matching.
+
+            Matches the same logic as matches_filter() in deploy_skills() at line 1053.
+            """
+            deployed_lower = deployed_dir_name.lower()
+
+            # Exact match
+            if deployed_lower in expected_deployments:
+                return True
+
+            # Fuzzy match: check if deployment name matches any short name pattern
+            # Example: "toolchains-elixir-frameworks-phoenix-liveview" matches "phoenix-liveview"
+            for expected_name in expected_deployments:
+                # Suffix match: deployment ends with "-shortname"
+                if deployed_lower.endswith(f"-{expected_name}"):
+                    return True
+                # Segment match: "-shortname-" appears in deployment
+                if f"-{expected_name}-" in deployed_lower:
+                    return True
+                # Prefix match: deployment starts with "shortname-"
+                if deployed_lower.startswith(f"{expected_name}-"):
+                    return True
+
+            return False
 
         # Check each directory in target_dir
         if not target_dir.exists():
@@ -1182,8 +1214,8 @@ class GitSkillSourceManager:
                 if item.name.startswith("."):
                     continue
 
-                # Check if this skill directory should be kept
-                if item.name not in expected_deployments:
+                # Check if this skill directory should be kept (fuzzy matching)
+                if not should_keep_skill(item.name):
                     try:
                         # Security: Validate path is within target_dir
                         if not self._validate_safe_path(target_dir, item):
@@ -1199,8 +1231,8 @@ class GitSkillSourceManager:
                             shutil.rmtree(item)
 
                         removed_skills.append(item.name)
-                        self.logger.debug(
-                            f"Removed unfiltered skill: {item.name}"
+                        self.logger.info(
+                            f"Removed orphaned skill: {item.name}"
                         )
 
                     except Exception as e:

@@ -1,0 +1,112 @@
+# Pre-commit hooks configuration for claude-mpm
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*\.md|.*\.txt)$
+      - id: end-of-file-fixer
+        exclude: ^(.*\.md|.*\.txt)$
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Ruff - replaces black, isort, flake8, pyupgrade (10-200x faster)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4  # Use latest version
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-requests]
+        args: ['--config-file=mypy.ini']
+        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py|scripts/.*\.py)
+
+  # Security scanning with bandit
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-r', '-f', 'json']
+        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py)
+
+  # Secret detection with detect-secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            venv/.*|
+            \.venv/.*|
+            node_modules/.*|
+            \.git/.*|
+            __pycache__/.*|
+            .*\.lock|
+            .*package-lock\.json|
+            .*\.pyc
+          )$
+
+  # Documentation linting
+  - repo: https://github.com/pycqa/doc8
+    rev: v1.1.1
+    hooks:
+      - id: doc8
+        args: ['--max-line-length=88']
+        files: \.rst$
+
+  # Commitizen for conventional commits
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+# Configuration for specific file types
+exclude: |
+  (?x)^(
+    venv/.*|
+    \.venv/.*|
+    env/.*|
+    \.env/.*|
+    build/.*|
+    dist/.*|
+    \.git/.*|
+    __pycache__/.*|
+    .*\.pyc|
+    .*\.pyo|
+    .*\.egg-info/.*|
+    \.coverage|
+    \.pytest_cache/.*|
+    \.mypy_cache/.*|
+    node_modules/.*|
+    \.DS_Store|
+    \.vscode/.*|
+    \.idea/.*
+  )$
+
+# Global settings
+default_stages: [pre-commit]
+fail_fast: false

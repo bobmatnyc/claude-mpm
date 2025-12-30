@@ -55,14 +55,12 @@ skill_mappings:
   # Elixir Toolchains
   toolchains/elixir/data/ecto-patterns:
     - phoenix-engineer
-    - data-engineer
 
   toolchains/elixir/frameworks/phoenix-api-channels:
     - phoenix-engineer
 
   toolchains/elixir/frameworks/phoenix-liveview:
     - phoenix-engineer
-    - web-ui
 
   toolchains/elixir/ops/phoenix-ops:
     - phoenix-engineer
@@ -73,7 +71,6 @@ skill_mappings:
 
   toolchains/golang/data:
     - golang-engineer
-    - data-engineer
 
   toolchains/golang/observability:
     - golang-engineer
@@ -169,14 +166,12 @@ skill_mappings:
 
   toolchains/php/frameworks/wordpress/block-editor:
     - php-engineer
-    - web-ui
 
   toolchains/php/frameworks/wordpress/plugin-fundamentals:
     - php-engineer
 
   toolchains/php/frameworks/wordpress/security-validation:
     - php-engineer
-    - security
 
   toolchains/php/frameworks/wordpress/testing-qa:
     - php-engineer

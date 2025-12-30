@@ -166,6 +166,9 @@ class ProjectInitializer:
             # Verify and deploy PM skills (non-blocking)
             self._verify_and_deploy_pm_skills(project_root, is_mcp_mode)
 
+            # Setup security hooks (auto-install pre-commit, detect-secrets)
+            self._setup_security_hooks(project_root, is_mcp_mode)
+
             # Perform security checks (non-blocking)
             self._check_security_risks(project_root, is_mcp_mode)
 
@@ -220,7 +223,9 @@ class ProjectInitializer:
                         f"PM skills deployment had errors: {len(deploy_result.errors)}"
                     )
                     if not is_mcp_mode and deploy_result.errors:
-                        print(f"⚠ PM skills deployment had {len(deploy_result.errors)} error(s)")
+                        print(
+                            f"⚠ PM skills deployment had {len(deploy_result.errors)} error(s)"
+                        )
             else:
                 # Skills verified successfully
                 registry = deployer._load_registry(project_root)
@@ -385,6 +390,136 @@ class ProjectInitializer:
                 if not dst_file.exists():
                     shutil.copy2(template_file, dst_file)
 
+    def _setup_security_hooks(
+        self, project_root: Path, is_mcp_mode: bool = False
+    ) -> None:
+        """Automatically install pre-commit hooks for secret scanning.
+
+        This method:
+        1. Installs pre-commit and detect-secrets if missing
+        2. Copies .pre-commit-config.yaml to project root
+        3. Runs pre-commit install to set up git hooks
+        4. Creates .secrets.baseline for detect-secrets
+
+        Args:
+            project_root: Project root directory
+            is_mcp_mode: Whether running in MCP mode (suppress console output)
+        """
+        try:
+            import subprocess
+
+            # Only set up hooks if this is a git repository
+            if not (project_root / ".git").exists():
+                self.logger.debug("Not a git repository, skipping security hooks setup")
+                return
+
+            # Check/install pre-commit
+            try:
+                subprocess.run(
+                    ["pre-commit", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=True,
+                )
+            except (
+                subprocess.CalledProcessError,
+                subprocess.TimeoutExpired,
+                FileNotFoundError,
+            ):
+                self.logger.info("Installing pre-commit...")
+                try:
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "pre-commit"],
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                        check=True,
+                    )
+                    self.logger.info("pre-commit installed successfully")
+                except subprocess.CalledProcessError as e:
+                    self.logger.warning(f"Failed to install pre-commit: {e}")
+                    return
+
+            # Check/install detect-secrets
+            try:
+                subprocess.run(
+                    ["detect-secrets", "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=True,
+                )
+            except (
+                subprocess.CalledProcessError,
+                subprocess.TimeoutExpired,
+                FileNotFoundError,
+            ):
+                self.logger.info("Installing detect-secrets...")
+                try:
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "detect-secrets"],
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                        check=True,
+                    )
+                    self.logger.info("detect-secrets installed successfully")
+                except subprocess.CalledProcessError as e:
+                    self.logger.warning(f"Failed to install detect-secrets: {e}")
+                    return
+
+            # Copy .pre-commit-config.yaml to project root if it doesn't exist
+            precommit_config = project_root / ".pre-commit-config.yaml"
+            if not precommit_config.exists():
+                template_dir = Path(__file__).parent / "templates"
+                template_config = template_dir / ".pre-commit-config.yaml"
+
+                if template_config.exists():
+                    shutil.copy2(template_config, precommit_config)
+                    self.logger.info("Copied .pre-commit-config.yaml to project root")
+                else:
+                    self.logger.warning("Template .pre-commit-config.yaml not found")
+                    return
+
+            # Create .secrets.baseline if it doesn't exist
+            secrets_baseline = project_root / ".secrets.baseline"
+            if not secrets_baseline.exists():
+                try:
+                    subprocess.run(
+                        ["detect-secrets", "scan", "--baseline", ".secrets.baseline"],
+                        cwd=str(project_root),
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        check=True,
+                    )
+                    self.logger.info("Created .secrets.baseline")
+                except subprocess.CalledProcessError as e:
+                    self.logger.warning(f"Failed to create .secrets.baseline: {e}")
+
+            # Install git hooks
+            try:
+                subprocess.run(
+                    ["pre-commit", "install"],
+                    cwd=str(project_root),
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=True,
+                )
+                self.logger.info("Pre-commit hooks installed in git repository")
+
+                if not is_mcp_mode:
+                    print("✓ Security hooks installed (pre-commit + detect-secrets)")
+
+            except subprocess.CalledProcessError as e:
+                self.logger.warning(f"Failed to install pre-commit hooks: {e}")
+
+        except Exception as e:
+            self.logger.debug(f"Security hooks setup failed: {e}")
+            # Don't print to console - this is a non-critical failure
+
     def _check_security_risks(
         self, project_root: Path, is_mcp_mode: bool = False
     ) -> None:
@@ -419,7 +554,7 @@ class ProjectInitializer:
                     try:
                         result = subprocess.run(
                             ["git", "ls-files", str(file_path)],
-                            cwd=str(project_root),
+                            check=False, cwd=str(project_root),
                             capture_output=True,
                             text=True,
                             timeout=2,
@@ -435,7 +570,7 @@ class ProjectInitializer:
                     try:
                         result = subprocess.run(
                             ["git", "check-ignore", str(file_path)],
-                            cwd=str(project_root),
+                            check=False, cwd=str(project_root),
                             capture_output=True,
                             text=True,
                             timeout=2,
@@ -446,25 +581,6 @@ class ProjectInitializer:
                             )
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         pass
-
-            # Check if pre-commit hooks are installed
-            pre_commit_installed = False
-            try:
-                result = subprocess.run(
-                    ["pre-commit", "--version"],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                )
-                pre_commit_installed = result.returncode == 0
-            except (subprocess.TimeoutExpired, FileNotFoundError):
-                pass
-
-            if not pre_commit_installed and not is_mcp_mode:
-                security_issues.append(
-                    "ℹ️  RECOMMENDED: Install pre-commit hooks for automatic secret scanning\n"
-                    "   Run: pip install pre-commit && pre-commit install"
-                )
 
             # Print security warnings if not in MCP mode
             if security_issues and not is_mcp_mode:

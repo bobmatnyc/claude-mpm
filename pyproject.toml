@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "5.4.53"
+version = "5.4.54"
 description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -189,14 +189,14 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "5.4.53"
+version = "5.4.54"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_incremental = true
 
 [tool.setuptools.package-data]
-claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*",]
+claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml",]
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]

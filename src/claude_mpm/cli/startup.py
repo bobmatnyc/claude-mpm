@@ -1048,14 +1048,24 @@ def sync_remote_skills_on_startup():
 
             if skill_count > 0:
                 # Deploy skills with resolved filter
-                # Deploy to project directory (like agents), not user directory
+                # Deploy to BOTH project directory (for local dev) AND global directory (for Claude Code)
+
+                # 1. Deploy to project-local directory
                 deployment_result = manager.deploy_skills(
                     target_dir=Path.cwd() / ".claude" / "skills",
                     force=False,
                     skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
                 )
 
-                # Get actual counts from deployment result
+                # 2. Deploy to global directory (this is where Claude Code reads from)
+                # Also cleans up orphaned skills via _cleanup_unfiltered_skills()
+                global_deployment_result = manager.deploy_skills(
+                    target_dir=Path.home() / ".claude" / "skills",
+                    force=False,
+                    skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
+                )
+
+                # Get actual counts from deployment result (use project-local for display)
                 deployed = deployment_result.get("deployed_count", 0)
                 skipped = deployment_result.get("skipped_count", 0)
                 filtered = deployment_result.get("filtered_count", 0)
