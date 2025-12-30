@@ -98,6 +98,7 @@ class VerificationResult:
         missing_skills: List of missing skill names
         outdated_skills: List of outdated skill names
         message: Summary message
+        skill_count: Total number of deployed skills
     """
 
     verified: bool
@@ -105,6 +106,7 @@ class VerificationResult:
     missing_skills: List[str]
     outdated_skills: List[str]
     message: str
+    skill_count: int = 0
 
 
 @dataclass
@@ -551,6 +553,7 @@ class PMSkillsDeployerService(LoggerMixin):
                 missing_skills=missing_skills,
                 outdated_skills=outdated_skills,
                 message="PM skills not deployed. Run 'claude-mpm init' to deploy.",
+                skill_count=0,
             )
 
         # Check each registered skill exists
@@ -610,6 +613,7 @@ class PMSkillsDeployerService(LoggerMixin):
             missing_skills=missing_skills,
             outdated_skills=outdated_skills,
             message=message,
+            skill_count=len(deployed_skills),
         )
 
     def get_deployed_skills(self, project_dir: Path) -> List[PMSkillInfo]:

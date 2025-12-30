@@ -1082,7 +1082,10 @@ def sync_remote_skills_on_startup():
             deployment_result = manager.deploy_skills(
                 target_dir=Path.cwd() / ".claude" / "skills",
                 force=False,
-                skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
+                # CRITICAL FIX: Empty list should mean "deploy no skills", not "deploy all"
+                # When skills_to_deploy is [], we want skill_filter=set() NOT skill_filter=None
+                # None means "no filtering" (deploy all), empty set means "filter to nothing"
+                skill_filter=set(skills_to_deploy) if skills_to_deploy is not None else None,
             )
 
             # REMOVED: User-level deployment (lines 1068-1074)

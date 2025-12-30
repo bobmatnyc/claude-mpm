@@ -1,3 +1,14 @@
+## [5.4.59] - 2025-12-30
+
+### Fixed
+- **Skill Deployment Logic**: Empty skill list now deploys 0 skills instead of ALL
+  - Fixed: `[]` (empty list) was falsy → converted to `None` → deployed ALL 119 skills
+  - Now correctly checks `if skills_to_deploy is not None` instead of truthiness
+  - When no agents have `skills:` frontmatter, zero skills are deployed
+- **PM Skills Display**: Fixed "PM skills: 0 deployed" showing incorrectly
+  - Added missing `skill_count` attribute to `VerificationResult` dataclass
+  - Now correctly shows count of verified PM skills
+
 ## [5.4.58] - 2025-12-30
 
 ### Fixed
