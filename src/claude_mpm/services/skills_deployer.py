@@ -191,10 +191,37 @@ class SkillsDeployerService(LoggerMixin):
                 config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
 
             from claude_mpm.services.skills.selective_skill_deployer import (
+                get_required_skills_from_agents,
                 get_skills_to_deploy,
+                save_agent_skills_to_config,
             )
 
+            # Check if agent_referenced is empty and needs to be populated
             required_skill_names, source = get_skills_to_deploy(config_path)
+
+            if not required_skill_names and project_root:
+                # agent_referenced is empty, scan deployed agents to populate it
+                agents_dir = Path(project_root) / ".claude" / "agents"
+                if agents_dir.exists():
+                    self.logger.info(
+                        "agent_referenced is empty in configuration.yaml, scanning deployed agents..."
+                    )
+                    agent_skills = get_required_skills_from_agents(agents_dir)
+                    if agent_skills:
+                        save_agent_skills_to_config(list(agent_skills), config_path)
+                        self.logger.info(
+                            f"Populated agent_referenced with {len(agent_skills)} skills from deployed agents"
+                        )
+                        # Re-read configuration after update
+                        required_skill_names, source = get_skills_to_deploy(config_path)
+                    else:
+                        self.logger.warning(
+                            "No skills found in deployed agents - configuration.yaml remains empty"
+                        )
+                else:
+                    self.logger.warning(
+                        f"Agents directory not found at {agents_dir} - cannot scan for skills"
+                    )
 
             if required_skill_names:
                 # Convert required_skill_names to a set for O(1) lookup
