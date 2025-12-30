@@ -36,7 +36,7 @@ References:
 import hashlib
 import shutil
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -171,7 +171,7 @@ class PMSkillsDeployerService(LoggerMixin):
                 self.logger.debug(f"Using dev templates path: {alt_path}")
             else:
                 self.logger.warning(
-                    f"PM skills templates path not found (non-critical, uses defaults)"
+                    "PM skills templates path not found (non-critical, uses defaults)"
                 )
 
     def _find_project_root(self) -> Path:
@@ -430,12 +430,10 @@ class PMSkillsDeployerService(LoggerMixin):
         deployed_skills = registry.get("skills", [])
 
         # Create lookup for existing deployments
-        existing_deployments = {
-            skill["name"]: skill for skill in deployed_skills
-        }
+        existing_deployments = {skill["name"]: skill for skill in deployed_skills}
 
         new_deployed_skills = []
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(tz=timezone.utc).isoformat()
         total_skills = len(skills)
 
         for idx, skill in enumerate(skills):
@@ -669,9 +667,7 @@ class PMSkillsDeployerService(LoggerMixin):
             ...     print(f"{update.skill_name}: {update.current_version} -> {update.new_version}")
         """
         registry = self._load_registry(project_dir)
-        deployed_skills = {
-            skill["name"]: skill for skill in registry.get("skills", [])
-        }
+        deployed_skills = {skill["name"]: skill for skill in registry.get("skills", [])}
 
         bundled_skills = self._discover_bundled_pm_skills()
 

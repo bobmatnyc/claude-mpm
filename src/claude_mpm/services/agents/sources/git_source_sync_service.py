@@ -1092,7 +1092,9 @@ class GitSourceSyncService:
 
         # Clean up any previously deployed excluded agents
         if excluded_set:
-            cleanup_results = self._cleanup_excluded_agents(deployment_dir, excluded_set)
+            cleanup_results = self._cleanup_excluded_agents(
+                deployment_dir, excluded_set
+            )
             if cleanup_results["removed"]:
                 logger.info(
                     f"Cleaned up {len(cleanup_results['removed'])} excluded agents: "

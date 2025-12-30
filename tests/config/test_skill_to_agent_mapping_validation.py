@@ -56,7 +56,9 @@ VALID_CROSS_MAPPINGS = {
     "toolchains/python/validation": ["data-engineer"],  # Pydantic for data validation
     "toolchains/python/frameworks/django": ["data-engineer"],  # Django ORM for data
     "toolchains/typescript/data": ["data-engineer"],  # Drizzle, Kysely, Prisma
-    "toolchains/platforms/backend/supabase": ["data-engineer"],  # Multi-language backend
+    "toolchains/platforms/backend/supabase": [
+        "data-engineer"
+    ],  # Multi-language backend
     # QA needs testing tools across languages
     "toolchains/javascript/testing": ["web-qa"],
     "toolchains/typescript/testing": ["web-qa"],
@@ -103,9 +105,7 @@ def test_config_has_required_sections(skill_mapping_config):
     required_sections = ["skill_mappings", "all_agents_list", "inference_rules"]
 
     for section in required_sections:
-        assert (
-            section in skill_mapping_config
-        ), f"Missing required section: {section}"
+        assert section in skill_mapping_config, f"Missing required section: {section}"
 
 
 def test_language_toolchains_not_mapped_to_generic_agents(skill_mapping_config):
@@ -131,7 +131,7 @@ def test_language_toolchains_not_mapped_to_generic_agents(skill_mapping_config):
     for skill_path, agent_list in skill_mappings.items():
         # Skip if not a language toolchain
         language = None
-        for lang_prefix in LANGUAGE_TOOLCHAINS.keys():
+        for lang_prefix in LANGUAGE_TOOLCHAINS:
             if skill_path.startswith(lang_prefix):
                 language = lang_prefix
                 break

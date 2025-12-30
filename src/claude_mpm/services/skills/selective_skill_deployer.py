@@ -181,8 +181,7 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
         #
         # Solution: Filter out "engineer" from agent_ids if specialized agents exist
         specialized_engineers = [
-            aid for aid in agent_ids
-            if aid.endswith("-engineer") and aid != "engineer"
+            aid for aid in agent_ids if aid.endswith("-engineer") and aid != "engineer"
         ]
 
         # If specialized engineers exist, exclude generic "engineer" from skill mapping

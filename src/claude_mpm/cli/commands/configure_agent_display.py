@@ -132,7 +132,9 @@ class AgentDisplay:
         self.console.print(table)
 
         # Display summary count
-        self.console.print(f"\n📊 Agents: {installed_count} Installed / {len(agents)} Total")
+        self.console.print(
+            f"\n📊 Agents: {installed_count} Installed / {len(agents)} Total"
+        )
 
     def display_agents_with_pending_states(self, agents: List[AgentConfig]) -> None:
         """Display agents table with pending state indicators.

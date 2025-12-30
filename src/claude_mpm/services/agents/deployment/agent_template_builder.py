@@ -737,10 +737,12 @@ Only include memories that are:
         if model is not None:
             yaml_lines.append(f"model: {model}")
 
-        yaml_lines.extend([
-            "tools:",
-            tools_yaml,
-        ])
+        yaml_lines.extend(
+            [
+                "tools:",
+                tools_yaml,
+            ]
+        )
 
         return "\n".join(yaml_lines) + "\n"
 

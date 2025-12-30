@@ -466,7 +466,7 @@ class RemoteAgentDiscoveryService:
                     self.logger.warning(
                         f"No agent directories found. Checked: {dist_agents_dir}, {agents_dir}, "
                         f"owner/repo/agents/ structure, and category directories in {self.agents_cache_dir}. "
-                        f"Expected agents in /dist/agents/, /agents/, {owner}/{repo}/agents/, or category directories."
+                        "Expected agents in /dist/agents/, /agents/, owner/repo/agents/, or category directories."
                     )
                     return agents
 

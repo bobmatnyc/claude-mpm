@@ -58,7 +58,9 @@ class SkillManager:
         if mapping_count > 0:
             logger.info(f"Loaded skill mappings for {mapping_count} agents")
 
-    def _get_pm_skills(self, project_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
+    def _get_pm_skills(
+        self, project_dir: Optional[Path] = None
+    ) -> List[Dict[str, Any]]:
         """Load PM skills from project's .claude-mpm/skills/pm/ directory.
 
         PM skills are special required skills deployed per-project,
@@ -103,22 +105,22 @@ class SkillManager:
             Dictionary with skill metadata and content, or None if failed
         """
         try:
-            content = skill_file.read_text(encoding='utf-8')
+            content = skill_file.read_text(encoding="utf-8")
 
             # Parse YAML frontmatter
-            if content.startswith('---'):
-                parts = content.split('---', 2)
+            if content.startswith("---"):
+                parts = content.split("---", 2)
                 if len(parts) >= 3:
                     metadata = yaml.safe_load(parts[1])
                     body = parts[2].strip()
 
                     return {
-                        'name': metadata.get('name', skill_file.parent.name),
-                        'version': metadata.get('version', '1.0.0'),
-                        'description': metadata.get('description', ''),
-                        'when_to_use': metadata.get('when_to_use', ''),
-                        'content': body,
-                        'is_pm_skill': True
+                        "name": metadata.get("name", skill_file.parent.name),
+                        "version": metadata.get("version", "1.0.0"),
+                        "description": metadata.get("description", ""),
+                        "when_to_use": metadata.get("when_to_use", ""),
+                        "content": body,
+                        "is_pm_skill": True,
                     }
         except Exception as e:
             logger.warning(f"Failed to load PM skill {skill_file}: {e}")
@@ -156,19 +158,23 @@ class SkillManager:
                 skills.append(skill)
 
         # Add PM skills for PM agent only
-        if agent_type.lower() in ('pm', 'project-manager', 'project_manager'):
+        if agent_type.lower() in ("pm", "project-manager", "project_manager"):
             pm_skill_dicts = self._get_pm_skills()
             for pm_skill_dict in pm_skill_dicts:
                 # Convert PM skill dict to Skill object
                 pm_skill = Skill(
-                    name=pm_skill_dict['name'],
-                    path=Path.cwd() / ".claude-mpm" / "skills" / "pm" / pm_skill_dict['name'],
-                    content=pm_skill_dict['content'],
-                    source='pm',  # Special source type for PM skills
-                    version=pm_skill_dict['version'],
-                    skill_id=pm_skill_dict['name'],
-                    description=pm_skill_dict['description'],
-                    agent_types=['pm', 'project-manager', 'project_manager']
+                    name=pm_skill_dict["name"],
+                    path=Path.cwd()
+                    / ".claude-mpm"
+                    / "skills"
+                    / "pm"
+                    / pm_skill_dict["name"],
+                    content=pm_skill_dict["content"],
+                    source="pm",  # Special source type for PM skills
+                    version=pm_skill_dict["version"],
+                    skill_id=pm_skill_dict["name"],
+                    description=pm_skill_dict["description"],
+                    agent_types=["pm", "project-manager", "project_manager"],
                 )
                 skills.append(pm_skill)
 

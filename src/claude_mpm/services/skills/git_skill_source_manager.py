@@ -1073,9 +1073,7 @@ class GitSkillSourceManager:
 
             # Match against deployment_name using fuzzy matching
             all_skills = [
-                s
-                for s in all_skills
-                if matches_filter(s.get("deployment_name", ""))
+                s for s in all_skills if matches_filter(s.get("deployment_name", ""))
             ]
             filtered_count = original_count - len(all_skills)
             self.logger.info(
@@ -1085,9 +1083,7 @@ class GitSkillSourceManager:
 
             # Cleanup: Remove skills from target directory that aren't in the filtered set
             # This ensures only the skills in the profile are deployed
-            removed_skills = self._cleanup_unfiltered_skills(
-                target_dir, all_skills
-            )
+            removed_skills = self._cleanup_unfiltered_skills(target_dir, all_skills)
             if removed_skills:
                 self.logger.info(
                     f"Removed {len(removed_skills)} skills not in profile filter: {removed_skills}"
@@ -1169,7 +1165,8 @@ class GitSkillSourceManager:
 
         # Build set of deployment names (exact matches)
         expected_deployments = {
-            skill.get("deployment_name").lower() for skill in filtered_skills
+            skill.get("deployment_name").lower()
+            for skill in filtered_skills
             if skill.get("deployment_name")
         }
 
@@ -1231,9 +1228,7 @@ class GitSkillSourceManager:
                             shutil.rmtree(item)
 
                         removed_skills.append(item.name)
-                        self.logger.info(
-                            f"Removed orphaned skill: {item.name}"
-                        )
+                        self.logger.info(f"Removed orphaned skill: {item.name}")
 
                     except Exception as e:
                         self.logger.warning(

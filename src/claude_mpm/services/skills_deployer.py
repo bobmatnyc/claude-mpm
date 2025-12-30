@@ -242,15 +242,17 @@ class SkillsDeployerService(LoggerMixin):
                     source_path = skill.get("source_path", "")
                     if source_path:
                         # Remove /SKILL.md suffix and replace / with -
-                        normalized = (
-                            source_path.replace("/SKILL.md", "").replace("/", "-")
+                        normalized = source_path.replace("/SKILL.md", "").replace(
+                            "/", "-"
                         )
                         if normalized in required_set:
                             return True
 
                     return False
 
-                filtered_skills = [s for s in filtered_skills if skill_matches_requirement(s)]
+                filtered_skills = [
+                    s for s in filtered_skills if skill_matches_requirement(s)
+                ]
 
                 self.logger.info(
                     f"Selective deployment: {len(filtered_skills)}/{total_available} skills "
@@ -300,7 +302,9 @@ class SkillsDeployerService(LoggerMixin):
                     # Use normalized name for reporting
                     source_path = skill.get("source_path", "")
                     if source_path:
-                        normalized = source_path.replace("/SKILL.md", "").replace("/", "-")
+                        normalized = source_path.replace("/SKILL.md", "").replace(
+                            "/", "-"
+                        )
                         deployed.append(normalized)
                     else:
                         deployed.append(skill["name"])
@@ -308,7 +312,9 @@ class SkillsDeployerService(LoggerMixin):
                     # Use normalized name for reporting
                     source_path = skill.get("source_path", "")
                     if source_path:
-                        normalized = source_path.replace("/SKILL.md", "").replace("/", "-")
+                        normalized = source_path.replace("/SKILL.md", "").replace(
+                            "/", "-"
+                        )
                         skipped.append(normalized)
                     else:
                         skipped.append(skill["name"])

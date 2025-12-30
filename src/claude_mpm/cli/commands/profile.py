@@ -13,10 +13,8 @@ DESIGN DECISIONS:
 """
 
 from pathlib import Path
-from typing import Any, Dict
 
 import yaml
-from rich.console import Console
 from rich.table import Table
 
 from ...core.shared.config_loader import ConfigLoader
@@ -63,16 +61,15 @@ class ProfileCommand(BaseCommand):
         try:
             if args.profile_command == "list":
                 return self._list_profiles(args)
-            elif args.profile_command == "set":
+            if args.profile_command == "set":
                 return self._set_profile(args)
-            elif args.profile_command == "status":
+            if args.profile_command == "status":
                 return self._show_status(args)
-            elif args.profile_command == "show":
+            if args.profile_command == "show":
                 return self._show_profile(args)
-            else:
-                return CommandResult.error_result(
-                    f"Unknown profile command: {args.profile_command}"
-                )
+            return CommandResult.error_result(
+                f"Unknown profile command: {args.profile_command}"
+            )
         except Exception as e:
             return CommandResult.error_result(f"Profile command failed: {e}")
 
@@ -145,7 +142,9 @@ class ProfileCommand(BaseCommand):
 
         # Show summary
         summary = self.profile_manager.get_filtering_summary()
-        console.print(f"[green]✓[/green] Active profile set to: [cyan]{profile_name}[/cyan]")
+        console.print(
+            f"[green]✓[/green] Active profile set to: [cyan]{profile_name}[/cyan]"
+        )
         console.print(
             f"  Agents enabled: [cyan]{summary['enabled_agents_count']}[/cyan]"
         )

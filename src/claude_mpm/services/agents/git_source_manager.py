@@ -395,7 +395,9 @@ class GitSourceManager:
                     )
                     logger.debug(f"[DEBUG] Found {len(agents)} agents so far")
 
-        logger.debug(f"[DEBUG] list_cached_agents COMPLETE: {len(agents)} total agents (before deduplication)")
+        logger.debug(
+            f"[DEBUG] list_cached_agents COMPLETE: {len(agents)} total agents (before deduplication)"
+        )
 
         # Deduplicate agents by agent_id (Bug #2 fix)
         # When same agent exists in multiple locations, keep only first occurrence
@@ -410,7 +412,9 @@ class GitSourceManager:
             elif agent_id:
                 logger.debug(f"[DEBUG] Skipping duplicate agent: {agent_id}")
 
-        logger.debug(f"[DEBUG] After deduplication: {len(deduplicated_agents)} unique agents")
+        logger.debug(
+            f"[DEBUG] After deduplication: {len(deduplicated_agents)} unique agents"
+        )
         return deduplicated_agents
 
     def _discover_agents_in_directory(

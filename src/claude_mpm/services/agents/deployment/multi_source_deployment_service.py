@@ -555,9 +555,7 @@ class MultiSourceAgentDeploymentService:
                 # Also check the agent_id portion of canonical_id (after the colon)
                 # Example: "bobmatnyc/claude-mpm-agents:pm" -> "pm"
                 raw_agent_id = (
-                    canonical_id.split(":")[-1]
-                    if ":" in canonical_id
-                    else canonical_id
+                    canonical_id.split(":")[-1] if ":" in canonical_id else canonical_id
                 )
                 agent_id = _normalize_agent_name(raw_agent_id)
 
@@ -653,7 +651,9 @@ class MultiSourceAgentDeploymentService:
 
         # Safety check - only operate on deployed agents directory
         if not deployed_agents_dir.exists():
-            self.logger.debug("Deployed agents directory does not exist, no cleanup needed")
+            self.logger.debug(
+                "Deployed agents directory does not exist, no cleanup needed"
+            )
             return cleanup_results
 
         # Build set of agent names that should exist (file stems without .md extension)

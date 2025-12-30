@@ -751,9 +751,21 @@ Skill one
 
         # Create skills with full deployment names
         skills_to_create = [
-            ("toolchains/python/frameworks/flask", "Flask Framework", "toolchains-python-frameworks-flask"),
-            ("toolchains/python/frameworks/django", "Django Framework", "toolchains-python-frameworks-django"),
-            ("toolchains/javascript/frameworks/react", "React Framework", "toolchains-javascript-frameworks-react"),
+            (
+                "toolchains/python/frameworks/flask",
+                "Flask Framework",
+                "toolchains-python-frameworks-flask",
+            ),
+            (
+                "toolchains/python/frameworks/django",
+                "Django Framework",
+                "toolchains-python-frameworks-django",
+            ),
+            (
+                "toolchains/javascript/frameworks/react",
+                "React Framework",
+                "toolchains-javascript-frameworks-react",
+            ),
             ("universal/testing/pytest", "Pytest Testing", "universal-testing-pytest"),
         ]
 
@@ -779,22 +791,19 @@ skill_version: 1.0.0
 
         # Test 1: Exact match (short name)
         result1 = manager.deploy_skills(
-            target_dir=temp_deploy_dir,
-            skill_filter=["flask"],
-            force=False
+            target_dir=temp_deploy_dir, skill_filter=["flask"], force=False
         )
         assert result1["deployed_count"] == 1, "Should deploy only flask"
 
         # Clean up for next test
         import shutil
+
         shutil.rmtree(temp_deploy_dir)
         temp_deploy_dir.mkdir()
 
         # Test 2: Multiple short names
         result2 = manager.deploy_skills(
-            target_dir=temp_deploy_dir,
-            skill_filter=["flask", "django"],
-            force=False
+            target_dir=temp_deploy_dir, skill_filter=["flask", "django"], force=False
         )
         assert result2["deployed_count"] == 2, "Should deploy flask and django"
 
@@ -806,7 +815,7 @@ skill_version: 1.0.0
         result3 = manager.deploy_skills(
             target_dir=temp_deploy_dir,
             skill_filter=["toolchains-python-frameworks-flask"],
-            force=False
+            force=False,
         )
         assert result3["deployed_count"] == 1, "Should deploy with full name"
 
@@ -818,7 +827,7 @@ skill_version: 1.0.0
         result4 = manager.deploy_skills(
             target_dir=temp_deploy_dir,
             skill_filter=["flask", "toolchains-javascript-frameworks-react"],
-            force=False
+            force=False,
         )
         assert result4["deployed_count"] == 2, "Should deploy with mixed names"
 
@@ -828,9 +837,7 @@ skill_version: 1.0.0
 
         # Test 5: Partial segment match
         result5 = manager.deploy_skills(
-            target_dir=temp_deploy_dir,
-            skill_filter=["pytest"],
-            force=False
+            target_dir=temp_deploy_dir, skill_filter=["pytest"], force=False
         )
         assert result5["deployed_count"] == 1, "Should match pytest at end"
 

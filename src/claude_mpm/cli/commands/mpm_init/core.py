@@ -694,7 +694,12 @@ class MPMInitCommand:
         with version tracking and checksum validation.
         """
         try:
-            from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
+            from rich.progress import (
+                BarColumn,
+                Progress,
+                TaskProgressColumn,
+                TextColumn,
+            )
 
             from claude_mpm.services.pm_skills_deployer import PMSkillsDeployerService
 
@@ -711,7 +716,9 @@ class MPMInitCommand:
                 task = progress.add_task("", total=None)  # Unknown total initially
 
                 def update_progress(skill_name: str, current: int, total: int) -> None:
-                    progress.update(task, total=total, completed=current, description=skill_name)
+                    progress.update(
+                        task, total=total, completed=current, description=skill_name
+                    )
 
                 result = deployer.deploy_pm_skills(
                     self.project_path, progress_callback=update_progress
@@ -729,7 +736,9 @@ class MPMInitCommand:
                     )
 
                 if result.errors:
-                    self.console.print(f"[yellow]⚠️  {len(result.errors)} errors:[/yellow]")
+                    self.console.print(
+                        f"[yellow]⚠️  {len(result.errors)} errors:[/yellow]"
+                    )
                     for error in result.errors[:3]:  # Show first 3 errors
                         self.console.print(f"  • {error['skill']}: {error['error']}")
             else:
@@ -744,9 +753,7 @@ class MPMInitCommand:
             )
         except Exception as e:
             logger.error(f"Failed to deploy PM skills: {e}")
-            self.console.print(
-                f"[yellow]⚠️  PM skills deployment failed: {e}[/yellow]"
-            )
+            self.console.print(f"[yellow]⚠️  PM skills deployment failed: {e}[/yellow]")
 
 
 __all__ = ["MPMInitCommand"]

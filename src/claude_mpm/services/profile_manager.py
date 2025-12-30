@@ -49,7 +49,7 @@ Usage:
 
 import fnmatch
 from pathlib import Path
-from typing import Optional, Set, Dict, Any
+from typing import Any, Dict, Optional, Set
 
 import yaml
 
@@ -69,7 +69,9 @@ class ProfileManager:
     - Get lists of enabled/disabled entities
     """
 
-    def __init__(self, project_dir: Optional[Path] = None, profiles_dir: Optional[Path] = None):
+    def __init__(
+        self, project_dir: Optional[Path] = None, profiles_dir: Optional[Path] = None
+    ):
         """
         Initialize ProfileManager.
 
@@ -212,7 +214,9 @@ class ProfileManager:
         # Check if skill is explicitly disabled by pattern
         for pattern in self._disabled_skill_patterns:
             if fnmatch.fnmatch(skill_name, pattern):
-                logger.debug(f"Skill '{skill_name}' matched disabled pattern '{pattern}'")
+                logger.debug(
+                    f"Skill '{skill_name}' matched disabled pattern '{pattern}'"
+                )
                 return False
 
         # If enabled list exists, check for match
@@ -227,7 +231,9 @@ class ProfileManager:
                 if skill_name.endswith(f"-{short_name}"):
                     return True
                 # Also check if short name is contained as a segment
-                if f"-{short_name}-" in skill_name or skill_name.startswith(f"{short_name}-"):
+                if f"-{short_name}-" in skill_name or skill_name.startswith(
+                    f"{short_name}-"
+                ):
                     return True
 
             return False

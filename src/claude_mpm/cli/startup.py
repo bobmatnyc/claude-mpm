@@ -479,15 +479,16 @@ def sync_remote_agents_on_startup():
     check_legacy_cache()
 
     try:
+        # Load active profile if configured
+        # Get project root (where .claude-mpm exists)
+        from pathlib import Path
+
         from ..core.shared.config_loader import ConfigLoader
         from ..services.agents.deployment.agent_deployment import AgentDeploymentService
         from ..services.agents.startup_sync import sync_agents_on_startup
         from ..services.profile_manager import ProfileManager
         from ..utils.progress import ProgressBar
 
-        # Load active profile if configured
-        # Get project root (where .claude-mpm exists)
-        from pathlib import Path
         project_root = Path.cwd()
 
         profile_manager = ProfileManager(project_dir=project_root)
@@ -551,7 +552,8 @@ def sync_remote_agents_on_startup():
                             for f in cache_dir.rglob("*.md")
                             if "/agents/" in str(f)
                             and f.stem.lower() != "base-agent"
-                            and f.name.lower() not in {"readme.md", "changelog.md", "contributing.md"}
+                            and f.name.lower()
+                            not in {"readme.md", "changelog.md", "contributing.md"}
                         ]
 
                         # Build exclusion list for agents not in profile
@@ -566,10 +568,16 @@ def sync_remote_agents_on_startup():
                             # BUGFIX: Config is a singleton that ignores dict parameter if already initialized.
                             # Creating Config({...}) doesn't store excluded_agents - use set() instead.
                             deploy_config = Config()
-                            deploy_config.set("agent_deployment.excluded_agents", excluded_agents)
-                            deploy_config.set("agent_deployment.filter_non_mpm_agents", False)
+                            deploy_config.set(
+                                "agent_deployment.excluded_agents", excluded_agents
+                            )
+                            deploy_config.set(
+                                "agent_deployment.filter_non_mpm_agents", False
+                            )
                             deploy_config.set("agent_deployment.case_sensitive", False)
-                            deploy_config.set("agent_deployment.exclude_dependencies", False)
+                            deploy_config.set(
+                                "agent_deployment.exclude_dependencies", False
+                            )
                             logger.info(
                                 f"Profile '{active_profile}': Excluding {len(excluded_agents)} agents from deployment"
                             )
@@ -1059,7 +1067,7 @@ def sync_remote_skills_on_startup():
 
                 # 2. Deploy to global directory (this is where Claude Code reads from)
                 # Also cleans up orphaned skills via _cleanup_unfiltered_skills()
-                global_deployment_result = manager.deploy_skills(
+                manager.deploy_skills(
                     target_dir=Path.home() / ".claude" / "skills",
                     force=False,
                     skill_filter=set(skills_to_deploy) if skills_to_deploy else None,
@@ -1328,7 +1336,7 @@ def verify_and_show_pm_skills():
                 total = len(deploy_result.deployed) + len(deploy_result.skipped)
                 print(f"\r✓ PM skills: {total} deployed" + " " * 20, flush=True)
             else:
-                print(f"\r⚠ PM skills: deployment failed" + " " * 20, flush=True)
+                print("\r⚠ PM skills: deployment failed" + " " * 20, flush=True)
 
     except ImportError:
         # PM skills deployer not available - skip silently

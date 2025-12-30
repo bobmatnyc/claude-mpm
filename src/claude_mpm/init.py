@@ -554,7 +554,8 @@ class ProjectInitializer:
                     try:
                         result = subprocess.run(
                             ["git", "ls-files", str(file_path)],
-                            check=False, cwd=str(project_root),
+                            check=False,
+                            cwd=str(project_root),
                             capture_output=True,
                             text=True,
                             timeout=2,
@@ -570,7 +571,8 @@ class ProjectInitializer:
                     try:
                         result = subprocess.run(
                             ["git", "check-ignore", str(file_path)],
-                            check=False, cwd=str(project_root),
+                            check=False,
+                            cwd=str(project_root),
                             capture_output=True,
                             text=True,
                             timeout=2,

@@ -248,7 +248,9 @@ class AgentDiscoveryService:
             return agent_info
 
         except yaml.YAMLError as e:
-            self.logger.warning(f"Invalid YAML frontmatter in {template_file.name}: {e}")
+            self.logger.warning(
+                f"Invalid YAML frontmatter in {template_file.name}: {e}"
+            )
             return None
         except Exception as e:
             self.logger.error(

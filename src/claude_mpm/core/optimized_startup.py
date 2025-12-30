@@ -250,7 +250,9 @@ class OptimizedStartup:
         import os
 
         # Check environment variable override
-        env_disable = os.environ.get("CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", "").lower()
+        env_disable = os.environ.get(
+            "CLAUDE_MPM_DISABLE_AUTO_DEPLOY_PM_SKILLS", ""
+        ).lower()
         if env_disable in ("1", "true", "yes"):
             return False
 

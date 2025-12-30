@@ -184,12 +184,14 @@ assistant: "I'll use the {name} agent to provide specialized assistance."
         if mapped_model is not None:
             frontmatter_lines.append(f"model: {mapped_model}")
 
-        frontmatter_lines.extend([
-            f'version: "{version}"',
-            f'author: "{author}"',
-            "---",
-            "",
-        ])
+        frontmatter_lines.extend(
+            [
+                f'version: "{version}"',
+                f'author: "{author}"',
+                "---",
+                "",
+            ]
+        )
 
         new_frontmatter = "\n".join(frontmatter_lines)
 

@@ -10,7 +10,6 @@ and inspecting profiles to reduce context usage by limiting deployed components.
 
 import argparse
 
-from ...constants import CLICommands
 from .base_parser import add_common_arguments
 
 
