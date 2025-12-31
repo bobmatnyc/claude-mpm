@@ -43,7 +43,7 @@ class OutputStyleManager:
 
     Supports two output styles:
     - professional: Default Claude MPM style (claude-mpm.md)
-    - teaching: Adaptive teaching mode (claude-mpm-teach.md)
+    - teaching: Adaptive teaching mode (claude-mpm-teacher.md)
     """
 
     def __init__(self) -> None:
@@ -51,8 +51,8 @@ class OutputStyleManager:
         self.logger = get_logger("output_style_manager")  # type: ignore[misc]
         self.claude_version = self._detect_claude_version()
 
-        # Deploy to ~/.claude/styles/ directory (NOT output-styles/)
-        self.output_style_dir = Path.home() / ".claude" / "styles"
+        # Deploy to ~/.claude/output-styles/ directory (official Claude Code location)
+        self.output_style_dir = Path.home() / ".claude" / "output-styles"
         self.settings_file = Path.home() / ".claude" / "settings.json"
 
         # Style definitions
@@ -68,8 +68,8 @@ class OutputStyleManager:
                 source=Path(__file__).parent.parent
                 / "agents"
                 / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md",
-                target=self.output_style_dir / "claude-mpm-teach.md",
-                name="claude-mpm-teach",
+                target=self.output_style_dir / "claude-mpm-teacher.md",
+                name="claude-mpm-teacher",
             ),
         }
 

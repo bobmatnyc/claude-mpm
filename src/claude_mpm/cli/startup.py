@@ -308,13 +308,13 @@ def deploy_output_style_on_startup():
     communication without emojis and exclamation points. Styles are project-specific
     to allow different projects to have different communication styles.
 
-    DESIGN DECISION: This is non-blocking and idempotent. Deploys to project-level
-    directory (.claude/settings/output-styles/) instead of user-level to maintain
-    project isolation.
+    DESIGN DECISION: This is non-blocking and idempotent. Deploys to user-level
+    directory (~/.claude/output-styles/) which is the official Claude Code location
+    for custom output styles.
 
     Deploys two styles:
-    - claude-mpm-style.md (professional mode)
-    - claude-mpm-teach.md (teaching mode)
+    - claude-mpm.md (professional mode)
+    - claude-mpm-teacher.md (teaching mode)
     """
     try:
         import shutil
@@ -326,11 +326,11 @@ def deploy_output_style_on_startup():
         teacher_source = package_dir / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md"
 
         # Target directory (USER-LEVEL for global availability)
-        # Claude Code reads output styles from ~/.claude/settings/output-styles/
+        # Claude Code reads output styles from ~/.claude/output-styles/
         user_home = Path.home()
-        output_styles_dir = user_home / ".claude" / "settings" / "output-styles"
-        professional_target = output_styles_dir / "claude-mpm-style.md"
-        teacher_target = output_styles_dir / "claude-mpm-teach.md"
+        output_styles_dir = user_home / ".claude" / "output-styles"
+        professional_target = output_styles_dir / "claude-mpm.md"
+        teacher_target = output_styles_dir / "claude-mpm-teacher.md"
 
         # Create directory if it doesn't exist
         output_styles_dir.mkdir(parents=True, exist_ok=True)
