@@ -680,7 +680,7 @@ on provided criteria..."
 **Required for Full Scope Protection**:
 1. **mcp-ticketer** installed and configured
 2. **Ticketing system credentials** (Linear API key, GitHub token, etc.)
-3. **Claude MPM** v4.25.0+
+3. **Claude MPM** 5.4.68+
 
 **Installation**:
 ```bash

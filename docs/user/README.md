@@ -2,7 +2,7 @@
 
 Quick navigation for Claude MPM users.
 
-## 🌟 What's New in v4.5.0
+## 🌟 What's New in v5.x
 
 **Git-First Agent Architecture** - Agents are now sourced from Git repositories by default:
 - ✅ **Automatic Updates**: Agents sync from GitHub on startup
@@ -10,13 +10,13 @@ Quick navigation for Claude MPM users.
 - ✅ **Bandwidth Efficient**: ETag-based caching reduces network usage by 95%+
 - ✅ **Multi-Repository**: Support multiple agent sources with priority-based resolution
 
-**See**: [Agent Sources Guide](agent-sources.md) and [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md)
+**See**: [Agent Sources Guide](agent-sources.md) and [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) (historical)
 
 ## Documentation Files
 
 - **[User Guide](user-guide.md)** - Features, workflows, best practices, and advanced usage
   - Includes: `/mpm-ticket` slash command for ticketing workflows
-- **[Agent Sources Guide](agent-sources.md)** - ⭐ **NEW** Managing Git repositories with agent definitions (v4.5.0+)
+- **[Agent Sources Guide](agent-sources.md)** - Managing Git repositories with agent definitions
 - **[Skills Versioning Guide](skills-versioning.md)** - Understanding and using versioned skills
 - **[Troubleshooting](troubleshooting.md)** - Common issues, diagnostics, and solutions
   - Includes: Agent source troubleshooting section

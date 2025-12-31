@@ -275,7 +275,7 @@ Project Skills (1):
 
 Summary
 -------
-• Project: v4.16.3 (build 481)
+• Project: v5.4.68
 • Skills: 23 total (20 bundled, 2 user, 1 project)
 ```
 

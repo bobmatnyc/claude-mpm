@@ -2,7 +2,7 @@
 
 Complete guide to Claude MPM's Git-based skills system for extending agent capabilities.
 
-**Added in:** v4.27.0
+**Status:** Active
 
 ## Table of Contents
 
@@ -1077,4 +1077,4 @@ claude-mpm skill-source disable experimental
 ---
 
 **Last Updated**: 2025-11-30
-**Version**: 1.0.0 (Added in Claude MPM v4.27.0)
+**Version**: 1.0.0

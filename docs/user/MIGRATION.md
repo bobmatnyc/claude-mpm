@@ -2,9 +2,9 @@
 
 Version-specific migration guides for upgrading Claude MPM.
 
-## Current Version: v4.23.0
+## Current Version: 5.4.68
 
-### Upgrading to v4.23.0
+### Upgrading to 5.4.68
 
 **New Features:**
 - Ticketing agent now prefers mcp-ticketer with CLI fallback
@@ -18,7 +18,7 @@ Version-specific migration guides for upgrading Claude MPM.
 2. Verify: `claude-mpm doctor`
 3. Optional: Install mcp-ticketer for enhanced features
 
-### Upgrading to v4.22.0+
+### Upgrading to 5.x
 
 **New Features:**
 - env-manager skill for environment variable validation
@@ -28,7 +28,7 @@ Version-specific migration guides for upgrading Claude MPM.
 1. Upgrade: `pipx upgrade claude-mpm`
 2. Verify: `claude-mpm doctor`
 
-## Previous Versions
+## Previous Versions (v4.x - Historical Reference Only)
 
 ### Upgrading to v4.17.2
 
@@ -251,18 +251,18 @@ pipx install --force "claude-mpm[monitor]"
 
 | Claude MPM | Claude Code CLI | Status |
 |------------|----------------|--------|
-| v4.23.0    | v2.0.30+       | ✅ Recommended |
-| v4.23.0    | v1.0.92+       | ✅ Supported |
-| v4.23.0    | < v1.0.92      | ❌ Unsupported |
+| 5.4.68     | v2.0.30+       | ✅ Recommended |
+| 5.4.68     | v1.0.92+       | ✅ Supported |
+| 5.4.68     | < v1.0.92      | ❌ Unsupported |
 
 ### Python
 
 | Claude MPM | Python | Status |
 |------------|--------|--------|
-| v4.23.0    | 3.13   | ✅ Supported |
-| v4.23.0    | 3.11-3.12 | ✅ Recommended |
-| v4.23.0    | 3.8-3.10  | ✅ Supported |
-| v4.23.0    | < 3.8  | ❌ Unsupported |
+| 5.4.68     | 3.13   | ✅ Supported |
+| 5.4.68     | 3.11-3.12 | ✅ Recommended |
+| 5.4.68     | 3.8-3.10  | ✅ Supported |
+| 5.4.68     | < 3.8  | ❌ Unsupported |
 
 ## Getting Help
 

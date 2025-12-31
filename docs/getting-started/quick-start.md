@@ -111,7 +111,7 @@ claude-mpm doctor --checks updates
 ```
 
 **Expected Output:**
-- Claude MPM version should be v4.21.1 or higher
+- Claude MPM version should be 5.4.68 or higher
 - Claude Code version should be v1.0.92 or higher (v2.0.30+ recommended)
 - Doctor command should report no critical issues
 

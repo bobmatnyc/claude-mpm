@@ -378,7 +378,7 @@ token_allocation:
 
 Configuration for session save/resume behavior.
 
-### IMPLEMENTED ✅ (v4.18.3)
+### IMPLEMENTED ✅
 
 The auto-save feature is now fully implemented with async periodic saves, graceful cleanup, and robust validation.
 

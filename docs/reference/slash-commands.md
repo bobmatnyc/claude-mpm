@@ -346,11 +346,11 @@ If you're using deprecated command names, here's how to migrate:
 
 | Old Command | New Command | Migration Timeline |
 |-------------|-------------|-------------------|
-| `/mpm-agents` | `/mpm-agents-list` | Deprecated in v4.27.0, removed in v5.1.0 |
-| `/mpm-auto-configure` | `/mpm-agents-auto-configure` | Deprecated in v4.27.0, removed in v5.1.0 |
-| `/mpm-config` | `/mpm-config-view` | Deprecated in v4.27.0, removed in v5.1.0 |
-| `/mpm-ticket` | `/mpm-ticket-view` | Deprecated in v4.27.0, removed in v5.1.0 |
-| `/mpm-resume` | `/mpm-session-resume` | Deprecated in v4.27.0, removed in v5.1.0 |
+| `/mpm-agents` | `/mpm-agents-list` | Deprecated in v5.x, removed in v5.1.0 |
+| `/mpm-auto-configure` | `/mpm-agents-auto-configure` | Deprecated in v5.x, removed in v5.1.0 |
+| `/mpm-config` | `/mpm-config-view` | Deprecated in v5.x, removed in v5.1.0 |
+| `/mpm-ticket` | `/mpm-ticket-view` | Deprecated in v5.x, removed in v5.1.0 |
+| `/mpm-resume` | `/mpm-session-resume` | Deprecated in v5.x, removed in v5.1.0 |
 
 ### Future Hierarchical Migration
 

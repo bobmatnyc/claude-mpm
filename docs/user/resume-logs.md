@@ -269,7 +269,7 @@ You can explicitly pause and resume:
 
 ### Session Auto-Resume on Startup
 
-**NEW in v4.19.0**: Claude MPM automatically detects and displays paused sessions when you start PM, helping you seamlessly continue your work with full context restoration.
+Claude MPM automatically detects and displays paused sessions when you start PM, helping you seamlessly continue your work with full context restoration.
 
 #### How Auto-Resume Works
 

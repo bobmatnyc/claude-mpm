@@ -59,7 +59,7 @@ Skills are reusable knowledge modules that enhance agent capabilities with speci
 
 ### Version Support
 
-Skills versioning introduced in **v4.15.0**. See [Skills Versioning](#skills-versioning) section for details.
+Skills versioning is fully supported. See [Skills Versioning](#skills-versioning) section for details.
 
 ### Contributing Skills
 

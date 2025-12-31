@@ -2,7 +2,7 @@
 
 Complete reference documentation for Claude MPM systems and architecture.
 
-## 🌟 New in v4.5.0: Git-First Agent Architecture
+## 🌟 Git-First Agent Architecture
 
 Claude MPM now uses **git-first architecture** for agent deployment:
 
@@ -14,12 +14,12 @@ Claude MPM now uses **git-first architecture** for agent deployment:
 **Technical Documentation:**
 - [Agent Source Commands CLI Reference](cli-agent-source.md) - Complete command reference
 - [Agent Sources API](agent-sources-api.md) - Python API and architecture
-- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Historical reference (v4.x)
 
 ## Available References
 
-- **[Agent Source Commands CLI Reference](cli-agent-source.md)** - ⭐ Complete CLI reference for `agent-source` commands (v4.5.0+)
-- **[Agent Sources API](agent-sources-api.md)** - ⭐ Technical API reference for git-first agent system (v4.5.0+)
+- **[Agent Source Commands CLI Reference](cli-agent-source.md)** - Complete CLI reference for `agent-source` commands
+- **[Agent Sources API](agent-sources-api.md)** - Technical API reference for git-first agent system
 - **[Doctor Command CLI Reference](cli-doctor.md)** - Complete CLI reference for doctor command
 - **[Configuration](../configuration/reference.md)** - Complete configuration reference for Claude MPM
 - **[Deployment Guide](DEPLOY.md)** - Complete deployment procedures and release management
@@ -53,11 +53,11 @@ Claude MPM now uses **git-first architecture** for agent deployment:
 - [Skills Quick Reference](skills-quick-reference.md) - Skills deployment commands
 
 **Skills & Agents:**
-- **Git-First Agent Architecture (v4.5.0+):**
+- **Git-First Agent Architecture:**
   - [Agent Source Commands CLI](cli-agent-source.md) - Complete command reference
   - [Agent Sources API](agent-sources-api.md) - Python API and architecture
   - [Agent Sources User Guide](../user/agent-sources.md) - User guide with examples
-  - [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+  - [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Historical reference (v4.x)
 - **Skills System:**
   - [Skills Quick Reference](skills-quick-reference.md) - Command reference for skill deployment
   - [Research Agent](../agents/research-agent.md) - Skill detection and recommendations

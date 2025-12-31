@@ -2,7 +2,7 @@
 
 Technical reference for Claude MPM's Skills System architecture, components, and APIs.
 
-**Added in:** v4.27.0
+**Status:** Active
 
 ## Table of Contents
 
@@ -983,7 +983,7 @@ if code_review_skill:
     instructions += code_review_skill['content']
 ```
 
-**Note**: This integration is planned but not yet implemented in v4.27.0.
+**Note**: This integration is planned for future releases.
 
 ## Developer Guide
 
@@ -1176,4 +1176,4 @@ version: "2.0.0"  # Changed skill structure (breaking)
 ---
 
 **Last Updated**: 2025-11-30
-**Version**: 1.0.0 (Added in Claude MPM v4.27.0)
+**Version**: 1.0.0

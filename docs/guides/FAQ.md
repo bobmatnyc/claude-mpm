@@ -63,7 +63,7 @@ pip install "claude-mpm[monitor]"
 - ✅ Isolated environments prevent dependency conflicts
 - ✅ Automatic PATH configuration
 - ✅ Easy upgrades with `pipx upgrade claude-mpm`
-- ✅ Fully supported as of v4.10.0+
+- ✅ Fully supported
 
 ### What optional dependencies should I install?
 
@@ -340,7 +340,7 @@ See [MCP Gateway Documentation](../developer/13-mcp-gateway/README.md) for integ
 
 ### Why is startup slow?
 
-Claude MPM v4.8.2+ includes major performance optimizations:
+Claude MPM includes major performance optimizations:
 
 - 91% latency reduction in hook system
 - Git branch caching with 5-minute TTL
@@ -354,7 +354,7 @@ If still slow:
 
 ### How do I improve context management?
 
-Use the Resume Log System (v4.17.2+):
+Use the Resume Log System:
 
 - Automatic warnings at 70%/85%/95% thresholds
 - 10k-token structured logs preserve context

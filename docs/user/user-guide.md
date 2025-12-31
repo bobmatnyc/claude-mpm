@@ -24,7 +24,7 @@ Complete guide to Claude MPM features and workflows.
 
 ## Auto-Configuration
 
-**NEW in v4.10.0** - Automatically detect your project stack and configure agents.
+Automatically detect your project stack and configure agents.
 
 ### Quick Start
 
@@ -211,7 +211,7 @@ Documentation: Updates API docs
 
 ## Ticketing Workflows
 
-**NEW in v4.27.0** - Orchestrate ticketing operations through the specialized ticketing agent.
+Orchestrate ticketing operations through the specialized ticketing agent.
 
 ### Overview
 
@@ -457,7 +457,7 @@ The ticketing agent uses the MCP Ticketer server for all ticket operations:
 
 ## Skills System
 
-**NEW in v4.15.0** - Enhance agent capabilities with reusable skill modules.
+Enhance agent capabilities with reusable skill modules.
 
 ### Overview
 
@@ -605,7 +605,7 @@ Bundled Skills (20):
 
 Summary
 -------
-• Project: v4.16.3 (build 481)
+• Project: v5.4.68
 • Agents: 35 total (30 system, 3 user, 2 project)
 • Skills: 20 total (20 bundled, 0 user, 0 project)
 ```
@@ -675,7 +675,7 @@ claude-mpm enhance "how should I implement login?"
 
 ## Local Process Management
 
-**NEW in v4.13.0** - Professional-grade local deployment with health monitoring.
+Professional-grade local deployment with health monitoring.
 
 ### Quick Start
 
@@ -879,7 +879,7 @@ claude-mpm mpm-init resume
 
 ## Resume Log System
 
-**NEW in v4.17.2** - Proactive context management for seamless session continuity.
+Proactive context management for seamless session continuity.
 
 ### Overview
 

@@ -238,12 +238,12 @@ claude-mpm agents validate --verbose
 
 ### Agent Source Issues
 
-**New in v4.5.0:** Claude MPM uses git-first architecture for agent deployment. Agents are sourced from Git repositories by default.
+Claude MPM uses git-first architecture for agent deployment. Agents are sourced from Git repositories by default.
 
 **Documentation:**
 - [Agent Sources User Guide](agent-sources.md) - Complete guide with examples
 - [CLI Reference](../reference/cli-agent-source.md) - All `agent-source` commands
-- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Upgrading from v4.4.x
+- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md) - Historical reference (v4.x)
 
 **Quick Diagnostics:**
 ```bash

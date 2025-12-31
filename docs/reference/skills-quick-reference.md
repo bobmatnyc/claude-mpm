@@ -526,7 +526,7 @@ Need skills for your project?
 
 **Last Updated:** 2025-01-21
 **Compatible with:**
-- Claude MPM v4.25.0+
+- Claude MPM 5.4.68+
 - Claude Code v1.0.92+
 - claude-mpm-skills repository (latest)
 
