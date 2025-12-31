@@ -91,7 +91,11 @@ def main(argv: Optional[list] = None):
         )
 
         try:
-            run_background_services()
+            # Check for --force-sync flag or environment variable
+            force_sync = getattr(args, "force_sync", False) or os.environ.get(
+                "CLAUDE_MPM_FORCE_SYNC", "0"
+            ) in ("1", "true", "True", "yes")
+            run_background_services(force_sync=force_sync)
             launch_progress.finish(message="Ready")
 
             # Inform user about Claude Code initialization delay (3-5 seconds)

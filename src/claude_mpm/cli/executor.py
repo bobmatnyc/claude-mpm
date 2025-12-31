@@ -66,6 +66,7 @@ def ensure_run_attributes(args):
     args.monitor = getattr(args, "monitor", False)
     args.force = getattr(args, "force", False)
     args.reload_agents = getattr(args, "reload_agents", False)
+    args.force_sync = getattr(args, "force_sync", False)
     # Include dependency checking attributes
     args.check_dependencies = getattr(args, "check_dependencies", True)
     args.force_check_dependencies = getattr(args, "force_check_dependencies", False)

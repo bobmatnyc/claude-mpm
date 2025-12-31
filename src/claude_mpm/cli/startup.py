@@ -458,7 +458,7 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
     return removed_count
 
 
-def sync_remote_agents_on_startup():
+def sync_remote_agents_on_startup(force_sync: bool = False):
     """
     Synchronize agent templates from remote sources on startup.
 
@@ -476,6 +476,9 @@ def sync_remote_agents_on_startup():
     3. Cleanup orphaned agents (ours but no longer deployed) - Phase 3
     4. Cleanup legacy agent cache directories (after sync/deployment) - Phase 4
     5. Log deployment results
+
+    Args:
+        force_sync: Force download even if cache is fresh (bypasses ETag).
     """
     # DEPRECATED: Legacy warning - no-op function, kept for compatibility
     check_legacy_cache()
@@ -511,7 +514,7 @@ def sync_remote_agents_on_startup():
                 )
 
         # Phase 1: Sync files from Git sources
-        result = sync_agents_on_startup()
+        result = sync_agents_on_startup(force_refresh=force_sync)
 
         # Only proceed with deployment if sync was enabled and ran
         if result.get("enabled") and result.get("sources_synced", 0) > 0:
@@ -861,7 +864,7 @@ def sync_remote_agents_on_startup():
             pass  # Ignore cleanup errors
 
 
-def sync_remote_skills_on_startup():
+def sync_remote_skills_on_startup(force_sync: bool = False):
     """
     Synchronize skill templates from remote sources on startup.
 
@@ -879,6 +882,9 @@ def sync_remote_skills_on_startup():
     4. Apply profile filtering if active
     5. Deploy resolved skills to ~/.claude/skills/ - Phase 2 progress bar
     6. Log deployment results with source indication
+
+    Args:
+        force_sync: Force download even if cache is fresh (bypasses ETag).
     """
     try:
         from pathlib import Path
@@ -984,7 +990,7 @@ def sync_remote_skills_on_startup():
 
         # Sync all sources with progress callback
         results = manager.sync_all_sources(
-            force=False, progress_callback=sync_progress.update
+            force=force_sync, progress_callback=sync_progress.update
         )
 
         # Finish sync progress bar with clear breakdown
@@ -1093,7 +1099,7 @@ def sync_remote_skills_on_startup():
             # Deploy to project-local directory with cleanup
             deployment_result = manager.deploy_skills(
                 target_dir=Path.cwd() / ".claude" / "skills",
-                force=False,
+                force=force_sync,
                 # CRITICAL FIX: Empty list should mean "deploy no skills", not "deploy all"
                 # When skills_to_deploy is [], we want skill_filter=set() NOT skill_filter=None
                 # None means "no filtering" (deploy all), empty set means "filter to nothing"
@@ -1437,7 +1443,7 @@ def auto_install_chrome_devtools_on_startup():
         # Continue execution - chrome-devtools installation failure shouldn't block startup
 
 
-def run_background_services():
+def run_background_services(force_sync: bool = False):
     """
     Initialize all background services on startup.
 
@@ -1448,6 +1454,9 @@ def run_background_services():
     explicitly requests them via agent-manager commands. This prevents unwanted
     file creation in project .claude/ directories.
     See: SystemInstructionsDeployer and agent_deployment.py line 504-509
+
+    Args:
+        force_sync: Force download even if cache is fresh (bypasses ETag).
     """
     # Sync hooks early to ensure up-to-date configuration
     # RATIONALE: Hooks should be synced before other services to fix stale configs
@@ -1458,7 +1467,7 @@ def run_background_services():
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
-    sync_remote_agents_on_startup()  # Sync agents from remote sources
+    sync_remote_agents_on_startup(force_sync=force_sync)  # Sync agents from remote sources
     show_agent_summary()  # Display agent counts after deployment
 
     # Skills deployment order (precedence: remote > bundled)
@@ -1467,7 +1476,7 @@ def run_background_services():
     # 3. Discover and link runtime skills (user-added skills)
     # This ensures remote skills take precedence over bundled skills when names conflict
     deploy_bundled_skills()  # Base layer: package-bundled skills
-    sync_remote_skills_on_startup()  # Override layer: Git-based skills (takes precedence)
+    sync_remote_skills_on_startup(force_sync=force_sync)  # Override layer: Git-based skills (takes precedence)
     discover_and_link_runtime_skills()  # Discovery: user-added skills
     show_skill_summary()  # Display skill counts after deployment
     verify_and_show_pm_skills()  # PM skills verification and status

@@ -292,6 +292,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Force rebuild of all system agents by deleting local claude-mpm agents",
     )
+    run_group.add_argument(
+        "--force-sync",
+        action="store_true",
+        help="Force refresh agents and skills from remote repos, bypassing ETag cache",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(

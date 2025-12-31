@@ -32,7 +32,9 @@ from claude_mpm.services.agents.sources.git_source_sync_service import (
 logger = logging.getLogger(__name__)
 
 
-def sync_agents_on_startup(config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def sync_agents_on_startup(
+    config: Optional[Dict[str, Any]] = None, force_refresh: bool = False
+) -> Dict[str, Any]:
     """Synchronize agents from remote sources on Claude MPM startup.
 
     Design Decision: Single-source support for Stage 1
@@ -44,6 +46,7 @@ def sync_agents_on_startup(config: Optional[Dict[str, Any]] = None) -> Dict[str,
 
     Args:
         config: Optional configuration dictionary. If None, loads from Config singleton.
+        force_refresh: Force download even if cache is fresh (bypasses ETag).
 
     Returns:
         Dictionary with sync results:
@@ -156,7 +159,7 @@ def sync_agents_on_startup(config: Optional[Dict[str, Any]] = None) -> Dict[str,
                 )
 
                 # Perform sync
-                sync_result = sync_service.sync_agents(force_refresh=False)
+                sync_result = sync_service.sync_agents(force_refresh=force_refresh)
 
                 # Aggregate results
                 result["sources_synced"] += 1
