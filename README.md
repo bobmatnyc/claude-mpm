@@ -47,13 +47,16 @@ claude-mpm agent-source list
 **Agents** (47+ agents):
 - 🏢 System: `bobmatnyc/claude-mpm-agents` - Core agent templates
 
-**Skills** (hundreds of skills):
-- 🏢 System: `bobmatnyc/claude-mpm-skills` - Community skills
-- 🎯 Official: `anthropics/skills` - Anthropic's official skills (14+ skills)
+**Skills** (17 bundled, optional external):
+- 📦 **Bundled**: 17 skills included in core installation (no external repo)
+- 🏢 **Optional**: `bobmatnyc/claude-mpm-skills` - Community skills (not enabled by default)
+- 🔧 **Custom**: Add your own via `~/.claude/skills/` or `.claude/skills/`
 
 **What This Means:**
-- ✅ **Automatic Setup**: Everything deploys on first run
-- ✅ **Always Updated**: Git repositories sync on startup
+- ✅ **Bundled Skills**: Work immediately, no external dependencies
+- ✅ **Offline Support**: Core skills work without internet
+- ✅ **Automatic Setup**: Agents deploy from Git on first run
+- ✅ **Always Updated**: Agent repositories sync on startup
 - ✅ **Nested Support**: Repositories with subdirectories are automatically flattened
 - ✅ **Template Inheritance**: BASE-AGENT.md files cascade from parent directories
 - ✅ **Priority System**: Control which sources win when multiple repos provide the same agent/skill
@@ -95,12 +98,13 @@ See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-
 
 ### 🎯 Skills System
 
-- **Hundreds of Skills**: Comprehensive skill library from curated repositories
-- **Official Skills**: 14+ skills from Anthropic's official repository
+- **17 Bundled Skills**: Production-ready skills included in core installation (no external repo required)
+- **Custom Skills**: Add your own project-specific or user-level skills locally
 - **Three-Tier Organization**: Bundled/user/project skills with priority resolution
 - **Auto-Linking**: Skills automatically linked to relevant agents
 - **Interactive Configuration**: Skills wizard via `claude-mpm configure`
 - **Version Tracking**: Semantic versioning for all skills
+- **Community Contributions**: Submit PRs to add skills to the bundled collection
 
 ### 🔌 Advanced Integration
 
@@ -177,21 +181,23 @@ claude-mpm doctor
 
 # Verify Git repositories are synced
 ls ~/.claude/agents/    # Should show 47+ agents
-ls ~/.claude/skills/    # Should show hundreds of skills
+
+# Bundled skills are in Python package (always available)
+# Custom skills go in ~/.claude/skills/ or .claude/skills/
 
 # Check agent sources
 claude-mpm agent-source list
 
-# Check skill sources
+# Check skill sources (only if you've added external sources)
 claude-mpm skill-source list
 ```
 
 **What You Should See:**
 - ✅ 47+ agents deployed to `~/.claude/agents/`
-- ✅ Hundreds of skills deployed to `~/.claude/skills/`
-- ✅ Two agent sources configured (system + official)
-- ✅ Two skill sources configured (system + official)
-- ✅ Progress bars showing sync and deployment phases
+- ✅ 17 bundled skills (in Python package, no separate deployment needed)
+- ✅ Agent sources configured (system repositories)
+- ✅ Skill sources empty by default (bundled skills only)
+- ✅ Progress bars showing sync and deployment phases for agents
 
 **💡 Optional Dependencies**:
 - `[monitor]` - Full monitoring dashboard with Socket.IO and async web server components

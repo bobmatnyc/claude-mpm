@@ -61,13 +61,32 @@ Skills are reusable knowledge modules that enhance agent capabilities with speci
 
 Skills versioning introduced in **v4.15.0**. See [Skills Versioning](#skills-versioning) section for details.
 
+### Contributing Skills
+
+**Want to share your skills with the community?** You can contribute skills via pull request to the main repository:
+
+1. **Create high-quality skill** following the [SKILL.md format specification](/Users/masa/Projects/claude-mpm/docs/design/SKILL-MD-FORMAT-SPECIFICATION.md)
+2. **Test thoroughly** with multiple agents
+3. **Submit pull request** to `bobmatnyc/claude-mpm` repository
+4. **Include documentation** and examples
+
+Approved skills will be included in future releases as bundled skills.
+
 ---
 
 ## Using Bundled Skills
 
+### What's Included by Default
+
+Claude MPM includes **17 bundled skills** in the core installation. These are built-in skills that ship with the package and require no external repository access:
+
+- **No external repository required** - Bundled skills are included in the Python package
+- **Available immediately** - No sync or download needed
+- **No internet dependency** - Works offline after installation
+
 ### Quick Start
 
-Skills are automatically available once Claude MPM is installed. To use them:
+Bundled skills are automatically available once Claude MPM is installed. To use them:
 
 1. **Access Skills Management:**
    ```bash

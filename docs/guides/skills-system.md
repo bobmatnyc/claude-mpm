@@ -97,16 +97,31 @@ The Skills System is a **Git-based skill discovery and management** framework th
 
 ## Getting Started
 
-### Quick Start (5 Steps)
+### Quick Start (Bundled Skills Only)
+
+**Default Setup - No Configuration Needed:**
+
+Claude MPM includes bundled skills that work immediately after installation. No Git repositories or external sources required:
+
+```bash
+# Bundled skills are already available
+claude-mpm configure
+# → [2] Skills Management
+# → [1] View bundled skills (shows 17 built-in skills)
+```
+
+### Advanced: Adding External Skill Sources (Optional)
+
+If you want to use external skill repositories (not required):
 
 1. **Check Current Configuration**
    ```bash
    claude-mpm skill-source list
    ```
 
-2. **Add Your First Skill Source** (if not configured)
+2. **Add External Skill Source** (optional)
    ```bash
-   # Add the default system repository
+   # Add community repository (optional)
    claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills --priority 0
    ```
 
@@ -123,34 +138,47 @@ The Skills System is a **Git-based skill discovery and management** framework th
 
 5. **List Available Skills**
    ```bash
-   # Skills are now cached and available to agents
+   # Bundled skills (always available):
+   ls -la $(python -c "import claude_mpm.skills.bundled; import os; print(os.path.dirname(claude_mpm.skills.bundled.__file__))")
+
+   # External skills (if configured):
    ls -la ~/.claude-mpm/cache/skills/
    ```
 
 ### Configuration File Location
 
-Skills are configured in:
+External skill sources (if configured) are in:
 ```
 ~/.claude-mpm/config/skill_sources.yaml
 ```
 
-**Default Configuration** (created automatically):
+**Default Configuration** (no external sources):
+- Bundled skills are always available (no configuration needed)
+- The configuration file only exists if you add external sources
+
+**Example Configuration** (if you add external sources):
 ```yaml
 sources:
-  - id: system
+  - id: community
     type: git
     url: https://github.com/bobmatnyc/claude-mpm-skills
     branch: main
-    priority: 0
+    priority: 100
     enabled: true
 ```
 
-### System Skills Repository
+### System Skills Repository (Optional)
 
-Claude MPM includes a **default system repository** with curated skills:
+**By default**, Claude MPM does NOT use external skill repositories. The Git-based skills system is **optional** for advanced users who want to:
+
+- Access additional community-contributed skills
+- Share skills across teams via Git repositories
+- Maintain organization-specific skill collections
+
+To use external skills, you can manually configure the system repository:
 - **URL**: https://github.com/bobmatnyc/claude-mpm-skills
 - **Priority**: 0 (highest precedence)
-- **Skills**: Code review, testing, debugging, documentation
+- **Skills**: Community-contributed skills beyond the bundled set
 
 ## CLI Commands
 
