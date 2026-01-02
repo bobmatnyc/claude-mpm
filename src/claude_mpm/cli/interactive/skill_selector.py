@@ -9,11 +9,13 @@ Features:
 - Shows skills auto-included by agent dependencies
 - Displays token counts for each skill
 - Uses questionary with cyan style for consistency
+- Matches agent selector UI pattern with table display
 """
 
 import json
+import shutil
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import questionary
 
@@ -68,16 +70,21 @@ class SkillSelector:
     """Interactive skill selector with topic grouping."""
 
     def __init__(
-        self, skills_manifest: Dict, agent_skill_deps: Optional[List[str]] = None
+        self,
+        skills_manifest: Dict,
+        agent_skill_deps: Optional[List[str]] = None,
+        deployed_skills: Optional[Set[str]] = None,
     ):
         """Initialize skill selector.
 
         Args:
             skills_manifest: Full manifest dict with all skills
             agent_skill_deps: Skills required by deployed agents (auto-included)
+            deployed_skills: Skills currently deployed in .claude/skills/
         """
         self.manifest = skills_manifest
         self.agent_skill_deps = set(agent_skill_deps or [])
+        self.deployed_skills = deployed_skills or set()
         self.skills_by_toolchain: Dict[str, List[SkillInfo]] = {}
         self._parse_manifest()
 
@@ -122,6 +129,112 @@ class SkillSelector:
         for toolchain in self.skills_by_toolchain:
             self.skills_by_toolchain[toolchain].sort(key=lambda s: s.name)
 
+    @staticmethod
+    def _calculate_column_widths(
+        terminal_width: int, columns: Dict[str, int]
+    ) -> Dict[str, int]:
+        """Calculate dynamic column widths based on terminal size.
+
+        Args:
+            terminal_width: Current terminal width in characters
+            columns: Dict mapping column names to minimum widths
+
+        Returns:
+            Dict mapping column names to calculated widths
+
+        Design:
+            - Ensures minimum widths are respected
+            - Distributes extra space proportionally
+            - Handles narrow terminals gracefully (minimum 80 chars)
+        """
+        # Ensure minimum terminal width
+        min_terminal_width = 80
+        terminal_width = max(terminal_width, min_terminal_width)
+
+        # Calculate total minimum width needed
+        total_min_width = sum(columns.values())
+
+        # Account for spacing between columns
+        overhead = len(columns) + 1
+        available_width = terminal_width - overhead
+
+        # If we have extra space, distribute proportionally
+        if available_width > total_min_width:
+            extra_space = available_width - total_min_width
+            total_weight = sum(columns.values())
+
+            result = {}
+            for col_name, min_width in columns.items():
+                # Distribute extra space based on minimum width proportion
+                proportion = min_width / total_weight
+                extra = int(extra_space * proportion)
+                result[col_name] = min_width + extra
+            return result
+        # Terminal too narrow, use minimum widths
+        return columns.copy()
+
+    def _display_skills_table(self, skills: List[SkillInfo]) -> None:
+        """Display skills in a table with status (matches agent selector pattern).
+
+        Args:
+            skills: List of skills to display
+        """
+        if not skills:
+            print("\n📭 No skills found.")
+            return
+
+        # Calculate dynamic column widths based on terminal size
+        terminal_width = shutil.get_terminal_size().columns
+        min_widths = {
+            "#": 4,
+            "Skill ID": 30,
+            "Description": 35,
+            "Toolchain": 12,
+            "Status": 12,
+        }
+        widths = self._calculate_column_widths(terminal_width, min_widths)
+
+        # Print header with dynamic widths
+        print(
+            f"\n{'#':<{widths['#']}} "
+            f"{'Skill ID':<{widths['Skill ID']}} "
+            f"{'Description':<{widths['Description']}} "
+            f"{'Toolchain':<{widths['Toolchain']}} "
+            f"{'Status':<{widths['Status']}}"
+        )
+        separator_width = sum(widths.values()) + len(widths) - 1
+        print("-" * separator_width)
+
+        for i, skill in enumerate(skills, 1):
+            # Truncate to fit dynamic width
+            skill_id = skill.name
+            if len(skill_id) > widths["Skill ID"]:
+                skill_id = skill_id[: widths["Skill ID"] - 1] + "…"
+
+            description = skill.description or skill.name
+            if len(description) > widths["Description"]:
+                description = description[: widths["Description"] - 1] + "…"
+
+            toolchain = skill.toolchain or "universal"
+            if len(toolchain) > widths["Toolchain"]:
+                toolchain = toolchain[: widths["Toolchain"] - 1] + "…"
+
+            # Determine status
+            if skill.name in self.agent_skill_deps:
+                status = "✓ Required"
+            elif skill.name in self.deployed_skills:
+                status = "✓ Installed"
+            else:
+                status = "Available"
+
+            print(
+                f"{i:<{widths['#']}} "
+                f"{skill_id:<{widths['Skill ID']}} "
+                f"{description:<{widths['Description']}} "
+                f"{toolchain:<{widths['Toolchain']}} "
+                f"{status:<{widths['Status']}}"
+            )
+
     def select_skills(self) -> List[str]:
         """Run interactive selection and return selected skill IDs.
 
@@ -133,6 +246,16 @@ class SkillSelector:
         # Show agent-required skills (auto-included)
         if self.agent_skill_deps:
             self._show_agent_required_skills()
+
+        # Get all skills for table display
+        all_skills = []
+        for toolchain_skills in self.skills_by_toolchain.values():
+            all_skills.extend(toolchain_skills)
+        all_skills.sort(key=lambda s: s.name)
+
+        # Display skills table
+        print(f"\n📋 Found {len(all_skills)} skill(s) available:")
+        self._display_skills_table(all_skills)
 
         # Select topic groups to explore
         selected_groups = self._select_topic_groups()
@@ -211,14 +334,19 @@ class SkillSelector:
 
         print(f"\n{icon} {display_name} Skills:")
 
-        # Build choices
+        # Build choices with numbered format like agent selector
         choices = []
-        for skill in skills:
+        for i, skill in enumerate(skills, 1):
             # Mark if already selected (from agent deps)
             already_selected = skill.name in self.agent_skill_deps
-            prefix = "[auto] " if already_selected else ""
+
+            # Format: "1. skill-name - toolchain (XK tokens)"
+            tokens_k = skill.full_tokens // 1000
+            desc = skill.description[:50] if skill.description else skill.name
+            choice_text = f"{i}. {skill.name} - {desc}... ({tokens_k}K tokens)"
+
             choice = questionary.Choice(
-                title=f"{prefix}{skill.display_name}",
+                title=choice_text,
                 value=skill.name,
                 checked=already_selected,
             )
@@ -293,6 +421,32 @@ def get_agent_skill_dependencies(config: UnifiedConfig) -> List[str]:
         return []
 
 
+def get_deployed_skills() -> Set[str]:
+    """Get skills currently deployed in .claude/skills/ directory.
+
+    Returns:
+        Set of deployed skill IDs
+    """
+    try:
+        from claude_mpm.services.agents.deployment.deployment_reconciler import (
+            DeploymentReconciler,
+        )
+
+        config = UnifiedConfig()
+        reconciler = DeploymentReconciler(config)
+
+        # Get path to deployed skills directory
+        path_manager = get_path_manager()
+        deploy_dir = path_manager.get_deploy_dir() / "skills"
+
+        # Use reconciler's method to list deployed skills
+        return reconciler._list_deployed_skills(deploy_dir)
+
+    except Exception as e:
+        logger.warning(f"Failed to get deployed skills: {e}")
+        return set()
+
+
 def run_skill_selector() -> Optional[List[str]]:
     """Main entry point for skill selector.
 
@@ -311,8 +465,11 @@ def run_skill_selector() -> Optional[List[str]]:
         # Get agent skill dependencies
         agent_deps = get_agent_skill_dependencies(config)
 
+        # Get deployed skills
+        deployed = get_deployed_skills()
+
         # Run selector
-        selector = SkillSelector(manifest, agent_deps)
+        selector = SkillSelector(manifest, agent_deps, deployed)
         return selector.select_skills()
 
     except KeyboardInterrupt:

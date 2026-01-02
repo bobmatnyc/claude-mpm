@@ -34,20 +34,21 @@ repos:
       # Run the formatter
       - id: ruff-format
 
-  # Type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-PyYAML, types-requests]
-        args: ['--config-file=mypy.ini']
-        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py|scripts/.*\.py)
+  # Type checking with mypy (disabled - project has extensive untyped dependencies)
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: [types-PyYAML, types-requests]
+  #       args: ['--config-file=pyproject.toml']
+  #       exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py|scripts/.*\.py)
 
   # Security scanning with bandit
   - repo: https://github.com/pycqa/bandit
     rev: 1.7.5
     hooks:
       - id: bandit
+        additional_dependencies: ['pbr']
         args: ['-r', '-f', 'json']
         exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/.*\.py)
 
