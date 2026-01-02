@@ -84,6 +84,7 @@ class SkillsManagementCommand(BaseCommand):
                 SkillsCommands.INFO.value: self._show_skill_info,
                 SkillsCommands.CONFIG.value: self._manage_config,
                 SkillsCommands.CONFIGURE.value: self._configure_skills,
+                SkillsCommands.SELECT.value: self._select_skills_interactive,
                 # GitHub deployment commands
                 SkillsCommands.DEPLOY_FROM_GITHUB.value: self._deploy_from_github,
                 SkillsCommands.LIST_AVAILABLE.value: self._list_available_github_skills,
@@ -1217,6 +1218,99 @@ class SkillsManagementCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]Error in skills configuration: {e}[/red]")
+            import traceback
+
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _select_skills_interactive(self, args) -> CommandResult:
+        """Interactive skill selection with topic grouping.
+
+        This command provides a two-tier selection interface:
+        1. Select topic groups (toolchains) to explore
+        2. Multi-select skills within each topic group
+
+        Features:
+        - Groups skills by toolchain (universal, python, typescript, etc.)
+        - Shows skills auto-included by agent dependencies
+        - Displays token counts for each skill
+        - Updates config and runs reconciliation
+
+        Returns:
+            CommandResult with success/failure status
+        """
+        try:
+            from ...cli.interactive.skill_selector import run_skill_selector
+            from ...core.unified_config import UnifiedConfig
+            from ...services.agents.deployment.deployment_reconciler import (
+                DeploymentReconciler,
+            )
+
+            console.print("\n[bold cyan]Interactive Skill Selector[/bold cyan]\n")
+
+            # Run skill selector
+            selected_skills = run_skill_selector()
+
+            if selected_skills is None:
+                console.print("\n[yellow]Skill selection cancelled[/yellow]")
+                return CommandResult(success=True, exit_code=0)
+
+            # Update config with selected skills
+            config = UnifiedConfig()
+            config.skills.enabled = selected_skills
+
+            # Save config
+            try:
+                config.save()
+                console.print(
+                    f"\n[green]✓ Saved {len(selected_skills)} skills to configuration[/green]"
+                )
+            except Exception as e:
+                console.print(f"\n[red]Failed to save configuration: {e}[/red]")
+                return CommandResult(success=False, message=str(e), exit_code=1)
+
+            # Run reconciliation to deploy skills
+            console.print("\n[cyan]Running skill reconciliation...[/cyan]")
+            reconciler = DeploymentReconciler(config)
+
+            try:
+                from pathlib import Path
+
+                project_path = Path.cwd()
+                result = reconciler.reconcile_skills(project_path)
+
+                if result.deployed:
+                    console.print(
+                        f"  [green]✓ Deployed: {', '.join(result.deployed)}[/green]"
+                    )
+                if result.removed:
+                    console.print(
+                        f"  [yellow]✓ Removed: {', '.join(result.removed)}[/yellow]"
+                    )
+                if result.errors:
+                    for error in result.errors:
+                        console.print(f"  [red]✗ {error}[/red]")
+
+                if result.success:
+                    console.print(
+                        "\n[bold green]✓ Skill deployment complete![/bold green]"
+                    )
+                    return CommandResult(success=True, exit_code=0)
+                console.print(
+                    f"\n[yellow]⚠ Deployment had {len(result.errors)} errors[/yellow]"
+                )
+                return CommandResult(
+                    success=False,
+                    message=f"{len(result.errors)} deployment errors",
+                    exit_code=1,
+                )
+
+            except Exception as e:
+                console.print(f"\n[red]Reconciliation failed: {e}[/red]")
+                return CommandResult(success=False, message=str(e), exit_code=1)
+
+        except Exception as e:
+            console.print(f"[red]Skill selection error: {e}[/red]")
             import traceback
 
             console.print(f"[dim]{traceback.format_exc()}[/dim]")

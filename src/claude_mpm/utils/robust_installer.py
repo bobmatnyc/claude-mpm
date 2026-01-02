@@ -332,10 +332,12 @@ class RobustPackageInstaller:
         Returns:
             Command as list of arguments
         """
-        # UV tool environments don't have pip; use uv pip instead
+        # UV tool environments don't have pip; use uv pip install --python instead
         if self.is_uv_tool:
-            base_cmd = ["uv", "pip", "install"]
-            logger.debug("Using 'uv pip install' for UV tool environment")
+            base_cmd = ["uv", "pip", "install", "--python", sys.executable]
+            logger.debug(
+                f"Using 'uv pip install --python {sys.executable}' for UV tool environment"
+            )
         else:
             base_cmd = [sys.executable, "-m", "pip", "install"]
 
@@ -704,10 +706,12 @@ class RobustPackageInstaller:
             Tuple of (success, error_message)
         """
         try:
-            # UV tool environments don't have pip; use uv pip instead
+            # UV tool environments don't have pip; use uv pip install --python instead
             if self.is_uv_tool:
-                cmd = ["uv", "pip", "install"]
-                logger.debug("Using 'uv pip install' for batch installation")
+                cmd = ["uv", "pip", "install", "--python", sys.executable]
+                logger.debug(
+                    f"Using 'uv pip install --python {sys.executable}' for batch installation"
+                )
             else:
                 cmd = [sys.executable, "-m", "pip", "install"]
 

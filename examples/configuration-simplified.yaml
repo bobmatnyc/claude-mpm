@@ -1,0 +1,80 @@
+# Claude MPM Configuration - Simplified Deployment Model
+# ========================================================
+#
+# This example shows the new simplified deployment model where:
+# 1. agents.enabled: Explicit list of agents to deploy
+# 2. skills.enabled: Explicit list of skills to deploy
+# 3. Auto-discovery is disabled by default (use explicit lists)
+
+# Agent Configuration
+agents:
+  # Explicit list of agent IDs to deploy to .claude/agents/
+  # These will be synced from cache and deployed on startup
+  enabled:
+    - engineer           # Python/backend engineer
+    - qa                 # QA and testing specialist
+    - research           # Research and documentation
+    - devops            # DevOps and deployment
+    - security          # Security specialist
+
+  # Deprecated: Use explicit enabled list instead
+  # If enabled list is empty, falls back to auto_discover
+  auto_discover: false
+
+  # Hot reload for development
+  enable_hot_reload: true
+
+  # Cache configuration
+  cache_ttl_seconds: 3600
+
+# Skill Configuration
+skills:
+  # Explicit list of skill IDs to deploy
+  # Note: Skills required by enabled agents are auto-added if auto_detect_dependencies=true
+  enabled:
+    - git-workflow                     # Git best practices
+    - systematic-debugging             # Debugging methodology
+    - verification-before-completion   # Pre-completion checks
+    - test-driven-development         # TDD patterns
+
+  # Auto-detect skills required by enabled agents
+  auto_detect_dependencies: true
+
+# Agent Sync Configuration
+agent_sync:
+  enabled: true
+  sync_interval: startup  # startup, hourly, daily
+  cache_dir: ~/.claude-mpm/cache/remote-agents
+  sources:
+    - id: github-remote
+      url: https://raw.githubusercontent.com/bobmatnyc/claude-mpm-agents/main/agents
+      enabled: true
+      priority: 100
+
+# Agent Deployment Configuration
+agent_deployment:
+  # Agents NOT in enabled list will be removed (if MPM-managed)
+  filter_non_mpm_agents: true
+
+  # MPM author patterns (for identifying MPM-managed agents)
+  mpm_author_patterns:
+    - claude mpm
+    - claude-mpm
+    - anthropic
+
+  # Excluded agents (deprecated - use enabled list instead)
+  excluded_agents: []
+
+  # Case sensitivity for agent matching
+  case_sensitive: false
+
+# Example Workflow:
+# 1. Edit configuration.yaml: Add agent IDs to agents.enabled
+# 2. Run: claude-mpm agents sync (fetch agents to cache)
+# 3. Run: claude-mpm agents reconcile (deploy configured agents)
+# 4. Verify: claude-mpm agents reconcile --show-only
+#
+# The reconciliation view shows:
+# - Configured: Agents in enabled list
+# - Deployed: Agents in .claude/agents/
+# - Action: Will deploy / Will remove / -

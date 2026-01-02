@@ -16,7 +16,7 @@ Design Principles:
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 from .exceptions import ConfigurationError
@@ -54,8 +54,9 @@ class LoggingConfig(BaseModel):
         default=True, description="Enable console logging"
     )
 
-    @validator("level")
-    def validate_log_level(self, v):
+    @field_validator("level")
+    @classmethod
+    def validate_log_level(cls, v):
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
             raise ValueError(f"Invalid log level. Must be one of: {valid_levels}")
@@ -65,8 +66,15 @@ class LoggingConfig(BaseModel):
 class AgentConfig(BaseModel):
     """Agent system configuration."""
 
+    # Explicit deployment lists (simplified model)
+    enabled: List[str] = Field(
+        default_factory=list,
+        description="Explicit list of agent IDs to deploy (empty = use auto_discover)",
+    )
+
     auto_discover: bool = Field(
-        default=True, description="Enable automatic agent discovery"
+        default=False,
+        description="Enable automatic agent discovery (deprecated, use enabled list)",
     )
     precedence: List[str] = Field(
         default=["project", "user", "system"], description="Agent precedence order"
@@ -239,6 +247,21 @@ class DocumentationConfig(BaseModel):
     )
 
 
+class SkillConfig(BaseModel):
+    """Skill system configuration."""
+
+    # Explicit deployment lists (simplified model)
+    enabled: List[str] = Field(
+        default_factory=list,
+        description="Explicit list of skill IDs to deploy (includes agent dependencies)",
+    )
+
+    auto_detect_dependencies: bool = Field(
+        default=True,
+        description="Automatically include skills required by enabled agents",
+    )
+
+
 class UnifiedConfig(BaseSettings):
     """
     Unified configuration model for Claude MPM.
@@ -258,6 +281,7 @@ class UnifiedConfig(BaseSettings):
     network: NetworkConfig = Field(default_factory=NetworkConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     agents: AgentConfig = Field(default_factory=AgentConfig)
+    skills: SkillConfig = Field(default_factory=SkillConfig)
     memory: MemoryConfig = Field(default_factory=MemoryConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
@@ -287,8 +311,9 @@ class UnifiedConfig(BaseSettings):
         validate_assignment = True
         extra = "allow"  # Allow extra fields for backward compatibility
 
-    @validator("environment")
-    def validate_environment(self, v):
+    @field_validator("environment")
+    @classmethod
+    def validate_environment(cls, v):
         valid_envs = ["development", "testing", "production"]
         if v not in valid_envs:
             raise ValueError(f"Invalid environment. Must be one of: {valid_envs}")
@@ -554,12 +579,12 @@ class ConfigurationService:
                 import yaml
 
                 with file_path.open("w") as f:
-                    yaml.dump(self._config.dict(), f, default_flow_style=False)
+                    yaml.dump(self._config.model_dump(), f, default_flow_style=False)
             elif format.lower() == "json":
                 import json
 
                 with file_path.open("w") as f:
-                    json.dump(self._config.dict(), f, indent=2)
+                    json.dump(self._config.model_dump(), f, indent=2)
             else:
                 raise ConfigurationError(f"Unsupported export format: {format}")
 

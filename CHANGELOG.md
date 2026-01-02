@@ -1,3 +1,18 @@
+## [5.4.72] - 2026-01-02
+
+### Added
+- **Agent/Skill Deployment Model**: Explicit configure.yaml-driven deployment system
+  - New `agents.enabled` config for explicit agent deployment list
+  - New `skills.enabled` config for manual skill deployment list
+  - Agent skill dependencies auto-included from frontmatter
+  - Deployment reconciler for agents and skills with `--show-only` dry-run mode
+  - Skill selector with topic grouping (similar to agent selector)
+  - Commands: `claude-mpm agents reconcile`, `claude-mpm skills select`, `claude-mpm skills reconcile`
+
+### Fixed
+- **UV Installation**: Use `uv pip install --python` instead of broken command
+- **Pydantic v2 Compatibility**: Use `field_validator` and `model_dump` instead of deprecated APIs
+
 ## [5.4.64] - 2025-12-30
 
 ### Fixed

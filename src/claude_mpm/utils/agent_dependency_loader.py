@@ -768,8 +768,10 @@ class AgentDependencyLoader:
                 )
 
                 if is_uv_tool:
-                    cmd = ["uv", "pip", "install"]
-                    logger.debug("Using 'uv pip install' for UV tool environment")
+                    cmd = ["uv", "pip", "install", "--python", sys.executable]
+                    logger.debug(
+                        f"Using 'uv pip install --python {sys.executable}' for UV tool environment"
+                    )
                 else:
                     cmd = [sys.executable, "-m", "pip", "install"]
 
