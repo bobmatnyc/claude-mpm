@@ -18,7 +18,7 @@ ARCHITECTURE:
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 from typing import Optional
 
 from rich.console import Console
@@ -505,7 +505,7 @@ class SkillsManagementCommand(BaseCommand):
                 # Open in editor
                 editor = os.environ.get("EDITOR", "nano")
                 try:
-                    subprocess.run([editor, str(config_path)], check=True)
+                    subprocess.run([editor, str(config_path)], check=True)  # nosec B603
                     console.print(
                         f"\n[green]Configuration saved to {config_path}[/green]\n"
                     )
@@ -674,32 +674,90 @@ class SkillsManagementCommand(BaseCommand):
     def _check_deployed_skills(self, args) -> CommandResult:
         """Check currently deployed skills in ~/.claude/skills/."""
         try:
-            result = self.skills_deployer.check_deployed_skills()
+            # Get deployed skills
+            deployed_result = self.skills_deployer.check_deployed_skills()
+            deployed_names = {skill["name"] for skill in deployed_result["skills"]}
 
             console.print("\n[bold cyan]Claude Code Skills Status:[/bold cyan]\n")
-            console.print(f"[dim]Directory: {result['claude_skills_dir']}[/dim]\n")
+            console.print(
+                f"[dim]Directory: {deployed_result['claude_skills_dir']}[/dim]\n"
+            )
 
-            if result["deployed_count"] == 0:
-                console.print("[yellow]No skills currently deployed.[/yellow]")
+            # Fetch available skills from GitHub to get full list
+            try:
+                available_result = self.skills_deployer.list_available_skills()
+                all_skills = available_result.get("skills", [])
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning: Could not fetch available skills: {e}[/yellow]\n"
+                )
+                all_skills = []
+
+            # Combine deployed and available skills
+            skill_map = {}
+
+            # Add available skills
+            for skill in all_skills:
+                skill_name = skill.get("name", "")
+                if skill_name:
+                    skill_map[skill_name] = {
+                        "name": skill.get("display_name")
+                        or skill_name.replace("-", " ").title(),
+                        "skill_id": skill_name,
+                        "source": "MPM Skills",
+                        "is_deployed": skill_name in deployed_names,
+                    }
+
+            # Add any deployed skills not in available list (local/custom skills)
+            for skill in deployed_result["skills"]:
+                skill_name = skill["name"]
+                if skill_name not in skill_map:
+                    skill_map[skill_name] = {
+                        "name": skill_name.replace("-", " ").title(),
+                        "skill_id": skill_name,
+                        "source": "Local",
+                        "is_deployed": True,
+                    }
+
+            if not skill_map:
+                console.print("[yellow]No skills available.[/yellow]")
                 console.print(
                     "[dim]Use 'claude-mpm skills deploy-github' to deploy skills.[/dim]\n"
                 )
                 return CommandResult(success=True, exit_code=0)
 
-            console.print(
-                f"[green]{result['deployed_count']} skill(s) deployed:[/green]\n"
-            )
-
-            # Create table for deployed skills
+            # Create table matching agent management format
             table = Table(show_header=True, header_style="bold cyan")
-            table.add_column("Skill Name", style="green")
-            table.add_column("Path", style="dim")
+            table.add_column("#", style="bright_black", width=6, no_wrap=True)
+            table.add_column(
+                "Skill ID", style="bright_black", no_wrap=True, overflow="ellipsis"
+            )
+            table.add_column(
+                "Name", style="bright_cyan", no_wrap=True, overflow="ellipsis"
+            )
+            table.add_column("Source", style="bright_yellow", no_wrap=True)
+            table.add_column("Status", style="bright_black", no_wrap=True)
 
-            for skill in sorted(result["skills"], key=lambda s: s["name"]):
-                table.add_row(skill["name"], skill["path"])
+            # Sort skills by name for consistent display
+            sorted_skills = sorted(skill_map.values(), key=lambda s: s["skill_id"])
+
+            for idx, skill in enumerate(sorted_skills, 1):
+                status = (
+                    "[green]Installed[/green]" if skill["is_deployed"] else "Available"
+                )
+                table.add_row(
+                    str(idx), skill["skill_id"], skill["name"], skill["source"], status
+                )
 
             console.print(table)
             console.print()
+
+            # Show summary
+            deployed_count = sum(1 for s in skill_map.values() if s["is_deployed"])
+            console.print(
+                f"[dim]Showing {len(skill_map)} skills ({deployed_count} installed, "
+                f"{len(skill_map) - deployed_count} available)[/dim]\n"
+            )
 
             return CommandResult(success=True, exit_code=0)
 

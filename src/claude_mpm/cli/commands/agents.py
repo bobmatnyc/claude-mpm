@@ -1379,7 +1379,7 @@ class AgentsCommand(AgentCommand):
                 return CommandResult.error_result("agent_id is required")
 
             import os
-            import subprocess
+            import subprocess  # nosec B404
 
             from ...services.agents.local_template_manager import (
                 LocalAgentTemplateManager,
@@ -1415,7 +1415,7 @@ class AgentsCommand(AgentCommand):
 
             # Use system editor
             editor = getattr(args, "editor", None) or os.environ.get("EDITOR", "nano")
-            subprocess.run([editor, str(template_file)], check=True)
+            subprocess.run([editor, str(template_file)], check=True)  # nosec B603
             return CommandResult.success_result(
                 f"Agent '{agent_id}' edited successfully"
             )
@@ -1519,8 +1519,6 @@ class AgentsCommand(AgentCommand):
             console.print("For a better experience with integrated configuration:")
             console.print("  • Agent management")
             console.print("  • Skills management")
-            console.print("  • Template editing")
-            console.print("  • Behavior configuration")
             console.print("  • Startup settings\n")
 
             console.print("Please use: [bold green]claude-mpm config[/bold green]\n")
