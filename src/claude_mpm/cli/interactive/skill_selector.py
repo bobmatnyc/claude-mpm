@@ -16,25 +16,17 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 import questionary
-from questionary import Style
 
+from claude_mpm.cli.interactive.questionary_styles import (
+    BANNER_WIDTH,
+    MPM_STYLE,
+    print_banner,
+)
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
 from claude_mpm.core.unified_paths import get_path_manager
 
 logger = get_logger(__name__)
-
-# Questionary style matching agent_wizard.py
-QUESTIONARY_STYLE = Style(
-    [
-        ("qmark", "fg:cyan bold"),
-        ("question", "bold"),
-        ("answer", "fg:cyan"),
-        ("pointer", "fg:cyan bold"),
-        ("highlighted", "fg:cyan bold"),
-        ("selected", "fg:cyan"),
-    ]
-)
 
 # Topic/toolchain icons
 TOPIC_ICONS = {
@@ -136,9 +128,7 @@ class SkillSelector:
         Returns:
             List of selected skill IDs (names)
         """
-        print("\n" + "=" * 70)
-        print("                    SKILL CONFIGURATION")
-        print("=" * 70)
+        print_banner("SKILL CONFIGURATION", width=BANNER_WIDTH)
 
         # Show agent-required skills (auto-included)
         if self.agent_skill_deps:
@@ -195,7 +185,7 @@ class SkillSelector:
         selected = questionary.checkbox(
             "📂 Select Topic Groups to Add Skills From:",
             choices=choices,
-            style=QUESTIONARY_STYLE,
+            style=MPM_STYLE,
         ).ask()
 
         if selected is None:  # User cancelled
@@ -238,7 +228,7 @@ class SkillSelector:
         selected = questionary.checkbox(
             f"Select {display_name} skills to include:",
             choices=choices,
-            style=QUESTIONARY_STYLE,
+            style=MPM_STYLE,
         ).ask()
 
         if selected is None:  # User cancelled

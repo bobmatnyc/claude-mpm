@@ -1,0 +1,583 @@
+================================================================================
+TUI CONSISTENCY COMPARISON: Agent Selector vs Skill Selector
+================================================================================
+
+PROJECT: claude-mpm
+DATE: 2025-01-02
+STATUS: ANALYSIS COMPLETE
+
+================================================================================
+QUICK ANSWER: DO THEY MATCH?
+================================================================================
+
+NO - They have SIGNIFICANT INCONSISTENCIES in:
+
+1. QUESTIONARY STYLE (4 vs 6 attributes, inconsistent colors)
+2. UI COMPONENTS (single-select vs multi-select - appropriate but different)
+3. BANNER FORMAT (60 vs 70 chars width, emoji vs centered text)
+4. OUTPUT PATTERNS (emoji usage, Rich markup issues)
+5. CHOICE IMPLEMENTATION (plain strings vs questionary.Choice objects)
+
+Most of these differences are FIXABLE without breaking changes.
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+FINDING #1: QUESTIONARY_STYLE MISMATCH
+Location: agent_wizard.py line 27 vs skill_selector.py line 28
+Status: HIGH SEVERITY - Users see different colors
+
+Agent Wizard:
+  - 4 attributes (selected, pointer, highlighted, question)
+  - All cyan colored
+
+Skill Selector:
+  - 6 attributes (qmark, question, answer, pointer, highlighted, selected)
+  - PROBLEM: question is "bold" without cyan (breaks consistency!)
+
+Fix: Create shared questionary_styles.py module
+Time: <30 minutes
+
+---
+
+FINDING #2: BANNER WIDTH & STYLE INCONSISTENCY
+Location: agent_wizard.py line 116 vs skill_selector.py line 139
+Status: MEDIUM SEVERITY - Visual jarring
+
+Agent Wizard:
+  - Width: 60 characters
+  - Style: Emoji icon + text
+  - Tone: Informal, friendly
+
+Skill Selector:
+  - Width: 70 characters
+  - Style: Centered text (no emoji)
+  - Tone: Formal, centered
+
+Fix: Standardize to 70 chars, update both banners
+Time: <15 minutes
+
+---
+
+FINDING #3: CHOICE OBJECT IMPLEMENTATION
+Location: agent_wizard.py line 363 vs skill_selector.py line 187
+Status: MEDIUM SEVERITY - Code quality & maintainability
+
+Agent Wizard (BAD):
+  - Uses plain strings: f"{i}. View agent: {agent['agent_id']}"
+  - Manual parsing: choice.split(".")[0]
+  - Fragile, error-prone
+
+Skill Selector (GOOD):
+  - Uses questionary.Choice objects with title/value
+  - questionary handles parsing
+  - Type-safe, robust
+
+Fix: Convert agent_wizard to use questionary.Choice
+Time: 1-2 hours
+
+---
+
+FINDING #4: EMOJI USAGE INCONSISTENCY
+Location: Throughout both files
+Status: LOW SEVERITY - Professional appearance
+
+Agent Wizard:
+  - Heavy emoji usage (🧙, 🔧, 📭, 📋, 🗑️, ✅, ❌, 🚀, etc.)
+  - Modern, friendly appearance
+
+Skill Selector:
+  - Light emoji usage (📦, ✓, ⚠️)
+  - Minimal, professional appearance
+
+Fix: Standardize emoji usage across both
+Time: <30 minutes
+
+---
+
+FINDING #5: RICH MARKUP IN PLAIN PRINT
+Location: agent_wizard.py line 1304
+Status: MEDIUM SEVERITY - Broken rendering
+
+Code: print("[bold]Filter by:[/bold]")
+Problem: Rich markup only works with Rich Console.print(), not standard print()
+Result: Markup text will appear literally: "[bold]Filter by:[/bold]"
+
+Fix: Remove Rich markup or use Rich Console
+Time: <15 minutes
+
+================================================================================
+COMPARISON TABLE
+================================================================================
+
+                        Agent Wizard         Skill Selector       Status
+─────────────────────────────────────────────────────────────────────────
+QUESTIONARY_STYLE       4 attrs              6 attrs              INCONSISTENT
+  - Selected attr       fg:cyan bold         fg:cyan              DIFFERENT
+  - Question attr       fg:cyan bold         bold (no cyan!)      BROKEN
+  - Color scheme        Simple cyan          Cyan + variants      INCONSISTENT
+
+UI COMPONENTS
+  - Selection type      Single-select        Multi-select         BY DESIGN
+  - Component           questionary.select   questionary.checkbox APPROPRIATE
+  - Choice objects      Plain strings        questionary.Choice   CODE QUALITY
+  - Value parsing       Manual (split)       questionary native   DIFFERENT
+
+BANNER/HEADER
+  - Width               60 chars             70 chars             INCONSISTENT
+  - Style               Emoji + text         Centered text        INCONSISTENT
+  - Tone                Friendly/informal    Formal/centered      INCONSISTENT
+
+OUTPUT/PRESENTATION
+  - Emoji usage         Heavy (10+)          Light (3-4)          INCONSISTENT
+  - Rich markup         Yes, broken          No, pure print       INCONSISTENT
+  - Output structure    Inline/varied        Grouped/structured   DIFFERENT
+
+STATE MANAGEMENT
+  - Pre-checked items   N/A                  Yes (marked [auto])  N/A
+  - Dependency display  Not shown            Clearly shown        DIFFERENT
+
+================================================================================
+DETAILED COMPARISON BY ASPECT
+================================================================================
+
+1. QUESTIONARY_STYLE DEFINITIONS
+
+   Agent Wizard (27-34):
+   ```
+   QUESTIONARY_STYLE = Style([
+       ("selected", "fg:cyan bold"),
+       ("pointer", "fg:cyan bold"),
+       ("highlighted", "fg:cyan"),
+       ("question", "fg:cyan bold"),
+   ])
+   ```
+
+   Skill Selector (28-37):
+   ```
+   QUESTIONARY_STYLE = Style([
+       ("qmark", "fg:cyan bold"),
+       ("question", "bold"),           <-- NO CYAN!
+       ("answer", "fg:cyan"),
+       ("pointer", "fg:cyan bold"),
+       ("highlighted", "fg:cyan bold"),
+       ("selected", "fg:cyan"),
+   ])
+   ```
+
+   Issue: Skill Selector's "question" is bold WITHOUT cyan, breaking color consistency
+
+---
+
+2. SELECTION PATTERNS
+
+   Agent Wizard (Line 384):
+   ```python
+   choice = questionary.select(
+       "Agent Management Menu:",
+       choices=menu_choices,  # Plain strings like "1. View agent: agent-id"
+       style=QUESTIONARY_STYLE,
+   ).ask()
+
+   # Manual parsing required:
+   choice_num = int(choice.split(".")[0])  # LINE 394
+   ```
+
+   Skill Selector (Line 195, 238):
+   ```python
+   choices.append(questionary.Choice(
+       title=choice_text,
+       value=toolchain
+   ))
+
+   selected = questionary.checkbox(
+       "📂 Select Topic Groups to Add Skills From:",
+       choices=choices,  # questionary.Choice objects
+       style=QUESTIONARY_STYLE,
+   ).ask()
+
+   # No parsing needed - selected contains actual values
+   ```
+
+---
+
+3. BANNER HEADERS
+
+   Agent Wizard (116-120):
+   ```
+   print("\n" + "=" * 60)
+   print("🧙‍♂️  Agent Creation Wizard")
+   print("=" * 60)
+   print("\nI'll guide you through creating a custom local agent.")
+   ```
+
+   Skill Selector (139-141):
+   ```
+   print("\n" + "=" * 70)
+   print("                    SKILL CONFIGURATION")
+   print("=" * 70)
+   ```
+
+---
+
+4. EMOJI USAGE
+
+   Agent Wizard heavy emoji (sample):
+     🧙‍♂️ Agent Creation Wizard
+     🔧 Agent Management Menu
+     📭 No agents found
+     📋 Found agents
+     ✓ Deployed
+     📄 Details
+     🗑️ Delete
+     ❌ Errors
+     🚀 Deployment
+
+   Skill Selector light emoji (actual):
+     📦 Agent-Required Skills
+     📂 Select Topic Groups
+     ✓ Item markers
+     ⚠️ Warnings
+
+---
+
+5. RICH MARKUP ISSUE
+
+   Agent Wizard (Line 1304):
+   ```python
+   print("[bold]Filter by:[/bold]")  # BROKEN - won't render
+   ```
+
+   This should be:
+   ```python
+   print("\nFilter by:")  # Plain text
+   ```
+
+   Or with Rich:
+   ```python
+   from rich.console import Console
+   console = Console()
+   console.print("[bold]Filter by:[/bold]")  # Works with Rich
+   ```
+
+================================================================================
+FIXES REQUIRED (By Priority)
+================================================================================
+
+PRIORITY 1: Create Shared questionary_styles.py Module
+─────────────────────────────────────────────────────────
+
+Why: Both wizards use questionary but with different styles.
+     Having a shared style ensures visual consistency.
+
+Action: Create src/claude_mpm/cli/interactive/questionary_styles.py
+
+Content:
+```python
+from questionary import Style
+
+# Unified questionary style for all interactive wizards
+QUESTIONARY_STYLE = Style([
+    ("qmark", "fg:cyan bold"),
+    ("question", "fg:cyan bold"),      # <-- FIX: Add cyan to skill_selector
+    ("answer", "fg:cyan"),
+    ("pointer", "fg:cyan bold"),
+    ("highlighted", "fg:cyan bold"),
+    ("selected", "fg:cyan"),
+    ("checkbox", "fg:cyan"),
+])
+```
+
+Update both files:
+  agent_wizard.py: Remove local QUESTIONARY_STYLE, import from module
+  skill_selector.py: Remove local QUESTIONARY_STYLE, import from module
+
+Time: ~30 minutes
+Impact: Users see consistent colors across both wizards
+
+---
+
+PRIORITY 2: Standardize Banner Format
+──────────────────────────────────────
+
+Why: Banners are the first thing users see. Should be consistent.
+
+Action: Update both files to use standard banner format
+
+Agent Wizard (line 116-120):
+  Before: 60-char wide, emoji + text
+  After:  70-char wide, emoji centered or in separate line
+
+Skill Selector (line 139-141):
+  Before: 70-char, centered text, no emoji
+  After:  70-char, add emoji prefix for consistency
+
+Example:
+```python
+# Option 1: Emoji in title
+print("\n" + "=" * 70)
+print("                      🧙 Agent Creation Wizard")
+print("=" * 70)
+
+# Option 2: Emoji separate
+print("\n🧙 Agent Creation Wizard")
+print("=" * 70)
+```
+
+Time: ~15 minutes
+Impact: Professional, consistent visual appearance
+
+---
+
+PRIORITY 3: Convert Agent Wizard to questionary.Choice
+───────────────────────────────────────────────────────
+
+Why: Eliminates fragile string parsing, matches modern questionary patterns.
+     Makes code more maintainable.
+
+Action: Update agent_wizard.py menu selection (lines 359-394)
+
+Before:
+```python
+menu_choices = []
+for i, agent in enumerate(all_agents, 1):
+    menu_choices.append(f"{i}. View agent: {agent['agent_id']}")
+    # ... add more string choices ...
+
+choice = questionary.select(
+    "Agent Management Menu:",
+    choices=menu_choices,  # List of strings
+).ask()
+
+choice_num = int(choice.split(".")[0])  # Manual parsing
+```
+
+After:
+```python
+menu_choices = []
+for i, agent in enumerate(all_agents, 1):
+    menu_choices.append(questionary.Choice(
+        title=f"{i}. View agent: {agent['agent_id']}",
+        value=("view_agent", agent)
+    ))
+    # ... add more Choice objects ...
+
+result = questionary.select(
+    "Agent Management Menu:",
+    choices=menu_choices,  # List of Choice objects
+).ask()
+
+if result:
+    action, data = result  # Direct unpacking, no parsing needed
+```
+
+Time: ~1-2 hours (requires testing of all menu flows)
+Impact: More robust code, easier maintenance, matches best practices
+
+---
+
+PRIORITY 4: Standardize Emoji Usage
+────────────────────────────────────
+
+Why: Emoji usage is inconsistent across wizards.
+     Standardization improves professional appearance.
+
+Action: Choose emoji standard and apply consistently
+
+Option A: Heavy emoji (Recommended)
+  - Keep agent_wizard's current emoji approach
+  - Add matching emoji to skill_selector sections
+  - Benefits: Modern, friendly, visually distinctive
+
+Option B: Light emoji
+  - Reduce agent_wizard to minimal emoji
+  - Use emoji only for major section breaks
+  - Benefits: Cleaner, more formal
+
+Recommendation: Option A (Heavy)
+  - Already established in agent_wizard
+  - Modern and attractive
+  - Helps users navigate quickly
+
+Time: ~30 minutes
+Impact: Cohesive visual branding
+
+---
+
+PRIORITY 5: Fix Rich Markup Issue
+──────────────────────────────────
+
+Why: Line 1304 has Rich markup in plain print(), which won't render.
+     Breaks consistency with pure print approach elsewhere.
+
+Action: Remove Rich markup from print statements
+
+Before (Line 1304):
+```python
+print("[bold]Filter by:[/bold]")  # Markup won't render
+```
+
+After:
+```python
+print("\nFilter by:")  # Pure text
+```
+
+Time: ~15 minutes
+Impact: Correct rendering, consistency
+
+================================================================================
+IMPLEMENTATION STRATEGY
+================================================================================
+
+PHASE 1: Setup (Low Risk)
+─────────────────────────
+1. Create questionary_styles.py (shared module)
+2. Update imports in both files
+3. Run visual tests
+4. Commit changes
+
+PHASE 2: Banner Standardization (Low Risk)
+──────────────────────────────────────────
+1. Update both banners to 70-char width
+2. Add consistent emoji branding
+3. Test visual output
+4. Commit changes
+
+PHASE 3: Choice Object Migration (Medium Risk)
+───────────────────────────────────────────────
+1. Convert menu choices in agent_wizard to questionary.Choice
+2. Remove manual parsing logic
+3. Test all menu flows thoroughly
+4. Verify navigation and actions work
+5. Commit changes
+
+PHASE 4: Cleanup (Low Risk)
+────────────────────────────
+1. Fix Rich markup in print statements
+2. Standardize emoji usage
+3. Final visual test
+4. Commit changes
+
+Total estimated time: 3-4 hours (including thorough testing)
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+Visual Consistency:
+  [ ] Agent wizard banner displays correctly (70 chars)
+  [ ] Skill selector banner displays correctly (70 chars)
+  [ ] Cyan colors are identical between wizards
+  [ ] Question text displays in same cyan color
+  [ ] Emoji render correctly in all output
+
+Functional Behavior:
+  [ ] Agent menu selections work without parsing errors
+  [ ] Agent menu navigation is smooth
+  [ ] Skill checkbox multi-select works
+  [ ] Pre-checked items (auto-included skills) display correctly
+  [ ] Selected values are returned correctly
+
+Code Quality:
+  [ ] No Rich markup in plain print statements
+  [ ] questionary.Choice objects used for menu choices
+  [ ] No manual string parsing in selection handling
+  [ ] questionary_styles module is shared and imported
+
+User Experience:
+  [ ] No visual jarring when switching between wizards
+  [ ] Consistent professional appearance
+  [ ] Clear and intuitive navigation
+  [ ] Emoji usage is consistent and meaningful
+
+================================================================================
+FILES AFFECTED
+================================================================================
+
+Files to Create:
+  ✓ docs/research/tui-consistency-analysis-2025-01-02.md
+  ✓ docs/research/tui-visual-comparison.md
+  ✓ docs/research/TUI-CONSISTENCY-SUMMARY.txt (this file)
+  - src/claude_mpm/cli/interactive/questionary_styles.py (NEW)
+
+Files to Modify:
+  - src/claude_mpm/cli/interactive/agent_wizard.py
+    Lines 27-34:   QUESTIONARY_STYLE (remove, use import)
+    Lines 116-120: Banner (update width, emoji)
+    Lines 359-394: Menu choices (use questionary.Choice)
+    Line 1304:     Rich markup (remove)
+
+  - src/claude_mpm/cli/interactive/skill_selector.py
+    Lines 28-37:   QUESTIONARY_STYLE (remove, use import)
+    Lines 139-141: Banner (update emoji if needed)
+
+================================================================================
+IMPACT ASSESSMENT
+================================================================================
+
+CURRENT STATE (Negative):
+  - Users see inconsistent TUI styling
+  - Feels like different tools (confusion)
+  - Question text appears wrong color in skill_selector
+  - Code maintainability issues (manual parsing)
+  - Rich markup broken in agent_wizard
+
+AFTER FIXES (Positive):
+  - Unified visual appearance across all wizards
+  - Professional, modern TUI
+  - Consistent interaction patterns
+  - More maintainable code
+  - Better user experience
+  - No functional changes (backward compatible)
+
+RISK LEVEL: LOW
+- Changes are primarily visual/code quality
+- No breaking changes to functionality
+- All changes are reversible
+- Well-tested before implementation
+
+================================================================================
+REFERENCES & LOCATIONS
+================================================================================
+
+File Locations:
+  Agent Wizard: /Users/masa/Projects/claude-mpm/src/claude_mpm/cli/interactive/agent_wizard.py
+  Skill Selector: /Users/masa/Projects/claude-mpm/src/claude_mpm/cli/interactive/skill_selector.py
+  Configure Ref: /Users/masa/Projects/claude-mpm/src/claude_mpm/cli/commands/configure.py
+
+Relevant Lines:
+  Agent Wizard STYLE: 27-34
+  Skill Selector STYLE: 28-37
+  Agent Wizard BANNER: 116-120
+  Skill Selector BANNER: 139-141
+  Agent Wizard MENU: 359-394
+  Skill Selector CHOICES: 175-248
+
+Research Documents:
+  - docs/research/tui-consistency-analysis-2025-01-02.md (DETAILED ANALYSIS)
+  - docs/research/tui-visual-comparison.md (VISUAL REFERENCE)
+  - docs/research/TUI-CONSISTENCY-SUMMARY.txt (THIS FILE - QUICK REFERENCE)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+For Implementation:
+  1. Review this summary document
+  2. Review detailed analysis document (tui-consistency-analysis)
+  3. Review visual comparison document (tui-visual-comparison)
+  4. Execute Phase 1 (questionary_styles.py creation)
+  5. Execute Phase 2 (banner standardization)
+  6. Execute Phase 3 (choice object migration)
+  7. Execute Phase 4 (cleanup)
+  8. Run comprehensive tests
+  9. Commit all changes together
+
+Expected Outcome:
+  - Consistent, professional TUI across all interactive wizards
+  - More maintainable, robust code
+  - Better user experience
+  - No functional regressions
+
+================================================================================

@@ -1,0 +1,319 @@
+================================================================================
+COMPARISON COMPLETE: Agent Selector vs Skill Selector TUI
+================================================================================
+
+ANALYSIS DATE: 2025-01-02
+STATUS: COMPREHENSIVE COMPARISON ANALYSIS COMPLETE
+
+================================================================================
+ANSWER TO YOUR QUESTIONS
+================================================================================
+
+1. "Does the agent selector use checkbox multi-select or single select?"
+   → SINGLE SELECT (questionary.select)
+   → Uses plain string choices: "1. View agent: agent-id"
+
+2. "Does the skill selector match that pattern?"
+   → NO - Uses MULTI SELECT (questionary.checkbox)
+   → Uses questionary.Choice objects with title/value
+
+3. "Are the console banners/headers styled the same way?"
+   → NO
+   → Agent: 60 chars, emoji + text, informal
+   → Skill:  70 chars, centered text, formal
+
+4. "Do both use Rich console for output?"
+   → NO
+   → Agent: Mixes Rich markup with plain print (broken)
+   → Skill: Pure print statements
+
+5. "Is the selection flow similar?"
+   → SOMEWHAT
+   → Both use questionary, but different components (select vs checkbox)
+   → Agent has single-select flow, Skill has multi-select flow
+   → Parsing differs (agent manual, skill native)
+
+================================================================================
+KEY INCONSISTENCIES FOUND
+================================================================================
+
+CRITICAL ISSUES:
+  1. questionary.Style has different attributes and a broken color
+     (skill_selector's question is white instead of cyan)
+
+  2. Banner widths are inconsistent (60 vs 70 characters)
+
+  3. questionary implementation differs:
+     - Agent uses plain strings + manual parsing
+     - Skill uses questionary.Choice objects (better pattern)
+
+  4. Rich markup in agent_wizard (line 1304) breaks rendering
+
+MEDIUM ISSUES:
+  5. Emoji usage inconsistent (heavy vs light)
+  6. Tone differs (friendly vs formal)
+  7. Code maintainability issues (manual string parsing)
+
+================================================================================
+COMPARISON TABLE
+================================================================================
+
+ASPECT                  AGENT WIZARD           SKILL SELECTOR          STATUS
+─────────────────────────────────────────────────────────────────────────────
+questionary.Style
+  Attributes            4 attrs                6 attrs                 DIFFERENT
+  Question color        fg:cyan bold           bold only (WHITE!)      BROKEN
+  Selection component   select                 checkbox                BY DESIGN
+  Choice format         Plain strings          questionary.Choice      CODE QUALITY
+
+Banner/Header
+  Width                 60 characters          70 characters           INCONSISTENT
+  Style                 Emoji + text           Centered text           INCONSISTENT
+  Tone                  Friendly/informal      Formal/centered         INCONSISTENT
+
+Menu Implementation
+  Choice parsing        Manual (split)         questionary native      DIFFERENT
+  Pre-checked items     N/A                    Yes (marked [auto])     N/A
+  Dependency display    Not shown              Clearly shown           DIFFERENT
+
+Output Style
+  Emoji usage           Heavy (10+ types)      Light (3-4 types)       INCONSISTENT
+  Rich markup           Yes (broken)           No (pure print)         INCONSISTENT
+  Structure             Inline/varied          Grouped/structured      DIFFERENT
+
+================================================================================
+DETAILED FINDINGS
+================================================================================
+
+FINDING #1: QUESTIONARY_STYLE MISMATCH (HIGH SEVERITY)
+Location: agent_wizard.py:27 vs skill_selector.py:28
+Impact: Users see wrong colors in skill_selector
+
+Agent Wizard has 4 attributes (all cyan):
+  selected      = fg:cyan bold
+  pointer       = fg:cyan bold
+  highlighted   = fg:cyan
+  question      = fg:cyan bold
+
+Skill Selector has 6 attributes (inconsistent colors):
+  qmark         = fg:cyan bold
+  question      = bold            ← NO CYAN COLOR!
+  answer        = fg:cyan
+  pointer       = fg:cyan bold
+  highlighted   = fg:cyan bold
+  selected      = fg:cyan
+
+PROBLEM: Question text displays white instead of cyan in skill_selector
+
+---
+
+FINDING #2: QUESTIONARY COMPONENT SELECTION (BY DESIGN)
+Location: agent_wizard.py:384 vs skill_selector.py:195/238
+Status: Appropriate for use case, but different UX
+
+Agent Wizard:
+  questionary.select() - Single selection
+  Plain string choices: f"{i}. View agent: {agent['agent_id']}"
+  Manual parsing: int(choice.split(".")[0])
+
+Skill Selector:
+  questionary.checkbox() - Multi-selection
+  questionary.Choice objects with title/value
+  No parsing needed (questionary handles it)
+
+DESIGN RATIONALE:
+  Agent: Single-select makes sense (one action at a time)
+  Skill: Multi-select makes sense (select multiple skills)
+
+CODE QUALITY:
+  Skill's questionary.Choice approach is more robust
+  Agent's manual parsing is fragile
+
+---
+
+FINDING #3: BANNER STYLING (MEDIUM SEVERITY)
+Location: agent_wizard.py:116 vs skill_selector.py:139
+Impact: Visual inconsistency, looks like different tools
+
+Agent Wizard (60 chars):
+  ════════════════════════════════════════════════════════
+  🧙‍♂️  Agent Creation Wizard
+  ════════════════════════════════════════════════════════
+  
+  I'll guide you through creating a custom local agent.
+
+Skill Selector (70 chars):
+  ══════════════════════════════════════════════════════════════════════════
+                      SKILL CONFIGURATION
+  ══════════════════════════════════════════════════════════════════════════
+
+DIFFERENCES:
+  - Width: 60 vs 70 (inconsistent)
+  - Style: Emoji + text vs Centered text (different aesthetics)
+  - Tone: Informal vs Formal (jarring contrast)
+
+---
+
+FINDING #4: EMOJI USAGE INCONSISTENCY (LOW SEVERITY)
+Location: Throughout both files
+Status: Professional appearance issue
+
+Agent Wizard (Heavy Emoji):
+  🧙‍♂️ Agent Creation Wizard
+  🔧 Agent Management Menu
+  📭 No agents found
+  📋 Found agents
+  ✓ Deployed status
+  📄 Agent Details
+  🗑️ Delete Agent
+  ❌ Error messages
+  ✅ Success messages
+  🚀 Deployment
+  Plus 5+ more...
+
+Skill Selector (Light Emoji):
+  📦 Agent-Required Skills
+  📂 Select Topic Groups
+  ✓ Item markers
+  ⚠️ Warnings
+
+Impact: Inconsistent branding, different visual weight
+
+---
+
+FINDING #5: RICH MARKUP ISSUE (MEDIUM SEVERITY)
+Location: agent_wizard.py:1304
+Status: Broken rendering
+
+Code:
+  print("[bold]Filter by:[/bold]")
+
+Problem:
+  Rich markup only works with Rich Console.print()
+  Standard print() shows literal text: "[bold]Filter by:[/bold]"
+
+Effect:
+  Users see broken markup instead of bold text
+  Inconsistent with rest of file (pure print statements elsewhere)
+
+---
+
+FINDING #6: CHOICE OBJECT IMPLEMENTATION (CODE QUALITY)
+Location: agent_wizard.py:359-394 vs skill_selector.py:175-248
+Status: Maintainability issue
+
+Agent Wizard (Problematic):
+  menu_choices.append(f"{i}. View agent: {agent['agent_id']}")
+  choice = questionary.select("Menu:", choices=menu_choices).ask()
+  choice_num = int(choice.split(".")[0])
+  
+Issues:
+  - Manual string parsing
+  - Fragile (depends on exact format)
+  - Type conversion needed
+  - Hard to extend
+
+Skill Selector (Better Pattern):
+  choices.append(questionary.Choice(
+      title=f"{icon} {display_name}",
+      value=toolchain
+  ))
+  selected = questionary.checkbox("Menu:", choices=choices).ask()
+  
+Benefits:
+  - questionary handles parsing
+  - Type-safe
+  - Display clearly separated from value
+  - More maintainable
+
+================================================================================
+WHAT NEEDS TO CHANGE
+================================================================================
+
+PRIORITY 1: Unify questionary.Style (HIGH SEVERITY)
+  Fix: Create shared questionary_styles.py module
+  Time: ~30 minutes
+  Impact: Users see consistent colors
+
+PRIORITY 2: Standardize Banners (MEDIUM SEVERITY)
+  Fix: Both use 70-char width, add emoji where needed
+  Time: ~15 minutes
+  Impact: Professional appearance
+
+PRIORITY 3: Fix Rich Markup (MEDIUM SEVERITY)
+  Fix: Remove [bold] markup from line 1304
+  Time: ~15 minutes
+  Impact: Correct rendering
+
+PRIORITY 4: Upgrade Choice Implementation (CODE QUALITY)
+  Fix: Convert agent_wizard to questionary.Choice objects
+  Time: ~1-2 hours
+  Impact: More robust code, easier maintenance
+
+PRIORITY 5: Standardize Emoji (APPEARANCE)
+  Fix: Decide on emoji convention, apply consistently
+  Time: ~30 minutes
+  Impact: Cohesive branding
+
+TOTAL TIME: 3-4 hours (including testing)
+
+================================================================================
+RESEARCH DOCUMENTS CREATED
+================================================================================
+
+1. tui-consistency-analysis-2025-01-02.md
+   - Comprehensive analysis with all details
+   - Line-by-line code comparisons
+   - Implementation recommendations
+   - Testing checklist
+
+2. tui-visual-comparison.md
+   - Side-by-side visual comparisons
+   - Before/after terminal output examples
+   - Color swatches and styling details
+   - Visual impact assessment
+
+3. TUI-CONSISTENCY-SUMMARY.txt
+   - Full written summary
+   - All findings documented
+   - Complete implementation strategy
+   - Testing checklist
+
+4. QUICK-REFERENCE.md
+   - Quick summary for implementation
+   - Key differences table
+   - Severity ratings
+   - Implementation order
+
+All files saved to: /Users/masa/Projects/claude-mpm/docs/research/
+
+================================================================================
+VERDICT
+================================================================================
+
+QUESTION: "Do they match?"
+ANSWER: NO - SIGNIFICANT INCONSISTENCIES
+
+The two TUIs feel like different tools because they are visually and
+functionally inconsistent in several ways. However, all inconsistencies
+are FIXABLE without breaking changes.
+
+KEY PROBLEMS:
+  1. Different questionary styles (HIGH - users see wrong colors)
+  2. Different component choices (BY DESIGN but different UX)
+  3. Different banners (MEDIUM - looks unprofessional)
+  4. Fragile code patterns (MEDIUM - maintenance issue)
+  5. Inconsistent emoji usage (LOW - branding issue)
+
+REQUIRED ACTIONS:
+  ✓ Create shared questionary_styles.py
+  ✓ Standardize banner formats
+  ✓ Remove broken Rich markup
+  ✓ Convert to questionary.Choice objects
+  ✓ Standardize emoji usage
+
+RISK: LOW (no breaking changes, fully reversible)
+TIME: 3-4 hours total
+IMPACT: High (unified user experience, better code)
+
+================================================================================

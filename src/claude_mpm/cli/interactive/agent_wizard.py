@@ -12,8 +12,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import questionary
-from questionary import Style
 
+from claude_mpm.cli.interactive.questionary_styles import (
+    BANNER_WIDTH,
+    MPM_STYLE,
+    print_section_header,
+)
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.local_template_manager import (
     LocalAgentTemplate,
@@ -22,16 +26,6 @@ from claude_mpm.services.agents.local_template_manager import (
 from claude_mpm.utils.agent_filters import apply_all_filters
 
 logger = get_logger(__name__)
-
-# Questionary style matching Rich cyan theme (consistent with configure.py)
-QUESTIONARY_STYLE = Style(
-    [
-        ("selected", "fg:cyan bold"),
-        ("pointer", "fg:cyan bold"),
-        ("highlighted", "fg:cyan"),
-        ("question", "fg:cyan bold"),
-    ]
-)
 
 
 class AgentWizard:
@@ -113,9 +107,7 @@ class AgentWizard:
             Tuple of (success, message)
         """
         try:
-            print("\n" + "=" * 60)
-            print("🧙‍♂️  Agent Creation Wizard")
-            print("=" * 60)
+            print_section_header("🧙‍♂️", "Agent Creation Wizard", width=BANNER_WIDTH)
             print("\nI'll guide you through creating a custom local agent.")
             print("Press Ctrl+C anytime to cancel.\n")
 
@@ -281,9 +273,7 @@ class AgentWizard:
                 # Get merged agents from all sources
                 all_agents = self._merge_agent_sources()
 
-                print("\n" + "=" * 60)
-                print("🔧  Agent Management Menu")
-                print("=" * 60)
+                print_section_header("🔧", "Agent Management Menu", width=BANNER_WIDTH)
 
                 if not all_agents:
                     print(
@@ -384,7 +374,7 @@ class AgentWizard:
                 choice = questionary.select(
                     "Agent Management Menu:",
                     choices=menu_choices,
-                    style=QUESTIONARY_STYLE,
+                    style=MPM_STYLE,
                 ).ask()
 
                 if not choice:  # User pressed Esc
@@ -776,9 +766,7 @@ class AgentWizard:
 
     def _confirm_creation(self, config: Dict[str, Any]) -> bool:
         """Show preview and get confirmation from user."""
-        print("\n" + "=" * 60)
-        print("📋  Agent Configuration Preview")
-        print("=" * 60)
+        print_section_header("📋", "Agent Configuration Preview", width=BANNER_WIDTH)
 
         print(f"Agent ID:     {config['agent_id']}")
         print(f"Name:         {config['name']}")
@@ -795,7 +783,8 @@ class AgentWizard:
         print("\nInstructions Preview:")
         print(f"  {config['instructions_preview']}")
 
-        print("\n" + "=" * 60)
+        print()
+        print("=" * BANNER_WIDTH)
 
         while True:
             confirm = input("\nCreate this agent? [Y/n]: ").strip().lower()
@@ -1046,8 +1035,7 @@ class AgentWizard:
 
     def _interactive_delete_menu(self, templates: list) -> Tuple[bool, str]:
         """Interactive deletion menu for multiple agents."""
-        print("\n🗑️  Delete Agents")
-        print("=" * 50)
+        print_section_header("🗑️", "Delete Agents", width=BANNER_WIDTH)
 
         if not templates:
             return False, "No agents available to delete"
@@ -1154,9 +1142,9 @@ class AgentWizard:
         Args:
             agent: Agent metadata dictionary
         """
-        print("\n" + "=" * 60)
-        print(f"📄 Agent Details: {agent['agent_id']}")
-        print("=" * 60)
+        print_section_header(
+            "📄", f"Agent Details: {agent['agent_id']}", width=BANNER_WIDTH
+        )
         print(f"Name:         {agent['name']}")
         print(f"Category:     {agent['category'] or 'N/A'}")
         print(f"Source:       [{agent['source_type']}] {agent['source_identifier']}")
@@ -1188,9 +1176,7 @@ class AgentWizard:
             input("\nPress Enter to continue...")
             return
 
-        print("\n" + "=" * 60)
-        print("📦 Deploy Agent")
-        print("=" * 60)
+        print_section_header("📦", "Deploy Agent", width=BANNER_WIDTH)
         print(f"\n{len(deployable)} agent(s) available to deploy:\n")
 
         # Build agent selection choices with arrow-key navigation
@@ -1200,7 +1186,7 @@ class AgentWizard:
         ]
 
         choice = questionary.select(
-            "Select agent to deploy:", choices=agent_choices, style=QUESTIONARY_STYLE
+            "Select agent to deploy:", choices=agent_choices, style=MPM_STYLE
         ).ask()
 
         if not choice:  # User pressed Esc
@@ -1296,9 +1282,7 @@ class AgentWizard:
             return
 
         while True:
-            print("\n" + "=" * 60)
-            print("🔍 Browse & Filter Agents")
-            print("=" * 60)
+            print_section_header("🔍", "Browse & Filter Agents", width=BANNER_WIDTH)
 
             # Show filter menu with arrow-key navigation
             print("\n[bold]Filter by:[/bold]")
@@ -1314,7 +1298,7 @@ class AgentWizard:
             choice = questionary.select(
                 "Browse & Filter Agents:",
                 choices=filter_choices,
-                style=QUESTIONARY_STYLE,
+                style=MPM_STYLE,
             ).ask()
 
             if not choice or "Back" in choice:
@@ -1343,7 +1327,7 @@ class AgentWizard:
                 cat_choices = [f"{idx}. {cat}" for idx, cat in enumerate(categories, 1)]
 
                 cat_choice = questionary.select(
-                    "Select category:", choices=cat_choices, style=QUESTIONARY_STYLE
+                    "Select category:", choices=cat_choices, style=MPM_STYLE
                 ).ask()
 
                 if not cat_choice:  # User pressed Esc
@@ -1457,9 +1441,11 @@ class AgentWizard:
                 continue
 
             # Display filtered results
-            print("\n" + "=" * 60)
-            print(f"📋 {filter_description} ({len(filtered_agents)} agents)")
-            print("=" * 60)
+            print_section_header(
+                "📋",
+                f"{filter_description} ({len(filtered_agents)} agents)",
+                width=BANNER_WIDTH,
+            )
 
             if not filtered_agents:
                 print("\n[yellow]No agents found matching filter[/yellow]")
@@ -1523,7 +1509,7 @@ class AgentWizard:
         ]
 
         agent_choice = questionary.select(
-            "Select agent to deploy:", choices=agent_choices, style=QUESTIONARY_STYLE
+            "Select agent to deploy:", choices=agent_choices, style=MPM_STYLE
         ).ask()
 
         if not agent_choice:  # User pressed Esc
@@ -1629,7 +1615,7 @@ class AgentWizard:
         ]
 
         agent_choice = questionary.select(
-            "Select agent to view:", choices=agent_choices, style=QUESTIONARY_STYLE
+            "Select agent to view:", choices=agent_choices, style=MPM_STYLE
         ).ask()
 
         if not agent_choice:  # User pressed Esc
@@ -1652,9 +1638,7 @@ class AgentWizard:
         preset_service = AgentPresetService(self.source_manager)
 
         while True:
-            print("\n" + "=" * 60)
-            print("📦 Deploy Agent Preset")
-            print("=" * 60)
+            print_section_header("📦", "Deploy Agent Preset", width=BANNER_WIDTH)
 
             # List available presets
             presets = preset_service.list_presets()
@@ -1690,9 +1674,7 @@ class AgentWizard:
                 preset_name = presets[idx]["name"]
 
                 # Show preset details
-                print("\n" + "=" * 60)
-                print(f"📦 Preset: {preset_name}")
-                print("=" * 60)
+                print_section_header("📦", f"Preset: {preset_name}", width=BANNER_WIDTH)
                 print(f"\n[bold]Description:[/bold] {presets[idx]['description']}\n")
 
                 # Resolve preset
@@ -1872,9 +1854,7 @@ class AgentWizard:
             input("\nPress Enter to continue...")
             return
 
-        print("\n" + "=" * 60)
-        print("🔗 Manage Agent Sources")
-        print("=" * 60)
+        print_section_header("🔗", "Manage Agent Sources", width=BANNER_WIDTH)
 
         try:
             from claude_mpm.config.agent_sources import AgentSourceConfiguration
