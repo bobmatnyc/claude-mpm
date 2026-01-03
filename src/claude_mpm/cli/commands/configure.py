@@ -656,32 +656,84 @@ class ConfigureCommand(BaseCommand):
         self.behavior_manager.manage_behaviors()
 
     def _manage_skills(self) -> None:
-        """Skills management interface."""
+        """Skills management interface with table display."""
         from ...cli.interactive.skills_wizard import SkillsWizard
+        from ...skills.registry import get_registry
         from ...skills.skill_manager import get_manager
 
         wizard = SkillsWizard()
         manager = get_manager()
+        registry = get_registry()
 
         while True:
             self.console.clear()
             self._display_header()
 
-            self.console.print("\n[bold]Skills Management Options:[/bold]\n")
-            self.console.print("  [1] View Available Skills")
-            self.console.print("  [2] Configure Skills for Agents")
-            self.console.print("  [3] View Current Skill Mappings")
-            self.console.print("  [4] Auto-Link Skills to Agents")
-            self.console.print("  [b] Back to Main Menu")
+            # Display skills table
+            self._display_skills_table(registry)
+
+            # Show action options
+            self.console.print("\n[bold]Actions:[/bold]")
+            self.console.print("  [1] Toggle skill installation")
+            self.console.print("  [2] Configure skills for agents")
+            self.console.print("  [3] View current skill mappings")
+            self.console.print("  [4] Auto-link skills to agents")
+            self.console.print("  [b] Back to main menu")
             self.console.print()
 
             choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
 
             if choice == "1":
-                # View available skills
+                # Toggle skill installation
                 self.console.clear()
                 self._display_header()
-                wizard.list_available_skills()
+                self._display_skills_table(registry)
+
+                skill_num = Prompt.ask(
+                    "\n[bold blue]Enter skill number to toggle (or 'b' to go back)[/bold blue]",
+                    default="b",
+                )
+
+                if skill_num == "b":
+                    continue
+
+                try:
+                    skill_idx = int(skill_num) - 1
+                    all_skills = self._get_all_skills_sorted(registry)
+
+                    if 0 <= skill_idx < len(all_skills):
+                        skill = all_skills[skill_idx]
+                        deployed_ids = self._get_deployed_skill_ids()
+
+                        if skill.skill_id in deployed_ids:
+                            # Uninstall
+                            confirm = Confirm.ask(
+                                f"\n[yellow]Uninstall skill '{skill.name}'?[/yellow]",
+                                default=False,
+                            )
+                            if confirm:
+                                self._uninstall_skill(skill)
+                                self.console.print(
+                                    f"\n[green]✓ Skill '{skill.name}' uninstalled[/green]"
+                                )
+                        else:
+                            # Install
+                            confirm = Confirm.ask(
+                                f"\n[cyan]Install skill '{skill.name}'?[/cyan]",
+                                default=True,
+                            )
+                            if confirm:
+                                self._install_skill(skill)
+                                self.console.print(
+                                    f"\n[green]✓ Skill '{skill.name}' installed[/green]"
+                                )
+                    else:
+                        self.console.print("[red]Invalid skill number[/red]")
+                except ValueError:
+                    self.console.print(
+                        "[red]Invalid input. Please enter a number.[/red]"
+                    )
+
                 Prompt.ask("\nPress Enter to continue")
 
             elif choice == "2":
@@ -804,6 +856,116 @@ class ConfigureCommand(BaseCommand):
             else:
                 self.console.print("[red]Invalid choice. Please try again.[/red]")
                 Prompt.ask("\nPress Enter to continue")
+
+    def _display_skills_table(self, registry) -> None:
+        """Display skills in a table format like agents."""
+        from rich import box
+        from rich.table import Table
+
+        # Get all skills and deployed skill IDs
+        all_skills = self._get_all_skills_sorted(registry)
+        deployed_ids = self._get_deployed_skill_ids()
+
+        # Create table with same styling as agents table
+        table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
+        table.add_column("#", style="bright_black", width=6)
+        table.add_column("Skill ID", style="bright_black", overflow="ellipsis")
+        table.add_column("Name", style="bright_cyan", overflow="ellipsis")
+        table.add_column("Source", style="bright_yellow")
+        table.add_column("Status", style="bright_black")
+
+        # Populate table
+        for i, skill in enumerate(all_skills, 1):
+            # Determine status
+            if skill.skill_id in deployed_ids:
+                status = "[green]Installed[/green]"
+            else:
+                status = "Available"
+
+            # Determine source label
+            if skill.source == "bundled":
+                source = "MPM Skills"
+            elif skill.source == "user":
+                source = "User Skills"
+            elif skill.source == "project":
+                source = "Project Skills"
+            else:
+                source = skill.source.title()
+
+            # Get display name (fallback to skill_id with formatting)
+            name = skill.name or skill.skill_id.replace("-", " ").title()
+
+            table.add_row(str(i), skill.skill_id, name, source, status)
+
+        self.console.print(table)
+
+        # Show summary
+        installed_count = len([s for s in all_skills if s.skill_id in deployed_ids])
+        self.console.print(
+            f"\nShowing {len(all_skills)} skills ({installed_count} installed)"
+        )
+
+    def _get_all_skills_sorted(self, registry):
+        """Get all skills from registry, sorted by source and name."""
+        # Get skills from all sources
+        bundled = registry.list_skills(source="bundled")
+        user = registry.list_skills(source="user")
+        project = registry.list_skills(source="project")
+
+        # Combine and sort: bundled first, then user, then project
+        # Within each group, sort by name
+        all_skills = []
+        all_skills.extend(sorted(bundled, key=lambda s: s.name.lower()))
+        all_skills.extend(sorted(user, key=lambda s: s.name.lower()))
+        all_skills.extend(sorted(project, key=lambda s: s.name.lower()))
+
+        return all_skills
+
+    def _get_deployed_skill_ids(self) -> set:
+        """Get set of deployed skill IDs from .claude/skills/ directory."""
+        from pathlib import Path
+
+        skills_dir = Path.cwd() / ".claude" / "skills"
+        if not skills_dir.exists():
+            return set()
+
+        # Each deployed skill is a directory in .claude/skills/
+        deployed_ids = set()
+        for skill_dir in skills_dir.iterdir():
+            if skill_dir.is_dir() and not skill_dir.name.startswith("."):
+                deployed_ids.add(skill_dir.name)
+
+        return deployed_ids
+
+    def _install_skill(self, skill) -> None:
+        """Install a skill to .claude/skills/ directory."""
+        import shutil
+        from pathlib import Path
+
+        # Target directory
+        target_dir = Path.cwd() / ".claude" / "skills" / skill.skill_id
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy skill file(s)
+        if skill.path.is_file():
+            # Single file skill - copy to skill.md in target directory
+            shutil.copy2(skill.path, target_dir / "skill.md")
+        elif skill.path.is_dir():
+            # Directory-based skill - copy all contents
+            for item in skill.path.iterdir():
+                if item.is_file():
+                    shutil.copy2(item, target_dir / item.name)
+                elif item.is_dir():
+                    shutil.copytree(item, target_dir / item.name, dirs_exist_ok=True)
+
+    def _uninstall_skill(self, skill) -> None:
+        """Uninstall a skill from .claude/skills/ directory."""
+        import shutil
+        from pathlib import Path
+
+        target_dir = Path.cwd() / ".claude" / "skills" / skill.skill_id
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
 
     def _display_behavior_files(self) -> None:
         """Display current behavior files."""
@@ -1437,18 +1599,20 @@ class ConfigureCommand(BaseCommand):
 
                 # Add inline control: Select/Deselect all from this collection
                 if all_selected:
+                    deselect_value = f"__DESELECT_ALL_{collection_id}__"
                     choices.append(
                         Choice(
-                            f"  [Deselect all from {collection_id}]",
-                            value=f"__DESELECT_ALL_{collection_id}__",
+                            f"  [Deselect all from {collection_id}]",  # nosec B608
+                            value=deselect_value,
                             checked=False,
                         )
                     )
                 else:
+                    select_value = f"__SELECT_ALL_{collection_id}__"
                     choices.append(
                         Choice(
-                            f"  [Select all from {collection_id}]",
-                            value=f"__SELECT_ALL_{collection_id}__",
+                            f"  [Select all from {collection_id}]",  # nosec B608
+                            value=select_value,
                             checked=False,
                         )
                     )
@@ -2329,7 +2493,8 @@ class ConfigureCommand(BaseCommand):
                 f"  Detection Quality: [{'green' if summary.get('detection_quality') == 'high' else 'yellow'}]{summary.get('detection_quality', 'unknown')}[/]"
             )
             self.console.print()
-        except Exception:
+        except Exception:  # nosec B110 - Suppress broad except for failed safety check
+            # Silent failure on safety check - non-critical feature
             pass
 
         # Build mapping: agent_id -> AgentConfig
