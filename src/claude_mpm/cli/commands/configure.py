@@ -873,11 +873,11 @@ class ConfigureCommand(BaseCommand):
         Returns:
             List of skill dicts with full metadata from GitSkillSourceManager.
         """
-        from ...core.unified_config import get_config
+        from ...config.skill_sources import SkillSourceConfiguration
         from ...services.skills.git_skill_source_manager import GitSkillSourceManager
 
         try:
-            config = get_config()
+            config = SkillSourceConfiguration()
             manager = GitSkillSourceManager(config)
             return manager.get_all_skills()
         except Exception as e:
