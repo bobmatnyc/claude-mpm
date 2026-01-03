@@ -656,7 +656,7 @@ class ConfigureCommand(BaseCommand):
         self.behavior_manager.manage_behaviors()
 
     def _manage_skills(self) -> None:
-        """Skills management interface with table display."""
+        """Skills management interface with questionary checkbox selection."""
         from ...cli.interactive.skills_wizard import SkillsWizard
         from ...skills.skill_manager import get_manager
 
@@ -667,12 +667,11 @@ class ConfigureCommand(BaseCommand):
             self.console.clear()
             self._display_header()
 
-            # Display skills table using new Git-based manager
-            self._display_skills_table_grouped()
+            self.console.print("\n[bold]Skills Management[/bold]")
 
             # Show action options
             self.console.print("\n[bold]Actions:[/bold]")
-            self.console.print("  [1] Toggle skill installation")
+            self.console.print("  [1] Install/Uninstall skills")
             self.console.print("  [2] Configure skills for agents")
             self.console.print("  [3] View current skill mappings")
             self.console.print("  [4] Auto-link skills to agents")
@@ -682,69 +681,8 @@ class ConfigureCommand(BaseCommand):
             choice = Prompt.ask("[bold blue]Select an option[/bold blue]", default="b")
 
             if choice == "1":
-                # Toggle skill installation
-                self.console.clear()
-                self._display_header()
-                self._display_skills_table_grouped()
-
-                skill_num = Prompt.ask(
-                    "\n[bold blue]Enter skill number to toggle (or 'b' to go back)[/bold blue]",
-                    default="b",
-                )
-
-                if skill_num == "b":
-                    continue
-
-                try:
-                    skill_idx = int(skill_num) - 1
-                    all_skills = self._get_all_skills_from_git()
-
-                    if 0 <= skill_idx < len(all_skills):
-                        skill_dict = all_skills[skill_idx]
-                        deployed_ids = self._get_deployed_skill_ids()
-
-                        skill_id = skill_dict.get(
-                            "name", skill_dict.get("skill_id", "unknown")
-                        )
-                        deploy_name = skill_dict.get("deployment_name", skill_id)
-                        is_installed = (
-                            deploy_name in deployed_ids or skill_id in deployed_ids
-                        )
-
-                        if is_installed:
-                            # Uninstall
-                            confirm = Confirm.ask(
-                                f"\n[yellow]Uninstall skill '{skill_id}'?[/yellow]",
-                                default=False,
-                            )
-                            if confirm:
-                                self._uninstall_skill_by_name(
-                                    deploy_name
-                                    if deploy_name in deployed_ids
-                                    else skill_id
-                                )
-                                self.console.print(
-                                    f"\n[green]✓ Skill '{skill_id}' uninstalled[/green]"
-                                )
-                        else:
-                            # Install
-                            confirm = Confirm.ask(
-                                f"\n[cyan]Install skill '{skill_id}'?[/cyan]",
-                                default=True,
-                            )
-                            if confirm:
-                                self._install_skill_from_dict(skill_dict)
-                                self.console.print(
-                                    f"\n[green]✓ Skill '{skill_id}' installed[/green]"
-                                )
-                    else:
-                        self.console.print("[red]Invalid skill number[/red]")
-                except ValueError:
-                    self.console.print(
-                        "[red]Invalid input. Please enter a number.[/red]"
-                    )
-
-                Prompt.ask("\nPress Enter to continue")
+                # Install/Uninstall skills with category-based selection
+                self._manage_skill_installation()
 
             elif choice == "2":
                 # Configure skills interactively
@@ -865,6 +803,179 @@ class ConfigureCommand(BaseCommand):
                 break
             else:
                 self.console.print("[red]Invalid choice. Please try again.[/red]")
+                Prompt.ask("\nPress Enter to continue")
+
+    def _manage_skill_installation(self) -> None:
+        """Manage skill installation with category-based questionary checkbox selection."""
+        import questionary
+
+        # Get all skills
+        all_skills = self._get_all_skills_from_git()
+        if not all_skills:
+            self.console.print(
+                "[yellow]No skills available. Try syncing skills first.[/yellow]"
+            )
+            Prompt.ask("\nPress Enter to continue")
+            return
+
+        # Get deployed skills
+        deployed = self._get_deployed_skill_ids()
+
+        # Group by category
+        grouped = {}
+        for skill in all_skills:
+            # Try to get category from tags or use toolchain
+            category = None
+            tags = skill.get("tags", [])
+
+            # Look for category tag
+            for tag in tags:
+                if tag in [
+                    "universal",
+                    "python",
+                    "typescript",
+                    "javascript",
+                    "go",
+                    "rust",
+                ]:
+                    category = tag
+                    break
+
+            # Fallback to toolchain or universal
+            if not category:
+                category = skill.get("toolchain", "universal")
+
+            if category not in grouped:
+                grouped[category] = []
+            grouped[category].append(skill)
+
+        # Category icons
+        icons = {
+            "universal": "🌐",
+            "python": "🐍",
+            "typescript": "📘",
+            "javascript": "📒",
+            "go": "🔷",
+            "rust": "⚙️",
+        }
+
+        # Sort categories: universal first, then alphabetically
+        categories = sorted(grouped.keys(), key=lambda x: (x != "universal", x))
+
+        while True:
+            # Show category selection first
+            self.console.clear()
+            self._display_header()
+            self.console.print("\n[bold cyan]Skills Management[/bold cyan]")
+            self.console.print(
+                f"[dim]{len(all_skills)} skills available, {len(deployed)} installed[/dim]\n"
+            )
+
+            cat_choices = [
+                Choice(
+                    title=f"{icons.get(cat, '📦')} {cat.title()} ({len(grouped[cat])} skills)",
+                    value=cat,
+                )
+                for cat in categories
+            ]
+            cat_choices.append(Choice(title="← Back to main menu", value="back"))
+
+            selected_cat = questionary.select(
+                "Select a category:", choices=cat_choices, style=self.QUESTIONARY_STYLE
+            ).ask()
+
+            if selected_cat is None or selected_cat == "back":
+                return
+
+            # Show skills in category with checkbox selection
+            category_skills = grouped[selected_cat]
+
+            # Build choices with current installation status
+            skill_choices = []
+            for skill in sorted(category_skills, key=lambda x: x.get("name", "")):
+                skill_id = skill.get("name", skill.get("skill_id", "unknown"))
+                deploy_name = skill.get("deployment_name", skill_id)
+                description = skill.get("description", "")[:50]
+
+                # Check if installed
+                is_installed = deploy_name in deployed or skill_id in deployed
+
+                skill_choices.append(
+                    Choice(
+                        title=f"{skill_id} - {description}",
+                        value=skill_id,
+                        checked=is_installed,
+                    )
+                )
+
+            self.console.clear()
+            self._display_header()
+            self.console.print(
+                f"\n{icons.get(selected_cat, '📦')} [bold]{selected_cat.title()}[/bold]"
+            )
+            self.console.print("[dim]Use spacebar to toggle, enter to confirm[/dim]\n")
+
+            selected = questionary.checkbox(
+                "Select skills to install:",
+                choices=skill_choices,
+                style=self.QUESTIONARY_STYLE,
+            ).ask()
+
+            if selected is None:
+                continue  # User cancelled, go back to category selection
+
+            # Process changes
+            selected_set = set(selected)
+            current_in_cat = set()
+
+            # Find currently installed skills in this category
+            for skill in category_skills:
+                skill_id = skill.get("name", skill.get("skill_id", "unknown"))
+                deploy_name = skill.get("deployment_name", skill_id)
+                if deploy_name in deployed or skill_id in deployed:
+                    current_in_cat.add(skill_id)
+
+            # Install newly selected
+            to_install = selected_set - current_in_cat
+            for skill_id in to_install:
+                skill = next(
+                    (
+                        s
+                        for s in category_skills
+                        if s.get("name") == skill_id or s.get("skill_id") == skill_id
+                    ),
+                    None,
+                )
+                if skill:
+                    self._install_skill_from_dict(skill)
+                    self.console.print(f"[green]✓ Installed {skill_id}[/green]")
+
+            # Uninstall deselected
+            to_uninstall = current_in_cat - selected_set
+            for skill_id in to_uninstall:
+                # Find the skill to get deployment_name
+                skill = next(
+                    (
+                        s
+                        for s in category_skills
+                        if s.get("name") == skill_id or s.get("skill_id") == skill_id
+                    ),
+                    None,
+                )
+                if skill:
+                    deploy_name = skill.get("deployment_name", skill_id)
+                    # Use the name that's actually in deployed set
+                    name_to_uninstall = (
+                        deploy_name if deploy_name in deployed else skill_id
+                    )
+                    self._uninstall_skill_by_name(name_to_uninstall)
+                    self.console.print(f"[yellow]✗ Uninstalled {skill_id}[/yellow]")
+
+            # Update deployed set for next iteration
+            deployed = self._get_deployed_skill_ids()
+
+            # Show completion message
+            if to_install or to_uninstall:
                 Prompt.ask("\nPress Enter to continue")
 
     def _get_all_skills_from_git(self) -> list:
