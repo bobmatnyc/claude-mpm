@@ -976,6 +976,9 @@ class ConfigureCommand(BaseCommand):
             # Build choices with pattern grouping and installation status
             skill_choices = []
 
+            # Track which skills belong to which group for expansion later
+            group_to_skills = {}
+
             # Sort pattern groups: "" (Other) last, rest alphabetically
             sorted_patterns = sorted(pattern_groups.keys(), key=lambda x: (x == "", x))
 
@@ -986,18 +989,48 @@ class ConfigureCommand(BaseCommand):
                 if not pattern_skills:
                     continue
 
-                # Add pattern separator/header
+                # Collect skill IDs in this group
+                skill_ids_in_group = []
+                for skill in pattern_skills:
+                    skill_id = skill.get("name", skill.get("skill_id", "unknown"))
+                    skill_ids_in_group.append(skill_id)
+
+                # Check if all skills in group are installed
+                all_installed = all(
+                    skill.get(
+                        "deployment_name", skill.get("name", skill.get("skill_id"))
+                    )
+                    in deployed
+                    or skill.get("name", skill.get("skill_id")) in deployed
+                    for skill in pattern_skills
+                )
+
+                # Add pattern group header as selectable choice
                 if pattern:
                     # Named pattern group
                     pattern_icon = self._get_pattern_icon(pattern)
                     skill_count = len(pattern_skills)
+                    group_key = f"__group__:{pattern}"
+                    group_to_skills[group_key] = skill_ids_in_group
+
                     skill_choices.append(
-                        Separator(f"{pattern_icon} {pattern} ({skill_count} skills)")
+                        Choice(
+                            title=f"{pattern_icon} {pattern} ({skill_count} skills) [Select All]",
+                            value=group_key,
+                            checked=all_installed,
+                        )
                     )
                 elif pattern_skills:
                     # "Other" group - only show if there are skills
+                    group_key = "__group__:Other"
+                    group_to_skills[group_key] = skill_ids_in_group
+
                     skill_choices.append(
-                        Separator(f"📦 Other ({len(pattern_skills)} skills)")
+                        Choice(
+                            title=f"📦 Other ({len(pattern_skills)} skills) [Select All]",
+                            value=group_key,
+                            checked=all_installed,
+                        )
                     )
 
                 # Add skills in this pattern group
@@ -1012,7 +1045,7 @@ class ConfigureCommand(BaseCommand):
                     # Add indentation for pattern-grouped skills (all skills are indented)
                     skill_choices.append(
                         Choice(
-                            title=f"  {skill_id} - {description}",
+                            title=f"    {skill_id} - {description}",
                             value=skill_id,
                             checked=is_installed,
                         )
@@ -1027,7 +1060,9 @@ class ConfigureCommand(BaseCommand):
             self.console.print(
                 f"\n{icons.get(selected_cat, '📦')} [bold]{selected_cat.title()}[/bold]"
             )
-            self.console.print("[dim]Use spacebar to toggle, enter to confirm[/dim]\n")
+            self.console.print(
+                "[dim]Use spacebar to toggle individual skills or entire groups, enter to confirm[/dim]\n"
+            )
 
             selected = questionary.checkbox(
                 "Select skills to install:",
@@ -1038,8 +1073,16 @@ class ConfigureCommand(BaseCommand):
             if selected is None:
                 continue  # User cancelled, go back to category selection
 
-            # Process changes
-            selected_set = set(selected)
+            # Process group selections - expand to individual skills
+            selected_set = set()
+            for item in selected:
+                if item.startswith("__group__:"):
+                    # Expand group selection to all skills in that group
+                    selected_set.update(group_to_skills[item])
+                else:
+                    # Individual skill selection
+                    selected_set.add(item)
+
             current_in_cat = set()
 
             # Find currently installed skills in this category
