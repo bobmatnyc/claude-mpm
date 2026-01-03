@@ -805,6 +805,86 @@ class ConfigureCommand(BaseCommand):
                 self.console.print("[red]Invalid choice. Please try again.[/red]")
                 Prompt.ask("\nPress Enter to continue")
 
+    def _detect_skill_patterns(self, skills: list[dict]) -> dict[str, list[dict]]:
+        """Group skills by detected common prefixes.
+
+        Args:
+            skills: List of skill dictionaries
+
+        Returns:
+            Dict mapping pattern prefix to list of skills.
+            Skills without pattern match go under "" (empty string) key.
+        """
+        from collections import defaultdict
+
+        # Count prefix occurrences (try 1-segment and 2-segment prefixes)
+        prefix_counts = defaultdict(list)
+
+        for skill in skills:
+            skill_id = skill.get("name", skill.get("skill_id", ""))
+
+            # Try to extract prefixes (split by hyphen)
+            parts = skill_id.split("-")
+
+            if len(parts) >= 2:
+                # Try 2-segment prefix first (e.g., "toolchains-universal")
+                two_seg_prefix = f"{parts[0]}-{parts[1]}"
+                prefix_counts[two_seg_prefix].append(skill)
+
+                # Also try 1-segment prefix (e.g., "digitalocean")
+                one_seg_prefix = parts[0]
+                if one_seg_prefix != two_seg_prefix:
+                    prefix_counts[one_seg_prefix].append(skill)
+
+        # Build pattern groups (require at least 2 skills per pattern)
+        pattern_groups = defaultdict(list)
+        used_skills = set()
+
+        # Prefer longer (more specific) prefixes
+        sorted_prefixes = sorted(prefix_counts.keys(), key=lambda x: (-len(x), x))
+
+        for prefix in sorted_prefixes:
+            matching_skills = prefix_counts[prefix]
+
+            # Only create a pattern group if we have 2+ skills and they're not already grouped
+            available_skills = [s for s in matching_skills if id(s) not in used_skills]
+
+            if len(available_skills) >= 2:
+                pattern_groups[prefix] = available_skills
+                used_skills.update(id(s) for s in available_skills)
+
+        # Add ungrouped skills to "" (Other) group
+        for skill in skills:
+            if id(skill) not in used_skills:
+                pattern_groups[""].append(skill)
+
+        return dict(pattern_groups)
+
+    def _get_pattern_icon(self, prefix: str) -> str:
+        """Get icon for a pattern prefix.
+
+        Args:
+            prefix: Pattern prefix (e.g., "digitalocean", "vercel")
+
+        Returns:
+            Emoji icon for the pattern
+        """
+        pattern_icons = {
+            "digitalocean": "🌊",
+            "aws": "☁️",
+            "github": "🐙",
+            "google": "🔍",
+            "vercel": "▲",
+            "netlify": "🦋",
+            "universal-testing": "🧪",
+            "universal-debugging": "🐛",
+            "universal-security": "🔒",
+            "toolchains-python": "🐍",
+            "toolchains-typescript": "📘",
+            "toolchains-javascript": "📒",
+        }
+        return pattern_icons.get(prefix, "📦")
+
     def _manage_skill_installation(self) -> None:
         """Manage skill installation with category-based questionary checkbox selection."""
         import questionary
@@ -890,23 +970,57 @@ class ConfigureCommand(BaseCommand):
             # Show skills in category with checkbox selection
             category_skills = grouped[selected_cat]
 
-            # Build choices with current installation status
+            # Detect pattern groups within category
+            pattern_groups = self._detect_skill_patterns(category_skills)
+
+            # Build choices with pattern grouping and installation status
             skill_choices = []
-            for skill in sorted(category_skills, key=lambda x: x.get("name", "")):
-                skill_id = skill.get("name", skill.get("skill_id", "unknown"))
-                deploy_name = skill.get("deployment_name", skill_id)
-                description = skill.get("description", "")[:50]
 
-                # Check if installed
-                is_installed = deploy_name in deployed or skill_id in deployed
+            # Sort pattern groups: "" (Other) last, rest alphabetically
+            sorted_patterns = sorted(pattern_groups.keys(), key=lambda x: (x == "", x))
 
-                skill_choices.append(
-                    Choice(
-                        title=f"{skill_id} - {description}",
-                        value=skill_id,
-                        checked=is_installed,
+            for pattern in sorted_patterns:
+                pattern_skills = pattern_groups[pattern]
+
+                # Skip empty groups
+                if not pattern_skills:
+                    continue
+
+                # Add pattern separator/header
+                if pattern:
+                    # Named pattern group
+                    pattern_icon = self._get_pattern_icon(pattern)
+                    skill_count = len(pattern_skills)
+                    skill_choices.append(
+                        Separator(f"{pattern_icon} {pattern} ({skill_count} skills)")
                     )
-                )
+                elif pattern_skills:
+                    # "Other" group - only show if there are skills
+                    skill_choices.append(
+                        Separator(f"📦 Other ({len(pattern_skills)} skills)")
+                    )
+
+                # Add skills in this pattern group
+                for skill in sorted(pattern_skills, key=lambda x: x.get("name", "")):
+                    skill_id = skill.get("name", skill.get("skill_id", "unknown"))
+                    deploy_name = skill.get("deployment_name", skill_id)
+                    description = skill.get("description", "")[:50]
+
+                    # Check if installed
+                    is_installed = deploy_name in deployed or skill_id in deployed
+
+                    # Add indentation for pattern-grouped skills (all skills are indented)
+                    skill_choices.append(
+                        Choice(
+                            title=f"  {skill_id} - {description}",
+                            value=skill_id,
+                            checked=is_installed,
+                        )
+                    )
+
+                # Add spacing between pattern groups (not after last group)
+                if pattern != sorted_patterns[-1]:
+                    skill_choices.append(Separator())
 
             self.console.clear()
             self._display_header()
