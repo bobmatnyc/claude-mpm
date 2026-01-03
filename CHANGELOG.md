@@ -1,3 +1,8 @@
+## [5.4.74] - 2026-01-02
+
+### Changed
+- Patch version bump for package publication
+
 ## [5.4.73] - 2026-01-02
 
 ### Changed
