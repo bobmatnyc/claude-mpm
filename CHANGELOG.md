@@ -1,3 +1,8 @@
+## [5.4.77] - 2026-01-02
+
+### Fixed
+- Bug fixes and stability improvements
+
 ## [5.4.76] - 2026-01-02
 
 ### Changed
