@@ -658,19 +658,17 @@ class ConfigureCommand(BaseCommand):
     def _manage_skills(self) -> None:
         """Skills management interface with table display."""
         from ...cli.interactive.skills_wizard import SkillsWizard
-        from ...skills.registry import get_registry
         from ...skills.skill_manager import get_manager
 
         wizard = SkillsWizard()
         manager = get_manager()
-        registry = get_registry()
 
         while True:
             self.console.clear()
             self._display_header()
 
-            # Display skills table
-            self._display_skills_table(registry)
+            # Display skills table using new Git-based manager
+            self._display_skills_table_grouped()
 
             # Show action options
             self.console.print("\n[bold]Actions:[/bold]")
@@ -687,7 +685,7 @@ class ConfigureCommand(BaseCommand):
                 # Toggle skill installation
                 self.console.clear()
                 self._display_header()
-                self._display_skills_table(registry)
+                self._display_skills_table_grouped()
 
                 skill_num = Prompt.ask(
                     "\n[bold blue]Enter skill number to toggle (or 'b' to go back)[/bold blue]",
@@ -699,33 +697,45 @@ class ConfigureCommand(BaseCommand):
 
                 try:
                     skill_idx = int(skill_num) - 1
-                    all_skills = self._get_all_skills_sorted(registry)
+                    all_skills = self._get_all_skills_from_git()
 
                     if 0 <= skill_idx < len(all_skills):
-                        skill = all_skills[skill_idx]
+                        skill_dict = all_skills[skill_idx]
                         deployed_ids = self._get_deployed_skill_ids()
 
-                        if skill.skill_id in deployed_ids:
+                        skill_id = skill_dict.get(
+                            "name", skill_dict.get("skill_id", "unknown")
+                        )
+                        deploy_name = skill_dict.get("deployment_name", skill_id)
+                        is_installed = (
+                            deploy_name in deployed_ids or skill_id in deployed_ids
+                        )
+
+                        if is_installed:
                             # Uninstall
                             confirm = Confirm.ask(
-                                f"\n[yellow]Uninstall skill '{skill.name}'?[/yellow]",
+                                f"\n[yellow]Uninstall skill '{skill_id}'?[/yellow]",
                                 default=False,
                             )
                             if confirm:
-                                self._uninstall_skill(skill)
+                                self._uninstall_skill_by_name(
+                                    deploy_name
+                                    if deploy_name in deployed_ids
+                                    else skill_id
+                                )
                                 self.console.print(
-                                    f"\n[green]✓ Skill '{skill.name}' uninstalled[/green]"
+                                    f"\n[green]✓ Skill '{skill_id}' uninstalled[/green]"
                                 )
                         else:
                             # Install
                             confirm = Confirm.ask(
-                                f"\n[cyan]Install skill '{skill.name}'?[/cyan]",
+                                f"\n[cyan]Install skill '{skill_id}'?[/cyan]",
                                 default=True,
                             )
                             if confirm:
-                                self._install_skill(skill)
+                                self._install_skill_from_dict(skill_dict)
                                 self.console.print(
-                                    f"\n[green]✓ Skill '{skill.name}' installed[/green]"
+                                    f"\n[green]✓ Skill '{skill_id}' installed[/green]"
                                 )
                     else:
                         self.console.print("[red]Invalid skill number[/red]")
@@ -857,72 +867,131 @@ class ConfigureCommand(BaseCommand):
                 self.console.print("[red]Invalid choice. Please try again.[/red]")
                 Prompt.ask("\nPress Enter to continue")
 
-    def _display_skills_table(self, registry) -> None:
-        """Display skills in a table format like agents."""
+    def _get_all_skills_from_git(self) -> list:
+        """Get all skills from Git-based skill manager.
+
+        Returns:
+            List of skill dicts with full metadata from GitSkillSourceManager.
+        """
+        from ...core.unified_config import get_config
+        from ...services.skills.git_skill_source_manager import GitSkillSourceManager
+
+        try:
+            config = get_config()
+            manager = GitSkillSourceManager(config)
+            return manager.get_all_skills()
+        except Exception as e:
+            self.console.print(
+                f"[yellow]Warning: Could not load Git skills: {e}[/yellow]"
+            )
+            return []
+
+    def _display_skills_table_grouped(self) -> None:
+        """Display skills in a table grouped by category, like agents."""
         from rich import box
         from rich.table import Table
 
-        # Get all skills and deployed skill IDs
-        all_skills = self._get_all_skills_sorted(registry)
+        # Get all skills from Git manager
+        all_skills = self._get_all_skills_from_git()
         deployed_ids = self._get_deployed_skill_ids()
 
-        # Create table with same styling as agents table
-        table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
-        table.add_column("#", style="bright_black", width=6)
-        table.add_column("Skill ID", style="bright_black", overflow="ellipsis")
-        table.add_column("Name", style="bright_cyan", overflow="ellipsis")
-        table.add_column("Source", style="bright_yellow")
-        table.add_column("Status", style="bright_black")
+        if not all_skills:
+            self.console.print(
+                "[yellow]No skills available. Try syncing skills first.[/yellow]"
+            )
+            return
 
-        # Populate table
-        for i, skill in enumerate(all_skills, 1):
-            # Determine status
-            if skill.skill_id in deployed_ids:
-                status = "[green]Installed[/green]"
-            else:
-                status = "Available"
+        # Group skills by category/toolchain
+        grouped = {}
+        for skill in all_skills:
+            # Try to get category from tags or use toolchain
+            category = None
+            tags = skill.get("tags", [])
 
-            # Determine source label
-            if skill.source == "bundled":
-                source = "MPM Skills"
-            elif skill.source == "user":
-                source = "User Skills"
-            elif skill.source == "project":
-                source = "Project Skills"
-            else:
-                source = skill.source.title()
+            # Look for category tag
+            for tag in tags:
+                if tag in [
+                    "universal",
+                    "python",
+                    "typescript",
+                    "javascript",
+                    "go",
+                    "rust",
+                ]:
+                    category = tag
+                    break
 
-            # Get display name (fallback to skill_id with formatting)
-            name = skill.name or skill.skill_id.replace("-", " ").title()
+            # Fallback to toolchain or universal
+            if not category:
+                category = skill.get("toolchain", "universal")
 
-            table.add_row(str(i), skill.skill_id, name, source, status)
+            if category not in grouped:
+                grouped[category] = []
+            grouped[category].append(skill)
 
-        self.console.print(table)
+        # Sort categories: universal first, then alphabetically
+        categories = sorted(grouped.keys(), key=lambda x: (x != "universal", x))
 
-        # Show summary
-        installed_count = len([s for s in all_skills if s.skill_id in deployed_ids])
+        # Track global skill number across all categories
+        skill_counter = 0
+
+        for category in categories:
+            category_skills = grouped[category]
+
+            # Category header with icon
+            icons = {
+                "universal": "🌐",
+                "python": "🐍",
+                "typescript": "📘",
+                "javascript": "📒",
+                "go": "🔷",
+                "rust": "⚙️",
+            }
+            icon = icons.get(category, "📦")
+            self.console.print(
+                f"\n{icon} [bold cyan]{category.title()}[/bold cyan] ({len(category_skills)} skills)"
+            )
+
+            # Create table for this category
+            table = Table(show_header=True, header_style="bold", box=box.SIMPLE)
+            table.add_column("#", style="dim", width=4)
+            table.add_column("Skill ID", style="cyan", width=35)
+            table.add_column("Description", style="white", width=45)
+            table.add_column("Status", style="green", width=12)
+
+            for skill in sorted(category_skills, key=lambda x: x.get("name", "")):
+                skill_counter += 1
+                skill_id = skill.get("name", skill.get("skill_id", "unknown"))
+                # Use deployment_name for matching if available
+                deploy_name = skill.get("deployment_name", skill_id)
+                description = skill.get("description", "")[:45]
+
+                # Check if installed - handle both deployment_name and skill_id
+                is_installed = deploy_name in deployed_ids or skill_id in deployed_ids
+                status = "[green]✓ Installed[/green]" if is_installed else "Available"
+
+                table.add_row(str(skill_counter), skill_id, description, status)
+
+            self.console.print(table)
+
+        # Summary
+        total = len(all_skills)
+        installed = sum(
+            1
+            for s in all_skills
+            if s.get("deployment_name", s.get("name", "")) in deployed_ids
+            or s.get("name", "") in deployed_ids
+        )
         self.console.print(
-            f"\nShowing {len(all_skills)} skills ({installed_count} installed)"
+            f"\n[dim]Showing {total} skills ({installed} installed)[/dim]"
         )
 
-    def _get_all_skills_sorted(self, registry):
-        """Get all skills from registry, sorted by source and name."""
-        # Get skills from all sources
-        bundled = registry.list_skills(source="bundled")
-        user = registry.list_skills(source="user")
-        project = registry.list_skills(source="project")
-
-        # Combine and sort: bundled first, then user, then project
-        # Within each group, sort by name
-        all_skills = []
-        all_skills.extend(sorted(bundled, key=lambda s: s.name.lower()))
-        all_skills.extend(sorted(user, key=lambda s: s.name.lower()))
-        all_skills.extend(sorted(project, key=lambda s: s.name.lower()))
-
-        return all_skills
-
     def _get_deployed_skill_ids(self) -> set:
-        """Get set of deployed skill IDs from .claude/skills/ directory."""
+        """Get set of deployed skill IDs from .claude/skills/ directory.
+
+        Returns:
+            Set of skill directory names and common variations for matching.
+        """
         from pathlib import Path
 
         skills_dir = Path.cwd() / ".claude" / "skills"
@@ -933,7 +1002,11 @@ class ConfigureCommand(BaseCommand):
         deployed_ids = set()
         for skill_dir in skills_dir.iterdir():
             if skill_dir.is_dir() and not skill_dir.name.startswith("."):
+                # Add both the directory name and common variations
                 deployed_ids.add(skill_dir.name)
+                # Also add without prefix for matching (e.g., universal-testing -> testing)
+                if skill_dir.name.startswith("universal-"):
+                    deployed_ids.add(skill_dir.name.replace("universal-", "", 1))
 
         return deployed_ids
 
@@ -964,6 +1037,45 @@ class ConfigureCommand(BaseCommand):
         from pathlib import Path
 
         target_dir = Path.cwd() / ".claude" / "skills" / skill.skill_id
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+
+    def _install_skill_from_dict(self, skill_dict: dict) -> None:
+        """Install a skill from Git skill dict to .claude/skills/ directory.
+
+        Args:
+            skill_dict: Skill metadata dict from GitSkillSourceManager.get_all_skills()
+        """
+        from pathlib import Path
+
+        skill_id = skill_dict.get("name", skill_dict.get("skill_id", "unknown"))
+        content = skill_dict.get("content", "")
+
+        if not content:
+            self.console.print(
+                f"[yellow]Warning: Skill '{skill_id}' has no content[/yellow]"
+            )
+            return
+
+        # Target directory using deployment_name if available
+        deploy_name = skill_dict.get("deployment_name", skill_id)
+        target_dir = Path.cwd() / ".claude" / "skills" / deploy_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write skill content to skill.md
+        skill_file = target_dir / "skill.md"
+        skill_file.write_text(content, encoding="utf-8")
+
+    def _uninstall_skill_by_name(self, skill_name: str) -> None:
+        """Uninstall a skill by name from .claude/skills/ directory.
+
+        Args:
+            skill_name: Name of skill directory to remove
+        """
+        import shutil
+        from pathlib import Path
+
+        target_dir = Path.cwd() / ".claude" / "skills" / skill_name
         if target_dir.exists():
             shutil.rmtree(target_dir)
 
