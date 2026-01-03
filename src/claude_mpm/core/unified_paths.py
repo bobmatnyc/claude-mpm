@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Unified Path Management System for Claude MPM
 ==============================================
@@ -34,6 +33,24 @@ from typing import Optional, Union
 from claude_mpm.core.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def _safe_cwd() -> Path:
+    """Safely get the current working directory.
+
+    If the current directory no longer exists (deleted/moved), fall back to home directory.
+    This prevents FileNotFoundError when Path.cwd() is called from a deleted directory.
+
+    Returns:
+        Path: Current working directory, or home directory if cwd doesn't exist
+    """
+    try:
+        return Path.cwd()
+    except (FileNotFoundError, OSError) as e:
+        logger.debug(
+            f"Current directory doesn't exist ({e}), falling back to home directory"
+        )
+        return Path.home()
 
 
 class PathType(Enum):
@@ -95,7 +112,7 @@ class PathContext:
 
             # Additional check: If we're running from within a claude-mpm development directory
             # This handles the case where pipx claude-mpm is invoked from within the dev directory
-            cwd = Path.cwd()
+            cwd = _safe_cwd()
             current = cwd
             for _ in range(5):  # Check up to 5 levels up from current directory
                 if (current / "pyproject.toml").exists() and (
@@ -114,7 +131,7 @@ class PathContext:
                             # Verify this is a development setup by checking for key files
                             if (current / "scripts" / "claude-mpm").exists():
                                 return True
-                    except Exception:
+                    except Exception:  # nosec B110
                         pass
                 if current == current.parent:
                     break
@@ -140,7 +157,7 @@ class PathContext:
                                         f"Found editable install via .pth file: {pth_file}"
                                     )
                                     return True
-                            except Exception:
+                            except Exception:  # nosec B112
                                 continue
 
                         # Check for egg-link files
@@ -156,7 +173,7 @@ class PathContext:
                                             f"Found editable install via egg-link: {egg_link}"
                                         )
                                         return True
-                                except Exception:
+                                except Exception:  # nosec B112
                                     continue
             except ImportError:
                 pass
@@ -186,7 +203,7 @@ class PathContext:
 
         # Check if current working directory is a claude-mpm development project
         # This handles the case where pipx claude-mpm is run from within the dev directory
-        cwd = Path.cwd()
+        cwd = _safe_cwd()
         current = cwd
         for _ in range(5):  # Check up to 5 levels up from current directory
             if (current / "pyproject.toml").exists() and (
@@ -206,7 +223,7 @@ class PathContext:
                             "Using development mode for local source preference"
                         )
                         return DeploymentContext.DEVELOPMENT
-                except Exception:
+                except Exception:  # nosec B110
                     pass
             if current == current.parent:
                 break
@@ -228,7 +245,7 @@ class PathContext:
                 if "pipx" in str(module_path):
                     # Running via pipx but from within a development directory
                     # Use development mode to prefer local source over pipx installation
-                    cwd = Path.cwd()
+                    cwd = _safe_cwd()
                     current = cwd
                     for _ in range(5):
                         if (current / "src" / "claude_mpm").exists() and (
@@ -346,7 +363,7 @@ class UnifiedPathManager:
             ):
                 # For development mode, first check if we're running from within a dev directory
                 # This handles the case where pipx is invoked from a development directory
-                cwd = Path.cwd()
+                cwd = _safe_cwd()
                 current = cwd
                 for _ in range(5):
                     if (current / "src" / "claude_mpm").exists() and (
@@ -360,7 +377,7 @@ class UnifiedPathManager:
                                     f"Found framework root via cwd at {current}"
                                 )
                                 return current
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass
                     if current == current.parent:
                         break
@@ -403,7 +420,7 @@ class UnifiedPathManager:
     @lru_cache(maxsize=1)
     def project_root(self) -> Path:
         """Get the current project root directory."""
-        current = Path.cwd()
+        current = _safe_cwd()
         while current != current.parent:
             for marker in self._project_markers:
                 if (current / marker).exists():
@@ -413,7 +430,7 @@ class UnifiedPathManager:
 
         # Fallback to current directory
         logger.warning("Could not find project root, using current directory")
-        return Path.cwd()
+        return _safe_cwd()
 
     @property
     def package_root(self) -> Path:
@@ -562,7 +579,7 @@ class UnifiedPathManager:
         self, filename: str, start_path: Optional[Path] = None
     ) -> Optional[Path]:
         """Search for a file by traversing up the directory tree."""
-        current = start_path or Path.cwd()
+        current = start_path or _safe_cwd()
 
         while current != current.parent:
             candidate = current / filename
