@@ -240,11 +240,49 @@ class DeploymentReconciler:
         self, cache_dir: Path, deploy_dir: Path
     ) -> ReconciliationState:
         """Get current agent deployment state."""
+        # Start with enabled agents
+        configured_agents = set(self.config.agents.enabled)
+
+        # Add required agents (cannot be disabled)
+        configured_agents.update(self.config.agents.required)
+
+        # Add universal agents if enabled
+        if self.config.agents.include_universal:
+            universal_agents = self._get_universal_agents(cache_dir)
+            configured_agents.update(universal_agents)
+
         return ReconciliationState(
-            configured=set(self.config.agents.enabled),
+            configured=configured_agents,
             deployed=self._list_deployed_agents(deploy_dir),
             cached=self._list_cached_agents(cache_dir),
         )
+
+    def _get_universal_agents(self, cache_dir: Path) -> Set[str]:
+        """Get all agents with 'universal' toolchain/category."""
+        universal_agents = set()
+        if not cache_dir.exists():
+            return universal_agents
+
+        for agent_file in cache_dir.glob("**/*.md"):
+            try:
+                # Read frontmatter to check toolchain/category
+                content = agent_file.read_text(encoding="utf-8")
+
+                # Check for universal markers in frontmatter (within first 1000 chars)
+                frontmatter_section = content[:1000].lower()
+                if (
+                    "toolchain: universal" in frontmatter_section
+                    or "category: universal" in frontmatter_section
+                    or "toolchain:\n  - universal" in frontmatter_section
+                ):
+                    universal_agents.add(agent_file.stem)
+            except Exception as e:
+                logger.debug(
+                    f"Failed to check universal marker for {agent_file.name}: {e}"
+                )
+                continue
+
+        return universal_agents
 
     def _list_deployed_agents(self, deploy_dir: Path) -> Set[str]:
         """List agent IDs currently deployed."""

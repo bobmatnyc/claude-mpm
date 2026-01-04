@@ -72,6 +72,22 @@ class AgentConfig(BaseModel):
         description="Explicit list of agent IDs to deploy (empty = use auto_discover)",
     )
 
+    # Required agents that are always deployed
+    required: List[str] = Field(
+        default_factory=lambda: [
+            "research",
+            "mpm-skills-manager",
+            "mpm-agent-manager",
+            "memory-manager",
+        ],
+        description="Agents that are always deployed (core system agents)",
+    )
+
+    include_universal: bool = Field(
+        default=True,
+        description="Auto-include all agents with 'universal' toolchain/category",
+    )
+
     auto_discover: bool = Field(
         default=False,
         description="Enable automatic agent discovery (deprecated, use enabled list)",

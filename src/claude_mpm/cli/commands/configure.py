@@ -26,6 +26,7 @@ from rich.prompt import Confirm, Prompt
 from rich.text import Text
 
 from ...core.config import Config
+from ...core.unified_config import UnifiedConfig
 from ...services.agents.agent_recommendation_service import AgentRecommendationService
 from ...services.version_service import VersionService
 from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
@@ -79,6 +80,7 @@ class ConfigureCommand(BaseCommand):
         self._template_editor = None  # Lazy-initialized
         self._startup_manager = None  # Lazy-initialized
         self._recommendation_service = None  # Lazy-initialized
+        self._unified_config = None  # Lazy-initialized
 
     def validate_args(self, args) -> Optional[str]:
         """Validate command arguments."""
@@ -161,6 +163,18 @@ class ConfigureCommand(BaseCommand):
         if self._recommendation_service is None:
             self._recommendation_service = AgentRecommendationService()
         return self._recommendation_service
+
+    @property
+    def unified_config(self) -> UnifiedConfig:
+        """Lazy-initialize unified config."""
+        if self._unified_config is None:
+            try:
+                self._unified_config = UnifiedConfig()
+            except Exception as e:
+                self.logger.warning(f"Failed to load unified config: {e}")
+                # Fallback to default config
+                self._unified_config = UnifiedConfig()
+        return self._unified_config
 
     def run(self, args) -> CommandResult:
         """Execute the configure command."""
@@ -2062,18 +2076,32 @@ class ConfigureCommand(BaseCommand):
                         )
                         display_name = self._format_display_name(raw_display_name)
 
-                        # Check if agent is deployed (exists in .claude/agents/)
+                        # Check if agent is required (cannot be unchecked)
+                        required_agents = set(self.unified_config.agents.required)
+                        is_required = (
+                            agent_leaf_name in required_agents
+                            or agent_id in required_agents
+                        )
 
-                        # Format choice text (no asterisk needed)
-                        choice_text = f"    {display_name}"
+                        # Format choice text with [Required] indicator
+                        if is_required:
+                            choice_text = f"    {display_name} [Required]"
+                        else:
+                            choice_text = f"    {display_name}"
 
-                        is_selected = agent_id in current_selection
+                        # Required agents are always selected
+                        is_selected = is_required or agent_id in current_selection
+
+                        # Add to current selection if required
+                        if is_required:
+                            current_selection.add(agent_id)
 
                         choices.append(
                             Choice(
                                 title=choice_text,
                                 value=agent_id,  # Use agent_id for value
                                 checked=is_selected,
+                                disabled=is_required,  # Disable checkbox for required agents
                             )
                         )
 
@@ -2082,6 +2110,7 @@ class ConfigureCommand(BaseCommand):
             self.console.print(
                 "[dim][ ] Unchecked = Available (check to install)[/dim]"
             )
+            self.console.print("[dim][Required] = Core agents (always installed)[/dim]")
             self.console.print(
                 "[dim]Use arrow keys to navigate, space to toggle, Enter to apply[/dim]\n"
             )
@@ -2168,11 +2197,36 @@ class ConfigureCommand(BaseCommand):
 
             # No controls selected - use the individual selections as final
             final_selection = set(selected_values)
+
+            # Ensure required agents are always in the final selection
+            required_agents = set(self.unified_config.agents.required)
+            for agent in agents:
+                agent_id = getattr(agent, "agent_id", agent.name)
+                agent_leaf_name = agent_id.split("/")[-1]
+                if agent_leaf_name in required_agents or agent_id in required_agents:
+                    final_selection.add(agent_id)
+
             break
 
         # Determine changes
         to_deploy = final_selection - deployed_full_paths
         to_remove = deployed_full_paths - final_selection
+
+        # Prevent removal of required agents
+        required_agents = set(self.unified_config.agents.required)
+        to_remove_filtered = set()
+        for agent_id in to_remove:
+            agent_leaf_name = agent_id.split("/")[-1]
+            if (
+                agent_leaf_name not in required_agents
+                and agent_id not in required_agents
+            ):
+                to_remove_filtered.add(agent_id)
+            else:
+                self.console.print(
+                    f"[yellow]⚠ Cannot remove required agent: {agent_id}[/yellow]"
+                )
+        to_remove = to_remove_filtered
 
         if not to_deploy and not to_remove:
             self.console.print("[yellow]No changes needed[/yellow]")
