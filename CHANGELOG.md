@@ -1,3 +1,11 @@
+## [5.4.78] - 2026-01-04
+
+### Added
+- **Required Agents Feature**: New `required: true` frontmatter property for agent definitions
+  - Agents marked as required are always deployed, regardless of configure.yaml
+  - Ensures critical agents (e.g., base instructions) are always available
+  - Deployment reconciler respects required flag
+
 ## [5.4.77] - 2026-01-02
 
 ### Fixed
