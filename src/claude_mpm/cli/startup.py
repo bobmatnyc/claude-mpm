@@ -562,7 +562,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
 
                 # Perform reconciliation to deploy configured agents
                 project_path = Path.cwd()
-                agent_result, skill_result = perform_startup_reconciliation(
+                agent_result, _skill_result = perform_startup_reconciliation(
                     project_path=project_path, config=unified_config, silent=False
                 )
 
