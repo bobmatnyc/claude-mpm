@@ -79,6 +79,7 @@ class AgentConfig(BaseModel):
             "mpm-skills-manager",
             "mpm-agent-manager",
             "memory-manager",
+            "ticketing",
         ],
         description="Agents that are always deployed (core system agents)",
     )
