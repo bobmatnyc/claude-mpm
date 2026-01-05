@@ -32,6 +32,7 @@ That's it! Auto-configuration detects your project's stack and deploys the right
 - **[Installation](getting-started/installation.md)** - Install Claude MPM and Claude Code CLI
 - **[Quick Start](getting-started/quick-start.md)** - Get running in 5 minutes
 - **[Auto-Configuration](getting-started/auto-configuration.md)** - Automatic project setup and agent deployment
+- **[Absolute Beginner's Guide](absolute-beginners-guide.md)** - Complete guide for non-technical founders (NEW!)
 
 ### 👥 For Users
 - **[User Guide](user/user-guide.md)** - Features, workflows, and best practices

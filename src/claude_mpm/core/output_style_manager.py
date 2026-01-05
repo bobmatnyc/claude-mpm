@@ -27,7 +27,7 @@ _CACHED_CLAUDE_VERSION: Optional[str] = None
 _VERSION_DETECTED: bool = False
 
 # Output style types
-OutputStyleType = Literal["professional", "teaching"]
+OutputStyleType = Literal["professional", "teaching", "founders"]
 
 
 class StyleConfig(TypedDict):
@@ -41,9 +41,10 @@ class StyleConfig(TypedDict):
 class OutputStyleManager:
     """Manages output style deployment and version-based handling.
 
-    Supports two output styles:
+    Supports three output styles:
     - professional: Default Claude MPM style (claude-mpm.md)
     - teaching: Adaptive teaching mode (claude-mpm-teacher.md)
+    - founders: Non-technical mode for startup founders (claude-mpm-founders.md)
     """
 
     def __init__(self) -> None:
@@ -70,6 +71,13 @@ class OutputStyleManager:
                 / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md",
                 target=self.output_style_dir / "claude-mpm-teacher.md",
                 name="Claude MPM Teacher",
+            ),
+            "founders": StyleConfig(
+                source=Path(__file__).parent.parent
+                / "agents"
+                / "CLAUDE_MPM_FOUNDERS_OUTPUT_STYLE.md",
+                target=self.output_style_dir / "claude-mpm-founders.md",
+                name="Claude MPM Founders",
             ),
         }
 
