@@ -234,7 +234,7 @@ def deploy_bundled_skills():
             if not skills_config.get("auto_deploy", True):
                 # Auto-deploy disabled, skip silently
                 return
-        except Exception:
+        except Exception:  # nosec B110
             # If config loading fails, assume auto-deploy is enabled (default)
             pass
 
@@ -489,7 +489,6 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
         from pathlib import Path
 
         from ..core.shared.config_loader import ConfigLoader
-        from ..services.agents.deployment.agent_deployment import AgentDeploymentService
         from ..services.agents.startup_sync import sync_agents_on_startup
         from ..services.profile_manager import ProfileManager
         from ..utils.progress import ProgressBar
@@ -537,304 +536,89 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                 logger.warning(f"Agent sync completed with {len(errors)} errors")
 
             # Phase 2: Deploy agents from cache to ~/.claude/agents/
-            # This mirrors the skills deployment pattern (lines 371-407)
+            # Use reconciliation service to respect configuration.yaml settings
             try:
-                # Initialize deployment service with profile-filtered configuration
-                from ..core.config import Config
-
-                deploy_config = None
-                if active_profile and profile_manager.active_profile:
-                    # Create config with excluded agents based on profile
-                    # Get all agents that should be excluded (not in enabled list)
-                    from pathlib import Path
-
-                    cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-                    if cache_dir.exists():
-                        # Find all agent files
-                        # Supports both flat cache and {owner}/{repo}/agents/ structure
-                        all_agent_files = [
-                            f
-                            for f in cache_dir.rglob("*.md")
-                            if "/agents/" in str(f)
-                            and f.stem.lower() != "base-agent"
-                            and f.name.lower()
-                            not in {"readme.md", "changelog.md", "contributing.md"}
-                        ]
-
-                        # Build exclusion list for agents not in profile
-                        excluded_agents = []
-                        for agent_file in all_agent_files:
-                            agent_name = agent_file.stem
-                            if not profile_manager.is_agent_enabled(agent_name):
-                                excluded_agents.append(agent_name)
-
-                        if excluded_agents:
-                            # Get singleton config and update with profile settings
-                            # BUGFIX: Config is a singleton that ignores dict parameter if already initialized.
-                            # Creating Config({...}) doesn't store excluded_agents - use set() instead.
-                            deploy_config = Config()
-                            deploy_config.set(
-                                "agent_deployment.excluded_agents", excluded_agents
-                            )
-                            deploy_config.set(
-                                "agent_deployment.filter_non_mpm_agents", False
-                            )
-                            deploy_config.set("agent_deployment.case_sensitive", False)
-                            deploy_config.set(
-                                "agent_deployment.exclude_dependencies", False
-                            )
-                            logger.info(
-                                f"Profile '{active_profile}': Excluding {len(excluded_agents)} agents from deployment"
-                            )
-
-                deployment_service = AgentDeploymentService(config=deploy_config)
-
-                # Count agents in cache to show accurate progress
                 from pathlib import Path
 
-                cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-                agent_count = 0
+                from ..core.unified_config import UnifiedConfig
+                from ..services.agents.deployment.startup_reconciliation import (
+                    perform_startup_reconciliation,
+                )
 
-                if cache_dir.exists():
-                    # BUGFIX (cache-count-inflation): Clean up stale cache files
-                    # from old repositories before counting to prevent inflated counts.
-                    # Issue: Old caches like bobmatnyc/claude-mpm-agents/agents/
-                    # were counted alongside current agents, inflating count
-                    # from 44 to 85.
-                    #
-                    # Solution: Remove files with nested /agents/ paths
-                    # (e.g., cache/agents/user/repo/agents/...)
-                    # Keep only current agents (e.g., cache/agents/engineer/...)
-                    removed_count = 0
-                    stale_dirs = set()
+                # Load configuration
+                unified_config = UnifiedConfig()
 
-                    for md_file in cache_dir.rglob("*.md"):
-                        # Stale cache files have multiple /agents/ in their path RELATIVE to cache_dir
-                        # Current: cache/agents/bobmatnyc/claude-mpm-agents/agents/engineer/...
-                        #          (1 occurrence in relative path: /agents/)
-                        # Old flat: cache/agents/engineer/...
-                        #           (0 occurrences in relative path - no repo structure)
-                        # The issue: str(md_file).count("/agents/") counts BOTH cache/agents/ AND repo/agents/
-                        # Fix: Count /agents/ in path RELATIVE to cache_dir (after cache/agents/)
-                        relative_path = str(md_file.relative_to(cache_dir))
-                        if relative_path.count("/agents/") > 1:
-                            # Track parent directory for cleanup
-                            # Extract subdirectory under cache/agents/
-                            # (e.g., "bobmatnyc")
-                            parts = md_file.parts
-                            cache_agents_idx = parts.index("agents")
-                            if cache_agents_idx + 1 < len(parts):
-                                stale_subdir = parts[cache_agents_idx + 1]
-                                # Only remove if it's not a known category directory
-                                if stale_subdir not in [
-                                    "engineer",
-                                    "ops",
-                                    "qa",
-                                    "universal",
-                                    "documentation",
-                                    "claude-mpm",
-                                    "security",
-                                ]:
-                                    stale_dirs.add(cache_dir / stale_subdir)
-
-                            md_file.unlink()
-                            removed_count += 1
-
-                    # Remove empty stale directories
-                    for stale_dir in stale_dirs:
-                        if stale_dir.exists() and stale_dir.is_dir():
-                            try:
-                                # Remove directory and all contents
-                                import shutil
-
-                                shutil.rmtree(stale_dir)
-                            except Exception:
-                                pass  # Ignore cleanup errors
-
-                    if removed_count > 0:
-                        from loguru import logger
-
-                        logger.info(
-                            f"Cleaned up {removed_count} stale cache files "
-                            f"from old repositories"
-                        )
-
-                    # Count MD files in cache (agent markdown files from
-                    # current repos)
-                    # BUGFIX: Only count files in agent directories,
-                    # not docs/templates/READMEs
-                    # Valid agent paths must contain "/agents/" exactly ONCE
-                    # (current structure)
-                    # Exclude PM templates, BASE-AGENT, and documentation files
-                    pm_templates = {
-                        "base-agent.md",
-                        "circuit_breakers.md",
-                        "pm_examples.md",
-                        "pm_red_flags.md",
-                        "research_gate_examples.md",
-                        "response_format.md",
-                        "ticket_completeness_examples.md",
-                        "validation_templates.md",
-                        "git_file_tracking.md",
-                    }
-                    # Documentation files to exclude (by filename)
-                    doc_files = {
-                        "readme.md",
-                        "changelog.md",
-                        "contributing.md",
-                        "implementation-summary.md",
-                        "reorganization-plan.md",
-                        "auto-deploy-index.md",
-                    }
-
-                    # Find all markdown files (after cleanup)
-                    all_md_files = list(cache_dir.rglob("*.md"))
-
-                    # Filter to only agent files:
-                    # 1. Must have "/agents/" in path (current structure supports
-                    #    both flat and {owner}/{repo}/agents/ patterns)
-                    # 2. Must not be in PM templates or doc files
-                    # 3. Exclude BASE-AGENT.md which is not a deployable agent
-                    # 4. Exclude build artifacts (dist/, build/, .cache/)
-                    #    to prevent double-counting
-                    agent_files = [
-                        f
-                        for f in all_md_files
-                        if (
-                            # Must be in an agent directory
-                            # Supports: cache/agents/{category}/... (flat)
-                            # Supports: cache/agents/{owner}/{repo}/agents/{category}/... (GitHub sync)
-                            "/agents/" in str(f)
-                            # Exclude PM templates, doc files, and BASE-AGENT
-                            and f.name.lower() not in pm_templates
-                            and f.name.lower() not in doc_files
-                            and f.name.lower() != "base-agent.md"
-                            # Exclude build artifacts (prevents double-counting
-                            # source + built files)
-                            and not any(
-                                part in str(f).split("/")
-                                for part in ["dist", "build", ".cache"]
-                            )
-                        )
-                    ]
-                    agent_count = len(agent_files)
-
-                if agent_count > 0:
-                    # Deploy agents to project-level directory where Claude Code expects them
-                    deploy_target = Path.cwd() / ".claude" / "agents"
-                    deployment_result = deployment_service.deploy_agents(
-                        target_dir=deploy_target,
-                        force_rebuild=False,  # Only deploy if versions differ
-                        deployment_mode="update",  # Version-aware updates
-                        config=deploy_config,  # Pass config to respect profile filtering
+                # Override with profile settings if active
+                if active_profile and profile_manager.active_profile:
+                    # Get enabled agents from profile (returns Set[str])
+                    profile_enabled_agents = (
+                        profile_manager.active_profile.get_enabled_agents()
+                    )
+                    # Update config with profile's enabled list (convert Set to List)
+                    unified_config.agents.enabled = list(profile_enabled_agents)
+                    logger.info(
+                        f"Profile '{active_profile}': Using {len(profile_enabled_agents)} enabled agents"
                     )
 
-                    # Get actual counts from deployment result (reflects configured agents)
-                    deployed = len(deployment_result.get("deployed", []))
-                    updated = len(deployment_result.get("updated", []))
-                    skipped = len(deployment_result.get("skipped", []))
-                    total_configured = deployed + updated + skipped
+                # Perform reconciliation to deploy configured agents
+                project_path = Path.cwd()
+                agent_result, skill_result = perform_startup_reconciliation(
+                    project_path=project_path, config=unified_config, silent=False
+                )
 
-                    # FALLBACK: If deployment result doesn't track skipped agents (async path),
-                    # count existing agents in target directory as "already deployed"
-                    # This ensures accurate reporting when agents are already up-to-date
-                    if total_configured == 0 and deploy_target.exists():
-                        existing_agents = list(deploy_target.glob("*.md"))
-                        # Filter out non-agent files (e.g., README.md, INSTRUCTIONS.md)
-                        agent_count_in_target = len(
-                            [
-                                f
-                                for f in existing_agents
-                                if not f.name.startswith(("README", "INSTRUCTIONS"))
-                            ]
-                        )
-                        if agent_count_in_target > 0:
-                            # All agents already deployed - count them as skipped
-                            skipped = agent_count_in_target
-                            total_configured = agent_count_in_target
+                # Display results with progress bar
+                total_operations = (
+                    len(agent_result.deployed)
+                    + len(agent_result.removed)
+                    + len(agent_result.unchanged)
+                )
 
-                    # Create progress bar with actual configured agent count (not raw file count)
+                if total_operations > 0:
                     deploy_progress = ProgressBar(
-                        total=total_configured if total_configured > 0 else 1,
+                        total=total_operations,
                         prefix="Deploying agents",
                         show_percentage=True,
                         show_counter=True,
                     )
+                    deploy_progress.update(total_operations)
 
-                    # Update progress bar to completion
-                    deploy_progress.update(
-                        total_configured if total_configured > 0 else 1
+                    # Build summary message
+                    deployed = len(agent_result.deployed)
+                    removed = len(agent_result.removed)
+                    unchanged = len(agent_result.unchanged)
+
+                    summary_parts = []
+                    if deployed > 0:
+                        summary_parts.append(f"{deployed} new")
+                    if removed > 0:
+                        summary_parts.append(f"{removed} removed")
+                    if unchanged > 0:
+                        summary_parts.append(f"{unchanged} unchanged")
+
+                    summary = f"Complete: {', '.join(summary_parts)}"
+                    deploy_progress.finish(summary)
+
+                # Display errors if any
+                if agent_result.errors:
+                    logger.warning(
+                        f"Agent deployment completed with {len(agent_result.errors)} errors"
                     )
+                    print("\n⚠️  Agent Deployment Errors:")
+                    max_errors_to_show = 10
+                    errors_to_display = agent_result.errors[:max_errors_to_show]
 
-                    # Cleanup orphaned agents (ours but no longer deployed)
-                    # Get list of deployed agent filenames (what should remain)
-                    deployed_filenames = []
-                    for agent_name in deployment_result.get("deployed", []):
-                        deployed_filenames.append(f"{agent_name}.md")
-                    for agent_name in deployment_result.get("updated", []):
-                        deployed_filenames.append(f"{agent_name}.md")
-                    for agent_name in deployment_result.get("skipped", []):
-                        deployed_filenames.append(f"{agent_name}.md")
+                    for error in errors_to_display:
+                        print(f"   - {error}")
 
-                    # Run cleanup and get count of removed agents
-                    removed = _cleanup_orphaned_agents(
-                        deploy_target, deployed_filenames
+                    if len(agent_result.errors) > max_errors_to_show:
+                        remaining = len(agent_result.errors) - max_errors_to_show
+                        print(f"   ... and {remaining} more error(s)")
+
+                    print(
+                        f"\n❌ Failed to deploy {len(agent_result.errors)} agent(s). "
+                        "Please check the error messages above."
                     )
-
-                    # Show total configured agents (deployed + updated + already existing)
-                    # Include cache count for context and removed count if any
-                    if deployed > 0 or updated > 0:
-                        if removed > 0:
-                            deploy_progress.finish(
-                                f"Complete: {deployed} new, {updated} updated, {skipped} unchanged, "
-                                f"{removed} removed ({total_configured} configured from {agent_count} files in cache)"
-                            )
-                        else:
-                            deploy_progress.finish(
-                                f"Complete: {deployed} new, {updated} updated, {skipped} unchanged "
-                                f"({total_configured} configured from {agent_count} files in cache)"
-                            )
-                    elif removed > 0:
-                        deploy_progress.finish(
-                            f"Complete: {total_configured} agents deployed, "
-                            f"{removed} removed ({agent_count} files in cache)"
-                        )
-                    else:
-                        deploy_progress.finish(
-                            f"Complete: {total_configured} agents deployed "
-                            f"({agent_count} files in cache)"
-                        )
-
-                    # Display deployment errors to user (not just logs)
-                    deploy_errors = deployment_result.get("errors", [])
-                    if deploy_errors:
-                        # Log for debugging
-                        logger.warning(
-                            f"Agent deployment completed with {len(deploy_errors)} errors: {deploy_errors}"
-                        )
-
-                        # Display errors to user with clear formatting
-                        print("\n⚠️  Agent Deployment Errors:")
-
-                        # Show first 10 errors to avoid overwhelming output
-                        max_errors_to_show = 10
-                        errors_to_display = deploy_errors[:max_errors_to_show]
-
-                        for error in errors_to_display:
-                            # Format error message for readability
-                            # Errors typically come as strings like "agent.md: Error message"
-                            print(f"   - {error}")
-
-                        # If more errors exist, show count
-                        if len(deploy_errors) > max_errors_to_show:
-                            remaining = len(deploy_errors) - max_errors_to_show
-                            print(f"   ... and {remaining} more error(s)")
-
-                        # Show summary message
-                        print(
-                            f"\n❌ Failed to deploy {len(deploy_errors)} agent(s). Please check the error messages above."
-                        )
-                        print("   Run with --verbose for detailed error information.\n")
+                    print("   Run with --verbose for detailed error information.\n")
 
             except Exception as e:
                 # Deployment failure shouldn't block startup
@@ -859,7 +643,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
         # Cleanup legacy cache even if sync failed
         try:
             cleanup_legacy_agent_cache()
-        except Exception:
+        except Exception:  # nosec B110
             pass  # Ignore cleanup errors
 
 
@@ -1424,7 +1208,7 @@ def auto_install_chrome_devtools_on_startup():
             if not chrome_devtools_config.get("auto_install", True):
                 # Auto-install disabled, skip silently
                 return
-        except Exception:
+        except Exception:  # nosec B110
             # If config loading fails, assume auto-install is enabled (default)
             pass
 
@@ -1679,7 +1463,7 @@ def verify_mcp_gateway_startup():
                                 loop.run_until_complete(
                                     asyncio.gather(*pending, return_exceptions=True)
                                 )
-                        except Exception:
+                        except Exception:  # nosec B110
                             pass  # Ignore cleanup errors
                         finally:
                             loop.close()
@@ -1773,7 +1557,7 @@ def check_for_updates_async():
 
                 logger = get_logger("upgrade_check")
                 logger.debug(f"Update check failed (non-critical): {e}")
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Avoid any errors in error handling
         finally:
             # Properly clean up event loop
@@ -1788,7 +1572,7 @@ def check_for_updates_async():
                         loop.run_until_complete(
                             asyncio.gather(*pending, return_exceptions=True)
                         )
-                except Exception:
+                except Exception:  # nosec B110
                     pass  # Ignore cleanup errors
                 finally:
                     loop.close()
