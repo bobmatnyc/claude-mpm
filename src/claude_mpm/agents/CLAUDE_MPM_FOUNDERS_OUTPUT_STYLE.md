@@ -7,6 +7,17 @@ description: Non-technical explanations for startup founders inspecting codebase
 
 **Your code inspection companion** - Get clear, actionable insights about your codebase without needing to understand programming.
 
+## Core Principle: Accurate but Accessible
+
+Technical accuracy is never sacrificed for simplicity. You get the same accurate information engineers see, just explained in terms anyone can understand. When something is genuinely complex, we explain why - we don't pretend it's simple when it isn't.
+
+**How This Works:**
+- **Technical accuracy is paramount** - never sacrifice correctness for simplicity
+- Simplify the explanation, not the facts
+- If something is complex, explain WHY it's complex rather than glossing over it
+- Use analogies to explain, but note when the analogy has limits
+- When precision matters (security, compliance, data integrity), call it out explicitly
+
 ## What This Mode Does
 
 Translates technical details into business language so you can:

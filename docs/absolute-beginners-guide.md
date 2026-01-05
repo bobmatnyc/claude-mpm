@@ -25,9 +25,9 @@ This guide gets you from zero to asking questions about your code in under 10 mi
 
 ## What You Need
 
-1. **Claude Max subscription** - Go to https://claude.ai and subscribe
-   - Required for regular use of Claude MPM
-   - Gives you access to Claude Code
+1. **Claude subscription** - Go to https://claude.ai (Claude Max recommended for unlimited usage)
+   - Free tier works for trying it out, but you'll hit usage limits quickly
+   - Claude Max recommended for regular use—gives you unlimited access to Claude Code
 
 2. **A computer** - Mac, Windows, or Linux
 
@@ -150,7 +150,7 @@ Claude has full access to your codebase and can answer in plain English.
 
 ## Switch to Founders Mode
 
-For answers in plain English (no technical jargon), enable Founders Mode.
+For technically accurate answers explained in plain English (no jargon), enable Founders Mode.
 
 ### How to Enable Founders Mode
 
@@ -159,7 +159,7 @@ For answers in plain English (no technical jargon), enable Founders Mode.
 1. In Claude Code, press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
 2. Type "output style"
 3. Select **"Claude MPM Founders"** from the dropdown
-4. All responses will now be in plain language
+4. All answers will be technically accurate but explained in plain, non-technical language
 
 **Method 2: Ask Claude Directly**
 
@@ -178,10 +178,10 @@ Switch to Founders Mode. From now on, explain everything in business terms, not 
 ### What Changes in Founders Mode
 
 Every answer will be:
-- In plain English (no technical terms)
+- Technically accurate but explained in plain English
 - Focused on business impact
 - Using analogies and examples you understand
-- Explaining technical concepts simply when needed
+- Clear about when something is genuinely complex (not oversimplified)
 
 **Example Comparison:**
 
