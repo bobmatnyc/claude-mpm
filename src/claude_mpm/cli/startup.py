@@ -700,8 +700,7 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                     agent_files = [
                         f
                         for f in all_md_files
-                        if
-                        (
+                        if (
                             # Must be in an agent directory
                             # Supports: cache/agents/{category}/... (flat)
                             # Supports: cache/agents/{owner}/{repo}/agents/{category}/... (GitHub sync)
