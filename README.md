@@ -12,6 +12,12 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 > **Quick Start**: See [docs/user/getting-started.md](docs/getting-started/README.md) to get running in 5 minutes!
 
+---
+
+> **🆕 NEW for Founders!** Not a software engineer? **[Start with our Absolute Beginner's Guide](docs/absolute-beginners-guide.md)** — designed specifically for non-technical founders and business leaders who want to understand and oversee their technical projects. No coding experience required!
+
+---
+
 ## 🚀 What's New in v5.0
 
 ### Git Repository Integration for Agents & Skills
@@ -128,7 +134,7 @@ See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-
 
 **Before installing Claude MPM**, ensure you have:
 
-1. **Python 3.11+** (required for kuzu-memory dependency)
+1. **Python 3.10+** (3.11+ recommended for optimal compatibility)
 2. **Claude Code CLI v1.0.92+** (required!)
 
 ```bash
@@ -141,19 +147,18 @@ claude --version
 
 ### Install Claude MPM
 
+Choose your preferred installation method:
+
+**Homebrew (macOS):**
 ```bash
 # Basic installation
-pip install claude-mpm
-
-# Or with uv (faster)
-uv tool install claude-mpm
+brew install claude-mpm
 
 # Install with monitoring dashboard (recommended)
-pip install "claude-mpm[monitor]"
-uv tool install "claude-mpm[monitor]"
+brew install claude-mpm --with-monitor
 ```
 
-Or with pipx/uvx (recommended for isolated installation):
+**pipx/uvx (recommended for isolated installation):**
 ```bash
 # Basic installation
 pipx install claude-mpm
@@ -166,6 +171,19 @@ uvx claude-mpm
 
 # Install with monitoring dashboard (recommended)
 pipx install "claude-mpm[monitor]"
+uv tool install "claude-mpm[monitor]"
+```
+
+**pip/uv (system-wide installation):**
+```bash
+# Basic installation
+pip install claude-mpm
+
+# Or with uv (faster)
+uv tool install claude-mpm
+
+# Install with monitoring dashboard (recommended)
+pip install "claude-mpm[monitor]"
 uv tool install "claude-mpm[monitor]"
 ```
 
