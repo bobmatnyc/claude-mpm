@@ -44,7 +44,6 @@ from typing import Any, Dict, List, Set, Tuple
 import yaml
 
 from claude_mpm.core.logging_config import get_logger
-from claude_mpm.services.skills.skill_to_agent_mapper import SkillToAgentMapper
 
 logger = get_logger(__name__)
 
@@ -60,26 +59,20 @@ CORE_SKILLS = {
     "universal-debugging-verification-before-completion",
     "universal-verification-pre-merge",
     "universal-verification-screenshot",
-
     # Universal testing patterns (2 skills)
     "universal-testing-test-driven-development",
     "universal-testing-testing-anti-patterns",
-
     # Universal architecture and design (1 skill)
     "universal-architecture-software-patterns",
-
     # Universal infrastructure (3 skills)
     "universal-infrastructure-env-manager",
     "universal-infrastructure-docker",
     "universal-infrastructure-github-actions",
-
     # Universal collaboration (1 skill)
     "universal-collaboration-stacked-prs",
-
     # Universal emergency/operations (1 skill)
     "toolchains-universal-emergency-release",
     "toolchains-universal-dependency-audit",
-
     # Common language toolchains (6 skills)
     "toolchains-typescript-core",
     "toolchains-python-core",
@@ -87,17 +80,14 @@ CORE_SKILLS = {
     "toolchains-python-tooling-mypy",
     "toolchains-typescript-testing-vitest",
     "toolchains-python-frameworks-flask",
-
     # Common web frameworks (4 skills)
     "toolchains-javascript-frameworks-nextjs",
     "toolchains-nextjs-core",
     "toolchains-typescript-frameworks-nodejs-backend",
     "toolchains-javascript-frameworks-react-state-machine",
-
     # Common testing tools (2 skills)
     "toolchains-javascript-testing-playwright",
     "toolchains-typescript-testing-jest",
-
     # Common data/UI tools (3 skills)
     "universal-data-xlsx",
     "toolchains-ui-styling-tailwind",

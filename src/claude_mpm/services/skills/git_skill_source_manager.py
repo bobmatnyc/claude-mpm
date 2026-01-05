@@ -1095,7 +1095,11 @@ class GitSkillSourceManager:
             if removed_skills:
                 self.logger.info(
                     f"Removed {len(removed_skills)} orphaned skills not referenced by agents: {removed_skills[:10]}"
-                    + (f" (and {len(removed_skills) - 10} more)" if len(removed_skills) > 10 else "")
+                    + (
+                        f" (and {len(removed_skills) - 10} more)"
+                        if len(removed_skills) > 10
+                        else ""
+                    )
                 )
 
         self.logger.info(

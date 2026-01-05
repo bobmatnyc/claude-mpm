@@ -59,7 +59,10 @@ def profiles_dir():
         _create_test_profile(
             profiles_path / "all-disabled.yaml",
             {
-                "profile": {"name": "all-disabled", "description": "All agents disabled"},
+                "profile": {
+                    "name": "all-disabled",
+                    "description": "All agents disabled",
+                },
                 "agents": {
                     "enabled": [],
                     "disabled": ["python-engineer", "typescript-engineer"],
@@ -295,14 +298,14 @@ def test_is_skill_enabled_short_name_to_full_name():
 
         # Profile uses short names
         profile = profile_dir / "test.yaml"
-        profile.write_text('''profile:
+        profile.write_text("""profile:
   name: test
 skills:
   enabled:
     - flask
     - pytest
     - svelte
-''')
+""")
 
         manager = ProfileManager(profiles_dir=profile_dir)
         manager.load_profile("test")
@@ -310,7 +313,9 @@ skills:
         # Full names should match short names
         assert manager.is_skill_enabled("toolchains-python-frameworks-flask") is True
         assert manager.is_skill_enabled("toolchains-python-testing-pytest") is True
-        assert manager.is_skill_enabled("toolchains-javascript-frameworks-svelte") is True
+        assert (
+            manager.is_skill_enabled("toolchains-javascript-frameworks-svelte") is True
+        )
 
         # Non-matching should return False
         assert manager.is_skill_enabled("toolchains-java-frameworks-spring") is False
@@ -334,12 +339,12 @@ def test_find_profiles_dir_in_parent():
 
         # Create test profile
         test_profile = profiles_dir / "test.yaml"
-        test_profile.write_text('''profile:
+        test_profile.write_text("""profile:
   name: test
 agents:
   enabled:
     - python-engineer
-''')
+""")
 
         # Create subdirectories
         deep_subdir = project_dir / "subdir" / "deep_subdir"

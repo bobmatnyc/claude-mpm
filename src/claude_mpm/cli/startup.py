@@ -1467,7 +1467,9 @@ def run_background_services(force_sync: bool = False):
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
-    sync_remote_agents_on_startup(force_sync=force_sync)  # Sync agents from remote sources
+    sync_remote_agents_on_startup(
+        force_sync=force_sync
+    )  # Sync agents from remote sources
     show_agent_summary()  # Display agent counts after deployment
 
     # Skills deployment order (precedence: remote > bundled)
@@ -1476,7 +1478,9 @@ def run_background_services(force_sync: bool = False):
     # 3. Discover and link runtime skills (user-added skills)
     # This ensures remote skills take precedence over bundled skills when names conflict
     deploy_bundled_skills()  # Base layer: package-bundled skills
-    sync_remote_skills_on_startup(force_sync=force_sync)  # Override layer: Git-based skills (takes precedence)
+    sync_remote_skills_on_startup(
+        force_sync=force_sync
+    )  # Override layer: Git-based skills (takes precedence)
     discover_and_link_runtime_skills()  # Discovery: user-added skills
     show_skill_summary()  # Display skill counts after deployment
     verify_and_show_pm_skills()  # PM skills verification and status
