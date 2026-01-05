@@ -1,3 +1,8 @@
+## [5.4.80] - 2026-01-05
+
+### Fixed
+- Fixed case-sensitivity bug in output style validation that caused error when using "JSON" instead of "json"
+
 ## [5.4.79] - 2026-01-04
 
 ### Changed
