@@ -312,64 +312,56 @@ def deploy_output_style_on_startup():
     directory (~/.claude/output-styles/) which is the official Claude Code location
     for custom output styles.
 
-    Deploys two styles:
+    Deploys all styles:
     - claude-mpm.md (professional mode)
     - claude-mpm-teacher.md (teaching mode)
+    - claude-mpm-founders.md (founders mode)
     """
     try:
-        import shutil
-        from pathlib import Path
+        from ..core.output_style_manager import OutputStyleManager
 
-        # Source files (in framework package)
-        package_dir = Path(__file__).parent.parent / "agents"
-        professional_source = package_dir / "CLAUDE_MPM_OUTPUT_STYLE.md"
-        teacher_source = package_dir / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md"
+        # Initialize the output style manager
+        manager = OutputStyleManager()
 
-        # Target directory (USER-LEVEL for global availability)
-        # Claude Code reads output styles from ~/.claude/output-styles/
-        user_home = Path.home()
-        output_styles_dir = user_home / ".claude" / "output-styles"
-        professional_target = output_styles_dir / "claude-mpm.md"
-        teacher_target = output_styles_dir / "claude-mpm-teacher.md"
+        # Check if Claude Code version supports output styles (>= 1.0.83)
+        if not manager.supports_output_styles():
+            # Skip deployment for older versions
+            # The manager will fall back to injecting content directly
+            return
 
-        # Create directory if it doesn't exist
-        output_styles_dir.mkdir(parents=True, exist_ok=True)
+        # Check if all styles are already deployed and up-to-date
+        all_up_to_date = True
+        for style_config in manager.styles.values():
+            source_path = style_config["source"]
+            target_path = style_config["target"]
 
-        # Check if already deployed AND up-to-date (compare sizes to detect changes)
-        professional_up_to_date = (
-            professional_target.exists()
-            and professional_source.exists()
-            and professional_target.stat().st_size == professional_source.stat().st_size
-        )
-        teacher_up_to_date = (
-            teacher_target.exists()
-            and teacher_source.exists()
-            and teacher_target.stat().st_size == teacher_source.stat().st_size
-        )
+            if not (
+                target_path.exists()
+                and source_path.exists()
+                and target_path.stat().st_size == source_path.stat().st_size
+            ):
+                all_up_to_date = False
+                break
 
-        if professional_up_to_date and teacher_up_to_date:
+        if all_up_to_date:
             # Show feedback that output styles are ready
             print("✓ Output styles ready", flush=True)
             return
 
-        # Deploy both styles
-        deployed_count = 0
-        if professional_source.exists():
-            shutil.copy2(professional_source, professional_target)
-            deployed_count += 1
+        # Deploy all styles using the manager
+        results = manager.deploy_all_styles(activate_default=True)
 
-        if teacher_source.exists():
-            shutil.copy2(teacher_source, teacher_target)
-            deployed_count += 1
+        # Count successful deployments
+        deployed_count = sum(1 for success in results.values() if success)
 
         if deployed_count > 0:
             print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
         else:
-            # Source files missing - log but don't fail
+            # Deployment failed - log but don't fail startup
             from ..core.logger import get_logger
 
             logger = get_logger("cli")
-            logger.debug("Output style source files not found")
+            logger.debug("Failed to deploy any output styles")
 
     except Exception as e:
         # Non-critical - log but don't fail startup
