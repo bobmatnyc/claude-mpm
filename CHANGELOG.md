@@ -1,3 +1,18 @@
+## [5.4.83] - 2026-01-05
+
+### Fixed
+- **Agent Deployment**: Respect configuration.yaml enabled agents list
+  - Agent deployment reconciler now properly filters agents based on configuration
+  - Prevents accidental deployment of all agents when only subset configured
+  - Ensures alignment between configured and deployed agent sets
+
+### Added
+- **Bug Reporting System**: Integrated bug reporting for MPM-managed repositories
+  - `/bugs report` command to report bugs in MPM-managed repos
+  - `/bugs open` command to view open bug issues
+  - Automatic labeling and formatting for bug tracking
+  - GitHub integration for issue creation and management
+
 ## [5.4.82] - 2026-01-05
 
 ### Changed
