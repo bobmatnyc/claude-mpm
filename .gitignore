@@ -361,3 +361,4 @@ dist/
 docs/research/*.md
 mcp-browser-extensions/
 tests/eval/reports/
+ccusage.json
