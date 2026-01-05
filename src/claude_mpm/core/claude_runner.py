@@ -730,7 +730,7 @@ Use these agents to delegate specialized work via the Task tool.
                     import json
 
                     settings = json.loads(settings_file.read_text())
-                    if settings.get("activeOutputStyle") == "claude-mpm":
+                    if settings.get("activeOutputStyle") == "Claude MPM":
                         # Already active, check if file exists
                         output_style_file = (
                             Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
@@ -740,7 +740,7 @@ Use these agents to delegate specialized work via the Task tool.
                                 "Output style 'Claude MPM' already deployed and active"
                             )
                             return
-                except Exception:
+                except Exception:  # nosec B110
                     pass  # Continue with deployment if we can't read settings
 
             # Read the OUTPUT_STYLE.md content if it exists

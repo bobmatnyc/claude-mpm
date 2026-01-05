@@ -13,7 +13,7 @@ Users can change it if they want, and the system will respect their choice.
 
 import json
 import re
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any, Dict, Literal, Optional, TypedDict, cast
 
@@ -62,14 +62,14 @@ class OutputStyleManager:
                 / "agents"
                 / "CLAUDE_MPM_OUTPUT_STYLE.md",
                 target=self.output_style_dir / "claude-mpm.md",
-                name="claude-mpm",
+                name="Claude MPM",
             ),
             "teaching": StyleConfig(
                 source=Path(__file__).parent.parent
                 / "agents"
                 / "CLAUDE_MPM_TEACHER_OUTPUT_STYLE.md",
                 target=self.output_style_dir / "claude-mpm-teacher.md",
-                name="claude-mpm-teacher",
+                name="Claude MPM Teacher",
             ),
         }
 
@@ -93,7 +93,7 @@ class OutputStyleManager:
 
         try:
             # Run claude --version command
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["claude", "--version"],
                 capture_output=True,
                 text=True,
@@ -300,12 +300,12 @@ class OutputStyleManager:
             self.logger.error(f"Failed to deploy {style} style: {e}")
             return False
 
-    def _activate_output_style(self, style_name: str = "claude-mpm") -> bool:
+    def _activate_output_style(self, style_name: str = "Claude MPM") -> bool:
         """
         Update Claude Code settings to activate a specific output style.
 
         Args:
-            style_name: Name of the style to activate (e.g., "claude-mpm", "claude-mpm-teach")
+            style_name: Name of the style to activate (e.g., "Claude MPM", "Claude MPM Teacher")
 
         Returns:
             True if activated successfully, False otherwise
@@ -443,7 +443,7 @@ class OutputStyleManager:
 
         # Activate the default style if requested
         if activate_default and results.get("professional", False):
-            self._activate_output_style("claude-mpm")
+            self._activate_output_style("Claude MPM")
 
         return results
 

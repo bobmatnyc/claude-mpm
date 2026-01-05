@@ -12,7 +12,7 @@ of InteractiveSession without circular dependency issues.
 
 import contextlib
 import os
-import subprocess
+import subprocess  # nosec B404
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
@@ -359,19 +359,19 @@ class InteractiveSession:
                 osm = self.runner.framework_loader.output_style_manager
                 if osm:
                     if osm.claude_version and osm.supports_output_styles():
-                        # Check if claude-mpm style is active
+                        # Check if Claude MPM style is active
                         settings_file = osm.settings_file
                         if settings_file.exists():
                             import json
 
                             settings = json.loads(settings_file.read_text())
                             active_style = settings.get("activeOutputStyle")
-                            if active_style == "claude-mpm":
-                                return "Output Style: claude-mpm ✅"
+                            if active_style in ("Claude MPM", "Claude MPM Teacher"):
+                                return f"Output Style: {active_style} ✅"
                             return f"Output Style: {active_style or 'none'}"
                         return "Output Style: Available"
                     return "Output Style: Injected (legacy)"
-        except Exception:
+        except Exception:  # nosec B110
             pass
         return None
 
@@ -582,7 +582,7 @@ class InteractiveSession:
             )
 
         # This will not return if successful
-        os.execvpe(cmd[0], cmd, env)
+        os.execvpe(cmd[0], cmd, env)  # nosec B606
         return False  # Only reached on failure
 
     def _launch_subprocess_mode(self, cmd: list, env: dict) -> bool:
@@ -641,7 +641,7 @@ class InteractiveSession:
             cmd = environment["command"]
             env = environment["environment"]
 
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 cmd, stdin=None, stdout=None, stderr=None, env=env, check=False
             )
 
