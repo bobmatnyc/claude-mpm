@@ -1,3 +1,8 @@
+## [5.4.82] - 2026-01-05
+
+### Changed
+- Project housecleaning and file reorganization
+
 ## [5.4.81] - 2026-01-05
 
 ### Changed
