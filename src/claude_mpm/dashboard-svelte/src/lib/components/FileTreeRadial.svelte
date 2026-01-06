@@ -160,11 +160,21 @@
         }
       });
 
-    // Node labels - horizontal orientation with clickable behavior
-    nodes
-      .append('text')
+    // Node labels - MUST be horizontal (not following radial lines)
+    // Create labels as separate group to ensure horizontal orientation
+    const labels = g
+      .append('g')
+      .attr('class', 'labels')
+      .selectAll('text')
+      .data(treeData.descendants())
+      .join('text')
+      .attr('transform', d => {
+        // Position at node location but with NO rotation - ensures horizontal text
+        const [x, y] = radialPoint(d.x, d.y);
+        return `translate(${x},${y})`;
+      })
       .attr('dy', '0.31em')
-      .attr('dx', d => {
+      .attr('x', d => {
         // Offset from node based on position (left vs right side of tree)
         return d.x < Math.PI ? 10 : -10;
       })
