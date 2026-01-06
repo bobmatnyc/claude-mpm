@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import * as d3 from 'd3';
   import type { TouchedFile } from '$lib/stores/files.svelte';
   import {
@@ -25,7 +25,7 @@
   let svgElement: SVGSVGElement;
   let containerElement: HTMLDivElement;
   let width = $state(800);
-  let height = $state(800);
+  let height = $state(600);
 
   // Update tree when files change
   $effect(() => {
@@ -62,10 +62,11 @@
     const fileTree = buildFileTree(files);
     const root = convertToD3Hierarchy(fileTree);
 
-    // Calculate radius based on container size
-    const radius = Math.min(width, height) / 2 - 100;
+    // Calculate dimensions - root at center, tree radiates outward
+    const radius = Math.min(width, height) / 2 - 120;
 
-    // Create tree layout
+    // Create radial tree layout
+    // Root at center (radius 0), leaves at outer edge
     const treeLayout = d3.tree<FileNode>()
       .size([2 * Math.PI, radius])
       .separation((a, b) => (a.parent === b.parent ? 1 : 2) / a.depth);
@@ -77,32 +78,27 @@
     const svg = d3.select(svgElement);
     svg.selectAll('*').remove();
 
-    // Create main group with transform to center
+    // Create main group centered in SVG
     const g = svg
       .append('g')
       .attr('transform', `translate(${width / 2},${height / 2})`);
 
-    // Helper: Convert polar to cartesian coordinates
-    const radialPoint = (x: number, y: number): [number, number] => {
-      return [y * Math.cos(x - Math.PI / 2), y * Math.sin(x - Math.PI / 2)];
-    };
-
-    // Create link generator
-    const link = d3.linkRadial<any, any>()
-      .angle(d => d.x)
-      .radius(d => d.y);
+    // Radial link generator - curved links from center outward
+    const linkGenerator = d3.linkRadial<any, any>()
+      .angle((d: any) => d.x)
+      .radius((d: any) => d.y);
 
     // Draw links (edges between nodes)
     g.append('g')
       .attr('class', 'links')
+      .attr('fill', 'none')
+      .attr('stroke', '#475569')
+      .attr('stroke-opacity', 0.5)
+      .attr('stroke-width', 1.5)
       .selectAll('path')
       .data(treeData.links())
       .join('path')
-      .attr('d', link as any)
-      .attr('fill', 'none')
-      .attr('stroke', '#475569') // slate-600
-      .attr('stroke-opacity', 0.4)
-      .attr('stroke-width', 1.5);
+      .attr('d', linkGenerator);
 
     // Draw nodes
     const nodes = g
@@ -112,26 +108,30 @@
       .data(treeData.descendants())
       .join('g')
       .attr('transform', d => {
-        const [x, y] = radialPoint(d.x, d.y);
+        // Convert polar to cartesian: angle d.x, radius d.y
+        const angle = d.x - Math.PI / 2; // Adjust so 0 is at top
+        const x = d.y * Math.cos(angle);
+        const y = d.y * Math.sin(angle);
         return `translate(${x},${y})`;
       });
 
     // Node circles
     nodes
       .append('circle')
-      .attr('r', d => (d.data.isFile ? 6 : 4))
+      .attr('r', d => {
+        if (d.depth === 0) return 8; // Root node larger
+        return d.data.isFile ? 5 : 4;
+      })
       .attr('fill', d => {
+        if (d.depth === 0) return '#8b5cf6'; // Purple for root
         const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
-        if (isSelected) {
-          return '#06b6d4'; // cyan-500
-        }
+        if (isSelected) return '#06b6d4';
         return d.data.isFile ? getLighterColor(d.data.operation) : '#475569';
       })
       .attr('stroke', d => {
+        if (d.depth === 0) return '#a78bfa';
         const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
-        if (isSelected) {
-          return '#06b6d4'; // cyan-500
-        }
+        if (isSelected) return '#06b6d4';
         return getOperationColor(d.data.operation);
       })
       .attr('stroke-width', d => {
@@ -146,52 +146,49 @@
       })
       .on('mouseenter', function (event, d) {
         if (d.data.isFile) {
-          d3.select(this).attr('r', 8).attr('stroke-width', 3);
+          d3.select(this).attr('r', 7).attr('stroke-width', 3);
           showTooltip(event, d.data.path);
         }
       })
       .on('mouseleave', function (event, d) {
         if (d.data.isFile) {
           const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
-          d3.select(this)
-            .attr('r', 6)
-            .attr('stroke-width', isSelected ? 3 : 2);
+          d3.select(this).attr('r', 5).attr('stroke-width', isSelected ? 3 : 2);
           hideTooltip();
         }
       });
 
-    // Node labels - MUST be horizontal (not following radial lines)
-    // Create labels as separate group to ensure horizontal orientation
-    const labels = g
-      .append('g')
-      .attr('class', 'labels')
-      .selectAll('text')
-      .data(treeData.descendants())
-      .join('text')
-      .attr('transform', d => {
-        // Position at node location but with NO rotation - ensures horizontal text
-        const [x, y] = radialPoint(d.x, d.y);
-        return `translate(${x},${y})`;
-      })
+    // Labels - HORIZONTAL text, positioned based on angle
+    nodes
+      .append('text')
       .attr('dy', '0.31em')
       .attr('x', d => {
-        // Offset from node based on position (left vs right side of tree)
-        return d.x < Math.PI ? 10 : -10;
+        // Position label outside the node, direction based on angle
+        const angle = d.x;
+        // Right half: label to the right, Left half: label to the left
+        return angle < Math.PI ? 8 : -8;
       })
       .attr('text-anchor', d => {
-        // Right side of tree: left-aligned, Left side: right-aligned
-        return d.x < Math.PI ? 'start' : 'end';
+        // Right half: start (left-align), Left half: end (right-align)
+        const angle = d.x;
+        return angle < Math.PI ? 'start' : 'end';
       })
-      .text(d => (d.depth === 0 ? '' : d.data.name)) // Don't show root label
+      .text(d => {
+        if (d.depth === 0) return '📁 root';
+        return d.data.name;
+      })
       .attr('fill', d => {
+        if (d.depth === 0) return '#a78bfa'; // Purple for root label
         const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
-        return isSelected ? '#06b6d4' : '#e2e8f0'; // cyan-500 if selected, slate-200 otherwise
+        return isSelected ? '#06b6d4' : '#e2e8f0';
       })
-      .attr('font-size', d => (d.data.isFile ? '11px' : '10px'))
+      .attr('font-size', d => {
+        if (d.depth === 0) return '12px';
+        return d.data.isFile ? '10px' : '9px';
+      })
       .attr('font-family', 'ui-monospace, monospace')
-      .attr('opacity', d => (d.depth === 0 ? 0 : 0.8))
+      .attr('font-weight', d => (d.depth === 0 ? '600' : '400'))
       .attr('cursor', d => (d.data.isFile ? 'pointer' : 'default'))
-      .attr('class', 'file-label')
       .on('click', (event, d) => {
         if (d.data.isFile && d.data.file && onFileSelect) {
           onFileSelect(d.data.file);
@@ -199,20 +196,22 @@
       })
       .on('mouseenter', function (event, d) {
         if (d.data.isFile) {
-          d3.select(this).attr('opacity', 1).style('text-decoration', 'underline');
+          d3.select(this).attr('fill', '#06b6d4').style('text-decoration', 'underline');
           showTooltip(event, d.data.path);
         }
       })
       .on('mouseleave', function (event, d) {
         if (d.data.isFile) {
-          d3.select(this).attr('opacity', 0.8).style('text-decoration', 'none');
+          const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
+          d3.select(this)
+            .attr('fill', isSelected ? '#06b6d4' : '#e2e8f0')
+            .style('text-decoration', 'none');
           hideTooltip();
         }
       });
   }
 
   // Tooltip management
-  let tooltipElement: HTMLDivElement;
   let tooltipVisible = $state(false);
   let tooltipText = $state('');
   let tooltipX = $state(0);
@@ -230,7 +229,7 @@
   }
 </script>
 
-<div bind:this={containerElement} class="relative w-full h-full bg-slate-900">
+<div bind:this={containerElement} class="relative w-full h-full bg-slate-900 min-h-[400px]">
   {#if files.length === 0}
     <div class="absolute inset-0 flex items-center justify-center text-slate-400">
       <div class="text-center">
@@ -254,6 +253,10 @@
       <div class="font-semibold mb-2">Operations</div>
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-violet-500 border-2 border-violet-400"></div>
+          <span>Root</span>
+        </div>
+        <div class="flex items-center gap-2">
           <div class="w-3 h-3 rounded-full" style="background: {getLighterColor('read')}; border: 2px solid {getOperationColor('read')}"></div>
           <span>Read</span>
         </div>
@@ -275,7 +278,6 @@
     <!-- Tooltip -->
     {#if tooltipVisible}
       <div
-        bind:this={tooltipElement}
         class="fixed z-50 px-3 py-2 bg-slate-800 text-slate-100 text-xs rounded-lg shadow-lg border border-slate-600 pointer-events-none font-mono max-w-md truncate"
         style="left: {tooltipX}px; top: {tooltipY}px;"
       >
@@ -286,12 +288,11 @@
 </div>
 
 <style>
-  /* Smooth transitions for interactions */
+  /* Smooth transitions */
   :global(.nodes circle) {
-    transition: r 0.2s ease, stroke-width 0.2s ease;
+    transition: r 0.15s ease, stroke-width 0.15s ease;
   }
-
-  :global(.file-label) {
-    transition: opacity 0.2s ease;
+  :global(.nodes text) {
+    transition: fill 0.15s ease;
   }
 </style>
