@@ -1,3 +1,19 @@
+## [5.4.86] - 2026-01-06
+
+### Added
+- **Dashboard Radial Tree View**: D3.js radial tree visualization for modified files
+  - Project root at center with files radiating outward
+  - Auto-detects project root from file paths
+  - Color-coded by operation (read/write/edit)
+  - Interactive node and label selection
+
+### Fixed
+- **SubagentStart Event Handling**: Dedicated handler for proper agent type extraction
+  - Fixed agent conflation in dashboard Agents view
+  - Research agents now appear correctly in hierarchy
+  - Multiple same-type agents show as distinct nodes
+- **Unknown Agent Type**: Default to "pm" for unidentified SubagentStop events
+
 ## [5.4.85] - 2026-01-05
 
 ### Changed
