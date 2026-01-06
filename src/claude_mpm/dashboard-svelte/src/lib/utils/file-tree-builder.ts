@@ -19,12 +19,44 @@ export interface FileNode {
 }
 
 /**
+ * Find common path prefix to determine project root
+ */
+function findCommonPrefix(paths: string[]): string {
+  if (paths.length === 0) return '';
+  if (paths.length === 1) {
+    // For single file, use parent directory as root
+    const parts = paths[0].split('/').filter(Boolean);
+    parts.pop(); // Remove filename
+    return '/' + parts.join('/');
+  }
+
+  const splitPaths = paths.map(p => p.split('/').filter(Boolean));
+  const prefix: string[] = [];
+
+  for (let i = 0; i < splitPaths[0].length; i++) {
+    const segment = splitPaths[0][i];
+    if (splitPaths.every(p => p[i] === segment)) {
+      prefix.push(segment);
+    } else {
+      break;
+    }
+  }
+
+  return '/' + prefix.join('/');
+}
+
+/**
  * Build hierarchical tree from flat list of files
+ * Automatically detects project root and shows relative paths
  */
 export function buildFileTree(files: TouchedFile[]): FileNode {
+  // Find common prefix (project root)
+  const commonPrefix = findCommonPrefix(files.map(f => f.path));
+  const projectName = commonPrefix.split('/').pop() || 'project';
+
   const root: FileNode = {
-    name: 'root',
-    path: '/',
+    name: projectName,
+    path: commonPrefix,
     children: [],
     isFile: false
   };
@@ -33,8 +65,13 @@ export function buildFileTree(files: TouchedFile[]): FileNode {
   const sortedFiles = [...files].sort((a, b) => a.path.localeCompare(b.path));
 
   for (const file of sortedFiles) {
+    // Get relative path by removing common prefix
+    const relativePath = file.path.startsWith(commonPrefix)
+      ? file.path.slice(commonPrefix.length)
+      : file.path;
+
     // Split path into segments, filter out empty strings
-    const segments = file.path.split('/').filter(Boolean);
+    const segments = relativePath.split('/').filter(Boolean);
 
     // Navigate/create tree structure
     let current = root;
