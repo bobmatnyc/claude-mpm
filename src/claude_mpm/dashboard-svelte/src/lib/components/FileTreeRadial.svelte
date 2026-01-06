@@ -92,9 +92,9 @@
     g.append('g')
       .attr('class', 'links')
       .attr('fill', 'none')
-      .attr('stroke', '#475569')
-      .attr('stroke-opacity', 0.5)
-      .attr('stroke-width', 1.5)
+      .attr('stroke', '#64748b')  // slate-500 for better visibility
+      .attr('stroke-opacity', 0.8)
+      .attr('stroke-width', 2)
       .selectAll('path')
       .data(treeData.links())
       .join('path')
