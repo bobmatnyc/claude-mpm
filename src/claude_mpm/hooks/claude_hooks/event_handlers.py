@@ -886,3 +886,52 @@ class EventHandlers:
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event("", "session_start", session_start_data)
+
+    def handle_subagent_start_fast(self, event):
+        """Handle SubagentStart events with proper agent type extraction.
+
+        WHY separate from SessionStart:
+        - SubagentStart contains agent-specific information
+        - Frontend needs agent_type to create distinct agent nodes
+        - Multiple engineers should show as separate nodes in hierarchy
+        - Research agents must appear in the agent hierarchy
+
+        Unlike SessionStart, SubagentStart events contain agent-specific
+        information that must be preserved and emitted to the dashboard.
+        """
+        session_id = event.get("session_id", "")
+
+        # Extract agent type from event - Claude provides this in SubagentStart
+        # Try multiple possible field names for compatibility
+        agent_type = event.get("agent_type") or event.get("subagent_type") or "unknown"
+
+        # Generate unique agent ID combining type and session
+        agent_id = event.get("agent_id", f"{agent_type}_{session_id[:8]}")
+
+        # Get working directory and git branch
+        working_dir = event.get("cwd", "")
+        git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
+
+        # Build subagent start data with all required fields
+        subagent_start_data = {
+            "session_id": session_id,
+            "agent_type": agent_type,
+            "agent_id": agent_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "SubagentStart",  # Preserve correct hook name
+            "working_directory": working_dir,
+            "git_branch": git_branch,
+        }
+
+        # Debug logging
+        if DEBUG:
+            print(
+                f"Hook handler: SubagentStart - agent_type='{agent_type}', "
+                f"agent_id='{agent_id}', session_id='{session_id[:16]}...'",
+                file=sys.stderr,
+            )
+
+        # Emit to /hook namespace as subagent_start (NOT session_start!)
+        self.hook_handler._emit_socketio_event(
+            "", "subagent_start", subagent_start_data
+        )
