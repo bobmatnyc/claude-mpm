@@ -67,7 +67,9 @@ class SubagentResponseProcessor:
                 print("  - No stored sessions in delegation_requests!", file=sys.stderr)
 
         # Get agent type and other basic info
-        agent_type, agent_id, reason = self._extract_basic_info(event, session_id)
+        agent_type, agent_id, reason, agent_type_inferred = self._extract_basic_info(
+            event, session_id
+        )
 
         # Always log SubagentStop events for debugging
         if DEBUG or agent_type != "unknown":
@@ -108,6 +110,7 @@ class SubagentResponseProcessor:
             working_dir,
             git_branch,
             structured_response,
+            agent_type_inferred,
         )
 
         # Debug log the processed data
@@ -120,8 +123,17 @@ class SubagentResponseProcessor:
         # Emit to /hook namespace with high priority
         self.connection_manager.emit_event("/hook", "subagent_stop", subagent_stop_data)
 
-    def _extract_basic_info(self, event: dict, session_id: str) -> Tuple[str, str, str]:
-        """Extract basic info from the event."""
+    def _extract_basic_info(
+        self, event: dict, session_id: str
+    ) -> Tuple[str, str, str, bool]:
+        """Extract basic info from the event.
+
+        Returns:
+            Tuple of (agent_type, agent_id, reason, agent_type_inferred)
+            - agent_type_inferred is True when defaulted to "pm"
+        """
+        agent_type_inferred = False
+
         # First try to get agent type from our tracking
         agent_type = (
             self.state_manager.get_delegation_agent_type(session_id)
@@ -146,7 +158,17 @@ class SubagentResponseProcessor:
             elif "pm" in task_desc or "project" in task_desc:
                 agent_type = "pm"
 
-        return agent_type, agent_id, reason
+        # Default to "pm" if still unknown (main conversation doesn't use Task tool)
+        if agent_type == "unknown":
+            agent_type = "pm"
+            agent_type_inferred = True
+            if DEBUG:
+                print(
+                    "  - Inferred agent_type='pm' (no explicit type found)",
+                    file=sys.stderr,
+                )
+
+        return agent_type, agent_id, reason, agent_type_inferred
 
     def _extract_structured_response(
         self, output: str, agent_type: str
@@ -338,10 +360,12 @@ class SubagentResponseProcessor:
         working_dir: str,
         git_branch: str,
         structured_response: Optional[dict],
+        agent_type_inferred: bool,
     ) -> dict:
         """Build the subagent stop data for event emission."""
         subagent_stop_data = {
             "agent_type": agent_type,
+            "agent_type_inferred": agent_type_inferred,
             "agent_id": agent_id,
             "reason": reason,
             "session_id": session_id,
