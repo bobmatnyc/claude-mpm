@@ -8,8 +8,11 @@ DESIGN DECISIONS:
 - Non-blocking: doesn't prevent PM from starting if check fails
 - Displays context to stdout for user visibility
 - Integrates with existing session pause/resume infrastructure
+- Checks for ACTIVE-PAUSE.jsonl (incremental auto-pause) before regular paused sessions
 """
 
+import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -31,9 +34,82 @@ class SessionResumeStartupHook:
         self.project_path = project_path or Path.cwd()
         self.resume_helper = SessionResumeHelper(self.project_path)
         self._session_displayed = False
+        self.sessions_dir = self.project_path / ".claude-mpm" / "sessions"
+
+    def check_for_active_pause(self) -> Optional[Dict[str, Any]]:
+        """Check for an active incremental pause session.
+
+        Returns:
+            Pause session metadata if ACTIVE-PAUSE.jsonl exists, None otherwise
+        """
+        active_pause_path = self.sessions_dir / "ACTIVE-PAUSE.jsonl"
+
+        if not active_pause_path.exists():
+            logger.debug("No ACTIVE-PAUSE.jsonl found")
+            return None
+
+        try:
+            # Read JSONL file to get first and last actions
+            with active_pause_path.open("r") as f:
+                lines = f.readlines()
+
+            if not lines:
+                logger.warning("ACTIVE-PAUSE.jsonl is empty")
+                return None
+
+            # Parse first action (session start)
+            first_action = json.loads(lines[0])
+
+            # Parse last action (most recent)
+            last_action = json.loads(lines[-1]) if len(lines) > 1 else first_action
+
+            # Extract metadata
+            return {
+                "is_incremental": True,
+                "session_id": first_action.get("session_id"),
+                "started_at": first_action.get("timestamp"),
+                "context_at_start": first_action.get("data", {}).get(
+                    "context_percentage", 0
+                ),
+                "current_context": last_action.get("context_percentage", 0),
+                "action_count": len(lines),
+                "file_path": str(active_pause_path),
+            }
+
+        except (json.JSONDecodeError, OSError, KeyError) as e:
+            logger.error(f"Failed to parse ACTIVE-PAUSE.jsonl: {e}", exc_info=True)
+            return None
+
+    def display_active_pause_warning(self, pause_info: Dict[str, Any]) -> None:
+        """Display warning about active incremental pause session.
+
+        Args:
+            pause_info: Pause session metadata from check_for_active_pause()
+        """
+        print("\n" + "=" * 60, file=sys.stderr)
+        print("⚠️  ACTIVE AUTO-PAUSE SESSION DETECTED", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print(f"Session ID: {pause_info['session_id']}", file=sys.stderr)
+        print(f"Started at: {pause_info['started_at']}", file=sys.stderr)
+        print(
+            f"Context at pause: {pause_info['context_at_start']:.1%}", file=sys.stderr
+        )
+        print(f"Actions recorded: {pause_info['action_count']}", file=sys.stderr)
+        print(
+            "\nThis session was auto-paused due to high context usage.", file=sys.stderr
+        )
+        print("Options:", file=sys.stderr)
+        print("  1. Continue (actions will be appended)", file=sys.stderr)
+        print("  2. Use /mpm-init pause --finalize to create snapshot", file=sys.stderr)
+        print("  3. Use /mpm-init pause --discard to abandon", file=sys.stderr)
+        print("=" * 60 + "\n", file=sys.stderr)
 
     def on_pm_startup(self) -> Optional[Dict[str, Any]]:
         """Execute on PM startup to check for paused sessions.
+
+        Checks in priority order:
+        1. ACTIVE-PAUSE.jsonl (incremental auto-pause)
+        2. Regular paused sessions (session-*.json)
 
         Returns:
             Session data if paused session found, None otherwise
@@ -44,7 +120,15 @@ class SessionResumeStartupHook:
                 logger.debug("Session already displayed, skipping")
                 return None
 
-            # Check for paused sessions
+            # PRIORITY 1: Check for active incremental pause FIRST
+            active_pause_info = self.check_for_active_pause()
+            if active_pause_info:
+                self.display_active_pause_warning(active_pause_info)
+                self._session_displayed = True
+                logger.info("Active pause session detected and displayed")
+                return active_pause_info
+
+            # PRIORITY 2: Fall back to regular paused sessions
             session_data = self.resume_helper.check_and_display_resume_prompt()
 
             if session_data:

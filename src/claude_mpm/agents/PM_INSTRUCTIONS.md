@@ -1407,18 +1407,60 @@ When the user mentions "skill", "add skill", "create skill", "improve skill", "r
 
 ## Session Resume Capability
 
-Git history provides session continuity. PM can resume work by inspecting git history.
+### Auto-Pause System
 
-**Essential git commands for session context**:
+The MPM framework automatically tracks context usage and pauses sessions when approaching limits:
+
+**Threshold Levels**:
+| Level | Usage | Behavior |
+|-------|-------|----------|
+| Caution | 70% | Warning displayed |
+| Warning | 85% | Stronger warning |
+| **Auto-Pause** | **90%** | **Session pause activated, actions recorded** |
+| Critical | 95% | Session nearly exhausted |
+
+**Auto-Pause Behavior** (at 90%):
+1. Creates `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
+2. Records all subsequent actions (tool calls, responses) incrementally
+3. Displays warning to user about context limits
+4. On session end, finalizes to full session snapshot
+
+### Session Resume Protocol
+
+**At Session Start, PM checks for**:
+1. **Active Incremental Pause**: `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
+   - If found: Display warning with action count and context percentage
+   - Options: continue, finalize with `/mpm-init pause --finalize`, or discard
+
+2. **Finalized Pause**: `.claude-mpm/sessions/LATEST-SESSION.txt`
+   - If found: Display resume context with accomplishments and next steps
+
+**PM Response to Context Warnings**:
+- Wrap up current work phase
+- Ensure all in-progress tasks are documented in todos
+- Delegate remaining work to appropriate agents with clear handoff context
+- Create summary of work completed and work remaining
+
+### Git-Based Session Continuity
+
+Git history provides additional session context:
+
 ```bash
 git log --oneline -10                              # Recent commits
 git status                                          # Uncommitted changes
 git log --since="24 hours ago" --pretty=format:"%h %s"  # Recent work
 ```
 
-**Automatic Resume Features**:
-1. **70% Context Alert**: PM creates session resume file at `.claude-mpm/sessions/session-resume-{timestamp}.md`
-2. **Startup Detection**: PM checks for paused sessions and displays resume context with git changes
+### Session Files
+
+```
+.claude-mpm/sessions/
+├── ACTIVE-PAUSE.jsonl      # Incremental actions during auto-pause
+├── LATEST-SESSION.txt      # Pointer to most recent finalized session
+├── session-*.json          # Machine-readable session snapshots
+├── session-*.yaml          # YAML format
+└── session-*.md            # Human-readable markdown
+```
 
 ## Summary: PM as Pure Coordinator
 

@@ -31,6 +31,7 @@ from typing import Optional, Tuple
 # Import extracted modules with fallback for direct execution
 try:
     # Try relative imports first (when imported as module)
+    from .auto_pause_handler import AutoPauseHandler
     from .event_handlers import EventHandlers
     from .memory_integration import MemoryHookManager
     from .response_tracking import ResponseTrackingManager
@@ -47,6 +48,7 @@ except ImportError:
     # Add parent directory to path
     sys.path.insert(0, str(Path(__file__).parent))
 
+    from auto_pause_handler import AutoPauseHandler
     from event_handlers import EventHandlers
     from memory_integration import MemoryHookManager
     from response_tracking import ResponseTrackingManager
@@ -229,6 +231,19 @@ class ClaudeHookHandler:
         self.subagent_processor = SubagentResponseProcessor(
             self.state_manager, self.response_tracking_manager, self.connection_manager
         )
+
+        # Initialize auto-pause handler
+        try:
+            self.auto_pause_handler = AutoPauseHandler()
+            # Pass reference to ResponseTrackingManager so it can call auto_pause
+            if hasattr(self, "response_tracking_manager"):
+                self.response_tracking_manager.auto_pause_handler = (
+                    self.auto_pause_handler
+                )
+        except Exception as e:
+            self.auto_pause_handler = None
+            if DEBUG:
+                print(f"Auto-pause initialization failed: {e}", file=sys.stderr)
 
         # Backward compatibility properties for tests
         self.connection_pool = self.connection_manager.connection_pool
@@ -628,6 +643,13 @@ class ClaudeHookHandler:
 
     def __del__(self):
         """Cleanup on handler destruction."""
+        # Finalize any active auto-pause session
+        if hasattr(self, "auto_pause_handler") and self.auto_pause_handler:
+            try:
+                self.auto_pause_handler.on_session_end()
+            except Exception:
+                pass  # Ignore cleanup errors during destruction
+
         # Clean up connection manager if it exists
         if hasattr(self, "connection_manager") and self.connection_manager:
             try:

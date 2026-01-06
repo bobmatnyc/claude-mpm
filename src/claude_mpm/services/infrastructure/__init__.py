@@ -11,8 +11,10 @@ Services:
 - LoggingService: Centralized logging with structured output
 - HealthMonitor: System health monitoring and alerting
 - MemoryGuardian: Memory monitoring and process restart management
+- ContextUsageTracker: Token usage tracking across hook invocations
 """
 
+from .context_usage_tracker import ContextUsageState, ContextUsageTracker
 from .logging import LoggingService
 from .monitoring import (
     AdvancedHealthMonitor,
@@ -36,6 +38,8 @@ except ImportError:
 
 __all__ = [
     "AdvancedHealthMonitor",  # For SocketIO server monitoring
+    "ContextUsageState",
+    "ContextUsageTracker",
     "LoggingService",
     # New service-based monitoring API
     "MonitoringAggregatorService",

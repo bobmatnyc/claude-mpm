@@ -6,7 +6,8 @@ Integrates with session management and response tracking infrastructure.
 Triggers:
 - model_context_window_exceeded (stop_reason)
 - Manual pause command
-- 95% token threshold reached
+- 95% token threshold reached (critical)
+- 90% token threshold reached (auto-pause)
 - Session end with high token usage (>85%)
 
 Design Principles:
@@ -71,6 +72,7 @@ class ResumeLogGenerator:
         thresholds = self.config.get("context_management", {}).get("thresholds", {})
         self.threshold_caution = thresholds.get("caution", 0.70)
         self.threshold_warning = thresholds.get("warning", 0.85)
+        self.threshold_auto_pause = thresholds.get("auto_pause", 0.90)
         self.threshold_critical = thresholds.get("critical", 0.95)
 
         logger.info(
@@ -96,14 +98,14 @@ class ResumeLogGenerator:
         if not self.enabled or not self.auto_generate:
             return manual_trigger  # Only generate on manual trigger if auto is disabled
 
-        # Trigger conditions
+        # Trigger conditions (ordered by severity)
         triggers = [
             stop_reason == "max_tokens",
             stop_reason == "model_context_window_exceeded",
             manual_trigger,
-            token_usage_pct and token_usage_pct >= self.threshold_critical,
-            token_usage_pct
-            and token_usage_pct >= self.threshold_warning,  # Generate at 85% too
+            token_usage_pct and token_usage_pct >= self.threshold_critical,  # 95%
+            token_usage_pct and token_usage_pct >= self.threshold_auto_pause,  # 90%
+            token_usage_pct and token_usage_pct >= self.threshold_warning,  # 85%
         ]
 
         should_gen = any(triggers)
@@ -120,6 +122,22 @@ class ResumeLogGenerator:
             logger.info(f"Resume log generation triggered: {reason}")
 
         return should_gen
+
+    def should_auto_pause(self, token_usage_pct: Optional[float]) -> bool:
+        """Check if auto-pause threshold (90%) has been reached.
+
+        This is a convenience method to check specifically for the 90% threshold
+        which triggers automatic session pausing.
+
+        Args:
+            token_usage_pct: Current token usage percentage (0.0-1.0)
+
+        Returns:
+            True if auto-pause threshold has been reached
+        """
+        if token_usage_pct is None:
+            return False
+        return token_usage_pct >= self.threshold_auto_pause
 
     def generate_from_session_state(
         self,
@@ -427,6 +445,7 @@ class ResumeLogGenerator:
                 "thresholds": {
                     "caution": f"{self.threshold_caution:.0%}",
                     "warning": f"{self.threshold_warning:.0%}",
+                    "auto_pause": f"{self.threshold_auto_pause:.0%}",
                     "critical": f"{self.threshold_critical:.0%}",
                 },
             }

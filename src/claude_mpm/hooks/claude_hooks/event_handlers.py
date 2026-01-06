@@ -189,6 +189,15 @@ class EventHandlers:
         if tool_name == "Task" and isinstance(tool_input, dict):
             self._handle_task_delegation(tool_input, pre_tool_data, session_id)
 
+        # Record tool call for auto-pause if active
+        auto_pause = getattr(self.hook_handler, "auto_pause_handler", None)
+        if auto_pause and auto_pause.is_pause_active():
+            try:
+                auto_pause.on_tool_call(tool_name, tool_input)
+            except Exception as e:
+                if DEBUG:
+                    print(f"Auto-pause tool recording error: {e}", file=sys.stderr)
+
         self.hook_handler._emit_socketio_event("", "pre_tool", pre_tool_data)
 
     def _handle_task_delegation(
@@ -851,6 +860,21 @@ class EventHandlers:
                 f"Hook handler: Processing AssistantResponse - session: '{session_id}', response_length: {len(response_text)}",
                 file=sys.stderr,
             )
+
+        # Record assistant response for auto-pause if active
+        auto_pause = getattr(self.hook_handler, "auto_pause_handler", None)
+        if auto_pause and auto_pause.is_pause_active():
+            try:
+                # Summarize response to first 200 chars
+                summary = (
+                    response_text[:200] + "..."
+                    if len(response_text) > 200
+                    else response_text
+                )
+                auto_pause.on_assistant_response(summary)
+            except Exception as e:
+                if DEBUG:
+                    print(f"Auto-pause response recording error: {e}", file=sys.stderr)
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event(

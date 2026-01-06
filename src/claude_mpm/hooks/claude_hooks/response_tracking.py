@@ -327,6 +327,22 @@ class ResponseTrackingManager:
                             file=sys.stderr,
                         )
 
+                # Auto-pause integration
+                auto_pause = getattr(self, "auto_pause_handler", None)
+                if auto_pause and metadata.get("usage"):
+                    try:
+                        threshold_crossed = auto_pause.on_usage_update(
+                            metadata["usage"]
+                        )
+                        if threshold_crossed:
+                            warning = auto_pause.emit_threshold_warning(
+                                threshold_crossed
+                            )
+                            print(f"\n⚠️  {warning}", file=sys.stderr)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Auto-pause error: {e}", file=sys.stderr)
+
                 # Track the main Claude response
                 file_path = self.response_tracker.track_response(
                     agent_name="claude_main",
