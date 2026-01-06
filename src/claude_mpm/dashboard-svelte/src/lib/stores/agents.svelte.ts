@@ -408,7 +408,6 @@ export function createAgentsStore(eventsStore: any): any {
 		// First pass: Identify agents from subagent_start/stop events and Task delegations
 		events.forEach(event => {
 			const sessionId = getSessionId(event);
-			if (!sessionId) return;
 
 			// Handle subagent lifecycle events
 			if (event.subtype === 'subagent_start') {
@@ -417,6 +416,22 @@ export function createAgentsStore(eventsStore: any): any {
 					? new Date(event.timestamp).getTime()
 					: event.timestamp;
 
+				// Debug logging for all subagent_start events
+				console.log('[AgentsStore] subagent_start detected:', {
+					sessionId,
+					agentType,
+					timestamp: new Date(timestamp).toLocaleTimeString(),
+					hasSessionId: !!sessionId
+				});
+
+				if (!sessionId) {
+					console.warn('[AgentsStore] subagent_start missing session_id:', event);
+					return;
+				}
+
+				// Always create a new agent for each subagent_start event
+				// Each subagent_start should have a unique session_id
+				// If we're seeing duplicate session_ids, that's a bug in the event source
 				if (!agentMap.has(sessionId)) {
 					agentMap.set(sessionId, {
 						id: sessionId,
@@ -434,6 +449,9 @@ export function createAgentsStore(eventsStore: any): any {
 						plans: [],
 						responses: []
 					});
+				} else {
+					// Log if we're seeing duplicate session IDs (this would indicate a bug)
+					console.warn('[AgentsStore] Duplicate session_id detected:', sessionId, 'agent_type:', agentType);
 				}
 			} else if (event.subtype === 'subagent_stop') {
 				const agent = agentMap.get(sessionId);
@@ -692,6 +710,18 @@ export function createAgentsStore(eventsStore: any): any {
 				agent.parentId = 'pm';
 				pmAgent.children.push(agent);
 			}
+		});
+
+		// Debug logging for final agent tree
+		console.log('[AgentsStore] Final agent tree:', {
+			totalAgents: agentMap.size,
+			pmChildren: pmAgent.children.length,
+			agents: Array.from(agentMap.values()).map(a => ({
+				name: a.name,
+				sessionId: a.sessionId.slice(0, 12),
+				status: a.status,
+				startTime: new Date(a.startTime).toLocaleTimeString()
+			}))
 		});
 
 		// Assign PM's tool calls (tools called before any delegation)

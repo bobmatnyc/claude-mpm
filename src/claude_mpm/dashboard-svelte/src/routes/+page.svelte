@@ -188,18 +188,18 @@
 						Tools
 					</button>
 					<button
-						onclick={() => viewMode = 'agents'}
-						class="tab"
-						class:active={viewMode === 'agents'}
-					>
-						Agents
-					</button>
-					<button
 						onclick={() => viewMode = 'files'}
 						class="tab"
 						class:active={viewMode === 'files'}
 					>
 						Files
+					</button>
+					<button
+						onclick={() => viewMode = 'agents'}
+						class="tab"
+						class:active={viewMode === 'agents'}
+					>
+						Agents
 					</button>
 				</div>
 			</div>
