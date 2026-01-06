@@ -7,7 +7,7 @@ Claude Code hook events.
 
 import os
 import re
-import subprocess
+import subprocess  # nosec B404 - subprocess used for safe claude CLI version checking only
 import sys
 import uuid
 from datetime import datetime, timezone

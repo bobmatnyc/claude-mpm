@@ -400,7 +400,7 @@ class AutoPauseHandler:
             state = self.tracker.get_current_state()
             warning = f"{warning} ({state.percentage_used:.1f}%)"
         except Exception:
-            pass
+            pass  # nosec B110 - Intentionally ignore formatting errors, warning is already constructed
 
         return warning
 

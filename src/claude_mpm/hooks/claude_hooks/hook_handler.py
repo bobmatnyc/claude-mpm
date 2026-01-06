@@ -155,7 +155,7 @@ def check_claude_version() -> Tuple[bool, Optional[str]]:
     """
     try:
         # Try to detect Claude Code version
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 - Safe: hardcoded claude CLI with --version flag, no user input
             ["claude", "--version"],
             capture_output=True,
             text=True,
@@ -648,14 +648,14 @@ class ClaudeHookHandler:
             try:
                 self.auto_pause_handler.on_session_end()
             except Exception:
-                pass  # Ignore cleanup errors during destruction
+                pass  # nosec B110 - Intentionally ignore cleanup errors during handler destruction
 
         # Clean up connection manager if it exists
         if hasattr(self, "connection_manager") and self.connection_manager:
             try:
                 self.connection_manager.cleanup()
             except Exception:
-                pass  # Ignore cleanup errors during destruction
+                pass  # nosec B110 - Intentionally ignore cleanup errors during handler destruction
 
 
 def main():

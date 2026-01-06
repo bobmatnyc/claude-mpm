@@ -130,7 +130,7 @@ class ResponseTrackingManager:
 
         try:
             # Get the original request data stored during pre-tool
-            request_info = delegation_requests.get(session_id)
+            request_info = delegation_requests.get(session_id)  # nosec B113 - False positive: dict.get(), not requests library
             if not request_info:
                 if DEBUG:
                     print(
