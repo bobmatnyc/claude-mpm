@@ -120,8 +120,8 @@ class SubagentResponseProcessor:
                 file=sys.stderr,
             )
 
-        # Emit to /hook namespace with high priority
-        self.connection_manager.emit_event("/hook", "subagent_stop", subagent_stop_data)
+        # Emit to default namespace (consistent with subagent_start)
+        self.connection_manager.emit_event("", "subagent_stop", subagent_stop_data)
 
     def _extract_basic_info(
         self, event: dict, session_id: str
