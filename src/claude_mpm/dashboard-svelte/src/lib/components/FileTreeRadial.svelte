@@ -160,29 +160,45 @@
         }
       });
 
-    // Node labels
+    // Node labels - horizontal orientation with clickable behavior
     nodes
       .append('text')
       .attr('dy', '0.31em')
-      .attr('x', d => {
-        // Position text on the outer side of the node
-        const angle = d.x;
-        return angle < Math.PI === !d.children ? 10 : -10;
+      .attr('dx', d => {
+        // Offset from node based on position (left vs right side of tree)
+        return d.x < Math.PI ? 10 : -10;
       })
       .attr('text-anchor', d => {
-        const angle = d.x;
-        return angle < Math.PI === !d.children ? 'start' : 'end';
-      })
-      .attr('transform', d => {
-        // Rotate text for readability
-        const angle = d.x;
-        return `rotate(${(angle * 180) / Math.PI - 90}) ${angle < Math.PI ? '' : 'rotate(180)'}`;
+        // Right side of tree: left-aligned, Left side: right-aligned
+        return d.x < Math.PI ? 'start' : 'end';
       })
       .text(d => (d.depth === 0 ? '' : d.data.name)) // Don't show root label
-      .attr('fill', '#e2e8f0') // slate-200
+      .attr('fill', d => {
+        const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
+        return isSelected ? '#06b6d4' : '#e2e8f0'; // cyan-500 if selected, slate-200 otherwise
+      })
       .attr('font-size', d => (d.data.isFile ? '11px' : '10px'))
       .attr('font-family', 'ui-monospace, monospace')
-      .attr('opacity', d => (d.depth === 0 ? 0 : 0.8));
+      .attr('opacity', d => (d.depth === 0 ? 0 : 0.8))
+      .attr('cursor', d => (d.data.isFile ? 'pointer' : 'default'))
+      .attr('class', 'file-label')
+      .on('click', (event, d) => {
+        if (d.data.isFile && d.data.file && onFileSelect) {
+          onFileSelect(d.data.file);
+        }
+      })
+      .on('mouseenter', function (event, d) {
+        if (d.data.isFile) {
+          d3.select(this).attr('opacity', 1).style('text-decoration', 'underline');
+          showTooltip(event, d.data.path);
+        }
+      })
+      .on('mouseleave', function (event, d) {
+        if (d.data.isFile) {
+          d3.select(this).attr('opacity', 0.8).style('text-decoration', 'none');
+          hideTooltip();
+        }
+      });
   }
 
   // Tooltip management
@@ -263,5 +279,9 @@
   /* Smooth transitions for interactions */
   :global(.nodes circle) {
     transition: r 0.2s ease, stroke-width 0.2s ease;
+  }
+
+  :global(.file-label) {
+    transition: opacity 0.2s ease;
   }
 </style>
