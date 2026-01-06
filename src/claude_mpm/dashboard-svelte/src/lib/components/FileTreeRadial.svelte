@@ -158,37 +158,41 @@
         }
       });
 
-    // Labels - HORIZONTAL text, positioned based on angle
-    nodes
-      .append('text')
-      .attr('dy', '0.31em')
-      .attr('x', d => {
-        // Position label outside the node, direction based on angle
-        const angle = d.x;
-        // Right half: label to the right, Left half: label to the left
-        return angle < Math.PI ? 8 : -8;
+    // Labels - SEPARATE LAYER with direct x,y positioning (not nested in transformed groups)
+    // This ensures text is ALWAYS horizontal
+    g.append('g')
+      .attr('class', 'labels')
+      .selectAll('text')
+      .data(treeData.descendants())
+      .join('text')
+      .each(function(d) {
+        // Calculate the cartesian position for this node
+        const angle = d.x - Math.PI / 2;
+        const nodeX = d.y * Math.cos(angle);
+        const nodeY = d.y * Math.sin(angle);
+
+        // Determine if label should be on left or right
+        const isRightSide = d.x < Math.PI;
+        const labelOffset = isRightSide ? 10 : -10;
+
+        // Set position directly (no transform inheritance)
+        d3.select(this)
+          .attr('x', nodeX + labelOffset)
+          .attr('y', nodeY)
+          .attr('dy', '0.35em')
+          .attr('text-anchor', isRightSide ? 'start' : 'end')
+          .text(d.depth === 0 ? '📁 root' : d.data.name)
+          .attr('fill', () => {
+            if (d.depth === 0) return '#a78bfa';
+            const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
+            return isSelected ? '#06b6d4' : '#e2e8f0';
+          })
+          .attr('font-size', d.depth === 0 ? '12px' : (d.data.isFile ? '10px' : '9px'))
+          .attr('font-family', 'ui-monospace, monospace')
+          .attr('font-weight', d.depth === 0 ? '600' : '400')
+          .attr('cursor', d.data.isFile ? 'pointer' : 'default')
+          .style('dominant-baseline', 'middle');
       })
-      .attr('text-anchor', d => {
-        // Right half: start (left-align), Left half: end (right-align)
-        const angle = d.x;
-        return angle < Math.PI ? 'start' : 'end';
-      })
-      .text(d => {
-        if (d.depth === 0) return '📁 root';
-        return d.data.name;
-      })
-      .attr('fill', d => {
-        if (d.depth === 0) return '#a78bfa'; // Purple for root label
-        const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
-        return isSelected ? '#06b6d4' : '#e2e8f0';
-      })
-      .attr('font-size', d => {
-        if (d.depth === 0) return '12px';
-        return d.data.isFile ? '10px' : '9px';
-      })
-      .attr('font-family', 'ui-monospace, monospace')
-      .attr('font-weight', d => (d.depth === 0 ? '600' : '400'))
-      .attr('cursor', d => (d.data.isFile ? 'pointer' : 'default'))
       .on('click', (event, d) => {
         if (d.data.isFile && d.data.file && onFileSelect) {
           onFileSelect(d.data.file);
