@@ -12,6 +12,8 @@ status: current
 
 This guide gets you from zero to asking questions about your code in under 10 minutes. No programming experience required.
 
+> 📖 **Want more context?** Read [This One's for the Founders](https://open.substack.com/pub/hyperdev/p/this-ones-for-the-founders?r=nff5&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true) for the story behind why we built this.
+
 ## Table of Contents
 
 1. [What You Need](#what-you-need)
