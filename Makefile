@@ -1008,6 +1008,9 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 	@echo ""
 	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
 	@if command -v uv >/dev/null 2>&1; then \
+		if [ -f .env.local ]; then \
+			set -a && . .env.local && set +a; \
+		fi; \
 		uv publish dist/*; \
 		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
 	else \
@@ -1311,4 +1314,3 @@ sync-repos-dry-run: ## Preview repository sync without making changes
 		echo "$(RED)✗ Sync script not found: scripts/sync_agent_skills_repos.sh$(NC)"; \
 		exit 1; \
 	fi
-
