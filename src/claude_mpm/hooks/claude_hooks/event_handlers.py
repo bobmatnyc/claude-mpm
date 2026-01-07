@@ -200,6 +200,23 @@ class EventHandlers:
 
         self.hook_handler._emit_socketio_event("", "pre_tool", pre_tool_data)
 
+        # Handle TodoWrite specially - emit dedicated todo_updated event
+        # WHY: Frontend expects todo_updated events for dashboard display
+        # The broadcaster.todo_updated() method exists but was never called
+        if tool_name == "TodoWrite" and tool_params.get("todos"):
+            todo_data = {
+                "todos": tool_params["todos"],
+                "total_count": len(tool_params["todos"]),
+                "session_id": session_id,
+                "timestamp": timestamp,
+            }
+            self.hook_handler._emit_socketio_event("", "todo_updated", todo_data)
+            if DEBUG:
+                print(
+                    f"  - Emitted todo_updated event with {len(tool_params['todos'])} todos for session {session_id[:8]}...",
+                    file=sys.stderr,
+                )
+
     def _handle_task_delegation(
         self, tool_input: dict, pre_tool_data: dict, session_id: str
     ):

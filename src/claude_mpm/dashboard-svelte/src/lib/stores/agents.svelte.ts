@@ -604,6 +604,38 @@ export function createAgentsStore(eventsStore: any): any {
 					}
 				}
 			}
+
+			// Handle dedicated todo_updated events (alternative to pre_tool TodoWrite)
+			// This ensures todos are captured even if pre_tool handling fails
+			if (event.subtype === 'todo_updated' || event.type === 'todo_updated') {
+				if (typeof event.data === 'object' && event.data) {
+					const data = event.data as Record<string, unknown>;
+					const todos = data.todos;
+
+					if (Array.isArray(todos) && todos.length > 0) {
+						const todoActivity: TodoActivity = {
+							id: `todo-${timestamp}-${sessionId}`,
+							timestamp,
+							todos: todos.map((todo: any) => ({
+								content: todo.content || '',
+								status: todo.status || 'pending',
+								activeForm: todo.activeForm || undefined
+							}))
+						};
+
+						if (!todoMap.has(sessionId)) {
+							todoMap.set(sessionId, []);
+						}
+						todoMap.get(sessionId)!.push(todoActivity);
+
+						console.log('[AgentsStore] Captured todo_updated event:', {
+							sessionId: sessionId.slice(0, 12),
+							todoCount: todos.length,
+							timestamp: new Date(timestamp).toLocaleTimeString()
+						});
+					}
+				}
+			}
 		});
 
 		// Third pass: Capture prompts and responses
