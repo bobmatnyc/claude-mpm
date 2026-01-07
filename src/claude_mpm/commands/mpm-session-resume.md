@@ -21,7 +21,7 @@ Load and display context from most recent paused session.
 - Git context and recent commits
 - Next recommended actions
 
-**Session location:** `.claude-mpm/sessions/session-*.json`
+**Session location:** `.claude-mpm/sessions/session-*.md`
 
 **Token usage:** ~20-40k tokens (10-20% of context budget)
 

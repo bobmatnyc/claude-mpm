@@ -115,7 +115,7 @@ class EventHandlers:
                             f"Stored prompt for comprehensive tracking: session {session_id[:8]}...",
                             file=sys.stderr,
                         )
-        except Exception:
+        except Exception:  # nosec B110
             # Response tracking is optional - silently continue if it fails
             pass
 
@@ -297,7 +297,7 @@ class EventHandlers:
             mhm = getattr(self.hook_handler, "memory_hook_manager", None)
             if mhm and hasattr(mhm, "trigger_pre_delegation_hook"):
                 mhm.trigger_pre_delegation_hook(agent_type, tool_input, session_id)
-        except Exception:
+        except Exception:  # nosec B110
             # Memory hooks are optional
             pass
 
@@ -390,7 +390,7 @@ class EventHandlers:
             os.chdir(working_dir)
 
             # Run git command to get current branch
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
@@ -500,7 +500,7 @@ class EventHandlers:
                 mhm = getattr(self.hook_handler, "memory_hook_manager", None)
                 if mhm and hasattr(mhm, "trigger_post_delegation_hook"):
                     mhm.trigger_post_delegation_hook(agent_type, event, session_id)
-            except Exception:
+            except Exception:  # nosec B110
                 # Memory hooks are optional
                 pass
 
@@ -514,7 +514,7 @@ class EventHandlers:
                     rtm.track_agent_response(
                         session_id, agent_type, event, delegation_requests
                     )
-            except Exception:
+            except Exception:  # nosec B110
                 # Response tracking is optional
                 pass
 
@@ -576,13 +576,49 @@ class EventHandlers:
         if DEBUG:
             self._log_stop_event_debug(event, session_id, metadata)
 
+        # Auto-pause integration (independent of response tracking)
+        # WHY HERE: Auto-pause must work even when response_tracking is disabled
+        # Extract usage data directly from event and trigger auto-pause if thresholds crossed
+        if "usage" in event:
+            auto_pause = getattr(self.hook_handler, "auto_pause_handler", None)
+            if auto_pause:
+                try:
+                    usage_data = event["usage"]
+                    metadata["usage"] = {
+                        "input_tokens": usage_data.get("input_tokens", 0),
+                        "output_tokens": usage_data.get("output_tokens", 0),
+                        "cache_creation_input_tokens": usage_data.get(
+                            "cache_creation_input_tokens", 0
+                        ),
+                        "cache_read_input_tokens": usage_data.get(
+                            "cache_read_input_tokens", 0
+                        ),
+                    }
+
+                    threshold_crossed = auto_pause.on_usage_update(metadata["usage"])
+                    if threshold_crossed:
+                        warning = auto_pause.emit_threshold_warning(threshold_crossed)
+                        print(f"\n⚠️  {warning}", file=sys.stderr)
+
+                        if DEBUG:
+                            print(
+                                f"  - Auto-pause threshold crossed: {threshold_crossed}",
+                                file=sys.stderr,
+                            )
+                except Exception as e:
+                    if DEBUG:
+                        print(
+                            f"Auto-pause error in handle_stop_fast: {e}",
+                            file=sys.stderr,
+                        )
+
         # Track response if enabled
         try:
             rtm = getattr(self.hook_handler, "response_tracking_manager", None)
             if rtm and hasattr(rtm, "track_stop_response"):
                 pending_prompts = getattr(self.hook_handler, "pending_prompts", {})
                 rtm.track_stop_response(event, session_id, metadata, pending_prompts)
-        except Exception:
+        except Exception:  # nosec B110
             # Response tracking is optional
             pass
 
@@ -624,7 +660,7 @@ class EventHandlers:
                 f"  - response_tracker exists: {tracker_exists}",
                 file=sys.stderr,
             )
-        except Exception:
+        except Exception:  # nosec B110
             # If debug logging fails, just skip it
             pass
 
@@ -690,7 +726,7 @@ class EventHandlers:
         try:
             # Get the original request data (with fuzzy matching fallback)
             delegation_requests = getattr(self.hook_handler, "delegation_requests", {})
-            request_info = delegation_requests.get(session_id)
+            request_info = delegation_requests.get(session_id)  # nosec B113
 
             # If exact match fails, try partial matching
             if not request_info and session_id:
@@ -715,7 +751,7 @@ class EventHandlers:
                                 f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
                                 file=sys.stderr,
                             )
-                        request_info = delegation_requests.get(stored_sid)
+                        request_info = delegation_requests.get(stored_sid)  # nosec B113
                         # Update the key to use the current session_id for consistency
                         if request_info:
                             delegation_requests[session_id] = request_info
@@ -822,7 +858,7 @@ class EventHandlers:
             if rtm and hasattr(rtm, "track_assistant_response"):
                 pending_prompts = getattr(self.hook_handler, "pending_prompts", {})
                 rtm.track_assistant_response(event, pending_prompts)
-        except Exception:
+        except Exception:  # nosec B110
             # Response tracking is optional
             pass
 
