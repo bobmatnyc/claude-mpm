@@ -337,6 +337,17 @@
 ### Changed
 - **Version**: Patch version bump for release
 
+## v5.4.91 (2026-01-07)
+
+### Feat
+
+- **banner**: add MPM skills count, clarify skills vs commands
+
+### Fix
+
+- **dashboard**: emit todo_updated events for proper tracking
+- sync pyproject.toml version to 5.4.90
+
 ## v5.4.90 (2026-01-07)
 
 ### Feat
