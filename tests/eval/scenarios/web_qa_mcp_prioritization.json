@@ -1,0 +1,334 @@
+{
+  "description": "Web-QA Agent MCP Tool Prioritization Test Scenarios",
+  "version": "1.0.0",
+  "updated": "2026-01-07",
+  "categories": [
+    "playwright_mcp_prioritization",
+    "chrome_devtools_fallback",
+    "bash_command_fallback",
+    "tool_selection_correctness"
+  ],
+  "scenarios": [
+    {
+      "id": "playwright_navigation_and_snapshot",
+      "category": "playwright_mcp_prioritization",
+      "severity": "critical",
+      "description": "Agent should use Playwright MCP for page navigation and accessibility snapshot inspection",
+      "user_input": "Test the login page at http://localhost:3000/login. Verify the page structure and check for any console errors.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*", "Bash"],
+        "preferred_tools": ["mcp__playwright__browser_navigate", "mcp__playwright__browser_snapshot", "mcp__playwright__browser_console_messages"],
+        "test_url": "http://localhost:3000/login"
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_navigate",
+          "mcp__playwright__browser_snapshot"
+        ],
+        "should_use_tools": [
+          "mcp__playwright__browser_console_messages"
+        ],
+        "must_not_use_tools": [
+          "mcp__chrome-devtools__navigate_page",
+          "mcp__chrome-devtools__take_screenshot",
+          "Bash"
+        ],
+        "reasoning": "Playwright MCP provides superior accessibility snapshots via browser_snapshot (preferred over screenshots) and structured console message access"
+      },
+      "success_criteria": {
+        "uses_playwright_navigate": true,
+        "uses_playwright_snapshot": true,
+        "avoids_chrome_devtools": true,
+        "avoids_bash_curl": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "playwright_console_error_monitoring",
+      "category": "playwright_mcp_prioritization",
+      "severity": "high",
+      "description": "Agent should use Playwright MCP for console error monitoring instead of Chrome DevTools",
+      "user_input": "Navigate to http://localhost:3000 and check for any JavaScript errors in the console.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*", "Bash"],
+        "preferred_tools": ["mcp__playwright__browser_console_messages"],
+        "test_url": "http://localhost:3000"
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_console_messages"
+        ],
+        "must_not_use_tools": [
+          "mcp__chrome-devtools__list_console_messages",
+          "Bash"
+        ],
+        "reasoning": "Playwright MCP provides structured console message access with filtering capabilities"
+      },
+      "success_criteria": {
+        "uses_playwright_console": true,
+        "avoids_chrome_devtools_console": true,
+        "reports_error_count": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "playwright_network_monitoring",
+      "category": "playwright_mcp_prioritization",
+      "severity": "high",
+      "description": "Agent should use Playwright MCP for network request monitoring",
+      "user_input": "Load http://localhost:3000/api/users and verify all API calls complete successfully. Check for any failed requests.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*", "Bash"],
+        "preferred_tools": ["mcp__playwright__browser_network_requests"],
+        "test_url": "http://localhost:3000/api/users"
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_navigate",
+          "mcp__playwright__browser_network_requests"
+        ],
+        "must_not_use_tools": [
+          "mcp__chrome-devtools__list_network_requests",
+          "Bash"
+        ],
+        "reasoning": "Playwright MCP provides comprehensive network request/response capture with full headers and body"
+      },
+      "success_criteria": {
+        "uses_playwright_network": true,
+        "avoids_chrome_devtools_network": true,
+        "reports_request_status": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "playwright_interaction_tools",
+      "category": "playwright_mcp_prioritization",
+      "severity": "high",
+      "description": "Agent should use Playwright MCP interaction tools for form testing",
+      "user_input": "Test the registration form at http://localhost:3000/register. Fill in username 'testuser' and email 'test@example.com', then submit.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*", "Bash"],
+        "preferred_tools": ["mcp__playwright__browser_type", "mcp__playwright__browser_click", "mcp__playwright__browser_fill_form"],
+        "test_url": "http://localhost:3000/register"
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_navigate",
+          "mcp__playwright__browser_snapshot"
+        ],
+        "should_use_tools": [
+          "mcp__playwright__browser_type",
+          "mcp__playwright__browser_click"
+        ],
+        "must_not_use_tools": [
+          "mcp__chrome-devtools__click",
+          "mcp__chrome-devtools__fill",
+          "Bash"
+        ],
+        "reasoning": "Playwright MCP provides robust interaction tools with proper element reference handling"
+      },
+      "success_criteria": {
+        "uses_playwright_interaction": true,
+        "avoids_chrome_devtools_interaction": true,
+        "uses_snapshot_for_element_discovery": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "chrome_devtools_fallback",
+      "category": "chrome_devtools_fallback",
+      "severity": "medium",
+      "description": "Agent should fallback to Chrome DevTools MCP when Playwright unavailable",
+      "user_input": "Test http://localhost:3000 and capture a screenshot of any errors.",
+      "context": {
+        "available_tools": ["mcp__chrome-devtools__*", "Bash"],
+        "playwright_available": false,
+        "preferred_tools": ["mcp__chrome-devtools__navigate_page", "mcp__chrome-devtools__take_screenshot"]
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__chrome-devtools__navigate_page",
+          "mcp__chrome-devtools__take_screenshot"
+        ],
+        "must_not_use_tools": [
+          "Bash"
+        ],
+        "reasoning": "When Playwright MCP unavailable, Chrome DevTools MCP is the next priority before falling back to Bash"
+      },
+      "success_criteria": {
+        "uses_chrome_devtools": true,
+        "avoids_bash_commands": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "bash_last_resort_fallback",
+      "category": "bash_command_fallback",
+      "severity": "low",
+      "description": "Agent should only use Bash commands when no MCP tools available",
+      "user_input": "Check if http://localhost:3000 is responding.",
+      "context": {
+        "available_tools": ["Bash"],
+        "playwright_available": false,
+        "chrome_devtools_available": false,
+        "preferred_tools": ["Bash"]
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "Bash"
+        ],
+        "reasoning": "Bash curl/wget is acceptable only when no MCP browser tools are available"
+      },
+      "success_criteria": {
+        "uses_bash_curl_or_wget": true,
+        "explains_tool_unavailability": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "snapshot_over_screenshot_priority",
+      "category": "tool_selection_correctness",
+      "severity": "critical",
+      "description": "Agent must prefer browser_snapshot over browser_take_screenshot for accessibility inspection",
+      "user_input": "Inspect the structure of the navigation menu at http://localhost:3000 and verify accessibility.",
+      "context": {
+        "available_tools": ["mcp__playwright__*"],
+        "preferred_tools": ["mcp__playwright__browser_snapshot"],
+        "test_url": "http://localhost:3000"
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_snapshot"
+        ],
+        "must_not_use_tools": [
+          "mcp__playwright__browser_take_screenshot"
+        ],
+        "reasoning": "browser_snapshot provides semantic DOM structure for accessibility analysis, screenshots are for visual verification only"
+      },
+      "success_criteria": {
+        "uses_snapshot_not_screenshot": true,
+        "analyzes_semantic_structure": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "performance_profiling",
+      "category": "playwright_mcp_prioritization",
+      "severity": "medium",
+      "description": "Agent should use Playwright MCP for performance profiling when available",
+      "user_input": "Load http://localhost:3000 and measure the page load performance. Check for any slow operations.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*"],
+        "preferred_tools": ["mcp__playwright__browser_navigate"],
+        "chrome_devtools_exclusive": ["mcp__chrome-devtools__performance_start_trace"]
+      },
+      "expected_behavior": {
+        "must_use_tools": [
+          "mcp__playwright__browser_navigate"
+        ],
+        "can_use_chrome_devtools_for": [
+          "performance_start_trace",
+          "performance_stop_trace"
+        ],
+        "reasoning": "Playwright for navigation, but Chrome DevTools provides performance profiling features not in Playwright MCP"
+      },
+      "success_criteria": {
+        "uses_playwright_for_navigation": true,
+        "may_use_chrome_devtools_for_perf": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "mixed_tool_scenario",
+      "category": "tool_selection_correctness",
+      "severity": "high",
+      "description": "Agent should correctly mix Playwright MCP and Chrome DevTools when each provides unique capabilities",
+      "user_input": "Test http://localhost:3000: check page structure, monitor console, capture network requests, and run a performance profile.",
+      "context": {
+        "available_tools": ["mcp__playwright__*", "mcp__chrome-devtools__*"],
+        "playwright_strengths": ["snapshot", "console", "network"],
+        "chrome_devtools_strengths": ["performance_trace"]
+      },
+      "expected_behavior": {
+        "must_use_playwright_for": [
+          "browser_snapshot",
+          "browser_console_messages",
+          "browser_network_requests"
+        ],
+        "can_use_chrome_devtools_for": [
+          "performance_start_trace",
+          "performance_stop_trace"
+        ],
+        "must_not_use_bash": true,
+        "reasoning": "Use Playwright for general testing, Chrome DevTools only for performance profiling (unique capability)"
+      },
+      "success_criteria": {
+        "uses_playwright_for_primary_tasks": true,
+        "uses_chrome_devtools_only_for_perf": true,
+        "avoids_bash": true,
+        "has_evidence": true
+      }
+    },
+    {
+      "id": "tool_availability_detection",
+      "category": "tool_selection_correctness",
+      "severity": "critical",
+      "description": "Agent should detect tool availability and adjust strategy accordingly",
+      "user_input": "Test http://localhost:3000 for accessibility compliance.",
+      "context": {
+        "available_tools": ["WebFetch", "Bash"],
+        "playwright_available": false,
+        "chrome_devtools_available": false
+      },
+      "expected_behavior": {
+        "must_acknowledge": "MCP browser tools unavailable",
+        "must_explain_limitation": true,
+        "can_use_fallback": [
+          "WebFetch",
+          "Bash"
+        ],
+        "should_recommend": "Setting up Playwright MCP or Chrome DevTools MCP for comprehensive testing",
+        "reasoning": "Agent should be transparent about tool limitations and recommend proper setup"
+      },
+      "success_criteria": {
+        "acknowledges_tool_unavailability": true,
+        "explains_limitations": true,
+        "recommends_proper_setup": true,
+        "uses_appropriate_fallback": true
+      }
+    }
+  ],
+  "validation_rules": {
+    "playwright_mcp_priority": {
+      "description": "Playwright MCP tools must be prioritized over Chrome DevTools MCP when both available",
+      "priority_order": [
+        "mcp__playwright__*",
+        "mcp__chrome-devtools__*",
+        "Bash"
+      ],
+      "exceptions": [
+        "performance_start_trace (Chrome DevTools exclusive)",
+        "performance_stop_trace (Chrome DevTools exclusive)",
+        "performance_analyze_insight (Chrome DevTools exclusive)"
+      ]
+    },
+    "snapshot_priority": {
+      "description": "browser_snapshot must be preferred over browser_take_screenshot for structural inspection",
+      "rule": "When inspecting page structure, DOM, accessibility, or semantic content, ALWAYS use browser_snapshot",
+      "screenshot_use_cases": [
+        "Visual regression testing",
+        "UI comparison",
+        "Error state documentation"
+      ]
+    },
+    "evidence_requirements": {
+      "description": "All test results must include concrete evidence from tool outputs",
+      "required_elements": [
+        "Tool used",
+        "Output data (logs, network requests, snapshot)",
+        "Specific findings",
+        "Pass/fail determination"
+      ]
+    }
+  }
+}

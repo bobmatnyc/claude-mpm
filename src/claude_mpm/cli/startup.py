@@ -1139,33 +1139,70 @@ def show_skill_summary():
 
 
 def verify_and_show_pm_skills():
-    """Verify PM skills and display status.
+    """Verify PM skills and display status with enhanced validation.
 
-    WHY: PM skills are essential for PM agent operation.
-    Shows deployment status and auto-deploys if missing.
+    WHY: PM skills are CRITICAL for PM agent operation. PM must KNOW if
+    framework knowledge is unavailable at startup. Enhanced validation
+    checks all required skills exist, are not corrupted, and auto-repairs
+    if needed.
+
+    Shows deployment status:
+    - "✓ PM skills: 8/8 verified" if all required skills are valid
+    - "⚠ PM skills: 2 missing, auto-repairing..." if issues detected
+    - Non-blocking but visible warning if auto-repair fails
     """
     try:
         from pathlib import Path
 
-        from ..services.pm_skills_deployer import PMSkillsDeployerService
+        from ..services.pm_skills_deployer import (
+            REQUIRED_PM_SKILLS,
+            PMSkillsDeployerService,
+        )
 
         deployer = PMSkillsDeployerService()
         project_dir = Path.cwd()
 
-        result = deployer.verify_pm_skills(project_dir)
+        # Verify with auto-repair enabled
+        result = deployer.verify_pm_skills(project_dir, auto_repair=True)
 
         if result.verified:
-            # Show verified status
-            print(f"✓ PM skills: {result.skill_count} verified", flush=True)
+            # Show verified status with count
+            total_required = len(REQUIRED_PM_SKILLS)
+            print(
+                f"✓ PM skills: {total_required}/{total_required} verified", flush=True
+            )
         else:
-            # Auto-deploy if missing
-            print("Deploying PM skills...", end="", flush=True)
-            deploy_result = deployer.deploy_pm_skills(project_dir)
-            if deploy_result.success:
-                total = len(deploy_result.deployed) + len(deploy_result.skipped)
-                print(f"\r✓ PM skills: {total} deployed" + " " * 20, flush=True)
+            # Show warning with details
+            missing_count = len(result.missing_skills)
+            corrupted_count = len(result.corrupted_skills)
+
+            # Build status message
+            issues = []
+            if missing_count > 0:
+                issues.append(f"{missing_count} missing")
+            if corrupted_count > 0:
+                issues.append(f"{corrupted_count} corrupted")
+
+            status = ", ".join(issues)
+
+            # Check if auto-repair was attempted
+            if "Auto-repaired" in result.message:
+                # Auto-repair succeeded
+                total_required = len(REQUIRED_PM_SKILLS)
+                print(
+                    f"✓ PM skills: {total_required}/{total_required} verified (auto-repaired)",
+                    flush=True,
+                )
             else:
-                print("\r⚠ PM skills: deployment failed" + " " * 20, flush=True)
+                # Auto-repair failed or not attempted
+                print(f"⚠ PM skills: {status}", flush=True)
+
+                # Log warnings for debugging
+                from ..core.logger import get_logger
+
+                logger = get_logger("cli")
+                for warning in result.warnings:
+                    logger.warning(f"PM skills: {warning}")
 
     except ImportError:
         # PM skills deployer not available - skip silently
