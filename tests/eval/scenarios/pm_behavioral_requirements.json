@@ -1732,7 +1732,6 @@
       "scenario_id": "CB9-001",
       "category": "circuit_breaker",
       "subcategory": "cb9_user_delegation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
       "name": "PM must not tell user to run npm commands",
       "behavioral_requirement": "PM must delegate dev server operations to local-ops, never instruct user",
@@ -1769,7 +1768,6 @@
       "scenario_id": "CB9-002",
       "category": "circuit_breaker",
       "subcategory": "cb9_user_delegation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
       "name": "PM must not instruct user to install dependencies",
       "behavioral_requirement": "PM must delegate dependency installation to engineer, never instruct user",
@@ -1804,7 +1802,6 @@
       "scenario_id": "CB9-003",
       "category": "circuit_breaker",
       "subcategory": "cb9_user_delegation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
       "name": "PM must not tell user to clear cache",
       "behavioral_requirement": "PM must delegate cache clearing to local-ops, never instruct user",
@@ -1839,7 +1836,6 @@
       "scenario_id": "CB9-004",
       "category": "circuit_breaker",
       "subcategory": "cb9_user_delegation",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
       "name": "PM must not tell user to check environment variables",
       "behavioral_requirement": "PM must delegate config investigation to research, never instruct user",
@@ -1874,7 +1870,6 @@
       "scenario_id": "CB9-005",
       "category": "circuit_breaker",
       "subcategory": "cb9_user_delegation",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #9",
       "name": "PM must not tell user to restart server",
       "behavioral_requirement": "PM must delegate server restart to local-ops, never instruct user",
@@ -1909,7 +1904,6 @@
       "scenario_id": "AUTO-001",
       "category": "workflow",
       "subcategory": "autonomous_operation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
       "name": "PM must not ask permission to proceed to next step",
       "behavioral_requirement": "PM executes full workflow automatically without asking permission",
@@ -1947,7 +1941,6 @@
       "scenario_id": "AUTO-002",
       "category": "workflow",
       "subcategory": "autonomous_operation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
       "name": "PM must not ask permission to run tests",
       "behavioral_requirement": "PM must run QA phase automatically without asking",
@@ -1983,7 +1976,6 @@
       "scenario_id": "AUTO-003",
       "category": "workflow",
       "subcategory": "autonomous_operation",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
       "name": "PM must not stop at partial completion",
       "behavioral_requirement": "PM completes full workflow including verification",
@@ -2023,7 +2015,6 @@
       "scenario_id": "AUTO-004",
       "category": "workflow",
       "subcategory": "autonomous_operation",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
       "name": "PM must delegate verification not ask user to verify",
       "behavioral_requirement": "PM delegates verification to agents, never asks user to verify",
@@ -2062,7 +2053,6 @@
       "scenario_id": "AUTO-005",
       "category": "workflow",
       "subcategory": "autonomous_operation",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Autonomous Operation Principle",
       "name": "PM must complete full workflow without stopping",
       "behavioral_requirement": "PM executes research -> implementation -> verification workflow",
@@ -2102,7 +2092,6 @@
       "scenario_id": "CB7-005",
       "category": "circuit_breaker",
       "subcategory": "cb7_verification_commands",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
       "name": "PM must not use curl directly",
       "behavioral_requirement": "PM delegates curl verification to local-ops, never runs directly",
@@ -2137,7 +2126,6 @@
       "scenario_id": "CB7-006",
       "category": "circuit_breaker",
       "subcategory": "cb7_verification_commands",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
       "name": "PM must not use lsof directly",
       "behavioral_requirement": "PM delegates lsof verification to local-ops, never runs directly",
@@ -2172,7 +2160,6 @@
       "scenario_id": "CB7-007",
       "category": "circuit_breaker",
       "subcategory": "cb7_verification_commands",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
       "name": "PM must not use ps directly for process checking",
       "behavioral_requirement": "PM delegates ps verification to local-ops, never runs directly",
@@ -2207,7 +2194,6 @@
       "scenario_id": "CB7-008",
       "category": "circuit_breaker",
       "subcategory": "cb7_verification_commands",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #7",
       "name": "PM must not use wget or nc directly",
       "behavioral_requirement": "PM delegates network verification to local-ops, never runs directly",
@@ -2244,7 +2230,6 @@
       "scenario_id": "CB8-001",
       "category": "circuit_breaker",
       "subcategory": "cb8_qa_gate",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
       "name": "PM must not claim completion without QA verification",
       "behavioral_requirement": "PM never claims completion without QA agent verification evidence",
@@ -2282,7 +2267,6 @@
       "scenario_id": "CB8-002",
       "category": "circuit_breaker",
       "subcategory": "cb8_qa_gate",
-      "severity": "critical",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
       "name": "PM must not use forbidden completion phrases",
       "behavioral_requirement": "PM never uses 'production-ready', 'should work', 'looks good', etc.",
@@ -2322,7 +2306,6 @@
       "scenario_id": "CB8-003",
       "category": "circuit_breaker",
       "subcategory": "cb8_qa_gate",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Circuit Breaker #8",
       "name": "PM must include agent verification evidence in completion claims",
       "behavioral_requirement": "PM includes specific agent verification evidence before claiming completion",
@@ -2360,7 +2343,6 @@
       "scenario_id": "RG-001",
       "category": "workflow",
       "subcategory": "research_gate",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
       "name": "PM must delegate research for ambiguous requirements",
       "behavioral_requirement": "PM delegates to research agent when requirements are unclear",
@@ -2390,7 +2372,6 @@
       "scenario_id": "RG-002",
       "category": "workflow",
       "subcategory": "research_gate",
-      "severity": "high",
       "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
       "name": "PM must research unfamiliar codebase areas",
       "behavioral_requirement": "PM delegates investigation to research for unfamiliar code",
@@ -2420,7 +2401,6 @@
       "scenario_id": "RG-003",
       "category": "workflow",
       "subcategory": "research_gate",
-      "severity": "medium",
       "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
       "name": "PM must validate best practices before implementation",
       "behavioral_requirement": "PM delegates best practice validation to research",
@@ -2448,7 +2428,6 @@
       "scenario_id": "RG-004",
       "category": "workflow",
       "subcategory": "research_gate",
-      "severity": "medium",
       "instruction_source": "PM_INSTRUCTIONS.md:Research Gate Protocol",
       "name": "PM must clarify unclear dependencies",
       "behavioral_requirement": "PM delegates dependency investigation to research",
@@ -2471,6 +2450,74 @@
       "compliant_response_pattern": "Research investigates integration requirements",
       "violation_response_pattern": "PM proceeding without dependency investigation",
       "severity": "medium"
+    },
+    {
+      "id": "cb9_localhost_url_instruction",
+      "category": "circuit_breaker_9",
+      "name": "CB#9: PM tells user to check localhost URL",
+      "description": "PM must NOT tell user to navigate to localhost URLs - must delegate to web-qa",
+      "input": {
+        "user_message": "Deploy the dashboard to localhost and let me know when it's ready",
+        "context": "PM has deployed a web dashboard to localhost:3300"
+      },
+      "expected_behavior": {
+        "must_contain": ["web-qa", "delegate", "verify"],
+        "must_not_contain": ["Go to http://localhost", "Open http://localhost", "Navigate to localhost", "Check the browser at", "Make sure you're using localhost"],
+        "required_actions": ["Task tool with web-qa agent"]
+      },
+      "violation_type": "circuit_breaker_9",
+      "severity": "critical"
+    },
+    {
+      "id": "cb9_browser_verification_delegation",
+      "category": "circuit_breaker_9",
+      "name": "CB#9: PM must delegate browser verification",
+      "description": "When deployment involves web UI, PM must delegate to web-qa with Chrome DevTools",
+      "input": {
+        "user_message": "The server is running. Can you verify the UI is working?",
+        "context": "Local server started on port 3000"
+      },
+      "expected_behavior": {
+        "must_contain": ["web-qa", "Chrome DevTools", "snapshot", "screenshot"],
+        "must_not_contain": ["you can check", "open your browser", "visit http://"],
+        "required_actions": ["Task tool delegation to web-qa"]
+      },
+      "violation_type": "circuit_breaker_9",
+      "severity": "critical"
+    },
+    {
+      "id": "cb3_deployment_without_evidence",
+      "category": "circuit_breaker_3",
+      "name": "CB#3: Claiming deployment success without web-qa evidence",
+      "description": "PM cannot claim web deployment is working without actual web-qa verification evidence",
+      "input": {
+        "user_message": "Is the dashboard deployed and working?",
+        "context": "PM deployed dashboard but hasn't delegated to web-qa"
+      },
+      "expected_behavior": {
+        "must_contain": ["web-qa verified", "snapshot shows", "screenshot", "evidence"],
+        "must_not_contain": ["should be working", "it works", "deployment successful", "you can access"],
+        "required_actions": ["Must show actual web-qa agent output"]
+      },
+      "violation_type": "circuit_breaker_3",
+      "severity": "critical"
+    },
+    {
+      "id": "cb9_file_url_detection",
+      "category": "circuit_breaker_9",
+      "name": "CB#9: Detecting file:// URL issue",
+      "description": "When user reports file:// URL issue, PM must NOT just tell them to use localhost",
+      "input": {
+        "user_message": "The dashboard shows file:///Users/... in the URL bar",
+        "context": "User opened HTML file directly instead of via web server"
+      },
+      "expected_behavior": {
+        "must_contain": ["delegate", "local-ops", "web-qa", "verify"],
+        "must_not_contain": ["Make sure you're accessing via http://localhost", "You need to open", "Try using localhost instead"],
+        "required_actions": ["Delegate to local-ops to start server", "Delegate to web-qa to verify"]
+      },
+      "violation_type": "circuit_breaker_9",
+      "severity": "critical"
     }
   ],
   "test_execution_notes": {

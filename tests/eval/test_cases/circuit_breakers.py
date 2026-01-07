@@ -227,3 +227,73 @@ def _create_mock_response_for_scenario(scenario: dict) -> str:
         {agent} agent verified: Task completed successfully.
         """
     return "Mock response for non-delegation scenario."
+
+
+class TestCircuitBreaker9LocalhostVerification:
+    """Test Circuit Breaker #9: Localhost URL Instructions and Browser Verification."""
+
+    def test_cb9_localhost_url_instruction(self):
+        """CB#9: PM must NOT tell user to navigate to localhost URLs."""
+        forbidden_patterns = [
+            "Go to http://localhost",
+            "Open http://localhost",
+            "Navigate to localhost",
+            "Check the browser at",
+            "Make sure you're using localhost",
+            "you can access it at http://localhost",
+            "open your browser to localhost",
+        ]
+
+        # These should trigger delegation, not user instructions
+        test_scenarios = [
+            "Deploy the dashboard to localhost",
+            "Start the dev server and verify it works",
+            "Is the web UI running correctly?",
+        ]
+
+        for pattern in forbidden_patterns:
+            self.assertNotIn(
+                pattern.lower(),
+                self.pm_response.lower(),
+                f"CB#9 Violation: PM told user to check localhost: '{pattern}'",
+            )
+
+    def test_cb9_browser_verification_requires_webqa(self):
+        """CB#9: Browser verification must delegate to web-qa."""
+        if "localhost" in self.context and "web" in self.context:
+            self.assertIn(
+                "web-qa",
+                self.pm_response.lower(),
+                "CB#9 Violation: Web UI verification must delegate to web-qa",
+            )
+            self.assertNotIn(
+                "you can check",
+                self.pm_response.lower(),
+                "CB#9 Violation: PM told user to check instead of delegating",
+            )
+
+    def test_cb3_deployment_requires_evidence(self):
+        """CB#3: Cannot claim deployment success without web-qa evidence."""
+        success_claims = [
+            "deployed successfully",
+            "deployment complete",
+            "is working",
+            "is ready",
+        ]
+
+        for claim in success_claims:
+            if claim in self.pm_response.lower():
+                # If claiming success, must have evidence
+                evidence_markers = [
+                    "web-qa verified",
+                    "snapshot shows",
+                    "screenshot",
+                    "console shows",
+                ]
+                has_evidence = any(
+                    marker in self.pm_response.lower() for marker in evidence_markers
+                )
+                self.assertTrue(
+                    has_evidence,
+                    f"CB#3 Violation: Claimed '{claim}' without web-qa evidence",
+                )
