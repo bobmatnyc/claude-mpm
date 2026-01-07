@@ -7,7 +7,7 @@ Shows welcome message, version info, ASCII art, and what's new section.
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404 - required for git operations
 from pathlib import Path
 from typing import List
 
@@ -65,8 +65,8 @@ def _get_recent_commits(max_commits: int = 3) -> List[str]:
         if not is_git_repository("."):
             return []
 
-        # Run git log with custom format
-        result = subprocess.run(
+        # Run git log with custom format (safe - no user input)
+        result = subprocess.run(  # nosec B603 B607
             ["git", "log", "--format=%h • %ar • %s", f"-{max_commits}"],
             capture_output=True,
             text=True,
@@ -214,6 +214,59 @@ def _get_cwd_display(max_width: int = 40) -> str:
 
     # Truncate from the left with ellipsis
     return "..." + cwd[-(max_width - 3) :]
+
+
+def _count_mpm_skills() -> int:
+    """
+    Count user-level MPM skills from ~/.claude/skills/.
+
+    Returns:
+        Number of skill directories with SKILL.md files
+    """
+    try:
+        user_skills_dir = Path.home() / ".claude" / "skills"
+        if not user_skills_dir.exists():
+            return 0
+
+        # Count directories with SKILL.md (skill directories)
+        skill_count = 0
+        for item in user_skills_dir.iterdir():
+            if item.is_dir():
+                skill_file = item / "SKILL.md"
+                if skill_file.exists():
+                    skill_count += 1
+            # Also count standalone .md files (legacy format)
+            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
+                skill_count += 1
+
+        return skill_count
+    except Exception:
+        # Silent failure - return 0 if any error
+        return 0
+
+
+def _count_deployed_agents() -> int:
+    """
+    Count deployed agents from .claude/agents/.
+
+    Returns:
+        Number of deployed agent files
+    """
+    try:
+        deploy_target = Path.cwd() / ".claude" / "agents"
+        if not deploy_target.exists():
+            return 0
+
+        # Count .md files, excluding README and other docs
+        agent_files = [
+            f
+            for f in deploy_target.glob("*.md")
+            if not f.name.startswith(("README", "INSTRUCTIONS", "."))
+        ]
+        return len(agent_files)
+    except Exception:
+        # Silent failure - return 0 if any error
+        return 0
 
 
 def _format_two_column_line(
@@ -402,11 +455,25 @@ def display_startup_banner(version: str, logging_level: str) -> None:
             )
         )
 
-    # Line 10: Model info | separator
+    # Line 10: Model info with counts | separator
     separator = "─" * right_panel_width
+    agent_count = _count_deployed_agents()
+    skill_count = _count_mpm_skills()
+
+    # Format: "Sonnet 4.5 · 44 agents, 19 skills"
+    if agent_count > 0 or skill_count > 0:
+        counts_text = []
+        if agent_count > 0:
+            counts_text.append(f"{agent_count} agent{'s' if agent_count != 1 else ''}")
+        if skill_count > 0:
+            counts_text.append(f"{skill_count} skill{'s' if skill_count != 1 else ''}")
+        model_info = f"Sonnet 4.5 · {', '.join(counts_text)}"
+    else:
+        model_info = "Sonnet 4.5 · Claude MPM"
+
     lines.append(
         _format_two_column_line(
-            "Sonnet 4.5 · Claude MPM", separator, left_panel_width, right_panel_width
+            model_info, separator, left_panel_width, right_panel_width
         )
     )
 
