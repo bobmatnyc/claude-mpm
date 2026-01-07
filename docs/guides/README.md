@@ -4,6 +4,7 @@ Task-oriented guides and FAQs for Claude MPM.
 
 ## Available Guides
 
+- **Project Setup**: [mpm-init-rerun-guide.md](mpm-init-rerun-guide.md) - Keep your documentation fresh
 - **Doctor Command**: [doctor-command.md](doctor-command.md)
 - **Agent System**: [single-tier-agent-system.md](single-tier-agent-system.md), [agent-synchronization.md](agent-synchronization.md)
 - **Skills**: [skills-deployment-guide.md](skills-deployment-guide.md), [skills-management.md](skills-management.md), [skills-system.md](skills-system.md)
