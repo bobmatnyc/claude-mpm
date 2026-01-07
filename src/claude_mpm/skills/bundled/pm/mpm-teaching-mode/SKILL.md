@@ -43,7 +43,7 @@ git status  # Should NOT show .env
 
 **Setup Steps**:
 1. Create `.env` in project root
-2. Add your secrets: `API_KEY=abc123...`
+2. Add your secrets: `API_KEY=abc123...` # pragma: allowlist secret
 3. Add `.env` to `.gitignore`
 4. Load in code: `process.env.API_KEY` (Node) or `os.getenv('API_KEY')` (Python)
 
@@ -513,7 +513,7 @@ Documentation created:
 # Register new user
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"SecurePass123"}'
+  -d '{"email":"user@example.com","password":"SecurePass123"}' # pragma: allowlist secret
 
 # Success response:
 {"success":true,"userId":"123","message":"User registered successfully"}

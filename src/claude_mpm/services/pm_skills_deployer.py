@@ -1,27 +1,30 @@
 """PM Skills Deployer Service - Deploy bundled PM skills to projects.
 
-WHY: PM agents require specific templates and skills for proper operation.
+WHY: PM agents require specific framework management skills for proper operation.
 This service manages deployment of bundled PM skills from the claude-mpm
-package to individual project .claude-mpm directories with version tracking.
+package to the Claude Code skills directory with version tracking.
 
 DESIGN DECISIONS:
-- Deploys from src/claude_mpm/skills/bundled/pm/ to .claude-mpm/skills/pm/
+- Deploys from src/claude_mpm/skills/bundled/pm/ to .claude/skills/
+- Skills named mpm-* (framework management skills)
+- Direct deployment (no intermediate .claude-mpm/skills/pm/ step)
 - Uses package-relative paths (works for both installed and dev mode)
-- Supports two skill formats:
-  1. Directory structure: pm-skill-name/SKILL.md (new format)
-  2. Flat files: skill-name.md (legacy format in .claude-mpm/templates/)
-- Per-project deployment (NOT global like Claude Code skills)
+- Supports directory structure: mpm-skill-name/SKILL.md
+- Per-project deployment to .claude/skills/ (Claude Code location)
 - Version tracking via .claude-mpm/pm_skills_registry.yaml
 - Checksum validation for integrity verification
+- Conflict resolution: mpm-* skills from src WIN (overwrite existing)
+- Non-mpm-* skills in .claude/skills/ are untouched (user/git managed)
 - Non-blocking verification (returns warnings, doesn't halt execution)
 - Force flag to redeploy even if versions match
 
 ARCHITECTURE:
 1. Discovery: Find bundled PM skills in package (skills/bundled/pm/)
-2. Deployment: Copy SKILL.md files to .claude-mpm/skills/pm/{name}.md
-3. Registry: Track deployed versions and checksums
-4. Verification: Check deployment status (non-blocking)
-5. Updates: Compare bundled vs deployed versions
+2. Deployment: Copy SKILL.md files to .claude/skills/{name}/SKILL.md
+3. Conflict Check: Overwrite mpm-* skills, preserve non-mpm-* skills
+4. Registry: Track deployed versions and checksums
+5. Verification: Check deployment status (non-blocking)
+6. Updates: Compare bundled vs deployed versions
 
 PATH RESOLUTION:
 - Installed package: Uses __file__ to find skills/bundled/pm/
@@ -130,8 +133,9 @@ class PMSkillsDeployerService(LoggerMixin):
     """Deploy and manage PM skills from bundled sources to projects.
 
     This service provides:
-    - Discovery of bundled PM skills (templates)
-    - Deployment to .claude-mpm/skills/pm/
+    - Discovery of bundled PM skills (mpm-* framework management skills)
+    - Deployment to .claude/skills/ (Claude Code location)
+    - Conflict resolution (mpm-* skills from src WIN)
     - Version tracking via pm_skills_registry.yaml
     - Checksum validation for integrity
     - Non-blocking verification (warnings only)
@@ -140,7 +144,7 @@ class PMSkillsDeployerService(LoggerMixin):
     Example:
         >>> deployer = PMSkillsDeployerService()
         >>> result = deployer.deploy_pm_skills(Path("/project/root"))
-        >>> print(f"Deployed {len(result.deployed)} skills")
+        >>> print(f"Deployed {len(result.deployed)} skills to .claude/skills/")
         >>>
         >>> verify_result = deployer.verify_pm_skills(Path("/project/root"))
         >>> if not verify_result.verified:
@@ -246,9 +250,9 @@ class PMSkillsDeployerService(LoggerMixin):
             project_dir: Project root directory
 
         Returns:
-            Path to .claude-mpm/skills/pm/
+            Path to .claude/skills/
         """
-        return project_dir / ".claude-mpm" / "skills" / "pm"
+        return project_dir / ".claude" / "skills"
 
     def _load_registry(self, project_dir: Path) -> Dict[str, Any]:
         """Load PM skills registry with security checks.
@@ -322,14 +326,12 @@ class PMSkillsDeployerService(LoggerMixin):
     def _discover_bundled_pm_skills(self) -> List[Dict[str, Any]]:
         """Discover all PM skills in bundled templates directory.
 
-        PM skills can be in two formats:
-        1. Directory structure: pm-skill-name/SKILL.md (new format)
-        2. Flat files: skill-name.md (legacy format for .claude-mpm/templates/)
+        PM skills follow mpm-skill-name/SKILL.md structure.
 
         Returns:
             List of skill dictionaries containing:
-            - name: Skill name (directory/filename without extension)
-            - path: Full path to skill file (SKILL.md or .md file)
+            - name: Skill name (directory name, e.g., mpm-git-file-tracking)
+            - path: Full path to skill file (SKILL.md)
             - type: File type (always 'md')
         """
         skills = []
@@ -340,9 +342,14 @@ class PMSkillsDeployerService(LoggerMixin):
             )
             return skills
 
-        # Scan for skill directories containing SKILL.md (new format)
+        # Scan for skill directories containing SKILL.md
         for skill_dir in self.bundled_pm_skills_path.iterdir():
             if not skill_dir.is_dir() or skill_dir.name.startswith("."):
+                continue
+
+            # Only process mpm-* skills (framework management)
+            if not skill_dir.name.startswith("mpm-"):
+                self.logger.debug(f"Skipping non-mpm skill: {skill_dir.name}")
                 continue
 
             skill_file = skill_dir / "SKILL.md"
@@ -355,19 +362,6 @@ class PMSkillsDeployerService(LoggerMixin):
                     }
                 )
 
-        # Fallback: Scan for .md files directly (legacy format)
-        for skill_file in self.bundled_pm_skills_path.glob("*.md"):
-            if skill_file.name.startswith("."):
-                continue
-
-            skills.append(
-                {
-                    "name": skill_file.stem,
-                    "path": skill_file,
-                    "type": "md",
-                }
-            )
-
         self.logger.info(f"Discovered {len(skills)} bundled PM skills")
         return skills
 
@@ -379,8 +373,12 @@ class PMSkillsDeployerService(LoggerMixin):
     ) -> DeploymentResult:
         """Deploy bundled PM skills to project directory.
 
-        Copies PM skills from bundled templates to .claude-mpm/skills/pm/
+        Copies PM skills from bundled templates to .claude/skills/{name}/SKILL.md
         and updates registry with version and checksum information.
+
+        Conflict Resolution:
+        - mpm-* skills from src WIN (overwrite existing)
+        - Non-mpm-* skills in .claude/skills/ are untouched
 
         Args:
             project_dir: Project root directory
@@ -392,7 +390,7 @@ class PMSkillsDeployerService(LoggerMixin):
 
         Example:
             >>> result = deployer.deploy_pm_skills(Path("/project"), force=True)
-            >>> print(f"Deployed: {len(result.deployed)}")
+            >>> print(f"Deployed: {len(result.deployed)} to .claude/skills/")
         """
         skills = self._discover_bundled_pm_skills()
         deployed = []
@@ -447,8 +445,12 @@ class PMSkillsDeployerService(LoggerMixin):
                 if progress_callback:
                     progress_callback(skill_name, idx + 1, total_skills)
 
-                # Use skill name for target file (e.g., pm-delegation-patterns.md)
-                target_path = deployment_dir / f"{skill_name}.md"
+                # Create skill directory: .claude/skills/{skill_name}/
+                skill_dir = deployment_dir / skill_name
+                skill_dir.mkdir(parents=True, exist_ok=True)
+
+                # Target path: .claude/skills/{skill_name}/SKILL.md
+                target_path = skill_dir / "SKILL.md"
 
                 # SECURITY: Validate target path
                 if not self._validate_safe_path(deployment_dir, target_path):
@@ -468,7 +470,7 @@ class PMSkillsDeployerService(LoggerMixin):
                         )
                         continue
 
-                # Deploy skill
+                # Deploy skill (overwrites if exists - mpm-* skills WIN)
                 shutil.copy2(source_path, target_path)
 
                 # Add to deployed list
@@ -562,7 +564,7 @@ class PMSkillsDeployerService(LoggerMixin):
 
         for skill in deployed_skills:
             skill_name = skill["name"]
-            skill_file = deployment_dir / f"{skill_name}.md"
+            skill_file = deployment_dir / skill_name / "SKILL.md"
 
             if not skill_file.exists():
                 warnings.append(f"Deployed skill file missing: {skill_name}")
@@ -636,10 +638,10 @@ class PMSkillsDeployerService(LoggerMixin):
         skills = []
         for skill_data in registry.get("skills", []):
             skill_name = skill_data["name"]
-            deployed_path = deployment_dir / f"{skill_name}.md"
+            deployed_path = deployment_dir / skill_name / "SKILL.md"
 
             # Find source path (may not exist if bundled skills changed)
-            source_path = self.bundled_pm_skills_path / f"{skill_name}.md"
+            source_path = self.bundled_pm_skills_path / skill_name / "SKILL.md"
 
             skills.append(
                 PMSkillInfo(

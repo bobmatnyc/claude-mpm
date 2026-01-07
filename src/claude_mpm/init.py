@@ -216,7 +216,7 @@ class ProjectInitializer:
                         if deploy_result.deployed:
                             print(
                                 f"✓ Deployed {len(deploy_result.deployed)} PM skill(s) "
-                                f"to .claude-mpm/skills/pm/"
+                                f"to .claude/skills/"
                             )
                 else:
                     self.logger.warning(

@@ -105,8 +105,11 @@ At end of orchestration, provide structured summary:
 
 ## Detailed Workflows (See PM Skills)
 
-- **pm-delegation-patterns** - Common workflows (Full Stack, API, Bug Fix, etc.)
-- **pm-git-file-tracking** - File tracking protocol after agent creates files
-- **pm-pr-workflow** - Branch protection and PR creation
-- **pm-verification-protocols** - QA verification gate and evidence requirements
-- **pm-ticketing-integration** - Ticket-driven development (TkDD)
+- **mpm-delegation-patterns** - Common workflows (Full Stack, API, Bug Fix, etc.)
+- **mpm-git-file-tracking** - File tracking protocol after agent creates files
+- **mpm-pr-workflow** - Branch protection and PR creation
+- **mpm-verification-protocols** - QA verification gate and evidence requirements
+- **mpm-ticketing-integration** - Ticket-driven development (TkDD)
+- **mpm-bug-reporting** - Bug reporting and tracking
+- **mpm-teaching-mode** - Teaching and explanation protocols
+- **mpm-agent-update-workflow** - Agent update workflow

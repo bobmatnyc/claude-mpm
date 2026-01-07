@@ -688,9 +688,9 @@ class MPMInitCommand:
         return len(text) // 4
 
     def _deploy_pm_skills(self) -> None:
-        """Deploy PM skills templates to project .claude-mpm directory.
+        """Deploy PM skills templates to project .claude directory.
 
-        Copies PM skills from bundled templates to .claude-mpm/skills/pm/
+        Copies PM skills from bundled templates to .claude/skills/
         with version tracking and checksum validation.
         """
         try:

@@ -61,10 +61,10 @@ class SkillManager:
     def _get_pm_skills(
         self, project_dir: Optional[Path] = None
     ) -> List[Dict[str, Any]]:
-        """Load PM skills from project's .claude-mpm/skills/pm/ directory.
+        """Load PM skills from project's .claude/skills/ directory.
 
-        PM skills are special required skills deployed per-project,
-        NOT fetched from the skills repository.
+        PM skills are special framework management skills (mpm-*) deployed
+        per-project to .claude/skills/, NOT fetched from the skills repository.
 
         Args:
             project_dir: Project directory. Defaults to current working directory.
@@ -75,7 +75,7 @@ class SkillManager:
         if project_dir is None:
             project_dir = Path.cwd()
 
-        pm_skills_dir = project_dir / ".claude-mpm" / "skills" / "pm"
+        pm_skills_dir = project_dir / ".claude" / "skills"
 
         if not pm_skills_dir.exists():
             logger.debug("PM skills directory not found")

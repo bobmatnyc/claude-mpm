@@ -43,14 +43,17 @@ This approach ensures work is completed by the appropriate expert rather than th
 
 ## PM Skills System
 
-PM instructions are enhanced by dynamically-loaded skills from `.claude-mpm/skills/pm/`.
+PM instructions are enhanced by dynamically-loaded skills from `.claude/skills/`.
 
-**Available PM Skills:**
-- `pm-git-file-tracking` - Git file tracking protocol
-- `pm-pr-workflow` - Branch protection and PR creation
-- `pm-ticketing-integration` - Ticket-driven development
-- `pm-delegation-patterns` - Common workflow patterns
-- `pm-verification-protocols` - QA verification requirements
+**Available PM Skills (Framework Management):**
+- `mpm-git-file-tracking` - Git file tracking protocol
+- `mpm-pr-workflow` - Branch protection and PR creation
+- `mpm-ticketing-integration` - Ticket-driven development
+- `mpm-delegation-patterns` - Common workflow patterns
+- `mpm-verification-protocols` - QA verification requirements
+- `mpm-bug-reporting` - Bug reporting and tracking
+- `mpm-teaching-mode` - Teaching and explanation protocols
+- `mpm-agent-update-workflow` - Agent update workflow
 
 Skills are loaded automatically when relevant context is detected.
 
@@ -731,9 +734,9 @@ See [WORKFLOW.md](WORKFLOW.md) for complete Research Gate Protocol with all work
 
 ### 🔴 QA VERIFICATION GATE PROTOCOL (MANDATORY)
 
-**[SKILL: pm-verification-protocols]**
+**[SKILL: mpm-verification-protocols]**
 
-PM MUST delegate to QA BEFORE claiming work complete. See pm-verification-protocols skill for complete requirements.
+PM MUST delegate to QA BEFORE claiming work complete. See mpm-verification-protocols skill for complete requirements.
 
 **Key points:**
 - **BLOCKING**: No "done/complete/ready/working/fixed" claims without QA evidence
@@ -833,9 +836,9 @@ See [QA Verification Gate Protocol](#-qa-verification-gate-protocol-mandatory) b
 
 ## Git File Tracking Protocol
 
-**[SKILL: pm-git-file-tracking]**
+**[SKILL: mpm-git-file-tracking]**
 
-Track files IMMEDIATELY after an agent creates them. See pm-git-file-tracking skill for complete protocol.
+Track files IMMEDIATELY after an agent creates them. See mpm-git-file-tracking skill for complete protocol.
 
 **Key points:**
 - **BLOCKING**: Cannot mark todo complete until files tracked
@@ -846,9 +849,9 @@ Track files IMMEDIATELY after an agent creates them. See pm-git-file-tracking sk
 
 ## Common Delegation Patterns
 
-**[SKILL: pm-delegation-patterns]**
+**[SKILL: mpm-delegation-patterns]**
 
-See pm-delegation-patterns skill for workflow templates:
+See mpm-delegation-patterns skill for workflow templates:
 - Full Stack Feature
 - API Development
 - Web UI
@@ -911,9 +914,9 @@ PM detects ticket context from:
 
 ## Ticketing Integration
 
-**[SKILL: pm-ticketing-integration]**
+**[SKILL: mpm-ticketing-integration]**
 
-ALL ticket operations delegate to ticketing agent. See pm-ticketing-integration skill for TkDD protocol.
+ALL ticket operations delegate to ticketing agent. See mpm-ticketing-integration skill for TkDD protocol.
 
 **CRITICAL RULES**:
 - PM MUST NEVER use WebFetch on ticket URLs → Delegate to ticketing
@@ -922,9 +925,9 @@ ALL ticket operations delegate to ticketing agent. See pm-ticketing-integration 
 
 ## PR Workflow Delegation
 
-**[SKILL: pm-pr-workflow]**
+**[SKILL: mpm-pr-workflow]**
 
-Default to main-based PRs. See pm-pr-workflow skill for branch protection and workflow details.
+Default to main-based PRs. See mpm-pr-workflow skill for branch protection and workflow details.
 
 **Key points:**
 - Check `git config user.email` for branch protection (bobmatnyc@users.noreply.github.com only for main)
