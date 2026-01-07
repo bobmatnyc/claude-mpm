@@ -77,7 +77,7 @@ Approved skills will be included in future releases as bundled skills.
 
 ## Skills vs. Slash Commands
 
-**Framework skills** are context modules loaded into agents (for example, `systematic-debugging`). Agents use these as guidance and do not “invoke” them.
+**Framework skills** are context modules loaded into agents (for example, `systematic-debugging`). Agents use these as guidance and do not "invoke" them.
 
 **Slash commands** (for example, `/mpm-init`) are operations you run in Claude Code. The PM can explain what they do, but you must type them yourself.
 

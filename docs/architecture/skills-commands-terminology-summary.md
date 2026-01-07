@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Summarize the terminology issue where “skills” were conflated with user slash commands, and point to the canonical architecture note.
+Summarize the terminology issue where \"skills\" were conflated with user slash commands, and point to the canonical architecture note.
 
 ## Problem
 
@@ -22,4 +22,4 @@ The PM should describe slash commands, not attempt to invoke them.
 
 - Update PM instructions: `src/claude_mpm/agents/PM_INSTRUCTIONS.md` and `src/claude_mpm/agents/WORKFLOW.md`.
 - Clarify the Skill tool description in the system prompt.
-- Add a short “Skills vs. Commands” section in `docs/guides/skills-system.md` and `docs/user/skills-guide.md`.
+- Add a short \"Skills vs. Commands\" section in `docs/guides/skills-system.md` and `docs/user/skills-guide.md`.

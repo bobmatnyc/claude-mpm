@@ -47,9 +47,9 @@ The Skills System is a **Git-based skill discovery and management** framework th
 
 ## Skills vs. Slash Commands
 
-**Framework skills** are context modules loaded into agents (from `.claude/skills/` or bundled in `src/claude_mpm/skills/bundled/`). Agents don’t invoke skills; they use them as guidance.
+**Framework skills** are context modules loaded into agents (from `.claude/skills/` or bundled in `src/claude_mpm/skills/bundled/`). Agents don't invoke skills; they use them as guidance.
 
-**Slash commands** (e.g., `/mpm-init`) are user‑invoked operations defined in `src/claude_mpm/commands/`. The PM can explain them, but only the user can run them.
+**Slash commands** (e.g., `/mpm-init`) are user-invoked operations defined in `src/claude_mpm/commands/`. The PM can explain them, but only the user can run them.
 
 ### Architecture Overview
 
