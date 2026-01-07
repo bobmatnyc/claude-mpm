@@ -78,7 +78,7 @@ class AgentConfig(BaseModel):
             "research",
             "mpm-skills-manager",
             "mpm-agent-manager",
-            "memory-manager",
+            "memory-manager-agent",  # Specific agent ID (not generic "memory-manager")
             "ticketing",
         ],
         description="Agents that are always deployed (core system agents)",

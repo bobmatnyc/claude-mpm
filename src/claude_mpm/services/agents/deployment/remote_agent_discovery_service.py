@@ -491,6 +491,9 @@ class RemoteAgentDiscoveryService:
             "SKILL.md",
             "SKILLS.md",
             "skill-template.md",
+            # Legacy agents superseded by newer versions
+            # TODO: Remove after bobmatnyc/claude-mpm-agents#XXX is merged
+            "memory-manager.md",  # Superseded by memory-manager-agent.md (v1.2.0)
         }
         md_files = [f for f in md_files if f.name not in excluded_files]
 

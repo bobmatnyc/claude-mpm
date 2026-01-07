@@ -204,8 +204,8 @@ function createSocketStore() {
 		});
 
 		// Listen for all event types from backend
-		// Backend categorizes events as: claude_event, hook_event, cli_event, system_event, agent_event, build_event
-		const eventTypes = ['claude_event', 'hook_event', 'cli_event', 'system_event', 'agent_event', 'build_event'];
+		// Backend categorizes events as: claude_event, hook_event, tool_event, cli_event, system_event, agent_event, build_event
+		const eventTypes = ['claude_event', 'hook_event', 'tool_event', 'cli_event', 'system_event', 'agent_event', 'build_event'];
 
 		eventTypes.forEach(eventType => {
 			newSocket.on(eventType, (data: ClaudeEvent) => {

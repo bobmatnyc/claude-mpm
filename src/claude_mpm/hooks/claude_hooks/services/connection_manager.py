@@ -134,6 +134,26 @@ class ConnectionManagerService:
         # Otherwise use "hook" as the type
         if event == "hook_execution":
             hook_type = data.get("hook_type", "unknown")
+
+            # BUGFIX: Validate hook_type is meaningful (not generic/invalid values)
+            # Problem: Dashboard shows "hook hook" instead of "PreToolUse", "UserPromptSubmit", etc.
+            # Root cause: hook_type defaults to "hook" or "unknown", providing no useful information
+            # Solution: Fallback to hook_name, then to descriptive "hook_execution_untyped"
+            if hook_type in ("hook", "unknown", "", None):
+                # Try fallback to hook_name field (set by _emit_hook_execution_event)
+                hook_type = data.get("hook_name", "unknown_hook")
+
+                # Final fallback if still generic - use descriptive name
+                if hook_type in ("hook", "unknown", "", None):
+                    hook_type = "hook_execution_untyped"
+
+                # Debug log when we detect invalid hook_type for troubleshooting
+                if DEBUG:
+                    print(
+                        f"⚠️ Invalid hook_type detected, using fallback: {hook_type}",
+                        file=sys.stderr,
+                    )
+
             event_type = hook_type
         else:
             event_type = "hook"

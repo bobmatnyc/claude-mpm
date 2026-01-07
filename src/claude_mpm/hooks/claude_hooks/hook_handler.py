@@ -550,13 +550,15 @@ class ClaudeHookHandler:
         # Build hook execution data
         hook_data = {
             "hook_name": hook_type,
-            "hook_type": hook_type,
+            "hook_type": hook_type,  # Actual hook type (PreToolUse, UserPromptSubmit, etc.)
+            "hook_event_type": hook_type,  # Additional field for clarity
             "session_id": session_id,
             "working_directory": working_dir,
             "success": success,
             "duration_ms": duration_ms,
             "result_summary": summary,
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "source": "claude_hook_handler",  # Explicit source identification
         }
 
         # Add error information if present
