@@ -187,6 +187,10 @@
 			const data = event.data as Record<string, unknown>;
 			return String(data.message || 'Error').slice(0, 60);
 		}
+		// For generic events, show event name if available
+		if (event.event && event.event !== event.type) {
+			return event.event;
+		}
 		return event.type;
 	}
 
@@ -210,12 +214,38 @@
 		return streamId ? streamId.toString().slice(0, 12) : '-';
 	}
 
-	// Get activity (subtype field)
+	// Get activity (check multiple possible fields for activity info)
 	function getActivity(event: ClaudeEvent): string {
-		return event.subtype || '-';
+		// Check various possible fields for activity info
+		if (event.subtype && event.subtype !== 'claude_event') {
+			return event.subtype;
+		}
+
+		// Check data object for activity indicators
+		if (typeof event.data === 'object' && event.data !== null) {
+			const data = event.data as Record<string, unknown>;
+
+			if (data.event_type) return String(data.event_type);
+			if (data.activity) return String(data.activity);
+			if (data.type && String(data.type) !== 'claude_event') return String(data.type);
+			if (data.action) return String(data.action);
+		}
+
+		// Check type if not generic
+		if (event.type && event.type !== 'claude_event') {
+			return event.type;
+		}
+
+		// Check event field as fallback
+		if (event.event && event.event !== 'claude_event') {
+			return event.event;
+		}
+
+		// Final fallback
+		return '-';
 	}
 
-	// Get agent name (tool_name or agent_type from data)
+	// Get agent name (check multiple possible fields for agent info)
 	function getAgentName(event: ClaudeEvent): string {
 		// Check for user-related events
 		if (event.subtype === 'user_prompt' ||
@@ -224,11 +254,19 @@
 			return 'user';
 		}
 
-		// Existing logic for tool_name or agent_type
+		// Check data object for agent indicators
 		if (typeof event.data === 'object' && event.data !== null) {
 			const data = event.data as Record<string, unknown>;
-			return (data.tool_name as string) || (data.agent_type as string) || '-';
+
+			if (data.agent_type) return String(data.agent_type);
+			if (data.agent) return String(data.agent);
+			if (data.tool_name) return String(data.tool_name);
+			if (data.source) return String(data.source);
+			if (data.sender) return String(data.sender);
+			if (data.role) return String(data.role);
 		}
+
+		// Fallback
 		return '-';
 	}
 

@@ -383,9 +383,53 @@ class UnifiedMonitorServer:
         if event_name in ("subagent_start", "subagent_stop", "todo_updated"):
             return "hook_event"
 
-        # Tool events
-        if event_name in ("pre_tool", "post_tool"):
-            return "hook_event"
+        # Tool events - both hook-style and direct tool events
+        if event_name in (
+            "pre_tool",
+            "post_tool",
+            "tool.start",
+            "tool.end",
+            "tool_use",
+            "tool_result",
+        ):
+            return "tool_event"
+
+        # Session events - session lifecycle
+        if event_name in (
+            "session.started",
+            "session.ended",
+            "session_start",
+            "session_end",
+        ):
+            return "session_event"
+
+        # Response events - API response lifecycle
+        if event_name in (
+            "response.start",
+            "response.end",
+            "response_started",
+            "response_ended",
+        ):
+            return "response_event"
+
+        # Agent events - agent delegation and returns
+        if event_name in (
+            "agent.delegated",
+            "agent.returned",
+            "agent_start",
+            "agent_end",
+        ):
+            return "agent_event"
+
+        # File events - file operations
+        if event_name in (
+            "file.read",
+            "file.write",
+            "file.edit",
+            "file_read",
+            "file_write",
+        ):
+            return "file_event"
 
         # Claude API events
         if event_name in ("user_prompt", "assistant_message"):
@@ -394,6 +438,9 @@ class UnifiedMonitorServer:
         # System events
         if event_name in ("system_ready", "system_shutdown"):
             return "system_event"
+
+        # Log uncategorized events for debugging
+        self.logger.debug(f"Uncategorized event: {event_name}")
 
         # Default to claude_event for unknown events
         return "claude_event"
@@ -504,7 +551,7 @@ class UnifiedMonitorServer:
                     )
                     if version_file.exists():
                         version = version_file.read_text().strip()
-                except Exception:
+                except Exception:  # nosec B110
                     pass
 
                 return web.json_response(
@@ -902,7 +949,7 @@ class UnifiedMonitorServer:
             # Configuration endpoint for dashboard initialization
             async def config_handler(request):
                 """Return configuration for dashboard initialization."""
-                import subprocess
+                import subprocess  # nosec B404
 
                 config = {
                     "workingDirectory": Path.cwd(),
@@ -913,7 +960,7 @@ class UnifiedMonitorServer:
 
                 # Try to get current git branch
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 B607
                         ["git", "branch", "--show-current"],
                         capture_output=True,
                         text=True,
@@ -923,7 +970,7 @@ class UnifiedMonitorServer:
                     )
                     if result.returncode == 0 and result.stdout.strip():
                         config["gitBranch"] = result.stdout.strip()
-                except Exception:
+                except Exception:  # nosec B110
                     pass  # Keep default "Unknown" value
 
                 return web.json_response(config)
@@ -953,7 +1000,7 @@ class UnifiedMonitorServer:
             # Git history handler
             async def git_history_handler(request: web.Request) -> web.Response:
                 """Get git history for a file."""
-                import subprocess
+                import subprocess  # nosec B404
 
                 try:
                     data = await request.json()
@@ -982,7 +1029,7 @@ class UnifiedMonitorServer:
                         )
 
                     # Get git log for file
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 B607
                         [
                             "git",
                             "log",
@@ -1021,7 +1068,7 @@ class UnifiedMonitorServer:
             # Git diff handler
             async def git_diff_handler(request: web.Request) -> web.Response:
                 """Get git diff for a file with optional commit selection."""
-                import subprocess
+                import subprocess  # nosec B404
 
                 try:
                     file_path = request.query.get("path", "")
