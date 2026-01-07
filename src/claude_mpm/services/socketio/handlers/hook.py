@@ -118,7 +118,8 @@ class HookEventHandler(BaseEventHandler):
             self.server.active_sessions[session_id] = {
                 "session_id": session_id,
                 "start_time": datetime.now(timezone.utc).isoformat(),
-                "agent": agent_type,
+                "current_agent": agent_type,  # Current active agent
+                "agents": [agent_type],  # All agents used in this session
                 "status": ServiceState.RUNNING,
                 "prompt": data.get("prompt", "")[:100],  # First 100 chars
                 "last_activity": datetime.now(timezone.utc).isoformat(),
@@ -169,7 +170,8 @@ class HookEventHandler(BaseEventHandler):
                 self.server.active_sessions[session_id] = {
                     "session_id": session_id,
                     "start_time": datetime.now(timezone.utc).isoformat(),
-                    "agent": "pm",  # Default to PM
+                    "current_agent": "pm",  # Current active agent
+                    "agents": ["pm"],  # All agents used in this session
                     "status": ServiceState.RUNNING,
                     "prompt": data.get("prompt_text", "")[:100],
                     "working_directory": data.get("working_directory", ""),
@@ -200,11 +202,16 @@ class HookEventHandler(BaseEventHandler):
         # Update session with new agent
         if hasattr(self.server, "active_sessions"):
             if session_id in self.server.active_sessions:
-                self.server.active_sessions[session_id]["agent"] = agent_type
-                self.server.active_sessions[session_id]["status"] = "delegated"
-                self.server.active_sessions[session_id]["last_activity"] = datetime.now(
-                    timezone.utc
-                ).isoformat()
+                session = self.server.active_sessions[session_id]
+                session["current_agent"] = agent_type
+                session["status"] = "delegated"
+                session["last_activity"] = datetime.now(timezone.utc).isoformat()
+
+                # Add to agents list if not already present
+                if "agents" not in session:
+                    session["agents"] = []
+                if agent_type not in session["agents"]:
+                    session["agents"].append(agent_type)
 
                 self.logger.debug(
                     f"Updated session delegation: session={session_id[:8]}..., agent={agent_type}"

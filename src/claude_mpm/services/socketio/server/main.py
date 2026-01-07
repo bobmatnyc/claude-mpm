@@ -383,7 +383,8 @@ class SocketIOServer(SocketIOServiceInterface):
         self.active_sessions[session_id] = {
             "session_id": session_id,
             "start_time": datetime.now(timezone.utc).isoformat(),
-            "agent": "pm",  # Default to PM, will be updated if delegated
+            "current_agent": "pm",  # Current active agent
+            "agents": ["pm"],  # All agents used in this session
             "status": ServiceState.RUNNING,
             "launch_method": launch_method,
             "working_dir": working_dir,
@@ -419,8 +420,15 @@ class SocketIOServer(SocketIOServiceInterface):
         """Notify agent delegation."""
         # Update active session with current agent
         if self.session_id and self.session_id in self.active_sessions:
-            self.active_sessions[self.session_id]["agent"] = agent
-            self.active_sessions[self.session_id]["status"] = status
+            session = self.active_sessions[self.session_id]
+            session["current_agent"] = agent
+            session["status"] = status
+
+            # Add to agents list if not already present
+            if "agents" not in session:
+                session["agents"] = []
+            if agent not in session["agents"]:
+                session["agents"].append(agent)
 
         if self.broadcaster:
             self.broadcaster.agent_delegated(agent, task, status)
@@ -480,7 +488,7 @@ class SocketIOServer(SocketIOServiceInterface):
                 start_time = datetime.fromisoformat(session_data["start_time"])
                 if start_time.timestamp() < cutoff_time:
                     sessions_to_remove.append(session_id)
-            except Exception:
+            except Exception:  # nosec B110 - Silently skip malformed timestamps
                 pass
 
         for session_id in sessions_to_remove:
