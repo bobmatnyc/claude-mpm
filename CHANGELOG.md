@@ -1,3 +1,13 @@
+## [5.4.93] - 2026-01-07
+
+### Fixed
+- **Monitor Hook Events**: Fixed unsourced hook events showing as "hook hook" in dashboard
+- **Dashboard Tools/Files**: Restored tools and files display by adding 'tool_event' listener
+- **Agent Deployment**: Removed duplicate memory-manager.md agent (superseded by memory-manager-agent)
+
+### Changed
+- **Agent Config**: Updated required agent to use specific memory-manager-agent ID
+
 ## [5.4.92] - 2026-01-07
 
 ### Fixed
