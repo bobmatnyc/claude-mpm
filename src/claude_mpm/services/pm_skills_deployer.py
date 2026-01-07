@@ -50,6 +50,23 @@ from claude_mpm.core.mixins import LoggerMixin
 # Security constants
 MAX_YAML_SIZE = 10 * 1024 * 1024  # 10MB limit to prevent YAML bombs
 
+# Required PM skills that MUST be deployed for PM agent to function properly
+# These are framework management skills that PM uses for orchestration
+REQUIRED_PM_SKILLS = [
+    "mpm-git-file-tracking",
+    "mpm-pr-workflow",
+    "mpm-ticketing-integration",
+    "mpm-delegation-patterns",
+    "mpm-verification-protocols",
+    "mpm-bug-reporting",
+    "mpm-teaching-mode",
+    "mpm-agent-update-workflow",
+    "mpm-circuit-breaker-enforcement",
+    "mpm-tool-usage-guide",
+    # Future additions when created:
+    # "mpm-session-management",
+]
+
 
 @dataclass
 class PMSkillInfo:
@@ -99,6 +116,7 @@ class VerificationResult:
         verified: Whether all skills are properly deployed
         warnings: List of warning messages
         missing_skills: List of missing skill names
+        corrupted_skills: List of corrupted skill names (checksum mismatch)
         outdated_skills: List of outdated skill names
         message: Summary message
         skill_count: Total number of deployed skills
@@ -107,6 +125,7 @@ class VerificationResult:
     verified: bool
     warnings: List[str]
     missing_skills: List[str]
+    corrupted_skills: List[str]
     outdated_skills: List[str]
     message: str
     skill_count: int = 0
@@ -522,76 +541,107 @@ class PMSkillsDeployerService(LoggerMixin):
             message=message,
         )
 
-    def verify_pm_skills(self, project_dir: Path) -> VerificationResult:
-        """Verify PM skills are properly deployed (non-blocking).
+    def verify_pm_skills(
+        self, project_dir: Path, auto_repair: bool = True
+    ) -> VerificationResult:
+        """Verify PM skills are properly deployed with enhanced validation.
 
-        Checks deployment status and returns warnings without halting execution.
-        This allows graceful degradation if PM skills are missing.
+        Checks ALL required PM skills for:
+        - Existence in deployment directory
+        - File integrity (non-empty, valid checksums)
+        - Version currency (compared to bundled source)
+
+        Auto-repair logic:
+        - If auto_repair=True (default), automatically deploys missing/corrupted skills
+        - Reports what was fixed in the result
 
         Args:
             project_dir: Project root directory
+            auto_repair: If True, auto-deploy missing/corrupted skills (default: True)
 
         Returns:
-            VerificationResult with verification status and warnings
+            VerificationResult with detailed verification status:
+            - verified: True if all required skills are deployed and valid
+            - missing_skills: List of required skills not deployed
+            - corrupted_skills: List of skills with checksum mismatches
+            - warnings: List of warning messages
+            - skill_count: Total number of deployed skills
 
         Example:
             >>> result = deployer.verify_pm_skills(Path("/project"))
             >>> if not result.verified:
-            ...     for warning in result.warnings:
-            ...         print(f"WARNING: {warning}")
+            ...     print(f"Missing: {result.missing_skills}")
+            ...     print(f"Corrupted: {result.corrupted_skills}")
         """
         warnings = []
         missing_skills = []
+        corrupted_skills = []
         outdated_skills = []
 
         # Check if registry exists
         registry = self._load_registry(project_dir)
-        if not registry:
-            warnings.append("PM skills registry not found or invalid")
-            missing_skills.append("all")
-            return VerificationResult(
-                verified=False,
-                warnings=warnings,
-                missing_skills=missing_skills,
-                outdated_skills=outdated_skills,
-                message="PM skills not deployed. Run 'claude-mpm init' to deploy.",
-                skill_count=0,
-            )
-
-        # Check each registered skill exists
         deployment_dir = self._get_deployment_dir(project_dir)
-        deployed_skills = registry.get("skills", [])
+        deployed_skills_data = registry.get("skills", []) if registry else []
 
-        for skill in deployed_skills:
-            skill_name = skill["name"]
-            skill_file = deployment_dir / skill_name / "SKILL.md"
+        # Build lookup for deployed skills
+        deployed_lookup = {skill["name"]: skill for skill in deployed_skills_data}
 
+        # Check ALL required PM skills
+        for required_skill in REQUIRED_PM_SKILLS:
+            # Check if skill is in registry
+            if required_skill not in deployed_lookup:
+                warnings.append(f"Required PM skill missing: {required_skill}")
+                missing_skills.append(required_skill)
+                continue
+
+            # Check if skill file exists
+            skill_file = deployment_dir / required_skill / "SKILL.md"
             if not skill_file.exists():
-                warnings.append(f"Deployed skill file missing: {skill_name}")
-                missing_skills.append(skill_name)
+                warnings.append(
+                    f"Required PM skill file missing: {required_skill}/SKILL.md"
+                )
+                missing_skills.append(required_skill)
+                continue
+
+            # Check if skill file is empty/corrupted
+            try:
+                file_size = skill_file.stat().st_size
+                if file_size == 0:
+                    warnings.append(
+                        f"Required PM skill file is empty: {required_skill}/SKILL.md"
+                    )
+                    corrupted_skills.append(required_skill)
+                    continue
+            except OSError as e:
+                warnings.append(
+                    f"Cannot read required PM skill file: {required_skill}/SKILL.md - {e}"
+                )
+                corrupted_skills.append(required_skill)
                 continue
 
             # Verify checksum
+            deployed_skill = deployed_lookup[required_skill]
             current_checksum = self._compute_checksum(skill_file)
-            expected_checksum = skill.get("checksum", "")
+            expected_checksum = deployed_skill.get("checksum", "")
 
             if current_checksum != expected_checksum:
                 warnings.append(
-                    f"Skill checksum mismatch: {skill_name} (file may be corrupted)"
+                    f"Required PM skill checksum mismatch: {required_skill} (file may be corrupted)"
                 )
-                outdated_skills.append(skill_name)
+                corrupted_skills.append(required_skill)
 
-        # Check for available updates
+        # Check for available updates (bundled skills newer than deployed)
         bundled_skills = {s["name"]: s for s in self._discover_bundled_pm_skills()}
         for skill_name, bundled_skill in bundled_skills.items():
+            # Skip non-required skills
+            if skill_name not in REQUIRED_PM_SKILLS:
+                continue
+
             # Find corresponding deployed skill
-            deployed_skill = next(
-                (s for s in deployed_skills if s["name"] == skill_name), None
-            )
+            deployed_skill = deployed_lookup.get(skill_name)
 
             if not deployed_skill:
-                warnings.append(f"New PM skill available: {skill_name}")
-                missing_skills.append(skill_name)
+                # Already tracked as missing
                 continue
 
             # Check if checksums differ
@@ -599,23 +649,66 @@ class PMSkillsDeployerService(LoggerMixin):
             deployed_checksum = deployed_skill.get("checksum", "")
 
             if bundled_checksum != deployed_checksum:
-                warnings.append(f"PM skill update available: {skill_name}")
-                outdated_skills.append(skill_name)
+                # Don't add to outdated_skills if already in corrupted_skills
+                if skill_name not in corrupted_skills:
+                    warnings.append(f"PM skill update available: {skill_name}")
+                    outdated_skills.append(skill_name)
 
-        verified = len(warnings) == 0
+        # Auto-repair if enabled and issues found
+        repaired_skills = []
+        if auto_repair and (missing_skills or corrupted_skills):
+            self.logger.info(
+                f"Auto-repairing PM skills: {len(missing_skills)} missing, "
+                f"{len(corrupted_skills)} corrupted"
+            )
 
+            # Deploy missing and corrupted skills
+            repair_result = self.deploy_pm_skills(project_dir, force=True)
+
+            if repair_result.success:
+                repaired_skills = repair_result.deployed
+                self.logger.info(f"Auto-repaired {len(repaired_skills)} PM skills")
+
+                # Remove repaired skills from missing/corrupted lists
+                missing_skills = [s for s in missing_skills if s not in repaired_skills]
+                corrupted_skills = [
+                    s for s in corrupted_skills if s not in repaired_skills
+                ]
+
+                # Update warnings
+                if repaired_skills:
+                    warnings.append(
+                        f"Auto-repaired {len(repaired_skills)} PM skills: {', '.join(repaired_skills)}"
+                    )
+            else:
+                warnings.append(
+                    f"Auto-repair failed: {len(repair_result.errors)} errors"
+                )
+                self.logger.error(
+                    f"Auto-repair failed with errors: {repair_result.errors}"
+                )
+
+        # Determine verification status
+        verified = len(missing_skills) == 0 and len(corrupted_skills) == 0
+
+        # Build message
         if verified:
-            message = "All PM skills verified and up-to-date"
+            if repaired_skills:
+                message = f"All PM skills verified (auto-repaired {len(repaired_skills)} skills)"
+            else:
+                message = "All PM skills verified and up-to-date"
         else:
-            message = f"{len(warnings)} verification warnings found"
+            issue_count = len(missing_skills) + len(corrupted_skills)
+            message = f"{issue_count} PM skill issues found"
 
         return VerificationResult(
             verified=verified,
             warnings=warnings,
             missing_skills=missing_skills,
+            corrupted_skills=corrupted_skills,
             outdated_skills=outdated_skills,
             message=message,
-            skill_count=len(deployed_skills),
+            skill_count=len(deployed_skills_data),
         )
 
     def get_deployed_skills(self, project_dir: Path) -> List[PMSkillInfo]:

@@ -1,0 +1,35 @@
+{
+  "name": "mpm-tool-usage-guide",
+  "version": "1.0.0",
+  "description": "Detailed tool usage patterns and examples for PM agents",
+  "type": "framework",
+  "categories": ["mpm-framework", "pm"],
+  "tags": [
+    "pm",
+    "tools",
+    "task-delegation",
+    "verification",
+    "git-workflow",
+    "browser-testing",
+    "vector-search"
+  ],
+  "auto_deploy": true,
+  "required_for": ["pm"],
+  "triggers": {
+    "keywords": [
+      "tool usage",
+      "how to use",
+      "task example",
+      "bash command",
+      "vector search",
+      "browser verification",
+      "localhost verification"
+    ]
+  },
+  "files": ["SKILL.md"],
+  "metadata": {
+    "author": "Claude MPM Framework",
+    "license": "MIT",
+    "created": "2025-01-07"
+  }
+}
