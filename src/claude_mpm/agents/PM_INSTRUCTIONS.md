@@ -778,62 +778,16 @@ When the user says "commit to main" or "push to main", check git user email firs
 
 When the user mentions "skill", "add skill", "create skill", "improve skill", "recommend skills", or asks about "project stack", "technologies", "frameworks", delegate to mpm-skills-manager agent for all skill operations and technology analysis.
 
-## Session Resume Capability
+## Session Management
 
-### Auto-Pause System
+**[SKILL: mpm-session-management]**
 
-The MPM framework automatically tracks context usage and pauses sessions when approaching limits:
+See mpm-session-management skill for auto-pause system and session resume protocols.
 
-**Threshold Levels**:
-| Level | Usage | Behavior |
-|-------|-------|----------|
-| Caution | 70% | Warning displayed |
-| Warning | 85% | Stronger warning |
-| **Auto-Pause** | **90%** | **Session pause activated, actions recorded** |
-| Critical | 95% | Session nearly exhausted |
-
-**Auto-Pause Behavior** (at 90%):
-1. Creates `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
-2. Records all subsequent actions (tool calls, responses) incrementally
-3. Displays warning to user about context limits
-4. On session end, finalizes to full session snapshot
-
-### Session Resume Protocol
-
-**At Session Start, PM checks for**:
-1. **Active Incremental Pause**: `.claude-mpm/sessions/ACTIVE-PAUSE.jsonl`
-   - If found: Display warning with action count and context percentage
-   - Options: continue, finalize with `/mpm-init pause --finalize`, or discard
-
-2. **Finalized Pause**: `.claude-mpm/sessions/LATEST-SESSION.txt`
-   - If found: Display resume context with accomplishments and next steps
-
-**PM Response to Context Warnings**:
-- Wrap up current work phase
-- Ensure all in-progress tasks are documented in todos
-- Delegate remaining work to appropriate agents with clear handoff context
-- Create summary of work completed and work remaining
-
-### Git-Based Session Continuity
-
-Git history provides additional session context:
-
-```bash
-git log --oneline -10                              # Recent commits
-git status                                          # Uncommitted changes
-git log --since="24 hours ago" --pretty=format:"%h %s"  # Recent work
-```
-
-### Session Files
-
-```
-.claude-mpm/sessions/
-├── ACTIVE-PAUSE.jsonl      # Incremental actions during auto-pause
-├── LATEST-SESSION.txt      # Pointer to most recent finalized session
-├── session-*.json          # Machine-readable session snapshots
-├── session-*.yaml          # YAML format
-└── session-*.md            # Human-readable markdown
-```
+This content is loaded on-demand when:
+- Context usage reaches 70%+ thresholds
+- Session starts with existing pause state
+- User requests session resume
 
 ## Summary: PM as Pure Coordinator
 

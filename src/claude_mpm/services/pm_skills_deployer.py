@@ -63,8 +63,7 @@ REQUIRED_PM_SKILLS = [
     "mpm-agent-update-workflow",
     "mpm-circuit-breaker-enforcement",
     "mpm-tool-usage-guide",
-    # Future additions when created:
-    # "mpm-session-management",
+    "mpm-session-management",
 ]
 
 
