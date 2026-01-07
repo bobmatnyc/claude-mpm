@@ -216,12 +216,35 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 status = ValidationSeverity.WARNING
                 message = f"All {total_services} MCP services installed but connections not tested"
 
+            # Enhanced troubleshooting info (issue #125)
+            severity = "medium"
+            explanation = ""
+            doc_link = ""
+
+            if status == ValidationSeverity.ERROR:
+                severity = "high"
+                explanation = (
+                    "MCP services provide enhanced capabilities like vector search, browser automation, "
+                    "and ticket management. Critical errors prevent these services from functioning."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+            elif status == ValidationSeverity.WARNING:
+                severity = "low"
+                explanation = (
+                    "MCP services are optional but provide powerful features. "
+                    "Some services may not be installed or configured properly."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+
             return DiagnosticResult(
                 category=self.category,
                 status=status,
                 message=message,
                 details=details,
                 sub_results=sub_results if self.verbose else [],
+                explanation=explanation,
+                severity=severity,
+                doc_link=doc_link,
             )
 
         except Exception as e:

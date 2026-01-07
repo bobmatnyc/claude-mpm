@@ -28,6 +28,15 @@ class DoctorReporter:
         OperationResult.SKIPPED: "⏭️ ",
     }
 
+    # Severity level emojis (issue #125)
+    SEVERITY_SYMBOLS = {
+        "critical": "🔴",
+        "high": "🟠",
+        "medium": "🟡",
+        "low": "🟢",
+        "info": "🔵",
+    }
+
     # ANSI color codes
     COLORS = {
         "reset": "\033[0m",
@@ -93,8 +102,15 @@ class DoctorReporter:
         symbol = self.STATUS_SYMBOLS.get(result.status, "?")
         color = self._get_status_color(result.status)
 
+        # Add severity indicator if present (issue #125)
+        severity_prefix = ""
+        if result.severity and result.severity != "medium":
+            severity_symbol = self.SEVERITY_SYMBOLS.get(result.severity, "")
+            if severity_symbol:
+                severity_prefix = f"{severity_symbol} {result.severity.upper()}: "
+
         # Main result line
-        line = f"{indent_str}{symbol} {result.category}: "
+        line = f"{indent_str}{severity_prefix}{symbol} {result.category}: "
 
         if result.status == OperationResult.SUCCESS:
             line += self._color("OK", color)
@@ -111,6 +127,15 @@ class DoctorReporter:
         message_indent = "   " + indent_str
         print(f"{message_indent}{result.message}")
 
+        # Explanation (issue #125)
+        if result.explanation:
+            # Format multi-line explanations with proper indentation
+            explanation_lines = result.explanation.split("\n")
+            for explanation_line in explanation_lines:
+                print(
+                    f"{message_indent}{self._color(explanation_line.strip(), 'gray')}"
+                )
+
         # Details (in verbose mode)
         if self.verbose and result.details:
             for key, value in result.details.items():
@@ -125,6 +150,11 @@ class DoctorReporter:
             )
             if result.fix_description:
                 print(f"{fix_indent}  {self._color(result.fix_description, 'gray')}")
+
+        # Documentation link (issue #125)
+        if result.doc_link:
+            doc_indent = "   " + indent_str
+            print(f"{doc_indent}{self._color('📖 Docs:', 'blue')} {result.doc_link}")
 
         # Sub-results (in verbose mode)
         if self.verbose and result.sub_results:

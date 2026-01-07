@@ -69,6 +69,13 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     fix_command="claude-mpm agent-source add https://github.com/bobmatnyc/claude-mpm-agents",
                     fix_description="Add default system repository",
                     sub_results=sub_results if self.verbose else [],
+                    explanation=(
+                        "Agent sources define where Claude MPM discovers specialized agents. "
+                        "Without configured sources, no agents can be deployed or delegated to. "
+                        "This is a critical component for multi-agent workflows."
+                    ),
+                    severity="critical",
+                    doc_link="https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md",
                 )
 
             # Check 2: Configuration is valid YAML
@@ -141,16 +148,30 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 r for r in sub_results if r.status == ValidationSeverity.WARNING
             ]
 
+            # Determine status and enhanced troubleshooting info (issue #125)
             if error_results:
                 status = ValidationSeverity.ERROR
                 message = f"Agent sources have {len(error_results)} critical issue(s)"
                 fix_command = None
                 fix_description = None
+                severity = "critical"
+                explanation = (
+                    "Agent sources are the foundation of Claude MPM's delegation system. "
+                    "Critical errors prevent agent discovery and deployment, blocking "
+                    "multi-agent workflows entirely."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md"
             elif warning_results:
                 status = ValidationSeverity.WARNING
                 message = f"Agent sources have {len(warning_results)} minor issue(s)"
                 fix_command = "claude-mpm agent-source update"
                 fix_description = "Update all sources to refresh cache"
+                severity = "medium"
+                explanation = (
+                    "Some agent sources have issues but the system can still function. "
+                    "You may have limited agent availability or outdated cache."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md"
             else:
                 status = OperationResult.SUCCESS
                 enabled_count = details["enabled_sources"]
@@ -158,6 +179,12 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 message = f"All checks passed ({enabled_count} source(s), {agents_count} agent(s))"
                 fix_command = None
                 fix_description = None
+                severity = "info"
+                explanation = (
+                    "Agent sources are properly configured and agents are discoverable. "
+                    "You can delegate tasks to specialized agents."
+                )
+                doc_link = ""
 
             return DiagnosticResult(
                 category=self.category,
@@ -167,6 +194,9 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                 fix_command=fix_command,
                 fix_description=fix_description,
                 sub_results=sub_results if self.verbose else [],
+                explanation=explanation,
+                severity=severity,
+                doc_link=doc_link,
             )
 
         except Exception as e:

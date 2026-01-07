@@ -51,9 +51,14 @@ class DiagnosticResult:
     fix_description: Optional[str] = None
     sub_results: List["DiagnosticResult"] = field(default_factory=list)
 
+    # Enhanced troubleshooting fields (issue #125)
+    explanation: str = ""  # What this check means and why it matters
+    severity: str = "medium"  # critical, high, medium, low, info
+    doc_link: str = ""  # Link to relevant documentation
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        return {
+        result = {
             "category": self.category,
             "status": self.status.value,
             "message": self.message,
@@ -62,6 +67,14 @@ class DiagnosticResult:
             "fix_description": self.fix_description,
             "sub_results": [r.to_dict() for r in self.sub_results],
         }
+        # Include enhanced fields if present
+        if self.explanation:
+            result["explanation"] = self.explanation
+        if self.severity != "medium":
+            result["severity"] = self.severity
+        if self.doc_link:
+            result["doc_link"] = self.doc_link
+        return result
 
     @property
     def has_issues(self) -> bool:

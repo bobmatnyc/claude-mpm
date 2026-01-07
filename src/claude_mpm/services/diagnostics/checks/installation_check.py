@@ -65,12 +65,34 @@ class InstallationCheck(BaseDiagnosticCheck):
                 status = OperationResult.SUCCESS
                 message = "Installation is healthy"
 
+            # Determine severity and explanation based on status (issue #125)
+            severity = "medium"
+            explanation = ""
+            doc_link = ""
+
+            if status == ValidationSeverity.ERROR:
+                severity = "high"
+                explanation = (
+                    "Claude MPM installation verification failed. Critical components are missing "
+                    "or misconfigured, which will prevent the system from functioning properly."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/installation.md"
+            elif status == ValidationSeverity.WARNING:
+                severity = "medium"
+                explanation = (
+                    "Installation is functional but has minor issues. These may affect "
+                    "performance or features but won't prevent basic operation."
+                )
+
             return DiagnosticResult(
                 category=self.category,
                 status=status,
                 message=message,
                 details=details,
                 sub_results=sub_results if self.verbose else [],
+                explanation=explanation,
+                severity=severity,
+                doc_link=doc_link,
             )
 
         except Exception as e:

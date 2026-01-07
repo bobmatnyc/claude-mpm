@@ -63,12 +63,36 @@ class ConfigurationCheck(BaseDiagnosticCheck):
                 status = OperationResult.SUCCESS
                 message = "Configuration is valid"
 
+            # Add enhanced troubleshooting info (issue #125)
+            severity = "medium"
+            explanation = ""
+            doc_link = ""
+
+            if status == ValidationSeverity.ERROR:
+                severity = "high"
+                explanation = (
+                    "Configuration files control how Claude MPM behaves. Critical errors "
+                    "in configuration may prevent features from working correctly or cause "
+                    "unexpected behavior."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/configuration.md"
+            elif status == ValidationSeverity.WARNING:
+                severity = "low"
+                explanation = (
+                    "Configuration has minor issues that may affect optional features. "
+                    "Core functionality should still work."
+                )
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/configuration.md"
+
             return DiagnosticResult(
                 category=self.category,
                 status=status,
                 message=message,
                 details=details,
                 sub_results=sub_results if self.verbose else [],
+                explanation=explanation,
+                severity=severity,
+                doc_link=doc_link,
             )
 
         except Exception as e:
