@@ -27,10 +27,34 @@
   let width = $state(800);
   let height = $state(600);
 
+  // Track newly added files for pulse effect
+  let previousFilePaths = $state<Set<string>>(new Set());
+  let newlyAddedPaths = $state<Set<string>>(new Set());
+
   // Update tree when files change
   $effect(() => {
     if (svgElement && files.length > 0) {
+      // Detect newly added files
+      const currentPaths = new Set(files.map(f => f.path));
+      const newPaths = new Set<string>();
+
+      currentPaths.forEach(path => {
+        if (!previousFilePaths.has(path)) {
+          newPaths.add(path);
+        }
+      });
+
+      newlyAddedPaths = newPaths;
+      previousFilePaths = currentPaths;
+
       renderTree();
+
+      // Clear newly added paths after animation duration (1.5s)
+      if (newPaths.size > 0) {
+        setTimeout(() => {
+          newlyAddedPaths = new Set();
+        }, 1500);
+      }
     }
   });
 
@@ -137,6 +161,11 @@
       .attr('stroke-width', d => {
         const isSelected = selectedFile && d.data.file?.path === selectedFile.path;
         return isSelected ? 3 : 2;
+      })
+      .attr('class', d => {
+        // Add pulse class to newly added files
+        const isNewlyAdded = d.data.file && newlyAddedPaths.has(d.data.file.path);
+        return isNewlyAdded ? 'node-pulse' : '';
       })
       .attr('cursor', d => (d.data.isFile ? 'pointer' : 'default'))
       .on('click', (event, d) => {
@@ -298,5 +327,22 @@
   }
   :global(.nodes text) {
     transition: fill 0.15s ease;
+  }
+
+  /* Radar pulse animation for newly added nodes */
+  @keyframes radar-pulse {
+    0% {
+      filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0.6));
+    }
+    50% {
+      filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.4));
+    }
+    100% {
+      filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0));
+    }
+  }
+
+  :global(.node-pulse) {
+    animation: radar-pulse 1.5s ease-out;
   }
 </style>
