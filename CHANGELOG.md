@@ -337,6 +337,369 @@
 ### Changed
 - **Version**: Patch version bump for release
 
+## v5.4.90 (2026-01-07)
+
+### Feat
+
+- framework improvements, dashboard fix, README reorganization
+- extract tool usage guide to mpm-tool-usage-guide skill
+
+### Fix
+
+- **dashboard**: track all agents used in session instead of only last one
+- ruff linting errors in validate_context_tracker.py
+
+### Refactor
+
+- extract session management to mpm-session-management skill
+- rename PM skills to mpm-* and deploy to .claude/skills/
+
+## v5.4.89 (2026-01-07)
+
+### Fix
+
+- **session**: add .md file pattern to SessionResumeHelper
+
+## v5.4.88 (2026-01-06)
+
+### Feat
+
+- **pm**: strengthen localhost deployment verification rules
+
+### Fix
+
+- **scripts**: extract PyPI token from ~/.pypirc for uv publish
+
+## v5.4.87 (2026-01-06)
+
+### Feat
+
+- **auto-pause**: implement automatic session pausing at 90% context
+- **dashboard**: improve radial tree labels and interactions
+- **dashboard**: add D3.js radial tree view for modified files
+- **hooks**: default unknown agent_type to pm in SubagentStop
+
+### Fix
+
+- **dashboard**: remove radar pulse feature to fix Tree view freeze
+- **dashboard**: fix Tree view infinite loop freeze
+- **dashboard**: prevent Tree view freeze on file fetch errors
+- **dashboard**: fix Agents tab display and add radar pulse to Files tree
+- **dashboard**: fix Agents tab by using consistent namespace for events
+- **security**: add nosec annotations for bandit warnings
+- **dashboard**: use relative paths from project root in tree view
+- **dashboard**: use direct x/y positioning for radial tree labels
+- **dashboard**: rewrite radial tree with root at center
+- **dashboard**: ensure radial tree labels are truly horizontal
+- **hooks**: add dedicated SubagentStart handler with agent_type
+- **dashboard**: reorder tabs and add agent debugging
+- auto-deploy founders output style on startup
+- prefix unused skill_result variable with underscore
+
+## v5.4.83 (2026-01-05)
+
+### Feat
+
+- add bug reporting system for MPM repositories
+
+### Fix
+
+- agent deployment now respects configuration.yaml settings
+
+## v5.4.82 (2026-01-05)
+
+## v5.4.81 (2026-01-05)
+
+## v5.4.80 (2026-01-05)
+
+### Fix
+
+- correct output style name case-sensitivity
+
+## v5.4.79 (2026-01-04)
+
+## v5.4.78 (2026-01-04)
+
+### Feat
+
+- add required agents that are always installed
+
+## v5.4.77 (2026-01-02)
+
+### Fix
+
+- handle FileNotFoundError when cwd doesn't exist
+
+## v5.4.76 (2026-01-02)
+
+### Feat
+
+- add group selection for skill pattern groups
+- add pattern detection for skill grouping in UI
+- add spacebar toggle selection to skills management
+- fix skills UI to show all skills grouped by category
+- update skills management to show table like agents
+- update skill selector UI to match agent selector
+- simplify agent/skill deployment model and fix UV install
+- add --force-sync flag to bypass ETag cache for agents/skills
+- make selective skill deployment the default
+
+### Fix
+
+- correct config import for skills GitSkillSourceManager
+- remove menu items and update skills table to match agents
+- strengthen PM delegation enforcement to prevent direct source code reading
+- deploy output styles to correct directory (~/.claude/output-styles/)
+- resolve startup issues with cache, output styles, and dependency verification
+- deploy output styles to user-level directory
+- auto-update output styles when source changes
+- add YAML frontmatter to teacher output style
+- include PM skills subdirectories in package distribution
+- preserve skills field in agent frontmatter during deployment
+- **skills**: empty skill list deploys 0 skills, fix PM skills display
+- **agents**: use content comparison instead of mtime for deployment
+- **skills**: add skills status display and improve cleanup logging
+- skill deployment to project-only and always run cleanup
+- use dict iteration directly in test
+- final linting fixes for tests
+- resolve linting errors for safe-release-build
+- skill orphan detection - reduce over-deployment by fixing mappings
+- skill cleanup now auto-populates agent_referenced and removes orphans
+- **skills**: auto-populate agent_referenced to enable orphan cleanup
+- agent count display and skill deployment optimization
+- selective skill deployment path matching
+- agent count display and PM delegation enforcement
+- add agent exclusion filtering to GitSourceSyncService
+- **agents**: exclusion matching, model optional, duplicate entries
+- **agents**: support nested {owner}/{repo}/agents/ cache structure
+
+### Refactor
+
+- unify TUI styling for agent and skill selectors
+- condense output styles to ~4KB, move detail to PM skills
+- move skill mappings from static YAML to agent frontmatter
+
+## v5.4.43 (2025-12-29)
+
+### Fix
+
+- **deps**: make kuzu-memory optional to avoid cmake requirement
+
+## v5.4.42 (2025-12-29)
+
+### Fix
+
+- **skills**: use package-relative path for bundled PM skills
+
+## v5.4.41 (2025-12-29)
+
+### Feat
+
+- **startup**: auto-cleanup legacy agent cache directories
+- **agents**: make model field optional for dynamic selection
+- **profiles**: implement automatic profile-based agent/skill filtering
+- add PM skills status display on startup
+- add progress bar for PM skills deployment
+- **pm-skills**: add PM skills deployment infrastructure
+- populate PM skill files with extracted content
+- add automatic log rotation to monitor daemon
+- reinforce autonomous PM operation and fix logging levels
+
+### Fix
+
+- **profile**: use full enabled list for agent cleanup, not filtered
+- **profile**: add agent cleanup to remove excluded agents
+- **profile**: canonical_id matching + skill cleanup
+- **profile**: add fuzzy matching for skill filtering
+- **profile**: use Config.set() for singleton to enable agent filtering
+- **profiles**: pass config to deploy_agents() for profile filtering
+- **profiles**: auto-detect project root for profile loading
+- **profiles**: support short skill names in profile filtering
+- remove MCP service verification warning on startup
+- add installed/total count summary to agent list display
+- detect UV tool environments and use uv pip for installations
+- apply default agents when scoring produces empty recommendations
+- reinforce PM delegation rules and fix agent template references
+
+### Refactor
+
+- **commands**: optimize slash command content for 86% token reduction
+- **pm-instructions**: consolidate with skill references
+- **pm-instructions**: holistic cleanup reducing 313 lines (22%)
+
+## v5.4.30 (2025-12-23)
+
+### Fix
+
+- use explicit conversion flag for error message (ruff RUF010)
+- **dashboard**: add image display and project isolation
+
+## v5.4.29 (2025-12-23)
+
+### Fix
+
+- include dashboard svelte-build in package data
+
+## v5.4.28 (2025-12-23)
+
+### Feat
+
+- **dashboard**: add Agents tab with hierarchical agent tracking
+
+## v5.4.27 (2025-12-23)
+
+### Fix
+
+- **dashboard**: improve stream selector and diff viewer UX
+
+## v5.4.26 (2025-12-23)
+
+### Feat
+
+- **dashboard**: historical diff viewer with commit dropdown
+- **dashboard**: show project name + session ID in Stream selector
+- **dashboard**: add favicon with dashboard grid icon
+- **dashboard**: add diff toggle to FileViewer
+
+### Fix
+
+- **dashboard**: fix working-directory API and favicon path
+- **cache**: correct inflated agent count from stale repository files
+- **dashboard**: convert Path.cwd() to string for API response
+- **dashboard**: filename header and diff debug logging
+- resolve linting issues for pre-publish checks
+- **dashboard**: show filename in list, relative path in viewer
+- **dashboard**: extract cwd from root level of events for project name
+- **dashboard**: relative paths, git diff, theme-aware code, stream filtering
+- **dashboard**: theme toggle and always-visible diff toggle
+- **dashboard**: favicon route and git-based diff viewer
+- **dashboard**: show diff toggle and add filename filter
+
+## v5.4.24 (2025-12-23)
+
+### Fix
+
+- remove unused imports in monitor and socketio servers
+- default test_mode to False for production PM enforcement
+- add GET /api/file/read endpoint for file browser
+- add missing base_agent.json to source directory
+- add claude_event to dashboard relay whitelist
+- clarify agent counting terminology (deployed vs cached)
+- **dashboard**: remove custom slot for Svelte 5 compatibility
+- **dashboard**: use explicit slot pattern for svelte-highlight
+- **dashboard**: fix SSR-safe escapeHtml for Python/Svelte fallback
+
+### Refactor
+
+- **dashboard**: convert Files tab to session-specific touched files tracker
+- **dashboard**: direct file browser instead of hook events
+- **dashboard**: replace Shiki with svelte-highlight
+
+## v5.4.23 (2025-12-23)
+
+### BREAKING CHANGE
+
+- Cache directory moved from ~/.claude-mpm/cache/remote-agents/
+to ~/.claude-mpm/cache/agents/. Existing cache will be re-synced automatically.
+
+### Feat
+
+- **dashboard**: add git history display to FileViewer
+- **agents**: add Proactive Code Quality Improvements to BASE_AGENT
+- **pm**: implement ops agent consolidation and verification delegation
+
+### Fix
+
+- apply ruff linting fixes for pre-publish quality gate
+- **dashboard**: use Shiki full bundle for Python/Svelte highlighting
+- **dashboard**: fetch file content from server API instead of events
+- **dashboard**: correct content extraction path for FileViewer
+- **dashboard**: extract file content from nested event data structure
+- **dashboard**: add type=hook check to files store extraction
+- **dashboard**: files reload on source change + FileViewer layout
+- **dashboard**: update static file serving for Svelte-only structure
+- **dashboard**: preserve full event structure in HTTP POST handler
+- **dashboard**: ensure events persist in history for new clients
+- **dashboard**: correct file viewer schema to match backend format
+- **dashboard**: enhance file content extraction with multi-path fallback
+- **dashboard**: resolve file viewer data extraction mismatch
+
+### Refactor
+
+- **pm**: consolidate instructions + fix deepeval tests
+- **agents**: standardize cache directory from remote-agents to agents
+
+## v5.4.21 (2025-12-22)
+
+### Feat
+
+- **pm**: mandate Chrome DevTools MCP for browser verification
+- **skills**: add user skill override via configuration.yaml
+- **startup**: add skill statistics to progress display
+- **skills**: implement selective skill deployment based on agent references
+- **dashboard**: fix file tracking, viewer, and styling
+
+### Fix
+
+- resolve ruff linting errors for pre-publish gate
+
+## v5.4.20 (2025-12-21)
+
+### Feat
+
+- expand /mpm-organize to full project organization
+- refocus /mpm-organize on documentation-only organization
+
+## v5.4.17 (2025-12-21)
+
+### Feat
+
+- add agent count summary to startup output
+
+### Refactor
+
+- remove redundant agent commands, consolidate into /mpm-configure
+
+## v5.4.16 (2025-12-21)
+
+### Feat
+
+- add chrome-devtools-mcp auto-install on startup
+
+## v5.4.14 (2025-12-20)
+
+### Feat
+
+- add engineer to core agents list
+
+### Refactor
+
+- remove auto gitignore rewriting, add config recommendation
+
+## v5.4.13 (2025-12-20)
+
+### Feat
+
+- add UV tool and Homebrew detection for auto-upgrade
+
+### Fix
+
+- resolve linting issues for pre-publish quality gate
+- prefix final unused stdout variable with underscore
+- prefix all unused stdout variables with underscore in git_operations_service
+- prefix unused stdout variable with underscore
+- auto-recover from divergent branches in git sync
+- add defensive error handling to hook event handlers
+- add matcher field for UserPromptSubmit hook
+- make memory_integration logging install-type-aware
+
+### Refactor
+
+- use runtime hooks for agent memory, add observability
+- fix agent memory injection flow
+- remove unused base_agent_loader infrastructure
+- remove redundant CLI commands
+
 ## v5.4.39 (2025-12-28)
 
 ### Changed
