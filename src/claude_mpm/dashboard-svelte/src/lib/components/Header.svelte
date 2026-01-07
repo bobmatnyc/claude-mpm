@@ -114,12 +114,16 @@
 					id="stream-filter"
 					bind:value={$selectedStream}
 					class="px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-200 dark:hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
-					title={$streamOptions.find(s => s.id === $selectedStream)?.projectPath || ''}
+					title={$selectedStream === 'all-streams' ? 'Showing all streams for current project' : ($streamOptions.find(s => s.id === $selectedStream)?.projectPath || '')}
 					disabled={$streamOptions.length === 0}
 				>
 					{#if $streamOptions.length === 0}
 						<option value="" disabled>Waiting for streams...</option>
 					{:else}
+						<!-- All Streams option (default) -->
+						<option value="all-streams" title="Show events from all sessions in the current project">
+							🌐 All Streams ({$streamOptions.length} active)
+						</option>
 						{#each $streamOptions as stream}
 							<option
 								value={stream.id}

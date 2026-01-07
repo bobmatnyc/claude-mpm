@@ -62,10 +62,11 @@
 	let activityFilter = $state<string>('');
 
 	// Filter events based on selected stream using $derived
+	// 'all-streams' means show all events (already filtered by +page.svelte)
 	// Empty string means show all events (before first stream is detected)
 	// Check multiple field locations for session ID (matches socket store extraction logic)
 	let streamFilteredEvents = $derived(
-		selectedStream === ''
+		selectedStream === '' || selectedStream === 'all-streams'
 			? allEvents
 			: allEvents.filter(event => {
 				// Extract session ID using same logic as socket store (lines 101-106)
@@ -190,8 +191,23 @@
 	}
 
 	// Get event source (session_id or source field)
+	// Extract using same logic as socket store
 	function getEventSource(event: ClaudeEvent): string {
-		return event.source || event.sessionId || event.session_id || '-';
+		const data = event.data;
+		const dataSessionId =
+			data && typeof data === 'object' && !Array.isArray(data)
+				? (data as Record<string, unknown>).session_id ||
+				  (data as Record<string, unknown>).sessionId
+				: null;
+
+		const streamId =
+			event.session_id ||
+			event.sessionId ||
+			dataSessionId ||
+			event.source;
+
+		// Truncate long session IDs to first 12 chars for readability
+		return streamId ? streamId.toString().slice(0, 12) : '-';
 	}
 
 	// Get activity (subtype field)

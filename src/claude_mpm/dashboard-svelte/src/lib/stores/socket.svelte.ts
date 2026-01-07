@@ -75,9 +75,9 @@ function createSocketStore() {
 	const streamMetadata = writable<Map<string, { projectPath: string; projectName: string }>>(new Map());
 	const streamActivity = writable<Map<string, number>>(new Map()); // Track last activity timestamp per stream
 	const error = writable<string | null>(null);
-	const selectedStream = writable<string>('');
+	const selectedStream = writable<string>('all-streams'); // Default to 'all-streams'
 	const currentWorkingDirectory = writable<string>('');
-	const projectFilter = writable<'current' | 'all'>('current'); // Default to current project only
+	const projectFilter = writable<'current' | 'all'>('all'); // Default to show all projects
 
 	// Load cached events on initialization (client-side only)
 	if (typeof window !== 'undefined') {
@@ -288,13 +288,14 @@ function createSocketStore() {
 				console.log('Socket store: Updated streams:', Array.from(newStreams), 'Size changed:', prevSize, '->', newStreams.size);
 
 				// Auto-select stream based on priority:
-				// 1. If this is the first stream detected, auto-select it
-				// 2. If no stream is currently selected (empty string), auto-select this new stream (most recent)
+				// Keep 'all-streams' as default, only change if empty string (which shouldn't happen with new default)
 				const currentSelected = get(selectedStream);
-				if (prevSize === 0 || currentSelected === '') {
-					console.log('Socket store: Auto-selecting stream:', streamId, 'Reason:', prevSize === 0 ? 'first stream' : 'no stream selected');
-					selectedStream.set(streamId);
+				if (currentSelected === '') {
+					console.log('Socket store: Setting to all-streams (empty string fallback)');
+					selectedStream.set('all-streams');
 				}
+				// Note: We no longer auto-switch away from 'all-streams' when first stream appears
+				// Users stay on 'all-streams' by default and can manually select specific streams
 
 				return newStreams;
 			});

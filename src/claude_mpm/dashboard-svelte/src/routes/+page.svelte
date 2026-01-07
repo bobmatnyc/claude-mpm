@@ -29,13 +29,32 @@
 	let isDragging = $state(false);
 
 	// Use selectedStream from store
-	const { selectedStream, events: eventsStore } = socketStore;
+	const { selectedStream, events: eventsStore, currentWorkingDirectory, projectFilter } = socketStore;
 
 	// Create filtered events store based on selectedStream
 	// This ensures tools store reacts to stream changes
 	const filteredEventsStore = derived(
-		[eventsStore, selectedStream],
-		([$events, $selectedStream]) => {
+		[eventsStore, selectedStream, currentWorkingDirectory, projectFilter],
+		([$events, $selectedStream, $currentWd, $projectFilter]) => {
+			// If 'all-streams', show all events matching the current project filter
+			if ($selectedStream === 'all-streams') {
+				// If project filter is 'current' and we have a working directory, filter by cwd
+				if ($projectFilter === 'current' && $currentWd) {
+					return $events.filter(event => {
+						// Extract cwd from event
+						const eventCwd =
+							event.cwd ||
+							event.working_directory ||
+							(event.data as any)?.working_directory ||
+							(event.data as any)?.cwd ||
+							(event.metadata as any)?.working_directory ||
+							(event.metadata as any)?.cwd;
+						return eventCwd === $currentWd;
+					});
+				}
+				// Otherwise return all events
+				return $events;
+			}
 			// If empty (no stream selected yet), return all events
 			if ($selectedStream === '') {
 				return $events;
