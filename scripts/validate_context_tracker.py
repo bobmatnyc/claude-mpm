@@ -174,6 +174,7 @@ def validate_tests():
                 "-v",
                 "--tb=short",
             ],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -186,10 +187,9 @@ def validate_tests():
                     print(f"✅ {line.strip()}")
                     break
             return True
-        else:
-            print("❌ Test suite failed")
-            print(result.stdout)
-            return False
+        print("❌ Test suite failed")
+        print(result.stdout)
+        return False
 
     except Exception as e:
         print(f"❌ Test execution failed: {e}")
@@ -278,9 +278,8 @@ def main():
         print("  - Dashboard display")
         print("  - Production deployment")
         return 0
-    else:
-        print(f"\n⚠️  {total - passed} check(s) failed. Review output above.")
-        return 1
+    print(f"\n⚠️  {total - passed} check(s) failed. Review output above.")
+    return 1
 
 
 if __name__ == "__main__":
