@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import * as d3 from 'd3';
   import type { TouchedFile } from '$lib/stores/files.svelte';
   import {
@@ -38,21 +38,28 @@
       const currentPaths = new Set(files.map(f => f.path));
       const newPaths = new Set<string>();
 
+      // Use untrack to read previous state without creating dependency
+      const prevPaths = untrack(() => previousFilePaths);
       currentPaths.forEach(path => {
-        if (!previousFilePaths.has(path)) {
+        if (!prevPaths.has(path)) {
           newPaths.add(path);
         }
       });
 
-      newlyAddedPaths = newPaths;
-      previousFilePaths = currentPaths;
+      // Update state outside of reactive tracking
+      untrack(() => {
+        newlyAddedPaths = newPaths;
+        previousFilePaths = currentPaths;
+      });
 
       renderTree();
 
       // Clear newly added paths after animation duration (1.5s)
       if (newPaths.size > 0) {
         setTimeout(() => {
-          newlyAddedPaths = new Set();
+          untrack(() => {
+            newlyAddedPaths = new Set();
+          });
         }, 1500);
       }
     }
