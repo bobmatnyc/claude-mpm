@@ -95,10 +95,10 @@ class DaemonManager:
     def _get_default_log_file(self) -> Path:
         """Get default log file path with port number to support multiple daemons."""
         project_root = Path.cwd()
-        claude_mpm_dir = project_root / ".claude-mpm"
-        claude_mpm_dir.mkdir(exist_ok=True)
+        logs_dir = project_root / ".claude-mpm" / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
         # Include port in filename to support multiple daemon instances
-        return claude_mpm_dir / f"monitor-daemon-{self.port}.log"
+        return logs_dir / f"monitor-daemon-{self.port}.log"
 
     def cleanup_port_conflicts(self, max_retries: int = 3) -> bool:
         """Clean up any processes using the daemon port.
@@ -976,6 +976,7 @@ class DaemonManager:
                 os.dup2(null_in.fileno(), sys.stdin.fileno())
 
             # Redirect stdout and stderr to log file
+            # Ensure logs directory exists
             self.log_file.parent.mkdir(parents=True, exist_ok=True)
             with self.log_file.open("a") as log_out:
                 os.dup2(log_out.fileno(), sys.stdout.fileno())

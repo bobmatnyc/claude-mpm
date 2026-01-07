@@ -128,12 +128,16 @@ class DaemonLifecycle:
             # Redirect stdout and stderr
             if self.log_file:
                 # Redirect to log file
+                # Ensure logs directory exists
+                self.log_file.parent.mkdir(parents=True, exist_ok=True)
                 with self.log_file.open("a") as log_out:
                     os.dup2(log_out.fileno(), sys.stdout.fileno())
                     os.dup2(log_out.fileno(), sys.stderr.fileno())
             else:
                 # Default to a daemon log file instead of /dev/null for errors
-                default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
+                default_log = (
+                    Path.home() / ".claude-mpm" / "logs" / "monitor-daemon.log"
+                )
                 default_log.parent.mkdir(parents=True, exist_ok=True)
                 with default_log.open("a") as log_out:
                     os.dup2(log_out.fileno(), sys.stdout.fileno())
@@ -475,7 +479,9 @@ class DaemonLifecycle:
         try:
             # If no log file specified, create a default one
             if not self.log_file:
-                default_log = Path.home() / ".claude-mpm" / "monitor-daemon.log"
+                default_log = (
+                    Path.home() / ".claude-mpm" / "logs" / "monitor-daemon.log"
+                )
                 default_log.parent.mkdir(parents=True, exist_ok=True)
                 self.log_file = default_log
 

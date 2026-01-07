@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
+	import CopyButton from './CopyButton.svelte';
 
 	let {
 		event,
@@ -237,11 +238,23 @@
 							</tr>
 							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
 								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Session ID</td>
-								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs">{preData.sessionId}</td>
+								<td class="py-2 px-3">
+									<div class="flex items-center gap-2">
+										<span class="text-slate-900 dark:text-slate-100 font-mono text-xs">{preData.sessionId}</span>
+										<CopyButton text={preData.sessionId} size="sm" />
+									</div>
+								</td>
 							</tr>
 							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
 								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Working Directory</td>
-								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.workingDirectory}</td>
+								<td class="py-2 px-3">
+									<div class="flex items-center gap-2">
+										<span class="text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.workingDirectory}</span>
+										{#if preData.workingDirectory !== 'N/A'}
+											<CopyButton text={preData.workingDirectory} size="sm" />
+										{/if}
+									</div>
+								</td>
 							</tr>
 							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
 								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Git Branch</td>
@@ -261,7 +274,12 @@
 							</tr>
 							<tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
 								<td class="py-2 px-3 font-semibold text-slate-600 dark:text-slate-400">Correlation ID</td>
-								<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.correlationId}</td>
+								<td class="py-2 px-3">
+									<div class="flex items-center gap-2">
+										<span class="text-slate-900 dark:text-slate-100 font-mono text-xs break-all">{preData.correlationId}</span>
+										<CopyButton text={preData.correlationId} size="sm" />
+									</div>
+								</td>
 							</tr>
 						</tbody>
 					</table>
@@ -275,8 +293,13 @@
 									{#each Object.entries(preData.toolParameters) as [key, value]}
 										<tr class="hover:bg-slate-100 dark:hover:bg-slate-700">
 											<td class="py-2 px-3 font-mono text-xs text-cyan-600 dark:text-cyan-400 w-1/3">{key}</td>
-											<td class="py-2 px-3 text-slate-900 dark:text-slate-100 font-mono text-xs break-all">
-												{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+											<td class="py-2 px-3">
+												<div class="flex items-center gap-2">
+													<span class="text-slate-900 dark:text-slate-100 font-mono text-xs break-all flex-1">
+														{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+													</span>
+													<CopyButton text={typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)} size="sm" />
+												</div>
 											</td>
 										</tr>
 									{/each}
@@ -348,7 +371,10 @@
 						<!-- Output -->
 						{#if postData.output}
 							<div class="mt-4">
-								<h5 class="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Output</h5>
+								<div class="flex items-center justify-between mb-2">
+									<h5 class="text-sm font-semibold text-slate-600 dark:text-slate-400">Output</h5>
+									<CopyButton text={String(postData.output)} label="Copy" size="sm" />
+								</div>
 								<pre class="bg-slate-50 dark:bg-slate-800/50 rounded p-3 text-xs font-mono overflow-x-auto text-slate-900 dark:text-slate-100">{String(postData.output)}</pre>
 							</div>
 						{/if}
@@ -356,7 +382,10 @@
 						<!-- Error -->
 						{#if postData.error}
 							<div class="mt-4">
-								<h5 class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Error</h5>
+								<div class="flex items-center justify-between mb-2">
+									<h5 class="text-sm font-semibold text-red-600 dark:text-red-400">Error</h5>
+									<CopyButton text={String(postData.error)} label="Copy" size="sm" />
+								</div>
 								<pre class="bg-red-50 dark:bg-red-900/20 rounded p-3 text-xs font-mono overflow-x-auto text-red-900 dark:text-red-100">{String(postData.error)}</pre>
 							</div>
 						{/if}

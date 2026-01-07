@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AgentNode } from '$lib/stores/agents.svelte';
 	import type { ToolCall } from '$lib/stores/agents.svelte';
+	import CopyButton from './CopyButton.svelte';
 
 	let { agent, onToolClick }: { agent: AgentNode | null; onToolClick?: (toolCall: ToolCall) => void } = $props();
 
@@ -160,6 +161,7 @@
 					<code class="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[11px] font-mono">
 						{agent.sessionId}
 					</code>
+					<CopyButton text={agent.sessionId} size="sm" />
 				</div>
 				<div class="flex items-center gap-2">
 					<span class="font-semibold">Status:</span>
@@ -178,9 +180,12 @@
 			{#if agent.userPrompt}
 				{@const { truncated, isTruncated } = truncateText(agent.userPrompt)}
 				<div class="mb-6">
-					<h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-						📝 User Request
-					</h3>
+					<div class="flex items-center justify-between mb-3">
+						<h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+							📝 User Request
+						</h3>
+						<CopyButton text={agent.userPrompt} label="Copy" size="sm" />
+					</div>
 					<div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
 						<p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
 							{expandedSections.userPrompt || !isTruncated ? agent.userPrompt : truncated}
@@ -201,9 +206,12 @@
 			{#if agent.delegationPrompt}
 				{@const { truncated, isTruncated } = truncateText(agent.delegationPrompt)}
 				<div class="mb-6">
-					<h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-						📤 Delegation Prompt
-					</h3>
+					<div class="flex items-center justify-between mb-3">
+						<h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+							📤 Delegation Prompt
+						</h3>
+						<CopyButton text={agent.delegationPrompt} label="Copy" size="sm" />
+					</div>
 					{#if agent.delegationDescription}
 						<p class="text-sm text-slate-600 dark:text-slate-400 mb-2 italic">
 							{agent.delegationDescription}
@@ -258,12 +266,18 @@
 									</span>
 								</div>
 								{#if plan.planFile}
-									<div class="mb-2 text-xs text-slate-600 dark:text-slate-400 font-mono">
+									<div class="mb-2 text-xs text-slate-600 dark:text-slate-400 font-mono flex items-center gap-2">
 										📄 {plan.planFile}
+										<CopyButton text={plan.planFile} size="sm" />
 									</div>
 								{/if}
-								<div class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-mono bg-slate-50 dark:bg-slate-800/40 p-3 rounded">
-									{expandedSections[planId] || !isTruncated ? plan.content : truncated}
+								<div class="relative">
+									<div class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-mono bg-slate-50 dark:bg-slate-800/40 p-3 rounded">
+										{expandedSections[planId] || !isTruncated ? plan.content : truncated}
+									</div>
+									<div class="absolute top-2 right-2">
+										<CopyButton text={plan.content} size="sm" />
+									</div>
 								</div>
 								{#if isTruncated}
 									<button
@@ -292,14 +306,17 @@
 						{#each agent.responses as response (response.timestamp)}
 							{@const responseId = `response-${response.timestamp}`}
 							{@const { truncated, isTruncated } = truncateText(response.content)}
-							<div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded border border-slate-200 dark:border-slate-700">
+							<div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded border border-slate-200 dark:border-slate-700 relative">
 								<div class="flex items-center justify-between mb-2">
 									<span class="text-xs text-slate-600 dark:text-slate-400 font-mono">
 										{formatTimestamp(response.timestamp)}
 									</span>
-									<span class="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
-										{response.type}
-									</span>
+									<div class="flex items-center gap-2">
+										<span class="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+											{response.type}
+										</span>
+										<CopyButton text={response.content} size="sm" />
+									</div>
 								</div>
 								<p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
 									{expandedSections[responseId] || !isTruncated ? response.content : truncated}

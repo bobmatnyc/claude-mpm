@@ -118,7 +118,7 @@ class MonitorCommand(BaseCommand):
                 # Check if it's actually running
                 if not self.daemon.lifecycle.is_running():
                     return CommandResult.error_result(
-                        "Monitor daemon failed to start. Check ~/.claude-mpm/monitor-daemon.log for details."
+                        "Monitor daemon failed to start. Check ~/.claude-mpm/logs/monitor-daemon-*.log for details."
                     )
 
                 # Get the actual PID
@@ -146,7 +146,7 @@ class MonitorCommand(BaseCommand):
             pass
 
         return CommandResult.error_result(
-            "Failed to start unified monitor daemon. Check ~/.claude-mpm/monitor-daemon.log for details."
+            "Failed to start unified monitor daemon. Check ~/.claude-mpm/logs/monitor-daemon-*.log for details."
         )
 
     def _stop_monitor(self, args) -> CommandResult:

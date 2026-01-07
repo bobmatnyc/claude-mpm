@@ -15,6 +15,7 @@
   import scss from 'svelte-highlight/languages/scss';
   import sql from 'svelte-highlight/languages/sql';
   import MarkdownViewer from './MarkdownViewer.svelte';
+  import CopyButton from './CopyButton.svelte';
 
   interface Props {
     file: FileEntry | null;
@@ -305,7 +306,10 @@
     <!-- Header -->
     <div class="viewer-header">
       <div class="file-info">
-        <h3 class="file-path">{getDisplayPath(file.path)}</h3>
+        <div class="flex items-center gap-2">
+          <h3 class="file-path">{getDisplayPath(file.path)}</h3>
+          <CopyButton text={file.path} size="sm" />
+        </div>
         <p class="file-meta">
           {formatSize(file.size)}
           · Last modified {new Date(file.modified * 1000).toLocaleString()}

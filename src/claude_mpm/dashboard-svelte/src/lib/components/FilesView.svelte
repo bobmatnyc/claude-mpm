@@ -5,6 +5,7 @@
   import type { TouchedFile } from '$lib/stores/files.svelte';
   import { fetchFileContent, extractFilePath, getOperationType, getFileName, extractContent } from '$lib/stores/files.svelte';
   import FileTreeRadial from '$lib/components/FileTreeRadial.svelte';
+  import CopyButton from './CopyButton.svelte';
 
   interface Props {
     selectedStream?: string;
@@ -373,11 +374,12 @@
           </div>
         {:else}
           <!-- Table header -->
-          <div class="grid grid-cols-[50px_1fr_100px_120px] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
+          <div class="grid grid-cols-[50px_1fr_100px_120px_auto] gap-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 sticky top-0 transition-colors">
             <div></div>
             <div>Filename</div>
             <div>Operation</div>
             <div class="text-right">Timestamp</div>
+            <div class="text-right pr-2">Actions</div>
           </div>
 
           <!-- File rows - scrollable container -->
@@ -388,35 +390,51 @@
             class="focus:outline-none overflow-y-auto max-h-[calc(100vh-280px)]"
           >
             {#each filteredFiles as file, i (file.eventId)}
-              <button
-                onclick={() => selectFile(file)}
-                class="w-full text-left px-4 py-2.5 transition-colors border-l-4 grid grid-cols-[50px_1fr_100px_120px] gap-3 items-center text-xs
+              <div
+                class="w-full text-left px-4 py-2.5 transition-colors border-l-4 grid grid-cols-[50px_1fr_100px_120px_auto] gap-3 items-center text-xs
                   {selectedFile?.path === file.path
                     ? 'bg-cyan-50 dark:bg-cyan-500/20 border-l-cyan-500 dark:border-l-cyan-400 ring-1 ring-cyan-300 dark:ring-cyan-500/30'
                     : `border-l-transparent ${i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/40' : 'bg-white dark:bg-slate-800/20'} hover:bg-slate-100 dark:hover:bg-slate-700/30`}"
               >
                 <!-- Icon -->
-                <div class="text-xl">
+                <button
+                  onclick={() => selectFile(file)}
+                  class="text-xl"
+                >
                   {getFileIcon(file.path)}
-                </div>
+                </button>
 
                 <!-- File Path -->
-                <div class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs" title={file.path}>
+                <button
+                  onclick={() => selectFile(file)}
+                  class="text-slate-700 dark:text-slate-300 truncate font-mono text-xs text-left" title={file.path}
+                >
                   {file.name}
-                </div>
+                </button>
 
                 <!-- Operation -->
-                <div class="text-center">
+                <button
+                  onclick={() => selectFile(file)}
+                  class="text-center"
+                >
                   <span class="px-2 py-0.5 rounded text-[10px] font-medium uppercase {getOperationColor(file.operation)}">
                     {file.operation}
                   </span>
-                </div>
+                </button>
 
                 <!-- Timestamp -->
-                <div class="text-slate-700 dark:text-slate-300 font-mono text-[11px] text-right">
+                <button
+                  onclick={() => selectFile(file)}
+                  class="text-slate-700 dark:text-slate-300 font-mono text-[11px] text-right"
+                >
                   {formatTimestamp(file.timestamp)}
+                </button>
+
+                <!-- Copy Button -->
+                <div class="flex items-center justify-end">
+                  <CopyButton text={file.path} size="sm" />
                 </div>
-              </button>
+              </div>
             {/each}
           </div>
         {/if}

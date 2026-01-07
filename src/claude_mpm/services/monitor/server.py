@@ -368,6 +368,36 @@ class UnifiedMonitorServer:
         finally:
             await self._cleanup_async()
 
+    def _categorize_event(self, event_name: str) -> str:
+        """Categorize event by name to determine Socket.IO event type.
+
+        Maps specific event names to their category for frontend filtering.
+
+        Args:
+            event_name: The raw event name (e.g., "subagent_start", "todo_updated")
+
+        Returns:
+            Category name (e.g., "hook_event", "system_event")
+        """
+        # Hook events - agent lifecycle and todo updates
+        if event_name in ("subagent_start", "subagent_stop", "todo_updated"):
+            return "hook_event"
+
+        # Tool events
+        if event_name in ("pre_tool", "post_tool"):
+            return "hook_event"
+
+        # Claude API events
+        if event_name in ("user_prompt", "assistant_message"):
+            return "claude_event"
+
+        # System events
+        if event_name in ("system_ready", "system_shutdown"):
+            return "system_event"
+
+        # Default to claude_event for unknown events
+        return "claude_event"
+
     def _setup_event_handlers(self):
         """Setup Socket.IO event handlers."""
         try:
@@ -499,10 +529,23 @@ class UnifiedMonitorServer:
                     event = data.get("event", "claude_event")
                     event_data = data.get("data", {})
 
-                    # Emit to Socket.IO clients via the appropriate event
+                    # Categorize event and wrap in expected format
+                    event_type = self._categorize_event(event)
+                    wrapped_event = {
+                        "type": event_type,
+                        "subtype": event,
+                        "data": event_data,
+                        "timestamp": event_data.get("timestamp")
+                        or datetime.now(timezone.utc).isoformat() + "Z",
+                        "session_id": event_data.get("session_id"),
+                    }
+
+                    # Emit to Socket.IO clients via the categorized event type
                     if self.sio:
-                        await self.sio.emit(event, event_data)
-                        self.logger.debug(f"HTTP event forwarded to Socket.IO: {event}")
+                        await self.sio.emit(event_type, wrapped_event)
+                        self.logger.debug(
+                            f"HTTP event forwarded to Socket.IO: {event} -> {event_type}"
+                        )
 
                     return web.Response(status=204)  # No content response
 
@@ -1010,7 +1053,7 @@ class UnifiedMonitorServer:
                         )
 
                     # Find git repository root
-                    git_root_result = subprocess.run(
+                    git_root_result = subprocess.run(  # nosec B603 B607
                         ["git", "rev-parse", "--show-toplevel"],
                         check=False,
                         capture_output=True,
@@ -1034,7 +1077,7 @@ class UnifiedMonitorServer:
                     git_root = Path(git_root_result.stdout.strip())
 
                     # Check if file is tracked by git
-                    ls_files_result = subprocess.run(
+                    ls_files_result = subprocess.run(  # nosec B603 B607
                         ["git", "ls-files", "--error-unmatch", str(path)],
                         check=False,
                         capture_output=True,
@@ -1056,7 +1099,7 @@ class UnifiedMonitorServer:
                         )
 
                     # Get commit history for this file (last 5 commits)
-                    history_result = subprocess.run(
+                    history_result = subprocess.run(  # nosec B603 B607
                         [
                             "git",
                             "log",
@@ -1087,7 +1130,7 @@ class UnifiedMonitorServer:
                                     )
 
                     # Check for uncommitted changes
-                    uncommitted_result = subprocess.run(
+                    uncommitted_result = subprocess.run(  # nosec B603 B607
                         ["git", "diff", "HEAD", str(path)],
                         check=False,
                         capture_output=True,
@@ -1100,7 +1143,7 @@ class UnifiedMonitorServer:
                     # Get diff based on commit parameter
                     if commit_hash:
                         # Get diff for specific commit
-                        result = subprocess.run(
+                        result = subprocess.run(  # nosec B603 B607
                             ["git", "show", commit_hash, "--", str(path)],
                             check=False,
                             capture_output=True,
@@ -1469,7 +1512,7 @@ class UnifiedMonitorServer:
                 gather = asyncio.gather(*tasks_to_cancel, return_exceptions=True)
                 try:
                     loop.run_until_complete(gather)
-                except Exception:
+                except Exception:  # nosec B110
                     # Some tasks might fail to cancel, that's ok
                     pass
 
