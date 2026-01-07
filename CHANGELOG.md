@@ -1,3 +1,20 @@
+## [5.4.92] - 2026-01-07
+
+### Fixed
+- **Dashboard Event Categorization**: Improved event categorization and display logic
+- **Dashboard File Tree**: Enhanced file tree visualization
+
+### Added
+- **Documentation**: Added debugging session commit control strategies guide
+- **Documentation**: Added Hello World quickstart guide
+- **Documentation**: Added /mpm-init re-run workflow guide
+- **Dashboard**: Added "All Streams" filter option
+- **Doctor Command**: Enhanced troubleshooting output with severity levels and explanations
+
+### Changed
+- **Dashboard**: Fixed project default handling
+- Archived unused test assets
+
 ## [5.4.89] - 2026-01-07
 
 ### Changed
