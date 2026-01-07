@@ -58,16 +58,16 @@ def test_subagent_start_handler():
 
     # Assertions
     assert emitted["event"] == "subagent_start", "Event name should be 'subagent_start'"
-    assert (
-        emitted["data"]["agent_type"] == "engineer"
-    ), "Should preserve agent_type field"
-    assert (
-        emitted["data"]["hook_event_name"] == "SubagentStart"
-    ), "Should preserve hook_event_name"
+    assert emitted["data"]["agent_type"] == "engineer", (
+        "Should preserve agent_type field"
+    )
+    assert emitted["data"]["hook_event_name"] == "SubagentStart", (
+        "Should preserve hook_event_name"
+    )
     assert "agent_id" in emitted["data"], "Should include agent_id field"
-    assert (
-        "session_id" in emitted["data"]
-    ), "Should include session_id field (not lost!)"
+    assert "session_id" in emitted["data"], (
+        "Should include session_id field (not lost!)"
+    )
 
     print("   ✅ All assertions passed!")
 
@@ -89,9 +89,9 @@ def test_subagent_start_handler():
     print(f"   ✅ Event emitted: {emitted_2['event']}")
     print(f"   ✅ Agent type extracted: {emitted_2['data']['agent_type']}")
 
-    assert (
-        emitted_2["data"]["agent_type"] == "research"
-    ), "Should extract from subagent_type field"
+    assert emitted_2["data"]["agent_type"] == "research", (
+        "Should extract from subagent_type field"
+    )
 
     print("   ✅ Fallback field extraction works!")
 
@@ -112,15 +112,15 @@ def test_subagent_start_handler():
     print(f"   ✅ Event emitted: {session_emitted['event']}")
     print(f"   ✅ Data keys: {list(session_emitted['data'].keys())}")
 
-    assert (
-        session_emitted["event"] == "session_start"
-    ), "SessionStart should emit 'session_start'"
-    assert (
-        "agent_type" not in session_emitted["data"]
-    ), "SessionStart should NOT have agent_type"
-    assert (
-        session_emitted["data"]["hook_event_name"] == "SessionStart"
-    ), "Should preserve SessionStart hook name"
+    assert session_emitted["event"] == "session_start", (
+        "SessionStart should emit 'session_start'"
+    )
+    assert "agent_type" not in session_emitted["data"], (
+        "SessionStart should NOT have agent_type"
+    )
+    assert session_emitted["data"]["hook_event_name"] == "SessionStart", (
+        "Should preserve SessionStart hook name"
+    )
 
     print("   ✅ SessionStart correctly different from SubagentStart!")
 
