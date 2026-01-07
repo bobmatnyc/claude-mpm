@@ -644,7 +644,9 @@ Your project changes over time. Keep `CLAUDE.md` fresh:
 
 ### Auto-Commit Behavior
 
-**Default behavior:** MPM auto-commits changes after implementing features.
+**How it works:** Agents commit based on their instructions—Claude Code itself doesn't auto-commit. You control when commits happen through your prompts.
+
+**Default behavior:** Agents commit working implementations automatically.
 
 **Why this is good:**
 - Tracks AI-generated changes in git history
@@ -656,11 +658,15 @@ Your project changes over time. Keep `CLAUDE.md` fresh:
 - Messy git history
 - Hard to create clean pull requests
 
-**Mitigation strategies:**
+**Quick mitigation strategies:**
 
 **Strategy 1: Control commits with prompts**
 ```
 Add a delete command. Do not commit yet - I want to test it first.
+```
+
+```
+This is a debugging session - don't commit until we have a working solution.
 ```
 
 **Strategy 2: Work on feature branches**
@@ -686,6 +692,8 @@ git checkout -b experiment
 git checkout main
 git cherry-pick <commit-hash>
 ```
+
+**📖 For comprehensive debugging strategies, see:** [Debugging Session Strategies Guide](../guides/debugging-session-strategies.md)
 
 ### Understanding Multi-Agent Delegation
 
