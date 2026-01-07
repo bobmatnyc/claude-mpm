@@ -601,7 +601,7 @@ claude-mpm doctor
 
 - **[User Guide](../user/user-guide.md)** - Complete Claude MPM features
 - **[Ticket Scope Protection](ticket-scope-protection.md)** - Best practices for ticket management
-- **[Slash Command Standards](../developer/SLASH_COMMAND_STANDARDS.md)** - Command design patterns
+- **[Slash Commands Reference](../reference/slash-commands.md)** - Command patterns and syntax
 
 ---
 

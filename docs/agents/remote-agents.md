@@ -287,6 +287,6 @@ claude-mpm --mpm:agents deploy
 ## Learn More
 
 - [Agent Creation Guide](./creating-agents.md)
-- [Agent Deployment](./deployment.md)
-- [Migration Guide](./migration.md)
-- [Configuration Reference](../reference/configuration.md)
+- [Agent Deployment](../guides/single-tier-agent-system.md)
+- [Migration Guide](../migration/agent-sources-git-default-v4.5.0.md)
+- [Configuration Reference](../configuration/reference.md)

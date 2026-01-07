@@ -240,7 +240,7 @@ Complete memory replacement:
 
 - **[Creating Agents](../../agents/creating-agents.md)** - Step-by-step guide
 - **[Agent Patterns](../../agents/agent-patterns.md)** - Design patterns
-- **[Agent System](../../AGENTS.md)** - Complete overview
+- **[Agent System](../../agents/README.md)** - Complete overview
 - **[API Reference](../api-reference.md)** - API documentation
 
 ---

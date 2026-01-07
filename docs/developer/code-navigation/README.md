@@ -13,7 +13,6 @@ This directory contains comprehensive documentation for navigating and understan
 | [HOOKS-AND-EXTENSIONS.md](HOOKS-AND-EXTENSIONS.md) | Hook system and extensibility points |
 | [CLI-STRUCTURE.md](CLI-STRUCTURE.md) | CLI commands and parsers |
 | [SKILLS-SYSTEM.md](SKILLS-SYSTEM.md) | Skills management and integration |
-| [TECHNICAL-DEBT.md](TECHNICAL-DEBT.md) | Known issues and improvement areas |
 
 ## Quick Links
 

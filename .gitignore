@@ -346,7 +346,6 @@ bin/
 
 # MCP Ticketer
 .mcp-ticketer/
-docs/_archive/
 
 # Distribution artifacts
 dist/

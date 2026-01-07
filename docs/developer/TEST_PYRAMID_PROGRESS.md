@@ -556,8 +556,8 @@ class TestErrorRecovery:
 
 ### Documentation
 
-- [TESTING_STANDARDS.md](/Users/masa/Projects/claude-mpm/tests/TESTING_STANDARDS.md) - Complete testing standards
-- [CONTRIBUTING.md](/Users/masa/Projects/claude-mpm/CONTRIBUTING.md) - Development guidelines
+- [TESTING_STANDARDS.md](../../tests/TESTING_STANDARDS.md) - Complete testing standards
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - Development guidelines
 - [Test Pyramid Pattern](https://martinfowler.com/articles/practical-test-pyramid.html) - External reference
 
 ### Gold Standard Examples

@@ -4,7 +4,7 @@ Complete API documentation for Claude MPM services and interfaces.
 
 ## Overview
 
-This document provides a high-level overview of Claude MPM's APIs. For detailed technical documentation, see [developer/api-reference.md](developer/api-reference.md).
+This document provides a high-level overview of Claude MPM's APIs. For detailed technical documentation, see [../developer/api-reference.md](../developer/api-reference.md).
 
 ## Quick Reference
 
@@ -53,7 +53,7 @@ agents = registry.discover_agents()
 pm_agent = registry.get_agent("pm")
 ```
 
-See [developer/api-reference.md](developer/api-reference.md) for complete API.
+See [../developer/api-reference.md](../developer/api-reference.md) for complete API.
 
 ## Service Architecture
 
@@ -65,7 +65,7 @@ Claude MPM uses a service-oriented architecture with five domains:
 4. **Project Services** - Project analysis and workspace
 5. **Utility Services** - Supporting functionality
 
-See [developer/ARCHITECTURE.md](developer/ARCHITECTURE.md) for architectural details.
+See [../developer/ARCHITECTURE.md](../developer/ARCHITECTURE.md) for architectural details.
 
 ## Service Interfaces
 
@@ -112,7 +112,7 @@ class IConfigurationManager:
     def save(self): ...
 ```
 
-See [developer/api-reference.md](developer/api-reference.md) for complete interface documentation.
+See [../developer/api-reference.md](../developer/api-reference.md) for complete interface documentation.
 
 ## Hook System API
 
@@ -134,7 +134,7 @@ def my_hook(context: HookContext) -> HookResult:
 # - session_end: Session cleanup
 ```
 
-See [developer/pretool-use-hooks.md](developer/pretool-use-hooks.md) for hook development.
+See [../developer/pretool-use-hooks.md](../developer/pretool-use-hooks.md) for hook development.
 
 ## MCP Gateway API
 
@@ -153,7 +153,7 @@ gateway.register_server("my-server", config)
 result = gateway.execute_tool("server", "tool", params)
 ```
 
-See [developer/13-mcp-gateway/README.md](developer/13-mcp-gateway/README.md) for MCP integration.
+See [../developer/13-mcp-gateway/README.md](../developer/13-mcp-gateway/README.md) for MCP integration.
 
 ## Agent API
 
@@ -178,7 +178,7 @@ Agent memory API:
 }
 ```
 
-See [agents/creating-agents.md](agents/creating-agents.md) for agent development.
+See [../agents/creating-agents.md](../agents/creating-agents.md) for agent development.
 
 ## Configuration API
 
@@ -208,7 +208,7 @@ agents:
       - orchestration
 ```
 
-See [configuration.md](configuration.md) for complete reference.
+See [../configuration/reference.md](../configuration/reference.md) for complete reference.
 
 ## REST API (Monitoring)
 
@@ -221,7 +221,7 @@ GET  /agents              # Agent list
 POST /agents/:name/invoke # Invoke agent
 ```
 
-See [developer/11-dashboard/README.md](developer/11-dashboard/README.md) for monitoring API.
+See [../developer/11-dashboard/README.md](../developer/11-dashboard/README.md) for monitoring API.
 
 ## WebSocket API
 
@@ -237,7 +237,7 @@ socket.on('file_operation', data => { ... });
 socket.on('session_update', data => { ... });
 ```
 
-See [developer/11-dashboard/README.md](developer/11-dashboard/README.md) for WebSocket protocol.
+See [../developer/11-dashboard/README.md](../developer/11-dashboard/README.md) for WebSocket protocol.
 
 ## Error Handling
 
@@ -265,17 +265,17 @@ from claude_mpm.testing import (
 )
 ```
 
-See [developer/extending.md](developer/extending.md) for testing patterns.
+See [../developer/extending.md](../developer/extending.md) for testing patterns.
 
 ## See Also
 
-- **[Developer API Reference](developer/api-reference.md)** - Complete technical documentation
-- **[Architecture](developer/ARCHITECTURE.md)** - System design details
-- **[Extending](developer/extending.md)** - Building extensions
-- **[Agent System](AGENTS.md)** - Agent development
-- **[Configuration](configuration.md)** - Configuration options
-- **[User Guide](user/user-guide.md)** - End-user documentation
+- **[Developer API Reference](../developer/api-reference.md)** - Complete technical documentation
+- **[Architecture](../developer/ARCHITECTURE.md)** - System design details
+- **[Extending](../developer/extending.md)** - Building extensions
+- **[Agent System](../agents/README.md)** - Agent development
+- **[Configuration](../configuration/reference.md)** - Configuration options
+- **[User Guide](../user/user-guide.md)** - End-user documentation
 
 ---
 
-**For detailed API documentation**: See [developer/api-reference.md](developer/api-reference.md)
+**For detailed API documentation**: See [../developer/api-reference.md](../developer/api-reference.md)

@@ -977,7 +977,7 @@ uname -a >> issue-report.md
 ## See Also
 
 - **[Single-Tier Agent System Guide](../guides/single-tier-agent-system.md)** - Complete agent sources documentation
-- **[Configuration Reference](configuration.md)** - Configuration file formats
+- **[Configuration Reference](../configuration/reference.md)** - Configuration file formats
 - **[Agent Sources API](agent-sources-api.md)** - Technical API reference
 - **[Troubleshooting Guide](../user/troubleshooting.md)** - General troubleshooting
 - **[MCP Services](SERVICES.md)** - MCP service documentation

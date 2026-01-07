@@ -126,7 +126,7 @@ Real-world usage scenarios with complete code
 Common issues and solutions
 
 ## See Also
-- [Related Topic](../category/related-topic.md)
+- [Related Topic](guides/README.md)
 - [External Resource](https://example.com)
 
 ## Next Steps
@@ -156,8 +156,8 @@ Where to go next in the documentation journey
 ## 🔗 Cross-Referencing Standards
 
 ### Internal Links
-- Use relative paths: `[Configuration Guide](../guides/configuration.md)`
-- Link to specific sections: `[Installation](../getting-started/installation.md#prerequisites)`
+- Use relative paths: `[Configuration Reference](configuration/reference.md)`
+- Link to specific sections: `[Installation](getting-started/installation.md#requirements)`
 - Include "See Also" sections for related topics
 
 ### External Links

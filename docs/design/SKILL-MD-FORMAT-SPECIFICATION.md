@@ -289,9 +289,9 @@ tags:
 {Guide to reference files - only if references exist}
 
 For detailed information:
-- **[Workflow](references/workflow.md)**: Complete workflow documentation
-- **[Examples](references/examples.md)**: Real-world usage examples
-- **[Troubleshooting](references/troubleshooting.md)**: Common issues and solutions
+- **Workflow**: `references/workflow.md` - Complete workflow documentation
+- **Examples**: `references/examples.md` - Real-world usage examples
+- **Troubleshooting**: `references/troubleshooting.md` - Common issues and solutions
 
 ## Key Reminders
 
@@ -593,7 +593,7 @@ skill-name/
 ```markdown
 # {Reference Topic Title}
 
-> **Part of**: [{Skill Name}](../SKILL.md)
+> **Part of**: {Skill Name} (`../SKILL.md`)
 > **Category**: {category}
 > **Reading Level**: Basic | Intermediate | Advanced
 
@@ -619,8 +619,8 @@ skill-name/
 
 ## Related References
 
-- [{Other Reference}]({filename}.md)
-- [{Another Reference}]({filename}.md)
+- {Other Reference} (`{filename}.md`)
+- {Another Reference} (`{filename}.md`)
 ```
 
 ### Reference File Guidelines
@@ -767,9 +767,9 @@ Activate when:
 ## Navigation
 
 For detailed information:
-- **[Workflow](references/workflow.md)**: Complete debugging workflow with decision trees
-- **[Examples](references/examples.md)**: Real-world debugging scenarios
-- **[Troubleshooting](references/troubleshooting.md)**: Common debugging challenges
+- **Workflow**: `references/workflow.md` - Complete debugging workflow with decision trees
+- **Examples**: `references/examples.md` - Real-world debugging scenarios
+- **Troubleshooting**: `references/troubleshooting.md` - Common debugging challenges
 
 ## Key Reminders
 
@@ -791,7 +791,7 @@ For detailed information:
 ```markdown
 # Systematic Debugging Workflow
 
-> **Part of**: [Systematic Debugging](../SKILL.md)
+> **Part of**: Systematic Debugging (`../SKILL.md`)
 > **Category**: debugging
 > **Reading Level**: Intermediate
 
@@ -991,8 +991,8 @@ Confirm fix works and introduces no regressions.
 
 ## Related References
 
-- [Examples](examples.md): Real-world debugging scenarios
-- [Troubleshooting](troubleshooting.md): Common debugging challenges
+- Examples: `examples.md` - Real-world debugging scenarios
+- Troubleshooting: `troubleshooting.md` - Common debugging challenges
 
 ---
 **Lines**: 245 ✓ 150-300 range

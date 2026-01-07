@@ -86,7 +86,7 @@ Final Agent Content =
   + BASE-AGENT.md content (root)
 ```
 
-See [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-agents.md) for complete guide.
+See [../design/hierarchical-base-agents.md](../design/hierarchical-base-agents.md) for complete guide.
 
 ### Two-Phase Progress Bars
 
@@ -930,10 +930,10 @@ claude-mpm
 ### Resources for Contributors
 
 **Documentation:**
-- Agent Template Guide: [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-agents.md)
-- Agent Sources Guide: [docs/user/agent-sources.md](docs/user/agent-sources.md)
-- CLI Reference: [docs/reference/cli-agent-source.md](docs/reference/cli-agent-source.md)
-- Quality Standards: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Agent Template Guide: [../design/hierarchical-base-agents.md](../design/hierarchical-base-agents.md)
+- Agent Sources Guide: [../user/agent-sources.md](../user/agent-sources.md)
+- CLI Reference: [../reference/cli-agent-source.md](../reference/cli-agent-source.md)
+- Quality Standards: [../../CONTRIBUTING.md](../../CONTRIBUTING.md)
 
 **Community:**
 - GitHub Discussions: Ask questions, share ideas
@@ -942,7 +942,7 @@ claude-mpm
 
 **Support:**
 - Run `claude-mpm doctor` for diagnostics
-- Check troubleshooting guides in [docs/user/troubleshooting.md](docs/user/troubleshooting.md)
+- Check troubleshooting guides in [../user/troubleshooting.md](../user/troubleshooting.md)
 - Open GitHub issue for help
 
 ### Next Steps
@@ -981,9 +981,9 @@ git push origin main
 ### Getting Help
 
 **Documentation:**
-- User Guide: [docs/user/user-guide.md](docs/user/user-guide.md)
-- Troubleshooting: [docs/user/troubleshooting.md](docs/user/troubleshooting.md)
-- FAQ: [docs/user/faq.md](docs/user/faq.md)
+- User Guide: [../user/user-guide.md](../user/user-guide.md)
+- Troubleshooting: [../user/troubleshooting.md](../user/troubleshooting.md)
+- FAQ: [../user/faq.md](../user/faq.md)
 
 **Community:**
 - GitHub Issues: Bug reports and feature requests

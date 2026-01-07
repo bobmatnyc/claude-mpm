@@ -412,6 +412,5 @@ assert validation["compliant"], f"Violations: {validation['violations']}"
 ## Related Documentation
 
 - [Main README](README.md) - Eval system overview
-- [Scenario Format Guide](scenario-format.md) - JSON scenario format specification
-- [MockPMAgent Guide](mock-pm-agent.md) - MockPMAgent implementation details
-- [Adding Tests Guide](adding-tests.md) - Step-by-step guide for adding new tests
+- [Eval System Overview](README.md)
+- [Quick Start](quickstart.md)

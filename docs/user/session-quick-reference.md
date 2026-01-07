@@ -261,7 +261,7 @@ rmdir .claude-mpm/sessions/pause
 ## Related Documentation
 
 - **Session Auto-Resume**: [docs/user/resume-logs.md](resume-logs.md) - Session Auto-Resume on Startup section
-- **Design Document**: [docs/design/session-resume-implementation.md](../design/session-resume-implementation.md)
+- **Design Document**: [../developer/resume-log-architecture.md](../developer/resume-log-architecture.md)
 - **User Guide**: [docs/user/user-guide.md](user-guide.md) - Session Management section
 - **Troubleshooting**: [docs/user/troubleshooting.md](troubleshooting.md)
 

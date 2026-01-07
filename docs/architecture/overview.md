@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> **📖 For detailed architecture documentation, see [developer/ARCHITECTURE.md](developer/ARCHITECTURE.md)**
+> For detailed architecture documentation, see [../developer/ARCHITECTURE.md](../developer/ARCHITECTURE.md)
 
 This is a high-level overview of Claude MPM's architecture. For comprehensive technical details, version history, and implementation specifics, refer to the complete architecture documentation in the developer section.
 
@@ -77,12 +77,8 @@ Real-time monitoring via WebSocket with live agent activity tracking.
 
 ## See Also
 
-- **[Developer Architecture](developer/ARCHITECTURE.md)** ⭐ Complete technical architecture
-- **[Agent System](AGENTS.md)** - Multi-agent orchestration
-- **[User Guide](user/user-guide.md)** - End-user features
-- **[Extending](developer/extending.md)** - Building extensions
-- **[Service Reference](developer/api-reference.md)** - API documentation
-
----
-
-**📖 Complete Technical Documentation**: [developer/ARCHITECTURE.md](developer/ARCHITECTURE.md)
+- **[Developer Architecture](../developer/ARCHITECTURE.md)** - Complete technical architecture
+- **[Agent System](../agents/README.md)** - Multi-agent orchestration
+- **[User Guide](../user/user-guide.md)** - End-user features
+- **[Extending](../developer/extending.md)** - Building extensions
+- **[Service Reference](../developer/api-reference.md)** - API documentation

@@ -435,7 +435,7 @@ What should I do about this?
 
 ### Learn More
 
-- **[Installation Guide](../user/installation.md)** - Detailed installation instructions
+- **[Installation Guide](../getting-started/installation.md)** - Detailed installation instructions
 - **[User Guide](../user/user-guide.md)** - Complete user documentation
 - **[FAQ](../guides/FAQ.md)** - Common questions answered
 

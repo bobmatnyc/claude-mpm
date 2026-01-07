@@ -534,6 +534,5 @@ Coming in Phase 3:
 
 ## See Also
 
-- [Phase 2 Implementation Summary](../implementation/phase-2-single-tier-deployment-summary.md)
-- [Agent Deployment Research](../research/agent-deployment-single-tier-migration-2025-11-30.md)
-- Agent Source Configuration API Documentation (coming in Phase 3)
+- [Single-Tier Agent System](single-tier-agent-system.md)
+- [Agent Sources Migration Guide](../migration/agent-sources-git-default-v4.5.0.md)

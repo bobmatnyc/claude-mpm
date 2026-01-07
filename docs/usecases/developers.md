@@ -671,9 +671,9 @@ See [Troubleshooting Guide](../user/troubleshooting.md) for comprehensive soluti
 ### Learn More
 
 - **[Architecture Overview](../developer/ARCHITECTURE.md)** - System design
-- **[API Reference](../API.md)** - Complete API documentation
+- **[API Reference](../reference/api-overview.md)** - Complete API documentation
 - **[Contributing Guide](../developer/03-development/README.md)** - How to contribute
-- **[Agent Development](../AGENTS.md)** - Create custom agents
+- **[Agent Development](../agents/creating-agents.md)** - Create custom agents
 - **[Skills Development](../user/skills-guide.md)** - Create custom skills
 
 ### Advanced Topics
@@ -681,7 +681,7 @@ See [Troubleshooting Guide](../user/troubleshooting.md) for comprehensive soluti
 - **[MCP Gateway](../developer/13-mcp-gateway/README.md)** - Custom tool integration
 - **[Memory Architecture](../architecture/memory-flow.md)** - Memory system design
 - **[Resume Logs](../user/resume-logs.md)** - Context management
-- **[Hierarchical Agents](../features/hierarchical-base-agents.md)** - Agent inheritance
+- **[Hierarchical Agents](../design/hierarchical-base-agents.md)** - Agent inheritance
 
 ### Community
 

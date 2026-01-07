@@ -324,5 +324,5 @@ Updated .claude/agents/
 ## See Also
 
 - [Example Configuration](../examples/configuration-simplified.yaml)
-- [Agent Sync Documentation](./agent-sync.md)
-- [Skill Management](./skill-management.md)
+- [Agent Sync Documentation](guides/agent-synchronization.md)
+- [Skill Management](guides/skills-management.md)

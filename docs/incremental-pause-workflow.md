@@ -455,4 +455,4 @@ class PauseAction:
 
 - [Session Pause Manager](../src/claude_mpm/services/cli/session_pause_manager.py) - Full snapshot creation
 - [Context Usage Tracker](../src/claude_mpm/services/infrastructure/context_usage_tracker.py) - Token usage monitoring
-- [Auto-Pause Workflow](./auto-pause-workflow.md) - Complete auto-pause system design (coming soon)
+- [Incremental Pause Quickstart](./incremental-pause-quickstart.md)

@@ -79,7 +79,7 @@ services/
 - `IHealthMonitor` - Service health
 - `IConfigurationManager` - Configuration
 
-See [developer/api-reference.md](developer/api-reference.md) for API details.
+See [../developer/api-reference.md](../developer/api-reference.md) for API details.
 
 ### Hook System (`/src/claude_mpm/hooks/`)
 
@@ -99,7 +99,7 @@ hooks/
 - `session_start` - Session initialization
 - `session_end` - Session cleanup
 
-See [developer/pretool-use-hooks.md](developer/pretool-use-hooks.md) for details.
+See [../developer/pretool-use-hooks.md](../developer/pretool-use-hooks.md) for details.
 
 ### MCP Gateway (`/src/claude_mpm/mcp/`)
 
@@ -116,7 +116,7 @@ mcp/
 └── tools/               # MCP tool definitions
 ```
 
-See [developer/13-mcp-gateway/README.md](developer/13-mcp-gateway/README.md) for MCP integration.
+See [../developer/13-mcp-gateway/README.md](../developer/13-mcp-gateway/README.md) for MCP integration.
 
 ### CLI Interface (`/src/claude_mpm/cli/`)
 
@@ -191,7 +191,7 @@ tests/
 - Integration tests for workflows
 - Fixtures for common scenarios
 
-See [reference/QA.md](reference/QA.md) for testing guide.
+See [QA.md](QA.md) for testing guide.
 
 ## Scripts (`/scripts/`)
 
@@ -227,7 +227,7 @@ skills/
 2. **User**: `~/.config/claude-mpm/skills/` - Personal skills
 3. **Project**: `.claude-mpm/skills/` - Project-specific skills
 
-See [user/skills-guide.md](user/skills-guide.md) for skills documentation.
+See [../user/skills-guide.md](../user/skills-guide.md) for skills documentation.
 
 ## Configuration Files
 
@@ -368,12 +368,12 @@ These are ignored by git (.gitignore).
 
 ## See Also
 
-- **[Architecture](ARCHITECTURE.md)** - System design
-- **[Developer Guide](developer/README.md)** - Development docs
-- **[API Reference](developer/api-reference.md)** - API documentation
-- **[Testing Guide](reference/QA.md)** - Testing standards
-- **[Services Reference](reference/SERVICES.md)** - Service architecture
+- **[Architecture](../developer/ARCHITECTURE.md)** - System design
+- **[Developer Guide](../developer/README.md)** - Development docs
+- **[API Reference](../developer/api-reference.md)** - API documentation
+- **[Testing Guide](QA.md)** - Testing standards
+- **[Services Reference](SERVICES.md)** - Service architecture
 
 ---
 
-**For developer guidelines**: See [CONTRIBUTING.md](../CONTRIBUTING.md)
+**For developer guidelines**: See [CONTRIBUTING.md](../../CONTRIBUTING.md)

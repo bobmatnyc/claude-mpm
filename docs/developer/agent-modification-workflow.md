@@ -451,7 +451,7 @@ One logical change per commit:
 
 - [Creating Agents](../agents/creating-agents.md) - How to create new agents
 - [Agent Architecture](../developer/ARCHITECTURE.md) - Understanding agent system
-- [Cache Architecture](../research/cache-update-workflow-analysis-2025-12-03.md) - How caching works
+- [Architecture Overview](../architecture/overview.md) - System architecture
 - [Contributing Guide](../../CONTRIBUTING.md) - General contribution guidelines
 
 ---

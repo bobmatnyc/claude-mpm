@@ -266,7 +266,7 @@ This file is automatically created on first run if it doesn't exist.
 
 - [Agent Sources CLI Reference](../reference/cli-agent-source.md)
 - [Creating Custom Agents](../agents/creating-agents.md)
-- [Configuration Guide](../configuration.md)
+- [Configuration Guide](../configuration/reference.md)
 
 ---
 

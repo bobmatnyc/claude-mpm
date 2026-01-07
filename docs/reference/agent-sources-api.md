@@ -1047,4 +1047,4 @@ repositories:
 - **[Single-Tier Agent System Guide](../guides/single-tier-agent-system.md)** - User guide
 - **[Single-Tier Design](../architecture/single-tier-design.md)** - Architecture deep-dive
 - **[Agent Synchronization Guide](../guides/agent-synchronization.md)** - Sync mechanism details
-- **[Configuration Reference](configuration.md)** - Complete configuration options
+- **[Configuration Reference](../configuration/reference.md)** - Complete configuration options

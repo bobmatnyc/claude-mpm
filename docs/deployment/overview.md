@@ -4,9 +4,9 @@ Guide to deploying, releasing, and managing Claude MPM in production environment
 
 ## Quick Links
 
-- **[Complete Deployment Reference](reference/DEPLOY.md)** - Detailed deployment procedures
-- **[Homebrew Troubleshooting](reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md)** - Homebrew tap integration
-- **[Publishing Guide](developer/publishing-guide.md)** - Release process for maintainers
+- **[Complete Deployment Reference](../reference/DEPLOY.md)** - Detailed deployment procedures
+- **[Homebrew Troubleshooting](../reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md)** - Homebrew tap integration
+- **[Publishing Guide](../developer/publishing-guide.md)** - Release process for maintainers
 
 ## Installation Methods
 
@@ -49,7 +49,7 @@ pip install -e ".[dev,monitor]"
 claude-mpm --version
 ```
 
-See [user/installation.md](user/installation.md) for complete installation guide.
+See [../getting-started/installation.md](../getting-started/installation.md) for complete installation guide.
 
 ## Release Process (Maintainers)
 
@@ -92,7 +92,7 @@ The release process is automated through GitHub Actions:
 3. Test installation methods
 4. Update documentation
 
-See [developer/publishing-guide.md](developer/publishing-guide.md) for complete process.
+See [../developer/publishing-guide.md](../developer/publishing-guide.md) for complete process.
 
 ## Homebrew Tap Integration
 
@@ -117,7 +117,7 @@ git commit -m "feat: update to v$(cat VERSION)"
 git push origin main
 ```
 
-See [reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md](reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md) for troubleshooting.
+See [../reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md](../reference/HOMEBREW_UPDATE_TROUBLESHOOTING.md) for troubleshooting.
 
 ## Configuration Management
 
@@ -150,7 +150,7 @@ Project-specific settings:
   └── resume-logs/                # Session resume logs
 ```
 
-See [configuration.md](configuration.md) for configuration options.
+See [../configuration/reference.md](../configuration/reference.md) for configuration options.
 
 ## Environment Variables
 
@@ -197,7 +197,7 @@ claude-mpm run --monitor
 - Session state synchronization
 - Performance metrics
 
-See [developer/11-dashboard/README.md](developer/11-dashboard/README.md) for monitoring details.
+See [../developer/11-dashboard/README.md](../developer/11-dashboard/README.md) for monitoring details.
 
 ## Troubleshooting
 
@@ -230,7 +230,7 @@ claude-mpm verify
 claude-mpm verify --fix
 ```
 
-See [user/troubleshooting.md](user/troubleshooting.md) for complete guide.
+See [../user/troubleshooting.md](../user/troubleshooting.md) for complete guide.
 
 ## Upgrading
 
@@ -256,7 +256,7 @@ brew upgrade claude-mpm
 
 ### Migration
 
-See [user/MIGRATION.md](user/MIGRATION.md) for version-specific migration guides.
+See [../user/MIGRATION.md](../user/MIGRATION.md) for version-specific migration guides.
 
 ## Production Considerations
 
@@ -296,13 +296,9 @@ See [user/MIGRATION.md](user/MIGRATION.md) for version-specific migration guides
 
 ## See Also
 
-- **[Complete Deployment Reference](reference/DEPLOY.md)** - Detailed procedures
-- **[Installation Guide](user/installation.md)** - All installation methods
-- **[Configuration Reference](configuration.md)** - Configuration options
-- **[Troubleshooting](user/troubleshooting.md)** - Common issues
-- **[Publishing Guide](developer/publishing-guide.md)** - Release process
-- **[User Guide](user/user-guide.md)** - End-user documentation
-
----
-
-**For detailed deployment procedures**: See [reference/DEPLOY.md](reference/DEPLOY.md)
+- **[Complete Deployment Reference](../reference/DEPLOY.md)** - Detailed procedures
+- **[Installation Guide](../getting-started/installation.md)** - All installation methods
+- **[Configuration Reference](../configuration/reference.md)** - Configuration options
+- **[Troubleshooting](../user/troubleshooting.md)** - Common issues
+- **[Publishing Guide](../developer/publishing-guide.md)** - Release process
+- **[User Guide](../user/user-guide.md)** - End-user documentation

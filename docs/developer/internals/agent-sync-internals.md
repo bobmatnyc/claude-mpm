@@ -997,9 +997,9 @@ with self._get_connection() as conn:
 
 ## Related Documentation
 
-- [Agent Synchronization Guide](../guides/agent-synchronization.md) - User guide
-- [Configuration Reference](../reference/configuration.md) - Configuration options
-- [Testing Guide](../reference/QA.md) - Testing standards
+- [Agent Synchronization Guide](../../guides/agent-synchronization.md) - User guide
+- [Configuration Reference](../../configuration/reference.md) - Configuration options
+- [Testing Guide](../../reference/QA.md) - Testing standards
 
 ---
 

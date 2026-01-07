@@ -143,7 +143,7 @@ The `Skill` tool in Claude Code's system prompt shows:
 
 ### 1. Update PM Instructions
 
-**File:** `.claude/agents/pm.md` (or wherever PM instructions live)
+**Files:** `src/claude_mpm/agents/PM_INSTRUCTIONS.md`, `src/claude_mpm/agents/WORKFLOW.md`
 
 **Add section:**
 ```markdown

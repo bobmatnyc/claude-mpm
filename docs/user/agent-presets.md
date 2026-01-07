@@ -986,15 +986,15 @@ claude-mpm agents deploy ops/platform/railway-ops
 ### User Guides
 - **[Auto-Configuration Guide](../getting-started/auto-configuration.md)** - Automatic stack detection and agent deployment
 - **[Agent Sources Guide](agent-sources.md)** - Managing agent repositories and custom agents
-- **[Getting Started](getting-started.md)** - First steps with Claude MPM
+- **[Getting Started](../getting-started/README.md)** - First steps with Claude MPM
 
 ### Reference
 - **[CLI Agents Reference](../reference/cli-agents.md)** - Complete CLI command documentation
 - **[Agent Presets Source Code](../../src/claude_mpm/config/agent_presets.py)** - Preset definitions
 
 ### Implementation
-- **[Agent Deployment Architecture](../implementation/agent-deployment.md)** - How agents are deployed
-- **[Preset Design Decisions](../implementation/preset-design.md)** - Why presets are structured this way
+- **[Agent Deployment Guide](../guides/single-tier-agent-system.md)** - How agents are deployed
+- **[Design Docs](../design/README.md)** - Design decisions
 
 ---
 

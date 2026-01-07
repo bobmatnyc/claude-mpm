@@ -13,6 +13,7 @@ Complete guide to using and managing skills in Claude MPM.
 
 - [Overview](#overview)
 - [What Are Skills?](#what-are-skills)
+- [Skills vs. Slash Commands](#skills-vs-slash-commands)
 - [Using Bundled Skills](#using-bundled-skills)
 - [Skills Catalog](#skills-catalog)
 - [Managing Skills](#managing-skills)
@@ -65,7 +66,7 @@ Skills versioning is fully supported. See [Skills Versioning](#skills-versioning
 
 **Want to share your skills with the community?** You can contribute skills via pull request to the main repository:
 
-1. **Create high-quality skill** following the [SKILL.md format specification](/Users/masa/Projects/claude-mpm/docs/design/SKILL-MD-FORMAT-SPECIFICATION.md)
+1. **Create high-quality skill** following the [SKILL.md format specification](../design/SKILL-MD-FORMAT-SPECIFICATION.md)
 2. **Test thoroughly** with multiple agents
 3. **Submit pull request** to `bobmatnyc/claude-mpm` repository
 4. **Include documentation** and examples
@@ -73,6 +74,12 @@ Skills versioning is fully supported. See [Skills Versioning](#skills-versioning
 Approved skills will be included in future releases as bundled skills.
 
 ---
+
+## Skills vs. Slash Commands
+
+**Framework skills** are context modules loaded into agents (for example, `systematic-debugging`). Agents use these as guidance and do not “invoke” them.
+
+**Slash commands** (for example, `/mpm-init`) are operations you run in Claude Code. The PM can explain what they do, but you must type them yourself.
 
 ## Using Bundled Skills
 
@@ -742,15 +749,15 @@ This skill provides framework-specific patterns and conventions.
 
 ## Quick Start
 
-1. Review [patterns.md](./references/patterns.md) for approved patterns
-2. Check [examples.md](./references/examples.md) for usage examples
-3. Avoid [anti-patterns.md](./references/anti-patterns.md)
+1. Review `references/patterns.md` for approved patterns
+2. Check `references/examples.md` for usage examples
+3. Avoid `references/anti-patterns.md`
 
 ## Navigation
 
-- **[📋 Patterns](./references/patterns.md)** - Approved architectural patterns
-- **[💡 Examples](./references/examples.md)** - Real-world usage examples
-- **[⚠️ Anti-Patterns](./references/anti-patterns.md)** - Common mistakes to avoid
+- **Patterns**: `references/patterns.md` - Approved architectural patterns
+- **Examples**: `references/examples.md` - Real-world usage examples
+- **Anti-Patterns**: `references/anti-patterns.md` - Common mistakes to avoid
 EOF
 
 # Create reference files
@@ -793,7 +800,7 @@ EOF
 ### Skill Format Specification
 
 For detailed format requirements, see:
-- **[SKILL.md Format Specification](/Users/masa/Projects/claude-mpm/docs/design/SKILL-MD-FORMAT-SPECIFICATION.md)** - Complete format specification
+- **[SKILL.md Format Specification](../design/SKILL-MD-FORMAT-SPECIFICATION.md)** - Complete format specification
 - **skill-creator skill** - Use the bundled skill-creator skill for guided skill creation
 
 **Key Requirements:**
@@ -877,7 +884,7 @@ with open('.claude/skills/my-skill.md') as f:
 ### Comprehensive Versioning Guide
 
 For complete versioning documentation, see:
-**[Skills Versioning Guide](/Users/masa/Projects/claude-mpm/docs/user/skills-versioning.md)**
+**[Skills Versioning Guide](skills-versioning.md)**
 
 Topics covered:
 - Detailed version format specification
@@ -1407,9 +1414,9 @@ claude-mpm auto-configure
 
 ### Learning More
 
-- **[Skills Versioning Guide](/Users/masa/Projects/claude-mpm/docs/user/skills-versioning.md)** - Comprehensive versioning documentation
-- **[SKILL.md Format Specification](/Users/masa/Projects/claude-mpm/docs/design/SKILL-MD-FORMAT-SPECIFICATION.md)** - Complete format requirements
-- **[User Guide](/Users/masa/Projects/claude-mpm/docs/user/user-guide.md)** - Full Claude MPM documentation
+- **[Skills Versioning Guide](skills-versioning.md)** - Comprehensive versioning documentation
+- **[SKILL.md Format Specification](../design/SKILL-MD-FORMAT-SPECIFICATION.md)** - Complete format requirements
+- **[User Guide](user-guide.md)** - Full Claude MPM documentation
 - **[Architecture](../architecture/overview.md)** - System architecture details
 
 ### Using Bundled Skills
@@ -1498,4 +1505,4 @@ claude-mpm configure
 # → Done! Skills are now active.
 ```
 
-For questions or issues, refer to [Troubleshooting](#troubleshooting) or consult the [User Guide](/Users/masa/Projects/claude-mpm/docs/user/user-guide.md).
+For questions or issues, refer to [Troubleshooting](#troubleshooting) or consult the [User Guide](user-guide.md).

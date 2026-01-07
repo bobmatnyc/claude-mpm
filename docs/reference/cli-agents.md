@@ -179,7 +179,7 @@ Project: /Users/dev/my-fastapi-project
 
 #### Related
 
-- User Guide: [Auto-Configuration Guide](../user/auto-configuration.md#detection-details)
+- User Guide: [Auto-Configuration Guide](../getting-started/auto-configuration.md#detection-details)
 - Slash Command: `/mpm-configure` (unified configuration interface)
 
 ---
@@ -330,7 +330,7 @@ Summary:
 
 #### Related
 
-- User Guide: [Auto-Configuration Guide](../user/auto-configuration.md#recommendation-engine)
+- User Guide: [Auto-Configuration Guide](../getting-started/auto-configuration.md#recommendation-engine)
 - Slash Command: `/mpm-configure` (unified configuration interface)
 
 ---
@@ -453,9 +453,9 @@ Next steps:
 
 #### Related
 
-- User Guide: [Auto-Configuration Guide](../user/auto-configuration.md)
+- User Guide: [Auto-Configuration Guide](../getting-started/auto-configuration.md)
 - Slash Command: `/mpm-configure` (unified configuration interface)
-- Comparison: [Auto-Configure vs Presets](../user/auto-configuration.md#comparison-with-other-methods)
+- Comparison: [Auto-Configure vs Presets](../getting-started/auto-configuration.md#comparison-with-other-methods)
 
 ---
 
@@ -797,7 +797,7 @@ claude-mpm agents list --deployed
 ## Related Documentation
 
 ### User Guides
-- **[Auto-Configuration Guide](../user/auto-configuration.md)** - Complete auto-configuration documentation
+- **[Auto-Configuration Guide](../getting-started/auto-configuration.md)** - Complete auto-configuration documentation
 - **[Agent Presets Guide](../user/agent-presets.md)** - All preset details and use cases
 - **[Agent Sources Guide](../user/agent-sources.md)** - Managing agent repositories
 
@@ -806,8 +806,8 @@ claude-mpm agents list --deployed
 - **[Agent Capabilities Reference](../agents/agent-capabilities-reference.md)** - Detailed agent descriptions
 
 ### Implementation
-- **[Agent Deployment Architecture](../implementation/agent-deployment.md)** - Technical implementation details
-- **[Toolchain Detection](../implementation/toolchain-detection.md)** - How detection works
+- **[Agent System Guide](../guides/single-tier-agent-system.md)** - Agent deployment details
+- **[Auto-Configuration](../getting-started/auto-configuration.md)** - Detection workflow
 
 ---
 

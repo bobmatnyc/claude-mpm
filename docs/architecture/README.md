@@ -1,21 +1,18 @@
-# Architecture Documentation
+# Architecture
 
-Design decisions, architecture deep-dives, and system design documentation for Claude MPM.
+System design and architecture documentation.
 
-## Available Documents
+## Documents
 
-- **[Memory Flow](memory-flow.md)** - Runtime memory loading architecture (NEW in v5.4.13)
-- **[Single-Tier Design](single-tier-design.md)** - Architecture and design decisions for single-tier agent system (NEW in v5.0)
-- **[Monitor Server Architecture](monitor-server-architecture.md)** - Real-time monitoring and dashboard architecture
-- **[Dependency Injection](dependency-injection.md)** - DI patterns and implementation
-- **[Overview](overview.md)** - High-level architecture overview
+- [overview.md](overview.md)
+- [single-tier-design.md](single-tier-design.md)
+- [memory-flow.md](memory-flow.md)
+- [monitor-server-architecture.md](monitor-server-architecture.md)
+- [dependency-injection.md](dependency-injection.md)
+- [skills-vs-commands-clarification.md](skills-vs-commands-clarification.md)
+- [skills-commands-terminology-summary.md](skills-commands-terminology-summary.md)
 
-## Navigation
+## Related Docs
 
-- **[Developer Documentation](../developer/README.md)** - Complete developer guide
-- **[Reference Documentation](../reference/README.md)** - System references
-- **[Documentation Hub](../README.md)** - All documentation
-
----
-
-**For implementation details**: See [Developer Documentation](../developer/README.md)
+- **Developer Docs**: [../developer/README.md](../developer/README.md)
+- **Reference**: [../reference/README.md](../reference/README.md)

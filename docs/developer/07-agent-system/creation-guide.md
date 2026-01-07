@@ -13,7 +13,7 @@ This content has been moved to the main agents documentation for better organiza
 - **[Agent Patterns](../../agents/agent-patterns.md)** - Effective agent design patterns
 - **[PM Workflow](../../agents/pm-workflow.md)** - How PM orchestrates agents
 - **[Agent Capabilities Reference](../../agents/agent-capabilities-reference.md)** - All available agents
-- **[Agent System Overview](../../AGENTS.md)** - Complete agent system guide
+- **[Agent System Overview](../../agents/README.md)** - Complete agent system guide
 
 ## Agent Development Resources
 

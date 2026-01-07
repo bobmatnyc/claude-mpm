@@ -285,7 +285,7 @@ Include this report when seeking migration help.
 
 ## See Also
 
-- **[Installation Guide](installation.md)** - Installation methods
+- **[Installation Guide](../getting-started/installation.md)** - Installation methods
 - **[User Guide](user-guide.md)** - Complete user documentation
 - **[Troubleshooting](troubleshooting.md)** - Common issues
 - **[FAQ](../guides/FAQ.md)** - Frequently asked questions

@@ -4,10 +4,10 @@ Complete guide to Claude MPM's multi-agent system for orchestrated task executio
 
 ## Quick Start
 
-- **New to agents?** Start with [agents/pm-workflow.md](agents/pm-workflow.md) to understand orchestration
-- **Creating agents?** Follow [agents/creating-agents.md](agents/creating-agents.md) step-by-step guide
-- **Learning patterns?** Study [agents/agent-patterns.md](agents/agent-patterns.md) for best practices
-- **Reference needed?** Browse [agents/agent-capabilities-reference.md](agents/agent-capabilities-reference.md) for all agents
+- **New to agents?** Start with [agents/pm-workflow.md](../agents/pm-workflow.md) to understand orchestration
+- **Creating agents?** Follow [agents/creating-agents.md](../agents/creating-agents.md) step-by-step guide
+- **Learning patterns?** Study [agents/agent-patterns.md](../agents/agent-patterns.md) for best practices
+- **Reference needed?** Browse [agents/agent-capabilities-reference.md](../agents/agent-capabilities-reference.md) for all agents
 
 ## System Overview
 
@@ -92,7 +92,7 @@ Initialize with:
 claude-mpm memory init
 ```
 
-See [developer/memory-integration.md](developer/memory-integration.md) for technical details.
+See [developer/memory-integration.md](../developer/memory-integration.md) for technical details.
 
 ## Skills System
 
@@ -111,7 +111,7 @@ claude-mpm configure
 # Choose option 2: Skills Management
 ```
 
-See [user/skills-guide.md](user/skills-guide.md) for details.
+See [user/skills-guide.md](../user/skills-guide.md) for details.
 
 ## Agent Capabilities
 
@@ -152,7 +152,7 @@ capabilities:
 Agent prompt and instructions here...
 ```
 
-See [agents/creating-agents.md](agents/creating-agents.md) for complete guide.
+See [agents/creating-agents.md](../agents/creating-agents.md) for complete guide.
 
 ## PM Workflow & Delegation
 
@@ -164,7 +164,7 @@ The PM agent orchestrates multi-agent workflows through intelligent delegation:
 4. **Coordinate**: Manage handoffs between agents
 5. **Integrate**: Combine results into cohesive output
 
-See [agents/pm-workflow.md](agents/pm-workflow.md) for detailed workflow patterns.
+See [agents/pm-workflow.md](../agents/pm-workflow.md) for detailed workflow patterns.
 
 ## Agent Patterns
 
@@ -186,7 +186,7 @@ Effective agent design follows these patterns:
 - ✅ Remember project patterns and decisions
 - ❌ Treat every task as first encounter
 
-See [agents/agent-patterns.md](agents/agent-patterns.md) for comprehensive patterns.
+See [agents/agent-patterns.md](../agents/agent-patterns.md) for comprehensive patterns.
 
 ## Advanced Topics
 
@@ -214,7 +214,7 @@ description: string   # Optional, brief description
 ---
 ```
 
-See [developer/10-schemas/agent_schema_documentation.md](developer/10-schemas/agent_schema_documentation.md) for complete schema.
+See [developer/10-schemas/agent_schema_documentation.md](../developer/10-schemas/agent_schema_documentation.md) for complete schema.
 
 ### Hook Integration
 
@@ -224,18 +224,18 @@ Agents can integrate with the hook system:
 - **session_start**: When session begins
 - **session_end**: When session completes
 
-See [developer/pretool-use-hooks.md](developer/pretool-use-hooks.md) for details.
+See [developer/pretool-use-hooks.md](../developer/pretool-use-hooks.md) for details.
 
 ## See Also
 
-- **[PM Workflow](agents/pm-workflow.md)** - Orchestration patterns
-- **[Creating Agents](agents/creating-agents.md)** - Step-by-step development
-- **[Agent Patterns](agents/agent-patterns.md)** - Best practices
-- **[Agent Capabilities Reference](agents/agent-capabilities-reference.md)** - Complete agent catalog
-- **[Skills Guide](user/skills-guide.md)** - Skills system integration
-- **[Developer Guide](developer/README.md)** - Technical documentation
-- **[API Reference](developer/api-reference.md)** - API documentation
+- **[PM Workflow](../agents/pm-workflow.md)** - Orchestration patterns
+- **[Creating Agents](../agents/creating-agents.md)** - Step-by-step development
+- **[Agent Patterns](../agents/agent-patterns.md)** - Best practices
+- **[Agent Capabilities Reference](../agents/agent-capabilities-reference.md)** - Complete agent catalog
+- **[Skills Guide](../user/skills-guide.md)** - Skills system integration
+- **[Developer Guide](../developer/README.md)** - Technical documentation
+- **[API Reference](../developer/api-reference.md)** - API documentation
 
 ---
 
-**Complete Agent Documentation**: [agents/README.md](agents/README.md)
+**Complete Agent Documentation**: [agents/README.md](../agents/README.md)

@@ -7,6 +7,7 @@ Complete guide to Claude MPM's Git-based skills system for extending agent capab
 ## Table of Contents
 
 - [Overview](#overview)
+- [Skills vs. Slash Commands](#skills-vs-slash-commands)
 - [Getting Started](#getting-started)
 - [CLI Commands](#cli-commands)
 - [Configuration](#configuration)
@@ -43,6 +44,12 @@ The Skills System is a **Git-based skill discovery and management** framework th
 | **Discovery** | Agent deployment system | Skill discovery service |
 | **Usage** | PM delegates to agents | Agents reference skills |
 | **Example** | Research Agent, Code Agent | Code review checklist, TDD workflow |
+
+## Skills vs. Slash Commands
+
+**Framework skills** are context modules loaded into agents (from `.claude/skills/` or bundled in `src/claude_mpm/skills/bundled/`). Agents don’t invoke skills; they use them as guidance.
+
+**Slash commands** (e.g., `/mpm-init`) are user‑invoked operations defined in `src/claude_mpm/commands/`. The PM can explain them, but only the user can run them.
 
 ### Architecture Overview
 
@@ -1071,8 +1078,8 @@ claude-mpm skill-source disable experimental
 ## Related Documentation
 
 - **[Skills API Reference](../reference/skills-api.md)** - Technical API documentation
-- **[Agent Development Guide](./agent-development.md)** - How agents use skills
-- **[Remote Agents Guide](../reference/remote-agents.md)** - Similar Git-based system for agents
+- **[Agent Development Guide](../agents/creating-agents.md)** - How agents use skills
+- **[Remote Agents Guide](../agents/remote-agents.md)** - Similar Git-based system for agents
 
 ---
 

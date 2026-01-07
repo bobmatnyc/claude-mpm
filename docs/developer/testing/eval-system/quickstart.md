@@ -319,14 +319,14 @@ When adding new test scenarios:
 
 - [Full README](README.md) - Complete eval system documentation
 - [Test Cases Guide](test-cases.md) - Detailed test case documentation
-- [Scenario Format Guide](scenario-format.md) - JSON scenario format specification
-- [MockPMAgent Guide](mock-pm-agent.md) - MockPMAgent implementation details
+- [Eval System Overview](README.md)
+- [Test Cases](test-cases.md)
 
 ## Questions?
 
 For questions or issues:
 
-1. Check [TROUBLESHOOTING.md](../../TROUBLESHOOTING.md)
+1. Check [Troubleshooting](../../../user/troubleshooting.md)
 2. Review [test case documentation](test-cases.md)
 3. Examine [scenario JSON](../../../tests/eval/scenarios/pm_behavioral_requirements.json)
 4. Open an issue on GitHub

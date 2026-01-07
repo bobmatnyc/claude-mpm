@@ -1410,14 +1410,14 @@ repositories:
 
 ### User Documentation
 - **[User Guide](user-guide.md)** - Complete Claude MPM user guide
-- **[Getting Started](getting-started.md)** - Installation and setup
+- **[Getting Started](../getting-started/README.md)** - Installation and setup
 - **[Troubleshooting](troubleshooting.md)** - General troubleshooting guide
 - **[Skills Guide](skills-guide.md)** - Skills system (similar to agent sources)
 
 ### Reference Documentation
 - **[Agent Sources API](../reference/agent-sources-api.md)** - Technical API reference
 - **[CLI Doctor](../reference/cli-doctor.md)** - Doctor command reference
-- **[Configuration](../reference/configuration.md)** - Configuration file reference
+- **[Configuration](../configuration/reference.md)** - Configuration file reference
 
 ### Developer Documentation
 - **[Contributing](../../CONTRIBUTING.md)** - How to contribute

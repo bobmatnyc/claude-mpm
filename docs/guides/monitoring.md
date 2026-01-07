@@ -95,7 +95,7 @@ socket.on('health_status', (data) => {
 });
 ```
 
-See [developer/11-dashboard/README.md](developer/11-dashboard/README.md) for technical details.
+See [../developer/11-dashboard/README.md](../developer/11-dashboard/README.md) for technical details.
 
 ## Configuration
 
@@ -257,7 +257,7 @@ EOF
 claude-mpm run --monitor
 ```
 
-See [user/troubleshooting.md](user/troubleshooting.md) for more solutions.
+See [../user/troubleshooting.md](../user/troubleshooting.md) for more solutions.
 
 ## Advanced Monitoring
 
@@ -314,12 +314,12 @@ monitoring:
 
 ## See Also
 
-- **[Dashboard Technical Guide](developer/11-dashboard/README.md)** - Implementation details
-- **[User Guide](user/user-guide.md)** - End-user features
-- **[Resume Logs](user/resume-logs.md)** - Context management
-- **[Troubleshooting](user/troubleshooting.md)** - Common issues
-- **[Configuration](configuration.md)** - Configuration options
+- **[Dashboard Technical Guide](../developer/11-dashboard/README.md)** - Implementation details
+- **[User Guide](../user/user-guide.md)** - End-user features
+- **[Resume Logs](../user/resume-logs.md)** - Context management
+- **[Troubleshooting](../user/troubleshooting.md)** - Common issues
+- **[Configuration](../configuration/reference.md)** - Configuration options
 
 ---
 
-**For technical dashboard documentation**: See [developer/11-dashboard/README.md](developer/11-dashboard/README.md)
+**For technical dashboard documentation**: See [../developer/11-dashboard/README.md](../developer/11-dashboard/README.md)

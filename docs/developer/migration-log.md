@@ -258,8 +258,8 @@ grep -r "cache/agents[^-]" docs/ --include="*.md" | wc -l
 ---
 
 **Related Documentation**:
-- [Phase 2 Migration Log](docs/reports/documentation/PHASE2_MIGRATION_LOG.md)
-- [Phase 3 Link Audit Report](docs/reports/documentation/PHASE3_LINK_AUDIT_REPORT.md)
+- Phase 2 Migration Log (archived in `docs/_archive/`)
+- Phase 3 Link Audit Report (archived in `docs/_archive/`)
 
 ---
 
@@ -286,4 +286,4 @@ Phase 3 focused on link validation, version reference updates, and metadata poli
 
 **Rationale**: Focused on high-impact user-facing fixes while preserving historical context in research/archive documents. Deferred bulk updates that provide low immediate value and risk losing important historical context.
 
-**Full Details**: See [Phase 3 Link Audit Report](docs/reports/documentation/PHASE3_LINK_AUDIT_REPORT.md)
+**Full Details**: See archived link audit reports in `docs/_archive/`.

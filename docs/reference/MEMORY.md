@@ -84,7 +84,7 @@ Install with:
 pipx install kuzu-memory
 ```
 
-See [developer/memory-integration.md](developer/memory-integration.md) for technical details.
+See [../developer/memory-integration.md](../developer/memory-integration.md) for technical details.
 
 ## Resume Log System
 
@@ -181,7 +181,7 @@ ls -la .claude-mpm/resume-logs/
 cat .claude-mpm/resume-logs/resume-20251101_115000.md
 ```
 
-See [user/resume-logs.md](user/resume-logs.md) for complete guide.
+See [../user/resume-logs.md](../user/resume-logs.md) for complete guide.
 
 ## Conversation History Management
 
@@ -431,16 +431,16 @@ claude-mpm memory init
 chmod -R 755 .claude-mpm/
 ```
 
-See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.
+See [../user/troubleshooting.md](../user/troubleshooting.md) for more solutions.
 
 ## See Also
 
-- **[Resume Logs Guide](user/resume-logs.md)** - Complete resume log documentation
-- **[Memory Integration](developer/memory-integration.md)** - Technical implementation
-- **[User Guide](user/user-guide.md)** - End-user features
-- **[Configuration](configuration.md)** - Configuration options
-- **[Architecture](developer/resume-log-architecture.md)** - Technical architecture
+- **[Resume Logs Guide](../user/resume-logs.md)** - Complete resume log documentation
+- **[Memory Integration](../developer/memory-integration.md)** - Technical implementation
+- **[User Guide](../user/user-guide.md)** - End-user features
+- **[Configuration](../configuration/reference.md)** - Configuration options
+- **[Architecture](../developer/resume-log-architecture.md)** - Technical architecture
 
 ---
 
-**For technical memory documentation**: See [developer/memory-integration.md](developer/memory-integration.md)
+**For technical memory documentation**: See [../developer/memory-integration.md](../developer/memory-integration.md)

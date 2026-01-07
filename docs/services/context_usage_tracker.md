@@ -593,5 +593,5 @@ rm .claude-mpm/state/context-usage.json
 ## References
 
 - [Claude API Documentation - Token Counting](https://docs.anthropic.com/claude/reference/tokens)
-- [Session Pause Manager](./session_pause_manager.md)
-- [Hook System Architecture](../architecture/hooks.md)
+- [Incremental Pause Workflow](../incremental-pause-workflow.md)
+- [Hook System](../developer/pretool-use-hooks.md)

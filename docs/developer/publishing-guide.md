@@ -518,10 +518,8 @@ git push origin main
 ## Related Documentation
 
 - [Pre-Publish Checklist](./pre-publish-checklist.md) - Quick checklist for publishing
-- [Release Process](../RELEASE_PROCESS.md) - Complete release workflow
 - [VERSION File](../../VERSION) - Current version number
 - [CHANGELOG](../../CHANGELOG.md) - Release history and versioning
-- [Quality Gates](../QUALITY_GATES.md) - Pre-release checks
 - [PyPI Package](https://pypi.org/project/claude-mpm/) - Published package
 
 ## Support

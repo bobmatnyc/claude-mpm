@@ -824,9 +824,9 @@ resume_logs:
 
 ## Related Documentation
 
-- [User Guide - Resume Logs](user/resume-logs.md) - User documentation
-- [Developer Architecture](developer/resume-log-architecture.md) - Technical details
-- [Examples](examples/resume-log-examples.md) - Real-world examples
+- [User Guide - Resume Logs](../user/resume-logs.md) - User documentation
+- [Developer Architecture](../developer/resume-log-architecture.md) - Technical details
+- [Examples](../examples/resume-log-examples.md) - Real-world examples
 
 ## Summary
 

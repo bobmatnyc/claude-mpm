@@ -1596,7 +1596,7 @@ Use `claude-mpm agents deploy-auto --dry-run` to see what's detected.
 
 **Q: Can I create my own agent repository?**
 
-A: Yes! Create a Git repository with Markdown agent files and add it with `claude-mpm source add`. See [Creating Custom Agents](../developer/custom-agents.md) for details.
+A: Yes! Create a Git repository with Markdown agent files and add it with `claude-mpm source add`. See [Creating Agents](../agents/creating-agents.md) for details.
 
 **Q: Can I use agents from a subdirectory in a monorepo?**
 
@@ -1628,10 +1628,10 @@ cat ~/.claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents/agents/enginee
 - **[Doctor Command Guide](doctor-command.md)** - Complete diagnostics guide (NEW)
 - **[Doctor CLI Reference](../reference/cli-doctor.md)** - CLI command reference (NEW)
 - **[Agent Synchronization Guide](agent-synchronization.md)** - Detailed sync mechanism
-- **[Configuration Reference](../reference/configuration.md)** - Complete configuration options
+- **[Configuration Reference](../configuration/reference.md)** - Complete configuration options
 - **[Agent Sources API](../reference/agent-sources-api.md)** - Technical API reference
 - **[Single-Tier Design](../architecture/single-tier-design.md)** - Architecture deep-dive
-- **[Creating Custom Agents](../developer/custom-agents.md)** - Build your own agents
+- **[Creating Agents](../agents/creating-agents.md)** - Build your own agents
 
 ---
 

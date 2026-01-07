@@ -400,9 +400,8 @@ curl http://localhost:8765/_app/version.json
 
 ## Related Documentation
 
-- [Dashboard Development Guide](../developer/dashboard-development.md)
-- [Socket.IO Event Reference](../developer/socketio-events.md)
-- [Monitor Command Usage](../user/monitor-command.md)
+- [Dashboard Guide](../developer/11-dashboard/README.md)
+- [Monitoring Guide](../guides/monitoring.md)
 
 ---
 

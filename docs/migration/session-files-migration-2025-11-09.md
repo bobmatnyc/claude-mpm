@@ -53,7 +53,7 @@ This document describes the migration from the nested session file structure (`.
   - Updated quick view command reference
 
 #### PM Instructions
-- **`src/claude_mpm/agents/BASE_PM.md`**
+- **`src/claude_mpm/agents/BASE_AGENT.md`**
   - Added **AUTOMATIC SESSION RESUME FILE CREATION** section at 70% threshold
   - Specified file naming: `session-resume-{YYYY-MM-DD-HHMMSS}.md`
   - Specified location: `.claude-mpm/sessions/` (NOT sessions/pause/)
@@ -71,7 +71,7 @@ This document describes the migration from the nested session file structure (`.
   - Added note about backward compatibility
   - Added reference to automatic creation at 70% threshold
 
-- **`docs/design/session-resume-implementation.md`**
+- **`docs/developer/resume-log-architecture.md`**
   - Updated file storage location references (will be updated in follow-up)
 
 ### 3. New Files Created
@@ -259,9 +259,9 @@ In a future version (after all users have migrated), we may remove the legacy lo
 ## Related Documentation
 
 - [Session Auto-Resume Feature](../user/resume-logs.md#session-auto-resume-on-startup)
-- [Session Resume Implementation Design](../design/session-resume-implementation.md)
+- [Session Resume Implementation Design](../developer/resume-log-architecture.md)
 - [PM Instructions - Context Management](../../src/claude_mpm/agents/PM_INSTRUCTIONS.md#session-resume-capability)
-- [Base PM Framework - Context Management](../../src/claude_mpm/agents/BASE_PM.md#context-management-protocol)
+- [Base PM Framework - Context Management](../../src/claude_mpm/agents/BASE_AGENT.md#context-management-protocol)
 
 ## Migration Statistics
 

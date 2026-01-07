@@ -2,7 +2,7 @@
 
 Technical documentation for the real-time monitoring dashboard.
 
-For user-facing monitoring documentation, see **[Monitoring Guide](../../MONITOR.md)**.
+For user-facing monitoring documentation, see **[Monitoring Guide](../../guides/monitoring.md)**.
 
 ## Overview
 
@@ -271,11 +271,11 @@ wscat -c ws://localhost:5000/socket.io
 
 ## See Also
 
-- **[Monitoring Guide](../../MONITOR.md)** - User-facing documentation
+- **[Monitoring Guide](../../guides/monitoring.md)** - User-facing documentation
 - **[Architecture](../ARCHITECTURE.md)** - System architecture
 - **[API Reference](../api-reference.md)** - API documentation
 - **[User Guide](../../user/user-guide.md)** - End-user features
 
 ---
 
-**For user-facing monitoring documentation**: See [../../MONITOR.md](../../MONITOR.md)
+**For user-facing monitoring documentation**: See [../../guides/monitoring.md](../../guides/monitoring.md)

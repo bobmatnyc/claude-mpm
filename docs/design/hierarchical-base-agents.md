@@ -524,7 +524,7 @@ Potential improvements for future releases:
 
 ## See Also
 
-- [Agent Deployment Guide](../user/agent-deployment.md)
-- [Agent Template Format](../reference/agent-template-format.md)
-- [Git Agent Sources](../features/agent-sources.md)
-- [Agent Development Best Practices](../development/agent-best-practices.md)
+- [Agent Deployment Guide](../guides/single-tier-agent-system.md)
+- [Agent Schema Documentation](../developer/10-schemas/agent_schema_documentation.md)
+- [Agent Sources](../user/agent-sources.md)
+- [Agent Patterns](../agents/agent-patterns.md)

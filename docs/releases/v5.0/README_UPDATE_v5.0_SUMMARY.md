@@ -165,11 +165,11 @@ claude-mpm skill-source list
 
 ## Documentation Links Added/Updated
 
-- [docs/features/hierarchical-base-agents.md](docs/features/hierarchical-base-agents.md)
-- [docs/user/agent-sources.md](docs/user/agent-sources.md)
-- [docs/reference/cli-agent-source.md](docs/reference/cli-agent-source.md)
-- [docs/migration/agent-sources-git-default-v4.5.0.md](docs/migration/agent-sources-git-default-v4.5.0.md)
-- [docs/user/troubleshooting.md#agent-source-issues](docs/user/troubleshooting.md#agent-source-issues)
+- [../../design/hierarchical-base-agents.md](../../design/hierarchical-base-agents.md)
+- [../../user/agent-sources.md](../../user/agent-sources.md)
+- [../../reference/cli-agent-source.md](../../reference/cli-agent-source.md)
+- [../../migration/agent-sources-git-default-v4.5.0.md](../../migration/agent-sources-git-default-v4.5.0.md)
+- [../../user/troubleshooting.md#agent-source-issues](../../user/troubleshooting.md#agent-source-issues)
 
 ## User Experience Improvements
 

@@ -954,7 +954,7 @@ uname -a >> system-health-*.md
 
 - **[CLI Reference](../reference/cli-doctor.md)** - Complete command reference
 - **[Single-Tier Agent System](single-tier-agent-system.md)** - Agent sources in depth
-- **[Configuration Guide](../reference/configuration.md)** - Configuration options
+- **[Configuration Reference](../configuration/reference.md)** - Configuration options
 - **[Troubleshooting Guide](../user/troubleshooting.md)** - General troubleshooting
 - **[Agent Sources API](../reference/agent-sources-api.md)** - Technical reference
 

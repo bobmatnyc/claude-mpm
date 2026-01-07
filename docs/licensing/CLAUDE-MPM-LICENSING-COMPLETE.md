@@ -12,7 +12,7 @@
 ## Table of Contents
 
 1. [LICENSE File (Copy to Repo Root)](#1-license-file)
-2. [LICENSE-FAQ.md (Copy to Repo Root)](#2-license-faqmd)
+2. [../../LICENSE-FAQ.md (Copy to Repo Root)](#2-license-faqmd)
 3. [README.md License Section](#3-readmemd-license-section)
 4. [pyproject.toml Updates](#4-pyprojecttoml-updates)
 5. [Source File Headers](#5-source-file-headers)
@@ -126,9 +126,9 @@ these terms.
 
 ---
 
-## 2. LICENSE-FAQ.md
+## 2. ../../LICENSE-FAQ.md
 
-**Action:** Create `LICENSE-FAQ.md` in repository root with this content:
+**Action:** Create `../../LICENSE-FAQ.md` in repository root with this content:
 
 ```markdown
 # Claude MPM Licensing FAQ
@@ -322,7 +322,7 @@ If you want to offer Claude MPM as a hosted service, we offer commercial licensi
 
 ### Questions?
 
-See our [Licensing FAQ](LICENSE-FAQ.md) for detailed examples and scenarios.
+See our [Licensing FAQ](../../LICENSE-FAQ.md) for detailed examples and scenarios.
 ```
 
 **Alternative (shorter version):**
@@ -336,7 +336,7 @@ Licensed under the [Elastic License 2.0](LICENSE) - free for internal use and co
 
 **Main restriction:** Cannot offer as a hosted SaaS service without a commercial license.
 
-📖 [Licensing FAQ](LICENSE-FAQ.md) | 💼 Commercial licensing: bob@matsuoka.com
+📖 [Licensing FAQ](../../LICENSE-FAQ.md) | 💼 Commercial licensing: bob@matsuoka.com
 ```
 
 ---
@@ -450,7 +450,7 @@ If you have questions about licensing your contribution, contact bob@matsuoka.co
 - **License Update**: Changed license to Elastic License 2.0
   - **For most users**: No action required - internal and commercial use remains free
   - **SaaS providers**: Contact bob@matsuoka.com for commercial licensing
-  - See [LICENSE-FAQ.md](LICENSE-FAQ.md) for detailed use cases and examples
+  - See [../../LICENSE-FAQ.md](../../LICENSE-FAQ.md) for detailed use cases and examples
   
 ### Why This Change
 
@@ -466,7 +466,7 @@ available for the vast majority of use cases.
 ### Phase 1: Core Files (Do First)
 
 - [ ] Create `LICENSE` file in repository root
-- [ ] Create `LICENSE-FAQ.md` in repository root
+- [ ] Create `../../LICENSE-FAQ.md` in repository root
 - [ ] Update `pyproject.toml` with license identifier
 - [ ] Update README.md with license section
 - [ ] Commit: `git commit -m "chore: Update license to Elastic License 2.0"`
@@ -495,7 +495,7 @@ available for the vast majority of use cases.
 After implementation, verify:
 
 - [ ] `LICENSE` file exists at repository root
-- [ ] `LICENSE-FAQ.md` exists and is linked from README
+- [ ] `../../LICENSE-FAQ.md` exists and is linked from README
 - [ ] README clearly explains what users can/cannot do
 - [ ] `pyproject.toml` has `license = {text = "Elastic-2.0"}`
 - [ ] GitHub recognizes the license
@@ -611,13 +611,13 @@ bob@matsuoka.com
 
 ```bash
 # Implementation commands
-git add LICENSE LICENSE-FAQ.md
+git add LICENSE ../../LICENSE-FAQ.md
 git add pyproject.toml README.md
 git add CONTRIBUTING.md CHANGELOG.md
 git commit -m "chore: Update license to Elastic License 2.0
 
 - Add Elastic License 2.0 as LICENSE file
-- Add LICENSE-FAQ.md with detailed use cases
+- Add ../../LICENSE-FAQ.md with detailed use cases
 - Update pyproject.toml with license identifier
 - Update README with license section
 - Update CONTRIBUTING.md with license terms
@@ -625,7 +625,7 @@ git commit -m "chore: Update license to Elastic License 2.0
 This change protects Claude MPM from SaaS free-riding while keeping
 it freely available for internal use, commercial products, and consulting.
 
-See LICENSE-FAQ.md for detailed use cases."
+See ../../LICENSE-FAQ.md for detailed use cases."
 
 git push origin main
 ```

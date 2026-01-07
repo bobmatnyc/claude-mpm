@@ -669,8 +669,8 @@ agent_sync:
 
 ## Related Documentation
 
-- [Configuration Reference](../reference/configuration.md) - Complete configuration options
-- [Agent Sync Internals](../development/agent-sync-internals.md) - Developer guide
+- [Configuration Reference](../configuration/reference.md) - Complete configuration options
+- [Agent Sync Internals](../developer/internals/agent-sync-internals.md) - Developer guide
 - [Troubleshooting Guide](../user/troubleshooting.md) - General troubleshooting
 
 ## Support

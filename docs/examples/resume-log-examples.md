@@ -822,7 +822,7 @@ print(f"Daily report generated: daily-report-{today}.md")
 
 - [User Guide](../user/resume-logs.md) - Complete user documentation
 - [Developer Architecture](../developer/resume-log-architecture.md) - Technical implementation
-- [Configuration Reference](../configuration.md) - Complete config options
+- [Configuration Reference](../configuration/reference.md) - Complete config options
 - [User Guide - Session Management](../user/user-guide.md#session-management) - Session workflows
 
 ## Summary

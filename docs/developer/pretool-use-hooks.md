@@ -613,6 +613,5 @@ Your hooks remain compatible:
 
 ## See Also
 
-- [Hook Handler Documentation](./hook-handler.md)
 - [Hook Templates](../../src/claude_mpm/hooks/templates/)
 - [Claude Code Hook API](https://docs.anthropic.com/claude-code/hooks)

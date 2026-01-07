@@ -612,5 +612,5 @@ The single-tier agent system replaces Claude MPM's complex 4-tier hierarchy with
 
 - **[Single-Tier Agent System Guide](../guides/single-tier-agent-system.md)** - User guide
 - **[Agent Sources API Reference](../reference/agent-sources-api.md)** - Technical API docs
-- **[Migration Research](../../docs/research/agent-deployment-single-tier-migration-2025-11-30.md)** - Original research
+- **Historical Research**: See `docs/_archive/` for archived migration notes
 - **[Agent Synchronization Guide](../guides/agent-synchronization.md)** - Sync mechanism details

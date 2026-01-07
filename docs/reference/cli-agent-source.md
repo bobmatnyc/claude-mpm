@@ -904,7 +904,7 @@ mpm-prod agent-source list
 
 ### Reference Documentation
 - **[Agent Sources API](agent-sources-api.md)** - Technical API reference
-- **[Configuration](configuration.md)** - Configuration file reference
+- **[Configuration](../configuration/reference.md)** - Configuration file reference
 - **[CLI Doctor](cli-doctor.md)** - Doctor command reference
 
 ### Related Topics

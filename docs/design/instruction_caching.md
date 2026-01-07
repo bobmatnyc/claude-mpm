@@ -474,15 +474,12 @@ Comprehensive QA testing confirmed all functionality:
 - ✅ Error handling (invalid cache, missing metadata, corruption)
 - ✅ Cross-platform ARG_MAX validation
 
-**QA Report**: See [QA_REPORT_1M-446.md](/Users/masa/Projects/claude-mpm/QA_REPORT_1M-446.md) for complete test results and evidence.
+**QA Report**: Archived with internal release artifacts.
 
 ## Related Documentation
 
-- **QA Report**: [QA_REPORT_1M-446.md](/Users/masa/Projects/claude-mpm/QA_REPORT_1M-446.md)
-- **Agent Deployment**: [docs/guides/agent_deployment.md](/Users/masa/Projects/claude-mpm/docs/guides/agent_deployment.md)
-- **PM Instructions**: [docs/reference/pm_instructions.md](/Users/masa/Projects/claude-mpm/docs/reference/pm_instructions.md)
-- **Troubleshooting**: [docs/TROUBLESHOOTING.md](/Users/masa/Projects/claude-mpm/docs/TROUBLESHOOTING.md)
-- **Architecture**: [Architecture Overview](../architecture/overview.md)
+- **Architecture Overview**: [../architecture/overview.md](../architecture/overview.md)
+- **Developer Architecture**: [../developer/ARCHITECTURE.md](../developer/ARCHITECTURE.md)
 
 ## Future Enhancements
 

@@ -233,7 +233,7 @@ The ticketing workflow degrades gracefully:
 
 **Circuit Breaker #6** is an automatic violation detection mechanism that prevents PM from using ticketing tools directly.
 
-**Full Definition**: See [Circuit Breaker #6](../../src/claude_mpm/agents/templates/circuit_breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
+**Full Definition**: See [Circuit Breaker #6](../../src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
 
 **Purpose**: Enforce mandatory delegation of ALL ticketing operations to ticketing-agent
 
@@ -853,7 +853,7 @@ aitrackdown init
 **Solution:**
 1. Check PM instructions are up-to-date
 2. Verify Circuit Breaker #6 is active
-3. Review [circuit_breakers.md](../../src/claude_mpm/agents/templates/circuit_breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
+3. Review [circuit-breakers.md](../../src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
 4. Report issue if Circuit Breaker not triggering
 
 **Expected Circuit Breaker Response:**
@@ -894,7 +894,7 @@ Error: JIRA authentication failed
 ### Internal Documentation
 
 **Circuit Breaker #6 Definition:**
-[src/claude_mpm/agents/templates/circuit_breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection](../../src/claude_mpm/agents/templates/circuit_breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
+[src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection](../../src/claude_mpm/agents/templates/circuit-breakers.md#circuit-breaker-6-ticketing-tool-misuse-detection)
 
 **PM Delegation Matrix:**
 [src/claude_mpm/agents/PM_INSTRUCTIONS.md](../../src/claude_mpm/agents/PM_INSTRUCTIONS.md)

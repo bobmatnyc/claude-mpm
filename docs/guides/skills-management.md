@@ -283,8 +283,7 @@ cat ~/.claude/skills/skill-name/metadata.json
 
 ## Additional Resources
 
-- **Detailed Research**: [`docs/research/claude-code-user-skills-persistence-2025-12-22.md`](/Users/masa/Projects/claude-mpm/docs/research/claude-code-user-skills-persistence-2025-12-22.md)
-- **Migration Script**: [`scripts/migrate-skills-to-user.sh`](/Users/masa/Projects/claude-mpm/scripts/migrate-skills-to-user.sh)
+- **Migration Script**: [`scripts/migrate-skills-to-user.sh`](../scripts/migrate-skills-to-user.sh)
 - **Official Docs**: [Claude Code Settings](https://code.claude.com/docs/en/settings)
 - **Skills Deep Dive**: [Claude Agent Skills](https://leehanchung.github.io/blogs/2025/10/26/claude-skills-deep-dive/)
 

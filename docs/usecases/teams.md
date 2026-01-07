@@ -797,7 +797,7 @@ cat .claude-mpm/memories/*.md
 
 - **[Architecture](../developer/ARCHITECTURE.md)** - System design
 - **[Contributing](../developer/03-development/README.md)** - How to contribute
-- **[API Reference](../API.md)** - Complete API documentation
+- **[API Reference](../reference/api-overview.md)** - Complete API documentation
 
 ### Tools for Teams
 

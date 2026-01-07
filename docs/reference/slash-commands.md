@@ -21,7 +21,7 @@ This document provides a comprehensive reference for all Claude MPM slash comman
 ```
 
 **Learn More**:
-- [Auto-Configuration User Guide](../user/auto-configuration.md) - Complete documentation
+- [Auto-Configuration User Guide](../getting-started/auto-configuration.md) - Complete documentation
 - [Agent Presets Guide](../user/agent-presets.md) - Alternative approach for standard stacks
 
 ---
@@ -100,7 +100,7 @@ What would you like to do?
 ```
 
 **See Also**:
-- **User Guide**: [Auto-Configuration Guide](../user/auto-configuration.md) - Complete workflow documentation
+- **User Guide**: [Auto-Configuration Guide](../getting-started/auto-configuration.md) - Complete workflow documentation
 - **User Guide**: [Agent Presets Guide](../user/agent-presets.md) - Alternative preset approach
 - **CLI Reference**: [Configuration Management](cli-agents.md) - Command-line usage
 
@@ -388,7 +388,7 @@ Validation warnings are logged but don't block deployment.
 
 ### New in v5.0
 
-- **[Auto-Configuration User Guide](../user/auto-configuration.md)** - Complete guide to auto-configuration features
+- **[Auto-Configuration User Guide](../getting-started/auto-configuration.md)** - Complete guide to auto-configuration features
 - **[Agent Presets Guide](../user/agent-presets.md)** - Pre-configured agent bundles for common stacks
 - **[CLI Agents Reference](cli-agents.md)** - Command-line interface for agent management
 
@@ -402,11 +402,11 @@ Validation warnings are logged but don't block deployment.
 ### Reference Documentation
 
 - **[Agent Capabilities Reference](../agents/agent-capabilities-reference.md)** - Detailed agent descriptions
-- **[Configuration Reference](configuration.md)** - Configuration file format
+- **[Configuration Reference](../configuration/reference.md)** - Configuration file format
 
 ### Implementation
 
-- **[Hierarchical Namespace Analysis](../research/slash-command-hierarchical-namespace-analysis-2025-11-29.md)** - Future namespace design
+- **Hierarchical Namespace Analysis**: Archived research (see `docs/_archive/`)
 
 ---
 

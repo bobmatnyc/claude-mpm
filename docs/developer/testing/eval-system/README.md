@@ -342,9 +342,8 @@ pytest tests/eval/test_cases/test_pm_behavioral_compliance.py::TestPMDelegationB
 ## Related Documentation
 
 - [Test Cases Guide](test-cases.md) - Detailed test case documentation
-- [Scenario Format Guide](scenario-format.md) - JSON scenario format specification
-- [MockPMAgent Guide](mock-pm-agent.md) - MockPMAgent implementation details
-- [Adding Tests Guide](adding-tests.md) - Step-by-step guide for adding new tests
+- [Quick Start](quickstart.md)
+- [Test Cases](test-cases.md)
 
 ## Changelog
 
