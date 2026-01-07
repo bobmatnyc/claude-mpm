@@ -14,7 +14,7 @@ DESIGN DECISIONS:
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404 - subprocess needed for git commands
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -50,9 +50,11 @@ class SessionResumeHelper:
 
         if self.pause_dir.exists():
             session_files.extend(list(self.pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.pause_dir.glob("session-*.md")))
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
 
         return len(session_files) > 0
 
@@ -67,9 +69,11 @@ class SessionResumeHelper:
 
         if self.pause_dir.exists():
             session_files.extend(list(self.pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.pause_dir.glob("session-*.md")))
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
 
         if not session_files:
             return None
@@ -112,7 +116,7 @@ class SessionResumeHelper:
                 "--all",
             ]
 
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - git command with safe args
                 cmd,
                 cwd=self.project_path,
                 capture_output=True,
@@ -332,9 +336,11 @@ class SessionResumeHelper:
 
         if self.pause_dir.exists():
             session_files.extend(list(self.pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.pause_dir.glob("session-*.md")))
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
 
         return len(session_files)
 
@@ -348,9 +354,11 @@ class SessionResumeHelper:
 
         if self.pause_dir.exists():
             session_files.extend(list(self.pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.pause_dir.glob("session-*.md")))
 
         if self.legacy_pause_dir.exists():
             session_files.extend(list(self.legacy_pause_dir.glob("session-*.json")))
+            session_files.extend(list(self.legacy_pause_dir.glob("session-*.md")))
 
         if not session_files:
             return []
