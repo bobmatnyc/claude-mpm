@@ -41,6 +41,15 @@ fi
 
 print_message "$GREEN" "✓ Found ~/.pypirc configuration"
 
+# 3. Extract PyPI token from ~/.pypirc for uv publish
+PYPI_TOKEN=$(grep '^password' ~/.pypirc | head -1 | cut -d'=' -f2 | tr -d ' ')
+if [ -z "$PYPI_TOKEN" ]; then
+    print_message "$RED" "Error: Could not extract token from ~/.pypirc"
+    exit 1
+fi
+export UV_PUBLISH_TOKEN="$PYPI_TOKEN"
+print_message "$GREEN" "✓ PyPI credentials loaded for uv"
+
 # 4. Get version from VERSION file
 if [ ! -f "VERSION" ]; then
     print_message "$RED" "Error: VERSION file not found"
