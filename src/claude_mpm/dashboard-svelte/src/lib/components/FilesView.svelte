@@ -97,8 +97,12 @@
     // Subscribe to events store
     unsubscribeEvents = socketStore.events.subscribe((events) => {
       // Find new tool events (pre_tool with file operations)
-      events.forEach((event) => {
-        processToolEvent(event);
+      events.forEach(async (event) => {
+        try {
+          await processToolEvent(event);
+        } catch (error) {
+          console.error('[FilesView] Error processing tool event:', error);
+        }
       });
     });
   });
@@ -112,119 +116,125 @@
 
   // Process tool events to extract file touches
   async function processToolEvent(event: ClaudeEvent) {
-    const data = event.data;
-    const dataSubtype =
-      data && typeof data === 'object' && !Array.isArray(data)
-        ? (data as Record<string, unknown>).subtype as string | undefined
-        : undefined;
-    const eventSubtype = event.subtype || dataSubtype;
+    try {
+      const data = event.data;
+      const dataSubtype =
+        data && typeof data === 'object' && !Array.isArray(data)
+          ? (data as Record<string, unknown>).subtype as string | undefined
+          : undefined;
+      const eventSubtype = event.subtype || dataSubtype;
 
-    // Handle post_tool events (for caching read results)
-    if (eventSubtype === 'post_tool') {
+      // Handle post_tool events (for caching read results)
+      if (eventSubtype === 'post_tool') {
+        const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+          ? data as Record<string, unknown>
+          : null;
+
+        const toolName = dataRecord?.tool_name as string | undefined;
+        const operation = toolName ? getOperationType(toolName) : null;
+
+        // For Read operations, cache the content from the tool result
+        if (operation === 'read') {
+          const filePath = extractFilePath(data);
+          const toolResult = dataRecord?.tool_result;
+
+          if (filePath && toolResult && typeof toolResult === 'string') {
+            fileContentCache.set(filePath, toolResult);
+            console.log('[FilesView] Cached read content:', filePath);
+          }
+        }
+        return; // Don't create TouchedFile entries for post_tool
+      }
+
+      // Only process pre_tool events for creating TouchedFile entries
+      if (eventSubtype !== 'pre_tool') {
+        return;
+      }
+
+      // Extract tool name
       const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
         ? data as Record<string, unknown>
         : null;
 
       const toolName = dataRecord?.tool_name as string | undefined;
-      const operation = toolName ? getOperationType(toolName) : null;
+      if (!toolName) {
+        return;
+      }
 
-      // For Read operations, cache the content from the tool result
-      if (operation === 'read') {
-        const filePath = extractFilePath(data);
-        const toolResult = dataRecord?.tool_result;
+      // Check if this is a file operation tool
+      const operation = getOperationType(toolName);
+      if (!operation) {
+        return;
+      }
 
-        if (filePath && toolResult && typeof toolResult === 'string') {
-          fileContentCache.set(filePath, toolResult);
-          console.log('[FilesView] Cached read content:', filePath);
+      // Extract file path
+      const filePath = extractFilePath(data);
+      if (!filePath) {
+        return;
+      }
+
+      // Check if we already have this file (by event ID to avoid duplicates)
+      const alreadyExists = touchedFiles.some(f => f.eventId === event.id);
+      if (alreadyExists) {
+        return;
+      }
+
+      // Extract content for write/edit operations
+      const { oldContent, newContent } = extractContent(data);
+
+      // For write/edit operations, try to get old content
+      let finalOldContent = oldContent;
+      if ((operation === 'write' || operation === 'edit') && !oldContent) {
+        // First try cache
+        finalOldContent = fileContentCache.get(filePath);
+
+        // If not in cache, try to fetch from server (for existing files)
+        if (!finalOldContent && operation === 'write') {
+          try {
+            finalOldContent = await fetchFileContent(filePath);
+            console.log('[FilesView] Fetched old content for write operation:', filePath);
+          } catch (error) {
+            // File might not exist yet (new file), which is fine
+            console.log('[FilesView] Could not fetch old content (might be new file):', filePath);
+          }
         }
       }
-      return; // Don't create TouchedFile entries for post_tool
-    }
 
-    // Only process pre_tool events for creating TouchedFile entries
-    if (eventSubtype !== 'pre_tool') {
-      return;
-    }
+      // Extract session_id from event
+      const sessionId = (
+        event.session_id ||
+        event.sessionId ||
+        (event.data as any)?.session_id ||
+        (event.data as any)?.sessionId ||
+        event.source ||
+        undefined
+      );
 
-    // Extract tool name
-    const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
-      ? data as Record<string, unknown>
-      : null;
+      // Add to touched files
+      const fileName = getFileName(filePath);
+      const touchedFile: TouchedFile = {
+        path: filePath,
+        name: fileName,
+        operation,
+        timestamp: event.timestamp,
+        toolName,
+        eventId: event.id,
+        sessionId,
+        oldContent: finalOldContent,
+        newContent
+      };
 
-    const toolName = dataRecord?.tool_name as string | undefined;
-    if (!toolName) {
-      return;
-    }
+      console.log('[FilesView] File touched:', touchedFile);
+      touchedFiles = [...touchedFiles, touchedFile];
 
-    // Check if this is a file operation tool
-    const operation = getOperationType(toolName);
-    if (!operation) {
-      return;
-    }
-
-    // Extract file path
-    const filePath = extractFilePath(data);
-    if (!filePath) {
-      return;
-    }
-
-    // Check if we already have this file (by event ID to avoid duplicates)
-    const alreadyExists = touchedFiles.some(f => f.eventId === event.id);
-    if (alreadyExists) {
-      return;
-    }
-
-    // Extract content for write/edit operations
-    const { oldContent, newContent } = extractContent(data);
-
-    // For write/edit operations, try to get old content
-    let finalOldContent = oldContent;
-    if ((operation === 'write' || operation === 'edit') && !oldContent) {
-      // First try cache
-      finalOldContent = fileContentCache.get(filePath);
-
-      // If not in cache, try to fetch from server (for existing files)
-      if (!finalOldContent && operation === 'write') {
-        try {
-          finalOldContent = await fetchFileContent(filePath);
-          console.log('[FilesView] Fetched old content for write operation:', filePath);
-        } catch (error) {
-          // File might not exist yet (new file), which is fine
-          console.log('[FilesView] Could not fetch old content (might be new file):', filePath);
-        }
+      // Update cache with new content for write/edit operations
+      if ((operation === 'write' || operation === 'edit') && newContent) {
+        fileContentCache.set(filePath, newContent);
       }
-    }
-
-    // Extract session_id from event
-    const sessionId = (
-      event.session_id ||
-      event.sessionId ||
-      (event.data as any)?.session_id ||
-      (event.data as any)?.sessionId ||
-      event.source ||
-      undefined
-    );
-
-    // Add to touched files
-    const fileName = getFileName(filePath);
-    const touchedFile: TouchedFile = {
-      path: filePath,
-      name: fileName,
-      operation,
-      timestamp: event.timestamp,
-      toolName,
-      eventId: event.id,
-      sessionId,
-      oldContent: finalOldContent,
-      newContent
-    };
-
-    console.log('[FilesView] File touched:', touchedFile);
-    touchedFiles = [...touchedFiles, touchedFile];
-
-    // Update cache with new content for write/edit operations
-    if ((operation === 'write' || operation === 'edit') && newContent) {
-      fileContentCache.set(filePath, newContent);
+    } catch (error) {
+      // Defense-in-depth: catch any unhandled errors to prevent UI freeze
+      console.error('[FilesView] Error in processToolEvent:', error);
+      // Don't re-throw to prevent cascade failures
     }
   }
 
