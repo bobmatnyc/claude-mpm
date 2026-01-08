@@ -4,7 +4,9 @@ Task-oriented guides and FAQs for Claude MPM.
 
 ## Available Guides
 
-- **Project Setup**: [mpm-init-rerun-guide.md](mpm-init-rerun-guide.md) - Keep your documentation fresh
+- **Project Setup**:
+  - [project-bootstrap.md](project-bootstrap.md) - Bootstrap new projects before /mpm-init
+  - [mpm-init-rerun-guide.md](mpm-init-rerun-guide.md) - Keep your documentation fresh
 - **Tool Version Management**: [asdf-tool-versions.md](asdf-tool-versions.md) - Manage consistent Python/uv versions with ASDF
 - **Debugging**: [debugging-session-strategies.md](debugging-session-strategies.md) - Control commit behavior during debugging
 - **Doctor Command**: [doctor-command.md](doctor-command.md)
