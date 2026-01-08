@@ -19,7 +19,7 @@ This guide gets you from zero to asking questions about your code in under 10 mi
 1. [What You Need](#what-you-need)
 2. [Install (3 Steps)](#install-3-steps)
 3. [Start Using It](#start-using-it)
-4. [Switch to Founders Mode](#switch-to-founders-mode)
+4. [Switch to Research Mode](#switch-to-research-mode)
 5. [Questions to Ask](#questions-to-ask)
 6. [Glossary](#glossary)
 
@@ -150,34 +150,38 @@ Claude has full access to your codebase and can answer in plain English.
 
 ---
 
-## Switch to Founders Mode
+## Switch to Research Mode
 
-For technically accurate answers explained in plain English (no jargon), enable Founders Mode.
+For technically accurate answers explained in plain English (no jargon), enable Research Mode.
 
-### How to Enable Founders Mode
+Research Mode helps anyone understand codebases - whether you're a founder, PM, or developer new to a project.
+
+### How to Enable Research Mode
 
 **Method 1: Using Command Palette (Recommended)**
 
 1. In Claude Code, press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
 2. Type "output style"
-3. Select **"Claude MPM Founders"** from the dropdown
-4. All answers will be technically accurate but explained in plain, non-technical language
+3. Select **"Claude MPM Research"** from the dropdown
+4. All answers will be technically accurate but explained in accessible language
 
 **Method 2: Ask Claude Directly**
 
 ```
-Switch to Founders Mode. From now on, explain everything in business terms, not technical jargon.
+Switch to Research Mode. From now on, provide deep codebase analysis in accessible language.
 ```
 
-### Use Founders Mode When You:
+### Use Research Mode When You:
 
+- Need to quickly understand an unfamiliar codebase
 - Want answers in plain English without jargon
 - Need explanations focused on business impact
 - Prefer analogies to technical details
 - Want to understand security risks in simple terms
 - Need to brief non-technical stakeholders
+- Are conducting technical due diligence
 
-### What Changes in Founders Mode
+### What Changes in Research Mode
 
 Every answer will be:
 - Technically accurate but explained in plain English
@@ -325,7 +329,7 @@ Skip the details. What should I do? What's the business impact?
 
 **For executive summaries:**
 ```
-[FOUNDERS MODE] Give me the executive summary of [topic]
+[RESEARCH MODE] Give me the executive summary of [topic]
 ```
 
 **When to involve your CTO:**

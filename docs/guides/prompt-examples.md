@@ -926,7 +926,7 @@ Don't proceed to fix until root cause is confirmed.
 
 ## Investigation/Research Mode
 
-### Example 1: Deep Codebase Analysis ("Founder Mode")
+### Example 1: Deep Codebase Analysis (Research Mode)
 
 **Prompt**:
 ```

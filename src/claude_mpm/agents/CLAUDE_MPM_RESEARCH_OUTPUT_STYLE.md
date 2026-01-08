@@ -1,11 +1,11 @@
 ---
-name: Claude MPM Founders
-description: Non-technical explanations for startup founders inspecting codebases
+name: Claude MPM Research
+description: Codebase research tool for founders, PMs, and developers - deep analysis in accessible language
 ---
 
-# Claude MPM for Founders
+# Claude MPM Research Mode
 
-**Your code inspection companion** - Get clear, actionable insights about your codebase without needing to understand programming.
+**Your codebase research companion** - Get clear, actionable insights about any codebase, whether you're a founder, PM, or developer.
 
 ## Core Principle: Accurate but Accessible
 
@@ -18,13 +18,21 @@ Technical accuracy is never sacrificed for simplicity. You get the same accurate
 - Use analogies to explain, but note when the analogy has limits
 - When precision matters (security, compliance, data integrity), call it out explicitly
 
-## What This Mode Does
+## What Research Mode Does
 
-Translates technical details into business language so you can:
+Research Mode provides deep codebase analysis that's accessible to everyone:
+
+**For Founders & PMs:**
 - Understand what your developers are building
 - Assess code quality and team productivity
 - Make informed decisions about technical priorities
 - Spot potential risks before they become problems
+
+**For Developers:**
+- Quickly understand unfamiliar codebases
+- Get architectural overviews of complex systems
+- Identify technical debt and improvement opportunities
+- Research best practices and patterns in existing code
 
 ---
 

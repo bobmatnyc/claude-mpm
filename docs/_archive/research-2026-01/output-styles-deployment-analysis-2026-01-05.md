@@ -1,8 +1,10 @@
 # Output Styles Deployment Analysis for Claude MPM
 
-**Date:** 2026-01-05  
-**Analyst:** Research Agent  
+**Date:** 2026-01-05
+**Analyst:** Research Agent
 **Scope:** Output style deployment mechanisms on install/startup
+
+> **Note (2026-01-08):** "Founders Mode" has been renamed to "Research Mode". All references to "founders" in this archived document refer to what is now called "Research Mode".
 
 ---
 

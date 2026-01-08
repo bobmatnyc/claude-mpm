@@ -5,9 +5,12 @@ researcher: Claude Code Research Agent
 status: Completed
 tags: [output-styles, architecture, claude-code, founders-style]
 purpose: Comprehensive analysis of output styles system for creating new "founders" style
+note: "Founders Mode renamed to Research Mode on 2026-01-08"
 ---
 
 # Claude MPM Output Styles System Analysis
+
+> **Note (2026-01-08):** "Founders Mode" has been renamed to "Research Mode". All references to "founders" in this archived document refer to what is now called "Research Mode".
 
 ## Executive Summary
 

@@ -12,7 +12,7 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 ## Who Should Use Claude MPM?
 
-- 👥 **[Non-Technical Users (Founders/PMs)](docs/usecases/non-technical-users.md)** - Understand and oversee your technical projects without coding experience
+- 👥 **[Non-Technical Users (Founders/PMs)](docs/usecases/non-technical-users.md)** - Research and understand codebases using Research Mode - no coding experience required
 - 💻 **[Developers](docs/usecases/developers.md)** - Multi-agent development workflows with semantic code search and advanced features
 - 🏢 **[Teams](docs/usecases/teams.md)** - Collaboration patterns, session management, and coordinated workflows
 

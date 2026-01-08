@@ -27,7 +27,9 @@ _CACHED_CLAUDE_VERSION: Optional[str] = None
 _VERSION_DETECTED: bool = False
 
 # Output style types
-OutputStyleType = Literal["professional", "teaching", "founders"]
+OutputStyleType = Literal[
+    "professional", "teaching", "research", "founders"
+]  # "founders" is deprecated, use "research"
 
 
 class StyleConfig(TypedDict):
@@ -44,7 +46,7 @@ class OutputStyleManager:
     Supports three output styles:
     - professional: Default Claude MPM style (claude-mpm.md)
     - teaching: Adaptive teaching mode (claude-mpm-teacher.md)
-    - founders: Non-technical mode for startup founders (claude-mpm-founders.md)
+    - research: Codebase research mode for founders, PMs, and developers (claude-mpm-research.md)
     """
 
     def __init__(self) -> None:
@@ -72,12 +74,20 @@ class OutputStyleManager:
                 target=self.output_style_dir / "claude-mpm-teacher.md",
                 name="Claude MPM Teacher",
             ),
+            "research": StyleConfig(
+                source=Path(__file__).parent.parent
+                / "agents"
+                / "CLAUDE_MPM_RESEARCH_OUTPUT_STYLE.md",
+                target=self.output_style_dir / "claude-mpm-research.md",
+                name="Claude MPM Research",
+            ),
+            # Backward compatibility alias (deprecated)
             "founders": StyleConfig(
                 source=Path(__file__).parent.parent
                 / "agents"
-                / "CLAUDE_MPM_FOUNDERS_OUTPUT_STYLE.md",
-                target=self.output_style_dir / "claude-mpm-founders.md",
-                name="Claude MPM Founders",
+                / "CLAUDE_MPM_RESEARCH_OUTPUT_STYLE.md",
+                target=self.output_style_dir / "claude-mpm-research.md",
+                name="Claude MPM Research",
             ),
         }
 

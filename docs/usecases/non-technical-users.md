@@ -19,7 +19,7 @@ This guide helps non-technical users leverage Claude MPM to understand and overs
 1. [What You Need](#what-you-need)
 2. [Quick Installation](#quick-installation)
 3. [Getting Started](#getting-started)
-4. [Founders Mode](#founders-mode)
+4. [Research Mode](#research-mode)
 5. [Common Use Cases](#common-use-cases)
 6. [Questions to Ask](#questions-to-ask)
 7. [Understanding Responses](#understanding-responses)
@@ -157,48 +157,56 @@ Claude has full access to your codebase and can answer in plain English.
 
 ---
 
-## Founders Mode
+## Research Mode
 
-For technically accurate answers explained in plain English (no jargon), enable **Founders Mode**.
+For deep codebase analysis explained in plain English (no jargon), enable **Research Mode**.
 
-### How to Enable Founders Mode
+Research Mode is designed for anyone who needs to understand a codebase - founders, PMs, developers new to a project, or anyone conducting technical due diligence.
+
+### How to Enable Research Mode
 
 **Method 1: Using Command Palette (Recommended)**
 
 1. In Claude Code, press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
 2. Type "output style"
-3. Select **"Claude MPM Founders"** from the dropdown
-4. All answers will be technically accurate but explained in plain, non-technical language
+3. Select **"Claude MPM Research"** from the dropdown
+4. All answers will be technically accurate but explained in accessible language
 
 **Method 2: Ask Claude Directly**
 
 ```
-Switch to Founders Mode. From now on, explain everything in business terms, not technical jargon.
+Switch to Research Mode. From now on, provide deep codebase analysis in accessible language.
 ```
 
-### Use Founders Mode When You:
+### Use Research Mode When You:
 
-- Want answers in plain English without jargon
-- Need explanations focused on business impact
-- Prefer analogies to technical details
-- Want to understand security risks in simple terms
-- Need to brief non-technical stakeholders
+- Need to quickly understand an unfamiliar codebase
+- Want deep architectural analysis in accessible language
+- Are conducting technical due diligence
+- Need to evaluate code quality and team productivity
+- Want to understand security risks in clear terms
+- Need to brief stakeholders on technical decisions
+- Are onboarding to a new project as a developer
 
-### What Changes in Founders Mode
+### What Changes in Research Mode
 
 Every answer will be:
-- Technically accurate but explained in plain English
-- Focused on business impact
-- Using analogies and examples you understand
+- Technically accurate with deep analysis
+- Explained in accessible language (when needed for non-technical users)
+- Focused on both technical details AND business impact
+- Using analogies and examples where helpful
 - Clear about when something is genuinely complex (not oversimplified)
 
 **Example Comparison:**
 
-**Before (Technical Mode):**
+**Before (Professional Mode):**
 > "Your authentication module uses bcrypt for password hashing with a cost factor of 12. JWT tokens are signed using RS256 with a 15-minute expiration."
 
-**After (Founders Mode):**
-> "Your login system is secure. Passwords are scrambled in a way that makes them nearly impossible to crack (industry standard). Login sessions expire after 15 minutes of inactivity for security."
+**After (Research Mode):**
+> "Your login system uses industry-standard security practices:
+> - Passwords: Protected with bcrypt hashing (cost factor 12) - makes them nearly impossible to crack
+> - Sessions: JWT tokens with RS256 signing, 15-minute expiration for security
+> - Assessment: This implementation follows OAuth2 best practices and is appropriate for production use."
 
 ---
 

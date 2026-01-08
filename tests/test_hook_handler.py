@@ -129,13 +129,10 @@ class TestClaudeHookHandler(unittest.TestCase):
         self.assertIsNotNone(self.handler.event_handlers)
 
         # Verify backward compatibility properties
-        self.assertEqual(
-            self.handler.connection_pool,
-            self.handler.connection_manager.connection_pool,
-        )
-        self.assertEqual(
-            self.handler.event_bus, self.handler.connection_manager.event_bus
-        )
+        # Note: HTTP-based connection manager doesn't use connection_pool
+        self.assertIsNone(
+            self.handler.connection_pool
+        )  # Deprecated with HTTP migration
 
     @patch("sys.stdin")
     @patch("sys.stdout")

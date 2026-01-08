@@ -22,7 +22,7 @@ import os
 import re
 import select
 import signal
-import subprocess
+import subprocess  # nosec B404
 import sys
 import threading
 from datetime import datetime, timezone
@@ -155,7 +155,7 @@ def check_claude_version() -> Tuple[bool, Optional[str]]:
     """
     try:
         # Try to detect Claude Code version
-        result = subprocess.run(  # nosec B603 - Safe: hardcoded claude CLI with --version flag, no user input
+        result = subprocess.run(  # nosec B603 B607 - Safe: hardcoded claude CLI with --version flag, no user input
             ["claude", "--version"],
             capture_output=True,
             text=True,
@@ -246,7 +246,8 @@ class ClaudeHookHandler:
                 print(f"Auto-pause initialization failed: {e}", file=sys.stderr)
 
         # Backward compatibility properties for tests
-        self.connection_pool = self.connection_manager.connection_pool
+        # Note: HTTP-based connection manager doesn't use connection_pool
+        self.connection_pool = None  # Deprecated: No longer needed with HTTP emission
 
         # Expose state manager properties for backward compatibility
         self.active_delegations = self.state_manager.active_delegations

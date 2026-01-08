@@ -316,7 +316,7 @@ def deploy_output_style_on_startup():
     Deploys all styles:
     - claude-mpm.md (professional mode)
     - claude-mpm-teacher.md (teaching mode)
-    - claude-mpm-founders.md (founders mode)
+    - claude-mpm-research.md (research mode - for codebase analysis)
     """
     try:
         from ..core.output_style_manager import OutputStyleManager
