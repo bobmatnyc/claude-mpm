@@ -397,7 +397,7 @@ def list_pm_violations(format):
         for i, violation in enumerate(violations, 1):
             payload = violation.get("payload", {})
             click.echo(f"{i}. Pattern: {payload.get('pattern_type', 'Unknown')}")
-            click.echo(f"   Original: \"{payload.get('original_text', '')}\"")
+            click.echo(f'   Original: "{payload.get("original_text", "")}"')
             click.echo(f"   Should delegate: {payload.get('suggested_action', '')}")
             click.echo(f"   Severity: {payload.get('severity', 'unknown')}")
             click.echo(f"   Timestamp: {violation.get('timestamp', 'Unknown')}")
@@ -502,7 +502,7 @@ def scan_delegation_patterns(text, file, format, save):
 
         for i, detection in enumerate(detections, 1):
             click.echo(f"{i}. Pattern: {detection['pattern_type']}")
-            click.echo(f"   Original: \"{detection['original_text']}\"")
+            click.echo(f'   Original: "{detection["original_text"]}"')
             click.echo(f"   Suggested Todo: {detection['suggested_todo']}")
             click.echo(f"   Action: {detection['action']}")
             click.echo()
