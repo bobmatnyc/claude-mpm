@@ -7,6 +7,8 @@ Install Claude MPM and verify Claude Code CLI is available.
 - **Claude Code CLI v1.0.92+**: https://docs.anthropic.com/en/docs/claude-code
 - **Python 3.11+**
 
+**💡 Tip**: Use [ASDF version manager](../guides/asdf-tool-versions.md) to manage Python and uv versions consistently across projects.
+
 ## Install (Recommended: pipx)
 
 ```bash
@@ -51,5 +53,11 @@ claude-mpm doctor
 - **Auto-Configuration**: [auto-configuration.md](auto-configuration.md)
 
 ## Troubleshooting
+
+### Version Compatibility Issues
+
+If you encounter Python or uv version mismatches, consider using [ASDF version manager](../guides/asdf-tool-versions.md) to ensure consistent tool versions.
+
+### General Issues
 
 See [../user/troubleshooting.md](../user/troubleshooting.md) if installation fails.

@@ -89,6 +89,8 @@ ls ~/.claude/agents/    # Should show 47+ agents
 
 **💡 Recommended Partners**: Install [kuzu-memory](https://github.com/bobmatnyc/kuzu-memory) (persistent context) and [mcp-vector-search](https://github.com/bobmatnyc/mcp-vector-search) (semantic search) for enhanced capabilities.
 
+**💡 Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
+
 ---
 
 ## Key Features
