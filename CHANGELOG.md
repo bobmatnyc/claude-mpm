@@ -364,6 +364,32 @@
 ### Changed
 - **Version**: Patch version bump for release
 
+## v5.4.94 (2026-01-07)
+
+### Fix
+
+- **startup**: resolve 4 startup issues
+
+## v5.4.93 (2026-01-07)
+
+### Fix
+
+- **monitor**: resolve unsourced hook events and missing tools in dashboard
+
+## v5.4.92 (2026-01-07)
+
+### Feat
+
+- **doctor**: enhance troubleshooting output with severity and explanations
+- **dashboard**: add All Streams filter and fix project default
+- **dashboard**: fix event categorization, file tree enhancements
+
+### Fix
+
+- **dashboard**: improve event categorization and display
+- add nosec annotations for bandit false positives
+- sync pyproject.toml version to 5.4.91
+
 ## v5.4.91 (2026-01-07)
 
 ### Feat
