@@ -498,3 +498,61 @@ Content
         # Should only find .md file
         assert len(skills) == 1
         assert skills[0]["name"] == "Test"
+
+    def test_discover_skills_excludes_documentation_files(
+        self, service, temp_skills_dir
+    ):
+        """Test that discovery excludes common documentation markdown files."""
+        # Create valid skill
+        skill_content = """---
+name: Real Skill
+description: Actual skill file
+---
+
+Skill content
+"""
+        (temp_skills_dir / "real-skill.md").write_text(skill_content, encoding="utf-8")
+
+        # Create documentation files that should be excluded
+        doc_files = [
+            "README.md",
+            "CLAUDE.md",
+            "CONTRIBUTING.md",
+            "CHANGELOG.md",
+            "LICENSE.md",
+            "CODE_OF_CONDUCT.md",
+        ]
+
+        for doc_file in doc_files:
+            (temp_skills_dir / doc_file).write_text(
+                "# Documentation\n\nThis is a documentation file.", encoding="utf-8"
+            )
+
+        skills = service.discover_skills()
+
+        # Should only find the real skill, not any documentation files
+        assert len(skills) == 1
+        assert skills[0]["name"] == "Real Skill"
+
+    def test_discover_skills_case_insensitive_exclusion(self, service, temp_skills_dir):
+        """Test that file exclusion is case-insensitive."""
+        # Create valid skill
+        skill_content = """---
+name: Test Skill
+description: Test
+---
+
+Content
+"""
+        (temp_skills_dir / "test.md").write_text(skill_content, encoding="utf-8")
+
+        # Create documentation files with various cases
+        (temp_skills_dir / "readme.md").write_text("readme", encoding="utf-8")
+        (temp_skills_dir / "ReadMe.md").write_text("readme", encoding="utf-8")
+        (temp_skills_dir / "claude.MD").write_text("claude", encoding="utf-8")
+
+        skills = service.discover_skills()
+
+        # Should only find the actual skill
+        assert len(skills) == 1
+        assert skills[0]["name"] == "Test Skill"

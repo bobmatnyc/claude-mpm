@@ -163,10 +163,22 @@ class SkillDiscoveryService:
         skill_md_files = list(self.skills_dir.rglob("SKILL.md"))
 
         # Also find legacy *.md files in top-level directory for backward compatibility
+        # Exclude common non-skill documentation files
+        excluded_filenames = {
+            "skill.md",  # Case variations of SKILL.md
+            "readme.md",
+            "claude.md",
+            "contributing.md",
+            "changelog.md",
+            "license.md",
+            "authors.md",
+            "code_of_conduct.md",
+        }
+
         legacy_md_files = [
             f
             for f in self.skills_dir.glob("*.md")
-            if f.name != "SKILL.md" and f.name.lower() != "readme.md"
+            if f.name.lower() not in excluded_filenames
         ]
 
         all_skill_files = skill_md_files + legacy_md_files
@@ -255,7 +267,35 @@ class SkillDiscoveryService:
         try:
             frontmatter, body = self._extract_frontmatter(content)
         except Exception as e:
-            self.logger.warning(f"No valid frontmatter in {skill_file.name}: {e}")
+            # Only log as debug for documentation files to reduce noise
+            # Common documentation files (CLAUDE.md, README.md) are expected to lack skill frontmatter
+            relative_path = (
+                skill_file.relative_to(self.skills_dir)
+                if skill_file.is_relative_to(self.skills_dir)
+                else skill_file
+            )
+
+            # Check if this looks like a documentation file
+            is_documentation = any(
+                doc_pattern in skill_file.name.lower()
+                for doc_pattern in [
+                    "readme",
+                    "claude",
+                    "contributing",
+                    "changelog",
+                    "license",
+                ]
+            )
+
+            if is_documentation:
+                self.logger.debug(
+                    f"Skipping documentation file {relative_path} (no skill frontmatter): {e}"
+                )
+            else:
+                # For actual skill files with invalid YAML, use warning level
+                self.logger.warning(
+                    f"Failed to parse skill frontmatter in {relative_path}: {e}"
+                )
             return None
 
         # Validate required fields
@@ -354,10 +394,24 @@ class SkillDiscoveryService:
         frontmatter_text = match.group(1)
         body = match.group(2)
 
-        # Parse YAML
+        # Parse YAML with improved error handling
         try:
             frontmatter = yaml.safe_load(frontmatter_text)
         except yaml.YAMLError as e:
+            # Provide more specific error message with context
+            error_line = getattr(e, "problem_mark", None)
+            if error_line:
+                line_num = error_line.line + 1
+                col_num = error_line.column + 1
+                # Extract problematic line for context
+                lines = frontmatter_text.split("\n")
+                problem_line = (
+                    lines[error_line.line] if error_line.line < len(lines) else ""
+                )
+                raise ValueError(
+                    f"Invalid YAML in frontmatter at line {line_num}, column {col_num}: {e.problem}\n"
+                    f"  Problematic line: {problem_line.strip()}"
+                ) from e
             raise ValueError(f"Invalid YAML in frontmatter: {e}") from e
 
         if not isinstance(frontmatter, dict):
