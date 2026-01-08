@@ -6,11 +6,11 @@ WHY this is needed:
 - Reduce manual todo creation overhead
 - Maintain error visibility in the PM's workflow
 
-DESIGN DECISION: Minimal POC approach
-- Read from existing hook_errors.json (no new storage)
-- Output in format compatible with PM TodoWrite
-- Simple CLI for list/inject operations
-- PM handles resolution by delegating to agents
+DESIGN DECISION: Event-driven architecture
+- Read from event log instead of hook_errors.json
+- Event log provides clean separation between detection and consumption
+- Supports multiple consumers (CLI, dashboard, notifications)
+- Persistent storage with pending/resolved status tracking
 """
 
 import json
@@ -20,32 +20,28 @@ from typing import Any, Dict, List
 
 import click
 
-from claude_mpm.core.hook_error_memory import get_hook_error_memory
+from claude_mpm.services.event_log import get_event_log
 
 
-def format_error_as_todo(error_key: str, error_data: Dict[str, Any]) -> Dict[str, str]:
-    """Convert hook error to todo format compatible with PM TodoWrite.
+def format_error_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
+    """Convert event log error event to todo format compatible with PM TodoWrite.
 
     Args:
-        error_key: Unique error identifier
-        error_data: Error information from HookErrorMemory
+        event: Event from event log with payload containing error details
 
     Returns:
         Dictionary with todo fields (content, activeForm, status)
     """
-    error_type = error_data["type"]
-    hook_type = error_data["hook_type"]
-    details = error_data["details"]
-    count = error_data["count"]
+    payload = event.get("payload", {})
+    error_type = payload.get("error_type", "unknown")
+    hook_type = payload.get("hook_type", "unknown")
+    details = payload.get("details", "")
+    full_message = payload.get("full_message", "")
 
     # Create concise todo content
     content = f"Fix {hook_type} hook error: {error_type}"
     if details:
         content += f" ({details[:50]}{'...' if len(details) > 50 else ''})"
-
-    # Add occurrence info if multiple failures
-    if count > 1:
-        content += f" [{count} occurrences]"
 
     # Active form for in-progress display
     active_form = f"Fixing {hook_type} hook error"
@@ -55,31 +51,35 @@ def format_error_as_todo(error_key: str, error_data: Dict[str, Any]) -> Dict[str
         "activeForm": active_form,
         "status": "pending",
         "metadata": {
-            "error_key": error_key,
+            "event_id": event.get("id", ""),
+            "event_type": event.get("event_type", ""),
             "error_type": error_type,
             "hook_type": hook_type,
             "details": details,
-            "count": count,
-            "first_seen": error_data.get("first_seen", ""),
-            "last_seen": error_data.get("last_seen", ""),
+            "full_message": full_message,
+            "suggested_fix": payload.get("suggested_fix", ""),
+            "timestamp": event.get("timestamp", ""),
         },
     }
 
 
 def get_autotodos() -> List[Dict[str, Any]]:
-    """Get all hook errors formatted as todos.
+    """Get all pending hook error events formatted as todos.
 
     Returns:
         List of todo dictionaries ready for PM injection
     """
-    error_memory = get_hook_error_memory()
+    event_log = get_event_log()
     todos = []
 
-    for error_key, error_data in error_memory.errors.items():
-        # Only include errors with 2+ occurrences (persistent issues)
-        if error_data["count"] >= 2:
-            todo = format_error_as_todo(error_key, error_data)
-            todos.append(todo)
+    # Get all pending autotodo.error events
+    pending_events = event_log.list_events(
+        event_type="autotodo.error", status="pending"
+    )
+
+    for event in pending_events:
+        todo = format_error_event_as_todo(event)
+        todos.append(todo)
 
     return todos
 
@@ -90,7 +90,49 @@ def autotodos_group():
 
     This command converts hook errors into actionable todos that can be
     injected into the PM's todo list for delegation and resolution.
+
+    Uses event-driven architecture - reads from event log instead of
+    directly from hook error memory.
     """
+
+
+@autotodos_group.command(name="status")
+def show_autotodos_status():
+    """Show autotodos status and statistics.
+
+    Quick overview of pending hook errors and autotodos.
+
+    Example:
+        claude-mpm autotodos status
+    """
+    event_log = get_event_log()
+    stats = event_log.get_stats()
+    todos = get_autotodos()
+
+    click.echo("\n📊 AutoTodos Status")
+    click.echo("=" * 80)
+
+    click.echo(f"Total Events: {stats['total_events']}")
+    click.echo(f"Pending Todos: {len(todos)}")
+    click.echo(f"Pending Events: {stats['by_status']['pending']}")
+    click.echo(f"Resolved Events: {stats['by_status']['resolved']}")
+
+    if stats.get("by_type"):
+        click.echo("\n📋 Events by Type:")
+        for event_type, count in stats["by_type"].items():
+            click.echo(f"   {event_type}: {count}")
+
+    click.echo(f"\n📁 Event Log: {stats['log_file']}")
+
+    if todos:
+        click.echo("\n⚠️  Action Required:")
+        click.echo(f"   {len(todos)} hook error(s) need attention")
+        click.echo("\nCommands:")
+        click.echo("  claude-mpm autotodos list      # View pending todos")
+        click.echo("  claude-mpm autotodos inject    # Inject into PM session")
+        click.echo("  claude-mpm autotodos clear     # Clear after resolution")
+    else:
+        click.echo("\n✅ No pending todos. All hook errors are resolved!")
 
 
 @autotodos_group.command(name="list")
@@ -131,8 +173,14 @@ def list_autotodos(format):
             click.echo(f"   Status: {todo['status']}")
             click.echo(f"   Hook: {metadata.get('hook_type', 'Unknown')}")
             click.echo(f"   Error Type: {metadata.get('error_type', 'Unknown')}")
-            click.echo(f"   First Seen: {metadata.get('first_seen', 'Unknown')}")
-            click.echo(f"   Last Seen: {metadata.get('last_seen', 'Unknown')}")
+            click.echo(f"   Timestamp: {metadata.get('timestamp', 'Unknown')}")
+
+            # Show suggested fix if available
+            suggested_fix = metadata.get("suggested_fix", "")
+            if suggested_fix:
+                # Show first line of suggestion
+                first_line = suggested_fix.split("\n")[0]
+                click.echo(f"   Suggestion: {first_line}")
 
         click.echo("\n" + "=" * 80)
         click.echo(f"Total: {len(todos)} pending todo(s)")
@@ -184,8 +232,8 @@ def inject_autotodos(output):
 
 @autotodos_group.command(name="clear")
 @click.option(
-    "--error-key",
-    help="Clear specific error by key",
+    "--event-id",
+    help="Clear specific event by ID",
 )
 @click.option(
     "--yes",
@@ -193,90 +241,52 @@ def inject_autotodos(output):
     is_flag=True,
     help="Skip confirmation prompt",
 )
-def clear_autotodos(error_key, yes):
+def clear_autotodos(event_id, yes):
     """Clear hook errors after resolution.
 
-    This removes resolved errors from the autotodos list by clearing
-    the underlying hook error memory.
+    This marks resolved errors in the event log, removing them from
+    the autotodos list.
 
     Examples:
-        claude-mpm autotodos clear
-        claude-mpm autotodos clear --error-key "command_not_found:PreToolUse:..."
-        claude-mpm autotodos clear -y  # Skip confirmation
+        claude-mpm autotodos clear                 # Clear all pending
+        claude-mpm autotodos clear --event-id ID   # Clear specific event
+        claude-mpm autotodos clear -y              # Skip confirmation
     """
-    error_memory = get_hook_error_memory()
+    event_log = get_event_log()
 
-    if error_key:
-        # Clear specific error
-        if error_key not in error_memory.errors:
-            click.echo(f"❌ Error key not found: {error_key}")
-            return
-
+    if event_id:
+        # Clear specific event
         if not yes:
-            error_data = error_memory.errors[error_key]
-            message = f"Clear error: {error_data['type']} in {error_data['hook_type']}?"
+            message = f"Clear event: {event_id}?"
             if not click.confirm(message):
                 click.echo("Cancelled.")
                 return
 
-        # Remove specific error
-        del error_memory.errors[error_key]
-        error_memory._save_errors()
-        click.echo(f"✅ Cleared error: {error_key}")
+        # Mark as resolved
+        if event_log.mark_resolved(event_id):
+            click.echo(f"✅ Cleared event: {event_id}")
+        else:
+            click.echo(f"❌ Event not found: {event_id}")
     else:
-        # Clear all errors
-        count = len(error_memory.errors)
+        # Clear all pending autotodo.error events
+        pending_events = event_log.list_events(
+            event_type="autotodo.error", status="pending"
+        )
+        count = len(pending_events)
+
         if count == 0:
-            click.echo("No errors to clear.")
+            click.echo("No pending events to clear.")
             return
 
         if not yes:
-            message = f"Clear all {count} error(s)?"
+            message = f"Clear all {count} pending event(s)?"
             if not click.confirm(message):
                 click.echo("Cancelled.")
                 return
 
-        error_memory.clear_errors()
-        click.echo(f"✅ Cleared {count} error(s).")
-
-
-@autotodos_group.command(name="status")
-def show_autotodos_status():
-    """Show autotodos status and statistics.
-
-    Quick overview of pending hook errors and autotodos.
-
-    Example:
-        claude-mpm autotodos status
-    """
-    todos = get_autotodos()
-    error_memory = get_hook_error_memory()
-    summary = error_memory.get_error_summary()
-
-    click.echo("\n📊 AutoTodos Status")
-    click.echo("=" * 80)
-
-    click.echo(f"Total Errors: {summary['total_errors']}")
-    click.echo(f"Pending Todos: {len(todos)} (errors with 2+ occurrences)")
-    click.echo(f"Unique Errors: {summary['unique_errors']}")
-
-    if summary.get("errors_by_hook"):
-        click.echo("\n🎣 Errors by Hook Type:")
-        for hook_type, count in summary["errors_by_hook"].items():
-            click.echo(f"   {hook_type}: {count}")
-
-    # Memory file path from error_memory instance, not summary
-    click.echo(f"\n📁 Memory File: {error_memory.memory_file}")
-
-    if todos:
-        click.echo("\n⚠️  Action Required:")
-        click.echo(f"   {len(todos)} hook error(s) need attention")
-        click.echo("\nCommands:")
-        click.echo("  claude-mpm autotodos list      # View pending todos")
-        click.echo("  claude-mpm autotodos inject    # Inject into PM session")
-        click.echo("  claude-mpm autotodos clear     # Clear after resolution")
-    else:
-        click.echo("\n✅ No pending todos. All hook errors are resolved!")
+        # Mark all as resolved
+        cleared = event_log.mark_all_resolved(event_type="autotodo.error")
+        click.echo(f"✅ Cleared {cleared} event(s).")
 
 
 # Register the command group

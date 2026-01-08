@@ -16,13 +16,15 @@ import contextlib
 import json
 import os
 import queue
-import subprocess
+import subprocess  # nosec B404
 import threading
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from ..core.logger import get_logger
+from ..services.event_bus.event_bus import EventBus
+from ..services.event_log import get_event_log
 from .hook_error_memory import get_hook_error_memory
 from .hook_performance_config import get_hook_performance_config
 from .unified_paths import get_package_root
@@ -45,6 +47,10 @@ class HookManager:
 
         # Initialize error memory for tracking and preventing repeated errors
         self.error_memory = get_hook_error_memory()
+
+        # Initialize event log and event bus for event-driven architecture
+        self.event_log = get_event_log()
+        self.event_bus = EventBus.get_instance()
 
         # Initialize background hook processing for async execution
         self.performance_config = get_hook_performance_config()
@@ -100,6 +106,45 @@ class HookManager:
         self.background_thread.start()
         self.logger.debug("Started background hook processor thread")
 
+    def _publish_error_event(
+        self, hook_type: str, error_info: Dict[str, str], suggestion: str
+    ):
+        """Publish hook error event to event log and event bus.
+
+        WHY publish events:
+        - Decouple error detection from error handling
+        - Enable autotodos CLI to read from persistent event log
+        - Support real-time notifications via event bus
+        - Maintain audit trail of all hook errors
+
+        Args:
+            hook_type: Type of hook that failed
+            error_info: Error information from error detection
+            suggestion: Fix suggestion from error memory
+        """
+        try:
+            # Prepare event payload
+            payload = {
+                "error_type": error_info["type"],
+                "hook_type": hook_type,
+                "details": error_info.get("details", ""),
+                "full_message": error_info.get("match", ""),
+                "suggested_fix": suggestion,
+                "source": "hook_manager",
+            }
+
+            # Publish to event log (persistent storage)
+            self.event_log.append_event(
+                event_type="autotodo.error", payload=payload, status="pending"
+            )
+
+            # Publish to event bus (real-time listeners)
+            self.event_bus.publish("autotodo.error", payload)
+
+        except Exception as e:
+            # Don't let event publishing break hook processing
+            self.logger.debug(f"Failed to publish error event: {e}")
+
     def _execute_hook_sync(self, hook_data: Dict[str, Any]):
         """Execute a single hook synchronously in the background thread with error detection.
 
@@ -141,7 +186,7 @@ class HookManager:
             env["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 
             # Execute with timeout in background thread
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["python", str(self.hook_handler_path)],
                 input=event_json,
                 text=True,
@@ -157,7 +202,7 @@ class HookManager:
             )
 
             if error_info:
-                # Record the error
+                # Record the error in memory (for skipping repeated failures)
                 self.error_memory.record_error(error_info, hook_type)
 
                 # Get fix suggestion
@@ -165,6 +210,9 @@ class HookManager:
 
                 # Log error with suggestion
                 self.logger.warning(f"Hook {hook_type} error detected:\n{suggestion}")
+
+                # Publish event to event log for autotodos processing
+                self._publish_error_event(hook_type, error_info, suggestion)
             elif result.returncode != 0:
                 # Non-zero return without detected pattern
                 self.logger.debug(f"Hook {hook_type} returned code {result.returncode}")
