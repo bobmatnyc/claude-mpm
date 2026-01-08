@@ -851,6 +851,7 @@ class EventHandlers:
         - Captures response content and metadata for analysis
         - Enables tracking of conversation flow and response patterns
         - Essential for comprehensive monitoring of Claude interactions
+        - Scans for delegation anti-patterns and creates autotodos
         """
         # Track the response for logging
         try:
@@ -861,6 +862,13 @@ class EventHandlers:
         except Exception:  # nosec B110
             # Response tracking is optional
             pass
+
+        # Scan response for delegation anti-patterns and create autotodos
+        try:
+            self._scan_for_delegation_patterns(event)
+        except Exception as e:  # nosec B110
+            if DEBUG:
+                print(f"Delegation scanning error: {e}", file=sys.stderr)
 
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
@@ -1012,3 +1020,71 @@ class EventHandlers:
         self.hook_handler._emit_socketio_event(
             "", "subagent_start", subagent_start_data
         )
+
+    def _scan_for_delegation_patterns(self, event):
+        """Scan assistant response for delegation anti-patterns.
+
+        WHY this is needed:
+        - Detect when PM asks user to do something manually instead of delegating
+        - Convert manual instructions into actionable autotodos
+        - Enforce delegation principle in PM workflow
+        - Help PM recognize delegation opportunities
+
+        This method scans the assistant's response text for patterns like:
+        - "Make sure .env.local is in your .gitignore"
+        - "You'll need to run npm install"
+        - "Please run the tests manually"
+
+        When patterns are detected, autotodos are created in the event log
+        so PM can see them and delegate properly.
+        """
+        # Only scan if delegation detector is available
+        try:
+            from claude_mpm.services.delegation_detector import get_delegation_detector
+            from claude_mpm.services.event_log import get_event_log
+        except ImportError:
+            if DEBUG:
+                print("Delegation detector or event log not available", file=sys.stderr)
+            return
+
+        response_text = event.get("response", "")
+        if not response_text:
+            return
+
+        # Get the delegation detector
+        detector = get_delegation_detector()
+
+        # Detect delegation patterns
+        detections = detector.detect_user_delegation(response_text)
+
+        if not detections:
+            return  # No patterns detected
+
+        # Get event log for autotodo creation
+        event_log = get_event_log()
+
+        # Create autotodos for each detection
+        for detection in detections:
+            # Format as autotodo
+            autotodo = detector.format_as_autotodo(detection)
+
+            # Create event log entry
+            event_log.append_event(
+                event_type="autotodo.delegation",
+                payload={
+                    "content": autotodo["content"],
+                    "activeForm": autotodo["activeForm"],
+                    "metadata": autotodo["metadata"],
+                    "original_text": detection["original_text"],
+                    "suggested_todo": detection["suggested_todo"],
+                    "session_id": event.get("session_id", ""),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                status="pending",
+            )
+
+            if DEBUG:
+                print(
+                    f"📋 Created delegation autotodo: {autotodo['content'][:60]}...",
+                    file=sys.stderr,
+                )

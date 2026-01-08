@@ -186,3 +186,96 @@ class TestEventRouting:
         # Should not raise exception
         handler._route_event(event)
         mock_handlers.handle_stop_fast.assert_called_once_with(event)
+
+
+class TestDelegationScanning:
+    """Test delegation pattern detection in assistant responses."""
+
+    def test_scan_for_delegation_patterns_detects_patterns(self):
+        """Test that delegation patterns are detected and autotodos are created."""
+        from src.claude_mpm.hooks.claude_hooks.event_handlers import EventHandlers
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        # Create handler and event handlers
+        hook_handler = ClaudeHookHandler()
+        event_handlers = EventHandlers(hook_handler)
+
+        # Mock the event log to capture autotodos
+        from unittest.mock import MagicMock
+
+        mock_event_log = MagicMock()
+
+        # Create event with delegation anti-pattern
+        event = {
+            "response": "Make sure to add .env.local to your .gitignore file. You'll need to run npm install after that.",
+            "session_id": "test-session-123",
+        }
+
+        # Patch the modules that are imported inside the method
+        with patch(
+            "claude_mpm.services.event_log.get_event_log",
+            return_value=mock_event_log,
+        ):
+            # Scan for patterns
+            event_handlers._scan_for_delegation_patterns(event)
+
+        # Verify autotodos were created
+        assert mock_event_log.append_event.call_count == 2  # Two patterns detected
+        calls = mock_event_log.append_event.call_args_list
+
+        # Check first autotodo
+        assert calls[0][1]["event_type"] == "autotodo.delegation"
+        assert "Verify" in calls[0][1]["payload"]["content"]
+        assert ".env.local" in calls[0][1]["payload"]["original_text"]
+
+        # Check second autotodo
+        assert calls[1][1]["event_type"] == "autotodo.delegation"
+        assert "Task" in calls[1][1]["payload"]["content"]
+        assert "npm install" in calls[1][1]["payload"]["original_text"]
+
+    def test_scan_for_delegation_patterns_no_patterns(self):
+        """Test that no autotodos are created when no patterns are detected."""
+        from src.claude_mpm.hooks.claude_hooks.event_handlers import EventHandlers
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        hook_handler = ClaudeHookHandler()
+        event_handlers = EventHandlers(hook_handler)
+
+        mock_event_log = MagicMock()
+
+        # Create event without delegation patterns
+        event = {
+            "response": "I've completed the task successfully. The file has been updated.",
+            "session_id": "test-session-123",
+        }
+
+        with patch(
+            "claude_mpm.services.event_log.get_event_log",
+            return_value=mock_event_log,
+        ):
+            event_handlers._scan_for_delegation_patterns(event)
+
+        # Verify no autotodos were created
+        mock_event_log.append_event.assert_not_called()
+
+    def test_scan_for_delegation_patterns_empty_response(self):
+        """Test handling of empty response."""
+        from src.claude_mpm.hooks.claude_hooks.event_handlers import EventHandlers
+        from src.claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+        hook_handler = ClaudeHookHandler()
+        event_handlers = EventHandlers(hook_handler)
+
+        mock_event_log = MagicMock()
+
+        # Create event with empty response
+        event = {"response": "", "session_id": "test-session-123"}
+
+        with patch(
+            "claude_mpm.services.event_log.get_event_log",
+            return_value=mock_event_log,
+        ):
+            event_handlers._scan_for_delegation_patterns(event)
+
+        # Verify no autotodos were created
+        mock_event_log.append_event.assert_not_called()
