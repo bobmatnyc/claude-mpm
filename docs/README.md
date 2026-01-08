@@ -19,7 +19,7 @@ claude-mpm run --monitor
 
 - **Getting Started**: [Installation](getting-started/installation.md), [Quick Start](getting-started/quick-start.md), [Auto-Configuration](getting-started/auto-configuration.md)
 - **Users**: [User Guide](user/user-guide.md), [Troubleshooting](user/troubleshooting.md)
-- **Guides**: [Guides Index](guides/README.md), [FAQ](guides/FAQ.md)
+- **Guides**: [Prompting Guide](guides/prompting-guide.md), [Prompt Examples Library](guides/prompt-examples.md), [Guides Index](guides/README.md), [FAQ](guides/FAQ.md)
 - **Configuration & Deployment**: [Configuration Reference](configuration/reference.md), [Deployment Overview](deployment/overview.md)
 - **Agents**: [Agent System](agents/README.md), [Creating Agents](agents/creating-agents.md)
 - **Reference**: [API Overview](reference/api-overview.md), [CLI Reference](reference/cli-agents.md)
