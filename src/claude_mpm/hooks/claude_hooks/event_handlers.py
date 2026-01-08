@@ -949,6 +949,7 @@ class EventHandlers:
         - Provides visibility into new conversation sessions
         - Enables tracking of session lifecycle and duration
         - Useful for monitoring concurrent sessions and resource usage
+        - Auto-inject pending autotodos if enabled in config
         """
         session_id = event.get("session_id", "")
         working_dir = event.get("cwd", "")
@@ -961,6 +962,30 @@ class EventHandlers:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "hook_event_name": "SessionStart",
         }
+
+        # Auto-inject pending autotodos if enabled
+        try:
+            from claude_mpm.cli.commands.autotodos import get_pending_todos
+            from claude_mpm.core.config import Config
+
+            config = Config()
+            auto_inject_enabled = config.get("autotodos.auto_inject_on_startup", True)
+            max_todos = config.get("autotodos.max_todos_per_session", 10)
+
+            if auto_inject_enabled:
+                pending_todos = get_pending_todos(max_todos=max_todos)
+                if pending_todos:
+                    session_start_data["pending_autotodos"] = pending_todos
+                    session_start_data["autotodos_count"] = len(pending_todos)
+                    if DEBUG:
+                        print(
+                            f"  - Auto-injected {len(pending_todos)} pending autotodos",
+                            file=sys.stderr,
+                        )
+        except Exception as e:  # nosec B110
+            # Auto-injection is optional - continue if it fails
+            if DEBUG:
+                print(f"  - Failed to auto-inject autotodos: {e}", file=sys.stderr)
 
         # Debug logging
         if DEBUG:

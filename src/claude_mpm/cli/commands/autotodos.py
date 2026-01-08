@@ -101,12 +101,15 @@ def format_delegation_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def get_autotodos() -> List[Dict[str, Any]]:
+def get_autotodos(max_todos: int = 100) -> List[Dict[str, Any]]:
     """Get all pending hook error events formatted as todos.
 
     DESIGN DECISION: Only autotodo.error events are returned
     - autotodo.error = Script/coding failures → PM should delegate fix
     - pm.violation = Delegation anti-patterns → PM behavior error (not todo)
+
+    Args:
+        max_todos: Maximum number of todos to return (default: 100)
 
     Returns:
         List of todo dictionaries ready for PM injection
@@ -119,11 +122,28 @@ def get_autotodos() -> List[Dict[str, Any]]:
         event_type="autotodo.error", status="pending"
     )
 
-    for event in pending_error_events:
+    for event in pending_error_events[:max_todos]:
         todo = format_error_event_as_todo(event)
         todos.append(todo)
 
     return todos
+
+
+def get_pending_todos(max_todos: int = 10) -> List[Dict[str, Any]]:
+    """Get pending autotodo errors for injection.
+
+    WHY this function exists:
+    - Provides a consistent API for retrieving pending autotodos
+    - Used by CLI inject command AND SessionStart hook
+    - Supports limiting number of todos to avoid overwhelming PM
+
+    Args:
+        max_todos: Maximum number of todos to return (default: 10)
+
+    Returns:
+        List of todo dicts with content, activeForm, status, metadata
+    """
+    return get_autotodos(max_todos=max_todos)
 
 
 @click.group(name="autotodos")

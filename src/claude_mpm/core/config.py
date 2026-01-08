@@ -605,6 +605,11 @@ class Config:
                 "sync_interval": "startup",  # Options: "startup", "hourly", "daily", "manual"
                 "cache_dir": str(Path.home() / ".claude-mpm" / "cache" / "agents"),
             },
+            # Autotodos configuration
+            "autotodos": {
+                "auto_inject_on_startup": True,  # Auto-inject pending todos on PM session start
+                "max_todos_per_session": 10,  # Max todos to inject per session
+            },
         }
 
         # Apply defaults for missing keys
