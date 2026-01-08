@@ -3,16 +3,23 @@
 ### Added
 
 ### Changed
+
+### Fixed
+
+## [5.4.98] - 2026-01-08
+
+### Changed
+- Patch version bump for package publication
+
+## [5.4.97] - 2026-01-08
+
+### Changed
 - **BREAKING**: Renamed "Founders Mode" to "Research Mode" to better reflect its purpose as a codebase research tool
   - Renamed `CLAUDE_MPM_FOUNDERS_OUTPUT_STYLE.md` to `CLAUDE_MPM_RESEARCH_OUTPUT_STYLE.md`
   - Updated output style from "Claude MPM Founders" to "Claude MPM Research"
   - Updated all documentation to use "Research Mode" terminology
   - Maintained backward compatibility: "founders" style type still works as alias (deprecated)
   - Research Mode is now positioned as a tool for founders, PMs, AND developers conducting codebase research
-
-### Fixed
-
-## [5.4.97] - 2026-01-08
 
 ### Fixed
 - **Hook Connection Manager**: Removed async emission path to fix "Event loop is closed" errors
