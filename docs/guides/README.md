@@ -7,6 +7,7 @@ Task-oriented guides and FAQs for Claude MPM.
 - **Getting Started**:
   - [prompting-guide.md](prompting-guide.md) - **START HERE** - How to write effective prompts for MPM (includes TxDD workflow)
   - [prompt-examples.md](prompt-examples.md) - **EXAMPLES LIBRARY** - Comprehensive prompt examples demonstrating MPM's unique capabilities
+  - [context-optimization.md](context-optimization.md) - **OPTIMIZATION** - Reduce context bloat and improve performance (for experienced users)
 - **Project Setup**:
   - [project-bootstrap.md](project-bootstrap.md) - Bootstrap new projects before /mpm-init
   - [mpm-init-rerun-guide.md](mpm-init-rerun-guide.md) - Keep your documentation fresh
