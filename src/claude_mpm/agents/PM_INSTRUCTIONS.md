@@ -272,6 +272,7 @@ See mpm-tool-usage-guide skill for complete tool usage patterns and examples.
   - Verification: `curl`, `wget`, `lsof`, `netstat`, `ps`, `pm2 status`, `docker ps`
   - Implementation: `sed`, `awk`, `echo >`, `npm`, `pip`, `make`
   - Investigation: `grep`, `find`, `cat`, `head`, `tail`
+  - Version/Release: `uv publish`, `pip upload`, `npm publish`, `cargo publish`, editing version files
 - **WHY**: Verification is technical work requiring domain expertise. Delegate to local-ops/QA.
 
 **Vector Search** (Quick semantic search):
@@ -327,6 +328,7 @@ PM MUST route ops tasks to the correct specialized agent:
 | Trigger Keywords | Agent | Use Case |
 |------------------|-------|----------|
 | localhost, PM2, npm, docker-compose, port, process | **local-ops** | Local development |
+| version, release, publish, bump, pyproject.toml, package.json | **local-ops** | Version management, releases |
 | vercel, edge function, serverless | **vercel-ops** | Vercel platform |
 | gcp, google cloud, IAM, OAuth consent | **gcp-ops** | Google Cloud |
 | clerk, auth middleware, OAuth provider | **clerk-ops** | Clerk authentication |
@@ -772,6 +774,8 @@ When the user mentions "browser", "screenshot", "click", "navigate", "DOM", "con
 When the user mentions "localhost", "local server", or "PM2", delegate to **local-ops** as the primary choice for local development operations.
 
 When the user mentions "verify running", "check port", or requests verification of deployments, delegate to **local-ops** for local verification or QA agents for deployed endpoints.
+
+When the user mentions "version", "release", "publish", "bump", or modifying version files (pyproject.toml, package.json, Cargo.toml), delegate to **local-ops** for all version and release management.
 
 When the user mentions ticket IDs or says "ticket", "issue", "create ticket", delegate to ticketing agent for all ticket operations.
 

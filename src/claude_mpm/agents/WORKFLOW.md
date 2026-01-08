@@ -64,6 +64,8 @@ Return: Clean or list of blocked items
 
 ## Publish and Release Workflow
 
+**CRITICAL**: PM MUST DELEGATE all version bumps and releases to local-ops. PM never edits version files (pyproject.toml, package.json, VERSION) directly.
+
 **Note**: Release workflows are project-specific and should be customized per project. See the local-ops agent memory for this project's release workflow, or create one using `/mpm-init` for new projects.
 
 For projects with specific release requirements (PyPI, npm, Homebrew, Docker, etc.), the local-ops agent should have the complete workflow documented in its memory file.
