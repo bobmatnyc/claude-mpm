@@ -88,7 +88,7 @@ class CacheGitManager:
         if self.repo_path:
             logger.debug(f"Initialized CacheGitManager for repo: {self.repo_path}")
         else:
-            logger.warning(f"Cache path is not a git repository: {cache_path}")
+            logger.debug(f"Cache path is not a git repository: {cache_path}")
 
     def _find_git_root(self) -> Optional[Path]:
         """

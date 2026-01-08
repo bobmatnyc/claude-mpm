@@ -649,14 +649,24 @@ class DaemonManager:
 
                 # Wait for the subprocess to write its PID file and bind to port
                 # The subprocess will write the PID file after it starts successfully
-                max_wait = 10  # seconds
+                # Allow configuration via environment variable (default 30s to account for agent/skill sync)
+                max_wait = int(os.environ.get("CLAUDE_MPM_MONITOR_TIMEOUT", "30"))
                 start_time = time.time()
                 pid_file_found = False
                 port_bound = False
+                last_progress_log = 0.0
 
                 self.logger.debug(f"Waiting up to {max_wait}s for daemon to start...")
 
                 while time.time() - start_time < max_wait:
+                    # Log progress every 5 seconds to show we're waiting
+                    elapsed = time.time() - start_time
+                    if elapsed - last_progress_log >= 5.0:
+                        self.logger.info(
+                            f"Waiting for monitor daemon... ({int(elapsed)}s elapsed, syncing agents/skills)"
+                        )
+                        last_progress_log = elapsed
+
                     # Check if process is still running
                     returncode = process.poll()
                     if returncode is not None:

@@ -214,18 +214,90 @@ def get_skills_from_mapping(agent_ids: List[str]) -> Set[str]:
     return set()
 
 
+def extract_skills_from_content(agent_file: Path) -> Set[str]:
+    """Extract skill names from [SKILL: skill-name] markers in agent file content.
+
+    This function complements frontmatter skill extraction by finding inline
+    skill references in the agent's markdown content body.
+
+    Supports multiple formats:
+    - Bold marker: **[SKILL: skill-name]**
+    - Plain marker: [SKILL: skill-name]
+    - Backtick list: - `skill-name` - Description
+    - With spaces: [SKILL:  skill-name  ]
+
+    Args:
+        agent_file: Path to agent markdown file
+
+    Returns:
+        Set of skill names found in content body
+
+    Example:
+        >>> skills = extract_skills_from_content(Path("pm.md"))
+        >>> # Finds skills from markers like **[SKILL: mpm-delegation-patterns]**
+        >>> # Also finds from lists like - `mpm-teaching-mode` - Description
+        >>> print(f"Found {len(skills)} skills in content")
+    """
+    try:
+        content = agent_file.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.warning(f"Failed to read {agent_file}: {e}")
+        return set()
+
+    skills = set()
+
+    # Pattern 1: [SKILL: skill-name] markers (with optional markdown bold)
+    # Handles: **[SKILL: skill-name]** or [SKILL: skill-name]
+    # Pattern breakdown:
+    # - \*{0,2}: Optional bold markdown (0-2 asterisks)
+    # - \[SKILL:\s*: Opening bracket with optional whitespace
+    # - ([a-zA-Z0-9_-]+): Skill name (capture group)
+    # - \s*\]: Closing bracket with optional whitespace
+    # - \*{0,2}: Optional closing bold markdown
+    pattern1 = r"\*{0,2}\[SKILL:\s*([a-zA-Z0-9_-]+)\s*\]\*{0,2}"
+    matches1 = re.findall(pattern1, content, re.IGNORECASE)
+    skills.update(matches1)
+
+    # Pattern 2: Backtick list items with mpm-* or toolchains-* skills
+    # Handles: - `mpm-skill-name` - Description
+    # Pattern breakdown:
+    # - ^-\s+: Start with dash and whitespace (list item)
+    # - `: Opening backtick
+    # - ((?:mpm-|toolchains-|universal-)[a-zA-Z0-9_-]+): Skill name starting with prefix
+    # - `: Closing backtick
+    # - \s+-: Followed by whitespace and dash (description separator)
+    pattern2 = r"^-\s+`((?:mpm-|toolchains-|universal-)[a-zA-Z0-9_-]+)`\s+-"
+    matches2 = re.findall(pattern2, content, re.MULTILINE | re.IGNORECASE)
+    skills.update(matches2)
+
+    if skills:
+        logger.debug(
+            f"Found {len(skills)} skills from content markers in {agent_file.name}"
+        )
+
+    return skills
+
+
 def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
     """Extract all skills referenced by deployed agents.
 
-    MAJOR CHANGE (Phase 3): Now ONLY uses frontmatter-declared skills.
+    MAJOR CHANGE (Phase 3): Now uses TWO sources for skill discovery:
+    1. Frontmatter-declared skills (skills: field)
+    2. Content body markers ([SKILL: skill-name])
+
     The static skill_to_agent_mapping.yaml is DEPRECATED. Each agent must
-    declare its skills in frontmatter or it gets zero skills deployed.
+    declare its skills via frontmatter OR inline markers.
 
     This change:
     - Eliminates dual-source complexity (frontmatter + mapping)
     - Makes skill requirements explicit per agent
-    - Enables per-agent customization via frontmatter
+    - Enables per-agent customization via frontmatter or inline markers
     - Removes dependency on static YAML mapping
+    - Fixes PM skills being removed as orphaned (they use inline markers)
+
+    Special handling for PM_INSTRUCTIONS.md:
+    - Also scans .claude-mpm/PM_INSTRUCTIONS.md for skill markers
+    - PM instructions are not in agents_dir but contain [SKILL: ...] references
 
     Args:
         agents_dir: Path to deployed agents directory (e.g., .claude/agents/)
@@ -244,37 +316,63 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
 
     # Scan all agent markdown files
     agent_files = list(agents_dir.glob("*.md"))
-    logger.debug(f"Scanning {len(agent_files)} agent files in {agents_dir}")
 
-    # ONLY use frontmatter skills - no more mapping inference
+    # Special case: Add PM_INSTRUCTIONS.md if it exists
+    # PM instructions live in .claude-mpm/ not .claude/agents/
+    pm_instructions = agents_dir.parent.parent / ".claude-mpm" / "PM_INSTRUCTIONS.md"
+    if pm_instructions.exists():
+        agent_files.append(pm_instructions)
+        logger.debug("Added PM_INSTRUCTIONS.md for skill scanning")
+
+    logger.debug(f"Scanning {len(agent_files)} agent files (including PM instructions)")
+
+    # Use TWO sources: frontmatter AND content markers
     frontmatter_skills = set()
+    content_skills = set()
 
     for agent_file in agent_files:
         agent_id = agent_file.stem
 
+        # Source 1: Extract from frontmatter
         frontmatter = parse_agent_frontmatter(agent_file)
-        agent_skills = get_skills_from_agent(frontmatter)
+        agent_fm_skills = get_skills_from_agent(frontmatter)
 
-        if agent_skills:
-            frontmatter_skills.update(agent_skills)
+        if agent_fm_skills:
+            frontmatter_skills.update(agent_fm_skills)
             logger.debug(
-                f"Agent {agent_id}: {len(agent_skills)} skills from frontmatter"
+                f"Agent {agent_id}: {len(agent_fm_skills)} skills from frontmatter"
             )
-        else:
-            logger.debug(f"Agent {agent_id}: No skills declared in frontmatter")
+
+        # Source 2: Extract from content body [SKILL: ...] markers
+        agent_content_skills = extract_skills_from_content(agent_file)
+
+        if agent_content_skills:
+            content_skills.update(agent_content_skills)
+            logger.debug(
+                f"Agent {agent_id}: {len(agent_content_skills)} skills from content markers"
+            )
+
+        if not agent_fm_skills and not agent_content_skills:
+            logger.debug(
+                f"Agent {agent_id}: No skills declared (checked frontmatter + content)"
+            )
+
+    # Combine both sources
+    all_skills = frontmatter_skills | content_skills
 
     logger.info(
-        f"Found {len(frontmatter_skills)} unique skills from agent frontmatter "
-        f"(static mapping no longer used)"
+        f"Found {len(all_skills)} unique skills "
+        f"({len(frontmatter_skills)} from frontmatter, "
+        f"{len(content_skills)} from content markers)"
     )
 
     # Normalize skill paths: convert slashes to dashes for compatibility with deployment
     # Some skills may use slash format, normalize to dashes
-    normalized_skills = {skill.replace("/", "-") for skill in frontmatter_skills}
+    normalized_skills = {skill.replace("/", "-") for skill in all_skills}
 
-    if normalized_skills != frontmatter_skills:
+    if normalized_skills != all_skills:
         logger.debug(
-            f"Normalized {len(frontmatter_skills)} skills to {len(normalized_skills)} "
+            f"Normalized {len(all_skills)} skills to {len(normalized_skills)} "
             "(converted slashes to dashes)"
         )
 

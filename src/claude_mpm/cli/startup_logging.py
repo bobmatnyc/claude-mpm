@@ -672,7 +672,7 @@ async def trigger_vector_search_indexing(project_root: Optional[Path] = None) ->
             # Using installed binary
             cmd = [vector_search_path, "index", str(project_root)]
 
-        logger.info(
+        logger.debug(
             "MCP Vector Search: Starting background indexing for improved code search"
         )
 
@@ -761,7 +761,7 @@ def _start_vector_search_subprocess(project_root: Optional[Path] = None) -> None
         else:
             cmd = [vector_search_path, "index", str(project_root)]
 
-        logger.info(
+        logger.debug(
             "MCP Vector Search: Starting background indexing for improved code search"
         )
 
