@@ -20,6 +20,7 @@ from typing import Any, Dict, List
 
 import click
 
+from claude_mpm.services.delegation_detector import get_delegation_detector
 from claude_mpm.services.event_log import get_event_log
 
 
@@ -63,8 +64,45 @@ def format_error_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def format_delegation_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
+    """Convert event log delegation event to todo format compatible with PM TodoWrite.
+
+    Args:
+        event: Event from event log with payload containing delegation details
+
+    Returns:
+        Dictionary with todo fields (content, activeForm, status)
+    """
+    payload = event.get("payload", {})
+    pattern_type = payload.get("pattern_type", "Task")
+    suggested_todo = payload.get("suggested_todo", "")
+    action = payload.get("action", "")
+    original_text = payload.get("original_text", "")
+
+    # Create concise todo content
+    content = f"[Delegation] {suggested_todo}"
+
+    # Active form for in-progress display
+    active_form = f"Delegating: {action[:30]}..."
+
+    return {
+        "content": content,
+        "activeForm": active_form,
+        "status": "pending",
+        "metadata": {
+            "event_id": event.get("id", ""),
+            "event_type": event.get("event_type", ""),
+            "pattern_type": pattern_type,
+            "suggested_todo": suggested_todo,
+            "action": action,
+            "original_text": original_text,
+            "timestamp": event.get("timestamp", ""),
+        },
+    }
+
+
 def get_autotodos() -> List[Dict[str, Any]]:
-    """Get all pending hook error events formatted as todos.
+    """Get all pending hook error and delegation events formatted as todos.
 
     Returns:
         List of todo dictionaries ready for PM injection
@@ -73,12 +111,21 @@ def get_autotodos() -> List[Dict[str, Any]]:
     todos = []
 
     # Get all pending autotodo.error events
-    pending_events = event_log.list_events(
+    pending_error_events = event_log.list_events(
         event_type="autotodo.error", status="pending"
     )
 
-    for event in pending_events:
+    for event in pending_error_events:
         todo = format_error_event_as_todo(event)
+        todos.append(todo)
+
+    # Get all pending autotodo.delegation events
+    pending_delegation_events = event_log.list_events(
+        event_type="autotodo.delegation", status="pending"
+    )
+
+    for event in pending_delegation_events:
+        todo = format_delegation_event_as_todo(event)
         todos.append(todo)
 
     return todos
@@ -236,21 +283,29 @@ def inject_autotodos(output):
     help="Clear specific event by ID",
 )
 @click.option(
+    "--event-type",
+    type=click.Choice(["error", "delegation", "all"], case_sensitive=False),
+    default="all",
+    help="Type of events to clear (default: all)",
+)
+@click.option(
     "--yes",
     "-y",
     is_flag=True,
     help="Skip confirmation prompt",
 )
-def clear_autotodos(event_id, yes):
-    """Clear hook errors after resolution.
+def clear_autotodos(event_id, event_type, yes):
+    """Clear hook errors and delegation events after resolution.
 
-    This marks resolved errors in the event log, removing them from
+    This marks resolved events in the event log, removing them from
     the autotodos list.
 
     Examples:
-        claude-mpm autotodos clear                 # Clear all pending
-        claude-mpm autotodos clear --event-id ID   # Clear specific event
-        claude-mpm autotodos clear -y              # Skip confirmation
+        claude-mpm autotodos clear                        # Clear all pending
+        claude-mpm autotodos clear --event-type error     # Clear only errors
+        claude-mpm autotodos clear --event-type delegation # Clear only delegation
+        claude-mpm autotodos clear --event-id ID          # Clear specific event
+        claude-mpm autotodos clear -y                     # Skip confirmation
     """
     event_log = get_event_log()
 
@@ -268,25 +323,140 @@ def clear_autotodos(event_id, yes):
         else:
             click.echo(f"❌ Event not found: {event_id}")
     else:
-        # Clear all pending autotodo.error events
-        pending_events = event_log.list_events(
-            event_type="autotodo.error", status="pending"
-        )
-        count = len(pending_events)
+        # Determine which event types to clear
+        if event_type == "error":
+            event_types = ["autotodo.error"]
+        elif event_type == "delegation":
+            event_types = ["autotodo.delegation"]
+        else:  # all
+            event_types = ["autotodo.error", "autotodo.delegation"]
 
-        if count == 0:
+        # Count pending events
+        total_count = 0
+        for et in event_types:
+            pending = event_log.list_events(event_type=et, status="pending")
+            total_count += len(pending)
+
+        if total_count == 0:
             click.echo("No pending events to clear.")
             return
 
         if not yes:
-            message = f"Clear all {count} pending event(s)?"
+            message = f"Clear all {total_count} pending event(s)?"
             if not click.confirm(message):
                 click.echo("Cancelled.")
                 return
 
         # Mark all as resolved
-        cleared = event_log.mark_all_resolved(event_type="autotodo.error")
-        click.echo(f"✅ Cleared {cleared} event(s).")
+        total_cleared = 0
+        for et in event_types:
+            cleared = event_log.mark_all_resolved(event_type=et)
+            total_cleared += cleared
+
+        click.echo(f"✅ Cleared {total_cleared} event(s).")
+
+
+@autotodos_group.command(name="scan")
+@click.argument("text", required=False)
+@click.option(
+    "--file",
+    "-f",
+    type=click.Path(exists=True),
+    help="Scan text from file instead of argument",
+)
+@click.option(
+    "--format",
+    type=click.Choice(["table", "json"], case_sensitive=False),
+    default="table",
+    help="Output format (table or json)",
+)
+@click.option(
+    "--save",
+    is_flag=True,
+    help="Save detections to event log as autotodos",
+)
+def scan_delegation_patterns(text, file, format, save):
+    """Scan text for delegation anti-patterns.
+
+    Detects when PM asks user to do something manually instead of
+    delegating to an agent. Helps enforce the delegation principle.
+
+    Examples:
+        claude-mpm autotodos scan "Make sure .env.local is in .gitignore"
+        claude-mpm autotodos scan -f response.txt
+        claude-mpm autotodos scan -f response.txt --save
+        echo "You'll need to run npm install" | claude-mpm autotodos scan
+    """
+    detector = get_delegation_detector()
+
+    # Read text from file, argument, or stdin
+    if file:
+        text = Path(file).read_text()
+    elif not text:
+        # Read from stdin
+        import sys
+
+        text = sys.stdin.read()
+
+    if not text or not text.strip():
+        click.echo("Error: No text provided to scan.", err=True)
+        click.echo("\nUsage:", err=True)
+        click.echo("  claude-mpm autotodos scan 'text to scan'", err=True)
+        click.echo("  claude-mpm autotodos scan -f file.txt", err=True)
+        click.echo("  echo 'text' | claude-mpm autotodos scan", err=True)
+        return
+
+    # Detect delegation patterns
+    detections = detector.detect_user_delegation(text)
+
+    if not detections:
+        click.echo("✅ No delegation anti-patterns detected!")
+        return
+
+    # Save to event log if requested
+    if save:
+        event_log = get_event_log()
+        for detection in detections:
+            # Format as event payload
+            payload = {
+                "pattern_type": detection["pattern_type"],
+                "original_text": detection["original_text"],
+                "suggested_todo": detection["suggested_todo"],
+                "action": detection["action"],
+                "source": "delegation_detector",
+            }
+            event_log.append_event(
+                event_type="autotodo.delegation", payload=payload, status="pending"
+            )
+        click.echo(f"\n✅ Saved {len(detections)} detection(s) to event log")
+
+    # Output results
+    if format == "json":
+        # JSON output for programmatic use
+        click.echo(json.dumps(detections, indent=2))
+    else:
+        # Table output for human readability
+        click.echo("\n" + "=" * 80)
+        click.echo("Delegation Anti-Patterns Detected")
+        click.echo("=" * 80)
+        click.echo(
+            "\n⚠️  PM is asking user to do these manually instead of delegating:\n"
+        )
+
+        for i, detection in enumerate(detections, 1):
+            click.echo(f"{i}. Pattern: {detection['pattern_type']}")
+            click.echo(f"   Original: \"{detection['original_text']}\"")
+            click.echo(f"   Suggested Todo: {detection['suggested_todo']}")
+            click.echo(f"   Action: {detection['action']}")
+            click.echo()
+
+        click.echo("=" * 80)
+        click.echo(f"Total: {len(detections)} anti-pattern(s) detected")
+        click.echo("\n💡 Tip: PM should delegate these tasks to appropriate agents")
+        click.echo("   instead of asking the user to do them manually.")
+
+        if not save:
+            click.echo("\n   Use --save to add these as autotodos for PM to see.")
 
 
 # Register the command group

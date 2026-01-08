@@ -610,19 +610,24 @@ def create_parser(
         # Add autotodos command for auto-generating todos from hook errors
         autotodos_parser = subparsers.add_parser(
             "autotodos",
-            help="Auto-generate todos from hook errors",
+            help="Auto-generate todos from hook errors and delegation patterns",
         )
         autotodos_parser.add_argument(
             "autotodos_command",
             nargs="?",
-            choices=["list", "inject", "clear", "status"],
+            choices=["list", "inject", "clear", "status", "scan"],
             help="AutoTodos subcommand",
+        )
+        autotodos_parser.add_argument(
+            "text",
+            nargs="?",
+            help="Text to scan for delegation patterns (scan command only)",
         )
         autotodos_parser.add_argument(
             "--format",
             choices=["table", "json"],
             default="table",
-            help="Output format for list command",
+            help="Output format for list/scan commands",
         )
         autotodos_parser.add_argument(
             "--output",
@@ -631,6 +636,22 @@ def create_parser(
         autotodos_parser.add_argument(
             "--error-key",
             help="Specific error key to clear",
+        )
+        autotodos_parser.add_argument(
+            "--event-type",
+            choices=["error", "delegation", "all"],
+            default="all",
+            help="Type of events to clear (clear command only)",
+        )
+        autotodos_parser.add_argument(
+            "--file",
+            "-f",
+            help="Scan text from file (scan command only)",
+        )
+        autotodos_parser.add_argument(
+            "--save",
+            action="store_true",
+            help="Save detections to event log (scan command only)",
         )
         autotodos_parser.add_argument(
             "-y",

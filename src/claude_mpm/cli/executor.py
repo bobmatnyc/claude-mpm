@@ -244,6 +244,7 @@ def execute_command(command: str, args) -> int:
             clear_autotodos,
             inject_autotodos,
             list_autotodos,
+            scan_delegation_patterns,
             show_autotodos_status,
         )
 
@@ -258,6 +259,7 @@ def execute_command(command: str, args) -> int:
             "inject": inject_autotodos,
             "clear": clear_autotodos,
             "status": show_autotodos_status,
+            "scan": scan_delegation_patterns,
         }
 
         # Get handler and call it with standalone_mode=False
@@ -276,11 +278,29 @@ def execute_command(command: str, args) -> int:
                         click_args = ["--output", output]
                 elif subcommand == "clear":
                     error_key = getattr(args, "error_key", None)
+                    event_type = getattr(args, "event_type", "all")
                     if error_key:
                         click_args.append("--error-key")
                         click_args.append(error_key)
+                    if event_type != "all":
+                        click_args.append("--event-type")
+                        click_args.append(event_type)
                     if getattr(args, "yes", False):
                         click_args.append("-y")
+                elif subcommand == "scan":
+                    text = getattr(args, "text", None)
+                    file = getattr(args, "file", None)
+                    fmt = getattr(args, "format", "table")
+                    save = getattr(args, "save", False)
+
+                    if text:
+                        click_args.append(text)
+                    if file:
+                        click_args.extend(["--file", file])
+                    if fmt != "table":
+                        click_args.extend(["--format", fmt])
+                    if save:
+                        click_args.append("--save")
 
                 # Call Click command with argument list and standalone_mode=False
                 handler(click_args, standalone_mode=False)
