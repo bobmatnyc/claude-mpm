@@ -364,6 +364,23 @@
 ### Changed
 - **Version**: Patch version bump for release
 
+## v5.4.96 (2026-01-07)
+
+### Feat
+
+- **autotodos**: wire delegation detector into hook pipeline
+- **autotodos**: add delegation pattern detector
+- **autotodos**: add POC for error-to-todo injection system
+
+### Fix
+
+- **autotodos**: correct event type model
+- sync pyproject.toml version to 5.4.95
+
+### Refactor
+
+- **autotodos**: use event-driven architecture
+
 ## v5.4.95 (2026-01-07)
 
 ### Fix
