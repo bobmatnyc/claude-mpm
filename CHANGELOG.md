@@ -364,6 +364,13 @@
 ### Changed
 - **Version**: Patch version bump for release
 
+## v5.4.95 (2026-01-07)
+
+### Fix
+
+- **release**: use twine instead of uv for PyPI publishing
+- sync pyproject.toml version to 5.4.94
+
 ## v5.4.94 (2026-01-07)
 
 ### Fix
