@@ -272,9 +272,9 @@ class TestWebQAMCPPrioritization:
         metric.measure(test_case)
         availability_metric.measure(test_case)
         assert metric.is_successful(), f"Tool prioritization failed: {metric.reason}"
-        assert (
-            availability_metric.is_successful()
-        ), f"Tool availability failed: {availability_metric.reason}"
+        assert availability_metric.is_successful(), (
+            f"Tool availability failed: {availability_metric.reason}"
+        )
 
     def test_snapshot_over_screenshot_priority(self):
         """
@@ -363,9 +363,9 @@ class TestWebQAMCPPrioritization:
         metric.measure(test_case)
         availability_metric.measure(test_case)
         assert metric.is_successful(), f"Tool prioritization failed: {metric.reason}"
-        assert (
-            availability_metric.is_successful()
-        ), f"Tool availability failed: {availability_metric.reason}"
+        assert availability_metric.is_successful(), (
+            f"Tool availability failed: {availability_metric.reason}"
+        )
 
     def _generate_expected_response(self, scenario: Dict[str, Any]) -> str:
         """
