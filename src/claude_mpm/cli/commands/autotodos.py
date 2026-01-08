@@ -102,7 +102,11 @@ def format_delegation_event_as_todo(event: Dict[str, Any]) -> Dict[str, str]:
 
 
 def get_autotodos() -> List[Dict[str, Any]]:
-    """Get all pending hook error and delegation events formatted as todos.
+    """Get all pending hook error events formatted as todos.
+
+    DESIGN DECISION: Only autotodo.error events are returned
+    - autotodo.error = Script/coding failures → PM should delegate fix
+    - pm.violation = Delegation anti-patterns → PM behavior error (not todo)
 
     Returns:
         List of todo dictionaries ready for PM injection
@@ -110,22 +114,13 @@ def get_autotodos() -> List[Dict[str, Any]]:
     event_log = get_event_log()
     todos = []
 
-    # Get all pending autotodo.error events
+    # Get all pending autotodo.error events (script failures)
     pending_error_events = event_log.list_events(
         event_type="autotodo.error", status="pending"
     )
 
     for event in pending_error_events:
         todo = format_error_event_as_todo(event)
-        todos.append(todo)
-
-    # Get all pending autotodo.delegation events
-    pending_delegation_events = event_log.list_events(
-        event_type="autotodo.delegation", status="pending"
-    )
-
-    for event in pending_delegation_events:
-        todo = format_delegation_event_as_todo(event)
         todos.append(todo)
 
     return todos
@@ -147,7 +142,7 @@ def autotodos_group():
 def show_autotodos_status():
     """Show autotodos status and statistics.
 
-    Quick overview of pending hook errors and autotodos.
+    Quick overview of pending hook errors, PM violations, and autotodos.
 
     Example:
         claude-mpm autotodos status
@@ -155,13 +150,15 @@ def show_autotodos_status():
     event_log = get_event_log()
     stats = event_log.get_stats()
     todos = get_autotodos()
+    violations = event_log.list_events(event_type="pm.violation", status="pending")
 
     click.echo("\n📊 AutoTodos Status")
     click.echo("=" * 80)
 
     click.echo(f"Total Events: {stats['total_events']}")
-    click.echo(f"Pending Todos: {len(todos)}")
-    click.echo(f"Pending Events: {stats['by_status']['pending']}")
+    click.echo(f"Pending Todos (script errors): {len(todos)}")
+    click.echo(f"Pending Violations (PM errors): {len(violations)}")
+    click.echo(f"Total Pending Events: {stats['by_status']['pending']}")
     click.echo(f"Resolved Events: {stats['by_status']['resolved']}")
 
     if stats.get("by_type"):
@@ -171,15 +168,21 @@ def show_autotodos_status():
 
     click.echo(f"\n📁 Event Log: {stats['log_file']}")
 
-    if todos:
+    if todos or violations:
         click.echo("\n⚠️  Action Required:")
-        click.echo(f"   {len(todos)} hook error(s) need attention")
+        if todos:
+            click.echo(f"   {len(todos)} script error(s) need delegation")
+        if violations:
+            click.echo(f"   {len(violations)} PM violation(s) need correction")
         click.echo("\nCommands:")
-        click.echo("  claude-mpm autotodos list      # View pending todos")
-        click.echo("  claude-mpm autotodos inject    # Inject into PM session")
-        click.echo("  claude-mpm autotodos clear     # Clear after resolution")
+        click.echo(
+            "  claude-mpm autotodos list         # View pending todos (script errors)"
+        )
+        click.echo("  claude-mpm autotodos violations   # View PM violations")
+        click.echo("  claude-mpm autotodos inject       # Inject todos into PM session")
+        click.echo("  claude-mpm autotodos clear        # Clear after resolution")
     else:
-        click.echo("\n✅ No pending todos. All hook errors are resolved!")
+        click.echo("\n✅ No pending todos or violations. All clear!")
 
 
 @autotodos_group.command(name="list")
@@ -284,7 +287,7 @@ def inject_autotodos(output):
 )
 @click.option(
     "--event-type",
-    type=click.Choice(["error", "delegation", "all"], case_sensitive=False),
+    type=click.Choice(["error", "violation", "all"], case_sensitive=False),
     default="all",
     help="Type of events to clear (default: all)",
 )
@@ -295,15 +298,15 @@ def inject_autotodos(output):
     help="Skip confirmation prompt",
 )
 def clear_autotodos(event_id, event_type, yes):
-    """Clear hook errors and delegation events after resolution.
+    """Clear hook errors and PM violations after resolution.
 
     This marks resolved events in the event log, removing them from
-    the autotodos list.
+    the autotodos and violations lists.
 
     Examples:
         claude-mpm autotodos clear                        # Clear all pending
         claude-mpm autotodos clear --event-type error     # Clear only errors
-        claude-mpm autotodos clear --event-type delegation # Clear only delegation
+        claude-mpm autotodos clear --event-type violation # Clear only violations
         claude-mpm autotodos clear --event-id ID          # Clear specific event
         claude-mpm autotodos clear -y                     # Skip confirmation
     """
@@ -326,10 +329,10 @@ def clear_autotodos(event_id, event_type, yes):
         # Determine which event types to clear
         if event_type == "error":
             event_types = ["autotodo.error"]
-        elif event_type == "delegation":
-            event_types = ["autotodo.delegation"]
+        elif event_type == "violation":
+            event_types = ["pm.violation"]
         else:  # all
-            event_types = ["autotodo.error", "autotodo.delegation"]
+            event_types = ["autotodo.error", "pm.violation"]
 
         # Count pending events
         total_count = 0
@@ -356,6 +359,57 @@ def clear_autotodos(event_id, event_type, yes):
         click.echo(f"✅ Cleared {total_cleared} event(s).")
 
 
+@autotodos_group.command(name="violations")
+@click.option(
+    "--format",
+    type=click.Choice(["table", "json"], case_sensitive=False),
+    default="table",
+    help="Output format (table or json)",
+)
+def list_pm_violations(format):
+    """List PM delegation violations.
+
+    Shows instances where PM asked user to do something manually
+    instead of delegating to an agent. These are PM behavior errors
+    that should be corrected, not todos to delegate.
+
+    Examples:
+        claude-mpm autotodos violations
+        claude-mpm autotodos violations --format json
+    """
+    event_log = get_event_log()
+    violations = event_log.list_events(event_type="pm.violation", status="pending")
+
+    if not violations:
+        click.echo("✅ No PM violations detected. All delegation patterns are correct!")
+        return
+
+    if format == "json":
+        # JSON output for programmatic use
+        click.echo(json.dumps(violations, indent=2))
+    else:
+        # Table output for human readability
+        click.echo("\n" + "=" * 80)
+        click.echo("PM Delegation Violations")
+        click.echo("=" * 80)
+        click.echo("\n⚠️  PM asked user to do these manually instead of delegating:\n")
+
+        for i, violation in enumerate(violations, 1):
+            payload = violation.get("payload", {})
+            click.echo(f"{i}. Pattern: {payload.get('pattern_type', 'Unknown')}")
+            click.echo(f"   Original: \"{payload.get('original_text', '')}\"")
+            click.echo(f"   Should delegate: {payload.get('suggested_action', '')}")
+            click.echo(f"   Severity: {payload.get('severity', 'unknown')}")
+            click.echo(f"   Timestamp: {violation.get('timestamp', 'Unknown')}")
+            click.echo()
+
+        click.echo("=" * 80)
+        click.echo(f"Total: {len(violations)} violation(s) detected")
+        click.echo("\n💡 These are PM behavior errors - PM should delegate these tasks")
+        click.echo("   to appropriate agents instead of asking user to do them.")
+        click.echo("\nTo clear: claude-mpm autotodos clear --event-type violation")
+
+
 @autotodos_group.command(name="scan")
 @click.argument("text", required=False)
 @click.option(
@@ -373,7 +427,7 @@ def clear_autotodos(event_id, event_type, yes):
 @click.option(
     "--save",
     is_flag=True,
-    help="Save detections to event log as autotodos",
+    help="Save detections to event log as PM violations",
 )
 def scan_delegation_patterns(text, file, format, save):
     """Scan text for delegation anti-patterns.
@@ -417,18 +471,21 @@ def scan_delegation_patterns(text, file, format, save):
     if save:
         event_log = get_event_log()
         for detection in detections:
-            # Format as event payload
+            # Format as PM violation payload
             payload = {
+                "violation_type": "delegation_anti_pattern",
                 "pattern_type": detection["pattern_type"],
                 "original_text": detection["original_text"],
-                "suggested_todo": detection["suggested_todo"],
+                "suggested_action": detection["suggested_todo"],
                 "action": detection["action"],
                 "source": "delegation_detector",
+                "severity": "warning",
+                "message": f"PM asked user to do something manually: {detection['original_text'][:80]}...",
             }
             event_log.append_event(
-                event_type="autotodo.delegation", payload=payload, status="pending"
+                event_type="pm.violation", payload=payload, status="pending"
             )
-        click.echo(f"\n✅ Saved {len(detections)} detection(s) to event log")
+        click.echo(f"\n✅ Saved {len(detections)} violation(s) to event log")
 
     # Output results
     if format == "json":

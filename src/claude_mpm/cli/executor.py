@@ -244,6 +244,7 @@ def execute_command(command: str, args) -> int:
             clear_autotodos,
             inject_autotodos,
             list_autotodos,
+            list_pm_violations,
             scan_delegation_patterns,
             show_autotodos_status,
         )
@@ -260,6 +261,7 @@ def execute_command(command: str, args) -> int:
             "clear": clear_autotodos,
             "status": show_autotodos_status,
             "scan": scan_delegation_patterns,
+            "violations": list_pm_violations,
         }
 
         # Get handler and call it with standalone_mode=False
@@ -301,6 +303,10 @@ def execute_command(command: str, args) -> int:
                         click_args.extend(["--format", fmt])
                     if save:
                         click_args.append("--save")
+                elif subcommand == "violations":
+                    fmt = getattr(args, "format", "table")
+                    if fmt != "table":
+                        click_args.extend(["--format", fmt])
 
                 # Call Click command with argument list and standalone_mode=False
                 handler(click_args, standalone_mode=False)

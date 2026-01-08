@@ -1026,7 +1026,7 @@ class EventHandlers:
 
         WHY this is needed:
         - Detect when PM asks user to do something manually instead of delegating
-        - Convert manual instructions into actionable autotodos
+        - Flag PM behavior violations for immediate correction
         - Enforce delegation principle in PM workflow
         - Help PM recognize delegation opportunities
 
@@ -1035,8 +1035,12 @@ class EventHandlers:
         - "You'll need to run npm install"
         - "Please run the tests manually"
 
-        When patterns are detected, autotodos are created in the event log
-        so PM can see them and delegate properly.
+        When patterns are detected, PM violations are logged as errors/warnings
+        that should be corrected immediately, NOT as todos to delegate.
+
+        DESIGN DECISION: pm.violation vs autotodo.delegation
+        - Delegation patterns = PM doing something WRONG → pm.violation (error)
+        - Script failures = Something BROKEN → autotodo.error (todo)
         """
         # Only scan if delegation detector is available
         try:
@@ -1060,31 +1064,30 @@ class EventHandlers:
         if not detections:
             return  # No patterns detected
 
-        # Get event log for autotodo creation
+        # Get event log for violation recording
         event_log = get_event_log()
 
-        # Create autotodos for each detection
+        # Create PM violation events (NOT autotodos)
         for detection in detections:
-            # Format as autotodo
-            autotodo = detector.format_as_autotodo(detection)
-
-            # Create event log entry
+            # Create event log entry as pm.violation
             event_log.append_event(
-                event_type="autotodo.delegation",
+                event_type="pm.violation",
                 payload={
-                    "content": autotodo["content"],
-                    "activeForm": autotodo["activeForm"],
-                    "metadata": autotodo["metadata"],
+                    "violation_type": "delegation_anti_pattern",
+                    "pattern_type": detection["pattern_type"],
                     "original_text": detection["original_text"],
-                    "suggested_todo": detection["suggested_todo"],
+                    "suggested_action": detection["suggested_todo"],
+                    "action": detection["action"],
                     "session_id": event.get("session_id", ""),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "severity": "warning",  # Not critical, but should be fixed
+                    "message": f"PM asked user to do something manually: {detection['original_text'][:80]}...",
                 },
                 status="pending",
             )
 
             if DEBUG:
                 print(
-                    f"📋 Created delegation autotodo: {autotodo['content'][:60]}...",
+                    f"⚠️  PM violation detected: {detection['original_text'][:60]}...",
                     file=sys.stderr,
                 )

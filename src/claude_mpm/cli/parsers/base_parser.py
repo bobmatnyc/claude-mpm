@@ -615,7 +615,7 @@ def create_parser(
         autotodos_parser.add_argument(
             "autotodos_command",
             nargs="?",
-            choices=["list", "inject", "clear", "status", "scan"],
+            choices=["list", "inject", "clear", "status", "scan", "violations"],
             help="AutoTodos subcommand",
         )
         autotodos_parser.add_argument(
@@ -639,7 +639,7 @@ def create_parser(
         )
         autotodos_parser.add_argument(
             "--event-type",
-            choices=["error", "delegation", "all"],
+            choices=["error", "violation", "all"],
             default="all",
             help="Type of events to clear (clear command only)",
         )
