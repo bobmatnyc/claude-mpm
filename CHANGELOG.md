@@ -12,6 +12,11 @@
 
 ### Fixed
 
+## [5.4.97] - 2026-01-08
+
+### Fixed
+- **Hook Connection Manager**: Removed async emission path to fix "Event loop is closed" errors
+
 ## [5.4.93] - 2026-01-07
 
 ### Fixed
