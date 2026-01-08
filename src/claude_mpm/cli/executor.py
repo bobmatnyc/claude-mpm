@@ -237,6 +237,66 @@ def execute_command(command: str, args) -> int:
             print(f"Unknown hook-errors subcommand: {subcommand}")
             return 1
 
+    # Handle autotodos command with lazy import
+    if command == "autotodos":
+        # Lazy import to avoid loading unless needed
+        from .commands.autotodos import (
+            clear_autotodos,
+            inject_autotodos,
+            list_autotodos,
+            show_autotodos_status,
+        )
+
+        # Get subcommand
+        subcommand = getattr(args, "autotodos_command", "status")
+        if not subcommand:
+            subcommand = "status"
+
+        # Map subcommands to functions
+        handlers = {
+            "list": list_autotodos,
+            "inject": inject_autotodos,
+            "clear": clear_autotodos,
+            "status": show_autotodos_status,
+        }
+
+        # Get handler and call it with standalone_mode=False
+        handler = handlers.get(subcommand)
+        if handler:
+            try:
+                # Build argument list for Click command
+                click_args = []
+
+                if subcommand == "list":
+                    fmt = getattr(args, "format", "table")
+                    click_args = ["--format", fmt]
+                elif subcommand == "inject":
+                    output = getattr(args, "output", None)
+                    if output:
+                        click_args = ["--output", output]
+                elif subcommand == "clear":
+                    error_key = getattr(args, "error_key", None)
+                    if error_key:
+                        click_args.append("--error-key")
+                        click_args.append(error_key)
+                    if getattr(args, "yes", False):
+                        click_args.append("-y")
+
+                # Call Click command with argument list and standalone_mode=False
+                handler(click_args, standalone_mode=False)
+                return 0
+            except SystemExit as e:
+                return e.code if e.code is not None else 0
+            except Exception as e:
+                print(f"Error: {e}")
+                import traceback
+
+                traceback.print_exc()
+                return 1
+        else:
+            print(f"Unknown autotodos subcommand: {subcommand}")
+            return 1
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
@@ -287,6 +347,8 @@ def execute_command(command: str, args) -> int:
         "local-deploy",
         "skill-source",
         "agent-source",
+        "hook-errors",
+        "autotodos",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

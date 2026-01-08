@@ -125,7 +125,7 @@ def _get_enhanced_version(base_version: str) -> str:
 
         if enhanced and enhanced != base_version:
             return enhanced
-    except Exception:
+    except Exception:  # nosec B110
         # If anything fails, fall back to base version
         pass
 
@@ -601,6 +601,38 @@ def create_parser(
             help="Filter by specific hook type",
         )
         hook_errors_parser.add_argument(
+            "-y",
+            "--yes",
+            action="store_true",
+            help="Skip confirmation prompts",
+        )
+
+        # Add autotodos command for auto-generating todos from hook errors
+        autotodos_parser = subparsers.add_parser(
+            "autotodos",
+            help="Auto-generate todos from hook errors",
+        )
+        autotodos_parser.add_argument(
+            "autotodos_command",
+            nargs="?",
+            choices=["list", "inject", "clear", "status"],
+            help="AutoTodos subcommand",
+        )
+        autotodos_parser.add_argument(
+            "--format",
+            choices=["table", "json"],
+            default="table",
+            help="Output format for list command",
+        )
+        autotodos_parser.add_argument(
+            "--output",
+            help="Output file path for inject command",
+        )
+        autotodos_parser.add_argument(
+            "--error-key",
+            help="Specific error key to clear",
+        )
+        autotodos_parser.add_argument(
             "-y",
             "--yes",
             action="store_true",
