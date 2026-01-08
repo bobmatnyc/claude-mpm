@@ -1011,7 +1011,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 		if [ -f .env.local ]; then \
 			set -a && . .env.local && set +a; \
 		fi; \
-		uv publish dist/*; \
+		twine upload dist/*; \
 		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
 	else \
 		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
@@ -1041,7 +1041,7 @@ release-publish: ## Publish release to PyPI, npm, Homebrew, and GitHub
 release-test-pypi: release-build ## Publish to TestPyPI for testing
 	@echo "$(YELLOW)🧪 Publishing to TestPyPI...$(NC)"
 	@if command -v uv >/dev/null 2>&1; then \
-		uv publish --publish-url https://test.pypi.org/legacy/ dist/*; \
+		twine upload --repository testpypi dist/*; \
 		echo "$(GREEN)✓ Published to TestPyPI$(NC)"; \
 	else \
 		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
@@ -1109,7 +1109,7 @@ release-publish-current: ## Publish current built version
 	fi
 	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
 	@if command -v uv >/dev/null 2>&1; then \
-		uv publish dist/*; \
+		twine upload dist/*; \
 		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
 	else \
 		echo "$(RED)✗ uv not found. Install with: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
