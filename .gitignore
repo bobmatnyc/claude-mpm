@@ -365,3 +365,4 @@ ccusage.json
 # Database backups (added 2026-01-07 cleanup)
 kuzu-memories/memories.db_backup_*
 src/claude_mpm/dashboard/static/svelte-build/_app/immutable/chunks/DPSjPKH7.js:1: pragma: allowlist secret
+chunk-graph.json
