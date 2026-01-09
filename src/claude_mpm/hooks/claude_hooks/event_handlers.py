@@ -965,6 +965,8 @@ class EventHandlers:
 
         # Auto-inject pending autotodos if enabled
         try:
+            from pathlib import Path
+
             from claude_mpm.cli.commands.autotodos import get_pending_todos
             from claude_mpm.core.config import Config
 
@@ -973,7 +975,14 @@ class EventHandlers:
             max_todos = config.get("autotodos.max_todos_per_session", 10)
 
             if auto_inject_enabled:
-                pending_todos = get_pending_todos(max_todos=max_todos)
+                # Pass working directory from event to avoid Path.cwd() issues
+                working_dir_param = None
+                if working_dir:
+                    working_dir_param = Path(working_dir)
+
+                pending_todos = get_pending_todos(
+                    max_todos=max_todos, working_dir=working_dir_param
+                )
                 if pending_todos:
                     session_start_data["pending_autotodos"] = pending_todos
                     session_start_data["autotodos_count"] = len(pending_todos)

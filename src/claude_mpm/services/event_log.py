@@ -310,8 +310,16 @@ def get_event_log(log_file: Optional[Path] = None) -> EventLog:
 
     Returns:
         EventLog instance
+
+    Note:
+        If log_file is provided and differs from the current instance,
+        a new EventLog is created and replaces the global instance.
+        This allows hooks to use project-specific event logs.
     """
     global _event_log
     if _event_log is None:
+        _event_log = EventLog(log_file)
+    elif log_file is not None and _event_log.log_file != log_file:
+        # Create new instance if log file differs from current
         _event_log = EventLog(log_file)
     return _event_log

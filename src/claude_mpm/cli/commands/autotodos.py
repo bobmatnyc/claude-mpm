@@ -16,7 +16,7 @@ DESIGN DECISION: Event-driven architecture
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -129,7 +129,9 @@ def get_autotodos(max_todos: int = 100) -> List[Dict[str, Any]]:
     return todos
 
 
-def get_pending_todos(max_todos: int = 10) -> List[Dict[str, Any]]:
+def get_pending_todos(
+    max_todos: int = 10, working_dir: Optional[Path] = None
+) -> List[Dict[str, Any]]:
     """Get pending autotodo errors for injection.
 
     WHY this function exists:
@@ -139,11 +141,29 @@ def get_pending_todos(max_todos: int = 10) -> List[Dict[str, Any]]:
 
     Args:
         max_todos: Maximum number of todos to return (default: 10)
+        working_dir: Working directory to use for event log path (default: Path.cwd())
 
     Returns:
         List of todo dicts with content, activeForm, status, metadata
     """
-    return get_autotodos(max_todos=max_todos)
+    # Construct log file path from working_dir if provided
+    log_file = None
+    if working_dir:
+        log_file = Path(working_dir) / ".claude-mpm" / "event_log.json"
+
+    event_log = get_event_log(log_file)
+    todos = []
+
+    # Get all pending autotodo.error events (script failures)
+    pending_error_events = event_log.list_events(
+        event_type="autotodo.error", status="pending"
+    )
+
+    for event in pending_error_events[:max_todos]:
+        todo = format_error_event_as_todo(event)
+        todos.append(todo)
+
+    return todos
 
 
 @click.group(name="autotodos")
