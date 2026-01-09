@@ -66,7 +66,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "$SCRIPT_DIR" == *"/.local/share/uv/tools/"* ]]; then
     # UV tools installation - script is at lib/python*/site-packages/claude_mpm/scripts/
     # The tool root is what we need for Python detection
-    CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
+    CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages.*||')"
 # Check if we're in a pipx installation
 elif [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
     # pipx installation - script is at lib/python*/site-packages/claude_mpm/scripts/
@@ -133,7 +133,7 @@ find_python_command() {
     # 2. Check if we're in a UV tools installation
     if [[ "$SCRIPT_DIR" == *"/.local/share/uv/tools/"* ]]; then
         # UV tools installation - extract the tool root directory
-        CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
+        CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages.*||')"
         local uv_python="$CLAUDE_MPM_ROOT/bin/python"
         if [ -x "$uv_python" ]; then
             if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
