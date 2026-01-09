@@ -62,8 +62,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Determine the claude-mpm root based on installation type
+# Check if we're in a UV tools installation
+if [[ "$SCRIPT_DIR" == *"/.local/share/uv/tools/"* ]]; then
+    # UV tools installation - script is at lib/python*/site-packages/claude_mpm/scripts/
+    # The tool root is what we need for Python detection
+    CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
 # Check if we're in a pipx installation
-if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
+elif [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
     # pipx installation - script is at lib/python*/site-packages/claude_mpm/scripts/
     # The venv root is what we need for Python detection
     CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
@@ -89,11 +94,12 @@ fi
 # STRATEGY:
 # This function implements a fallback chain to find Python with claude-mpm dependencies:
 # 1. UV-managed projects (uv.lock detected) - uses "uv run python"
-# 2. pipx installations - uses pipx venv Python
-# 3. Project-specific virtual environments (venv, .venv)
-# 4. Currently active virtual environment ($VIRTUAL_ENV)
-# 5. System python3 (may lack dependencies)
-# 6. System python (last resort)
+# 2. UV tools installations (~/.local/share/uv/tools/) - uses tool's venv Python
+# 3. pipx installations - uses pipx venv Python
+# 4. Project-specific virtual environments (venv, .venv)
+# 5. Currently active virtual environment ($VIRTUAL_ENV)
+# 6. System python3 (may lack dependencies)
+# 7. System python (last resort)
 #
 # WHY THIS APPROACH:
 # - Claude MPM requires specific packages (socketio, eventlet) not in system Python
@@ -124,7 +130,21 @@ find_python_command() {
         fi
     fi
 
-    # 2. Check if we're in a pipx installation
+    # 2. Check if we're in a UV tools installation
+    if [[ "$SCRIPT_DIR" == *"/.local/share/uv/tools/"* ]]; then
+        # UV tools installation - extract the tool root directory
+        CLAUDE_MPM_ROOT="$(echo "$SCRIPT_DIR" | sed 's|/lib/python.*/site-packages/.*||')"
+        local uv_python="$CLAUDE_MPM_ROOT/bin/python"
+        if [ -x "$uv_python" ]; then
+            if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
+                echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] UV tools Python found: $uv_python" >> /tmp/claude-mpm-hook.log
+            fi
+            echo "$uv_python"
+            return
+        fi
+    fi
+
+    # 3. Check if we're in a pipx installation
     if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
         # pipx installation - use the pipx venv's Python directly
         if [ -f "$CLAUDE_MPM_ROOT/bin/python" ]; then
@@ -133,7 +153,7 @@ find_python_command() {
         fi
     fi
 
-    # 3. Check for project-local virtual environment (common in development)
+    # 4. Check for project-local virtual environment (common in development)
     if [ -f "$CLAUDE_MPM_ROOT/venv/bin/activate" ]; then
         source "$CLAUDE_MPM_ROOT/venv/bin/activate"
         echo "$CLAUDE_MPM_ROOT/venv/bin/python"
@@ -154,7 +174,13 @@ find_python_command() {
 PYTHON_CMD=$(find_python_command)
 
 # Check installation type and set PYTHONPATH accordingly
-if [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
+if [[ "$SCRIPT_DIR" == *"/.local/share/uv/tools/"* ]]; then
+    # UV tools installation - claude_mpm is already in the tool's site-packages
+    # No need to modify PYTHONPATH
+    if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
+        echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] UV tools installation detected" >> /tmp/claude-mpm-hook.log
+    fi
+elif [[ "$SCRIPT_DIR" == *"/.local/pipx/venvs/claude-mpm/"* ]]; then
     # pipx installation - claude_mpm is already in the venv's site-packages
     # No need to modify PYTHONPATH
     if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
