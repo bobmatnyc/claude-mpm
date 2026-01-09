@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.4.101] - 2026-01-09
+
+### Changed
+- Patch version bump for package publication
+
 ## [5.4.100] - 2026-01-08
 
 ### Changed
