@@ -108,8 +108,10 @@ class LoggerFactory:
         # Remove existing handlers
         root_logger.handlers = []
 
-        # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
+        # Console handler - MUST use stderr to avoid corrupting hook JSON output
+        # WHY stderr: Hook handlers output JSON to stdout. Logging to stdout
+        # corrupts this JSON and causes "hook error" messages from Claude Code.
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
         console_formatter = logging.Formatter(
             log_format or LoggingConfig.DEFAULT_FORMAT,

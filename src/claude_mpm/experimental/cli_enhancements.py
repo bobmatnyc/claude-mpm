@@ -58,8 +58,9 @@ class CLIContext:
             else "%(message)s"
         )
 
+        # MUST use stderr to avoid corrupting hook JSON output
         logging.basicConfig(
-            level=level, format=format_str, handlers=[logging.StreamHandler(sys.stdout)]
+            level=level, format=format_str, handlers=[logging.StreamHandler(sys.stderr)]
         )
         self.debug = debug
 

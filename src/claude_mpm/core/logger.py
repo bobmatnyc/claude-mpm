@@ -214,16 +214,19 @@ def setup_logging(
 
     # Console handler
     if console_output:
+        # MUST use stderr to avoid corrupting hook JSON output
+        # WHY stderr: Hook handlers output JSON to stdout. Logging to stdout
+        # corrupts this JSON and causes "hook error" messages from Claude Code.
         if use_streaming:
             # Use streaming handler for single-line INFO messages
-            console_handler = StreamingHandler(sys.stdout)
+            console_handler = StreamingHandler(sys.stderr)
             console_handler.setFormatter(simple_formatter)
         elif use_rich and not json_format:
             # Rich support has been removed, use standard handler
-            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setFormatter(simple_formatter)
         else:
-            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setFormatter(formatter if json_format else simple_formatter)
 
         console_handler.setLevel(logging.INFO)
@@ -263,7 +266,7 @@ def setup_logging(
                 if deleted_count > 0:
                     # Log to the new file handler that we're about to add
                     pass  # Deletion count will be logged when logger is ready
-            except Exception:
+            except Exception:  # nosec B110 - intentional: logging should not break app
                 pass  # Ignore cleanup errors
 
             # Also create a symlink to latest log (with thread safety)
@@ -305,7 +308,7 @@ def setup_logging(
                     # Fallback: try to create a regular file with reference to actual log
                     try:
                         latest_link.write_text(f"Latest log: {log_file.name}\n")
-                    except Exception:
+                    except Exception:  # nosec B110 - intentional: logging should not break app
                         pass  # Silently fail - logging should not break the application
                 except Exception as e:
                     # Catch any other unexpected errors to ensure logging doesn't break
@@ -381,7 +384,7 @@ def cleanup_old_mpm_logs(
             try:
                 log_file.unlink()
                 deleted_count += 1
-            except Exception:
+            except Exception:  # nosec B110 - intentional: log cleanup is best-effort
                 pass  # Ignore deletion errors
 
         return deleted_count
