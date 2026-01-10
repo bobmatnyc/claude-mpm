@@ -769,8 +769,8 @@ If version is 0006+, scope protection is active. No further configuration needed
 
 ## Related Documentation
 
-- **[PM Agent Instructions](../../src/claude_mpm/agents/PM_INSTRUCTIONS.md)** - Complete PM workflow reference
-- **[Ticketing Integration](../../src/claude_mpm/agents/templates/ticketing.json)** - Ticketing agent capabilities
+- **[PM Agent Instructions](../reference/pm-instructions.md)** - Complete PM workflow reference
+- **[Agent Capabilities Reference](../agents/agent-capabilities-reference.md)** - Ticketing agent capabilities
 - **[MCP Ticketer](https://github.com/bobmatnyc/mcp-ticketer)** - Ticketing system integration
 - **[Structured Questions](structured-questions.md)** - How PM asks scope validation questions
 

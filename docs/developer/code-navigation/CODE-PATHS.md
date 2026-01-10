@@ -222,7 +222,7 @@ CLAUDE_MPM_NO_HOOKS=1   # Disable hooks (debugging)
 |------|--------------|-----------------|
 | Add CLI command | `cli/commands/<name>.py` | `cli/parsers/<name>_parser.py` |
 | Add service | `services/<domain>/<name>.py` | `services/core/interfaces.py` |
-| Add agent | `agents/templates/<name>.json` | `agents/agents_metadata.py` |
+| Add agent | `.claude-mpm/agents/<name>.md` (project) or via agent sources | See [Agent Sources](../../user/agent-sources.md) |
 | Add hook | `hooks/<name>_hook.py` | `hooks/__init__.py` |
 | Add skill | `skills/bundled/<name>.md` | `skills/skills_registry.py` |
 | Modify DI | `core/container.py` | `services/core/interfaces.py` |
