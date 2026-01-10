@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.4.104] - 2026-01-10
+
+### Fixed
+- **Hook Error Fix**: Pass working_dir parameter to autotodos to fix hook errors
+
 ## [5.4.103] - 2026-01-10
 
 ### Changed
