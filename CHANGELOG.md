@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.4.105] - 2026-01-10
+
+### Fixed
+- **Logging Fix**: Fix stderr logging to use sys.stderr instead of sys.stdout
+
 ## [5.4.104] - 2026-01-10
 
 ### Fixed
