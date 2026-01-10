@@ -25,12 +25,16 @@ from typing import Any, Callable, Dict, List, Union
 PresetResolver = Union[List[str], Callable[[], List[str]]]
 
 # Core agents included in ALL presets (MIN and MAX)
+# Standard 6 core agents for essential PM workflow functionality
 CORE_AGENTS = [
     "claude-mpm/mpm-agent-manager",  # Agent lifecycle management
     "claude-mpm/mpm-skills-manager",  # Skills management
-    "universal/research",  # Codebase investigation
+    "engineer/core/engineer",  # General-purpose implementation
+    "universal/research",  # Codebase exploration and analysis
+    "qa/qa",  # Testing and quality assurance
     "documentation/documentation",  # Documentation generation
-    "engineer/core/engineer",  # General-purpose engineering
+    "ops/core/ops",  # Basic deployment operations
+    "documentation/ticketing",  # Ticket tracking (essential for PM workflow)
 ]
 
 PRESETS: Dict[str, Dict[str, Any]] = {
@@ -39,11 +43,7 @@ PRESETS: Dict[str, Dict[str, Any]] = {
     # ========================================
     "minimal": {
         "description": "Core agents only - universal starter kit",
-        "agents": CORE_AGENTS
-        + [
-            "qa/qa",
-            "ops/core/ops",
-        ],
+        "agents": CORE_AGENTS,  # All 8 core agents (no additional needed)
         "use_cases": ["Any project type", "Quick start", "Learning"],
     },
     # ========================================

@@ -30,16 +30,16 @@ class AgentRecommendationService:
     Can be used by CLI, API, or future auto-configuration features.
     """
 
-    # Core agents always included - matches ToolchainDetector.CORE_AGENTS
+    # Core agents always included - Standard 6 core agents for essential PM workflow
+    # These agents are auto-deployed when no configuration exists
     # Uses exact agent IDs from repository for consistency
     CORE_AGENTS = {
-        "engineer",
-        "qa-agent",
-        "memory-manager-agent",
-        "local-ops-agent",
-        "research-agent",
-        "documentation-agent",
-        "security-agent",
+        "engineer",  # General-purpose implementation
+        "research",  # Codebase exploration and analysis
+        "qa",  # Testing and quality assurance
+        "documentation",  # Documentation generation
+        "ops",  # Basic deployment operations
+        "ticketing",  # Ticket tracking (essential for PM workflow)
     }
 
     # Map detected languages to recommended engineer agents

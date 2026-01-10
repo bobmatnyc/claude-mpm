@@ -10,16 +10,36 @@ Loading precedence: Project → User → System
 
 This service integrates with the main agent_loader.py to provide
 markdown-based agent profiles alongside JSON-based templates.
+
+Auto-Deployment: When no agents are configured, the standard 6 core agents
+are automatically deployed:
+- engineer: General-purpose implementation
+- research: Codebase exploration and analysis
+- qa: Testing and quality assurance
+- documentation: Documentation generation
+- ops: Basic deployment operations
+- ticketing: Ticket tracking (essential for PM workflow)
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.agents.agent_loader import AgentTier, list_agents_by_tier
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 
 logger = get_logger(__name__)
+
+# Standard 6 core agents that are auto-deployed when no agents are specified
+# This list is the canonical source - other modules should import from here
+CORE_AGENTS: List[str] = [
+    "engineer",  # General-purpose implementation
+    "research",  # Codebase exploration and analysis
+    "qa",  # Testing and quality assurance
+    "documentation",  # Documentation generation
+    "ops",  # Basic deployment operations
+    "ticketing",  # Ticket tracking (essential for PM workflow)
+]
 
 
 class FrameworkAgentLoader:
@@ -86,7 +106,7 @@ class FrameworkAgentLoader:
                 data_claude = package_path / "data" / "agents" / "CLAUDE.md"
                 if data_instructions.exists() or data_claude.exists():
                     return package_path / "data"
-        except Exception:
+        except Exception:  # nosec B110 - intentional fallthrough to next location
             pass
 
         current = Path.cwd()
@@ -431,3 +451,56 @@ Please operate according to your profile specifications and maintain quality sta
 """
 
         return instruction.strip()
+
+    def get_core_agents(self) -> List[str]:
+        """
+        Get the standard 6 core agents for auto-deployment.
+
+        These agents are automatically deployed when no agents are specified
+        in the configuration. They provide essential PM workflow functionality.
+
+        Returns:
+            List of core agent IDs
+
+        Example:
+            >>> loader = FrameworkAgentLoader()
+            >>> core = loader.get_core_agents()
+            >>> 'engineer' in core
+            True
+            >>> len(core)
+            6
+        """
+        return CORE_AGENTS.copy()
+
+    def get_agents_with_fallback(self) -> Dict[str, list]:
+        """
+        Get available agents, falling back to core agents if none found.
+
+        This method implements the auto-deployment logic: when no agents
+        are found in any tier (project, user, system), it returns the
+        standard 6 core agents as a fallback.
+
+        Returns:
+            Dictionary with agent lists by tier. If no agents found in any tier,
+            returns core agents under 'fallback' key.
+
+        Example:
+            >>> loader = FrameworkAgentLoader()
+            >>> loader.initialize()
+            >>> agents = loader.get_agents_with_fallback()
+            >>> if 'fallback' in agents:
+            ...     print("Using core agents as fallback")
+        """
+        available = self.get_available_agents()
+
+        # Check if any agents are found
+        total_agents = sum(len(agents) for agents in available.values())
+
+        if total_agents == 0:
+            logger.info(
+                "No agents found in configuration. "
+                "Auto-deploying standard 6 core agents."
+            )
+            return {"fallback": CORE_AGENTS.copy()}
+
+        return available

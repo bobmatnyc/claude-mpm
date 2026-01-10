@@ -73,15 +73,18 @@ class AgentConfig(BaseModel):
     )
 
     # Required agents that are always deployed
+    # Standard 6 core agents for essential PM workflow functionality
+    # These are auto-deployed when no agents are specified in configuration
     required: List[str] = Field(
         default_factory=lambda: [
-            "research",
-            "mpm-skills-manager",
-            "mpm-agent-manager",
-            "memory-manager-agent",  # Specific agent ID (not generic "memory-manager")
-            "ticketing",
+            "engineer",  # General-purpose implementation
+            "research",  # Codebase exploration and analysis
+            "qa",  # Testing and quality assurance
+            "documentation",  # Documentation generation
+            "ops",  # Basic deployment operations
+            "ticketing",  # Ticket tracking (essential for PM workflow)
         ],
-        description="Agents that are always deployed (core system agents)",
+        description="Agents that are always deployed (standard 6 core agents)",
     )
 
     include_universal: bool = Field(

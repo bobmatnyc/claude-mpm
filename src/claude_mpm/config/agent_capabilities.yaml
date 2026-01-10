@@ -636,6 +636,7 @@ recommendation_rules:
 # ===================================
 # Fallback configuration when toolchain detection fails or returns "Unknown"
 # These agents provide a sensible baseline for projects with unrecognized toolchains
+# Standard 6 core agents that are auto-deployed when no agents are specified
 default_configuration:
   enabled: true
   description: "Default agents to deploy when toolchain cannot be detected"
@@ -645,14 +646,17 @@ default_configuration:
       reasoning: "General-purpose engineer for code implementation"
       priority: 1
     - agent_id: research
-      reasoning: "Code exploration and analysis"
+      reasoning: "Codebase exploration and analysis"
       priority: 2
     - agent_id: qa
       reasoning: "Testing and quality assurance"
       priority: 3
-    - agent_id: ops
-      reasoning: "Infrastructure and deployment operations"
-      priority: 4
     - agent_id: documentation
-      reasoning: "Documentation and technical writing"
+      reasoning: "Documentation generation"
+      priority: 4
+    - agent_id: ops
+      reasoning: "Basic deployment operations"
       priority: 5
+    - agent_id: ticketing
+      reasoning: "Ticket tracking (essential for PM workflow)"
+      priority: 6
