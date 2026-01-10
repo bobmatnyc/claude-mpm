@@ -206,27 +206,33 @@ def execute_command(command: str, args) -> int:
             "status": show_status,
         }
 
-        # Get handler and invoke
+        # Get handler and call it with argument list (same pattern as autotodos)
         handler = handlers.get(subcommand)
         if handler:
-            # Build Click context programmatically
-            import click
-
-            ctx = click.Context(command=handler)
-
-            # Prepare keyword arguments from args
-            kwargs = {}
-            if hasattr(args, "format"):
-                kwargs["format"] = args.format
-            if hasattr(args, "hook_type"):
-                kwargs["hook_type"] = args.hook_type
-            if hasattr(args, "yes"):
-                kwargs["yes"] = args.yes
-
             try:
-                # Invoke handler with arguments
-                with ctx:
-                    handler.invoke(ctx, **kwargs)
+                # Build argument list for Click command based on subcommand
+                click_args = []
+
+                # list command: --format, --hook-type
+                if subcommand == "list":
+                    if hasattr(args, "format") and args.format:
+                        click_args.extend(["--format", args.format])
+                    if hasattr(args, "hook_type") and args.hook_type:
+                        click_args.extend(["--hook-type", args.hook_type])
+                # clear command: --hook-type, -y
+                elif subcommand == "clear":
+                    if hasattr(args, "hook_type") and args.hook_type:
+                        click_args.extend(["--hook-type", args.hook_type])
+                    if hasattr(args, "yes") and args.yes:
+                        click_args.append("-y")
+                # diagnose command: hook_type (positional argument)
+                elif subcommand == "diagnose":
+                    if hasattr(args, "hook_type") and args.hook_type:
+                        click_args.append(args.hook_type)
+                # status and summary commands: no options
+
+                # Call Click command with argument list and standalone_mode=False
+                handler(click_args, standalone_mode=False)
                 return 0
             except SystemExit as e:
                 return e.code if e.code is not None else 0
