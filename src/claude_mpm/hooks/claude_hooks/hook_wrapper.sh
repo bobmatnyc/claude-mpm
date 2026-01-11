@@ -48,15 +48,10 @@ echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] PYTHONPATH: $PYTHONPATH" >> /tmp/hook
 echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Running: $PYTHON_CMD -m claude_mpm.hooks.claude_hooks.hook_handler" >> /tmp/hook-wrapper.log
 echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] SOCKETIO_PORT: $CLAUDE_MPM_SOCKETIO_PORT" >> /tmp/hook-wrapper.log
 
-# Run the Python hook handler as a module with error handling
-# Use exec to replace the shell process, but wrap in error handling
-if ! "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/hook-error.log; then
-    # If the Python handler fails, always return continue to not block Claude
-    echo '{"action": "continue"}'
-    # Log the error for debugging
-    echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/hook-error.log" >> /tmp/hook-wrapper.log
-    exit 0
-fi
+# Run the Python hook handler as a module
+# Python handler is responsible for ALL stdout output (including error fallback)
+# Redirect stderr to log file for debugging
+"$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/hook-error.log
 
-# Success - Python handler already printed continue, just exit
-exit 0
+# Exit with Python's exit code (should always be 0)
+exit $?

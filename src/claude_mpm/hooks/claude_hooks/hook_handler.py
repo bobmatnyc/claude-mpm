@@ -496,9 +496,12 @@ class ClaudeHookHandler:
         """
         if modified_input is not None:
             # Claude Code v2.0.30+ supports modifying PreToolUse tool inputs
-            print(json.dumps({"action": "continue", "tool_input": modified_input}))
+            print(
+                json.dumps({"action": "continue", "tool_input": modified_input}),
+                flush=True,
+            )
         else:
-            print(json.dumps({"action": "continue"}))
+            print(json.dumps({"action": "continue"}), flush=True)
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):
@@ -676,7 +679,7 @@ def main():
                 f"Skipping hook processing due to version incompatibility ({version})",
                 file=sys.stderr,
             )
-        print(json.dumps({"action": "continue"}))
+        print(json.dumps({"action": "continue"}), flush=True)
         sys.exit(0)
 
     def cleanup_handler(signum=None, frame=None):
@@ -689,7 +692,7 @@ def main():
             )
         # Only output continue if we haven't already (i.e., if interrupted by signal)
         if signum is not None and not _continue_printed:
-            print(json.dumps({"action": "continue"}))
+            print(json.dumps({"action": "continue"}), flush=True)
             _continue_printed = True
             sys.exit(0)
 
@@ -727,7 +730,7 @@ def main():
     except Exception as e:
         # Only output continue if not already printed
         if not _continue_printed:
-            print(json.dumps({"action": "continue"}))
+            print(json.dumps({"action": "continue"}), flush=True)
             _continue_printed = True
         # Log error for debugging
         if DEBUG:
