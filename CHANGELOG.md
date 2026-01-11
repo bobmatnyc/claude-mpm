@@ -6,6 +6,23 @@
 
 ### Fixed
 
+## [5.5.0] - 2026-01-11
+
+### Added
+- **Skill-Based Commands**: Convert 12 MPM slash commands to Claude Code 2.1.3+ user-invocable skills
+  - Tier 1 (Required): mpm, mpm-init, mpm-status, mpm-help, mpm-doctor
+  - Tier 2 (Recommended): mpm-config, mpm-ticket-view, mpm-session-resume, mpm-postmortem
+  - Tier 3 (Optional): mpm-monitor, mpm-version, mpm-organize
+- **Tiered Skill Deployment**: PMSkillsDeployerService now supports minimal/standard/full deployment tiers
+- **Version Gating**: MIN_SKILLS_VERSION = "2.1.3" for user-invocable skills support
+
+### Changed
+- **Claude Code Requirement**: Updated minimum version from v2.0.30 to v2.1.3
+- **Legacy Commands Deprecated**: All command files in src/claude_mpm/commands/ now marked deprecated
+
+### Fixed
+- **Bandit Warnings**: Added nosec comments for intentional subprocess and try/except patterns
+
 ## [5.4.106] - 2026-01-11
 
 ### Fixed
