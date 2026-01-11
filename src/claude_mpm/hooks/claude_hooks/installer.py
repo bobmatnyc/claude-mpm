@@ -10,7 +10,7 @@ import os
 import re
 import shutil
 import stat
-import subprocess
+import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command, no user input
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -194,6 +194,8 @@ main "$@"
     MIN_CLAUDE_VERSION = "1.0.92"
     # Minimum version for PreToolUse input modification support
     MIN_PRETOOL_MODIFY_VERSION = "2.0.30"
+    # Minimum version for user-invocable skills support
+    MIN_SKILLS_VERSION = "2.1.3"
 
     def __init__(self):
         """Initialize the hook installer."""
@@ -220,7 +222,7 @@ main "$@"
 
         try:
             # Run claude --version command
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B607 B603 - Safe: hardcoded command, no user input
                 ["claude", "--version"],
                 capture_output=True,
                 text=True,
@@ -330,6 +332,53 @@ main "$@"
                 return True
 
         return True
+
+    def _version_meets_minimum(self, version: str, min_version: str) -> bool:
+        """Check if a version meets minimum requirements.
+
+        Args:
+            version: Current version string (e.g., "2.1.3")
+            min_version: Minimum required version string (e.g., "2.1.3")
+
+        Returns:
+            True if version meets or exceeds minimum, False otherwise
+        """
+
+        def parse_version(v: str) -> List[int]:
+            """Parse semantic version string to list of integers."""
+            try:
+                return [int(x) for x in v.split(".")]
+            except (ValueError, AttributeError):
+                return [0]
+
+        current = parse_version(version)
+        required = parse_version(min_version)
+
+        # Compare versions
+        for i in range(max(len(current), len(required))):
+            curr_part = current[i] if i < len(current) else 0
+            req_part = required[i] if i < len(required) else 0
+
+            if curr_part < req_part:
+                return False
+            if curr_part > req_part:
+                return True
+
+        return True
+
+    def supports_user_invocable_skills(self) -> bool:
+        """Check if Claude Code version supports user-invocable skills.
+
+        User-invocable skills were added in Claude Code v2.1.3.
+        This feature allows users to invoke skills via slash commands.
+
+        Returns:
+            True if version supports user-invocable skills, False otherwise
+        """
+        version = self.get_claude_version()
+        if not version:
+            return False
+        return self._version_meets_minimum(version, self.MIN_SKILLS_VERSION)
 
     def get_hook_script_path(self) -> Path:
         """Get the path to the hook handler script based on installation method.
@@ -556,7 +605,22 @@ main "$@"
         self._cleanup_old_settings()
 
     def _install_commands(self) -> None:
-        """Install custom commands for Claude Code."""
+        """Install custom commands for Claude Code.
+
+        For Claude Code >= 2.1.3, commands are deployed as skills via PMSkillsDeployerService.
+        This method provides backward compatibility for older versions.
+        """
+        # Check if skills-based commands are supported
+        if self.supports_user_invocable_skills():
+            self.logger.info(
+                "Claude Code >= 2.1.3 detected. Commands deployed as skills - "
+                "skipping legacy command installation."
+            )
+            return
+
+        # Legacy installation for older Claude Code versions
+        self.logger.info("Installing legacy commands for Claude Code < 2.1.3")
+
         # Find commands directory using proper resource resolution
         try:
             from ...core.unified_paths import get_package_resource_path
@@ -782,7 +846,7 @@ main "$@"
                     if "hooks" in settings:
                         status["configured_events"] = list(settings["hooks"].keys())
                         configured_in_local = True
-            except Exception:
+            except Exception:  # nosec B110 - Intentional: ignore errors reading settings file
                 pass
 
         # Also check old settings file
@@ -796,7 +860,7 @@ main "$@"
                             status["warning"] = (
                                 "Hooks found in settings.local.json but Claude Code reads from settings.json"
                             )
-            except Exception:
+            except Exception:  # nosec B110 - Intentional: ignore errors reading old settings file
                 pass
 
         status["settings_location"] = (

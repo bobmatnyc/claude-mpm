@@ -1,18 +1,11 @@
 ---
-namespace: mpm/system
-command: organize
-aliases: [mpm-organize]
-migration_target: /mpm/system:organize
-category: system
+name: mpm-organize
 description: Organize project files with intelligent consolidation
-deprecated: true
-deprecated_in: "5.5.0"
-replacement: "skill:mpm-organize"
+user-invocable: true
+version: "1.0.0"
+category: mpm-command
+tags: [mpm-command, system, pm-optional]
 ---
-
-> **Deprecated:** This command file is deprecated in favor of the `mpm-organize` skill.
-> For Claude Code 2.1.3+, use the skill-based `/mpm-organize` command instead.
-> This file is kept for backward compatibility with Claude Code < 2.1.3.
 
 # /mpm-organize
 

@@ -111,6 +111,8 @@ WHY version checking:
 Security: Version checking prevents execution on incompatible environments.
 """
 MIN_CLAUDE_VERSION = "1.0.92"
+# Minimum version for user-invocable skills support
+MIN_SKILLS_VERSION = "2.1.3"
 
 
 def check_claude_version() -> Tuple[bool, Optional[str]]:

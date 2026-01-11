@@ -1,18 +1,11 @@
 ---
-namespace: mpm/ticket
-command: view
-aliases: [mpm-ticket-view]
-migration_target: /mpm/ticket:view
-category: tickets
+name: mpm-ticket-view
 description: Orchestrate ticketing agent for project management workflows
-deprecated: true
-deprecated_in: "5.5.0"
-replacement: "skill:mpm-ticket-view"
+user-invocable: true
+version: "1.0.0"
+category: mpm-command
+tags: [mpm-command, tickets, pm-recommended]
 ---
-
-> **Deprecated:** This command file is deprecated in favor of the `mpm-ticket-view` skill.
-> For Claude Code 2.1.3+, use the skill-based `/mpm-ticket-view` command instead.
-> This file is kept for backward compatibility with Claude Code < 2.1.3.
 
 # /mpm-ticket
 

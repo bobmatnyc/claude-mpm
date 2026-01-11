@@ -1,24 +1,18 @@
 ---
-namespace: mpm/system
-command: init
-aliases: [mpm-init]
-migration_target: /mpm/system:init
-category: system
+name: mpm-init
 description: Initialize or update project for Claude Code and MPM
-deprecated: true
-deprecated_in: "5.5.0"
-replacement: "skill:mpm-init"
+user-invocable: true
+version: "1.0.0"
+category: mpm-command
+tags: [mpm-command, system, pm-required, setup]
 ---
-
-> **Deprecated:** This command file is deprecated in favor of the `mpm-init` skill.
-> For Claude Code 2.1.3+, use the skill-based `/mpm-init` command instead.
-> This file is kept for backward compatibility with Claude Code < 2.1.3.
 
 # /mpm-init
 
 Initialize or intelligently update project for Claude Code and Claude MPM.
 
 ## Usage
+
 ```
 /mpm-init [update|context|resume|catchup] [options]
 ```
@@ -26,6 +20,7 @@ Initialize or intelligently update project for Claude Code and Claude MPM.
 ## Core Modes
 
 ### Project Setup
+
 ```
 /mpm-init                      # Auto-detect: offer update or create
 /mpm-init update               # Quick update (30-day git activity)
@@ -42,6 +37,7 @@ Initialize or intelligently update project for Claude Code and Claude MPM.
 **Smart Update Mode:** Auto-detects existing CLAUDE.md and offers update vs recreate.
 
 ### Context Analysis
+
 ```
 /mpm-init context [--days N]   # Intelligent git history analysis (default: 7 days)
 /mpm-init catchup              # Quick commit history (last 25 commits, no analysis)
@@ -56,6 +52,7 @@ Initialize or intelligently update project for Claude Code and Claude MPM.
 **catchup:** Direct CLI execution, instant output.
 
 ### Resume from Logs
+
 ```
 /mpm-init resume [--list] [--session-id ID]
 ```

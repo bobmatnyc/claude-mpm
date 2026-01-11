@@ -1,18 +1,11 @@
 ---
-namespace: mpm/session
-command: resume
-aliases: [mpm-session-resume]
-migration_target: /mpm/session:resume
-category: session
+name: mpm-session-resume
 description: Load context from paused session
-deprecated: true
-deprecated_in: "5.5.0"
-replacement: "skill:mpm-session-resume"
+user-invocable: true
+version: "1.0.0"
+category: mpm-command
+tags: [mpm-command, session, pm-recommended]
 ---
-
-> **Deprecated:** This command file is deprecated in favor of the `mpm-session-resume` skill.
-> For Claude Code 2.1.3+, use the skill-based `/mpm-session-resume` command instead.
-> This file is kept for backward compatibility with Claude Code < 2.1.3.
 
 # /mpm-session-resume
 

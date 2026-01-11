@@ -50,9 +50,16 @@ from claude_mpm.core.mixins import LoggerMixin
 # Security constants
 MAX_YAML_SIZE = 10 * 1024 * 1024  # 10MB limit to prevent YAML bombs
 
-# Required PM skills that MUST be deployed for PM agent to function properly
-# These are framework management skills that PM uses for orchestration
+# Tier 1: Required PM skills that MUST be deployed for PM agent to function properly
+# These are core framework management skills for basic PM operation
 REQUIRED_PM_SKILLS = [
+    # Core command-based skills (new consolidated CLI)
+    "mpm",
+    "mpm-init",
+    "mpm-status",
+    "mpm-help",
+    "mpm-doctor",
+    # Legacy framework management skills
     "mpm-git-file-tracking",
     "mpm-pr-workflow",
     "mpm-ticketing-integration",
@@ -64,6 +71,23 @@ REQUIRED_PM_SKILLS = [
     "mpm-circuit-breaker-enforcement",
     "mpm-tool-usage-guide",
     "mpm-session-management",
+]
+
+# Tier 2: Recommended skills (deployed with standard install)
+# These provide enhanced functionality for common workflows
+RECOMMENDED_PM_SKILLS = [
+    "mpm-config",
+    "mpm-ticket-view",
+    "mpm-session-resume",
+    "mpm-postmortem",
+]
+
+# Tier 3: Optional skills (deployed with full install)
+# These provide additional features for advanced use cases
+OPTIONAL_PM_SKILLS = [
+    "mpm-monitor",
+    "mpm-version",
+    "mpm-organize",
 ]
 
 
@@ -383,16 +407,44 @@ class PMSkillsDeployerService(LoggerMixin):
         self.logger.info(f"Discovered {len(skills)} bundled PM skills")
         return skills
 
+    def _get_skills_for_tier(self, tier: str) -> List[str]:
+        """Get list of skills to deploy based on tier.
+
+        Args:
+            tier: Deployment tier - "minimal", "standard", or "full"
+
+        Returns:
+            List of skill names to deploy
+
+        Raises:
+            ValueError: If tier is invalid
+        """
+        if tier == "minimal":
+            return REQUIRED_PM_SKILLS
+        if tier == "standard":
+            return REQUIRED_PM_SKILLS + RECOMMENDED_PM_SKILLS
+        if tier == "full":
+            return REQUIRED_PM_SKILLS + RECOMMENDED_PM_SKILLS + OPTIONAL_PM_SKILLS
+        raise ValueError(
+            f"Invalid tier '{tier}'. Must be 'minimal', 'standard', or 'full'"
+        )
+
     def deploy_pm_skills(
         self,
         project_dir: Path,
         force: bool = False,
+        tier: str = "standard",
         progress_callback: Optional[Callable[[str, int, int], None]] = None,
     ) -> DeploymentResult:
-        """Deploy bundled PM skills to project directory.
+        """Deploy bundled PM skills to project directory with tier-based selection.
 
         Copies PM skills from bundled templates to .claude/skills/{name}/SKILL.md
         and updates registry with version and checksum information.
+
+        Deployment Tiers:
+        - "minimal": Only REQUIRED_PM_SKILLS (Tier 1 - core functionality)
+        - "standard": REQUIRED_PM_SKILLS + RECOMMENDED_PM_SKILLS (Tier 1+2 - common workflows)
+        - "full": All skills (Tier 1+2+3 - advanced features)
 
         Conflict Resolution:
         - mpm-* skills from src WIN (overwrite existing)
@@ -401,16 +453,42 @@ class PMSkillsDeployerService(LoggerMixin):
         Args:
             project_dir: Project root directory
             force: If True, redeploy even if skill already exists
+            tier: Deployment tier - "minimal", "standard" (default), or "full"
             progress_callback: Optional callback(skill_name, current, total) for progress
 
         Returns:
             DeploymentResult with deployment status and details
 
         Example:
-            >>> result = deployer.deploy_pm_skills(Path("/project"), force=True)
+            >>> # Standard deployment (Tier 1 + Tier 2)
+            >>> result = deployer.deploy_pm_skills(Path("/project"))
             >>> print(f"Deployed: {len(result.deployed)} to .claude/skills/")
+            >>>
+            >>> # Minimal deployment (Tier 1 only)
+            >>> result = deployer.deploy_pm_skills(Path("/project"), tier="minimal")
+            >>>
+            >>> # Full deployment (all tiers)
+            >>> result = deployer.deploy_pm_skills(Path("/project"), tier="full")
         """
-        skills = self._discover_bundled_pm_skills()
+        # Get tier-based skill filter
+        try:
+            tier_skills = self._get_skills_for_tier(tier)
+        except ValueError as e:
+            return DeploymentResult(
+                success=False,
+                deployed=[],
+                skipped=[],
+                errors=[{"skill": "all", "error": str(e)}],
+                message=str(e),
+            )
+
+        # Discover all bundled skills, then filter by tier
+        all_skills = self._discover_bundled_pm_skills()
+        skills = [s for s in all_skills if s["name"] in tier_skills]
+
+        self.logger.info(
+            f"Deploying {len(skills)}/{len(all_skills)} skills for tier '{tier}'"
+        )
         deployed = []
         skipped = []
         errors = []
@@ -526,7 +604,7 @@ class PMSkillsDeployerService(LoggerMixin):
 
         success = len(errors) == 0
         message = (
-            f"Deployed {len(deployed)} skills, skipped {len(skipped)}, "
+            f"Deployed {len(deployed)} skills (tier: {tier}), skipped {len(skipped)}, "
             f"{len(errors)} errors"
         )
 

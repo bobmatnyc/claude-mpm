@@ -2,7 +2,7 @@
 
 A powerful orchestration framework for **Claude Code (CLI)** that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
 
-> **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v2.0.30+), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
+> **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v2.1.3+), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
 >
 > **Don't have Claude Code?** Install from: https://docs.anthropic.com/en/docs/claude-code
 >
@@ -36,7 +36,7 @@ Claude MPM transforms Claude Code into a **multi-agent orchestration platform** 
 ### Prerequisites
 
 1. **Python 3.10+** (3.11+ recommended)
-2. **Claude Code CLI v2.0.30+** (required!)
+2. **Claude Code CLI v2.1.3+** (required!)
 
 ```bash
 # Verify Claude Code is installed

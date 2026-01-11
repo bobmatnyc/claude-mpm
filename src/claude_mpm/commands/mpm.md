@@ -6,7 +6,15 @@ migration_target: /mpm
 category: system
 deprecated_aliases: []
 description: Access Claude MPM functionality and manage multi-agent orchestration
+deprecated: true
+deprecated_in: "5.5.0"
+replacement: "skill:mpm"
 ---
+
+> **Deprecated:** This command file is deprecated in favor of the `mpm` skill.
+> For Claude Code 2.1.3+, use the skill-based `/mpm` command instead.
+> This file is kept for backward compatibility with Claude Code < 2.1.3.
+
 # Claude MPM - Multi-Agent Project Manager
 
 Access Claude MPM functionality and manage your multi-agent orchestration.

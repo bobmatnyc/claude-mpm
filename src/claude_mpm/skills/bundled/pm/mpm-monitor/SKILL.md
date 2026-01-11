@@ -1,18 +1,11 @@
 ---
-namespace: mpm/system
-command: monitor
-aliases: [mpm-monitor]
-migration_target: /mpm/system:monitor
-category: system
+name: mpm-monitor
 description: Control monitoring server and dashboard
-deprecated: true
-deprecated_in: "5.5.0"
-replacement: "skill:mpm-monitor"
+user-invocable: true
+version: "1.0.0"
+category: mpm-command
+tags: [mpm-command, system, pm-optional]
 ---
-
-> **Deprecated:** This command file is deprecated in favor of the `mpm-monitor` skill.
-> For Claude Code 2.1.3+, use the skill-based `/mpm-monitor` command instead.
-> This file is kept for backward compatibility with Claude Code < 2.1.3.
 
 # /mpm-monitor
 
