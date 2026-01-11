@@ -6,6 +6,14 @@
 
 ### Fixed
 
+## [5.4.106] - 2026-01-11
+
+### Fixed
+- **Hook Stdout Fix**: Resolve systemic hook failures across all projects
+  - Add `flush=True` to all JSON print statements in hook_handler.py (5 locations)
+  - Remove duplicate JSON output from hook_wrapper.sh fallback logic
+  - Redirect all 60 click.echo() calls to stderr in hook_errors.py
+
 ## [5.4.105] - 2026-01-10
 
 ### Fixed
