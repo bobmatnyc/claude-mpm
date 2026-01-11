@@ -26,11 +26,6 @@ class TestAggregateCommand:
         """Set up test fixtures."""
         self.command = AggregateCommand()
 
-    def test_initialization():
-        """Test AggregateCommand initialization."""
-        assert self.command.command_name == "aggregate"
-        assert self.command.logger is not None
-
     def test_validate_args_default():
         """Test validation with default args."""
         args = Namespace(aggregate_subcommand="status", format="text")

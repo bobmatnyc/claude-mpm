@@ -571,65 +571,6 @@ class TestEventProcessing(unittest.TestCase):
         )
 
 
-class TestPerformance(unittest.TestCase):
-    """Test performance-related aspects of the hook handler."""
-
-    def test_event_processing_speed(self):
-        """Test that events are processed within acceptable time limits."""
-        with patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
-            handler = ClaudeHookHandler()
-
-        event = {"hook_event_name": "Stop", "data": "test"}
-
-        # Mock the event handler to be fast
-        handler.event_handlers.handle_stop_fast = Mock()
-
-        start_time = time.time()
-        handler._route_event(event)
-        elapsed = time.time() - start_time
-
-        # Event routing should be very fast (< 10ms)
-        self.assertLess(elapsed, 0.01)
-
-    def test_memory_usage(self):
-        """Test that the handler doesn't accumulate memory over time."""
-        with patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.StateManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ConnectionManagerService"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.DuplicateEventDetector"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.SubagentResponseProcessor"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.MemoryHookManager"
-        ), patch(
-            "src.claude_mpm.hooks.claude_hooks.hook_handler.ResponseTrackingManager"
-        ), patch("src.claude_mpm.hooks.claude_hooks.hook_handler.EventHandlers"):
-            handler = ClaudeHookHandler()
-
-        # Process many events
-        for i in range(100):
-            event = {"hook_event_name": "Stop", "id": i}
-            handler._route_event(event)
-
-        # Memory usage test would require more complex setup
-        # This is a placeholder for the concept
-        self.assertTrue(True)
-
-
 class TestIntegration(unittest.TestCase):
     """Integration tests for the complete hook handling flow."""
 

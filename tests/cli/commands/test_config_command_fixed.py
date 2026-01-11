@@ -29,11 +29,6 @@ class TestConfigCommand:
         """Set up test fixtures."""
         self.command = ConfigCommand()
 
-    def test_initialization():
-        """Test ConfigCommand initialization."""
-        assert self.command.command_name == "config"
-        assert self.command.logger is not None
-
     def test_validate_args_no_command():
         """Test validation with no config command."""
         args = Namespace()

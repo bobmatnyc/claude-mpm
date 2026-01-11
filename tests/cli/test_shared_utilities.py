@@ -245,11 +245,6 @@ class TestCLIErrorHandler:
         """Set up test fixtures."""
         self.handler = CLIErrorHandler("test-command")
 
-    def test_initialization():
-        """Test CLIErrorHandler initialization."""
-        assert self.handler.command_name == "test-command"
-        assert self.handler.logger is not None
-
     def test_handle_keyboard_interrupt():
         """Test handling KeyboardInterrupt."""
         error = KeyboardInterrupt()

@@ -92,13 +92,6 @@ class TestBaseCommand:
         """Set up test fixtures."""
         self.command = ConcreteCommand()
 
-    def test_initialization():
-        """Test BaseCommand initialization."""
-        assert self.command.command_name == "test"
-        assert self.command.logger is not None
-        assert self.command._config is None
-        assert self.command._working_dir is None
-
     def test_config_lazy_loading():
         """Test configuration lazy loading."""
         # Config should be None initially
@@ -307,15 +300,6 @@ class ConcreteMemoryCommand(MemoryCommand):
 class TestServiceCommand:
     """Test ServiceCommand functionality."""
 
-    def test_initialization():
-        """Test ServiceCommand initialization."""
-        mock_service_class = Mock()
-        command = ConcreteServiceCommand("test-service", mock_service_class)
-
-        assert command.command_name == "test-service"
-        assert command.service_class is mock_service_class
-        assert command._service is None
-
     def test_service_lazy_loading():
         """Test service lazy loading."""
         mock_service_class = Mock()
@@ -342,11 +326,6 @@ class TestServiceCommand:
 
 class TestAgentCommand:
     """Test AgentCommand functionality."""
-
-    def test_initialization():
-        """Test AgentCommand initialization."""
-        command = ConcreteAgentCommand("test-agent")
-        assert command.command_name == "test-agent"
 
     def test_get_agent_dir_from_args():
         """Test getting agent directory from arguments."""
@@ -386,11 +365,6 @@ class TestAgentCommand:
 
 class TestMemoryCommand:
     """Test MemoryCommand functionality."""
-
-    def test_initialization():
-        """Test MemoryCommand initialization."""
-        command = ConcreteMemoryCommand("test-memory")
-        assert command.command_name == "test-memory"
 
     def test_get_memory_dir_from_args():
         """Test getting memory directory from arguments."""

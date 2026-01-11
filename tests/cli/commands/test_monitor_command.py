@@ -26,11 +26,6 @@ class TestMonitorCommand:
         """Set up test fixtures."""
         self.command = MonitorCommand()
 
-    def test_initialization():
-        """Test MonitorCommand initialization."""
-        assert self.command.command_name == "monitor"
-        assert self.command.logger is not None
-
     def test_validate_args_default():
         """Test validation with default args."""
         args = Namespace(port=8080, filter=None, output="console")

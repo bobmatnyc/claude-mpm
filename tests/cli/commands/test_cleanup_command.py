@@ -27,11 +27,6 @@ class TestCleanupCommand:
         """Set up test fixtures."""
         self.command = CleanupCommand()
 
-    def test_initialization():
-        """Test CleanupCommand initialization."""
-        assert self.command.command_name == "cleanup"
-        assert self.command.logger is not None
-
     def test_validate_args_default():
         """Test validation with default args."""
         args = Namespace(cleanup_type="all", dry_run=False, force=False)

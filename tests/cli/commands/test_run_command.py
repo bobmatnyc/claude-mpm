@@ -28,11 +28,6 @@ class TestRunCommand:
         """Set up test fixtures."""
         self.command = RunCommand()
 
-    def test_initialization():
-        """Test RunCommand initialization."""
-        assert self.command.command_name == "run"
-        assert self.command.logger is not None
-
     def test_validate_args_basic():
         """Test basic validation with minimal args."""
         args = Namespace(

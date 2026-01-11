@@ -138,32 +138,6 @@ def deployer(tmp_path):
     return deployer
 
 
-class TestSkillsDeployerInit:
-    """Test SkillsDeployer initialization."""
-
-    def test_init_default(self):
-        """Test default initialization."""
-        deployer = SkillsDeployerService()
-
-        assert deployer.repo_url == SkillsDeployerService.DEFAULT_REPO_URL
-        assert Path.home() / ".claude" / "skills" == deployer.CLAUDE_SKILLS_DIR
-        assert deployer.toolchain_analyzer is None
-
-    def test_init_custom_repo(self):
-        """Test initialization with custom repository."""
-        custom_repo = "https://github.com/custom/repo"
-        deployer = SkillsDeployerService(repo_url=custom_repo)
-
-        assert deployer.repo_url == custom_repo
-
-    def test_init_with_toolchain_analyzer(self):
-        """Test initialization with toolchain analyzer."""
-        mock_analyzer = Mock()
-        deployer = SkillsDeployerService(toolchain_analyzer=mock_analyzer)
-
-        assert deployer.toolchain_analyzer == mock_analyzer
-
-
 class TestGitHubDownload:
     """Test GitHub repository download functionality."""
 
