@@ -297,6 +297,16 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Force refresh agents and skills from remote repos, bypassing ETag cache",
     )
+    run_group.add_argument(
+        "--chrome",
+        action="store_true",
+        help="Enable Claude in Chrome integration (passed to Claude Code)",
+    )
+    run_group.add_argument(
+        "--no-chrome",
+        action="store_true",
+        help="Disable Claude in Chrome integration (passed to Claude Code)",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(

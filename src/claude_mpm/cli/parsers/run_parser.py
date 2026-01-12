@@ -85,6 +85,16 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Pass --resume flag to Claude Code to resume the last conversation",
     )
+    run_group.add_argument(
+        "--chrome",
+        action="store_true",
+        help="Enable Claude in Chrome integration (passed to Claude Code)",
+    )
+    run_group.add_argument(
+        "--no-chrome",
+        action="store_true",
+        help="Disable Claude in Chrome integration (passed to Claude Code)",
+    )
 
     # Dependency checking options
     dep_group = parser.add_argument_group("dependency options")

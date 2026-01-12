@@ -73,18 +73,19 @@ class AgentConfig(BaseModel):
     )
 
     # Required agents that are always deployed
-    # Standard 6 core agents for essential PM workflow functionality
+    # Standard 7 core agents for essential PM workflow functionality
     # These are auto-deployed when no agents are specified in configuration
     required: List[str] = Field(
         default_factory=lambda: [
             "engineer",  # General-purpose implementation
             "research",  # Codebase exploration and analysis
             "qa",  # Testing and quality assurance
+            "web-qa",  # Browser-based testing specialist
             "documentation",  # Documentation generation
             "ops",  # Basic deployment operations
             "ticketing",  # Ticket tracking (essential for PM workflow)
         ],
-        description="Agents that are always deployed (standard 6 core agents)",
+        description="Agents that are always deployed (standard 7 core agents)",
     )
 
     include_universal: bool = Field(

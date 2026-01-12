@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 - Support multiple output formats (json, yaml, table, text)
 """
 
-import subprocess
+import subprocess  # nosec B404 - required for process management
 import sys
 from datetime import datetime, timezone
 from typing import Optional
@@ -489,6 +489,18 @@ class RunCommand(BaseCommand):
         if hasattr(args, "claude_args") and args.claude_args:
             claude_args.extend(args.claude_args)
 
+        # Add --resume if flag is set
+        if getattr(args, "resume", False) and "--resume" not in claude_args:
+            claude_args.insert(0, "--resume")
+
+        # Add --chrome if flag is set
+        if getattr(args, "chrome", False) and "--chrome" not in claude_args:
+            claude_args.insert(0, "--chrome")
+
+        # Add --no-chrome if flag is set
+        if getattr(args, "no_chrome", False) and "--no-chrome" not in claude_args:
+            claude_args.insert(0, "--no-chrome")
+
         # Create runner
         runner = ClaudeRunner(
             enable_tickets=enable_tickets,
@@ -553,7 +565,7 @@ class RunCommand(BaseCommand):
                 wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
                 if wrapper_path.exists():
                     print("Starting interactive session with command interception...")
-                    subprocess.run([sys.executable, str(wrapper_path)], check=False)
+                    subprocess.run([sys.executable, str(wrapper_path)], check=False)  # nosec B603 - trusted internal paths
                 else:
                     self.logger.warning(
                         "Interactive wrapper not found, falling back to normal mode"
@@ -907,6 +919,26 @@ def run_session_legacy(args):
         else:
             logger.info("[INFO]️ --resume already in claude_args")
 
+    # Add --chrome to claude_args if the flag is set
+    chrome_flag_present = getattr(args, "chrome", False)
+    if chrome_flag_present:
+        logger.info("📌 --chrome flag detected in args")
+        if "--chrome" not in raw_claude_args:
+            raw_claude_args = ["--chrome", *raw_claude_args]
+            logger.info("✅ Added --chrome to claude_args")
+        else:
+            logger.info("ℹ️ --chrome already in claude_args")
+
+    # Add --no-chrome to claude_args if the flag is set
+    no_chrome_flag_present = getattr(args, "no_chrome", False)
+    if no_chrome_flag_present:
+        logger.info("📌 --no-chrome flag detected in args")
+        if "--no-chrome" not in raw_claude_args:
+            raw_claude_args = ["--no-chrome", *raw_claude_args]
+            logger.info("✅ Added --no-chrome to claude_args")
+        else:
+            logger.info("ℹ️ --no-chrome already in claude_args")
+
     # Filter out claude-mpm specific flags before passing to Claude CLI
     logger.debug(f"Pre-filter claude_args: {raw_claude_args}")
     claude_args = filter_claude_mpm_args(raw_claude_args)
@@ -1044,7 +1076,7 @@ def run_session_legacy(args):
         wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
         if wrapper_path.exists():
             print("Starting interactive session with command interception...")
-            subprocess.run([sys.executable, str(wrapper_path)], check=False)
+            subprocess.run([sys.executable, str(wrapper_path)], check=False)  # nosec B603 - trusted internal paths
         else:
             logger.warning("Interactive wrapper not found, falling back to normal mode")
             runner.run_interactive(context)

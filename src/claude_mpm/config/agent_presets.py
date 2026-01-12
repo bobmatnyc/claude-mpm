@@ -25,13 +25,14 @@ from typing import Any, Callable, Dict, List, Union
 PresetResolver = Union[List[str], Callable[[], List[str]]]
 
 # Core agents included in ALL presets (MIN and MAX)
-# Standard 6 core agents for essential PM workflow functionality
+# Standard 9 core agents for essential PM workflow functionality
 CORE_AGENTS = [
     "claude-mpm/mpm-agent-manager",  # Agent lifecycle management
     "claude-mpm/mpm-skills-manager",  # Skills management
     "engineer/core/engineer",  # General-purpose implementation
     "universal/research",  # Codebase exploration and analysis
     "qa/qa",  # Testing and quality assurance
+    "qa/web-qa",  # Browser-based testing specialist
     "documentation/documentation",  # Documentation generation
     "ops/core/ops",  # Basic deployment operations
     "documentation/ticketing",  # Ticket tracking (essential for PM workflow)
