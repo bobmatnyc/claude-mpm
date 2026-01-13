@@ -13,13 +13,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..events.manager import EventManager
+from ..inbox import Inbox
 from ..registry import ProjectRegistry
 from ..tmux_orchestrator import TmuxOrchestrator
-from .routes import messages, projects, sessions
+from .routes import inbox as inbox_routes, messages, projects, sessions
 
 # Global instances (injected at startup via lifespan)
 registry: Optional[ProjectRegistry] = None
 tmux: Optional[TmuxOrchestrator] = None
+event_manager: Optional[EventManager] = None
+inbox: Optional[Inbox] = None
 
 
 @asynccontextmanager
@@ -35,9 +39,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         None during application runtime
     """
     # Startup
-    global registry, tmux
+    global registry, tmux, event_manager, inbox
     registry = ProjectRegistry()
     tmux = TmuxOrchestrator()
+    event_manager = EventManager()
+    inbox = Inbox(event_manager, registry)
 
     yield
 
@@ -65,6 +71,7 @@ app.add_middleware(
 app.include_router(projects.router, prefix="/api", tags=["projects"])
 app.include_router(sessions.router, prefix="/api", tags=["sessions"])
 app.include_router(messages.router, prefix="/api", tags=["messages"])
+app.include_router(inbox_routes.router, prefix="/api", tags=["inbox"])
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "web" / "static"
