@@ -9,6 +9,8 @@ from enum import Enum
 from typing import Optional
 
 from .models import Project, ProjectState
+from .runtime.executor import RuntimeExecutor
+from .runtime.monitor import RuntimeMonitor
 from .tmux_orchestrator import TmuxOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -43,11 +45,14 @@ class ProjectSession:
     Attributes:
         project: Associated project instance
         orchestrator: Tmux orchestrator for process management
+        executor: RuntimeExecutor for spawning/managing processes
+        monitor: RuntimeMonitor for output monitoring and event detection
         state: Current session execution state
         pause_reason: Reason for pause (e.g., event ID)
+        active_pane: Tmux pane target for active runtime, if any
 
     Example:
-        >>> session = ProjectSession(project, tmux_orchestrator)
+        >>> session = ProjectSession(project, tmux_orchestrator, executor, monitor)
         >>> await session.start()
         >>> session.state
         <SessionState.RUNNING: 'running'>
@@ -56,12 +61,20 @@ class ProjectSession:
         >>> await session.stop()
     """
 
-    def __init__(self, project: Project, orchestrator: TmuxOrchestrator):
+    def __init__(
+        self,
+        project: Project,
+        orchestrator: TmuxOrchestrator,
+        executor: Optional[RuntimeExecutor] = None,
+        monitor: Optional[RuntimeMonitor] = None,
+    ):
         """Initialize project session.
 
         Args:
             project: Project instance to manage
             orchestrator: TmuxOrchestrator for process control
+            executor: Optional RuntimeExecutor (created if not provided)
+            monitor: Optional RuntimeMonitor (not used if not provided)
 
         Raises:
             ValueError: If project or orchestrator is None
@@ -73,8 +86,11 @@ class ProjectSession:
 
         self.project = project
         self.orchestrator = orchestrator
+        self.executor = executor or RuntimeExecutor(orchestrator)
+        self.monitor = monitor
         self._state = SessionState.IDLE
         self.pause_reason: Optional[str] = None
+        self.active_pane: Optional[str] = None
 
         logger.info(f"Created ProjectSession for project {project.id}")
 
@@ -91,7 +107,8 @@ class ProjectSession:
         """Initialize and start project session.
 
         Transitions from IDLE → STARTING → RUNNING.
-        Sets up tmux pane, initializes runtime, and begins work execution.
+        Spawns Claude Code via RuntimeExecutor and starts output monitoring
+        via RuntimeMonitor if available.
 
         Raises:
             RuntimeError: If session not in IDLE state
@@ -110,6 +127,15 @@ class ProjectSession:
                 self.orchestrator.create_session()
                 logger.debug("Created tmux session")
 
+            # Spawn Claude Code process
+            self.active_pane = await self.executor.spawn(self.project, command="claude")
+            logger.info(f"Spawned Claude Code in pane {self.active_pane}")
+
+            # Start monitoring if monitor available
+            if self.monitor:
+                await self.monitor.start_monitoring(self.active_pane, self.project.id)
+                logger.debug(f"Started monitoring pane {self.active_pane}")
+
             # Update project state
             self.project.state = ProjectState.IDLE
             self.project.state_reason = None
@@ -121,6 +147,13 @@ class ProjectSession:
         except Exception as e:
             logger.error(f"Failed to start session: {e}")
             self._state = SessionState.IDLE
+            # Clean up pane if created
+            if self.active_pane:
+                try:
+                    await self.executor.terminate(self.active_pane)
+                except Exception as cleanup_error:
+                    logger.debug(f"Error cleaning up pane: {cleanup_error}")
+                self.active_pane = None
             raise
 
     async def pause(self, reason: str) -> None:
@@ -174,13 +207,24 @@ class ProjectSession:
         """Gracefully stop project session.
 
         Transitions from any state → STOPPING → STOPPED.
-        Cleans up runtime resources and tmux panes.
+        Stops monitoring, terminates runtime, and cleans up resources.
         """
         logger.info(f"Stopping session for project {self.project.id}")
         self._state = SessionState.STOPPING
 
         try:
-            # Clean up any active sessions
+            # Stop monitoring if active
+            if self.monitor and self.active_pane:
+                await self.monitor.stop_monitoring(self.active_pane)
+                logger.debug(f"Stopped monitoring pane {self.active_pane}")
+
+            # Terminate active pane
+            if self.active_pane:
+                await self.executor.terminate(self.active_pane)
+                logger.debug(f"Terminated pane {self.active_pane}")
+                self.active_pane = None
+
+            # Clean up any remaining sessions (backward compatibility)
             for session_id in list(self.project.sessions.keys()):
                 try:
                     session = self.project.sessions[session_id]
