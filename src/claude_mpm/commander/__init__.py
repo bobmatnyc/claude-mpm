@@ -1,15 +1,41 @@
-"""Commander module for multi-project MPM orchestration via tmux.
+"""MPM Commander - Multi-Project Orchestration.
 
-This module provides the TmuxOrchestrator class which manages tmux sessions,
-panes, and I/O for coordinating multiple project-level MPM instances.
+This module provides the core infrastructure for managing multiple projects
+with isolated state, work queues, and tool sessions.
+
+Key Components:
+    - ProjectRegistry: Thread-safe project management
+    - Project models: Data structures for state and sessions
+    - TmuxOrchestrator: Tmux session and pane management
+    - Config loading: .claude-mpm/ directory configuration
+
+Example:
+    >>> from claude_mpm.commander import ProjectRegistry
+    >>> registry = ProjectRegistry()
+    >>> project = registry.register("/path/to/project")
+    >>> registry.update_state(project.id, ProjectState.WORKING)
 """
 
+from claude_mpm.commander.config_loader import load_project_config
+from claude_mpm.commander.models import (
+    Project,
+    ProjectState,
+    ThreadMessage,
+    ToolSession,
+)
+from claude_mpm.commander.registry import ProjectRegistry
 from claude_mpm.commander.tmux_orchestrator import (
     TmuxNotFoundError,
     TmuxOrchestrator,
 )
 
 __all__ = [
+    "Project",
+    "ProjectRegistry",
+    "ProjectState",
+    "ThreadMessage",
     "TmuxNotFoundError",
     "TmuxOrchestrator",
+    "ToolSession",
+    "load_project_config",
 ]
