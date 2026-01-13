@@ -112,6 +112,28 @@ class EventManager:
             logger.info("Created event %s: [%s] %s", event_id, event_type.value, title)
             return event
 
+    def add_event(self, event: Event) -> None:
+        """Add existing event to manager (for loading from persistence).
+
+        Args:
+            event: Event instance to add
+
+        Example:
+            # Load events from disk and add to manager
+            for event in loaded_events:
+                manager.add_event(event)
+        """
+        with self._lock:
+            self._events[event.id] = event
+
+            # Index by project
+            if event.project_id not in self._project_index:
+                self._project_index[event.project_id] = []
+            if event.id not in self._project_index[event.project_id]:
+                self._project_index[event.project_id].append(event.id)
+
+            logger.debug("Added event %s to manager", event.id)
+
     def get(self, event_id: str) -> Optional[Event]:
         """Get event by ID.
 

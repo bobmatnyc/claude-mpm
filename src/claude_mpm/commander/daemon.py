@@ -17,7 +17,8 @@ from .api.app import (
 from .config import DaemonConfig
 from .events.manager import EventManager
 from .inbox import Inbox
-from .project_session import ProjectSession
+from .persistence import EventStore, StateStore
+from .project_session import ProjectSession, SessionState
 from .registry import ProjectRegistry
 from .tmux_orchestrator import TmuxOrchestrator
 
@@ -37,6 +38,8 @@ class CommanderDaemon:
         event_manager: Event manager
         inbox: Event inbox
         sessions: Active project sessions by project_id
+        state_store: StateStore for project/session persistence
+        event_store: EventStore for event queue persistence
         running: Whether daemon is currently running
 
     Example:
@@ -69,6 +72,10 @@ class CommanderDaemon:
         self._server_task: Optional[asyncio.Task] = None
         self._main_loop_task: Optional[asyncio.Task] = None
 
+        # Initialize persistence stores
+        self.state_store = StateStore(config.state_dir)
+        self.event_store = EventStore(config.state_dir)
+
         # Configure logging
         logging.basicConfig(
             level=getattr(logging, config.log_level.upper()),
@@ -94,6 +101,7 @@ class CommanderDaemon:
         """Start daemon and all subsystems.
 
         Initializes:
+        - Load state from disk (projects, sessions, events)
         - Signal handlers for graceful shutdown
         - REST API server
         - Main daemon loop
@@ -107,6 +115,9 @@ class CommanderDaemon:
 
         logger.info("Starting Commander daemon...")
         self._running = True
+
+        # Load state from disk
+        await self._load_state()
 
         # Set up signal handlers
         self._setup_signal_handlers()
@@ -168,7 +179,8 @@ class CommanderDaemon:
             except asyncio.CancelledError:
                 pass
 
-        # TODO: Persist state (Phase 2 Sprint 2)
+        # Persist state to disk
+        await self._save_state()
 
         # Stop API server
         if self._server_task and not self._server_task.done():
@@ -187,19 +199,31 @@ class CommanderDaemon:
         - Resolved events to resume paused sessions
         - New work items to execute
         - Project state changes
+        - Periodic state persistence
 
         Runs until _running flag is set to False.
         """
         logger.info("Main daemon loop starting")
+
+        # Track last save time for periodic persistence
+        last_save_time = asyncio.get_event_loop().time()
 
         while self._running:
             try:
                 # TODO: Check for resolved events and resume sessions (Phase 2 Sprint 3)
                 # TODO: Check each ProjectSession for runnable work (Phase 2 Sprint 2)
                 # TODO: Spawn RuntimeExecutors for new work items (Phase 2 Sprint 1)
-                # TODO: Persist state periodically (Phase 2 Sprint 2)
 
-                # For now, just sleep to prevent tight loop
+                # Periodic state persistence
+                current_time = asyncio.get_event_loop().time()
+                if current_time - last_save_time >= self.config.save_interval:
+                    try:
+                        await self._save_state()
+                        last_save_time = current_time
+                    except Exception as e:
+                        logger.error(f"Error during periodic save: {e}", exc_info=True)
+
+                # Sleep to prevent tight loop
                 await asyncio.sleep(self.config.poll_interval)
 
             except asyncio.CancelledError:
@@ -263,6 +287,81 @@ class CommanderDaemon:
 
         logger.info(f"Created new session for project {project_id}")
         return session
+
+    async def _load_state(self) -> None:
+        """Load state from disk (projects, sessions, events).
+
+        Called on daemon startup to restore previous state.
+        Handles missing or corrupt files gracefully.
+        """
+        logger.info("Loading state from disk...")
+
+        # Load projects
+        try:
+            projects = await self.state_store.load_projects()
+            for project in projects:
+                # Re-register projects (bypassing validation for already-registered paths)
+                self.registry._projects[project.id] = project
+                self.registry._path_index[project.path] = project.id
+            logger.info(f"Restored {len(projects)} projects")
+        except Exception as e:
+            logger.error(f"Failed to load projects: {e}", exc_info=True)
+
+        # Load sessions
+        try:
+            session_states = await self.state_store.load_sessions()
+            for project_id, state_dict in session_states.items():
+                # Only restore sessions for projects we have
+                if project_id in self.registry._projects:
+                    project = self.registry.get(project_id)
+                    session = ProjectSession(project, self.orchestrator)
+
+                    # Restore session state (but don't restart runtime - manual resume)
+                    try:
+                        session._state = SessionState(state_dict.get("state", "idle"))
+                        session.active_pane = state_dict.get("pane_target")
+                        session.pause_reason = state_dict.get("paused_event_id")
+                        self.sessions[project_id] = session
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to restore session for {project_id}: {e}"
+                        )
+            logger.info(f"Restored {len(self.sessions)} sessions")
+        except Exception as e:
+            logger.error(f"Failed to load sessions: {e}", exc_info=True)
+
+        # Load events
+        try:
+            events = await self.event_store.load_events()
+            for event in events:
+                self.event_manager.add_event(event)
+            logger.info(f"Restored {len(events)} events")
+        except Exception as e:
+            logger.error(f"Failed to load events: {e}", exc_info=True)
+
+        logger.info("State loading complete")
+
+    async def _save_state(self) -> None:
+        """Save state to disk (projects, sessions, events).
+
+        Called on daemon shutdown and periodically during runtime.
+        Uses atomic writes to prevent corruption.
+        """
+        logger.debug("Saving state to disk...")
+
+        try:
+            # Save projects
+            await self.state_store.save_projects(self.registry)
+
+            # Save sessions
+            await self.state_store.save_sessions(self.sessions)
+
+            # Save events
+            await self.event_store.save_events(self.inbox)
+
+            logger.debug("State saved successfully")
+        except Exception as e:
+            logger.error(f"Failed to save state: {e}", exc_info=True)
 
 
 async def main(config: Optional[DaemonConfig] = None) -> None:
