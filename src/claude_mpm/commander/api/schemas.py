@@ -119,6 +119,59 @@ class MessageResponse(BaseModel):
     timestamp: datetime
 
 
+class CreateWorkRequest(BaseModel):
+    """Request to create a work item.
+
+    Attributes:
+        content: Task/message to execute
+        priority: Priority level (1-4, where 4 is CRITICAL)
+        depends_on: Optional list of work item IDs that must complete first
+    """
+
+    content: str = Field(..., description="Task/message to execute")
+    priority: int = Field(
+        2,
+        description="Priority level (1=LOW, 2=MEDIUM, 3=HIGH, 4=CRITICAL)",
+        ge=1,
+        le=4,
+    )
+    depends_on: Optional[List[str]] = Field(
+        None, description="Work item IDs that must complete first"
+    )
+
+
+class WorkItemResponse(BaseModel):
+    """Work item information response.
+
+    Attributes:
+        id: Unique work item identifier
+        project_id: Parent project ID
+        content: Task/message content
+        state: Current state (pending, queued, in_progress, blocked, completed, failed, cancelled)
+        priority: Priority level (1-4)
+        created_at: Creation timestamp
+        started_at: Execution start timestamp (if started)
+        completed_at: Completion timestamp (if completed/failed)
+        result: Result message (if completed)
+        error: Error message (if failed)
+        depends_on: List of dependency work item IDs
+        metadata: Additional structured data
+    """
+
+    id: str
+    project_id: str
+    content: str
+    state: str
+    priority: int
+    created_at: datetime
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    result: Optional[str]
+    error: Optional[str]
+    depends_on: List[str]
+    metadata: dict
+
+
 class ErrorResponse(BaseModel):
     """Error response with structured error information.
 

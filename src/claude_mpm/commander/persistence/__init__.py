@@ -6,5 +6,6 @@ the Commander daemon, including atomic writes and graceful recovery.
 
 from .event_store import EventStore
 from .state_store import StateStore
+from .work_store import WorkStore
 
-__all__ = ["EventStore", "StateStore"]
+__all__ = ["EventStore", "StateStore", "WorkStore"]

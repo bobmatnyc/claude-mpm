@@ -18,7 +18,7 @@ from ..inbox import Inbox
 from ..registry import ProjectRegistry
 from ..tmux_orchestrator import TmuxOrchestrator
 from ..workflow import EventHandler
-from .routes import events, inbox as inbox_routes, messages, projects, sessions
+from .routes import events, inbox as inbox_routes, messages, projects, sessions, work
 
 # Global instances (injected at startup via lifespan)
 registry: Optional[ProjectRegistry] = None
@@ -78,6 +78,7 @@ app.include_router(sessions.router, prefix="/api", tags=["sessions"])
 app.include_router(messages.router, prefix="/api", tags=["messages"])
 app.include_router(inbox_routes.router, prefix="/api", tags=["inbox"])
 app.include_router(events.router, prefix="/api", tags=["events"])
+app.include_router(work.router, prefix="/api", tags=["work"])
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "web" / "static"
