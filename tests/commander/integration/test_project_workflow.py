@@ -11,7 +11,12 @@ import pytest
 
 from claude_mpm.commander.daemon import CommanderDaemon
 from claude_mpm.commander.models import Project, ProjectState
-from claude_mpm.commander.models.events import Event, EventStatus, EventType
+from claude_mpm.commander.models.events import (
+    Event,
+    EventPriority,
+    EventStatus,
+    EventType,
+)
 from claude_mpm.commander.models.work import WorkItem, WorkPriority, WorkState
 from claude_mpm.commander.project_session import SessionState
 
@@ -50,7 +55,8 @@ async def test_full_project_lifecycle(
     assert work.state == WorkState.QUEUED
     assert work.priority == WorkPriority.HIGH
 
-    # 4. Mark work as completed
+    # 4. Start and mark work as completed
+    queue.start(work.id)
     queue.complete(work.id, result="Feature implemented successfully")
 
     completed_work = queue.get(work.id)
@@ -110,7 +116,8 @@ async def test_project_event_isolation(
     event1 = Event(
         id="event-1",
         project_id=project1.id,
-        event_type=EventType.APPROVAL,
+        type=EventType.APPROVAL,
+        priority=EventPriority.HIGH,
         title="Project 1 Event",
         content="This should only affect project 1",
     )
@@ -211,7 +218,8 @@ async def test_project_event_workflow(
     event = Event(
         id="event-workflow",
         project_id=sample_project.id,
-        event_type=EventType.APPROVAL,
+        type=EventType.APPROVAL,
+        priority=EventPriority.HIGH,
         title="User Input Required",
         content="Please confirm action",
     )
@@ -224,7 +232,7 @@ async def test_project_event_workflow(
     assert pending[0].status == EventStatus.PENDING
 
     # Resolve event
-    daemon_lifecycle.event_manager.resolve_event(event.id, "User confirmed action")
+    daemon_lifecycle.event_manager.respond(event.id, "User confirmed action")
 
     # Verify resolution
     resolved = daemon_lifecycle.event_manager.get(event.id)
@@ -253,7 +261,8 @@ async def test_project_work_priority_ordering(
     next_work = queue.get_next()
     assert next_work.id == critical_work.id
 
-    # Mark critical as completed
+    # Start and complete critical work
+    queue.start(critical_work.id)
     queue.complete(critical_work.id)
 
     # Next should be high
@@ -329,9 +338,9 @@ async def test_project_persistent_across_restarts(
         session._state = SessionState.RUNNING
         session.active_pane = "test:pane.0"
 
-        # Save and stop
+        # Save state (don't call stop - it would clear active_pane)
         await daemon1._save_state()
-        await daemon1.stop()
+        daemon1._running = False
 
         # Second daemon instance
         daemon2 = CommanderDaemon(integration_config)

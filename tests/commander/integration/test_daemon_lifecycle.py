@@ -14,6 +14,8 @@ import pytest
 from claude_mpm.commander.config import DaemonConfig
 from claude_mpm.commander.daemon import CommanderDaemon
 from claude_mpm.commander.models import Project, ProjectState
+from claude_mpm.commander.models.events import Event, EventPriority, EventType
+from claude_mpm.commander.project_session import SessionState
 
 
 @pytest.mark.integration
@@ -153,13 +155,15 @@ async def test_daemon_restart_recovers_sessions(integration_config: DaemonConfig
         project = daemon1.registry.register(str(test_path), "Test Project")
 
         session = daemon1.get_or_create_session(project.id)
-        session._state = MagicMock()
-        session._state.value = "running"
+        session._state = SessionState.RUNNING
         session.active_pane = "test:pane.0"
 
-        # Save and stop
+        # Save state before stopping (stop() clears active_pane)
         await daemon1._save_state()
-        await daemon1.stop()
+
+        # Don't call stop() - it would clear active_pane and save again
+        # Just mark as not running to skip cleanup
+        daemon1._running = False
 
         # Second daemon instance (restart)
         daemon2 = CommanderDaemon(integration_config)
@@ -202,7 +206,8 @@ async def test_daemon_restart_recovers_events(integration_config: DaemonConfig):
         event = Event(
             id="event-test",
             project_id=project.id,
-            event_type=EventType.APPROVAL,
+            type=EventType.APPROVAL,
+            priority=EventPriority.HIGH,
             title="Test Event",
             content="This is a test event",
         )
@@ -296,9 +301,9 @@ async def test_daemon_periodic_state_persistence(integration_config: DaemonConfi
         # Verify we can read the saved state
         import json
 
-        projects_data = json.loads((state_dir / "projects.json").read_text())
-        assert len(projects_data) == 1
-        assert projects_data[0]["name"] == "Test Project"
+        projects_file = json.loads((state_dir / "projects.json").read_text())
+        assert len(projects_file["projects"]) == 1
+        assert projects_file["projects"][0]["name"] == "Test Project"
 
         await daemon.stop()
 

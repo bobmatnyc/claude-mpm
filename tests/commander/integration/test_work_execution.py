@@ -11,7 +11,12 @@ import pytest
 
 from claude_mpm.commander.daemon import CommanderDaemon
 from claude_mpm.commander.models import Project
-from claude_mpm.commander.models.events import Event, EventStatus, EventType
+from claude_mpm.commander.models.events import (
+    Event,
+    EventPriority,
+    EventStatus,
+    EventType,
+)
 from claude_mpm.commander.models.work import WorkPriority, WorkState
 from claude_mpm.commander.project_session import SessionState
 from claude_mpm.commander.work.queue import WorkQueue
@@ -110,7 +115,8 @@ async def test_blocking_event_pauses_work(
     event = Event(
         id="blocking-event",
         project_id=sample_project.id,
-        event_type=EventType.APPROVAL,
+        type=EventType.APPROVAL,
+        priority=EventPriority.HIGH,
         title="User confirmation required",
         content="Please confirm destructive action",
     )
@@ -150,7 +156,8 @@ async def test_resume_after_event_resolution(
     event = Event(
         id="resume-event",
         project_id=sample_project.id,
-        event_type=EventType.APPROVAL,
+        type=EventType.APPROVAL,
+        priority=EventPriority.HIGH,
         title="Confirmation needed",
         content="Confirm action",
     )
@@ -161,7 +168,7 @@ async def test_resume_after_event_resolution(
     assert session.state == SessionState.PAUSED
 
     # Resolve event
-    daemon_lifecycle.event_manager.resolve_event(event.id, "User confirmed")
+    daemon_lifecycle.event_manager.respond(event.id, "User confirmed")
 
     # Resume session
     session._state = SessionState.RUNNING
@@ -319,7 +326,8 @@ async def test_informational_event_doesnt_block_work(
     event = Event(
         id="info-event",
         project_id=sample_project.id,
-        event_type=EventType.STATUS,
+        type=EventType.STATUS,
+        priority=EventPriority.INFO,
         title="FYI: Build completed",
         content="Build completed successfully",
     )

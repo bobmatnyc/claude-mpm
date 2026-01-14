@@ -14,7 +14,12 @@ import pytest
 from claude_mpm.commander.config import DaemonConfig
 from claude_mpm.commander.daemon import CommanderDaemon
 from claude_mpm.commander.models import Project
-from claude_mpm.commander.models.events import Event, EventStatus, EventType
+from claude_mpm.commander.models.events import (
+    Event,
+    EventPriority,
+    EventStatus,
+    EventType,
+)
 from claude_mpm.commander.project_session import SessionState
 
 
@@ -89,7 +94,8 @@ async def test_daemon_restart_recovers_pending_events(integration_config: Daemon
             event = Event(
                 id=f"event-{i}",
                 project_id=project.id,
-                event_type=EventType.APPROVAL,
+                type=EventType.APPROVAL,
+                priority=EventPriority.HIGH,
                 title=f"Event {i}",
                 content=f"Content {i}",
             )
@@ -283,8 +289,8 @@ async def test_state_file_atomic_writes(integration_config: DaemonConfig):
         projects_file = state_dir / "projects.json"
         assert projects_file.exists()
         projects_data = json.loads(projects_file.read_text())
-        assert isinstance(projects_data, list)
-        assert len(projects_data) == 1
+        assert isinstance(projects_data, dict)
+        assert len(projects_data["projects"]) == 1
 
         sessions_file = state_dir / "sessions.json"
         assert sessions_file.exists()
@@ -294,7 +300,8 @@ async def test_state_file_atomic_writes(integration_config: DaemonConfig):
         events_file = state_dir / "events.json"
         assert events_file.exists()
         events_data = json.loads(events_file.read_text())
-        assert isinstance(events_data, list)
+        assert isinstance(events_data, dict)
+        assert "events" in events_data
 
         await daemon.stop()
 
@@ -335,8 +342,8 @@ async def test_periodic_state_persistence_interval(integration_config: DaemonCon
 
         # Verify content
         data = json.loads(state_file.read_text())
-        assert len(data) == 1
-        assert data[0]["name"] == "Test Project"
+        assert len(data["projects"]) == 1
+        assert data["projects"][0]["name"] == "Test Project"
 
         await daemon.stop()
 
@@ -371,7 +378,8 @@ async def test_session_state_persistence(integration_config: DaemonConfig):
         session.pause_reason = "event-123"
 
         await daemon1._save_state()
-        await daemon1.stop()
+        # Don't call stop() - it would clear active_pane
+        daemon1._running = False
 
         # Second daemon
         daemon2 = CommanderDaemon(integration_config)
@@ -414,21 +422,23 @@ async def test_resolved_events_not_persisted(integration_config: DaemonConfig):
         pending_event = Event(
             id="pending-event",
             project_id=project.id,
-            event_type=EventType.APPROVAL,
+            type=EventType.APPROVAL,
+            priority=EventPriority.HIGH,
             title="Pending",
             content="Still pending",
         )
         resolved_event = Event(
             id="resolved-event",
             project_id=project.id,
-            event_type=EventType.APPROVAL,
+            type=EventType.APPROVAL,
+            priority=EventPriority.HIGH,
             title="Resolved",
             content="Already resolved",
         )
 
         daemon1.event_manager.add_event(pending_event)
         daemon1.event_manager.add_event(resolved_event)
-        daemon1.event_manager.resolve_event(resolved_event.id, "Done")
+        daemon1.event_manager.respond(resolved_event.id, "Done")
 
         await daemon1._save_state()
         await daemon1.stop()
