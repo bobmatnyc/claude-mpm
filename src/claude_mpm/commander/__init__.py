@@ -10,6 +10,8 @@ Key Components:
     - Config loading: .claude-mpm/ directory configuration
     - CommanderDaemon: Main daemon process for orchestration
     - ProjectSession: Per-project lifecycle management
+    - InstanceManager: Framework selection and instance lifecycle
+    - Frameworks: Claude Code, MPM framework abstractions
 
 Example:
     >>> from claude_mpm.commander import ProjectRegistry
@@ -21,6 +23,18 @@ Example:
 from claude_mpm.commander.config import DaemonConfig
 from claude_mpm.commander.config_loader import load_project_config
 from claude_mpm.commander.daemon import CommanderDaemon
+from claude_mpm.commander.frameworks import (
+    BaseFramework,
+    ClaudeCodeFramework,
+    InstanceInfo,
+    MPMFramework,
+)
+from claude_mpm.commander.instance_manager import (
+    FrameworkNotFoundError,
+    InstanceAlreadyExistsError,
+    InstanceManager,
+    InstanceNotFoundError,
+)
 from claude_mpm.commander.models import (
     Project,
     ProjectState,
@@ -35,8 +49,16 @@ from claude_mpm.commander.tmux_orchestrator import (
 )
 
 __all__ = [
+    "BaseFramework",
+    "ClaudeCodeFramework",
     "CommanderDaemon",
     "DaemonConfig",
+    "FrameworkNotFoundError",
+    "InstanceAlreadyExistsError",
+    "InstanceInfo",
+    "InstanceManager",
+    "InstanceNotFoundError",
+    "MPMFramework",
     "Project",
     "ProjectRegistry",
     "ProjectSession",
