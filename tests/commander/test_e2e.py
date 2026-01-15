@@ -278,6 +278,47 @@ class CommanderE2ETest:
             log_fail(f"Persistence test failed: {e}")
             return False
 
+    def test_chat_mode(self) -> bool:
+        """Test the interactive chat mode starts correctly.
+
+        This test verifies that the Commander chat mode can initialize
+        and respond to basic commands without requiring full interaction.
+        """
+        log_step("Testing chat mode initialization...")
+        try:
+            # Test that Commander REPL components are available
+            from claude_mpm.commander.chat.repl import CommanderREPL
+            from claude_mpm.commander.instance_manager import InstanceManager
+            from claude_mpm.commander.session.manager import SessionManager
+
+            # Create minimal instances
+            manager = InstanceManager()
+            session = SessionManager()
+            repl = CommanderREPL(instance_manager=manager, session_manager=session)
+
+            # Verify initialization
+            assert repl.instances is not None, "Instance manager not initialized"
+            assert repl.session is not None, "Session manager not initialized"
+            assert not repl._running, "REPL should not be running yet"
+
+            log_pass("Chat mode components initialized")
+
+            # Test basic command methods exist
+            assert hasattr(repl, "_cmd_list"), "list command missing"
+            assert hasattr(repl, "_cmd_start"), "start command missing"
+            assert hasattr(repl, "_cmd_stop"), "stop command missing"
+            assert hasattr(repl, "_cmd_connect"), "connect command missing"
+            assert hasattr(repl, "_cmd_disconnect"), "disconnect command missing"
+            assert hasattr(repl, "_cmd_status"), "status command missing"
+            assert hasattr(repl, "_cmd_help"), "help command missing"
+
+            log_pass("All chat commands available")
+
+            return True
+        except Exception as e:
+            log_fail(f"Chat mode test failed: {e}")
+            return False
+
     def run_all_tests(self) -> bool:
         """Run all tests and return overall success."""
         tests = [
@@ -286,6 +327,7 @@ class CommanderE2ETest:
             ("Work Queue", self.test_work_queue),
             ("Inbox/Events", self.test_inbox),
             ("Persistence", self.test_persistence),
+            ("Chat Mode", self.test_chat_mode),
         ]
 
         results = []
