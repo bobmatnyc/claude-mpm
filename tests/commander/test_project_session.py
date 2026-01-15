@@ -91,8 +91,10 @@ class TestProjectSession:
 
         await session.start()
 
-        mock_tmux.session_exists.assert_called_once()
-        mock_tmux.create_session.assert_called_once()
+        # session_exists called twice: once in ProjectSession.start(), once in RuntimeExecutor.spawn()
+        assert mock_tmux.session_exists.call_count == 2
+        # create_session called twice (both checks found no session)
+        assert mock_tmux.create_session.call_count == 2
 
     @pytest.mark.asyncio
     async def test_start_from_non_idle_raises_error(
@@ -186,7 +188,12 @@ class TestProjectSession:
 
         await session.stop()
 
-        mock_tmux.kill_pane.assert_called_once_with("commander:test-project-cc")
+        # kill_pane called twice:
+        # 1. executor.terminate(active_pane) - terminates the spawned Claude Code pane
+        # 2. Backward-compatible cleanup loop - kills the old tool session pane
+        assert mock_tmux.kill_pane.call_count == 2
+        # Verify the tool session pane was killed
+        mock_tmux.kill_pane.assert_any_call("commander:test-project-cc")
 
     @pytest.mark.asyncio
     async def test_stop_handles_cleanup_errors(
@@ -207,12 +214,19 @@ class TestProjectSession:
         )
         test_project.sessions["tool-123"] = tool_session
 
-        # Make kill_pane raise error
-        mock_tmux.kill_pane.side_effect = Exception("Kill failed")
+        # Make kill_pane raise error on first call (active_pane termination)
+        # This simulates executor.terminate() failing
+        mock_tmux.kill_pane.side_effect = [
+            Exception("Kill failed"),  # First call: executor.terminate(active_pane)
+            None,  # Second call: backward-compatible cleanup (if reached)
+        ]
 
-        # Should not raise, but still transition to STOPPED
-        await session.stop()
+        # executor.terminate() wraps the exception in RuntimeError and re-raises
+        # ProjectSession.stop() catches it, transitions to STOPPED, and re-raises
+        with pytest.raises(RuntimeError, match="Failed to terminate pane"):
+            await session.stop()
 
+        # Even though exception was raised, session should still be STOPPED
         assert session.state == SessionState.STOPPED
 
     def test_is_ready_when_running(self, test_project: Project, mock_tmux: MagicMock):
