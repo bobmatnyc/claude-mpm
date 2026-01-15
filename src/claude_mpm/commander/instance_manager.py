@@ -4,6 +4,11 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from claude_mpm.commander.adapters import (
+    AdapterResponse,
+    ClaudeCodeAdapter,
+    ClaudeCodeCommunicationAdapter,
+)
 from claude_mpm.commander.frameworks.base import BaseFramework, InstanceInfo
 from claude_mpm.commander.frameworks.claude_code import ClaudeCodeFramework
 from claude_mpm.commander.frameworks.mpm import MPMFramework
@@ -69,6 +74,7 @@ class InstanceManager:
         self.orchestrator = orchestrator
         self._instances: dict[str, InstanceInfo] = {}
         self._frameworks = self._load_frameworks()
+        self._adapters: dict[str, ClaudeCodeCommunicationAdapter] = {}
 
     def _load_frameworks(self) -> dict[str, BaseFramework]:
         """Load available frameworks.
@@ -175,6 +181,17 @@ class InstanceManager:
         # Track instance
         self._instances[name] = instance
 
+        # Create communication adapter for the instance (only for Claude Code for now)
+        if framework == "cc":
+            runtime_adapter = ClaudeCodeAdapter()
+            comm_adapter = ClaudeCodeCommunicationAdapter(
+                orchestrator=self.orchestrator,
+                pane_target=pane_target,
+                runtime_adapter=runtime_adapter,
+            )
+            self._adapters[name] = comm_adapter
+            logger.debug(f"Created communication adapter for instance '{name}'")
+
         logger.info(
             f"Started instance '{name}' with framework '{framework}' at {project_path}"
         )
@@ -205,6 +222,11 @@ class InstanceManager:
 
         # Kill tmux pane
         self.orchestrator.kill_pane(instance.pane_target)
+
+        # Remove adapter if exists
+        if name in self._adapters:
+            del self._adapters[name]
+            logger.debug(f"Removed adapter for instance '{name}'")
 
         # Remove from tracking
         del self._instances[name]
@@ -247,32 +269,69 @@ class InstanceManager:
         """
         return list(self._instances.values())
 
-    async def send_to_instance(self, name: str, message: str) -> bool:
+    async def send_to_instance(
+        self, name: str, message: str, wait_for_response: bool = False
+    ) -> Optional[AdapterResponse]:
         """Send a message/command to an instance.
 
         Args:
             name: Instance name
             message: Message to send
+            wait_for_response: If True, wait for and return response
 
         Returns:
-            True if message was sent
+            AdapterResponse if wait_for_response=True, None otherwise
 
         Raises:
             InstanceNotFoundError: If instance not found
 
         Example:
             >>> manager = InstanceManager(orchestrator)
+            >>> # Send without waiting
             >>> await manager.send_to_instance("myapp", "Fix the bug in main.py")
-            True
+            >>> # Send and wait for response
+            >>> response = await manager.send_to_instance(
+            ...     "myapp", "Fix the bug", wait_for_response=True
+            ... )
+            >>> print(response.content)
         """
         if name not in self._instances:
             raise InstanceNotFoundError(name)
 
         instance = self._instances[name]
 
-        # Send message to tmux pane
+        # Use adapter if available
+        if name in self._adapters:
+            adapter = self._adapters[name]
+            await adapter.send(message)
+            logger.info(
+                f"Sent message via adapter to instance '{name}': {message[:50]}..."
+            )
+
+            if wait_for_response:
+                return await adapter.receive()
+            return None
+
+        # Fallback to direct tmux if no adapter
         self.orchestrator.send_keys(instance.pane_target, message)
-
         logger.info(f"Sent message to instance '{name}': {message[:50]}...")
+        return None
 
-        return True
+    def get_adapter(self, name: str) -> Optional[ClaudeCodeCommunicationAdapter]:
+        """Get communication adapter for an instance.
+
+        Args:
+            name: Instance name
+
+        Returns:
+            ClaudeCodeCommunicationAdapter if exists, None otherwise
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> adapter = manager.get_adapter("myapp")
+            >>> if adapter:
+            ...     await adapter.send("Create a new file")
+            ...     async for chunk in adapter.stream_response():
+            ...         print(chunk, end='')
+        """
+        return self._adapters.get(name)
