@@ -1,0 +1,9 @@
+/* Custom hover color not in Tailwind */
+.bg-gray-750:hover {
+    background-color: rgb(55, 65, 81);
+}
+
+/* Terminal-style output */
+#output-content {
+    color: #00ff00;
+}
