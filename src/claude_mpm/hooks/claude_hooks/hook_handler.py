@@ -62,14 +62,14 @@ except ImportError:
 """
 Debug mode configuration for hook processing.
 
-WHY enabled by default: Hook processing can be complex and hard to debug.
-Having debug output available by default helps diagnose issues during development.
-Production deployments can disable via environment variable.
+WHY disabled by default: Production users should see clean output without debug noise.
+Hook errors appear less confusing when debug output is minimal.
+Development and debugging can enable via CLAUDE_MPM_HOOK_DEBUG=true.
 
 Performance Impact: Debug logging adds ~5-10% overhead but provides crucial
-visibility into event flow, timing, and error conditions.
+visibility into event flow, timing, and error conditions when enabled.
 """
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 """
 Conditional imports with graceful fallbacks for testing and modularity.
@@ -425,9 +425,12 @@ class ClaudeHookHandler:
         )
 
         # Log the actual event structure for debugging
-        if DEBUG and hook_type == "unknown":
-            print(f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr)
-            print(f"Event sample: {str(event)[:200]}", file=sys.stderr)
+        if DEBUG:
+            if hook_type == "unknown":
+                print(
+                    f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr
+                )
+                print(f"Event sample: {str(event)[:200]}", file=sys.stderr)
 
         # Map event types to handlers
         event_handlers = {
@@ -741,4 +744,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        # Catastrophic failure (import error, etc.) - always output valid JSON
+        print(json.dumps({"action": "continue"}), flush=True)
+        sys.exit(0)
