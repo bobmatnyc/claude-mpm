@@ -71,6 +71,23 @@ visibility into event flow, timing, and error conditions when enabled.
 """
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
+
+def _log(message: str) -> None:
+    """Log message to file if DEBUG enabled. Never write to stderr.
+
+    WHY: Claude Code interprets ANY stderr output as a hook error.
+    Writing to stderr causes confusing "hook error" messages even for debug logs.
+
+    This helper ensures all debug output goes to a log file instead.
+    """
+    if DEBUG:
+        try:
+            with open("/tmp/claude-mpm-hook.log", "a") as f:  # nosec B108
+                f.write(f"[{datetime.now(timezone.utc).isoformat()}] {message}\n")
+        except Exception:  # nosec B110 - intentional silent failure
+            pass  # Never disrupt hook execution
+
+
 """
 Conditional imports with graceful fallbacks for testing and modularity.
 
@@ -188,22 +205,17 @@ def check_claude_version() -> Tuple[bool, Optional[str]]:
                     req_part = required[i] if i < len(required) else 0
 
                     if curr_part < req_part:
-                        if DEBUG:
-                            print(
-                                f"⚠️  Claude Code {version} does not support matcher-based hooks "
-                                f"(requires {MIN_CLAUDE_VERSION}+). Hook monitoring disabled.",
-                                file=sys.stderr,
-                            )
+                        _log(
+                            f"⚠️  Claude Code {version} does not support matcher-based hooks "
+                            f"(requires {MIN_CLAUDE_VERSION}+). Hook monitoring disabled."
+                        )
                         return False, version
                     if curr_part > req_part:
                         return True, version
 
                 return True, version
     except Exception as e:
-        if DEBUG:
-            print(
-                f"Warning: Could not detect Claude Code version: {e}", file=sys.stderr
-            )
+        _log(f"Warning: Could not detect Claude Code version: {e}")
 
     return False, None
 
@@ -244,8 +256,7 @@ class ClaudeHookHandler:
                 )
         except Exception as e:
             self.auto_pause_handler = None
-            if DEBUG:
-                print(f"Auto-pause initialization failed: {e}", file=sys.stderr)
+            _log(f"Auto-pause initialization failed: {e}")
 
         # Backward compatibility properties for tests
         # Note: HTTP-based connection manager doesn't use connection_pool
@@ -278,8 +289,7 @@ class ClaudeHookHandler:
         def timeout_handler(signum, frame):
             """Handle timeout by forcing exit."""
             nonlocal _continue_sent
-            if DEBUG:
-                print(f"Hook handler timeout (pid: {os.getpid()})", file=sys.stderr)
+            _log(f"Hook handler timeout (pid: {os.getpid()})")
             if not _continue_sent:
                 self._continue_execution()
                 _continue_sent = True
@@ -300,11 +310,9 @@ class ClaudeHookHandler:
 
             # Check for duplicate events (same event within 100ms)
             if self.duplicate_detector.is_duplicate(event):
-                if DEBUG:
-                    print(
-                        f"[{datetime.now(timezone.utc).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})",
-                        file=sys.stderr,
-                    )
+                _log(
+                    f"[{datetime.now(timezone.utc).isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})"
+                )
                 # Still need to output continue for this invocation
                 if not _continue_sent:
                     self._continue_execution()
@@ -312,12 +320,10 @@ class ClaudeHookHandler:
                 return
 
             # Debug: Log that we're processing an event
-            if DEBUG:
-                hook_type = event.get("hook_event_name", "unknown")
-                print(
-                    f"\n[{datetime.now(timezone.utc).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})",
-                    file=sys.stderr,
-                )
+            hook_type = event.get("hook_event_name", "unknown")
+            _log(
+                f"\n[{datetime.now(timezone.utc).isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})"
+            )
 
             # Perform periodic cleanup if needed
             if self.state_manager.increment_events_processed():
@@ -326,11 +332,9 @@ class ClaudeHookHandler:
                 from .correlation_manager import CorrelationManager
 
                 CorrelationManager.cleanup_old()
-                if DEBUG:
-                    print(
-                        f"🧹 Performed cleanup after {self.state_manager.events_processed} events",
-                        file=sys.stderr,
-                    )
+                _log(
+                    f"🧹 Performed cleanup after {self.state_manager.events_processed} events"
+                )
 
             # Route event to appropriate handler
             # Handlers can optionally return modified input for PreToolUse events
@@ -370,8 +374,7 @@ class ClaudeHookHandler:
             ready, _, _ = select.select([sys.stdin], [], [], 1.0)
             if not ready:
                 # No data available within timeout
-                if DEBUG:
-                    print("No hook event data received within timeout", file=sys.stderr)
+                _log("No hook event data received within timeout")
                 return None
 
             # Data is available, read it
@@ -382,21 +385,16 @@ class ClaudeHookHandler:
 
             parsed = json.loads(event_data)
             # Debug: Log the actual event format we receive
-            if DEBUG:
-                print(
-                    f"Received event with keys: {list(parsed.keys())}", file=sys.stderr
-                )
-                for key in ["hook_event_name", "event", "type", "event_type"]:
-                    if key in parsed:
-                        print(f"  {key} = '{parsed[key]}'", file=sys.stderr)
+            _log(f"Received event with keys: {list(parsed.keys())}")
+            for key in ["hook_event_name", "event", "type", "event_type"]:
+                if key in parsed:
+                    _log(f"  {key} = '{parsed[key]}'")
             return parsed
         except (json.JSONDecodeError, ValueError) as e:
-            if DEBUG:
-                print(f"Failed to parse hook event: {e}", file=sys.stderr)
+            _log(f"Failed to parse hook event: {e}")
             return None
         except Exception as e:
-            if DEBUG:
-                print(f"Error reading hook event: {e}", file=sys.stderr)
+            _log(f"Error reading hook event: {e}")
             return None
 
     def _route_event(self, event: dict) -> Optional[dict]:
@@ -425,12 +423,9 @@ class ClaudeHookHandler:
         )
 
         # Log the actual event structure for debugging
-        if DEBUG:
-            if hook_type == "unknown":
-                print(
-                    f"Unknown event format, keys: {list(event.keys())}", file=sys.stderr
-                )
-                print(f"Event sample: {str(event)[:200]}", file=sys.stderr)
+        if hook_type == "unknown":
+            _log(f"Unknown event format, keys: {list(event.keys())}")
+            _log(f"Event sample: {str(event)[:200]}")
 
         # Map event types to handlers
         event_handlers = {
@@ -466,8 +461,7 @@ class ClaudeHookHandler:
             except Exception as e:
                 error_message = str(e)
                 return_value = None
-                if DEBUG:
-                    print(f"Error handling {hook_type}: {e}", file=sys.stderr)
+                _log(f"Error handling {hook_type}: {e}")
             finally:
                 # Calculate duration
                 duration_ms = int((time.time() - start_time) * 1000)
@@ -592,11 +586,9 @@ class ClaudeHookHandler:
         # This uses the existing event infrastructure
         self._emit_socketio_event("", "hook_execution", hook_data)
 
-        if DEBUG:
-            print(
-                f"📊 Hook execution event: {hook_type} - {duration_ms}ms - {'✅' if success else '❌'}",
-                file=sys.stderr,
-            )
+        _log(
+            f"📊 Hook execution event: {hook_type} - {duration_ms}ms - {'✅' if success else '❌'}"
+        )
 
     def _generate_hook_summary(self, hook_type: str, event: dict, success: bool) -> str:
         """Generate a human-readable summary of what the hook did.
@@ -679,22 +671,15 @@ def main():
     if not is_compatible:
         # Version incompatible - just continue without processing
         # This prevents errors on older Claude Code versions
-        if DEBUG and version:
-            print(
-                f"Skipping hook processing due to version incompatibility ({version})",
-                file=sys.stderr,
-            )
+        if version:
+            _log(f"Skipping hook processing due to version incompatibility ({version})")
         print(json.dumps({"action": "continue"}), flush=True)
         sys.exit(0)
 
     def cleanup_handler(signum=None, frame=None):
         """Cleanup handler for signals and exit."""
         nonlocal _continue_printed
-        if DEBUG:
-            print(
-                f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})",
-                file=sys.stderr,
-            )
+        _log(f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})")
         # Only output continue if we haven't already (i.e., if interrupted by signal)
         if signum is not None and not _continue_printed:
             print(json.dumps({"action": "continue"}), flush=True)
@@ -711,15 +696,10 @@ def main():
         with _handler_lock:
             if _global_handler is None:
                 _global_handler = ClaudeHookHandler()
-                if DEBUG:
-                    print(
-                        f"✅ Created new ClaudeHookHandler singleton (pid: {os.getpid()})",
-                        file=sys.stderr,
-                    )
-            elif DEBUG:
-                print(
-                    f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})",
-                    file=sys.stderr,
+                _log(f"✅ Created new ClaudeHookHandler singleton (pid: {os.getpid()})")
+            else:
+                _log(
+                    f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})"
                 )
 
             handler = _global_handler
@@ -738,8 +718,7 @@ def main():
             print(json.dumps({"action": "continue"}), flush=True)
             _continue_printed = True
         # Log error for debugging
-        if DEBUG:
-            print(f"Hook handler error: {e}", file=sys.stderr)
+        _log(f"Hook handler error: {e}")
         sys.exit(0)  # Exit cleanly even on error
 
 
