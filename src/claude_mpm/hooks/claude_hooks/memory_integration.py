@@ -7,7 +7,16 @@ including pre and post delegation hooks.
 
 import logging
 import os
-import sys
+from pathlib import Path
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 # Install-type-aware logging configuration BEFORE kuzu-memory imports
 # This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
@@ -28,11 +37,15 @@ try:
         DeploymentContext.DEVELOPMENT,
         DeploymentContext.EDITABLE_INSTALL,
     ):
+        # Write logs to file instead of stderr to avoid hook errors
+        log_dir = Path.home() / ".claude-mpm"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "hooks.log"
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             force=True,  # Python 3.8+ - reconfigures root logger
-            stream=sys.stderr,
+            filename=str(log_file),
         )
 except ImportError:
     # Fallback: if unified_paths not available, check suppression before configuring
@@ -40,11 +53,15 @@ except ImportError:
     is_suppressed = root_logger.level > logging.CRITICAL
 
     if not is_suppressed:
+        # Write logs to file instead of stderr to avoid hook errors
+        log_dir = Path.home() / ".claude-mpm"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "hooks.log"
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             force=True,
-            stream=sys.stderr,
+            filename=str(log_file),
         )
 from datetime import datetime, timezone
 from typing import Optional
@@ -71,7 +88,7 @@ try:
 except Exception as e:
     # Catch all exceptions to prevent any import errors from breaking the handler
     if DEBUG:
-        print(f"Memory hooks not available: {e}", file=sys.stderr)
+        _log(f"Memory hooks not available: {e}")
     MEMORY_HOOKS_AVAILABLE = False
 
 
@@ -105,10 +122,7 @@ class MemoryHookManager:
             # Only initialize if memory system is enabled
             if not config.get("memory.enabled", True):
                 if DEBUG:
-                    print(
-                        "Memory system disabled - skipping hook initialization",
-                        file=sys.stderr,
-                    )
+                    _log("Memory system disabled - skipping hook initialization")
                 return
 
             # Initialize pre-delegation hook for memory injection
@@ -126,14 +140,11 @@ class MemoryHookManager:
                     hooks_info.append("pre-delegation")
                 if self.post_delegation_hook:
                     hooks_info.append("post-delegation")
-                print(
-                    f"✅ Memory hooks initialized: {', '.join(hooks_info)}",
-                    file=sys.stderr,
-                )
+                _log(f"✅ Memory hooks initialized: {', '.join(hooks_info)}")
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Failed to initialize memory hooks: {e}", file=sys.stderr)
+                _log(f"❌ Failed to initialize memory hooks: {e}")
             # Don't fail the entire handler - memory system is optional
 
     def trigger_pre_delegation_hook(
@@ -182,14 +193,13 @@ class MemoryHookManager:
 
                     if DEBUG:
                         memory_size = len(memory_section.encode("utf-8"))
-                        print(
-                            f"✅ Injected {memory_size} bytes of memory for agent '{agent_type}'",
-                            file=sys.stderr,
+                        _log(
+                            f"✅ Injected {memory_size} bytes of memory for agent '{agent_type}'"
                         )
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Memory pre-delegation hook failed: {e}", file=sys.stderr)
+                _log(f"❌ Memory pre-delegation hook failed: {e}")
             # Don't fail the delegation - memory is optional
 
     def trigger_post_delegation_hook(
@@ -249,12 +259,11 @@ class MemoryHookManager:
             if result.success and result.metadata:
                 learnings_extracted = result.metadata.get("learnings_extracted", 0)
                 if learnings_extracted > 0 and DEBUG:
-                    print(
-                        f"✅ Extracted {learnings_extracted} learnings for agent '{agent_type}'",
-                        file=sys.stderr,
+                    _log(
+                        f"✅ Extracted {learnings_extracted} learnings for agent '{agent_type}'"
                     )
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Memory post-delegation hook failed: {e}", file=sys.stderr)
+                _log(f"❌ Memory post-delegation hook failed: {e}")
             # Don't fail the delegation result - memory is optional

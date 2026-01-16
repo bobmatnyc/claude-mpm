@@ -22,7 +22,7 @@ USAGE:
         threshold_crossed = auto_pause.on_usage_update(metadata["usage"])
         if threshold_crossed:
             warning = auto_pause.emit_threshold_warning(threshold_crossed)
-            print(f"\n⚠️  {warning}", file=sys.stderr)
+            _log(f"\n⚠️  {warning}")
 
     # Record actions during pause mode
     if auto_pause.is_pause_active():
@@ -34,7 +34,6 @@ USAGE:
 """
 
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -44,6 +43,15 @@ from claude_mpm.services.cli.incremental_pause_manager import IncrementalPauseMa
 from claude_mpm.services.infrastructure.context_usage_tracker import (
     ContextUsageTracker,
 )
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 logger = get_logger(__name__)
 
@@ -100,11 +108,10 @@ class AutoPauseHandler:
             self._previous_threshold = current_state.threshold_reached
 
             if DEBUG:
-                print(
+                _log(
                     f"AutoPauseHandler initialized: "
                     f"{current_state.percentage_used:.1f}% context used, "
-                    f"threshold: {current_state.threshold_reached}",
-                    file=sys.stderr,
+                    f"threshold: {current_state.threshold_reached}"
                 )
         except Exception as e:
             logger.error(f"Failed to initialize AutoPauseHandler: {e}")
@@ -169,10 +176,9 @@ class AutoPauseHandler:
                     self._previous_threshold = current_threshold
 
                     if DEBUG:
-                        print(
+                        _log(
                             f"Context threshold crossed: {current_threshold} "
-                            f"({state.percentage_used:.1f}%)",
-                            file=sys.stderr,
+                            f"({state.percentage_used:.1f}%)"
                         )
 
                     # Trigger auto-pause if threshold reached
@@ -184,7 +190,7 @@ class AutoPauseHandler:
         except Exception as e:
             logger.error(f"Failed to update usage: {e}")
             if DEBUG:
-                print(f"❌ Usage update failed: {e}", file=sys.stderr)
+                _log(f"❌ Usage update failed: {e}")
             # Don't propagate error - auto-pause is optional
             return None
 
@@ -220,12 +226,12 @@ class AutoPauseHandler:
             )
 
             if DEBUG:
-                print(f"Recorded tool call during pause: {tool_name}", file=sys.stderr)
+                _log(f"Recorded tool call during pause: {tool_name}")
 
         except Exception as e:
             logger.error(f"Failed to record tool call: {e}")
             if DEBUG:
-                print(f"❌ Failed to record tool call: {e}", file=sys.stderr)
+                _log(f"❌ Failed to record tool call: {e}")
 
     def on_assistant_response(self, response_summary: str) -> None:
         """Record an assistant response if auto-pause is active.
@@ -257,15 +263,14 @@ class AutoPauseHandler:
             )
 
             if DEBUG:
-                print(
-                    f"Recorded assistant response during pause (length: {len(summary)})",
-                    file=sys.stderr,
+                _log(
+                    f"Recorded assistant response during pause (length: {len(summary)})"
                 )
 
         except Exception as e:
             logger.error(f"Failed to record assistant response: {e}")
             if DEBUG:
-                print(f"❌ Failed to record assistant response: {e}", file=sys.stderr)
+                _log(f"❌ Failed to record assistant response: {e}")
 
     def on_user_message(self, message_summary: str) -> None:
         """Record a user message if auto-pause is active.
@@ -297,15 +302,12 @@ class AutoPauseHandler:
             )
 
             if DEBUG:
-                print(
-                    f"Recorded user message during pause (length: {len(summary)})",
-                    file=sys.stderr,
-                )
+                _log(f"Recorded user message during pause (length: {len(summary)})")
 
         except Exception as e:
             logger.error(f"Failed to record user message: {e}")
             if DEBUG:
-                print(f"❌ Failed to record user message: {e}", file=sys.stderr)
+                _log(f"❌ Failed to record user message: {e}")
 
     def on_session_end(self) -> Optional[Path]:
         """Called when session ends. Finalizes any active pause.
@@ -318,7 +320,7 @@ class AutoPauseHandler:
         """
         if not self.is_pause_active():
             if DEBUG:
-                print("No active pause to finalize", file=sys.stderr)
+                _log("No active pause to finalize")
             return None
 
         try:
@@ -326,14 +328,14 @@ class AutoPauseHandler:
             session_path = self.pause_manager.finalize_pause(create_full_snapshot=True)
 
             if session_path and DEBUG:
-                print(f"✅ Session finalized: {session_path.name}", file=sys.stderr)
+                _log(f"✅ Session finalized: {session_path.name}")
 
             return session_path
 
         except Exception as e:
             logger.error(f"Failed to finalize pause session: {e}")
             if DEBUG:
-                print(f"❌ Failed to finalize pause: {e}", file=sys.stderr)
+                _log(f"❌ Failed to finalize pause: {e}")
             raise
 
     def is_pause_active(self) -> bool:
@@ -417,9 +419,7 @@ class AutoPauseHandler:
             # Check if pause is already active
             if self.is_pause_active():
                 if DEBUG:
-                    print(
-                        "Auto-pause already active, skipping trigger", file=sys.stderr
-                    )
+                    _log("Auto-pause already active, skipping trigger")
                 return
 
             # Start incremental pause
@@ -429,16 +429,15 @@ class AutoPauseHandler:
             )
 
             if DEBUG:
-                print(
+                _log(
                     f"✅ Auto-pause triggered: {session_id} "
-                    f"({state.percentage_used:.1f}% context used)",
-                    file=sys.stderr,
+                    f"({state.percentage_used:.1f}% context used)"
                 )
 
         except Exception as e:
             logger.error(f"Failed to trigger auto-pause: {e}")
             if DEBUG:
-                print(f"❌ Failed to trigger auto-pause: {e}", file=sys.stderr)
+                _log(f"❌ Failed to trigger auto-pause: {e}")
             # Don't propagate - auto-pause is optional
 
     def _summarize_dict(

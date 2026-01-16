@@ -10,9 +10,17 @@ This service handles:
 import json
 import os
 import re
-import sys
 from datetime import datetime, timezone
 from typing import Optional, Tuple
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -45,26 +53,21 @@ class SubagentResponseProcessor:
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
-            print(
-                f"  - delegation_requests size: {len(self.state_manager.delegation_requests)}",
-                file=sys.stderr,
+            _log(f"  - session_id: {session_id[:16] if session_id else 'None'}...")
+            _log(f"  - event keys: {list(event.keys())}")
+            _log(
+                f"  - delegation_requests size: {len(self.state_manager.delegation_requests)}"
             )
             # Show all stored session IDs for comparison
             all_sessions = list(self.state_manager.delegation_requests.keys())
             if all_sessions:
-                print("  - Stored sessions (first 16 chars):", file=sys.stderr)
+                _log("  - Stored sessions (first 16 chars):")
                 for sid in all_sessions[:10]:  # Show up to 10
-                    print(
-                        f"    - {sid[:16]}... (agent: {self.state_manager.delegation_requests[sid].get('agent_type', 'unknown')})",
-                        file=sys.stderr,
+                    _log(
+                        f"    - {sid[:16]}... (agent: {self.state_manager.delegation_requests[sid].get('agent_type', 'unknown')})"
                     )
             else:
-                print("  - No stored sessions in delegation_requests!", file=sys.stderr)
+                _log("  - No stored sessions in delegation_requests!")
 
         # Get agent type and other basic info
         agent_type, agent_id, reason, agent_type_inferred = self._extract_basic_info(
@@ -73,9 +76,8 @@ class SubagentResponseProcessor:
 
         # Always log SubagentStop events for debugging
         if DEBUG or agent_type != "unknown":
-            print(
-                f"Hook handler: Processing SubagentStop - agent: '{agent_type}', session: '{session_id}', reason: '{reason}'",
-                file=sys.stderr,
+            _log(
+                f"Hook handler: Processing SubagentStop - agent: '{agent_type}', session: '{session_id}', reason: '{reason}'"
             )
 
         # Get working directory and git branch
@@ -115,9 +117,8 @@ class SubagentResponseProcessor:
 
         # Debug log the processed data
         if DEBUG:
-            print(
-                f"SubagentStop processed data: agent_type='{agent_type}', session_id='{session_id}'",
-                file=sys.stderr,
+            _log(
+                f"SubagentStop processed data: agent_type='{agent_type}', session_id='{session_id}'"
             )
 
         # Emit to default namespace (consistent with subagent_start)
@@ -163,10 +164,7 @@ class SubagentResponseProcessor:
             agent_type = "pm"
             agent_type_inferred = True
             if DEBUG:
-                print(
-                    "  - Inferred agent_type='pm' (no explicit type found)",
-                    file=sys.stderr,
-                )
+                _log("  - Inferred agent_type='pm' (no explicit type found)")
 
         return agent_type, agent_id, reason, agent_type_inferred
 
@@ -182,17 +180,15 @@ class SubagentResponseProcessor:
             if json_match:
                 structured_response = json.loads(json_match.group(1))
                 if DEBUG:
-                    print(
-                        f"Extracted structured response from {agent_type} agent in SubagentStop",
-                        file=sys.stderr,
+                    _log(
+                        f"Extracted structured response from {agent_type} agent in SubagentStop"
                     )
 
                 # Log if MEMORIES field is present
                 if structured_response.get("MEMORIES") and DEBUG:
                     memories_count = len(structured_response["MEMORIES"])
-                    print(
-                        f"Agent {agent_type} returned MEMORIES field with {memories_count} items",
-                        file=sys.stderr,
+                    _log(
+                        f"Agent {agent_type} returned MEMORIES field with {memories_count} items"
                     )
 
                 return structured_response
@@ -214,20 +210,15 @@ class SubagentResponseProcessor:
     ):
         """Track the agent response if response tracking is enabled."""
         if DEBUG:
-            print(
-                f"  - response_tracking_enabled: {self.response_tracking_manager.response_tracking_enabled}",
-                file=sys.stderr,
+            _log(
+                f"  - response_tracking_enabled: {self.response_tracking_manager.response_tracking_enabled}"
             )
-            print(
-                f"  - response_tracker exists: {self.response_tracking_manager.response_tracker is not None}",
-                file=sys.stderr,
+            _log(
+                f"  - response_tracker exists: {self.response_tracking_manager.response_tracker is not None}"
             )
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - agent_type: {agent_type}", file=sys.stderr)
-            print(f"  - reason: {reason}", file=sys.stderr)
+            _log(f"  - session_id: {session_id[:16] if session_id else 'None'}...")
+            _log(f"  - agent_type: {agent_type}")
+            _log(f"  - reason: {reason}")
 
         if (
             self.response_tracking_manager.response_tracking_enabled
@@ -238,27 +229,16 @@ class SubagentResponseProcessor:
                 request_info = self.state_manager.find_matching_request(session_id)
 
                 if DEBUG:
-                    print(
-                        f"  - request_info present: {bool(request_info)}",
-                        file=sys.stderr,
-                    )
+                    _log(f"  - request_info present: {bool(request_info)}")
                     if request_info:
-                        print(
-                            "  - ✅ Found request data for response tracking",
-                            file=sys.stderr,
-                        )
-                        print(
-                            f"  - stored agent_type: {request_info.get('agent_type')}",
-                            file=sys.stderr,
-                        )
-                        print(
-                            f"  - request keys: {list(request_info.get('request', {}).keys())}",
-                            file=sys.stderr,
+                        _log("  - ✅ Found request data for response tracking")
+                        _log(f"  - stored agent_type: {request_info.get('agent_type')}")
+                        _log(
+                            f"  - request keys: {list(request_info.get('request', {}).keys())}"
                         )
                     else:
-                        print(
-                            f"  - ❌ No request data found for session {session_id[:16]}...",
-                            file=sys.stderr,
+                        _log(
+                            f"  - ❌ No request data found for session {session_id[:16]}..."
                         )
 
                 if request_info:
@@ -310,9 +290,8 @@ class SubagentResponseProcessor:
                         # Check for MEMORIES field and process if present
                         if structured_response.get("MEMORIES") and DEBUG:
                             memories = structured_response["MEMORIES"]
-                            print(
-                                f"Found MEMORIES field in {agent_type} response with {len(memories)} items",
-                                file=sys.stderr,
+                            _log(
+                                f"Found MEMORIES field in {agent_type} response with {len(memories)} items"
                             )
                             # The memory will be processed by extract_and_update_memory
                             # which is called by the memory hook service
@@ -329,26 +308,21 @@ class SubagentResponseProcessor:
                     )
 
                     if file_path and DEBUG:
-                        print(
-                            f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}",
-                            file=sys.stderr,
+                        _log(
+                            f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}"
                         )
 
                     # Clean up the request data
                     self.state_manager.remove_request(session_id)
 
                 elif DEBUG:
-                    print(
-                        f"No request data for SubagentStop session {session_id[:8]}..., agent: {agent_type}",
-                        file=sys.stderr,
+                    _log(
+                        f"No request data for SubagentStop session {session_id[:8]}..., agent: {agent_type}"
                     )
 
             except Exception as e:
                 if DEBUG:
-                    print(
-                        f"❌ Failed to track response on SubagentStop: {e}",
-                        file=sys.stderr,
-                    )
+                    _log(f"❌ Failed to track response on SubagentStop: {e}")
 
     def _build_subagent_stop_data(
         self,

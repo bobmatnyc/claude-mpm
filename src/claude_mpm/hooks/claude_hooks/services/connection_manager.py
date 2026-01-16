@@ -20,6 +20,15 @@ import os
 import sys
 from datetime import datetime, timezone
 
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
+
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
 
@@ -94,13 +103,10 @@ class ConnectionManagerService:
         try:
             self.connection_pool = get_connection_pool()
             if DEBUG:
-                print("✅ Modern SocketIO connection pool initialized", file=sys.stderr)
+                _log("✅ Modern SocketIO connection pool initialized")
         except Exception as e:
             if DEBUG:
-                print(
-                    f"⚠️ Failed to initialize SocketIO connection pool: {e}",
-                    file=sys.stderr,
-                )
+                _log(f"⚠️ Failed to initialize SocketIO connection pool: {e}")
             self.connection_pool = None
 
     def emit_event(self, namespace: str, event: str, data: dict):
@@ -149,10 +155,7 @@ class ConnectionManagerService:
 
                 # Debug log when we detect invalid hook_type for troubleshooting
                 if DEBUG:
-                    print(
-                        f"⚠️ Invalid hook_type detected, using fallback: {hook_type}",
-                        file=sys.stderr,
-                    )
+                    _log(f"⚠️ Invalid hook_type detected, using fallback: {hook_type}")
 
             event_type = hook_type
         else:
@@ -177,16 +180,12 @@ class ConnectionManagerService:
         if DEBUG and event in ["subagent_stop", "pre_tool"]:
             if event == "subagent_stop":
                 agent_type = data.get("agent_type", "unknown")
-                print(
-                    f"Hook handler: Publishing SubagentStop for agent '{agent_type}'",
-                    file=sys.stderr,
-                )
+                _log(f"Hook handler: Publishing SubagentStop for agent '{agent_type}'")
             elif event == "pre_tool" and data.get("tool_name") == "Task":
                 delegation = data.get("delegation_details", {})
                 agent_type = delegation.get("agent_type", "unknown")
-                print(
-                    f"Hook handler: Publishing Task delegation to agent '{agent_type}'",
-                    file=sys.stderr,
+                _log(
+                    f"Hook handler: Publishing Task delegation to agent '{agent_type}'"
                 )
 
         # Emit through direct Socket.IO connection pool (primary path)
@@ -196,11 +195,11 @@ class ConnectionManagerService:
                 # Emit to Socket.IO server directly
                 self.connection_pool.emit("mpm_event", claude_event_data)
                 if DEBUG:
-                    print(f"✅ Emitted via connection pool: {event}", file=sys.stderr)
+                    _log(f"✅ Emitted via connection pool: {event}")
                 return  # Success - no need for fallback
             except Exception as e:
                 if DEBUG:
-                    print(f"⚠️ Failed to emit via connection pool: {e}", file=sys.stderr)
+                    _log(f"⚠️ Failed to emit via connection pool: {e}")
 
         # HTTP fallback for cross-process communication (when direct calls fail)
         # This replaces EventBus for reliability without the complexity
@@ -221,22 +220,18 @@ class ConnectionManagerService:
 
             if response.status_code in [200, 204]:
                 if DEBUG:
-                    print("✅ HTTP fallback successful", file=sys.stderr)
+                    _log("✅ HTTP fallback successful")
             elif DEBUG:
-                print(
-                    f"⚠️ HTTP fallback failed: {response.status_code}",
-                    file=sys.stderr,
-                )
+                _log(f"⚠️ HTTP fallback failed: {response.status_code}")
 
         except Exception as e:
             if DEBUG:
-                print(f"⚠️ HTTP fallback error: {e}", file=sys.stderr)
+                _log(f"⚠️ HTTP fallback error: {e}")
 
         # Warn if no emission method is available
         if not self.connection_pool and DEBUG:
-            print(
-                f"⚠️ No event emission method available for: {claude_event_data.get('event', 'unknown')}",
-                file=sys.stderr,
+            _log(
+                f"⚠️ No event emission method available for: {claude_event_data.get('event', 'unknown')}"
             )
 
     def cleanup(self):
@@ -245,5 +240,5 @@ class ConnectionManagerService:
         if self.connection_pool:
             try:
                 self.connection_pool.cleanup()
-            except Exception:
+            except Exception:  # nosec B110
                 pass  # Ignore cleanup errors during destruction

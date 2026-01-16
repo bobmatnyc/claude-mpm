@@ -16,9 +16,17 @@ is simpler and more reliable for ephemeral processes.
 """
 
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 # Debug mode is enabled by default for better visibility into hook processing
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -78,9 +86,8 @@ class ConnectionManagerService:
         )
 
         if DEBUG:
-            print(
-                f"✅ HTTP connection manager initialized - endpoint: {self.http_endpoint}",
-                file=sys.stderr,
+            _log(
+                f"✅ HTTP connection manager initialized - endpoint: {self.http_endpoint}"
             )
 
     def emit_event(self, namespace: str, event: str, data: dict):
@@ -110,16 +117,12 @@ class ConnectionManagerService:
         if DEBUG and event in ["subagent_stop", "pre_tool"]:
             if event == "subagent_stop":
                 agent_type = data.get("agent_type", "unknown")
-                print(
-                    f"Hook handler: Publishing SubagentStop for agent '{agent_type}'",
-                    file=sys.stderr,
-                )
+                _log(f"Hook handler: Publishing SubagentStop for agent '{agent_type}'")
             elif event == "pre_tool" and data.get("tool_name") == "Task":
                 delegation = data.get("delegation_details", {})
                 agent_type = delegation.get("agent_type", "unknown")
-                print(
-                    f"Hook handler: Publishing Task delegation to agent '{agent_type}'",
-                    file=sys.stderr,
+                _log(
+                    f"Hook handler: Publishing Task delegation to agent '{agent_type}'"
                 )
 
         # Emit via HTTP POST (non-blocking, runs in thread pool)
@@ -133,10 +136,7 @@ class ConnectionManagerService:
         """
         if not REQUESTS_AVAILABLE:
             if DEBUG:
-                print(
-                    "⚠️ requests module not available - cannot emit via HTTP",
-                    file=sys.stderr,
-                )
+                _log("⚠️ requests module not available - cannot emit via HTTP")
             return
 
         # Submit to thread pool - don't wait for result (fire-and-forget)
@@ -162,25 +162,21 @@ class ConnectionManagerService:
 
             if response.status_code in [200, 204]:
                 if DEBUG:
-                    print(f"✅ HTTP POST successful: {event}", file=sys.stderr)
+                    _log(f"✅ HTTP POST successful: {event}")
             elif DEBUG:
-                print(
-                    f"⚠️ HTTP POST failed with status {response.status_code}: {event}",
-                    file=sys.stderr,
-                )
+                _log(f"⚠️ HTTP POST failed with status {response.status_code}: {event}")
 
         except requests.exceptions.Timeout:
             if DEBUG:
-                print(f"⚠️ HTTP POST timeout for: {event}", file=sys.stderr)
+                _log(f"⚠️ HTTP POST timeout for: {event}")
         except requests.exceptions.ConnectionError:
             if DEBUG:
-                print(
-                    f"⚠️ HTTP POST connection failed for: {event} (server not running?)",
-                    file=sys.stderr,
+                _log(
+                    f"⚠️ HTTP POST connection failed for: {event} (server not running?)"
                 )
         except Exception as e:
             if DEBUG:
-                print(f"⚠️ HTTP POST error for {event}: {e}", file=sys.stderr)
+                _log(f"⚠️ HTTP POST error for {event}: {e}")
 
     def cleanup(self):
         """Cleanup connections on service destruction."""
@@ -188,4 +184,4 @@ class ConnectionManagerService:
         if hasattr(self, "_http_executor"):
             self._http_executor.shutdown(wait=False)
             if DEBUG:
-                print("✅ HTTP executor shutdown", file=sys.stderr)
+                _log("✅ HTTP executor shutdown")

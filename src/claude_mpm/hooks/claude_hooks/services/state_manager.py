@@ -8,12 +8,21 @@ This service manages:
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 import time
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 # Import constants for configuration
 try:
@@ -63,17 +72,11 @@ class StateManagerService:
     ):
         """Track a new agent delegation with optional request data for response correlation."""
         if DEBUG:
-            import sys
-
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - agent_type: {agent_type}", file=sys.stderr)
-            print(f"  - request_data provided: {bool(request_data)}", file=sys.stderr)
-            print(
-                f"  - delegation_requests size before: {len(self.delegation_requests)}",
-                file=sys.stderr,
+            _log(f"  - session_id: {session_id[:16] if session_id else 'None'}...")
+            _log(f"  - agent_type: {agent_type}")
+            _log(f"  - request_data provided: {bool(request_data)}")
+            _log(
+                f"  - delegation_requests size before: {len(self.delegation_requests)}"
             )
 
         if session_id and agent_type and agent_type != "unknown":
@@ -89,15 +92,9 @@ class StateManagerService:
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 if DEBUG:
-                    import sys
-
-                    print(
-                        f"  - ✅ Stored in delegation_requests[{session_id[:16]}...]",
-                        file=sys.stderr,
-                    )
-                    print(
-                        f"  - delegation_requests size after: {len(self.delegation_requests)}",
-                        file=sys.stderr,
+                    _log(f"  - ✅ Stored in delegation_requests[{session_id[:16]}...]")
+                    _log(
+                        f"  - delegation_requests size after: {len(self.delegation_requests)}"
                     )
 
             # Clean up old delegations (older than 5 minutes)
@@ -197,7 +194,7 @@ class StateManagerService:
             os.chdir(working_dir)
 
             # Run git command to get current branch
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["git", "branch", "--show-current"],
                 capture_output=True,
                 text=True,
@@ -233,17 +230,12 @@ class StateManagerService:
     def find_matching_request(self, session_id: str) -> Optional[dict]:
         """Find matching request data for a session, with fuzzy matching fallback."""
         # First try exact match
-        request_info = self.delegation_requests.get(session_id)
+        request_info = self.delegation_requests.get(session_id)  # nosec B113
 
         # If exact match fails, try partial matching
         if not request_info and session_id:
             if DEBUG:
-                import sys
-
-                print(
-                    f"  - Trying fuzzy match for session {session_id[:16]}...",
-                    file=sys.stderr,
-                )
+                _log(f"  - Trying fuzzy match for session {session_id[:16]}...")
             # Try to find a session that matches the first 8-16 characters
             for stored_sid in list(self.delegation_requests.keys()):
                 if (
@@ -256,13 +248,8 @@ class StateManagerService:
                     )
                 ):
                     if DEBUG:
-                        import sys
-
-                        print(
-                            f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
-                            file=sys.stderr,
-                        )
-                    request_info = self.delegation_requests.get(stored_sid)
+                        _log(f"  - ✅ Fuzzy match found: {stored_sid[:16]}...")
+                    request_info = self.delegation_requests.get(stored_sid)  # nosec B113
                     # Update the key to use the current session_id for consistency
                     if request_info:
                         self.delegation_requests[session_id] = request_info

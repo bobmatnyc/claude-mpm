@@ -55,6 +55,14 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 class PreToolUseHook:
     """Base class for PreToolUse hooks with input modification support."""
@@ -64,9 +72,9 @@ class PreToolUseHook:
         self.debug = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
     def log_debug(self, message: str) -> None:
-        """Log debug message to stderr."""
+        """Log debug message using _log helper."""
         if self.debug:
-            print(f"[PreToolUse Hook] {message}", file=sys.stderr)
+            _log(f"[PreToolUse Hook] {message}")
 
     def read_event(self) -> Optional[Dict[str, Any]]:
         """Read and parse the hook event from stdin."""

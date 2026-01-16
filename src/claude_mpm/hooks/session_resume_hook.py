@@ -12,12 +12,20 @@ DESIGN DECISIONS:
 """
 
 import json
-import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 logger = get_logger(__name__)
 
@@ -86,23 +94,19 @@ class SessionResumeStartupHook:
         Args:
             pause_info: Pause session metadata from check_for_active_pause()
         """
-        print("\n" + "=" * 60, file=sys.stderr)
-        print("⚠️  ACTIVE AUTO-PAUSE SESSION DETECTED", file=sys.stderr)
-        print("=" * 60, file=sys.stderr)
-        print(f"Session ID: {pause_info['session_id']}", file=sys.stderr)
-        print(f"Started at: {pause_info['started_at']}", file=sys.stderr)
-        print(
-            f"Context at pause: {pause_info['context_at_start']:.1%}", file=sys.stderr
-        )
-        print(f"Actions recorded: {pause_info['action_count']}", file=sys.stderr)
-        print(
-            "\nThis session was auto-paused due to high context usage.", file=sys.stderr
-        )
-        print("Options:", file=sys.stderr)
-        print("  1. Continue (actions will be appended)", file=sys.stderr)
-        print("  2. Use /mpm-init pause --finalize to create snapshot", file=sys.stderr)
-        print("  3. Use /mpm-init pause --discard to abandon", file=sys.stderr)
-        print("=" * 60 + "\n", file=sys.stderr)
+        _log("=" * 60)
+        _log("⚠️  ACTIVE AUTO-PAUSE SESSION DETECTED")
+        _log("=" * 60)
+        _log(f"Session ID: {pause_info['session_id']}")
+        _log(f"Started at: {pause_info['started_at']}")
+        _log(f"Context at pause: {pause_info['context_at_start']:.1%}")
+        _log(f"Actions recorded: {pause_info['action_count']}")
+        _log("\nThis session was auto-paused due to high context usage.")
+        _log("Options:")
+        _log("  1. Continue (actions will be appended)")
+        _log("  2. Use /mpm-init pause --finalize to create snapshot")
+        _log("  3. Use /mpm-init pause --discard to abandon")
+        _log("=" * 60 + "\n")
 
     def on_pm_startup(self) -> Optional[Dict[str, Any]]:
         """Execute on PM startup to check for paused sessions.

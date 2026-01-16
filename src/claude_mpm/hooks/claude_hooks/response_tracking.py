@@ -8,10 +8,18 @@ with their original requests.
 import json
 import os
 import re
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+# Try to import _log from hook_handler, fall back to no-op
+try:
+    from claude_mpm.hooks.claude_hooks.hook_handler import _log
+except ImportError:
+
+    def _log(msg: str) -> None:
+        pass  # Silent fallback
+
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -80,10 +88,7 @@ class ResponseTrackingManager:
 
             if not (response_tracking_enabled or response_logging_enabled):
                 if DEBUG:
-                    print(
-                        "Response tracking disabled - skipping initialization",
-                        file=sys.stderr,
-                    )
+                    _log("Response tracking disabled - skipping initialization")
                 return
 
             # Initialize response tracker with config
@@ -101,15 +106,11 @@ class ResponseTrackingManager:
                     if self.track_all_interactions
                     else "Task delegations only"
                 )
-                print(
-                    f"✅ Response tracking initialized (mode: {mode})", file=sys.stderr
-                )
+                _log(f"✅ Response tracking initialized (mode: {mode})")
 
         except Exception as e:
             if DEBUG:
-                print(
-                    f"❌ Failed to initialize response tracking: {e}", file=sys.stderr
-                )
+                _log(f"❌ Failed to initialize response tracking: {e}")
             # Don't fail the entire handler - response tracking is optional
 
     def track_agent_response(
@@ -133,9 +134,8 @@ class ResponseTrackingManager:
             request_info = delegation_requests.get(session_id)  # nosec B113 - False positive: dict.get(), not requests library
             if not request_info:
                 if DEBUG:
-                    print(
-                        f"No request data found for session {session_id}, skipping response tracking",
-                        file=sys.stderr,
+                    _log(
+                        f"No request data found for session {session_id}, skipping response tracking"
                     )
                 return
 
@@ -163,15 +163,11 @@ class ResponseTrackingManager:
                 if json_match:
                     structured_response = json.loads(json_match.group(1))
                     if DEBUG:
-                        print(
-                            f"Extracted structured response from {agent_type} agent",
-                            file=sys.stderr,
-                        )
+                        _log(f"Extracted structured response from {agent_type} agent")
             except (json.JSONDecodeError, AttributeError) as e:
                 if DEBUG:
-                    print(
-                        f"No structured JSON response found in {agent_type} agent output: {e}",
-                        file=sys.stderr,
+                    _log(
+                        f"No structured JSON response found in {agent_type} agent output: {e}"
                     )
 
             # Get the original request (prompt + description)
@@ -220,9 +216,8 @@ class ResponseTrackingManager:
                 if structured_response.get("MEMORIES"):
                     if DEBUG:
                         memories_count = len(structured_response["MEMORIES"])
-                        print(
-                            f"Agent {agent_type} returned MEMORIES field with {memories_count} items",
-                            file=sys.stderr,
+                        _log(
+                            f"Agent {agent_type} returned MEMORIES field with {memories_count} items"
                         )
 
                 # Check if task was completed for logging purposes
@@ -232,9 +227,7 @@ class ResponseTrackingManager:
                 # Log files modified for debugging
                 if DEBUG and structured_response.get("files_modified"):
                     files = [f["file"] for f in structured_response["files_modified"]]
-                    print(
-                        f"Agent {agent_type} modified files: {files}", file=sys.stderr
-                    )
+                    _log(f"Agent {agent_type} modified files: {files}")
 
             # Track the response
             file_path = self.response_tracker.track_response(
@@ -246,14 +239,12 @@ class ResponseTrackingManager:
             )
 
             if file_path and DEBUG:
-                print(
-                    f"✅ Tracked response for {agent_type} agent in session {session_id}: {file_path.name}",
-                    file=sys.stderr,
+                _log(
+                    f"✅ Tracked response for {agent_type} agent in session {session_id}: {file_path.name}"
                 )
             elif DEBUG and not file_path:
-                print(
-                    f"Response tracking returned None for {agent_type} agent (might be excluded or disabled)",
-                    file=sys.stderr,
+                _log(
+                    f"Response tracking returned None for {agent_type} agent (might be excluded or disabled)"
                 )
 
             # Clean up the request data after successful tracking
@@ -261,7 +252,7 @@ class ResponseTrackingManager:
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Failed to track agent response: {e}", file=sys.stderr)
+                _log(f"❌ Failed to track agent response: {e}")
             # Don't fail the hook processing - response tracking is optional
 
     def track_stop_response(
@@ -286,11 +277,10 @@ class ResponseTrackingManager:
             prompt_data = pending_prompts.get(session_id)
 
             if DEBUG:
-                print(
-                    f"  - output present: {bool(output)} (length: {len(str(output)) if output else 0})",
-                    file=sys.stderr,
+                _log(
+                    f"  - output present: {bool(output)} (length: {len(str(output)) if output else 0})"
                 )
-                print(f"  - prompt_data present: {bool(prompt_data)}", file=sys.stderr)
+                _log(f"  - prompt_data present: {bool(prompt_data)}")
 
             if output and prompt_data:
                 # Add prompt timestamp to metadata
@@ -300,10 +290,7 @@ class ResponseTrackingManager:
                 if "stop_reason" in event:
                     metadata["stop_reason"] = event["stop_reason"]
                     if DEBUG:
-                        print(
-                            f"  - Captured stop_reason: {event['stop_reason']}",
-                            file=sys.stderr,
-                        )
+                        _log(f"  - Captured stop_reason: {event['stop_reason']}")
 
                 # Capture Claude API usage data if available
                 # NOTE: Usage data is already captured in metadata by handle_stop_fast()
@@ -324,10 +311,7 @@ class ResponseTrackingManager:
                         total_tokens = usage_data.get(
                             "input_tokens", 0
                         ) + usage_data.get("output_tokens", 0)
-                        print(
-                            f"  - Captured usage: {total_tokens} total tokens",
-                            file=sys.stderr,
-                        )
+                        _log(f"  - Captured usage: {total_tokens} total tokens")
 
                 # Track the main Claude response
                 file_path = self.response_tracker.track_response(
@@ -339,14 +323,14 @@ class ResponseTrackingManager:
                 )
 
                 if file_path and DEBUG:
-                    print(f"  - Response tracked to: {file_path}", file=sys.stderr)
+                    _log(f"  - Response tracked to: {file_path}")
 
                 # Clean up pending prompt
                 del pending_prompts[session_id]
 
         except Exception as e:
             if DEBUG:
-                print(f"Error tracking stop response: {e}", file=sys.stderr)
+                _log(f"Error tracking stop response: {e}")
 
     def track_assistant_response(self, event: dict, pending_prompts: dict):
         """Handle assistant response events for comprehensive response tracking."""
@@ -361,9 +345,8 @@ class ResponseTrackingManager:
         prompt_data = pending_prompts.get(session_id)
         if not prompt_data:
             if DEBUG:
-                print(
-                    f"No stored prompt for session {session_id[:8]}..., skipping response tracking",
-                    file=sys.stderr,
+                _log(
+                    f"No stored prompt for session {session_id[:8]}..., skipping response tracking"
                 )
             return
 
@@ -377,9 +360,8 @@ class ResponseTrackingManager:
 
             if not response_content:
                 if DEBUG:
-                    print(
-                        f"No response content in event for session {session_id[:8]}...",
-                        file=sys.stderr,
+                    _log(
+                        f"No response content in event for session {session_id[:8]}..."
                     )
                 return
 
@@ -401,9 +383,8 @@ class ResponseTrackingManager:
             )
 
             if file_path and DEBUG:
-                print(
-                    f"✅ Tracked Claude response for session {session_id[:8]}...: {file_path.name}",
-                    file=sys.stderr,
+                _log(
+                    f"✅ Tracked Claude response for session {session_id[:8]}...: {file_path.name}"
                 )
 
             # Clean up the stored prompt
@@ -411,4 +392,4 @@ class ResponseTrackingManager:
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Failed to track assistant response: {e}", file=sys.stderr)
+                _log(f"❌ Failed to track assistant response: {e}")
