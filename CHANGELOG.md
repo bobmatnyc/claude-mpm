@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.0] - 2026-01-16
+
+### Changed
+- Minor version bump for new features and improvements
+
 ## [5.5.2] - 2026-01-13
 
 ### Changed
