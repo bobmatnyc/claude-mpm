@@ -107,7 +107,7 @@ def get_agent_versions_display() -> Optional[str]:
                     base_version_tuple
                 )
                 output_lines.append(f"\n  Base Agent Version:  {base_version_str}")
-        except Exception:
+        except Exception:  # nosec B110 - intentional: version display is optional
             pass
 
         # Check for agents needing migration
@@ -173,8 +173,12 @@ def setup_logging(args) -> object:
     if not hasattr(args, "logging") or args.logging is None:
         args.logging = LogLevel.OFF.value
 
+    # Handle deprecated --verbose flag
+    if hasattr(args, "verbose") and args.verbose and args.logging == LogLevel.OFF.value:
+        args.logging = LogLevel.INFO.value
+
     # Handle deprecated --debug flag
-    if hasattr(args, "debug") and args.debug and args.logging == LogLevel.INFO.value:
+    if hasattr(args, "debug") and args.debug:
         args.logging = LogLevel.DEBUG.value
 
     # Only setup logging if not OFF
@@ -204,7 +208,7 @@ def ensure_directories() -> None:
         from ..init import ensure_directories as init_ensure_directories
 
         init_ensure_directories()
-    except Exception:
+    except Exception:  # nosec B110
         # Continue even if initialization fails
         # The individual commands will handle missing directories as needed
         pass

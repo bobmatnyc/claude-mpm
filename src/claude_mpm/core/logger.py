@@ -229,7 +229,7 @@ def setup_logging(
             console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setFormatter(formatter if json_format else simple_formatter)
 
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(log_level)  # Respect the requested log level
         logger.addHandler(console_handler)
 
     # File handler
