@@ -14,8 +14,6 @@ import subprocess  # nosec B404 - Safe: only uses hardcoded 'claude' CLI command
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from ...core.logger import get_logger
-
 
 class HookInstaller:
     """Manages installation and configuration of Claude MPM hooks."""
@@ -199,7 +197,12 @@ main "$@"
 
     def __init__(self):
         """Initialize the hook installer."""
-        self.logger = get_logger(__name__)
+        # Use __name__ directly to avoid double prefix
+        # __name__ is already 'claude_mpm.hooks.claude_hooks.installer'
+        # get_logger() adds 'claude_mpm.' prefix, causing duplicate
+        import logging
+
+        self.logger = logging.getLogger(__name__)
         self.claude_dir = Path.home() / ".claude"
         self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
         # Use settings.json for hooks (Claude Code reads from this file)

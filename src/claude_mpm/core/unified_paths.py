@@ -76,6 +76,7 @@ class DeploymentContext(Enum):
     EDITABLE_INSTALL = "editable_install"
     PIP_INSTALL = "pip_install"
     PIPX_INSTALL = "pipx_install"
+    UV_TOOLS = "uv_tools"
     SYSTEM_PACKAGE = "system_package"
 
 
@@ -190,113 +191,100 @@ class PathContext:
 
         Priority order:
         1. Environment variable override (CLAUDE_MPM_DEV_MODE)
-        2. Current working directory is a claude-mpm development project
-        3. Editable installation detection
-        4. Path-based detection (development, pipx, system, pip)
+        2. Package installation path (uv tools, pipx, site-packages, editable)
+        3. Current working directory (opt-in with CLAUDE_MPM_PREFER_LOCAL_SOURCE)
+
+        This ensures installed packages use their installation paths rather than
+        accidentally picking up development paths from CWD.
         """
-        # Check for environment variable override
+        # 1. Explicit environment variable override
         if os.environ.get("CLAUDE_MPM_DEV_MODE", "").lower() in ("1", "true", "yes"):
             logger.debug(
                 "Development mode forced via CLAUDE_MPM_DEV_MODE environment variable"
             )
             return DeploymentContext.DEVELOPMENT
 
-        # Check if current working directory is a claude-mpm development project
-        # This handles the case where pipx claude-mpm is run from within the dev directory
-        cwd = _safe_cwd()
-        current = cwd
-        for _ in range(5):  # Check up to 5 levels up from current directory
-            if (current / "pyproject.toml").exists() and (
-                current / "src" / "claude_mpm"
-            ).exists():
-                # Check if this is the claude-mpm project
-                try:
-                    pyproject_content = (current / "pyproject.toml").read_text()
-                    if (
-                        'name = "claude-mpm"' in pyproject_content
-                        or '"claude-mpm"' in pyproject_content
-                    ):
-                        logger.debug(
-                            f"Detected claude-mpm development directory at {current}"
-                        )
-                        logger.debug(
-                            "Using development mode for local source preference"
-                        )
-                        return DeploymentContext.DEVELOPMENT
-                except Exception:  # nosec B110
-                    pass
-            if current == current.parent:
-                break
-            current = current.parent
-
+        # 2. Check where the actual package is installed
         try:
             import claude_mpm
 
             module_path = Path(claude_mpm.__file__).parent
+            package_str = str(module_path)
 
-            # First check if this is an editable install, regardless of path
-            # This is important for cases where pipx points to a development installation
-            if PathContext._is_editable_install():
-                logger.debug("Detected editable/development installation")
-                # Check if we should use development paths
-                # This could be because we're in a src/ directory or running from dev directory
-                if module_path.parent.name == "src":
-                    return DeploymentContext.DEVELOPMENT
-                if "pipx" in str(module_path):
-                    # Running via pipx but from within a development directory
-                    # Use development mode to prefer local source over pipx installation
-                    cwd = _safe_cwd()
-                    current = cwd
-                    for _ in range(5):
-                        if (current / "src" / "claude_mpm").exists() and (
-                            current / "pyproject.toml"
-                        ).exists():
-                            logger.debug(
-                                "Running pipx from development directory, using development mode"
-                            )
-                            return DeploymentContext.DEVELOPMENT
-                        if current == current.parent:
-                            break
-                        current = current.parent
+            # UV tools installation (~/.local/share/uv/tools/)
+            if "/.local/share/uv/tools/" in package_str:
+                logger.debug(f"Detected uv tools installation at {module_path}")
+                return DeploymentContext.UV_TOOLS
+
+            # pipx installation (~/.local/pipx/venvs/)
+            if "/.local/pipx/venvs/" in package_str or "/pipx/" in package_str:
+                logger.debug(f"Detected pipx installation at {module_path}")
+                return DeploymentContext.PIPX_INSTALL
+
+            # site-packages (pip install) - but not editable
+            if "/site-packages/" in package_str and "/src/" not in package_str:
+                logger.debug(f"Detected pip installation at {module_path}")
+                return DeploymentContext.PIP_INSTALL
+
+            # Editable install (pip install -e) - module in src/
+            if module_path.parent.name == "src":
+                # Check if this is truly an editable install
+                if PathContext._is_editable_install():
+                    logger.debug(f"Detected editable installation at {module_path}")
                     return DeploymentContext.EDITABLE_INSTALL
-                return DeploymentContext.EDITABLE_INSTALL
-
-            # Check for development mode based on directory structure
-            # module_path is typically /path/to/project/src/claude_mpm
-            if (
-                module_path.parent.name == "src"
-                and (module_path.parent.parent / "src" / "claude_mpm").exists()
-            ):
+                # Module in src/ but not editable - development mode
                 logger.debug(
                     f"Detected development mode via directory structure at {module_path}"
                 )
                 return DeploymentContext.DEVELOPMENT
 
-            # Check for pipx install
-            if "pipx" in str(module_path):
-                logger.debug(f"Detected pipx installation at {module_path}")
-                return DeploymentContext.PIPX_INSTALL
-
-            # Check for system package
-            if "dist-packages" in str(module_path):
+            # dist-packages (system package manager)
+            if "dist-packages" in package_str:
                 logger.debug(f"Detected system package installation at {module_path}")
                 return DeploymentContext.SYSTEM_PACKAGE
 
-            # Check for site-packages (could be pip or editable)
-            if "site-packages" in str(module_path):
-                # Already checked for editable above, so this is a regular pip install
-                logger.debug(f"Detected pip installation at {module_path}")
-                return DeploymentContext.PIP_INSTALL
-
-            # Default to pip install
+            # Default to pip install for any other installation
             logger.debug(f"Defaulting to pip installation for {module_path}")
             return DeploymentContext.PIP_INSTALL
 
         except ImportError:
             logger.debug(
-                "ImportError during context detection, defaulting to development"
+                "ImportError during module path detection, checking CWD as fallback"
             )
-            return DeploymentContext.DEVELOPMENT
+
+        # 3. CWD-based detection (OPT-IN ONLY for explicit development work)
+        # Only use CWD if explicitly requested or no package installation found
+        if os.environ.get("CLAUDE_MPM_PREFER_LOCAL_SOURCE", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        ):
+            cwd = _safe_cwd()
+            current = cwd
+            for _ in range(5):  # Check up to 5 levels up from current directory
+                if (current / "pyproject.toml").exists() and (
+                    current / "src" / "claude_mpm"
+                ).exists():
+                    # Check if this is the claude-mpm project
+                    try:
+                        pyproject_content = (current / "pyproject.toml").read_text()
+                        if (
+                            'name = "claude-mpm"' in pyproject_content
+                            or '"claude-mpm"' in pyproject_content
+                        ):
+                            logger.debug(
+                                f"CLAUDE_MPM_PREFER_LOCAL_SOURCE: Using development directory at {current}"
+                            )
+                            return DeploymentContext.DEVELOPMENT
+                    except Exception:  # nosec B110
+                        pass
+                if current == current.parent:
+                    break
+                current = current.parent
+
+        # Final fallback: assume development mode
+        logger.debug("No installation detected, defaulting to development mode")
+        return DeploymentContext.DEVELOPMENT
 
 
 class UnifiedPathManager:

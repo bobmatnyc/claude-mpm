@@ -103,23 +103,45 @@ class LoggerFactory:
 
         # Set up root logger
         root_logger = logging.getLogger()
-        root_logger.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
+
+        # CRITICAL FIX: Respect existing root logger suppression
+        # If root logger is already set to CRITICAL+1 (suppressed by startup.py),
+        # don't override it. This prevents logging from appearing during startup
+        # before the CLI's setup_logging() runs.
+        current_level = root_logger.level
+        desired_level = LoggingConfig.LEVELS.get(cls._log_level, logging.INFO)
+
+        # Only set level if current is unset (0) or lower than desired
+        # CRITICAL+1 is 51, so this check preserves suppression
+        should_configure_logging = current_level == 0 or (
+            current_level < desired_level and current_level <= logging.CRITICAL
+        )
+
+        if should_configure_logging:
+            root_logger.setLevel(desired_level)
+        # else: root logger is suppressed (CRITICAL+1), keep it suppressed
 
         # Remove existing handlers
         root_logger.handlers = []
 
-        # Console handler - MUST use stderr to avoid corrupting hook JSON output
-        # WHY stderr: Hook handlers output JSON to stdout. Logging to stdout
-        # corrupts this JSON and causes "hook error" messages from Claude Code.
-        console_handler = logging.StreamHandler(sys.stderr)
-        console_handler.setLevel(LoggingConfig.LEVELS.get(cls._log_level, logging.INFO))
-        console_formatter = logging.Formatter(
-            log_format or LoggingConfig.DEFAULT_FORMAT,
-            date_format or LoggingConfig.DATE_FORMAT,
-        )
-        console_handler.setFormatter(console_formatter)
-        root_logger.addHandler(console_handler)
-        cls._handlers["console"] = console_handler
+        # CRITICAL FIX: Don't add handlers if logging is suppressed
+        # If root logger is at CRITICAL+1 (startup suppression), don't add any handlers
+        # This prevents early imports from logging before CLI setup_logging() runs
+        if should_configure_logging:
+            # Console handler - MUST use stderr to avoid corrupting hook JSON output
+            # WHY stderr: Hook handlers output JSON to stdout. Logging to stdout
+            # corrupts this JSON and causes "hook error" messages from Claude Code.
+            console_handler = logging.StreamHandler(sys.stderr)
+            console_handler.setLevel(
+                LoggingConfig.LEVELS.get(cls._log_level, logging.INFO)
+            )
+            console_formatter = logging.Formatter(
+                log_format or LoggingConfig.DEFAULT_FORMAT,
+                date_format or LoggingConfig.DATE_FORMAT,
+            )
+            console_handler.setFormatter(console_formatter)
+            root_logger.addHandler(console_handler)
+            cls._handlers["console"] = console_handler
 
         # File handler (optional)
         if log_to_file and cls._log_dir:

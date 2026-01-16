@@ -11,15 +11,23 @@ import sys
 
 # Install-type-aware logging configuration BEFORE kuzu-memory imports
 # This overrides kuzu-memory's WARNING-level basicConfig (fixes 1M-445)
-# but respects production install silence
+# but respects production install silence AND startup suppression
 try:
     from claude_mpm.core.unified_paths import DeploymentContext, PathContext
 
     context = PathContext.detect_deployment_context()
 
+    # CRITICAL: Check if root logger is already suppressed (CRITICAL+1 from startup.py)
+    # If so, don't call basicConfig as it will reset the level to INFO
+    root_logger = logging.getLogger()
+    is_suppressed = root_logger.level > logging.CRITICAL  # CRITICAL+1 = 51
+
     # Only configure verbose logging for development/editable installs
-    # Production installs remain silent by default
-    if context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+    # AND if logging isn't already suppressed by startup.py
+    if not is_suppressed and context in (
+        DeploymentContext.DEVELOPMENT,
+        DeploymentContext.EDITABLE_INSTALL,
+    ):
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -27,14 +35,17 @@ try:
             stream=sys.stderr,
         )
 except ImportError:
-    # Fallback: if unified_paths not available, configure logging
-    # This maintains backward compatibility
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        force=True,
-        stream=sys.stderr,
-    )
+    # Fallback: if unified_paths not available, check suppression before configuring
+    root_logger = logging.getLogger()
+    is_suppressed = root_logger.level > logging.CRITICAL
+
+    if not is_suppressed:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            force=True,
+            stream=sys.stderr,
+        )
 from datetime import datetime, timezone
 from typing import Optional
 
