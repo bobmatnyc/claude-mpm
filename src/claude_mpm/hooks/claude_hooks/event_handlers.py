@@ -8,11 +8,19 @@ Claude Code hook events.
 import os
 import re
 import subprocess  # nosec B404 - subprocess used for safe claude CLI version checking only
-import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+# Import _log helper to avoid stderr writes (which cause hook errors)
+try:
+    from .hook_handler import _log
+except ImportError:
+    # Fallback for direct execution
+    def _log(message: str) -> None:
+        """Fallback logger when hook_handler not available."""
+
 
 # Import tool analysis with fallback for direct execution
 try:
@@ -34,8 +42,8 @@ except ImportError:
         extract_tool_results,
     )
 
-# Debug mode
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+# Debug mode - MUST match hook_handler.py default (false) to prevent stderr writes
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Import constants for configuration
 try:
@@ -111,9 +119,8 @@ class EventHandlers:
                         "working_directory": working_dir,
                     }
                     if DEBUG:
-                        print(
-                            f"Stored prompt for comprehensive tracking: session {session_id[:8]}...",
-                            file=sys.stderr,
+                        _log(
+                            f"Stored prompt for comprehensive tracking: session {session_id[:8]}..."
                         )
         except Exception:  # nosec B110
             # Response tracking is optional - silently continue if it fails
@@ -133,11 +140,8 @@ class EventHandlers:
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
+            _log(f"  - session_id: {session_id[:16] if session_id else 'None'}...")
+            _log(f"  - event keys: {list(event.keys())}")
 
         tool_name = event.get("tool_name", "")
         tool_input = event.get("tool_input", {})
@@ -180,9 +184,8 @@ class EventHandlers:
 
             CorrelationManager.store(session_id, tool_call_id, tool_name)
             if DEBUG:
-                print(
-                    f"  - Generated tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}...",
-                    file=sys.stderr,
+                _log(
+                    f"  - Generated tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}..."
                 )
 
         # Add delegation-specific data if this is a Task tool
@@ -196,7 +199,7 @@ class EventHandlers:
                 auto_pause.on_tool_call(tool_name, tool_input)
             except Exception as e:
                 if DEBUG:
-                    print(f"Auto-pause tool recording error: {e}", file=sys.stderr)
+                    _log(f"Auto-pause tool recording error: {e}")
 
         self.hook_handler._emit_socketio_event("", "pre_tool", pre_tool_data)
 
@@ -212,9 +215,8 @@ class EventHandlers:
             }
             self.hook_handler._emit_socketio_event("", "todo_updated", todo_data)
             if DEBUG:
-                print(
-                    f"  - Emitted todo_updated event with {len(tool_params['todos'])} todos for session {session_id[:8]}...",
-                    file=sys.stderr,
+                _log(
+                    f"  - Emitted todo_updated event with {len(tool_params['todos'])} todos for session {session_id[:8]}..."
                 )
 
     def _handle_task_delegation(
@@ -255,12 +257,9 @@ class EventHandlers:
 
         # Track this delegation for SubagentStop correlation and response tracking
         if DEBUG:
-            print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
-                file=sys.stderr,
-            )
-            print(f"  - agent_type: {agent_type}", file=sys.stderr)
-            print(f"  - raw_agent_type: {raw_agent_type}", file=sys.stderr)
+            _log(f"  - session_id: {session_id[:16] if session_id else 'None'}...")
+            _log(f"  - agent_type: {agent_type}")
+            _log(f"  - raw_agent_type: {raw_agent_type}")
 
         if session_id and agent_type != "unknown":
             # Prepare request data for response tracking correlation
@@ -272,24 +271,17 @@ class EventHandlers:
             self.hook_handler._track_delegation(session_id, agent_type, request_data)
 
             if DEBUG:
-                print("  - Delegation tracked successfully", file=sys.stderr)
-                print(
-                    f"  - Request data keys: {list(request_data.keys())}",
-                    file=sys.stderr,
-                )
+                _log("  - Delegation tracked successfully")
+                _log(f"  - Request data keys: {list(request_data.keys())}")
                 delegation_requests = getattr(
                     self.hook_handler, "delegation_requests", {}
                 )
-                print(
-                    f"  - delegation_requests size: {len(delegation_requests)}",
-                    file=sys.stderr,
-                )
+                _log(f"  - delegation_requests size: {len(delegation_requests)}")
 
             # Log important delegations for debugging
             if DEBUG or agent_type in ["research", "engineer", "qa", "documentation"]:
-                print(
-                    f"Hook handler: Task delegation started - agent: '{agent_type}', session: '{session_id}'",
-                    file=sys.stderr,
+                _log(
+                    f"Hook handler: Task delegation started - agent: '{agent_type}', session: '{session_id}'"
                 )
 
         # Trigger memory pre-delegation hook
@@ -359,10 +351,10 @@ class EventHandlers:
                     )
 
                 if DEBUG:
-                    print(f"  - Agent prompt logged for {agent_type}", file=sys.stderr)
+                    _log(f"  - Agent prompt logged for {agent_type}")
         except Exception as e:
             if DEBUG:
-                print(f"  - Could not log agent prompt: {e}", file=sys.stderr)
+                _log(f"  - Could not log agent prompt: {e}")
 
     def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
@@ -450,9 +442,8 @@ class EventHandlers:
 
         tool_call_id = CorrelationManager.retrieve(session_id) if session_id else None
         if DEBUG and tool_call_id:
-            print(
-                f"  - Retrieved tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}...",
-                file=sys.stderr,
+            _log(
+                f"  - Retrieved tool_call_id: {tool_call_id[:8]}... for session {session_id[:8]}..."
             )
 
         post_tool_data = {
@@ -605,16 +596,12 @@ class EventHandlers:
                         _log(f"⚠️  Auto-pause threshold crossed: {warning}")
 
                         if DEBUG:
-                            print(
-                                f"  - Auto-pause threshold crossed: {threshold_crossed}",
-                                file=sys.stderr,
+                            _log(
+                                f"  - Auto-pause threshold crossed: {threshold_crossed}"
                             )
                 except Exception as e:
                     if DEBUG:
-                        print(
-                            f"Auto-pause error in handle_stop_fast: {e}",
-                            file=sys.stderr,
-                        )
+                        _log(f"Auto-pause error in handle_stop_fast: {e}")
 
         # Track response if enabled
         try:
@@ -656,24 +643,15 @@ class EventHandlers:
                 getattr(rtm, "response_tracker", None) is not None if rtm else False
             )
 
-            print(
-                f"  - response_tracking_enabled: {tracking_enabled}",
-                file=sys.stderr,
-            )
-            print(
-                f"  - response_tracker exists: {tracker_exists}",
-                file=sys.stderr,
-            )
+            _log(f"  - response_tracking_enabled: {tracking_enabled}")
+            _log(f"  - response_tracker exists: {tracker_exists}")
         except Exception:  # nosec B110
             # If debug logging fails, just skip it
             pass
 
-        print(
-            f"  - session_id: {session_id[:8] if session_id else 'None'}...",
-            file=sys.stderr,
-        )
-        print(f"  - reason: {metadata['reason']}", file=sys.stderr)
-        print(f"  - stop_type: {metadata['stop_type']}", file=sys.stderr)
+        _log(f"  - session_id: {session_id[:8] if session_id else 'None'}...")
+        _log(f"  - reason: {metadata['reason']}")
+        _log(f"  - stop_type: {metadata['stop_type']}")
 
     def _emit_stop_event(self, event: dict, session_id: str, metadata: dict) -> None:
         """Emit stop event data to Socket.IO."""
@@ -735,10 +713,7 @@ class EventHandlers:
             # If exact match fails, try partial matching
             if not request_info and session_id:
                 if DEBUG:
-                    print(
-                        f"  - Trying fuzzy match for session {session_id[:16]}...",
-                        file=sys.stderr,
-                    )
+                    _log(f"  - Trying fuzzy match for session {session_id[:16]}...")
                 # Try to find a session that matches the first 8-16 characters
                 for stored_sid in list(delegation_requests.keys()):
                     if (
@@ -751,10 +726,7 @@ class EventHandlers:
                         )
                     ):
                         if DEBUG:
-                            print(
-                                f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
-                                file=sys.stderr,
-                            )
+                            _log(f"  - ✅ Fuzzy match found: {stored_sid[:16]}...")
                         request_info = delegation_requests.get(stored_sid)  # nosec B113
                         # Update the key to use the current session_id for consistency
                         if request_info:
@@ -823,9 +795,8 @@ class EventHandlers:
                     )
 
                     if file_path and DEBUG:
-                        print(
-                            f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}",
-                            file=sys.stderr,
+                        _log(
+                            f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}"
                         )
 
                 # Clean up the request data
@@ -836,16 +807,13 @@ class EventHandlers:
                     del delegation_requests[session_id]
 
             elif DEBUG:
-                print(
-                    f"No request data for SubagentStop session {session_id[:8]}..., agent: {agent_type}",
-                    file=sys.stderr,
+                _log(
+                    f"No request data for SubagentStop session {session_id[:8]}..., agent: {agent_type}"
                 )
 
         except Exception as e:
             if DEBUG:
-                print(
-                    f"❌ Failed to track response on SubagentStop: {e}", file=sys.stderr
-                )
+                _log(f"❌ Failed to track response on SubagentStop: {e}")
 
     def handle_assistant_response(self, event):
         """Handle assistant response events for comprehensive response tracking.
@@ -872,7 +840,7 @@ class EventHandlers:
             self._scan_for_delegation_patterns(event)
         except Exception as e:  # nosec B110
             if DEBUG:
-                print(f"Delegation scanning error: {e}", file=sys.stderr)
+                _log(f"Delegation scanning error: {e}")
 
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
@@ -921,9 +889,8 @@ class EventHandlers:
 
         # Debug logging
         if DEBUG:
-            print(
-                f"Hook handler: Processing AssistantResponse - session: '{session_id}', response_length: {len(response_text)}",
-                file=sys.stderr,
+            _log(
+                f"Hook handler: Processing AssistantResponse - session: '{session_id}', response_length: {len(response_text)}"
             )
 
         # Record assistant response for auto-pause if active
@@ -939,7 +906,7 @@ class EventHandlers:
                 auto_pause.on_assistant_response(summary)
             except Exception as e:
                 if DEBUG:
-                    print(f"Auto-pause response recording error: {e}", file=sys.stderr)
+                    _log(f"Auto-pause response recording error: {e}")
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event(
@@ -990,22 +957,13 @@ class EventHandlers:
                 if pending_todos:
                     session_start_data["pending_autotodos"] = pending_todos
                     session_start_data["autotodos_count"] = len(pending_todos)
-                    if DEBUG:
-                        print(
-                            f"  - Auto-injected {len(pending_todos)} pending autotodos",
-                            file=sys.stderr,
-                        )
+                    _log(f"  - Auto-injected {len(pending_todos)} pending autotodos")
         except Exception as e:  # nosec B110
             # Auto-injection is optional - continue if it fails
-            if DEBUG:
-                print(f"  - Failed to auto-inject autotodos: {e}", file=sys.stderr)
+            _log(f"  - Failed to auto-inject autotodos: {e}")
 
         # Debug logging
-        if DEBUG:
-            print(
-                f"Hook handler: Processing SessionStart - session: '{session_id}'",
-                file=sys.stderr,
-            )
+        _log(f"Hook handler: Processing SessionStart - session: '{session_id}'")
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event("", "session_start", session_start_data)
@@ -1048,10 +1006,8 @@ class EventHandlers:
 
         # Debug logging
         if DEBUG:
-            print(
-                f"Hook handler: SubagentStart - agent_type='{agent_type}', "
-                f"agent_id='{agent_id}', session_id='{session_id[:16]}...'",
-                file=sys.stderr,
+            _log(
+                f"Hook handler: SubagentStart - agent_type='{agent_type}', agent_id='{agent_id}', session_id='{session_id[:16]}...'"
             )
 
         # Emit to /hook namespace as subagent_start (NOT session_start!)
@@ -1086,7 +1042,7 @@ class EventHandlers:
             from claude_mpm.services.event_log import get_event_log
         except ImportError:
             if DEBUG:
-                print("Delegation detector or event log not available", file=sys.stderr)
+                _log("Delegation detector or event log not available")
             return
 
         response_text = event.get("response", "")
@@ -1125,7 +1081,4 @@ class EventHandlers:
             )
 
             if DEBUG:
-                print(
-                    f"⚠️  PM violation detected: {detection['original_text'][:60]}...",
-                    file=sys.stderr,
-                )
+                _log(f"⚠️  PM violation detected: {detection['original_text'][:60]}...")
