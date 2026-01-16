@@ -682,7 +682,7 @@ class GitSkillSourceManager:
                 try:
                     with open(etag_cache_file, encoding="utf-8") as f:
                         etag_cache = json.load(f)
-                except Exception:
+                except Exception:  # nosec B110 - intentional: proceed without cache on read failure
                     pass
 
             cached_etag = etag_cache.get(str(local_path))
@@ -1163,6 +1163,10 @@ class GitSkillSourceManager:
     ) -> List[str]:
         """Remove skills from target directory that aren't in the filtered skill list.
 
+        CRITICAL: Only removes MPM-managed skills (those in our cache). Custom user skills
+        are preserved. This prevents accidental deletion of user-created skills that were
+        never part of MPM's skill repository.
+
         Uses fuzzy matching to handle both exact deployment names and short skill names.
         For example:
         - "toolchains-python-frameworks-flask" (deployed dir) matches "flask" (filter)
@@ -1213,6 +1217,40 @@ class GitSkillSourceManager:
 
             return False
 
+        def is_mpm_managed_skill(skill_dir_name: str) -> bool:
+            """Check if skill is managed by MPM (exists in our cache).
+
+            Custom user skills (not in cache) are NEVER deleted, even if not in filter.
+            Only MPM-managed skills (in cache but not in filter) are candidates for removal.
+
+            Args:
+                skill_dir_name: Name of deployed skill directory
+
+            Returns:
+                True if skill exists in MPM cache (MPM-managed), False if custom user skill
+            """
+            # Check all configured skill sources for this skill
+            for source in self.config.get_enabled_sources():
+                cache_path = self._get_source_cache_path(source)
+                if not cache_path.exists():
+                    continue
+
+                # Check if this skill directory exists anywhere in the cache
+                # Use glob to find matching directories recursively
+                matches = list(cache_path.rglob(f"*{skill_dir_name}*"))
+                if matches:
+                    # Found in cache - this is MPM-managed
+                    self.logger.debug(
+                        f"Skill '{skill_dir_name}' found in cache at {matches[0]} - MPM-managed"
+                    )
+                    return True
+
+            # Not found in any cache - this is a custom user skill
+            self.logger.debug(
+                f"Skill '{skill_dir_name}' not found in cache - custom user skill, preserving"
+            )
+            return False
+
         # Check each directory in target_dir
         if not target_dir.exists():
             return removed_skills
@@ -1229,6 +1267,15 @@ class GitSkillSourceManager:
 
                 # Check if this skill directory should be kept (fuzzy matching)
                 if not should_keep_skill(item.name):
+                    # CRITICAL: Check if this is an MPM-managed skill before deletion
+                    if not is_mpm_managed_skill(item.name):
+                        # This is a custom user skill - NEVER delete
+                        self.logger.debug(
+                            f"Preserving custom user skill (not in MPM cache): {item.name}"
+                        )
+                        continue
+
+                    # It's MPM-managed but not in filter - safe to remove
                     try:
                         # Security: Validate path is within target_dir
                         if not self._validate_safe_path(target_dir, item):
@@ -1244,7 +1291,9 @@ class GitSkillSourceManager:
                             shutil.rmtree(item)
 
                         removed_skills.append(item.name)
-                        self.logger.info(f"Removed orphaned skill: {item.name}")
+                        self.logger.info(
+                            f"Removed orphaned MPM-managed skill: {item.name}"
+                        )
 
                     except Exception as e:
                         self.logger.warning(

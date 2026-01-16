@@ -844,3 +844,157 @@ skill_version: 1.0.0
         # Verify deployed skills
         deployed_dirs = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
         assert "universal-testing-pytest" in deployed_dirs
+
+    def test_cleanup_preserves_custom_user_skills(
+        self, temp_cache_dir, temp_config_file, temp_deploy_dir
+    ):
+        """Test that cleanup NEVER deletes custom user skills (not in MPM cache).
+
+        CRITICAL BUG FIX: Before this fix, _cleanup_unfiltered_skills() deleted ANY skill
+        not in the filter list, including custom user skills. This test verifies the fix:
+        only MPM-managed skills (those in cache) are deleted, custom user skills are preserved.
+        """
+        import shutil
+
+        system_dir = temp_cache_dir / "system"
+
+        # Create MPM-managed skills in cache (these will be in cache)
+        mpm_skills = [
+            ("toolchains/python/flask", "Flask Framework", "toolchains-python-flask"),
+            (
+                "toolchains/python/django",
+                "Django Framework",
+                "toolchains-python-django",
+            ),
+        ]
+
+        for path, name, deployment_name in mpm_skills:
+            skill_dir = system_dir / path.replace("/", "-")
+            skill_dir.mkdir(parents=True)
+            skill_content = f"""---
+name: {name}
+description: Test skill
+skill_version: 1.0.0
+---
+# {name}
+"""
+            (skill_dir / "SKILL.md").write_text(skill_content, encoding="utf-8")
+
+        # Setup manager
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="system", type="git", url="https://github.com/test/skills", enabled=True
+        )
+        config.save([source])
+        manager = GitSkillSourceManager(config=config, cache_dir=temp_cache_dir)
+
+        # Deploy all MPM skills first
+        result1 = manager.deploy_skills(
+            target_dir=temp_deploy_dir, skill_filter=None, force=False
+        )
+        assert result1["deployed_count"] == 2, "Should deploy both MPM skills"
+
+        # Now create a CUSTOM USER SKILL (not in cache, user manually created)
+        custom_skill_dir = temp_deploy_dir / "my-custom-skill"
+        custom_skill_dir.mkdir(parents=True)
+        custom_skill_content = """---
+name: My Custom Skill
+description: User-created custom skill
+skill_version: 1.0.0
+---
+# My Custom Skill
+
+This is a custom skill created by the user, NOT from MPM repository.
+"""
+        (custom_skill_dir / "SKILL.md").write_text(
+            custom_skill_content, encoding="utf-8"
+        )
+
+        # Verify all 3 skills are deployed
+        deployed_before = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
+        assert len(deployed_before) == 3, "Should have 2 MPM + 1 custom skill"
+        assert "my-custom-skill" in deployed_before
+
+        # Now deploy with filter that includes ONLY Flask (excludes Django and custom)
+        # This triggers cleanup logic in _cleanup_unfiltered_skills()
+        result2 = manager.deploy_skills(
+            target_dir=temp_deploy_dir, skill_filter={"flask"}, force=False
+        )
+
+        # CRITICAL ASSERTIONS:
+        # 1. Django should be REMOVED (MPM-managed, not in filter)
+        # 2. Custom skill should be PRESERVED (not MPM-managed, even though not in filter)
+        # 3. Flask should be kept (in filter)
+        deployed_after = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
+
+        assert "toolchains-python-flask" in deployed_after, "Flask should be kept"
+        assert (
+            "toolchains-python-django" not in deployed_after
+        ), "Django should be removed (MPM-managed, not in filter)"
+        assert (
+            "my-custom-skill" in deployed_after
+        ), "Custom user skill MUST be preserved (not MPM-managed)"
+
+        # Verify removed count is 1 (only Django, not custom skill)
+        assert (
+            result2["removed_count"] == 1
+        ), "Should remove only Django, not custom skill"
+        assert (
+            "toolchains-python-django" in result2["removed_skills"]
+        ), "Django should be in removed list"
+        assert (
+            "my-custom-skill" not in result2["removed_skills"]
+        ), "Custom skill should NOT be in removed list"
+
+    def test_cleanup_only_removes_mpm_skills_not_in_filter(
+        self, temp_cache_dir, temp_config_file, temp_deploy_dir
+    ):
+        """Test that cleanup removes MPM skills not in filter, but preserves those in filter."""
+        system_dir = temp_cache_dir / "system"
+
+        # Create 3 MPM skills in cache
+        mpm_skills = [
+            ("skill-a", "Skill A"),
+            ("skill-b", "Skill B"),
+            ("skill-c", "Skill C"),
+        ]
+
+        for deployment_name, name in mpm_skills:
+            skill_dir = system_dir / deployment_name
+            skill_dir.mkdir(parents=True)
+            skill_content = f"""---
+name: {name}
+description: Test
+skill_version: 1.0.0
+---
+# {name}
+"""
+            (skill_dir / "SKILL.md").write_text(skill_content, encoding="utf-8")
+
+        # Setup manager
+        config = SkillSourceConfiguration(config_path=temp_config_file)
+        source = SkillSource(
+            id="system", type="git", url="https://github.com/test/skills", enabled=True
+        )
+        config.save([source])
+        manager = GitSkillSourceManager(config=config, cache_dir=temp_cache_dir)
+
+        # Deploy all skills
+        result1 = manager.deploy_skills(
+            target_dir=temp_deploy_dir, skill_filter=None, force=False
+        )
+        assert result1["deployed_count"] == 3
+
+        # Deploy with filter for only skill-a and skill-b
+        result2 = manager.deploy_skills(
+            target_dir=temp_deploy_dir, skill_filter={"skill-a", "skill-b"}, force=False
+        )
+
+        # Verify only skill-c is removed (MPM-managed, not in filter)
+        deployed_after = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
+        assert "skill-a" in deployed_after
+        assert "skill-b" in deployed_after
+        assert "skill-c" not in deployed_after
+
+        assert result2["removed_count"] == 1
+        assert "skill-c" in result2["removed_skills"]
