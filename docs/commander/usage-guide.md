@@ -1,5 +1,7 @@
 # MPM Commander Usage Guide
 
+> **🧪 ALPHA FEATURE**: MPM Commander is in active development. The API and CLI interface may change in future releases. Use with caution in production environments.
+
 Complete guide to using MPM Commander for autonomous multi-project AI orchestration.
 
 ## Table of Contents

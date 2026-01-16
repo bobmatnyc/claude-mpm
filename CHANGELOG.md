@@ -1,10 +1,20 @@
 ## [Unreleased]
 
 ### Added
+- **🧪 ALPHA: MPM Commander** - Multi-project orchestration system for autonomous AI coordination
+  - Interactive multi-project management with tmux integration
+  - Claude Code runtime adapter with idle/error/question detection
+  - Project registry with state machine (IDLE, WORKING, BLOCKED, PAUSED, ERROR)
+  - Event queue and inbox system for cross-project coordination
+  - OpenRouter LLM integration for autonomous decision-making
+  - Chat interface CLI with streaming responses
+  - ⚠️ **Experimental** - API subject to change
+  - Documentation: `docs/commander/`
 
 ### Changed
 
 ### Fixed
+- **Skills sync no longer deletes custom user skills** - Only removes MPM-managed skills not in configuration; preserves user-created skills
 
 ## [5.6.0] - 2026-01-16
 

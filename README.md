@@ -127,6 +127,16 @@ ls ~/.claude/agents/    # Should show 47+ agents
 
 [→ Learn more: Developer Use Cases](docs/usecases/developers.md#semantic-code-search)
 
+### 🧪 MPM Commander (ALPHA)
+- **Multi-Project Orchestration** with autonomous AI coordination across codebases
+- **Tmux Integration** for isolated project environments and session management
+- **Event-Driven Architecture** with inbox system for cross-project communication
+- **LLM-Powered Decisions** via OpenRouter for autonomous work queue processing
+- **Real-Time Monitoring** with state tracking (IDLE, WORKING, BLOCKED, PAUSED, ERROR)
+- ⚠️ **Experimental** - API and CLI interface subject to change
+
+[→ Commander Documentation](docs/commander/usage-guide.md)
+
 ### 🔌 Advanced Integration
 - **MCP Integration** with full Model Context Protocol support
 - **Real-Time Monitoring** via `--monitor` flag and web dashboard
