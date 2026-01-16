@@ -1,6 +1,14 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+## [5.6.1] - 2026-01-16
+
+### Added
 - **🧪 ALPHA: MPM Commander** - Multi-project orchestration system for autonomous AI coordination
   - Interactive multi-project management with tmux integration
   - Claude Code runtime adapter with idle/error/question detection
@@ -10,8 +18,6 @@
   - Chat interface CLI with streaming responses
   - ⚠️ **Experimental** - API subject to change
   - Documentation: `docs/commander/`
-
-### Changed
 
 ### Fixed
 - **Skills sync no longer deletes custom user skills** - Only removes MPM-managed skills not in configuration; preserves user-created skills
