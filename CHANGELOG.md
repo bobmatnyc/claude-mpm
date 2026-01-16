@@ -6,6 +6,13 @@
 
 ### Fixed
 
+## [5.6.3] - 2026-01-16
+
+### Fixed
+- **Comprehensive logging suppression at startup** - Cleaner console output
+- **Hook RuntimeWarning suppressed** - No more noise during hook initialization
+- **Stop handler stderr fixed** - Proper error stream handling
+
 ## [5.6.2] - 2026-01-16
 
 ### Fixed
