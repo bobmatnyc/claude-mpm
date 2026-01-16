@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.5] - 2026-01-16
+
+### Changed
+- **Hook logging consolidation** - Consolidated logging with _log() helper and fixed bandit nosec placement
+
 ## [5.6.4] - 2026-01-16
 
 ### Fixed
