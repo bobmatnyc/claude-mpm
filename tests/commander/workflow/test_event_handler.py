@@ -111,9 +111,9 @@ class TestEventHandler:
                 event_type=event_type,
                 title="Test non-blocking event",
             )
-            assert not handler.is_blocking(
-                event
-            ), f"{event_type} should not be blocking"
+            assert not handler.is_blocking(event), (
+                f"{event_type} should not be blocking"
+            )
 
     def test_is_blocking_only_pending_events(self, handler, event_manager):
         """Test is_blocking only returns True for PENDING events."""

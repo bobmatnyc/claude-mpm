@@ -928,23 +928,23 @@ This is a custom skill created by the user, NOT from MPM repository.
         deployed_after = [d.name for d in temp_deploy_dir.iterdir() if d.is_dir()]
 
         assert "toolchains-python-flask" in deployed_after, "Flask should be kept"
-        assert (
-            "toolchains-python-django" not in deployed_after
-        ), "Django should be removed (MPM-managed, not in filter)"
-        assert (
-            "my-custom-skill" in deployed_after
-        ), "Custom user skill MUST be preserved (not MPM-managed)"
+        assert "toolchains-python-django" not in deployed_after, (
+            "Django should be removed (MPM-managed, not in filter)"
+        )
+        assert "my-custom-skill" in deployed_after, (
+            "Custom user skill MUST be preserved (not MPM-managed)"
+        )
 
         # Verify removed count is 1 (only Django, not custom skill)
-        assert (
-            result2["removed_count"] == 1
-        ), "Should remove only Django, not custom skill"
-        assert (
-            "toolchains-python-django" in result2["removed_skills"]
-        ), "Django should be in removed list"
-        assert (
-            "my-custom-skill" not in result2["removed_skills"]
-        ), "Custom skill should NOT be in removed list"
+        assert result2["removed_count"] == 1, (
+            "Should remove only Django, not custom skill"
+        )
+        assert "toolchains-python-django" in result2["removed_skills"], (
+            "Django should be in removed list"
+        )
+        assert "my-custom-skill" not in result2["removed_skills"], (
+            "Custom skill should NOT be in removed list"
+        )
 
     def test_cleanup_only_removes_mpm_skills_not_in_filter(
         self, temp_cache_dir, temp_config_file, temp_deploy_dir
