@@ -6,6 +6,12 @@
 
 ### Fixed
 
+## [5.6.2] - 2026-01-16
+
+### Fixed
+- **Path resolution**: Installed packages no longer use dev paths
+- **Logging**: INFO logs suppressed by default
+
 ## [5.6.1] - 2026-01-16
 
 ### Added
