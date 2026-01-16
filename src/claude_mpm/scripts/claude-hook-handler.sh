@@ -236,10 +236,11 @@ fi
 # Run the Python hook handler with all input
 # Use exec to replace the shell process with Python
 # Handle UV's multi-word command specially
+# Suppress RuntimeWarning to prevent stderr output (which causes hook errors)
 if [[ "$PYTHON_CMD" == "uv run python" ]]; then
-    exec uv run python -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
+    exec uv run python -W ignore::RuntimeWarning -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
 else
-    exec "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
+    exec "$PYTHON_CMD" -W ignore::RuntimeWarning -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
 fi
 
 # Note: exec replaces the shell process, so code below only runs if exec fails

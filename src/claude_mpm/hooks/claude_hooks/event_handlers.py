@@ -598,7 +598,11 @@ class EventHandlers:
                     threshold_crossed = auto_pause.on_usage_update(metadata["usage"])
                     if threshold_crossed:
                         warning = auto_pause.emit_threshold_warning(threshold_crossed)
-                        print(f"\n⚠️  {warning}", file=sys.stderr)
+                        # CRITICAL: Never write to stderr unconditionally - causes hook errors
+                        # Use _log() instead which only writes to file if DEBUG=true
+                        from . import _log
+
+                        _log(f"⚠️  Auto-pause threshold crossed: {warning}")
 
                         if DEBUG:
                             print(
