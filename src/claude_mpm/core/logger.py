@@ -391,8 +391,22 @@ def cleanup_old_mpm_logs(
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Get a logger instance."""
-    return logging.getLogger(f"claude_mpm.{name}")
+    """Get a logger instance.
+
+    CRITICAL: Respects startup suppression mode (CRITICAL+1) to prevent
+    early INFO logs before setup_logging() is called.
+    """
+    logger = logging.getLogger(f"claude_mpm.{name}")
+
+    # Check if root logger is suppressed (startup.py sets CRITICAL+1)
+    root_logger = logging.getLogger()
+    if root_logger.level > logging.CRITICAL:
+        # Suppression active - ensure this logger is also suppressed
+        logger.setLevel(logging.CRITICAL + 1)
+        logger.handlers = []
+        logger.propagate = False
+
+    return logger
 
 
 def setup_streaming_logger(name: str, level: str = "INFO") -> logging.Logger:

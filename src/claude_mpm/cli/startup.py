@@ -161,7 +161,25 @@ def setup_early_environment(argv):
     # CRITICAL: Suppress ALL logging by default
     # This catches all loggers (claude_mpm.*, service.*, framework_loader, etc.)
     # This will be overridden by setup_mcp_server_logging() based on user preference
-    logging.getLogger().setLevel(logging.CRITICAL + 1)  # Root logger catches everything
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.CRITICAL + 1)  # Root logger catches everything
+    root_logger.handlers = []  # Remove any handlers
+
+    # Also suppress common module loggers explicitly to prevent handler leakage
+    for logger_name in [
+        "claude_mpm",
+        "path_resolver",
+        "file_loader",
+        "framework_loader",
+        "service",
+        "instruction_loader",
+        "agent_loader",
+        "startup",
+    ]:
+        module_logger = logging.getLogger(logger_name)
+        module_logger.setLevel(logging.CRITICAL + 1)
+        module_logger.handlers = []
+        module_logger.propagate = False
 
     # Process argv
     if argv is None:
