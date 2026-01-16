@@ -6,6 +6,12 @@
 
 ### Fixed
 
+## [5.6.4] - 2026-01-16
+
+### Fixed
+- **SessionStart hook error** - Fixed DEBUG default mismatch in event_handlers.py
+- **Logging cleanup** - Removed all remaining stderr writes in event_handlers.py
+
 ## [5.6.3] - 2026-01-16
 
 ### Fixed
