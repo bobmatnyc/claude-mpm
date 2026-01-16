@@ -4,6 +4,16 @@ let currentProject = null;
 let currentSession = null;
 let pollInterval = null;
 
+// ANSI color support (initialized lazily)
+let ansiUp = null;
+function getAnsiUp() {
+    if (!ansiUp && typeof AnsiUp !== 'undefined') {
+        ansiUp = new AnsiUp();
+        ansiUp.use_classes = false;  // Inline styles (no extra CSS needed)
+    }
+    return ansiUp;
+}
+
 // API Base URL
 const API_BASE = '/api';
 
@@ -56,6 +66,13 @@ async function loadProjects() {
 
 // Show project detail
 async function showProject(projectId) {
+    // FIX: Alten Polling beenden beim Wechsel zur Projekt-View
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+    currentSession = null;  // Session zurücksetzen
+
     currentProject = await fetchAPI(`/projects/${projectId}`);
     currentView = 'detail';
 
@@ -110,6 +127,14 @@ async function showProject(projectId) {
 function showList() {
     currentView = 'list';
     currentProject = null;
+
+    // FIX: Polling beenden bei Navigation
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+    currentSession = null;  // Session auch zurücksetzen
+
     document.getElementById('project-list-view').classList.remove('hidden');
     document.getElementById('project-detail-view').classList.add('hidden');
     document.getElementById('session-output-view').classList.add('hidden');
@@ -156,8 +181,8 @@ async function showSessionOutput(sessionId) {
         <button onclick="showProject('${currentProject.id}')" class="text-blue-400 hover:text-blue-300 mb-4">← Back to Project</button>
         <div class="bg-gray-800 rounded-lg p-4">
             <h3 class="font-semibold mb-2">Session Output</h3>
-            <div id="output-container" class="bg-black rounded p-4 font-mono text-sm h-96 overflow-auto">
-                <pre id="output-content" class="whitespace-pre-wrap"></pre>
+            <div id="output-container" class="bg-black rounded p-4 font-mono text-sm overflow-auto" style="height: calc(100vh - 180px);">
+                <div id="output-content" class="whitespace-pre-wrap"></div>
             </div>
             <div class="mt-2 text-xs text-gray-500">Auto-refreshing every 2s</div>
         </div>
@@ -172,25 +197,54 @@ async function showSessionOutput(sessionId) {
 
 // Output polling
 function startOutputPoll() {
-    if (pollInterval) clearInterval(pollInterval);
+    // Alten Timer SICHER löschen
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+
+    // Session-ID für diesen Poll-Zyklus speichern
+    const targetSession = currentSession;
 
     async function pollOutput() {
-        if (currentView !== 'output' || !currentSession) return;
+        // Double-Check: Sind wir noch auf der richtigen View UND Session?
+        if (currentView !== 'output' || !currentSession || currentSession !== targetSession) {
+            // Polling beenden wenn View/Session gewechselt wurde
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            return;
+        }
 
         try {
-            const project = await fetchAPI(`/projects/${currentProject.id}`);
-            const session = project.sessions.find(s => s.id === currentSession);
-            if (session) {
-                // In Phase 1, we'd need an endpoint to get session output
-                // For now, show placeholder
-                document.getElementById('output-content').textContent =
-                    `Session ${session.id}\nStatus: ${session.status}\nRuntime: ${session.runtime}\n\n[Output will be available when session is connected to tmux]`;
+            const outputData = await fetchAPI(`/sessions/${currentSession}/output?lines=10000`);
+
+            // Nochmal prüfen ob wir noch die richtige Session haben
+            if (currentSession !== targetSession) return;
+
+            const outputEl = document.getElementById('output-content');
+            if (outputEl) {
+                const converter = getAnsiUp();
+                outputEl.innerHTML = converter ? converter.ansi_to_html(outputData.output) : outputData.output;
+
+                const container = document.getElementById('output-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
             }
         } catch (e) {
             console.error('Poll error:', e);
+            if (currentSession === targetSession) {
+                const outputEl = document.getElementById('output-content');
+                if (outputEl) {
+                    outputEl.textContent = `[Error fetching output: ${e.message}]`;
+                }
+            }
         }
     }
 
+    // Initial poll + interval
     pollOutput();
     pollInterval = setInterval(pollOutput, 2000);
 }

@@ -82,6 +82,7 @@ app.include_router(work.router, prefix="/api", tags=["work"])
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "web" / "static"
+static_v2_path = static_path / "v2"
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 
@@ -103,3 +104,29 @@ async def root() -> FileResponse:
         HTML page for the web UI
     """
     return FileResponse(static_path / "index.html")
+
+
+@app.get("/v2")
+async def root_v2() -> FileResponse:
+    """Serve the new Pro web UI index page.
+
+    Returns:
+        HTML page for the Pro web UI
+    """
+    return FileResponse(static_v2_path / "index.html")
+
+
+@app.get("/v2/{path:path}")
+async def serve_v2_static(path: str) -> FileResponse:
+    """Serve static files for v2 UI.
+
+    Args:
+        path: Relative path to the static file
+
+    Returns:
+        The requested static file
+    """
+    file_path = static_v2_path / path
+    if file_path.exists():
+        return FileResponse(file_path)
+    return FileResponse(static_v2_path / "index.html")

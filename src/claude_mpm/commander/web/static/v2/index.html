@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPM Commander Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@6.0.2/ansi_up.js"></script>
+    <link rel="stylesheet" href="/v2/styles.css">
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+            <h1 class="text-lg font-bold flex items-center gap-2">
+                <span class="text-2xl">🤖</span>
+                <span>MPM Commander <span class="text-blue-400 text-sm font-normal">Pro</span></span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Polling Status -->
+            <div class="flex items-center gap-2 text-sm">
+                <span id="polling-indicator" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span id="polling-status" class="text-gray-400">Live</span>
+            </div>
+            <!-- Refresh Button -->
+            <button onclick="refreshAll()" class="text-gray-400 hover:text-white transition p-1" title="Refresh">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+            </button>
+            <!-- Register Project -->
+            <button onclick="showRegisterModal()" class="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm font-medium transition">
+                + Project
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden">
+        <!-- Project/Session Tree (Left Panel) -->
+        <div id="tree-panel" class="w-80 bg-gray-900 border-r border-gray-800 overflow-y-auto">
+            <div class="p-3">
+                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Projects</div>
+                <div id="project-tree" class="space-y-1">
+                    <!-- Projects loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Panel (Right) -->
+        <div id="output-panel" class="flex-1 flex flex-col bg-gray-950 overflow-hidden">
+            <!-- Output Header -->
+            <div id="output-header" class="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <span id="output-title" class="font-medium text-gray-300">Select a session</span>
+                    <span id="output-status" class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400 hidden">running</span>
+                </div>
+                <div id="output-actions" class="flex items-center gap-2 hidden">
+                    <!-- Session Actions -->
+                    <button onclick="sendEscape()" class="action-btn" title="Send ESC">ESC</button>
+                    <button onclick="sendCtrlC()" class="action-btn" title="Send Ctrl+C">^C</button>
+                    <button onclick="sendEnter()" class="action-btn" title="Send Enter">↵</button>
+                    <div class="flex items-center gap-1 ml-2">
+                        <input type="text" id="send-text-input" placeholder="Send text..."
+                               class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
+                               onkeypress="if(event.key==='Enter')sendText()">
+                        <button onclick="sendText()" class="action-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Content -->
+            <div id="output-content" class="flex-1 overflow-auto p-4 font-mono text-sm">
+                <div class="text-gray-500 text-center mt-20">
+                    <div class="text-4xl mb-4">📺</div>
+                    <div>Select a session from the left panel to view output</div>
+                </div>
+            </div>
+
+            <!-- Quick Input Bar -->
+            <div id="quick-input-bar" class="bg-gray-900 border-t border-gray-800 p-3 hidden">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500 text-sm">❯</span>
+                    <input type="text" id="quick-input" placeholder="Send message to session..."
+                           class="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                           onkeypress="if(event.key==='Enter')sendQuickMessage()">
+                    <button onclick="sendQuickMessage()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-medium transition">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Debug Panel (Bottom) -->
+    <div id="debug-panel" class="bg-gray-900 border-t border-gray-800 transition-all duration-200" style="height: 0px;">
+        <div class="flex items-center justify-between px-4 py-1 bg-gray-850 border-b border-gray-800 cursor-pointer" onclick="toggleDebugPanel()">
+            <span class="text-xs font-medium text-gray-400">Debug Log</span>
+            <span id="debug-toggle" class="text-gray-500">▲</span>
+        </div>
+        <div id="debug-content" class="overflow-auto p-2 font-mono text-xs text-gray-400" style="height: calc(100% - 28px);">
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-96 shadow-2xl">
+            <h3 class="text-lg font-semibold mb-4">Register New Project</h3>
+            <input type="text" id="project-path" placeholder="/path/to/project"
+                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 mb-3 focus:outline-none focus:border-blue-500">
+            <input type="text" id="project-name" placeholder="Project Name (optional)"
+                   class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 mb-4 focus:outline-none focus:border-blue-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="hideRegisterModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                <button onclick="registerProject()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/v2/app.js"></script>
+</body>
+</html>
