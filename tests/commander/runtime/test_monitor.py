@@ -127,7 +127,7 @@ class TestRuntimeMonitorStartStop:
         """Test stop_monitoring cancels background task."""
         await monitor.start_monitoring("%5", "proj_123")
 
-        project_id, task, _ = monitor._monitors["%5"]
+        _project_id, task, _ = monitor._monitors["%5"]
         assert not task.done()
 
         await monitor.stop_monitoring("%5")

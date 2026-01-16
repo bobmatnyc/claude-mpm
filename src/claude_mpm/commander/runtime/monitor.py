@@ -140,7 +140,7 @@ class RuntimeMonitor:
 
         logger.info("Stopping monitoring for pane %s", pane_target)
 
-        project_id, task, _ = self._monitors[pane_target]
+        _project_id, task, _ = self._monitors[pane_target]
 
         # Cancel the monitoring task
         if task and not task.done():

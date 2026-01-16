@@ -218,7 +218,7 @@ class TestClaudeCodeAdapter:
     def test_detect_question_yes_no(self, adapter):
         """Test question detection with yes/no format."""
         output = "Should I proceed? (y/n)?"
-        is_q, text, opts = adapter.detect_question(output)
+        is_q, text, _opts = adapter.detect_question(output)
         assert is_q is True
         assert text is not None
         assert "(y/n)?" in text
@@ -226,7 +226,7 @@ class TestClaudeCodeAdapter:
     def test_detect_question_yn_brackets(self, adapter):
         """Test question detection with [Y/n] format."""
         output = "Delete this file? [Y/n]"
-        is_q, text, opts = adapter.detect_question(output)
+        is_q, text, _opts = adapter.detect_question(output)
         assert is_q is True
         assert text is not None
         assert "[Y/n]" in text
@@ -246,7 +246,7 @@ class TestClaudeCodeAdapter:
     def test_detect_question_please_choose(self, adapter):
         """Test question detection with 'Please choose' pattern."""
         output = "Please choose:\n1) Option A\n2) Option B"
-        is_q, text, opts = adapter.detect_question(output)
+        is_q, _text, opts = adapter.detect_question(output)
         assert is_q is True
         assert opts is not None
         assert len(opts) == 2
@@ -256,7 +256,7 @@ class TestClaudeCodeAdapter:
     def test_detect_question_are_you_sure(self, adapter):
         """Test question detection with 'Are you sure' pattern."""
         output = "Are you sure you want to delete this?"
-        is_q, text, opts = adapter.detect_question(output)
+        is_q, text, _opts = adapter.detect_question(output)
         assert is_q is True
         assert text is not None
         assert "Are you sure" in text
