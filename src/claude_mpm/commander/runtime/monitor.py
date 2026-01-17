@@ -6,12 +6,15 @@ and detects events using OutputParser.
 
 import asyncio
 import logging
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ..events.manager import EventManager
 from ..models.events import Event
 from ..parsing.output_parser import OutputParser
 from ..tmux_orchestrator import TmuxOrchestrator
+
+if TYPE_CHECKING:
+    from ..core.block_manager import BlockManager
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,7 @@ class RuntimeMonitor:
         event_manager: EventManager,
         poll_interval: float = 2.0,
         capture_lines: int = 1000,
+        block_manager: Optional["BlockManager"] = None,
     ):
         """Initialize runtime monitor.
 
@@ -53,6 +57,7 @@ class RuntimeMonitor:
             event_manager: EventManager for emitting events
             poll_interval: Seconds between polls (default: 2.0)
             capture_lines: Number of lines to capture (default: 1000)
+            block_manager: Optional BlockManager for automatic work blocking
 
         Raises:
             ValueError: If any required parameter is None
@@ -69,15 +74,17 @@ class RuntimeMonitor:
         self.event_manager = event_manager
         self.poll_interval = poll_interval
         self.capture_lines = capture_lines
+        self.block_manager = block_manager
 
         # Track active monitors: pane_target -> (project_id, task, last_output_hash)
         self._monitors: Dict[str, tuple[str, Optional[asyncio.Task], int]] = {}
         self._running = False
 
         logger.debug(
-            "RuntimeMonitor initialized (interval: %.2fs, lines: %d)",
+            "RuntimeMonitor initialized (interval: %.2fs, lines: %d, block_manager: %s)",
             poll_interval,
             capture_lines,
+            "enabled" if block_manager else "disabled",
         )
 
     async def start_monitoring(self, pane_target: str, project_id: str) -> None:
@@ -283,6 +290,29 @@ class RuntimeMonitor:
                         len(parse_results),
                         pane_target,
                     )
+
+                    # Automatically block work for blocking events
+                    if self.block_manager:
+                        for parse_result in parse_results:
+                            # Get the created event from EventManager
+                            # Events are created with matching titles, so find by title
+                            pending_events = self.event_manager.get_pending(project_id)
+                            for event in pending_events:
+                                if (
+                                    event.title == parse_result.title
+                                    and event.is_blocking
+                                ):
+                                    blocked_work = (
+                                        await self.block_manager.check_and_block(event)
+                                    )
+                                    if blocked_work:
+                                        logger.info(
+                                            "Event %s blocked %d work items: %s",
+                                            event.id,
+                                            len(blocked_work),
+                                            blocked_work,
+                                        )
+                                    break
 
             except Exception as e:
                 logger.error(
