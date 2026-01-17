@@ -110,3 +110,24 @@ class InvalidRuntimeError(CommanderAPIError):
             f"Invalid runtime: {runtime}",
             400,
         )
+
+
+class TmuxNoSpaceError(CommanderAPIError):
+    """Raised when tmux has no space for a new pane."""
+
+    def __init__(self, message: str | None = None):
+        """Initialize tmux no space error.
+
+        Args:
+            message: Custom error message (optional)
+        """
+        default_msg = (
+            "Unable to create session: tmux has no space for new pane. "
+            "Try closing some sessions or resize your terminal window. "
+            "You can also create a new tmux window with `tmux new-window`."
+        )
+        super().__init__(
+            "TMUX_NO_SPACE",
+            message or default_msg,
+            409,
+        )
