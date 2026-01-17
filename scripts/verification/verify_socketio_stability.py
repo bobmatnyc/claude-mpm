@@ -19,7 +19,7 @@ def test_stability():
     print("=" * 50)
 
     try:
-        from src.claude_mpm.services.socketio.server.core import SocketIOServerCore
+        from claude_mpm.services.socketio.server.core import SocketIOServerCore
 
         # Create server instance
         server = SocketIOServerCore()
