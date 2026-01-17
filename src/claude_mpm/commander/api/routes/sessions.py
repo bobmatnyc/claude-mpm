@@ -213,3 +213,34 @@ async def stop_session(session_id: str) -> Response:
     registry.remove_session(parent_project_id, session_id)
 
     return Response(status_code=204)
+
+
+@router.post("/sessions/sync")
+async def sync_sessions():
+    """Synchronize sessions with tmux windows.
+
+    Checks which tmux windows exist and updates session status accordingly.
+    Sessions with missing windows are marked as 'stopped'.
+
+    Returns:
+        Sync results with status for each session
+
+    Example:
+        POST /api/sessions/sync
+        Response: {
+            "synced": 3,
+            "results": {
+                "my-project-claude-code": "found",
+                "old-project-claude-code": "missing"
+            }
+        }
+    """
+    registry = _get_registry()
+    tmux_orch = _get_tmux()
+
+    results = tmux_orch.sync_windows_with_registry(registry)
+
+    return {
+        "synced": len(results),
+        "results": results
+    }

@@ -432,6 +432,16 @@ function updateDebugPanel() {
 
 async function refreshAll() {
     log('Refreshing all data...');
+
+    // First sync tmux windows with registry
+    try {
+        const syncResult = await fetchAPI('/sessions/sync', { method: 'POST' });
+        log(`Synced ${syncResult.synced} sessions with tmux`);
+    } catch (err) {
+        log(`Sync failed: ${err.message}`, 'warn');
+    }
+
+    // Then reload projects
     await loadProjects();
     if (state.currentSession) {
         await loadSessionOutput();
