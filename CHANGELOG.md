@@ -6,6 +6,14 @@
 
 ### Fixed
 
+## [5.6.8] - 2026-01-17
+
+### Fixed
+- **Import paths** (#197) - Removed `src.` prefix from import paths for cleaner module structure
+
+### Added
+- **Private repository support** (#208) - Added token authentication for private skill repositories
+
 ## [5.6.7] - 2026-01-17
 
 ### Fixed
