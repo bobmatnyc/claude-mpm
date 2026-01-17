@@ -6,6 +6,12 @@
 
 ### Fixed
 
+## [5.6.7] - 2026-01-17
+
+### Fixed
+- **Output style test** - Updated test for renamed file
+- **Hooks auto-fix** - Fixed status line for output style schema mismatch
+
 ## [5.6.6] - 2026-01-17
 
 ### Fixed
