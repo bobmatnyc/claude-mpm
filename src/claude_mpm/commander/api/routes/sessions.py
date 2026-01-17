@@ -13,7 +13,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Response
 
 from ...models import ToolSession
-from ..errors import InvalidRuntimeError, ProjectNotFoundError, SessionNotFoundError
+from ..errors import (
+    InvalidRuntimeError,
+    ProjectNotFoundError,
+    SessionNotFoundError,
+    TmuxNoSpaceError,
+)
 from ..schemas import CreateSessionRequest, SessionResponse
 
 # Type alias for JSON-serializable response dictionaries
@@ -264,6 +269,7 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
     Raises:
         ProjectNotFoundError: If project_id doesn't exist
         InvalidRuntimeError: If runtime is not supported
+        TmuxNoSpaceError: If tmux has no space for new pane
 
     Example:
         POST /api/projects/abc-123/sessions
@@ -301,12 +307,11 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
             pane_id=f"{project.name}-{req.runtime}",
             working_dir=project.path,
         )
-    except Exception as e:
-        from fastapi import HTTPException
-
-        raise HTTPException(
-            status_code=500, detail={"error": {"code": "TMUX_ERROR", "message": str(e)}}
-        ) from e
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode() if e.stderr else ""
+        if "no space for new pane" in stderr.lower():
+            raise TmuxNoSpaceError() from None
+        raise  # Re-raise other subprocess errors
 
     # Create session object
     session = ToolSession(

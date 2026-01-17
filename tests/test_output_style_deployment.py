@@ -3,7 +3,7 @@
 Test script for output style deployment on startup.
 
 Tests:
-1. OUTPUT_STYLE.md exists and contains prohibitions
+1. CLAUDE_MPM_OUTPUT_STYLE.md exists and contains PM delegation instructions
 2. deploy_output_style_on_startup() creates file at correct location
 3. deploy_output_style_on_startup() updates settings.json correctly
 4. Deployment is idempotent (doesn't re-deploy if already active)
@@ -22,23 +22,27 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 
 def test_output_style_exists():
-    """Test 1: Verify OUTPUT_STYLE.md exists and contains prohibitions."""
-    print("Test 1: Verify OUTPUT_STYLE.md exists and contains prohibitions")
+    """Test 1: Verify CLAUDE_MPM_OUTPUT_STYLE.md exists and contains PM instructions."""
+    print(
+        "Test 1: Verify CLAUDE_MPM_OUTPUT_STYLE.md exists and contains PM instructions"
+    )
     print("-" * 60)
 
-    output_style_path = Path("src/claude_mpm/agents/OUTPUT_STYLE.md")
-    assert output_style_path.exists(), "OUTPUT_STYLE.md not found"
+    output_style_path = Path("src/claude_mpm/agents/CLAUDE_MPM_OUTPUT_STYLE.md")
+    assert output_style_path.exists(), "CLAUDE_MPM_OUTPUT_STYLE.md not found"
 
     content = output_style_path.read_text()
 
-    # Check for key prohibitions
-    assert "emoji" in content.lower(), "Missing emoji prohibition"
-    assert "exclamation" in content.lower(), "Missing exclamation prohibition"
-    assert "enthusiasm" in content.lower(), "Missing enthusiasm prohibition"
-    assert "affirmation" in content.lower(), "Missing affirmation prohibition"
+    # Check for key PM delegation directives
+    assert "MANDATORY DELEGATION" in content, "Missing mandatory delegation directive"
+    assert (
+        "FORBIDDEN FROM DOING ANY WORK DIRECTLY" in content
+    ), "Missing prohibition on direct work"
+    assert "DELEGATE" in content, "Missing delegation keyword"
+    assert "Override phrases" in content, "Missing override phrases section"
 
-    # Check for specific forbidden phrases
-    forbidden_phrases = ["Perfect", "Excellent", "Amazing", "Fantastic"]
+    # Check for specific forbidden phrases (communication style)
+    forbidden_phrases = ["Perfect", "Excellent", "Amazing"]
     for phrase in forbidden_phrases:
         assert phrase in content, f"Missing forbidden phrase: {phrase}"
 
@@ -46,11 +50,11 @@ def test_output_style_exists():
     assert content.startswith("---"), "Missing frontmatter"
     assert "name: Claude MPM" in content, "Missing name in frontmatter"
 
-    print(f"✓ OUTPUT_STYLE.md exists ({len(content)} characters)")
-    print("✓ Contains emoji prohibition")
-    print("✓ Contains exclamation prohibition")
-    print("✓ Contains enthusiasm prohibition")
-    print("✓ Contains affirmation prohibition")
+    print(f"✓ CLAUDE_MPM_OUTPUT_STYLE.md exists ({len(content)} characters)")
+    print("✓ Contains mandatory delegation directive")
+    print("✓ Contains prohibition on direct work")
+    print("✓ Contains delegation instructions")
+    print("✓ Contains override phrases")
     print(f"✓ Lists forbidden phrases: {', '.join(forbidden_phrases)}")
     print("✓ Has proper frontmatter with name")
     print()
@@ -83,7 +87,7 @@ def test_deployment_function():
                 assert output_style_file.exists(), "Output style file not created"
 
                 # Check content matches source
-                source_path = Path("src/claude_mpm/agents/OUTPUT_STYLE.md")
+                source_path = Path("src/claude_mpm/agents/CLAUDE_MPM_OUTPUT_STYLE.md")
                 source_content = source_path.read_text()
                 deployed_content = output_style_file.read_text()
                 assert deployed_content == source_content, "Content mismatch"
@@ -91,9 +95,9 @@ def test_deployment_function():
                 # Check settings.json was created
                 assert settings_file.exists(), "settings.json not created"
                 settings = json.loads(settings_file.read_text())
-                assert settings.get("activeOutputStyle") == "claude-mpm", (
-                    "activeOutputStyle not set"
-                )
+                assert (
+                    settings.get("activeOutputStyle") == "Claude MPM"
+                ), "activeOutputStyle not set"
 
                 print(f"✓ Output style file created at: {output_style_file}")
                 print(f"✓ Content matches source ({len(deployed_content)} characters)")
@@ -131,9 +135,9 @@ def test_idempotency():
 
                 # Check file was not modified
                 second_mtime = output_style_file.stat().st_mtime
-                assert first_mtime == second_mtime, (
-                    "File was modified on second deployment"
-                )
+                assert (
+                    first_mtime == second_mtime
+                ), "File was modified on second deployment"
 
                 print("✓ First deployment completed")
                 print("✓ Second deployment skipped (file not modified)")
@@ -154,9 +158,9 @@ def test_startup_integration():
     source = inspect.getsource(run_background_services)
 
     # Check that deploy_output_style_on_startup is called
-    assert "deploy_output_style_on_startup()" in source, (
-        "deploy_output_style_on_startup not called in run_background_services"
-    )
+    assert (
+        "deploy_output_style_on_startup()" in source
+    ), "deploy_output_style_on_startup not called in run_background_services"
 
     print("✓ run_background_services() calls deploy_output_style_on_startup()")
 
@@ -202,9 +206,9 @@ def test_version_check():
 
                 # Verify no files were created
                 output_styles_dir = temp_home / ".claude" / "output-styles"
-                assert not output_styles_dir.exists(), (
-                    "Output styles directory should not be created"
-                )
+                assert (
+                    not output_styles_dir.exists()
+                ), "Output styles directory should not be created"
 
                 print("✓ Deployment skipped for unsupported versions")
                 print("✓ No files created when version check fails")

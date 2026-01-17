@@ -155,7 +155,7 @@ class WorkExecutor:
         else:
             logger.warning(f"Failed to mark work item {work_id} as failed")
 
-    async def handle_block(self, work_id: str, reason: str) -> None:
+    async def handle_block(self, work_id: str, reason: str) -> bool:
         """Handle work being blocked by an event.
 
         Called when RuntimeMonitor detects a blocking event.
@@ -164,15 +164,19 @@ class WorkExecutor:
             work_id: Work item ID that is blocked
             reason: Reason for blocking (e.g., "Waiting for approval")
 
+        Returns:
+            True if work was successfully blocked, False otherwise
+
         Example:
-            >>> await executor.handle_block("work-123", "Decision needed")
+            >>> success = await executor.handle_block("work-123", "Decision needed")
         """
         if self.queue.block(work_id, reason):
             logger.info(f"Work item {work_id} blocked: {reason}")
-        else:
-            logger.warning(f"Failed to mark work item {work_id} as blocked")
+            return True
+        logger.warning(f"Failed to mark work item {work_id} as blocked")
+        return False
 
-    async def handle_unblock(self, work_id: str) -> None:
+    async def handle_unblock(self, work_id: str) -> bool:
         """Handle work being unblocked after event resolution.
 
         Called when EventHandler resolves a blocking event.
@@ -180,10 +184,14 @@ class WorkExecutor:
         Args:
             work_id: Work item ID to unblock
 
+        Returns:
+            True if work was successfully unblocked, False otherwise
+
         Example:
-            >>> await executor.handle_unblock("work-123")
+            >>> success = await executor.handle_unblock("work-123")
         """
         if self.queue.unblock(work_id):
             logger.info(f"Work item {work_id} unblocked, resuming execution")
-        else:
-            logger.warning(f"Failed to unblock work item {work_id}")
+            return True
+        logger.warning(f"Failed to unblock work item {work_id}")
+        return False

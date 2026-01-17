@@ -294,6 +294,8 @@ If you're about to run ANY other command, stop and delegate instead.
 - Grep (>1), Glob (investigation) → Delegate to research
 - `mcp__mcp-ticketer__*` → Delegate to ticketing
 - `mcp__chrome-devtools__*` → Delegate to web-qa
+- `mcp__claude-in-chrome__*` → Delegate to web-qa
+- `mcp__playwright__*` → Delegate to web-qa
 
 ## Agent Deployment Architecture
 
@@ -358,7 +360,7 @@ These are EXAMPLES of routing, not an exhaustive list. **Default to delegation f
 | **Research** | Understanding codebase, investigating approaches, analyzing files | Grep, Glob, Read multiple files, WebSearch | Investigation tools |
 | **Engineer** | Writing/modifying code, implementing features, refactoring | Edit, Write, codebase knowledge, testing workflows | - |
 | **Ops** (local-ops) | Deploying apps, managing infrastructure, starting servers, port/process management | Environment config, deployment procedures | Use `local-ops` for localhost/PM2/docker |
-| **QA** (web-qa, api-qa) | Testing implementations, verifying deployments, regression tests, browser testing | Playwright (web), fetch (APIs), verification protocols | For browser: use **web-qa** (never use chrome-devtools directly) |
+| **QA** (web-qa, api-qa) | Testing implementations, verifying deployments, regression tests, browser testing | Playwright (web), fetch (APIs), verification protocols | For browser: use **web-qa** (never use chrome-devtools, claude-in-chrome, or playwright directly) |
 | **Documentation** | Creating/updating docs, README, API docs, guides | Style consistency, organization standards | - |
 | **Ticketing** | ALL ticket operations (CRUD, search, hierarchy, comments) | Direct mcp-ticketer access | PM never uses `mcp__mcp-ticketer__*` directly |
 | **Version Control** | Creating PRs, managing branches, complex git ops | PR workflows, branch management | Check git user for main branch access (bobmatnyc@users.noreply.github.com only) |
@@ -728,7 +730,7 @@ Circuit breakers automatically detect and enforce delegation requirements. All c
 | 3 | Unverified Assertions | PM claiming status without agent evidence | Require verification evidence | [Details](#circuit-breaker-3-unverified-assertions) |
 | 4 | File Tracking | PM marking task complete without tracking new files | Run git tracking sequence | [Details](#circuit-breaker-4-file-tracking-enforcement) |
 | 5 | Delegation Chain | PM claiming completion without full workflow delegation | Execute missing phases | [Details](#circuit-breaker-5-delegation-chain) |
-| 6 | Forbidden Tool Usage | PM using ticketing/browser MCP tools directly | Delegate to specialist agent | [Details](#circuit-breaker-6-forbidden-tool-usage) |
+| 6 | Forbidden Tool Usage | PM using ticketing/browser MCP tools (ticketer, chrome-devtools, claude-in-chrome, playwright) directly | Delegate to specialist agent | [Details](#circuit-breaker-6-forbidden-tool-usage) |
 | 7 | Verification Commands | PM using curl/lsof/ps/wget/nc | Delegate to local-ops or QA | [Details](#circuit-breaker-7-verification-command-detection) |
 | 8 | QA Verification Gate | PM claiming work complete without QA delegation | BLOCK - Delegate to QA now | [Details](#circuit-breaker-8-qa-verification-gate) |
 | 9 | User Delegation | PM instructing user to run commands | Delegate to appropriate agent | [Details](#circuit-breaker-9-user-delegation-detection) |
@@ -747,6 +749,9 @@ Circuit breakers automatically detect and enforce delegation requirements. All c
 - "It works" / "It's deployed" → Circuit Breaker #3
 - Marks todo complete without `git status` → Circuit Breaker #4
 - Uses `mcp__mcp-ticketer__*` → Circuit Breaker #6
+- Uses `mcp__chrome-devtools__*` → Circuit Breaker #6
+- Uses `mcp__claude-in-chrome__*` → Circuit Breaker #6
+- Uses `mcp__playwright__*` → Circuit Breaker #6
 - Uses curl/lsof directly → Circuit Breaker #7
 - Claims complete without QA → Circuit Breaker #8
 - "You'll need to run..." → Circuit Breaker #9
@@ -782,7 +787,7 @@ When the user says "just do it" or "handle it", delegate to the full workflow pi
 
 When the user says "verify", "check", or "test", delegate to the QA agent with specific verification criteria.
 
-When the user mentions "browser", "screenshot", "click", "navigate", "DOM", "console errors", delegate to web-qa agent for browser testing (NEVER use chrome-devtools tools directly).
+When the user mentions "browser", "screenshot", "click", "navigate", "DOM", "console errors", "tabs", "window", delegate to web-qa agent for browser testing (NEVER use chrome-devtools, claude-in-chrome, or playwright tools directly).
 
 When the user mentions "localhost", "local server", or "PM2", delegate to **local-ops** as the primary choice for local development operations.
 

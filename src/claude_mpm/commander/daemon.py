@@ -15,12 +15,18 @@ from .api.app import (
     app,
 )
 from .config import DaemonConfig
+from .core.block_manager import BlockManager
 from .events.manager import EventManager
 from .inbox import Inbox
+from .parsing.output_parser import OutputParser
 from .persistence import EventStore, StateStore
 from .project_session import ProjectSession, SessionState
 from .registry import ProjectRegistry
+from .runtime.monitor import RuntimeMonitor
 from .tmux_orchestrator import TmuxOrchestrator
+from .work.executor import WorkExecutor
+from .work.queue import WorkQueue
+from .workflow.event_handler import EventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +44,11 @@ class CommanderDaemon:
         event_manager: Event manager
         inbox: Event inbox
         sessions: Active project sessions by project_id
+        work_queues: Work queues by project_id
+        work_executors: Work executors by project_id
+        block_manager: Block manager for automatic work blocking
+        runtime_monitor: Runtime monitor for output monitoring
+        event_handler: Event handler for blocking event workflow
         state_store: StateStore for project/session persistence
         event_store: EventStore for event queue persistence
         running: Whether daemon is currently running
@@ -68,6 +79,8 @@ class CommanderDaemon:
         self.event_manager = EventManager()
         self.inbox = Inbox(self.event_manager, self.registry)
         self.sessions: Dict[str, ProjectSession] = {}
+        self.work_queues: Dict[str, WorkQueue] = {}
+        self.work_executors: Dict[str, WorkExecutor] = {}
         self._running = False
         self._server_task: Optional[asyncio.Task] = None
         self._main_loop_task: Optional[asyncio.Task] = None
@@ -75,6 +88,30 @@ class CommanderDaemon:
         # Initialize persistence stores
         self.state_store = StateStore(config.state_dir)
         self.event_store = EventStore(config.state_dir)
+
+        # Initialize BlockManager with work queues and executors
+        self.block_manager = BlockManager(
+            event_manager=self.event_manager,
+            work_queues=self.work_queues,
+            work_executors=self.work_executors,
+        )
+
+        # Initialize RuntimeMonitor with BlockManager
+        parser = OutputParser(self.event_manager)
+        self.runtime_monitor = RuntimeMonitor(
+            orchestrator=self.orchestrator,
+            parser=parser,
+            event_manager=self.event_manager,
+            poll_interval=config.poll_interval,
+            block_manager=self.block_manager,
+        )
+
+        # Initialize EventHandler with BlockManager
+        self.event_handler = EventHandler(
+            inbox=self.inbox,
+            session_manager=self.sessions,
+            block_manager=self.block_manager,
+        )
 
         # Configure logging
         logging.basicConfig(
@@ -170,6 +207,16 @@ class CommanderDaemon:
                 await session.stop()
             except Exception as e:
                 logger.error(f"Error stopping session {project_id}: {e}")
+
+        # Clear BlockManager project mappings
+        for project_id in list(self.work_queues.keys()):
+            try:
+                removed = self.block_manager.clear_project_mappings(project_id)
+                logger.debug(
+                    f"Cleared {removed} work mappings for project {project_id}"
+                )
+            except Exception as e:
+                logger.error(f"Error clearing mappings for {project_id}: {e}")
 
         # Cancel main loop task
         if self._main_loop_task and not self._main_loop_task.done():
@@ -282,7 +329,26 @@ class CommanderDaemon:
         if project is None:
             raise ValueError(f"Project not found: {project_id}")
 
-        session = ProjectSession(project, self.orchestrator)
+        # Create work queue for project if not exists
+        if project_id not in self.work_queues:
+            self.work_queues[project_id] = WorkQueue(project_id)
+            logger.debug(f"Created work queue for project {project_id}")
+
+        # Create work executor for project if not exists
+        if project_id not in self.work_executors:
+            from .runtime.executor import RuntimeExecutor
+
+            runtime_executor = RuntimeExecutor(self.orchestrator)
+            self.work_executors[project_id] = WorkExecutor(
+                runtime=runtime_executor, queue=self.work_queues[project_id]
+            )
+            logger.debug(f"Created work executor for project {project_id}")
+
+        session = ProjectSession(
+            project=project,
+            orchestrator=self.orchestrator,
+            monitor=self.runtime_monitor,
+        )
         self.sessions[project_id] = session
 
         logger.info(f"Created new session for project {project_id}")

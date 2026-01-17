@@ -76,6 +76,10 @@ def add_skill_source_subparser(subparsers) -> argparse.ArgumentParser:
         dest="skip_test",
         help="Skip immediate testing (not recommended)",
     )
+    add_parser.add_argument(
+        "--token",
+        help="GitHub token or env var reference (e.g., ghp_xxx or $PRIVATE_TOKEN)",
+    )
 
     # Remove repository
     remove_parser = skill_source_subparsers.add_parser(

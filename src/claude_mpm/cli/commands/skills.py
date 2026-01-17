@@ -538,6 +538,7 @@ class SkillsManagementCommand(BaseCommand):
             toolchain = getattr(args, "toolchain", None)
             categories = getattr(args, "categories", None)
             force = getattr(args, "force", False)
+            deploy_all = getattr(args, "all", False)
 
             if collection:
                 console.print(
@@ -548,14 +549,15 @@ class SkillsManagementCommand(BaseCommand):
                     "\n[bold cyan]Deploying skills from default collection...[/bold cyan]\n"
                 )
 
-            # Selective deployment is ALWAYS enabled (deploy only agent-referenced skills)
-            # This ensures only skills linked to deployed agents are deployed
+            # Use selective deployment unless --all flag is provided
+            # Selective mode deploys only agent-referenced skills
+            # --all mode deploys all available skills from the collection
             result = self.skills_deployer.deploy_skills(
                 collection=collection,
                 toolchain=toolchain,
                 categories=categories,
                 force=force,
-                selective=True,  # Always use selective deployment
+                selective=not deploy_all,
             )
 
             # Display results
