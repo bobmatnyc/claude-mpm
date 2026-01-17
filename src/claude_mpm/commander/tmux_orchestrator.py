@@ -152,7 +152,7 @@ class TmuxOrchestrator:
             working_dir: Working directory for the window
 
         Returns:
-            Tmux target string (window:pane format like "mpm-commander:proj-name")
+            Tmux target string using pane ID (like "%5") for reliable targeting
 
         Raises:
             subprocess.CalledProcessError: If window creation fails
@@ -162,27 +162,30 @@ class TmuxOrchestrator:
             >>> orchestrator.create_session()
             >>> target = orchestrator.create_window("my-project", "/path/to/project")
             >>> print(target)
-            mpm-commander:my-project
+            %5
         """
         logger.info(f"Creating window '{window_name}' in {working_dir}")
 
-        # Create new window (not pane)
-        self._run_tmux(
+        # Create new window and get the pane ID (more reliable than window name)
+        result = self._run_tmux(
             [
                 "new-window",
                 "-t",
                 self.session_name,
                 "-n",
-                window_name,  # Window name
+                window_name,  # Window name (for display)
                 "-c",
                 working_dir,  # Working directory
+                "-P",  # Print info about new window
+                "-F",
+                "#{pane_id}",  # Return the pane ID
             ]
         )
 
-        # Target is session:window_name
-        target = f"{self.session_name}:{window_name}"
-        logger.debug(f"Created window with target: {target}")
-        return target
+        # Use pane ID as target (format: %N) - unique and reliable
+        pane_id = result.stdout.strip()
+        logger.debug(f"Created window '{window_name}' with pane target: {pane_id}")
+        return pane_id
 
     def send_keys(self, target: str, keys: str, enter: bool = True) -> bool:
         """Send keystrokes to a pane.
@@ -262,16 +265,16 @@ class TmuxOrchestrator:
         """List all windows in the commander session.
 
         Returns:
-            List of dicts with window info (name, path, target, active)
+            List of dicts with window info (name, path, target/pane_id, active)
 
         Example:
             >>> orchestrator = TmuxOrchestrator()
             >>> orchestrator.create_session()
             >>> windows = orchestrator.list_windows()
             >>> for win in windows:
-            ...     print(f"{win['name']}: {win['path']}")
-            commander: /Users/user
-            my-project: /Users/user/projects/my-project
+            ...     print(f"{win['name']}: {win['pane_id']}")
+            commander: %0
+            my-project: %5
         """
         if not self.session_exists():
             logger.warning(f"Session '{self.session_name}' does not exist")
@@ -285,7 +288,7 @@ class TmuxOrchestrator:
                 "-t",
                 self.session_name,
                 "-F",
-                "#{window_name}|#{pane_current_path}|#{window_active}|#{pane_pid}",
+                "#{window_name}|#{pane_current_path}|#{window_active}|#{pane_pid}|#{pane_id}",
             ]
         )
 
@@ -295,13 +298,15 @@ class TmuxOrchestrator:
                 continue
 
             parts = line.split("|")
-            if len(parts) >= 4:
+            if len(parts) >= 5:
                 window_name = parts[0]
+                pane_id = parts[4]
                 windows.append(
                     {
                         "name": window_name,
                         "path": parts[1],
-                        "target": f"{self.session_name}:{window_name}",
+                        "target": pane_id,  # Use pane_id as target
+                        "pane_id": pane_id,
                         "active": parts[2] == "1",
                         "pid": parts[3],
                     }
@@ -344,48 +349,45 @@ class TmuxOrchestrator:
     def sync_windows_with_registry(self, registry) -> Dict[str, str]:
         """Synchronize tmux windows with project registry.
 
-        Checks which windows exist in tmux and updates session status
-        in the registry accordingly.
+        Checks which windows/panes exist in tmux and updates session status
+        in the registry accordingly. Matches by pane_id (tmux_target).
 
         Args:
             registry: ProjectRegistry instance
 
         Returns:
-            Dict mapping window names to their status (found/missing)
+            Dict mapping session IDs to their status (found/missing)
 
         Example:
             >>> orchestrator = TmuxOrchestrator()
             >>> sync_result = orchestrator.sync_windows_with_registry(registry)
             >>> print(sync_result)
-            {'my-project-claude-code': 'found', 'old-project': 'missing'}
+            {'sess-123': 'found', 'sess-456': 'missing'}
         """
         logger.info("Synchronizing tmux windows with registry")
 
-        # Get current tmux windows
-        tmux_windows = {w["name"]: w for w in self.list_windows()}
+        # Get current tmux windows/panes - index by pane_id
+        tmux_panes = {w["pane_id"]: w for w in self.list_windows()}
         sync_result = {}
 
         # Check each project's sessions
         for project in registry.list_all():
             for session_id, session in project.sessions.items():
-                # Extract window name from tmux_target (format: session:window_name)
-                if session.tmux_target and ":" in session.tmux_target:
-                    window_name = session.tmux_target.split(":")[-1]
-                else:
-                    window_name = f"{project.name}-{session.runtime}"
+                # tmux_target should be a pane_id like "%5"
+                pane_id = session.tmux_target
 
-                if window_name in tmux_windows:
-                    # Window exists - update status to running
+                if pane_id and pane_id in tmux_panes:
+                    # Pane exists - update status to running
                     if session.status != "running":
                         session.status = "running"
-                        logger.debug(f"Session {session_id} marked as running")
-                    sync_result[window_name] = "found"
+                        logger.debug(f"Session {session_id} marked as running (pane {pane_id})")
+                    sync_result[session_id] = "found"
                 else:
-                    # Window missing - update status to stopped
-                    if session.status == "running":
+                    # Pane missing - update status to stopped
+                    if session.status == "running" or session.status == "initializing":
                         session.status = "stopped"
-                        logger.debug(f"Session {session_id} marked as stopped")
-                    sync_result[window_name] = "missing"
+                        logger.debug(f"Session {session_id} marked as stopped (pane {pane_id} not found)")
+                    sync_result[session_id] = "missing"
 
         logger.info(f"Sync complete: {len(sync_result)} sessions checked")
         return sync_result

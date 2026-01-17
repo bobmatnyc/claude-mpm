@@ -244,3 +244,54 @@ async def sync_sessions():
         "synced": len(results),
         "results": results
     }
+
+
+@router.get("/sessions/{session_id}/output")
+async def get_session_output(session_id: str, lines: int = 100):
+    """Get terminal output from a session.
+
+    Captures the recent output from the session's tmux pane.
+
+    Args:
+        session_id: Unique session identifier
+        lines: Number of lines to capture (default: 100)
+
+    Returns:
+        Session output and metadata
+
+    Raises:
+        SessionNotFoundError: If session_id doesn't exist
+
+    Example:
+        GET /api/sessions/sess-456/output?lines=50
+        Response: {
+            "session_id": "sess-456",
+            "output": "$ claude\\nHello! How can I help?\\n",
+            "lines": 50
+        }
+    """
+    registry = _get_registry()
+    tmux_orch = _get_tmux()
+
+    # Find session across all projects
+    session = None
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            session = project.sessions[session_id]
+            break
+
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    # Capture output from tmux pane
+    try:
+        output = tmux_orch.capture_output(session.tmux_target, lines=lines)
+    except Exception as e:
+        logger.warning(f"Failed to capture output for session {session_id}: {e}")
+        output = f"[Error capturing output: {e}]"
+
+    return {
+        "session_id": session_id,
+        "output": output,
+        "lines": lines
+    }
