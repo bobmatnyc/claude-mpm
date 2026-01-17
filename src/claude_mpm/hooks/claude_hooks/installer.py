@@ -537,6 +537,44 @@ main "$@"
         except Exception as e:
             self.logger.warning(f"Could not clean up old settings file: {e}")
 
+    def _fix_status_line(self, settings: Dict) -> None:
+        """Fix statusLine command to handle both output style schema formats.
+
+        The statusLine command receives input in different formats:
+        - Newer format: {"activeOutputStyle": "Claude MPM", ...}
+        - Older format: {"output_style": {"name": "Claude MPM"}, ...}
+
+        This method ensures the jq expression checks both locations.
+
+        Args:
+            settings: The settings dictionary to update
+        """
+        if "statusLine" not in settings:
+            return
+
+        status_line = settings.get("statusLine", {})
+        if "command" not in status_line:
+            return
+
+        command = status_line["command"]
+
+        # Pattern to match: '.output_style.name // "default"'
+        # We need to update it to: '.output_style.name // .activeOutputStyle // "default"'
+        old_pattern = r'\.output_style\.name\s*//\s*"default"'
+        new_pattern = '.output_style.name // .activeOutputStyle // "default"'
+
+        # Check if the command needs updating
+        if re.search(old_pattern, command) and ".activeOutputStyle" not in command:
+            updated_command = re.sub(old_pattern, new_pattern, command)
+            settings["statusLine"]["command"] = updated_command
+            self.logger.info(
+                "Fixed statusLine command to handle both output style schemas"
+            )
+        else:
+            self.logger.debug(
+                "StatusLine command already supports both schemas or not present"
+            )
+
     def _update_claude_settings(self, hook_script_path: Path) -> None:
         """Update Claude settings to use the installed hook."""
         self.logger.info("Updating Claude settings...")
@@ -597,6 +635,9 @@ main "$@"
                 "hooks": [hook_command],
             }
         ]
+
+        # Fix statusLine command to handle both output style schemas
+        self._fix_status_line(settings)
 
         # Write settings to settings.json
         with self.settings_file.open("w") as f:

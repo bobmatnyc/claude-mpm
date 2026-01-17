@@ -137,6 +137,8 @@ class TestHandleAddSkillSource:
             branch="main",
             priority=100,
             disabled=False,
+            skip_test=True,  # Skip actual repository testing
+            test=False,
         )
 
         result = handle_add_skill_source(args)
@@ -213,13 +215,15 @@ class TestHandleAddSkillSource:
             branch="main",
             priority=100,
             disabled=False,
+            skip_test=True,
+            test=False,
         )
 
         result = handle_add_skill_source(args)
 
         assert result == 0
         captured = capsys.readouterr()
-        assert "Priority conflict detected" in captured.out
+        assert "Priority conflicts detected" in captured.out
 
     @patch("claude_mpm.cli.commands.skill_source.SkillSourceConfiguration")
     def test_add_source_disabled(self, mock_config_class, capsys):
@@ -234,6 +238,8 @@ class TestHandleAddSkillSource:
             branch="develop",
             priority=50,
             disabled=True,  # Add as disabled
+            skip_test=True,
+            test=False,
         )
 
         result = handle_add_skill_source(args)

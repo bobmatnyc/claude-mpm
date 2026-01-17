@@ -11,6 +11,7 @@ for better UX. Handles errors gracefully with actionable messages.
 
 import json
 import logging
+import os
 import re
 
 from ...config.skill_sources import SkillSource, SkillSourceConfiguration
@@ -18,6 +19,33 @@ from ...services.skills.git_skill_source_manager import GitSkillSourceManager
 from ...services.skills.skill_discovery_service import SkillDiscoveryService
 
 logger = logging.getLogger(__name__)
+
+
+def _get_github_token(source: SkillSource | None = None) -> str | None:
+    """Get GitHub token with source-specific override support.
+
+    Priority: source.token > GITHUB_TOKEN > GH_TOKEN
+
+    Args:
+        source: Optional SkillSource to check for per-source token
+
+    Returns:
+        GitHub token if found, None otherwise
+
+    Security Note:
+        Token is never logged or printed to avoid exposure.
+    """
+    # Priority 1: Per-source token (env var reference or direct)
+    if source and source.token:
+        if source.token.startswith("$"):
+            # Env var reference: $VAR_NAME -> os.environ.get("VAR_NAME")
+            env_var_name = source.token[1:]
+            return os.environ.get(env_var_name)
+        # Direct token (not recommended but supported)
+        return source.token
+
+    # Priority 2-3: Global environment variables
+    return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
 def _test_skill_repository_access(source: SkillSource) -> dict:
@@ -58,7 +86,13 @@ def _test_skill_repository_access(source: SkillSource) -> dict:
         # Test GitHub API access
         api_url = f"https://api.github.com/repos/{owner_repo}"
 
-        response = requests.get(api_url, timeout=10)
+        # Build headers with authentication if token available
+        headers = {"Accept": "application/vnd.github+json"}
+        token = _get_github_token(source)
+        if token:
+            headers["Authorization"] = f"token {token}"
+
+        response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             return {"accessible": True, "error": None}
@@ -68,9 +102,14 @@ def _test_skill_repository_access(source: SkillSource) -> dict:
                 "error": f"Repository not found: {owner_repo}",
             }
         if response.status_code == 403:
+            error_msg = "Access denied (private repository or rate limit)"
+            if not token:
+                error_msg += (
+                    ". Try setting GITHUB_TOKEN environment variable for private repos"
+                )
             return {
                 "accessible": False,
-                "error": "Access denied (private repository or rate limit)",
+                "error": error_msg,
             }
         return {
             "accessible": False,
@@ -263,6 +302,15 @@ def handle_add_skill_source(args) -> int:
 
         # Create new source
         enabled = not args.disabled
+        token = getattr(args, "token", None)
+
+        # Security warning for direct tokens
+        if token and not token.startswith("$"):
+            print("⚠️  Warning: Direct token values in config are not recommended")
+            print("   Consider using environment variable reference instead:")
+            print("   --token $MY_PRIVATE_TOKEN")
+            print()
+
         source = SkillSource(
             id=source_id,
             type="git",
@@ -270,6 +318,7 @@ def handle_add_skill_source(args) -> int:
             branch=args.branch,
             priority=args.priority,
             enabled=enabled,
+            token=token,
         )
 
         # Determine if we should test

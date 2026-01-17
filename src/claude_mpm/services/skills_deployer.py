@@ -28,7 +28,7 @@ References:
 import json
 import platform
 import shutil
-import subprocess
+import subprocess  # nosec B404 - subprocess needed for safe git operations
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -653,7 +653,7 @@ class SkillsDeployerService(LoggerMixin):
                     f"Updating existing collection '{collection_name}' at {target_dir}"
                 )
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 B607 - Safe: hardcoded git command
                         ["git", "pull"],
                         cwd=target_dir,
                         capture_output=True,
@@ -684,7 +684,7 @@ class SkillsDeployerService(LoggerMixin):
                 f"Installing new collection '{collection_name}' to {target_dir}"
             )
             try:
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Safe: hardcoded git command
                     ["git", "clone", repo_url, str(target_dir)],
                     capture_output=True,
                     text=True,
@@ -772,6 +772,32 @@ class SkillsDeployerService(LoggerMixin):
         # Handle new nested dict structure
         if isinstance(skills_data, dict):
             flat_skills = []
+
+            # Define valid top-level categories
+            VALID_CATEGORIES = {"universal", "toolchains"}
+
+            # Check for unknown categories and warn user
+            unknown_categories = set(skills_data.keys()) - VALID_CATEGORIES
+            if unknown_categories:
+                # Count skills in unknown categories
+                skipped_count = 0
+                for cat in unknown_categories:
+                    cat_data = skills_data.get(cat, [])
+                    if isinstance(cat_data, list):
+                        skipped_count += len(cat_data)
+                    elif isinstance(cat_data, dict):
+                        # If it's a dict like toolchains, count nested skills
+                        for skills_list in cat_data.values():
+                            if isinstance(skills_list, list):
+                                skipped_count += len(skills_list)
+
+                self.logger.warning(
+                    f"Unknown categories in manifest will be skipped: "
+                    f"{', '.join(sorted(unknown_categories))} ({skipped_count} skills)"
+                )
+                self.logger.info(
+                    f"Valid top-level categories: {', '.join(sorted(VALID_CATEGORIES))}"
+                )
 
             # Add universal skills
             universal_skills = skills_data.get("universal", [])
@@ -1022,12 +1048,12 @@ class SkillsDeployerService(LoggerMixin):
         """
         try:
             if platform.system() == "Windows":
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Safe: hardcoded tasklist command
                     ["tasklist"], check=False, capture_output=True, text=True, timeout=5
                 )
                 return "claude" in result.stdout.lower()
             # macOS and Linux
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - Safe: hardcoded ps command
                 ["ps", "aux"], check=False, capture_output=True, text=True, timeout=5
             )
             # Look for "Claude Code" or "claude-code" process

@@ -188,6 +188,15 @@ class SkillDiscoveryService:
             f"and {len(legacy_md_files)} legacy .md files in {self.skills_dir}"
         )
 
+        # Log first few file paths for debugging
+        if all_skill_files:
+            sample_files = [
+                str(f.relative_to(self.skills_dir)) for f in all_skill_files[:5]
+            ]
+            self.logger.debug(f"Sample skill files: {sample_files}")
+        else:
+            self.logger.debug(f"No SKILL.md or .md files found in {self.skills_dir}")
+
         # Track deployment names to detect collisions
         deployment_names = {}
 
@@ -226,7 +235,14 @@ class SkillDiscoveryService:
             except Exception as e:
                 self.logger.warning(f"Failed to parse skill {skill_file}: {e}")
 
-        self.logger.info(f"Discovered {len(skills)} skills from {self.skills_dir.name}")
+        # Summary logging
+        parsed_count = len(skills)
+        failed_count = len(all_skill_files) - parsed_count
+        self.logger.info(
+            f"Discovered {parsed_count} skills from {self.skills_dir.name} "
+            f"({len(all_skill_files)} files found, {failed_count} failed to parse)"
+        )
+
         return skills
 
     def _parse_skill_file(self, skill_file: Path) -> Optional[Dict[str, Any]]:

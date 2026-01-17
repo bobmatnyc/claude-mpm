@@ -6,6 +6,48 @@
 
 ### Fixed
 
+## [5.6.11] - 2026-01-17
+
+### Added
+- **BlockManager** - Automatic blocking/unblocking for commander operations (#177, #178)
+- **ResponseManager** - Centralized response handling for commander (#177)
+- **BlockManager integration** - Integrated with RuntimeMonitor and EventHandler
+
+## [5.6.10] - 2026-01-17
+
+### Fixed
+- **PM browser tool delegation** - Added claude-in-chrome and playwright to forbidden tools, must delegate to web-qa (#214)
+
+## [5.6.9] - 2026-01-17
+
+### Fixed
+- **Commander tmux pane exhaustion** - Returns HTTP 409 with helpful message instead of 500 (#209)
+
+## [5.6.8] - 2026-01-17
+
+### Fixed
+- **Import paths** (#197) - Removed `src.` prefix from import paths for cleaner module structure
+
+### Added
+- **Private repository support** (#208) - Added token authentication for private skill repositories
+
+## [5.6.7] - 2026-01-17
+
+### Fixed
+- **Output style test** - Updated test for renamed file
+- **Hooks auto-fix** - Fixed status line for output style schema mismatch
+
+## [5.6.6] - 2026-01-17
+
+### Fixed
+- **Lazy yaml import for hooks** (#211) - Performance improvement by deferring yaml import
+- **uv run --directory flag** (#212) - Correct uv command usage
+- **PM core skills always deployed** (#181) - Deployment consistency improvements
+- **Private repo authentication** (#182) - GitHub access for private repositories
+- **--all flag for deploy-github** (#184) - Better deployment control
+- **Category validation warnings** (#185) - Cleaner console output
+- **Debug logging for skill discovery** (#186) - Enhanced troubleshooting
+
 ## [5.6.5] - 2026-01-16
 
 ### Changed
