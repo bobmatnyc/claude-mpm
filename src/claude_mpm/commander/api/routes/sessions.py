@@ -5,13 +5,19 @@ This module implements REST endpoints for creating and managing tool sessions
 """
 
 import logging
+import subprocess  # nosec B404 - needed for tmux error handling
 import uuid
 from typing import List
 
 from fastapi import APIRouter, Response
 
 from ...models import ToolSession
-from ..errors import InvalidRuntimeError, ProjectNotFoundError, SessionNotFoundError
+from ..errors import (
+    InvalidRuntimeError,
+    ProjectNotFoundError,
+    SessionNotFoundError,
+    TmuxNoSpaceError,
+)
 from ..schemas import CreateSessionRequest, SessionResponse
 
 router = APIRouter()
@@ -112,6 +118,7 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
     Raises:
         ProjectNotFoundError: If project_id doesn't exist
         InvalidRuntimeError: If runtime is not supported
+        TmuxNoSpaceError: If tmux has no space for new pane
 
     Example:
         POST /api/projects/abc-123/sessions
@@ -144,10 +151,16 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
     session_id = str(uuid.uuid4())
 
     # Create tmux pane for session
-    tmux_target = tmux_orch.create_pane(
-        pane_id=f"{project.name}-{req.runtime}",
-        working_dir=project.path,
-    )
+    try:
+        tmux_target = tmux_orch.create_pane(
+            pane_id=f"{project.name}-{req.runtime}",
+            working_dir=project.path,
+        )
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode() if e.stderr else ""
+        if "no space for new pane" in stderr.lower():
+            raise TmuxNoSpaceError() from None
+        raise  # Re-raise other subprocess errors
 
     # Create session object
     session = ToolSession(
