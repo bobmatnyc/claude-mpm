@@ -6,6 +6,13 @@
 
 ### Fixed
 
+## [5.6.11] - 2026-01-17
+
+### Added
+- **BlockManager** - Automatic blocking/unblocking for commander operations (#177, #178)
+- **ResponseManager** - Centralized response handling for commander (#177)
+- **BlockManager integration** - Integrated with RuntimeMonitor and EventHandler
+
 ## [5.6.10] - 2026-01-17
 
 ### Fixed
