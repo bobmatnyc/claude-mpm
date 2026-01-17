@@ -375,12 +375,15 @@ async function sendQuickMessage() {
 }
 
 // =============================================================================
-// Modal Functions
+// Modal Functions & Filesystem Browser
 // =============================================================================
 
-function showRegisterModal() {
+let currentBrowsePath = '';
+
+async function showRegisterModal() {
     document.getElementById('register-modal').classList.remove('hidden');
-    document.getElementById('project-path').focus();
+    // Start browsing from home directory
+    await browsePath('');
 }
 
 function hideRegisterModal() {
@@ -389,12 +392,66 @@ function hideRegisterModal() {
     document.getElementById('project-name').value = '';
 }
 
+async function browsePath(path) {
+    const listEl = document.getElementById('directory-list');
+    const pathInput = document.getElementById('current-browse-path');
+
+    listEl.innerHTML = '<div class="p-4 text-gray-500 text-center">Loading...</div>';
+
+    try {
+        const url = path ? `/filesystem/browse?path=${encodeURIComponent(path)}` : '/filesystem/browse';
+        const data = await fetchAPI(url);
+
+        currentBrowsePath = data.current_path;
+        pathInput.value = data.current_path;
+
+        if (data.error) {
+            listEl.innerHTML = `<div class="p-4 text-red-400 text-center">${data.error}</div>`;
+            return;
+        }
+
+        if (data.directories.length === 0) {
+            listEl.innerHTML = '<div class="p-4 text-gray-500 text-center">No subdirectories</div>';
+            return;
+        }
+
+        listEl.innerHTML = data.directories.map(dir => `
+            <div class="flex items-center px-3 py-2 hover:bg-gray-800 cursor-pointer border-b border-gray-800 group"
+                 ondblclick="browsePath('${dir.path.replace(/'/g, "\\'")}')"
+                 onclick="selectDirectory('${dir.path.replace(/'/g, "\\'")}', '${dir.name.replace(/'/g, "\\'")}')">
+                <span class="mr-2">${dir.is_git ? '📁' : '📂'}</span>
+                <span class="flex-1">${dir.name}</span>
+                ${dir.is_git ? '<span class="text-xs text-green-500 px-2 py-0.5 bg-green-900/30 rounded">git</span>' : ''}
+                <button onclick="event.stopPropagation(); browsePath('${dir.path.replace(/'/g, "\\'")}')"
+                        class="ml-2 px-2 py-0.5 text-xs bg-gray-700 hover:bg-gray-600 rounded opacity-0 group-hover:opacity-100 transition">
+                    Open →
+                </button>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        listEl.innerHTML = `<div class="p-4 text-red-400 text-center">Error: ${err.message}</div>`;
+    }
+}
+
+function browseParent() {
+    const pathInput = document.getElementById('current-browse-path');
+    const currentPath = pathInput.value;
+    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+    browsePath(parentPath);
+}
+
+function selectDirectory(path, name) {
+    document.getElementById('project-path').value = path;
+    document.getElementById('project-name').value = name;
+}
+
 async function registerProject() {
     const path = document.getElementById('project-path').value.trim();
     const name = document.getElementById('project-name').value.trim() || undefined;
 
     if (!path) {
-        alert('Path is required');
+        alert('Please select a project folder');
         return;
     }
 
