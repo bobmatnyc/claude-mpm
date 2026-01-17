@@ -286,36 +286,73 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     if not pane_target:
         raise SessionNotFoundError(f"Session {session_id} has no tmux_target")
 
-    # Convert pane ID to window target (e.g., "%26" -> "mpm-commander2:17")
-    # This is needed because select-window works with window targets, not pane IDs
+    # Convert pane ID to window index in the MAIN session (mpm-commander)
+    # Important: Don't use tmux display as it may return a client-session name
+    # Instead, search for the pane in the main session's windows
+    main_session = "mpm-commander"
+    window_index = None
+
     try:
+        # List all windows in main session with their pane IDs
         result = subprocess.run(  # nosec B603 B607 - trusted tmux command
             [
                 "tmux",
-                "display",
-                "-p",
+                "list-windows",
                 "-t",
-                pane_target,
-                "#{session_name}:#{window_index}",
+                main_session,
+                "-F",
+                "#{window_index}:#{pane_id}",
             ],
             capture_output=True,
             text=True,
             check=True,
             timeout=2,
         )
-        window_target = result.stdout.strip()
-        logger.info(f"Resolved pane {pane_target} to window {window_target}")
-    except subprocess.CalledProcessError as e:
-        logger.warning(f"Failed to resolve pane {pane_target}: {e}")
-        # Fallback: use pane_target directly (might work for some targets)
-        window_target = pane_target
+        # Find the window containing our pane
+        for line in result.stdout.strip().split("\n"):
+            if pane_target in line:
+                window_index = line.split(":")[0]
+                break
 
-    # Use direct attach-session to the specific window target.
-    # This is simpler and more reliable than grouped sessions:
-    # - Attaches directly to the exact window requested
-    # - No race condition between new-session and select-window
-    # - Window shows correct content immediately
-    tmux_cmd = f"tmux attach-session -t {window_target}"
+        if window_index:
+            window_target = f"{main_session}:{window_index}"
+            logger.info(f"Resolved pane {pane_target} to window {window_target}")
+        else:
+            logger.warning(f"Pane {pane_target} not found in {main_session}")
+            window_target = f"{main_session}:0"  # Fallback to first window
+
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to list windows: {e}")
+        window_target = f"{main_session}:0"
+
+    # Use GROUPED SESSIONS for window isolation.
+    # Problem: attach-session shares the active window across all clients.
+    # When a new window is created, ALL attached clients switch to it.
+    # Solution: Create a client-specific session that shares windows but has
+    # its own active window state.
+    #
+    # CRITICAL FIX (2026-01-17): The -A flag with SESSION:WINDOW does NOT
+    # respect the window index - it always opens window 0!
+    # Solution: Use THREE separate commands:
+    # 1. new-session -d: Create grouped session DETACHED
+    # 2. select-window: Set the correct window BEFORE attaching
+    # 3. attach: Attach AFTER the window is set
+    client_id = f"client-{str(uuid.uuid4())[:8]}"
+
+    # Parse session name and window index from window_target (e.g., "mpm-commander:1")
+    if ":" in window_target:
+        session_name = window_target.split(":")[0]
+        window_idx = window_target.split(":")[1]
+    else:
+        session_name = window_target
+        window_idx = "0"
+
+    # Three commands: create detached → select window → attach
+    tmux_cmd = (
+        f"tmux new-session -d -t {session_name} -s {client_id} && "
+        f"tmux select-window -t {client_id}:{window_idx} && "
+        f"tmux attach -t {client_id}"
+    )
 
     # Terminal-specific AppleScripts
     applescripts = {
