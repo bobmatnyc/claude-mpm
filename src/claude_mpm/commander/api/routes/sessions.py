@@ -306,22 +306,8 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
         window_target = pane_target
         session_name = tmux_orch.session_name
 
-    # Strategy: First select the window in tmux (works if already attached),
-    # then also open a new terminal with attach (for when not attached)
-    # The select-window command makes the window active in ALL attached clients
-    try:
-        # Select window first - this activates it in any existing attached terminal
-        subprocess.run(  # nosec B603 B607 - trusted tmux command
-            ["tmux", "select-window", "-t", window_target],
-            capture_output=True,
-            check=False,  # Don't fail if not attached yet
-            timeout=2,
-        )
-        logger.info(f"Selected window {window_target}")
-    except Exception as e:
-        logger.debug(f"select-window failed (may not be attached): {e}")
-
-    # Also open terminal and attach (for case where user has no terminal open)
+    # Open terminal and attach - select-window is ONLY in the attach command
+    # This ensures existing attached terminals are NOT affected
     tmux_cmd = f"tmux attach -t {session_name} \\\\; select-window -t {window_target}"
 
     # Terminal-specific AppleScripts
