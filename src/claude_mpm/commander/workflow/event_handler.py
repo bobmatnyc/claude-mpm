@@ -5,11 +5,14 @@ user input and coordinates session pause/resume.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from ..inbox import Inbox
 from ..models.events import BLOCKING_EVENTS, Event, EventStatus
 from ..project_session import ProjectSession
+
+if TYPE_CHECKING:
+    from ..core.block_manager import BlockManager
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +35,17 @@ class EventHandler:
     """
 
     def __init__(
-        self, inbox: Inbox, session_manager: Dict[str, ProjectSession]
+        self,
+        inbox: Inbox,
+        session_manager: Dict[str, ProjectSession],
+        block_manager: Optional["BlockManager"] = None,
     ) -> None:
         """Initialize event handler.
 
         Args:
             inbox: Inbox instance for event access
             session_manager: Dict mapping project_id -> ProjectSession
+            block_manager: Optional BlockManager for automatic work unblocking
 
         Raises:
             ValueError: If inbox or session_manager is None
@@ -51,8 +58,12 @@ class EventHandler:
         self.inbox = inbox
         self.session_manager = session_manager
         self._event_manager = inbox.events
+        self.block_manager = block_manager
 
-        logger.debug("EventHandler initialized")
+        logger.debug(
+            "EventHandler initialized (block_manager: %s)",
+            "enabled" if block_manager else "disabled",
+        )
 
     async def process_event(self, event: Event) -> None:
         """Process an event - pause session if blocking.
@@ -136,6 +147,17 @@ class EventHandler:
 
         # Mark event as resolved
         self._event_manager.respond(event_id, response)
+
+        # Automatically unblock work items if BlockManager is available
+        if self.block_manager and was_blocking:
+            unblocked_work = await self.block_manager.check_and_unblock(event_id)
+            if unblocked_work:
+                logger.info(
+                    "Event %s resolution unblocked %d work items: %s",
+                    event_id,
+                    len(unblocked_work),
+                    unblocked_work,
+                )
 
         # If event was NOT blocking, no need to resume
         if not was_blocking:
