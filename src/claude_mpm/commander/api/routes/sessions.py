@@ -144,10 +144,17 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
     session_id = str(uuid.uuid4())
 
     # Create tmux pane for session
-    tmux_target = tmux_orch.create_pane(
-        pane_id=f"{project.name}-{req.runtime}",
-        working_dir=project.path,
-    )
+    try:
+        tmux_target = tmux_orch.create_pane(
+            pane_id=f"{project.name}-{req.runtime}",
+            working_dir=project.path,
+        )
+    except Exception as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=500, detail={"error": {"code": "TMUX_ERROR", "message": str(e)}}
+        ) from e
 
     # Create session object
     session = ToolSession(
@@ -262,7 +269,6 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     import subprocess  # nosec B404 - required for osascript
 
     registry = _get_registry()
-    tmux_orch = _get_tmux()
 
     # Find session across all projects
     session = None
@@ -298,17 +304,18 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
             timeout=2,
         )
         window_target = result.stdout.strip()
-        session_name = window_target.split(":")[0]
         logger.info(f"Resolved pane {pane_target} to window {window_target}")
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to resolve pane {pane_target}: {e}")
         # Fallback: use pane_target directly (might work for some targets)
         window_target = pane_target
-        session_name = tmux_orch.session_name
 
-    # Open terminal and attach - select-window is ONLY in the attach command
-    # This ensures existing attached terminals are NOT affected
-    tmux_cmd = f"tmux attach -t {session_name} \\\\; select-window -t {window_target}"
+    # Use direct attach-session to the specific window target.
+    # This is simpler and more reliable than grouped sessions:
+    # - Attaches directly to the exact window requested
+    # - No race condition between new-session and select-window
+    # - Window shows correct content immediately
+    tmux_cmd = f"tmux attach-session -t {window_target}"
 
     # Terminal-specific AppleScripts
     applescripts = {
