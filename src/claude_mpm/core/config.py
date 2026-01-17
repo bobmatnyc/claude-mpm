@@ -12,11 +12,10 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import yaml
-
 from claude_mpm.core.logging_utils import get_logger
 
-from ..utils.config_manager import ConfigurationManager
+# Lazy import ConfigurationManager to avoid importing yaml at module level
+# This prevents hook errors when yaml isn't available in the execution environment
 from .exceptions import ConfigurationError, FileOperationError
 from .unified_paths import get_path_manager
 
@@ -103,6 +102,9 @@ class Config:
 
             Config._initialized = True
             logger.debug("Initializing Config singleton for the first time")
+
+            # Lazy import ConfigurationManager at runtime to avoid yaml import at module level
+            from ..utils.config_manager import ConfigurationManager
 
             # Initialize instance variables inside the lock to ensure thread safety
             self._config: Dict[str, Any] = {}
@@ -224,21 +226,6 @@ class Config:
                             f"Response logging format: {response_logging.get('format', 'json')}"
                         )
 
-        except yaml.YAMLError as e:
-            logger.error(f"YAML syntax error in {file_path}: {e}")
-            if hasattr(e, "problem_mark"):
-                mark = e.problem_mark
-                logger.error(f"Error at line {mark.line + 1}, column {mark.column + 1}")
-            logger.info(
-                "TIP: Validate your YAML at https://www.yamllint.com/ or run: python scripts/validate_configuration.py"
-            )
-            logger.info(
-                "TIP: Common issue - YAML requires spaces, not tabs. Fix with: sed -i '' 's/\t/    /g' "
-                + str(file_path)
-            )
-            # Store error for later retrieval
-            self._config["_load_error"] = str(e)
-
         except json.JSONDecodeError as e:
             logger.error(f"JSON syntax error in {file_path}: {e}")
             logger.error(f"Error at line {e.lineno}, column {e.colno}")
@@ -255,7 +242,28 @@ class Config:
                 },
             ) from e
         except Exception as e:
-            # Catch any remaining unexpected errors and wrap them as configuration errors
+            # Handle YAML errors without importing yaml at module level
+            # ConfigurationManager.load_yaml raises yaml.YAMLError, but we don't want to import yaml
+            # Check if it's a YAML error by class name to avoid import
+            if e.__class__.__name__ == "YAMLError":
+                logger.error(f"YAML syntax error in {file_path}: {e}")
+                if hasattr(e, "problem_mark"):
+                    mark = e.problem_mark
+                    logger.error(
+                        f"Error at line {mark.line + 1}, column {mark.column + 1}"
+                    )
+                logger.info(
+                    "TIP: Validate your YAML at https://www.yamllint.com/ or run: python scripts/validate_configuration.py"
+                )
+                logger.info(
+                    "TIP: Common issue - YAML requires spaces, not tabs. Fix with: sed -i '' 's/\t/    /g' "
+                    + str(file_path)
+                )
+                # Store error for later retrieval
+                self._config["_load_error"] = str(e)
+                return  # Don't re-raise, we handled it
+
+            # Not a YAML error, wrap as configuration error
             raise ConfigurationError(
                 f"Unexpected error loading configuration from {file_path}: {e}",
                 context={
