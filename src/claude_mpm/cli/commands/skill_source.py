@@ -21,10 +21,13 @@ from ...services.skills.skill_discovery_service import SkillDiscoveryService
 logger = logging.getLogger(__name__)
 
 
-def _get_github_token() -> str | None:
-    """Get GitHub token from environment variables.
+def _get_github_token(source: SkillSource | None = None) -> str | None:
+    """Get GitHub token with source-specific override support.
 
-    Checks GITHUB_TOKEN and GH_TOKEN environment variables.
+    Priority: source.token > GITHUB_TOKEN > GH_TOKEN
+
+    Args:
+        source: Optional SkillSource to check for per-source token
 
     Returns:
         GitHub token if found, None otherwise
@@ -32,6 +35,16 @@ def _get_github_token() -> str | None:
     Security Note:
         Token is never logged or printed to avoid exposure.
     """
+    # Priority 1: Per-source token (env var reference or direct)
+    if source and source.token:
+        if source.token.startswith("$"):
+            # Env var reference: $VAR_NAME -> os.environ.get("VAR_NAME")
+            env_var_name = source.token[1:]
+            return os.environ.get(env_var_name)
+        # Direct token (not recommended but supported)
+        return source.token
+
+    # Priority 2-3: Global environment variables
     return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
@@ -75,7 +88,7 @@ def _test_skill_repository_access(source: SkillSource) -> dict:
 
         # Build headers with authentication if token available
         headers = {"Accept": "application/vnd.github+json"}
-        token = _get_github_token()
+        token = _get_github_token(source)
         if token:
             headers["Authorization"] = f"token {token}"
 
@@ -289,6 +302,15 @@ def handle_add_skill_source(args) -> int:
 
         # Create new source
         enabled = not args.disabled
+        token = getattr(args, "token", None)
+
+        # Security warning for direct tokens
+        if token and not token.startswith("$"):
+            print("⚠️  Warning: Direct token values in config are not recommended")
+            print("   Consider using environment variable reference instead:")
+            print("   --token $MY_PRIVATE_TOKEN")
+            print()
+
         source = SkillSource(
             id=source_id,
             type="git",
@@ -296,6 +318,7 @@ def handle_add_skill_source(args) -> int:
             branch=args.branch,
             priority=args.priority,
             enabled=enabled,
+            token=token,
         )
 
         # Determine if we should test

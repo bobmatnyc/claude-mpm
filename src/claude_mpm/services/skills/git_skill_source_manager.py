@@ -33,17 +33,43 @@ from claude_mpm.services.skills.skill_discovery_service import SkillDiscoverySer
 logger = get_logger(__name__)
 
 
-def _get_github_token() -> Optional[str]:
-    """Get GitHub token from environment variables.
+def _get_github_token(source: Optional[SkillSource] = None) -> Optional[str]:
+    """Get GitHub token with source-specific override support.
 
-    Checks GITHUB_TOKEN and GH_TOKEN environment variables.
+    Priority: source.token > GITHUB_TOKEN > GH_TOKEN
+
+    Args:
+        source: Optional SkillSource to check for per-source token
 
     Returns:
         GitHub token if found, None otherwise
 
+    Token Resolution:
+        1. If source has token starting with "$", resolve as env var
+        2. If source has direct token, use it (not recommended for security)
+        3. Fall back to GITHUB_TOKEN env var
+        4. Fall back to GH_TOKEN env var
+        5. Return None if no token found
+
     Security Note:
         Token is never logged or printed to avoid exposure.
+        Direct tokens in config are discouraged - use env var refs ($VAR_NAME).
+
+    Example:
+        >>> source = SkillSource(..., token="$PRIVATE_TOKEN")
+        >>> token = _get_github_token(source)  # Resolves $PRIVATE_TOKEN from env
+        >>> token = _get_github_token()  # Falls back to GITHUB_TOKEN
     """
+    # Priority 1: Per-source token (env var reference or direct)
+    if source and source.token:
+        if source.token.startswith("$"):
+            # Env var reference: $VAR_NAME -> os.environ.get("VAR_NAME")
+            env_var_name = source.token[1:]
+            return os.environ.get(env_var_name)
+        # Direct token (not recommended but supported)
+        return source.token
+
+    # Priority 2-3: Global environment variables
     return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
@@ -496,7 +522,7 @@ class GitSkillSourceManager:
         # Step 1: Discover all files via GitHub Tree API (single request)
         # This discovers the COMPLETE repository structure (272 files for skills)
         all_files = self._discover_repository_files_via_tree_api(
-            owner_repo, source.branch
+            owner_repo, source.branch, source
         )
 
         if not all_files:
@@ -531,7 +557,7 @@ class GitSkillSourceManager:
                 raw_url = f"https://raw.githubusercontent.com/{owner_repo}/{source.branch}/{file_path}"
                 cache_file = cache_path / file_path
                 future = executor.submit(
-                    self._download_file_with_etag, raw_url, cache_file, force
+                    self._download_file_with_etag, raw_url, cache_file, force, source
                 )
                 future_to_file[future] = file_path
 
@@ -560,7 +586,7 @@ class GitSkillSourceManager:
         return files_updated, files_cached
 
     def _discover_repository_files_via_tree_api(
-        self, owner_repo: str, branch: str
+        self, owner_repo: str, branch: str, source: Optional[SkillSource] = None
     ) -> List[str]:
         """Discover all files in repository using GitHub Git Tree API.
 
@@ -625,10 +651,13 @@ class GitSkillSourceManager:
 
             # Build headers with authentication if token available
             headers = {"Accept": "application/vnd.github+json"}
-            token = _get_github_token()
+            token = _get_github_token(source)
             if token:
                 headers["Authorization"] = f"token {token}"
-                self.logger.debug("Using GitHub token for authentication")
+                if source and source.token:
+                    self.logger.debug(f"Using source-specific token for {source.id}")
+                else:
+                    self.logger.debug("Using GitHub token for authentication")
 
             refs_response = requests.get(refs_url, headers=headers, timeout=30)
 
@@ -684,7 +713,11 @@ class GitSkillSourceManager:
         return all_files
 
     def _download_file_with_etag(
-        self, url: str, local_path: Path, force: bool = False
+        self,
+        url: str,
+        local_path: Path,
+        force: bool = False,
+        source: Optional[SkillSource] = None,
     ) -> bool:
         """Download file from URL with ETag caching (thread-safe).
 
@@ -692,6 +725,7 @@ class GitSkillSourceManager:
             url: Raw GitHub URL
             local_path: Local file path to save to
             force: Force download even if cached
+            source: Optional SkillSource for token resolution
 
         Returns:
             True if file was updated, False if cached
@@ -725,7 +759,7 @@ class GitSkillSourceManager:
             headers["If-None-Match"] = cached_etag
 
         # Add GitHub authentication if token available
-        token = _get_github_token()
+        token = _get_github_token(source)
         if token:
             headers["Authorization"] = f"token {token}"
 

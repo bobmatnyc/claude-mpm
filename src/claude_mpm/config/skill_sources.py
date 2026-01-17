@@ -54,12 +54,19 @@ class SkillSource:
         branch: Git branch to use (default: "main")
         priority: Priority for skill resolution (lower = higher precedence)
         enabled: Whether this source should be synced
+        token: Optional GitHub token or env var reference (e.g., "$MY_TOKEN")
 
     Priority System:
         - 0: Reserved for system repository (highest precedence)
         - 1-99: High priority custom sources
         - 100-999: Normal priority custom sources
         - 1000+: Low priority custom sources
+
+    Token Authentication:
+        - Direct token: "ghp_xxxxx" (stored in config, not recommended)
+        - Env var reference: "$PRIVATE_REPO_TOKEN" (resolved at runtime)
+        - If None, falls back to GITHUB_TOKEN or GH_TOKEN env vars
+        - Priority: source.token > GITHUB_TOKEN > GH_TOKEN
 
     Example:
         >>> source = SkillSource(
@@ -70,6 +77,12 @@ class SkillSource:
         ... )
         >>> source.validate()
         []
+        >>> private_source = SkillSource(
+        ...     id="private",
+        ...     type="git",
+        ...     url="https://github.com/myorg/private-skills",
+        ...     token="$PRIVATE_REPO_TOKEN"
+        ... )
     """
 
     id: str
@@ -78,6 +91,7 @@ class SkillSource:
     branch: str = "main"
     priority: int = 100
     enabled: bool = True
+    token: Optional[str] = None
 
     def __post_init__(self):
         """Validate skill source configuration after initialization.
@@ -262,6 +276,7 @@ class SkillSourceConfiguration:
                         branch=source_data.get("branch", "main"),
                         priority=source_data.get("priority", 100),
                         enabled=source_data.get("enabled", True),
+                        token=source_data.get("token"),
                     )
                     sources.append(source)
                 except (KeyError, ValueError) as e:
@@ -326,6 +341,7 @@ class SkillSourceConfiguration:
                     "branch": source.branch,
                     "priority": source.priority,
                     "enabled": source.enabled,
+                    **({"token": source.token} if source.token else {}),
                 }
                 for source in sources
             ]
