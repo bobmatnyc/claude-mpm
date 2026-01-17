@@ -50,6 +50,22 @@ logger = get_logger(__name__)
 # Deployment tracking index file
 DEPLOYED_INDEX_FILE = ".mpm-deployed-skills.json"
 
+# Core PM skills that should always be deployed
+# These are referenced in PM_INSTRUCTIONS.md with [SKILL: name] markers
+# Without these skills, PM only sees placeholders, not actual content
+PM_CORE_SKILLS = {
+    "mpm-delegation-patterns",
+    "mpm-verification-protocols",
+    "mpm-tool-usage-guide",
+    "mpm-git-file-tracking",
+    "mpm-pr-workflow",
+    "mpm-ticketing-integration",
+    "mpm-teaching-mode",
+    "mpm-bug-reporting",
+    "mpm-circuit-breaker-enforcement",
+    "mpm-session-management",
+}
+
 # Core skills that are universally useful across all projects
 # These are deployed when skill mapping returns too many skills (>60)
 # Target: ~25-30 core skills for balanced functionality
@@ -374,6 +390,18 @@ def get_required_skills_from_agents(agents_dir: Path) -> Set[str]:
         logger.debug(
             f"Normalized {len(all_skills)} skills to {len(normalized_skills)} "
             "(converted slashes to dashes)"
+        )
+
+    # Always include PM core skills to ensure PM_INSTRUCTIONS.md markers are resolved
+    # These skills are referenced in PM_INSTRUCTIONS.md and must be deployed
+    # for PM to see actual content instead of [SKILL: name] placeholders
+    before_pm_skills = len(normalized_skills)
+    normalized_skills = normalized_skills | PM_CORE_SKILLS
+    pm_skills_added = len(normalized_skills) - before_pm_skills
+
+    if pm_skills_added > 0:
+        logger.info(
+            f"Added {pm_skills_added} PM core skills to ensure PM_INSTRUCTIONS.md markers resolve"
         )
 
     return normalized_skills

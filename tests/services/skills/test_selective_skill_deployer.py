@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from claude_mpm.services.skills.selective_skill_deployer import (
+    PM_CORE_SKILLS,
     add_user_requested_skill,
     cleanup_orphan_skills,
     get_required_skills_from_agents,
@@ -207,8 +208,9 @@ name: agent3
 
         result = get_required_skills_from_agents(agents_dir)
 
-        # Should collect unique skills across all agents
-        assert result == {"skill-a", "skill-b", "skill-c", "skill-d"}
+        # Should collect unique skills across all agents + PM_CORE_SKILLS
+        expected = {"skill-a", "skill-b", "skill-c", "skill-d"} | PM_CORE_SKILLS
+        assert result == expected
 
     def test_scan_empty_directory(self, tmp_path):
         """Test scanning empty directory."""
@@ -216,7 +218,8 @@ name: agent3
         agents_dir.mkdir()
 
         result = get_required_skills_from_agents(agents_dir)
-        assert result == set()
+        # Even empty directory should have PM_CORE_SKILLS
+        assert result == PM_CORE_SKILLS
 
     def test_scan_nonexistent_directory(self, tmp_path):
         """Test scanning nonexistent directory."""
@@ -245,7 +248,8 @@ skills:
         (agents_dir / "readme.txt").write_text("Not an agent")
 
         result = get_required_skills_from_agents(agents_dir)
-        assert result == {"skill-a"}
+        expected = {"skill-a"} | PM_CORE_SKILLS
+        assert result == expected
 
     def test_scan_handles_invalid_frontmatter(self, tmp_path):
         """Test that scanner handles agents with invalid frontmatter."""
@@ -273,8 +277,9 @@ invalid: yaml: syntax:
         )
 
         result = get_required_skills_from_agents(agents_dir)
-        # Should only get skills from valid agent
-        assert result == {"skill-a"}
+        # Should only get skills from valid agent + PM_CORE_SKILLS
+        expected = {"skill-a"} | PM_CORE_SKILLS
+        assert result == expected
 
     def test_deduplication_across_agents(self, tmp_path):
         """Test that duplicate skills are deduplicated."""
@@ -299,63 +304,98 @@ skills: [skill-a, skill-c]
         )
 
         result = get_required_skills_from_agents(agents_dir)
-        # skill-a should appear only once
-        assert result == {"skill-a", "skill-b", "skill-c"}
+        # skill-a should appear only once + PM_CORE_SKILLS
+        expected = {"skill-a", "skill-b", "skill-c"} | PM_CORE_SKILLS
+        assert result == expected
 
-    def test_slash_to_dash_normalization(self, tmp_path, monkeypatch):
+    def test_slash_to_dash_normalization(self, tmp_path):
         """Test that skill paths with slashes are normalized to dashes.
 
-        WHY: SkillToAgentMapper returns paths like "toolchains/python/frameworks/django"
+        WHY: Some skills may use slash format in agent frontmatter,
         but deployment expects "toolchains-python-frameworks-django" for matching.
         This ensures compatibility between skill discovery and deployment filtering.
         """
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
 
-        # Create agent file
+        # Create agent file with slash-separated skill names
         (agents_dir / "agent1.md").write_text(
             """---
-skills: [explicit-skill]
+skills:
+  - explicit-skill
+  - toolchains/python/frameworks/django
+  - universal/collaboration/git-workflow
 ---
 # Agent 1
 """
         )
 
-        # Mock SkillToAgentMapper to return slash-separated paths
-        from unittest.mock import MagicMock
+        result = get_required_skills_from_agents(agents_dir)
 
-        from claude_mpm.services.skills import selective_skill_deployer
+        # Verify slash-separated paths are normalized to dashes
+        expected = {
+            "explicit-skill",
+            "toolchains-python-frameworks-django",
+            "universal-collaboration-git-workflow",
+        } | PM_CORE_SKILLS
+        assert result == expected
 
-        mock_mapper = MagicMock()
-        mock_mapper.get_skills_for_agent.return_value = [
-            "toolchains/python/frameworks/django",
-            "universal/collaboration/git-workflow",
-        ]
+        # Ensure no slash-separated paths remain
+        for skill in result:
+            assert "/" not in skill, f"Skill {skill} contains unprocessed slashes"
 
-        original_mapper_class = selective_skill_deployer.SkillToAgentMapper
-        monkeypatch.setattr(
-            selective_skill_deployer, "SkillToAgentMapper", lambda: mock_mapper
+    def test_pm_core_skills_always_included(self, tmp_path):
+        """Test that PM_CORE_SKILLS are always included in results.
+
+        WHY: PM_INSTRUCTIONS.md contains [SKILL: name] markers referencing PM core skills.
+        Without these skills deployed, PM only sees placeholders, not actual content.
+        This test ensures PM core skills are always included regardless of agent declarations.
+        """
+        agents_dir = tmp_path / "agents"
+        agents_dir.mkdir()
+
+        # Create agent with no PM skills declared
+        (agents_dir / "agent1.md").write_text(
+            """---
+name: agent1
+skills:
+  - some-other-skill
+---
+# Agent 1
+"""
         )
 
-        try:
-            result = get_required_skills_from_agents(agents_dir)
+        result = get_required_skills_from_agents(agents_dir)
 
-            # Verify slash-separated paths are normalized to dashes
-            assert result == {
-                "explicit-skill",
-                "toolchains-python-frameworks-django",
-                "universal-collaboration-git-workflow",
-            }
+        # Verify all PM_CORE_SKILLS are present
+        for pm_skill in PM_CORE_SKILLS:
+            assert (
+                pm_skill in result
+            ), f"PM core skill {pm_skill} should always be included"
 
-            # Ensure no slash-separated paths remain
-            for skill in result:
-                assert "/" not in skill, f"Skill {skill} contains unprocessed slashes"
+        # Verify the agent's skill is also present
+        assert "some-other-skill" in result
 
-        finally:
-            # Restore original class
-            monkeypatch.setattr(
-                selective_skill_deployer, "SkillToAgentMapper", original_mapper_class
-            )
+    def test_pm_core_skills_included_even_with_empty_agents(self, tmp_path):
+        """Test PM_CORE_SKILLS included even when no agents have skills."""
+        agents_dir = tmp_path / "agents"
+        agents_dir.mkdir()
+
+        # Create agent with no skills
+        (agents_dir / "agent1.md").write_text(
+            """---
+name: agent1
+---
+# Agent 1
+"""
+        )
+
+        result = get_required_skills_from_agents(agents_dir)
+
+        # PM_CORE_SKILLS should still be present
+        assert PM_CORE_SKILLS.issubset(
+            result
+        ), "PM core skills should be included even with no agent-declared skills"
 
 
 class TestUserRequestedSkills:
