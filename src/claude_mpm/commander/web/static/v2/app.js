@@ -380,9 +380,70 @@ async function sendQuickMessage() {
 // =============================================================================
 
 let currentBrowsePath = '';
+const MAX_RECENT_PROJECTS = 8;
+
+function getRecentProjects() {
+    const stored = localStorage.getItem('recent-projects');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function addToRecentProjects(path, name) {
+    let recent = getRecentProjects();
+    // Remove if already exists
+    recent = recent.filter(p => p.path !== path);
+    // Add to front
+    recent.unshift({ path, name, addedAt: Date.now() });
+    // Keep only MAX_RECENT_PROJECTS
+    recent = recent.slice(0, MAX_RECENT_PROJECTS);
+    localStorage.setItem('recent-projects', JSON.stringify(recent));
+}
+
+function renderRecentProjects() {
+    const recent = getRecentProjects();
+    const section = document.getElementById('recent-projects-section');
+    const list = document.getElementById('recent-projects-list');
+
+    if (recent.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    list.innerHTML = recent.map(p => `
+        <button onclick="quickAddProject('${p.path.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')"
+                class="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition group">
+            <span>📁</span>
+            <span>${p.name}</span>
+            <span class="text-gray-500 text-xs hidden group-hover:inline">${p.path.split('/').slice(-2, -1)[0]}/</span>
+        </button>
+    `).join('');
+}
+
+async function quickAddProject(path, name) {
+    try {
+        await fetchAPI('/projects', {
+            method: 'POST',
+            body: JSON.stringify({ path, name })
+        });
+        hideRegisterModal();
+        await loadProjects();
+        log(`Added project: ${name}`);
+    } catch (err) {
+        // If already exists, just close and refresh
+        if (err.message.includes('already')) {
+            hideRegisterModal();
+            await loadProjects();
+            log(`Project already registered: ${name}`);
+        } else {
+            alert('Failed to add project: ' + err.message);
+        }
+    }
+}
 
 async function showRegisterModal() {
     document.getElementById('register-modal').classList.remove('hidden');
+    // Show recent projects
+    renderRecentProjects();
     // Start browsing from home directory
     await browsePath('');
 }
@@ -449,7 +510,7 @@ function selectDirectory(path, name) {
 
 async function registerProject() {
     const path = document.getElementById('project-path').value.trim();
-    const name = document.getElementById('project-name').value.trim() || undefined;
+    const name = document.getElementById('project-name').value.trim() || path.split('/').pop();
 
     if (!path) {
         alert('Please select a project folder');
@@ -461,9 +522,11 @@ async function registerProject() {
             method: 'POST',
             body: JSON.stringify({ path, name })
         });
+        // Add to recent projects
+        addToRecentProjects(path, name);
         hideRegisterModal();
         await loadProjects();
-        log(`Registered project: ${name || path}`);
+        log(`Registered project: ${name}`);
     } catch (err) {
         alert('Failed to register: ' + err.message);
     }
