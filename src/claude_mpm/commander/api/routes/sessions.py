@@ -274,11 +274,37 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     if session is None:
         raise SessionNotFoundError(session_id)
 
-    # Get the specific window target from the session (e.g., "mpm-commander2:774c7735")
-    tmux_target = session.tmux_target if session.tmux_target else tmux_orch.session_name
+    # Get the pane target from session (e.g., "%26" for pane ID)
+    pane_target = session.tmux_target if session.tmux_target else None
 
-    # Extract session name from target for the attach command
-    session_name = tmux_target.split(":")[0] if ":" in tmux_target else tmux_target
+    if not pane_target:
+        raise SessionNotFoundError(f"Session {session_id} has no tmux_target")
+
+    # Convert pane ID to window target (e.g., "%26" -> "mpm-commander2:17")
+    # This is needed because select-window works with window targets, not pane IDs
+    try:
+        result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+            [
+                "tmux",
+                "display",
+                "-p",
+                "-t",
+                pane_target,
+                "#{session_name}:#{window_index}",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=2,
+        )
+        window_target = result.stdout.strip()
+        session_name = window_target.split(":")[0]
+        logger.info(f"Resolved pane {pane_target} to window {window_target}")
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to resolve pane {pane_target}: {e}")
+        # Fallback: use pane_target directly (might work for some targets)
+        window_target = pane_target
+        session_name = tmux_orch.session_name
 
     # Strategy: First select the window in tmux (works if already attached),
     # then also open a new terminal with attach (for when not attached)
@@ -286,16 +312,17 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     try:
         # Select window first - this activates it in any existing attached terminal
         subprocess.run(  # nosec B603 B607 - trusted tmux command
-            ["tmux", "select-window", "-t", tmux_target],
+            ["tmux", "select-window", "-t", window_target],
             capture_output=True,
             check=False,  # Don't fail if not attached yet
             timeout=2,
         )
+        logger.info(f"Selected window {window_target}")
     except Exception as e:
         logger.debug(f"select-window failed (may not be attached): {e}")
 
     # Also open terminal and attach (for case where user has no terminal open)
-    tmux_cmd = f"tmux attach -t {session_name} \\\\; select-window -t {tmux_target}"
+    tmux_cmd = f"tmux attach -t {session_name} \\\\; select-window -t {window_target}"
 
     # Terminal-specific AppleScripts
     applescripts = {
@@ -358,7 +385,8 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
             "status": "opened",
             "session_id": session_id,
             "terminal": terminal,
-            "tmux_target": tmux_target,
+            "pane_target": pane_target,
+            "window_target": window_target,
         }
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to open {terminal} for session {session_id}: {e}")
