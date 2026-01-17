@@ -246,6 +246,55 @@ async def sync_sessions():
     }
 
 
+@router.post("/sessions/{session_id}/open-iterm")
+async def open_session_in_iterm(session_id: str):
+    """Open the session's tmux window in iTerm.
+
+    Uses AppleScript to open iTerm and attach to the tmux session.
+
+    Args:
+        session_id: Unique session identifier
+
+    Returns:
+        Success status
+
+    Raises:
+        SessionNotFoundError: If session_id doesn't exist
+    """
+    import subprocess
+
+    registry = _get_registry()
+    tmux_orch = _get_tmux()
+
+    # Find session across all projects
+    session = None
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            session = project.sessions[session_id]
+            break
+
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    # AppleScript to open iTerm and attach to tmux session
+    applescript = f'''
+    tell application "iTerm"
+        activate
+        create window with default profile
+        tell current session of current window
+            write text "tmux attach -t {tmux_orch.session_name}"
+        end tell
+    end tell
+    '''
+
+    try:
+        subprocess.run(["osascript", "-e", applescript], check=True, capture_output=True)  # nosec B603
+        return {"status": "opened", "session_id": session_id, "tmux_session": tmux_orch.session_name}
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to open iTerm for session {session_id}: {e}")
+        return {"status": "error", "error": str(e.stderr.decode() if e.stderr else e)}
+
+
 @router.post("/sessions/{session_id}/keys")
 async def send_keys_to_session(session_id: str, keys: str, enter: bool = True):
     """Send keystrokes to a session's tmux pane.

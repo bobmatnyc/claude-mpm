@@ -294,6 +294,18 @@ async function createSession(projectId) {
     }
 }
 
+async function openInITerm() {
+    if (!state.currentSession) return;
+    try {
+        await fetchAPI(`/sessions/${state.currentSession}/open-iterm`, {
+            method: 'POST'
+        });
+        log('Opened in iTerm');
+    } catch (err) {
+        log(`Failed to open iTerm: ${err.message}`, 'error');
+    }
+}
+
 async function sendEscape() {
     if (!state.currentSession) return;
     try {
