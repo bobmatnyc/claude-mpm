@@ -1,9 +1,10 @@
 """Project registry for MPM Commander.
 
 This module provides thread-safe registration and management of projects,
-including state tracking, session management, and path indexing.
+including state tracking, session management, path indexing, and persistence.
 """
 
+import json
 import logging
 import threading
 import uuid
@@ -14,6 +15,9 @@ from typing import Dict, List, Optional
 from .models import Project, ProjectState, ToolSession
 
 logger = logging.getLogger(__name__)
+
+# Default persistence location
+DEFAULT_REGISTRY_PATH = Path.home() / ".claude-mpm" / "commander" / "registry.json"
 
 
 class ProjectRegistry:
@@ -35,12 +39,27 @@ class ProjectRegistry:
         <ProjectState.WORKING: 'working'>
     """
 
-    def __init__(self):
-        """Initialize empty registry with thread-safe lock."""
+    def __init__(self, persist_path: Optional[Path] = None, auto_load: bool = True):
+        """Initialize registry with optional persistence.
+
+        Args:
+            persist_path: Path to JSON file for persistence (default: ~/.claude-mpm/commander/registry.json)
+            auto_load: Whether to load existing data on init (default: True)
+        """
         self._projects: Dict[str, Project] = {}
         self._path_index: Dict[str, str] = {}  # path -> project_id
         self._lock = threading.RLock()
-        logger.info("Initialized ProjectRegistry")
+        self._persist_path = persist_path or DEFAULT_REGISTRY_PATH
+        self._auto_save = True
+
+        # Ensure directory exists
+        self._persist_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Load existing data if available
+        if auto_load:
+            self._load()
+
+        logger.info("Initialized ProjectRegistry (persist=%s)", self._persist_path)
 
     def register(self, path: str, name: Optional[str] = None) -> Project:
         """Register a new project.
@@ -114,6 +133,9 @@ class ProjectRegistry:
                 name,
             )
 
+            # Persist changes
+            self._save()
+
             return project
 
     def unregister(self, project_id: str) -> None:
@@ -149,6 +171,9 @@ class ProjectRegistry:
                 project_id,
                 project.path,
             )
+
+            # Persist changes
+            self._save()
 
     def get(self, project_id: str) -> Optional[Project]:
         """Get project by ID.
@@ -291,6 +316,9 @@ class ProjectRegistry:
                 reason,
             )
 
+            # Persist changes
+            self._save()
+
     def add_session(self, project_id: str, session: ToolSession) -> None:
         """Add session to project.
 
@@ -330,6 +358,9 @@ class ProjectRegistry:
                 session.id,
                 session.runtime,
             )
+
+            # Persist changes
+            self._save()
 
     def remove_session(self, project_id: str, session_id: str) -> None:
         """Remove session from project.
@@ -375,6 +406,9 @@ class ProjectRegistry:
                 session_id,
             )
 
+            # Persist changes
+            self._save()
+
     def touch(self, project_id: str) -> None:
         """Update last_activity timestamp.
 
@@ -402,3 +436,165 @@ class ProjectRegistry:
             project.last_activity = datetime.now(timezone.utc)
 
             logger.debug("Touched project: %s", project_id)
+
+    # =========================================================================
+    # Persistence Methods
+    # =========================================================================
+
+    def _save(self) -> None:
+        """Save registry to JSON file."""
+        if not self._auto_save:
+            return
+
+        with self._lock:
+            data = {"version": 1, "projects": []}
+
+            for project in self._projects.values():
+                proj_data = {
+                    "id": project.id,
+                    "path": project.path,
+                    "name": project.name,
+                    "state": project.state.value,
+                    "state_reason": project.state_reason,
+                    "created_at": project.created_at.isoformat()
+                    if project.created_at
+                    else None,
+                    "last_activity": project.last_activity.isoformat()
+                    if project.last_activity
+                    else None,
+                    "sessions": [],
+                }
+
+                # Save sessions
+                for session in project.sessions.values():
+                    sess_data = {
+                        "id": session.id,
+                        "project_id": session.project_id,
+                        "runtime": session.runtime,
+                        "tmux_target": session.tmux_target,
+                        "status": session.status,
+                        "created_at": session.created_at.isoformat()
+                        if session.created_at
+                        else None,
+                    }
+                    proj_data["sessions"].append(sess_data)
+
+                data["projects"].append(proj_data)
+
+            try:
+                with open(self._persist_path, "w") as f:
+                    json.dump(data, f, indent=2)
+                logger.debug(
+                    "Saved registry to %s (%d projects)",
+                    self._persist_path,
+                    len(data["projects"]),
+                )
+            except Exception as e:
+                logger.error("Failed to save registry: %s", e)
+
+    def _load(self) -> None:
+        """Load registry from JSON file."""
+        if not self._persist_path.exists():
+            logger.debug("No existing registry file at %s", self._persist_path)
+            return
+
+        try:
+            with open(self._persist_path) as f:
+                data = json.load(f)
+
+            if data.get("version") != 1:
+                logger.warning("Unknown registry version, skipping load")
+                return
+
+            # Temporarily disable auto-save during load
+            self._auto_save = False
+
+            for proj_data in data.get("projects", []):
+                # Check if path still exists
+                path = proj_data.get("path")
+                if not path or not Path(path).exists():
+                    logger.info("Skipping project with missing path: %s", path)
+                    continue
+
+                # Create project
+                project = Project(
+                    id=proj_data["id"],
+                    path=path,
+                    name=proj_data.get("name", Path(path).name),
+                    state=ProjectState(proj_data.get("state", "idle")),
+                    state_reason=proj_data.get("state_reason"),
+                )
+
+                # Parse timestamps
+                if proj_data.get("created_at"):
+                    try:
+                        project.created_at = datetime.fromisoformat(
+                            proj_data["created_at"]
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+                if proj_data.get("last_activity"):
+                    try:
+                        project.last_activity = datetime.fromisoformat(
+                            proj_data["last_activity"]
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+                # Add to registry
+                self._projects[project.id] = project
+                self._path_index[project.path] = project.id
+
+                # Load sessions (will be validated against tmux later)
+                for sess_data in proj_data.get("sessions", []):
+                    session = ToolSession(
+                        id=sess_data["id"],
+                        project_id=sess_data["project_id"],
+                        runtime=sess_data.get("runtime", "claude-code"),
+                        tmux_target=sess_data.get("tmux_target", ""),
+                        status="stopped",  # Will be updated by sync
+                    )
+
+                    if sess_data.get("created_at"):
+                        try:
+                            session.created_at = datetime.fromisoformat(
+                                sess_data["created_at"]
+                            )
+                        except (ValueError, TypeError):
+                            pass
+
+                    project.sessions[session.id] = session
+
+            self._auto_save = True
+            logger.info(
+                "Loaded registry: %d projects from %s",
+                len(self._projects),
+                self._persist_path,
+            )
+
+        except json.JSONDecodeError as e:
+            logger.error("Invalid JSON in registry file: %s", e)
+        except Exception as e:
+            logger.error("Failed to load registry: %s", e)
+        finally:
+            self._auto_save = True
+
+    def sync_with_tmux(self, tmux_orchestrator) -> Dict[str, str]:
+        """Synchronize registry with running tmux sessions.
+
+        Checks which sessions have running tmux panes and updates their status.
+        Also discovers any orphaned tmux windows that might belong to projects.
+
+        Args:
+            tmux_orchestrator: TmuxOrchestrator instance
+
+        Returns:
+            Dict mapping session IDs to their sync status
+        """
+        results = tmux_orchestrator.sync_windows_with_registry(self)
+
+        # Save after sync to persist status changes
+        self._save()
+
+        return results

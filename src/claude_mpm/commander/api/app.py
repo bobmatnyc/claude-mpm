@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..activity_tracker import ActivityTracker
 from ..events.manager import EventManager
 from ..inbox import Inbox
 from ..registry import ProjectRegistry
@@ -27,6 +28,7 @@ event_manager: Optional[EventManager] = None
 inbox: Optional[Inbox] = None
 event_handler: Optional[EventHandler] = None
 session_manager: dict = {}  # project_id -> ProjectSession
+activity_tracker: Optional[ActivityTracker] = None
 
 
 @asynccontextmanager
@@ -42,18 +44,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         None during application runtime
     """
     # Startup
-    global registry, tmux, event_manager, inbox, event_handler, session_manager
+    global \
+        registry, \
+        tmux, \
+        event_manager, \
+        inbox, \
+        event_handler, \
+        session_manager, \
+        activity_tracker
     registry = ProjectRegistry()
     tmux = TmuxOrchestrator()
     event_manager = EventManager()
     inbox = Inbox(event_manager, registry)
     session_manager = {}  # Populated by daemon when sessions are created
     event_handler = EventHandler(inbox, session_manager)
+    activity_tracker = ActivityTracker(poll_interval=1.0)
+    activity_tracker.start_polling()
 
     yield
 
     # Shutdown
-    # No cleanup needed for Phase 1
+    if activity_tracker:
+        activity_tracker.stop_polling()
 
 
 app = FastAPI(

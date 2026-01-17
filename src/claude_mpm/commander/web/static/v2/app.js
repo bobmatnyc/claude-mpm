@@ -8,9 +8,12 @@ const state = {
     currentProject: null,
     currentSession: null,
     pollInterval: null,
+    activityPollInterval: null,
     debugLogs: [],
     debugPanelOpen: false,
-    ansiUp: null
+    ansiUp: null,
+    sessionActivity: {},  // session_id -> activity stats
+    hasUserScrolled: false  // Track if user manually scrolled up
 };
 
 // Config
@@ -18,6 +21,7 @@ const CONFIG = {
     API_BASE: '/api',
     POLL_INTERVAL: 1000,  // 1 second like iTerm Claude Manager
     OUTPUT_POLL_INTERVAL: 500,  // Faster for output
+    ACTIVITY_POLL_INTERVAL: 1000,  // Activity stats refresh
     MAX_DEBUG_LOGS: 100
 };
 
@@ -122,32 +126,35 @@ function renderProjectTree() {
         return;
     }
 
+    // Get all sessions for numbering (Ctrl+1, Ctrl+2, etc.)
+    let sessionIndex = 0;
+
     container.innerHTML = state.projects.map(project => `
         <div class="project-item" data-id="${project.id}">
             <!-- Project Header -->
             <div class="project-header flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-800 cursor-pointer transition"
                  onclick="toggleProject('${project.id}')">
-                <span class="expand-icon text-gray-500 text-xs transition-transform" id="expand-${project.id}">▶</span>
+                <span class="expand-icon text-gray-500 text-xs transition-transform rotate-90" id="expand-${project.id}">▶</span>
                 <span class="text-base">${stateIcon(project.state)}</span>
                 <span class="font-medium text-sm flex-1 truncate">${project.name}</span>
                 <span class="text-xs text-gray-500">${project.sessions.length}</span>
             </div>
 
-            <!-- Sessions (collapsed by default) -->
-            <div class="sessions-container hidden ml-4 border-l border-gray-800 pl-2" id="sessions-${project.id}">
+            <!-- Sessions (EXPANDED by default) -->
+            <div class="sessions-container ml-4 border-l border-gray-800 pl-2" id="sessions-${project.id}">
                 ${project.sessions.length === 0
                     ? `<div class="text-gray-500 text-xs py-2 pl-2">No sessions</div>`
-                    : project.sessions.map(session => `
+                    : project.sessions.map((session, idx) => {
+                        const globalIdx = sessionIndex++;
+                        const shortcutHint = globalIdx < 9 ? `<span class="text-gray-600 text-[10px] ml-1">^${globalIdx + 1}</span>` : '';
+                        return `
                         <div class="session-item flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer transition ${state.currentSession === session.id ? 'bg-gray-800' : ''}"
                              onclick="selectSession('${project.id}', '${session.id}')" data-session="${session.id}">
                             <span class="text-xs ${session.status === 'running' ? 'text-green-400' : 'text-gray-500'}">●</span>
-                            <span class="text-sm truncate flex-1">${session.id.slice(0, 8)}...</span>
+                            <span class="text-sm truncate flex-1">${session.id.slice(0, 8)}...${shortcutHint}</span>
                             <span class="text-xs text-gray-500">${session.runtime}</span>
                         </div>
-                        <div class="last-line text-xs text-gray-500 pl-6 pb-1 truncate" id="lastline-${session.id}">
-                            <!-- Last line preview -->
-                        </div>
-                    `).join('')
+                    `}).join('')
                 }
                 <!-- New Session Button -->
                 <button onclick="createSession('${project.id}')"
@@ -157,6 +164,11 @@ function renderProjectTree() {
             </div>
         </div>
     `).join('');
+
+    // Load session previews for all expanded projects
+    for (const project of state.projects) {
+        loadSessionPreviews(project.id);
+    }
 }
 
 function toggleProject(projectId) {
@@ -165,12 +177,12 @@ function toggleProject(projectId) {
 
     if (sessionsContainer.classList.contains('hidden')) {
         sessionsContainer.classList.remove('hidden');
-        expandIcon.style.transform = 'rotate(90deg)';
+        expandIcon.classList.add('rotate-90');
         // Load session previews
         loadSessionPreviews(projectId);
     } else {
         sessionsContainer.classList.add('hidden');
-        expandIcon.style.transform = 'rotate(0deg)';
+        expandIcon.classList.remove('rotate-90');
     }
 }
 
@@ -221,15 +233,19 @@ async function selectSession(projectId, sessionId) {
         statusEl.classList.remove('hidden');
     }
 
-    // Show actions
+    // Show actions and activity panel
     document.getElementById('output-actions').classList.remove('hidden');
     document.getElementById('quick-input-bar').classList.remove('hidden');
+    document.getElementById('activity-panel').classList.remove('hidden');
 
     // Load output
     await loadSessionOutput();
 
     // Start output polling
     startOutputPoll();
+
+    // Start activity polling
+    startActivityPoll();
 
     log(`Selected session ${sessionId.slice(0, 8)}`);
 }
@@ -241,6 +257,9 @@ async function loadSessionOutput() {
         const data = await fetchAPI(`/sessions/${state.currentSession}/output?lines=10000`);
         const outputEl = document.getElementById('output-content');
 
+        // Check if user has scrolled up (don't auto-scroll if they're reading history)
+        const wasAtBottom = outputEl.scrollHeight - outputEl.scrollTop <= outputEl.clientHeight + 50;
+
         const converter = getAnsiUp();
         if (converter) {
             outputEl.innerHTML = converter.ansi_to_html(data.output || '(no output)');
@@ -248,8 +267,10 @@ async function loadSessionOutput() {
             outputEl.textContent = data.output || '(no output)';
         }
 
-        // Auto-scroll to bottom
-        outputEl.scrollTop = outputEl.scrollHeight;
+        // Auto-scroll to bottom (always for new content, or if was at bottom)
+        if (wasAtBottom || !state.hasUserScrolled) {
+            outputEl.scrollTop = outputEl.scrollHeight;
+        }
     } catch (err) {
         document.getElementById('output-content').innerHTML = `
             <div class="text-red-400">Error loading output: ${err.message}</div>
@@ -343,6 +364,19 @@ async function sendEnter() {
     }
 }
 
+async function sendShiftTab() {
+    if (!state.currentSession) return;
+    try {
+        // BTab is tmux's key name for Shift+Tab (Back-Tab)
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=BTab&enter=false`, {
+            method: 'POST'
+        });
+        log('Shift+Tab sent (cycle permissions)');
+    } catch (err) {
+        log(`Failed to send Shift+Tab: ${err.message}`, 'error');
+    }
+}
+
 async function sendText() {
     const input = document.getElementById('send-text-input');
     const text = input.value.trim();
@@ -365,11 +399,25 @@ async function sendQuickMessage() {
     if (!text || !state.currentSession) return;
 
     try {
-        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=${encodeURIComponent(text)}&enter=true`, {
-            method: 'POST'
-        });
+        // Send each line separately (for multi-line input)
+        const lines = text.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const isLast = i === lines.length - 1;
+            await fetchAPI(`/sessions/${state.currentSession}/keys?keys=${encodeURIComponent(line)}&enter=true`, {
+                method: 'POST'
+            });
+            // Small delay between lines
+            if (!isLast) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
         input.value = '';
-        log(`Sent message: ${text.substring(0, 30)}...`);
+        // Reset textarea to minimum height (3 rows)
+        input.style.height = 'auto';
+        input.style.overflowY = 'hidden';
+        autoResizeTextarea(input);
+        log(`Sent message: ${text.substring(0, 30)}${text.length > 30 ? '...' : ''}`);
     } catch (err) {
         alert('Failed to send message: ' + err.message);
     }
@@ -637,6 +685,180 @@ function startProjectPoll() {
 }
 
 // =============================================================================
+// Activity Tracking
+// =============================================================================
+
+async function loadSessionActivity(sessionId) {
+    try {
+        const data = await fetchAPI(`/sessions/${sessionId}/activity`);
+        state.sessionActivity[sessionId] = data;
+        return data;
+    } catch (err) {
+        // Session might not be tracked yet, ignore
+        return null;
+    }
+}
+
+function formatSeconds(seconds) {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+    return `${Math.round(seconds / 3600)}h`;
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'active': 'text-green-400',
+        'thinking': 'text-yellow-400',
+        'stalled': 'text-red-400',
+        'finished': 'text-blue-400',
+        'idle': 'text-gray-500'
+    };
+    return colors[status] || 'text-gray-500';
+}
+
+function getStatusBgColor(status) {
+    const colors = {
+        'active': 'bg-green-600/20',
+        'thinking': 'bg-yellow-600/20',
+        'stalled': 'bg-red-600/20',
+        'finished': 'bg-blue-600/20',
+        'idle': 'bg-gray-700'
+    };
+    return colors[status] || 'bg-gray-700';
+}
+
+function renderActivityStats(activity) {
+    if (!activity) return '';
+
+    const statusColor = getStatusColor(activity.status);
+    const statusBg = getStatusBgColor(activity.status);
+
+    return `
+        <div class="activity-stats flex items-center gap-3 text-xs">
+            <!-- Status Badge -->
+            <span class="px-2 py-0.5 rounded ${statusBg} ${statusColor} font-medium uppercase">
+                ${activity.status}
+            </span>
+
+            <!-- Lines -->
+            <span class="text-gray-400" title="Total lines / Lines since prompt">
+                📝 ${activity.total_lines} <span class="text-gray-600">(+${activity.lines_since_prompt})</span>
+            </span>
+
+            <!-- Time Since Change -->
+            <span class="${activity.seconds_since_change < 5 ? 'text-green-400' : activity.seconds_since_change < 30 ? 'text-yellow-400' : 'text-red-400'}"
+                  title="Time since last output">
+                ⏱️ ${formatSeconds(activity.seconds_since_change)}
+            </span>
+
+            <!-- Time Since Prompt -->
+            <span class="text-gray-400" title="Time since last prompt">
+                💬 ${formatSeconds(activity.seconds_since_prompt)}
+            </span>
+        </div>
+    `;
+}
+
+function renderActivityPanel() {
+    const panel = document.getElementById('activity-panel');
+    if (!panel || !state.currentSession) return;
+
+    const activity = state.sessionActivity[state.currentSession];
+
+    const metricsEl = document.getElementById('activity-metrics');
+    const promptEl = document.getElementById('activity-last-prompt');
+    const responseEl = document.getElementById('activity-last-response');
+
+    if (!activity) {
+        if (metricsEl) metricsEl.innerHTML = '<span class="text-gray-500">Loading...</span>';
+        if (promptEl) promptEl.textContent = '';
+        if (responseEl) responseEl.textContent = '';
+        return;
+    }
+
+    const statusColor = getStatusColor(activity.status);
+    const statusBg = getStatusBgColor(activity.status);
+
+    // Metrics row (compact)
+    if (metricsEl) {
+        // Build Claude state badge if present
+        let claudeStateBadge = '';
+        if (activity.claude_state) {
+            const stateColor = activity.claude_state.toLowerCase().includes('bypass')
+                ? 'bg-orange-600/20 text-orange-400'
+                : activity.claude_state.toLowerCase().includes('update')
+                ? 'bg-blue-600/20 text-blue-400'
+                : 'bg-purple-600/20 text-purple-400';
+            claudeStateBadge = `
+                <span class="px-2 py-0.5 rounded ${stateColor} text-[10px]" title="Claude Code State">
+                    ${activity.claude_state}
+                </span>
+            `;
+        }
+
+        metricsEl.innerHTML = `
+            <span class="px-2 py-0.5 rounded ${statusBg} ${statusColor} font-medium uppercase text-[10px]">
+                ${activity.status}
+            </span>
+            ${claudeStateBadge}
+            <span class="text-gray-400" title="Lines total / since prompt">
+                📝 ${activity.total_lines} <span class="text-gray-600">(+${activity.lines_since_prompt})</span>
+            </span>
+            <span class="${activity.seconds_since_change < 5 ? 'text-green-400' : activity.seconds_since_change < 30 ? 'text-yellow-400' : 'text-red-400'}" title="Since last output">
+                ⏱️ ${formatSeconds(activity.seconds_since_change)}
+            </span>
+        `;
+    }
+
+    // Last prompt (inline)
+    if (promptEl) {
+        promptEl.textContent = activity.last_user_input || '—';
+        promptEl.title = activity.last_user_input || '';
+    }
+
+    // Last response (inline)
+    if (responseEl) {
+        if (activity.is_working) {
+            responseEl.innerHTML = '<span class="text-yellow-400 animate-pulse">⏳ working...</span>';
+            responseEl.title = '';
+        } else {
+            responseEl.textContent = activity.last_agent_output || '—';
+            responseEl.title = activity.last_agent_output || '';
+        }
+    }
+}
+
+function startActivityPoll() {
+    // Clear existing poll
+    if (state.activityPollInterval) {
+        clearInterval(state.activityPollInterval);
+    }
+
+    const targetSession = state.currentSession;
+    if (!targetSession) return;
+
+    // Immediate load
+    loadSessionActivity(targetSession).then(() => renderActivityPanel());
+
+    state.activityPollInterval = setInterval(async () => {
+        if (state.currentSession !== targetSession) {
+            clearInterval(state.activityPollInterval);
+            return;
+        }
+
+        await loadSessionActivity(targetSession);
+        renderActivityPanel();
+    }, CONFIG.ACTIVITY_POLL_INTERVAL);
+}
+
+function stopActivityPoll() {
+    if (state.activityPollInterval) {
+        clearInterval(state.activityPollInterval);
+        state.activityPollInterval = null;
+    }
+}
+
+// =============================================================================
 // Initialization
 // =============================================================================
 
@@ -649,16 +871,215 @@ document.addEventListener('DOMContentLoaded', async () => {
     log('Ready!');
 });
 
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    // Escape to close modals
-    if (e.key === 'Escape') {
-        hideRegisterModal();
+// =============================================================================
+// Help Modal
+// =============================================================================
+
+function showHelpModal() {
+    document.getElementById('help-modal').classList.remove('hidden');
+}
+
+function hideHelpModal() {
+    document.getElementById('help-modal').classList.add('hidden');
+}
+
+// =============================================================================
+// Quick Input Keyboard Handler
+// =============================================================================
+
+function handleQuickInputKeydown(e) {
+    // Cmd/Ctrl + Enter = Send
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        sendQuickMessage();
+        return;
     }
 
-    // Ctrl+D to toggle debug panel
+    // Shift + Enter = Allow newline (default behavior)
+    if (e.shiftKey && e.key === 'Enter') {
+        return; // Let default happen (newline)
+    }
+
+    // Plain Enter = Send (for quick typing)
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendQuickMessage();
+    }
+}
+
+// =============================================================================
+// Auto-resize Textarea
+// =============================================================================
+
+function autoResizeTextarea(textarea) {
+    const MIN_ROWS = 3;
+    const MAX_ROWS = 20;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+
+    // Calculate line height from computed style
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 20;
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+
+    // Calculate content height
+    const contentHeight = textarea.scrollHeight - paddingTop - paddingBottom;
+    const currentRows = Math.ceil(contentHeight / lineHeight);
+
+    // Clamp between MIN and MAX rows
+    const newRows = Math.max(MIN_ROWS, Math.min(MAX_ROWS, currentRows));
+
+    // Calculate new height
+    const newHeight = (newRows * lineHeight) + paddingTop + paddingBottom;
+    textarea.style.height = `${newHeight}px`;
+
+    // Enable/disable scrolling based on row count
+    if (currentRows > MAX_ROWS) {
+        textarea.style.overflowY = 'auto';
+    } else {
+        textarea.style.overflowY = 'hidden';
+    }
+}
+
+// =============================================================================
+// Session Navigation
+// =============================================================================
+
+function getAllSessions() {
+    const sessions = [];
+    for (const project of state.projects) {
+        for (const session of project.sessions) {
+            sessions.push({ projectId: project.id, sessionId: session.id, name: `${project.name}/${session.id.slice(0, 8)}` });
+        }
+    }
+    return sessions;
+}
+
+function navigateToSession(index) {
+    const sessions = getAllSessions();
+    if (index >= 0 && index < sessions.length) {
+        const { projectId, sessionId } = sessions[index];
+        // Expand project first
+        const sessionsContainer = document.getElementById(`sessions-${projectId}`);
+        if (sessionsContainer && sessionsContainer.classList.contains('hidden')) {
+            toggleProject(projectId);
+        }
+        selectSession(projectId, sessionId);
+    }
+}
+
+function navigateNextSession() {
+    const sessions = getAllSessions();
+    if (sessions.length === 0) return;
+
+    const currentIndex = sessions.findIndex(s => s.sessionId === state.currentSession);
+    const nextIndex = (currentIndex + 1) % sessions.length;
+    navigateToSession(nextIndex);
+}
+
+function navigatePrevSession() {
+    const sessions = getAllSessions();
+    if (sessions.length === 0) return;
+
+    const currentIndex = sessions.findIndex(s => s.sessionId === state.currentSession);
+    const prevIndex = currentIndex <= 0 ? sessions.length - 1 : currentIndex - 1;
+    navigateToSession(prevIndex);
+}
+
+// Track double-escape for sending ESC to session
+let lastEscapeTime = 0;
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
+
+    // ? = Show help (when not in input)
+    if (e.key === '?' && !isInputFocused) {
+        e.preventDefault();
+        showHelpModal();
+        return;
+    }
+
+    // Escape handling
+    if (e.key === 'Escape') {
+        // Close modals first
+        if (!document.getElementById('help-modal').classList.contains('hidden')) {
+            hideHelpModal();
+            return;
+        }
+        if (!document.getElementById('register-modal').classList.contains('hidden')) {
+            hideRegisterModal();
+            return;
+        }
+        if (!document.getElementById('settings-modal').classList.contains('hidden')) {
+            hideSettingsModal();
+            return;
+        }
+
+        // Double-escape = Send ESC to session
+        const now = Date.now();
+        if (now - lastEscapeTime < 500 && state.currentSession) {
+            sendEscape();
+            lastEscapeTime = 0;
+        } else {
+            lastEscapeTime = now;
+        }
+        return;
+    }
+
+    // Ctrl+D = Toggle debug panel
     if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
         toggleDebugPanel();
+        return;
+    }
+
+    // Ctrl+Tab = Next session
+    if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+            navigatePrevSession();
+        } else {
+            navigateNextSession();
+        }
+        return;
+    }
+
+    // Ctrl+1-9 = Jump to session
+    if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        const index = parseInt(e.key) - 1;
+        navigateToSession(index);
+        return;
+    }
+
+    // / = Focus input (when not in input)
+    if (e.key === '/' && !isInputFocused) {
+        e.preventDefault();
+        const input = document.getElementById('quick-input');
+        if (input && !input.closest('#quick-input-bar').classList.contains('hidden')) {
+            input.focus();
+        }
+        return;
+    }
+});
+
+// Track user scrolling in output panel
+document.addEventListener('DOMContentLoaded', () => {
+    const outputEl = document.getElementById('output-content');
+    if (outputEl) {
+        outputEl.addEventListener('scroll', () => {
+            const atBottom = outputEl.scrollHeight - outputEl.scrollTop <= outputEl.clientHeight + 50;
+            state.hasUserScrolled = !atBottom;
+        });
+
+        // Double-click output panel to jump to bottom
+        outputEl.addEventListener('dblclick', () => {
+            outputEl.scrollTop = outputEl.scrollHeight;
+            state.hasUserScrolled = false;
+        });
     }
 });

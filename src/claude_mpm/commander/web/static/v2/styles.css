@@ -14,8 +14,30 @@
 }
 
 /* Base */
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Critical: Ensure proper flex layout for output panel */
+#output-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Critical for flex children to respect overflow */
+}
+
+#output-content {
+    flex: 1 1 0;
+    min-height: 0; /* Critical for scrolling to work */
+    overflow-y: auto;
+}
+
+#quick-input-bar {
+    flex-shrink: 0; /* Never shrink the input bar */
 }
 
 /* Scrollbars */
@@ -57,6 +79,10 @@ body {
 /* Expand Icon Animation */
 .expand-icon {
     transition: transform 0.15s ease;
+}
+
+.expand-icon.rotate-90 {
+    transform: rotate(90deg);
 }
 
 /* Output Panel */
@@ -195,6 +221,17 @@ button {
 /* Quick input bar */
 #quick-input-bar {
     background: var(--bg-900);
+}
+
+#quick-input {
+    min-height: 40px;
+    max-height: 150px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Keyboard shortcut styling */
+kbd {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 }
 
 /* Header styling */

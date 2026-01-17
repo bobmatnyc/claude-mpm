@@ -240,10 +240,7 @@ async def sync_sessions():
 
     results = tmux_orch.sync_windows_with_registry(registry)
 
-    return {
-        "synced": len(results),
-        "results": results
-    }
+    return {"synced": len(results), "results": results}
 
 
 @router.post("/sessions/{session_id}/open-terminal")
@@ -262,7 +259,7 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     Raises:
         SessionNotFoundError: If session_id doesn't exist
     """
-    import subprocess
+    import subprocess  # nosec B404 - required for osascript
 
     registry = _get_registry()
     tmux_orch = _get_tmux()
@@ -277,11 +274,16 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
     if session is None:
         raise SessionNotFoundError(session_id)
 
-    tmux_cmd = f"tmux attach -t {tmux_orch.session_name}"
+    # Get the specific window target from the session (e.g., "commander:774c7735")
+    tmux_target = session.tmux_target if session.tmux_target else tmux_orch.session_name
+
+    # Command to attach to tmux and select the specific window
+    # Using -t with the full target ensures we go to the right window
+    tmux_cmd = f"tmux attach -t {tmux_target}"
 
     # Terminal-specific AppleScripts
     applescripts = {
-        "iterm": f'''
+        "iterm": f"""
             tell application "iTerm"
                 activate
                 create window with default profile
@@ -289,14 +291,14 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
                     write text "{tmux_cmd}"
                 end tell
             end tell
-        ''',
-        "terminal": f'''
+        """,
+        "terminal": f"""
             tell application "Terminal"
                 activate
                 do script "{tmux_cmd}"
             end tell
-        ''',
-        "warp": f'''
+        """,
+        "warp": f"""
             tell application "Warp"
                 activate
             end tell
@@ -307,8 +309,8 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
                     keystroke return
                 end tell
             end tell
-        ''',
-        "alacritty": f'''
+        """,
+        "alacritty": f"""
             do shell script "open -a Alacritty"
             delay 0.5
             tell application "System Events"
@@ -317,8 +319,8 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
                     keystroke return
                 end tell
             end tell
-        ''',
-        "kitty": f'''
+        """,
+        "kitty": f"""
             do shell script "open -a Kitty"
             delay 0.5
             tell application "System Events"
@@ -327,17 +329,28 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
                     keystroke return
                 end tell
             end tell
-        '''
+        """,
     }
 
     applescript = applescripts.get(terminal, applescripts["iterm"])
 
     try:
-        subprocess.run(["osascript", "-e", applescript], check=True, capture_output=True)  # nosec B603
-        return {"status": "opened", "session_id": session_id, "terminal": terminal, "tmux_session": tmux_orch.session_name}
+        subprocess.run(  # nosec B603 B607 - trusted osascript command
+            ["osascript", "-e", applescript], check=True, capture_output=True
+        )
+        return {
+            "status": "opened",
+            "session_id": session_id,
+            "terminal": terminal,
+            "tmux_target": tmux_target,
+        }
     except subprocess.CalledProcessError as e:
         logger.warning(f"Failed to open {terminal} for session {session_id}: {e}")
-        return {"status": "error", "terminal": terminal, "error": str(e.stderr.decode() if e.stderr else e)}
+        return {
+            "status": "error",
+            "terminal": terminal,
+            "error": str(e.stderr.decode() if e.stderr else e),
+        }
 
 
 @router.post("/sessions/{session_id}/keys")
@@ -424,8 +437,160 @@ async def get_session_output(session_id: str, lines: int = 100):
         logger.warning(f"Failed to capture output for session {session_id}: {e}")
         output = f"[Error capturing output: {e}]"
 
+    return {"session_id": session_id, "output": output, "lines": lines}
+
+
+# ============================================================================
+# Activity Tracking Endpoints
+# ============================================================================
+
+
+def _get_activity_tracker():
+    """Get activity tracker instance from app global."""
+    from ..app import activity_tracker
+
+    if activity_tracker is None:
+        raise RuntimeError("Activity tracker not initialized")
+    return activity_tracker
+
+
+@router.get("/sessions/{session_id}/activity")
+async def get_session_activity(session_id: str):
+    """Get activity metrics for a session.
+
+    Returns real-time metrics for monitoring agent state:
+    - total_lines: Total lines in scrollback
+    - lines_since_prompt: New lines since last user prompt
+    - seconds_since_change: Time since last output
+    - seconds_since_prompt: Time since last user input
+    - last_user_input: The last prompt sent by user
+    - last_agent_output: Last agent response OR "working..." if active
+    - status: Derived status (active/thinking/stalled/finished/idle)
+
+    Args:
+        session_id: Unique session identifier
+
+    Returns:
+        Activity metrics dict
+
+    Example:
+        GET /api/sessions/sess-456/activity
+        Response: {
+            "total_lines": 1523,
+            "lines_since_prompt": 45,
+            "seconds_since_change": 2.3,
+            "seconds_since_prompt": 15.7,
+            "last_user_input": "Explain Python decorators",
+            "last_agent_output": "working...",
+            "is_working": true,
+            "status": "active"
+        }
+    """
+    tracker = _get_activity_tracker()
+    registry = _get_registry()
+
+    # Find session to verify it exists and get tmux_target
+    session = None
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            session = project.sessions[session_id]
+            break
+
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    # Auto-register session if not tracked yet
+    stats = tracker.get_stats(session_id)
+    if stats is None:
+        tracker.register_session(session_id, session.tmux_target)
+        stats = tracker.get_stats(session_id)
+
+    return {"session_id": session_id, **stats}
+
+
+@router.get("/sessions/activity/all")
+async def get_all_sessions_activity():
+    """Get activity metrics for all tracked sessions.
+
+    Returns:
+        Dict mapping session_id to activity metrics
+
+    Example:
+        GET /api/sessions/activity/all
+        Response: {
+            "sessions": {
+                "sess-123": {...activity metrics...},
+                "sess-456": {...activity metrics...}
+            },
+            "count": 2
+        }
+    """
+    tracker = _get_activity_tracker()
+
+    all_stats = tracker.get_all_stats()
+    return {"sessions": all_stats, "count": len(all_stats)}
+
+
+@router.post("/sessions/{session_id}/activity/prompt")
+async def record_user_prompt(session_id: str, prompt: str):
+    """Record a user prompt event (for hook integration).
+
+    This endpoint is called by the Claude Code hook system when
+    a UserPromptSubmit event occurs.
+
+    Args:
+        session_id: Unique session identifier
+        prompt: The user's prompt text
+
+    Returns:
+        Updated activity stats
+    """
+    tracker = _get_activity_tracker()
+    registry = _get_registry()
+
+    # Find session to get tmux_target
+    session = None
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            session = project.sessions[session_id]
+            break
+
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    tracker.on_user_prompt(session_id, session.tmux_target, prompt)
+
     return {
+        "status": "recorded",
         "session_id": session_id,
-        "output": output,
-        "lines": lines
+        **tracker.get_stats(session_id),
+    }
+
+
+@router.post("/sessions/{session_id}/activity/stop")
+async def record_agent_stop(session_id: str, response: str = ""):
+    """Record an agent stop event (for hook integration).
+
+    This endpoint is called by the Claude Code hook system when
+    a Stop event occurs (agent finished responding).
+
+    Args:
+        session_id: Unique session identifier
+        response: The agent's response text (optional)
+
+    Returns:
+        Updated activity stats
+    """
+    tracker = _get_activity_tracker()
+
+    stats = tracker.get_stats(session_id)
+    if stats is None:
+        raise SessionNotFoundError(session_id)
+
+    tracker.on_agent_stop(session_id, response)
+
+    return {
+        "status": "recorded",
+        "session_id": session_id,
+        **tracker.get_stats(session_id),
     }
