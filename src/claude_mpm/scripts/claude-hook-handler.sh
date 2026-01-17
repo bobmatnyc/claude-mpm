@@ -125,7 +125,7 @@ find_python_command() {
     # 1. Check for UV project first (uv.lock or pyproject.toml with uv)
     if [ -f "$CLAUDE_MPM_ROOT/uv.lock" ]; then
         if command -v uv &> /dev/null; then
-            echo "uv run python"
+            echo "uv run --directory \"$CLAUDE_MPM_ROOT\" python"
             return
         fi
     fi
@@ -219,8 +219,8 @@ log_debug() {
 
 # Test Python works and module exists
 # Handle UV's multi-word command specially
-if [[ "$PYTHON_CMD" == "uv run python" ]]; then
-    if ! uv run python -c "import claude_mpm" 2>/dev/null; then
+if [[ "$PYTHON_CMD" == "uv run"* ]]; then
+    if ! uv run --directory "$CLAUDE_MPM_ROOT" python -c "import claude_mpm" 2>/dev/null; then
         log_debug "claude_mpm module not available, continuing without hook"
         echo '{"action": "continue"}'
         exit 0
@@ -237,8 +237,8 @@ fi
 # Use exec to replace the shell process with Python
 # Handle UV's multi-word command specially
 # Suppress RuntimeWarning to prevent stderr output (which causes hook errors)
-if [[ "$PYTHON_CMD" == "uv run python" ]]; then
-    exec uv run python -W ignore::RuntimeWarning -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
+if [[ "$PYTHON_CMD" == "uv run"* ]]; then
+    exec uv run --directory "$CLAUDE_MPM_ROOT" python -W ignore::RuntimeWarning -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
 else
     exec "$PYTHON_CMD" -W ignore::RuntimeWarning -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log
 fi
