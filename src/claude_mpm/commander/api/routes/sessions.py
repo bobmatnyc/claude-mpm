@@ -5,8 +5,10 @@ This module implements REST endpoints for creating and managing tool sessions
 """
 
 import logging
+import subprocess  # nosec B404 - required for tmux/osascript commands
 import uuid
-from typing import List
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Response
 
@@ -14,15 +16,29 @@ from ...models import ToolSession
 from ..errors import InvalidRuntimeError, ProjectNotFoundError, SessionNotFoundError
 from ..schemas import CreateSessionRequest, SessionResponse
 
+# Type alias for JSON-serializable response dictionaries
+JsonResponse = Dict[str, Any]
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Valid runtime adapters (Phase 1: claude-code only)
 VALID_RUNTIMES = {"claude-code"}
 
+# Tmux session configuration
+TMUX_MAIN_SESSION = "mpm-commander"
+TMUX_COMMAND_TIMEOUT = 2  # seconds
 
-def _get_registry():
-    """Get registry instance from app global."""
+
+def _get_registry() -> Any:
+    """Get registry instance from app global.
+
+    Returns:
+        ProjectRegistry instance
+
+    Raises:
+        RuntimeError: If registry is not initialized
+    """
     from ..app import registry
 
     if registry is None:
@@ -30,13 +46,149 @@ def _get_registry():
     return registry
 
 
-def _get_tmux():
-    """Get tmux orchestrator instance from app global."""
+def _get_tmux() -> Any:
+    """Get tmux orchestrator instance from app global.
+
+    Returns:
+        TmuxOrchestrator instance
+
+    Raises:
+        RuntimeError: If tmux orchestrator is not initialized
+    """
     from ..app import tmux
 
     if tmux is None:
         raise RuntimeError("Tmux orchestrator not initialized")
     return tmux
+
+
+def _find_session(session_id: str) -> Tuple[Optional[ToolSession], Optional[str]]:
+    """Find a session across all projects.
+
+    Args:
+        session_id: Unique session identifier
+
+    Returns:
+        Tuple of (session, project_id) or (None, None) if not found
+    """
+    registry = _get_registry()
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            return project.sessions[session_id], project.id
+    return None, None
+
+
+def _get_session_or_raise(session_id: str) -> ToolSession:
+    """Get a session or raise SessionNotFoundError.
+
+    Args:
+        session_id: Unique session identifier
+
+    Returns:
+        The ToolSession instance
+
+    Raises:
+        SessionNotFoundError: If session doesn't exist
+    """
+    session, _ = _find_session(session_id)
+    if session is None:
+        raise SessionNotFoundError(session_id)
+    return session
+
+
+@dataclass
+class TmuxWindowTarget:
+    """Represents a tmux window target with session and index."""
+
+    session_name: str
+    window_index: str
+
+    @classmethod
+    def from_pane_id(cls, pane_id: str) -> "TmuxWindowTarget":
+        """Resolve a pane ID to its window target in the main session.
+
+        Uses list-windows to search for the pane, avoiding the issue where
+        tmux display returns client-session names instead of the main session.
+
+        Args:
+            pane_id: Tmux pane identifier (e.g., "%26")
+
+        Returns:
+            TmuxWindowTarget with session name and window index
+        """
+        try:
+            result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+                [
+                    "tmux",
+                    "list-windows",
+                    "-t",
+                    TMUX_MAIN_SESSION,
+                    "-F",
+                    "#{window_index}:#{pane_id}",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=TMUX_COMMAND_TIMEOUT,
+            )
+
+            # Find the window containing our pane
+            for line in result.stdout.strip().split("\n"):
+                if pane_id in line:
+                    window_index = line.split(":")[0]
+                    logger.debug(
+                        "Resolved pane %s to window %s:%s",
+                        pane_id,
+                        TMUX_MAIN_SESSION,
+                        window_index,
+                    )
+                    return cls(
+                        session_name=TMUX_MAIN_SESSION, window_index=window_index
+                    )
+
+            logger.warning(
+                "Pane %s not found in %s, using window 0", pane_id, TMUX_MAIN_SESSION
+            )
+
+        except subprocess.CalledProcessError as e:
+            logger.warning("Failed to list tmux windows: %s", e)
+        except subprocess.TimeoutExpired:
+            logger.warning("Timeout listing tmux windows")
+
+        # Fallback to first window
+        return cls(session_name=TMUX_MAIN_SESSION, window_index="0")
+
+    def __str__(self) -> str:
+        """Return the full target string (e.g., 'mpm-commander:1')."""
+        return f"{self.session_name}:{self.window_index}"
+
+
+def _build_tmux_grouped_session_command(target: TmuxWindowTarget) -> str:
+    """Build a tmux command that creates a grouped session with correct window.
+
+    Grouped sessions share windows with the main session but maintain independent
+    active window state. This prevents multiple terminal windows from interfering
+    with each other's window selection.
+
+    IMPORTANT: The tmux `new-session -A -t SESSION:WINDOW` command ignores the
+    window index and always opens window 0. We must use three separate commands:
+    1. Create the grouped session detached (-d)
+    2. Select the correct window
+    3. Attach to the session
+
+    Args:
+        target: TmuxWindowTarget specifying the window to open
+
+    Returns:
+        Shell command string that creates and attaches to the grouped session
+    """
+    client_id = f"client-{uuid.uuid4().hex[:8]}"
+
+    return (
+        f"tmux new-session -d -t {target.session_name} -s {client_id} && "
+        f"tmux select-window -t {client_id}:{target.window_index} && "
+        f"tmux attach -t {client_id}"
+    )
 
 
 def _session_to_response(session: ToolSession) -> SessionResponse:
@@ -223,7 +375,7 @@ async def stop_session(session_id: str) -> Response:
 
 
 @router.post("/sessions/sync")
-async def sync_sessions():
+async def sync_sessions() -> JsonResponse:
     """Synchronize sessions with tmux windows.
 
     Checks which tmux windows exist and updates session status accordingly.
@@ -250,74 +402,16 @@ async def sync_sessions():
     return {"synced": len(results), "results": results}
 
 
-@router.post("/sessions/{session_id}/open-terminal")
-async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
-    """Open the session's tmux window in the specified terminal.
-
-    Uses AppleScript (macOS) to open the terminal and attach to the tmux session.
+def _get_applescript_for_terminal(terminal: str, tmux_cmd: str) -> str:
+    """Get the AppleScript to open a terminal and run a tmux command.
 
     Args:
-        session_id: Unique session identifier
-        terminal: Terminal to use (iterm, terminal, warp, alacritty, kitty)
+        terminal: Terminal name (iterm, terminal, warp, alacritty, kitty)
+        tmux_cmd: The tmux command to execute
 
     Returns:
-        Success status
-
-    Raises:
-        SessionNotFoundError: If session_id doesn't exist
+        AppleScript string for the specified terminal
     """
-    import subprocess  # nosec B404 - required for osascript
-
-    registry = _get_registry()
-
-    # Find session across all projects
-    session = None
-    for project in registry.list_all():
-        if session_id in project.sessions:
-            session = project.sessions[session_id]
-            break
-
-    if session is None:
-        raise SessionNotFoundError(session_id)
-
-    # Get the pane target from session (e.g., "%26" for pane ID)
-    pane_target = session.tmux_target if session.tmux_target else None
-
-    if not pane_target:
-        raise SessionNotFoundError(f"Session {session_id} has no tmux_target")
-
-    # Convert pane ID to window target (e.g., "%26" -> "mpm-commander2:17")
-    # This is needed because select-window works with window targets, not pane IDs
-    try:
-        result = subprocess.run(  # nosec B603 B607 - trusted tmux command
-            [
-                "tmux",
-                "display",
-                "-p",
-                "-t",
-                pane_target,
-                "#{session_name}:#{window_index}",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=2,
-        )
-        window_target = result.stdout.strip()
-        logger.info(f"Resolved pane {pane_target} to window {window_target}")
-    except subprocess.CalledProcessError as e:
-        logger.warning(f"Failed to resolve pane {pane_target}: {e}")
-        # Fallback: use pane_target directly (might work for some targets)
-        window_target = pane_target
-
-    # Use direct attach-session to the specific window target.
-    # This is simpler and more reliable than grouped sessions:
-    # - Attaches directly to the exact window requested
-    # - No race condition between new-session and select-window
-    # - Window shows correct content immediately
-    tmux_cmd = f"tmux attach-session -t {window_target}"
-
-    # Terminal-specific AppleScripts
     applescripts = {
         "iterm": f"""
             tell application "iTerm"
@@ -367,31 +461,97 @@ async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
             end tell
         """,
     }
+    return applescripts.get(terminal, applescripts["iterm"])
 
-    applescript = applescripts.get(terminal, applescripts["iterm"])
+
+@router.post("/sessions/{session_id}/open-terminal")
+async def open_session_in_terminal(
+    session_id: str, terminal: str = "iterm"
+) -> JsonResponse:
+    """Open the session's tmux window in the specified terminal.
+
+    Creates a grouped tmux session that shares windows with the main session
+    but maintains independent active window state. This prevents multiple
+    terminal windows from interfering with each other's window selection.
+
+    Args:
+        session_id: Unique session identifier
+        terminal: Terminal to use (iterm, terminal, warp, alacritty, kitty)
+
+    Returns:
+        dict: Success status with session details, or error information
+
+    Raises:
+        SessionNotFoundError: If session_id doesn't exist or has no tmux_target
+
+    Example:
+        POST /api/sessions/sess-456/open-terminal?terminal=iterm
+        Response: {
+            "status": "opened",
+            "session_id": "sess-456",
+            "terminal": "iterm",
+            "pane_target": "%26",
+            "window_target": "mpm-commander:1"
+        }
+    """
+    session = _get_session_or_raise(session_id)
+
+    pane_target = session.tmux_target
+    if not pane_target:
+        raise SessionNotFoundError(f"Session {session_id} has no tmux_target")
+
+    # Resolve pane ID to window target
+    window_target = TmuxWindowTarget.from_pane_id(pane_target)
+    logger.info(
+        "Opening terminal for session %s: pane=%s, window=%s",
+        session_id,
+        pane_target,
+        window_target,
+    )
+
+    # Build the tmux command for grouped session
+    tmux_cmd = _build_tmux_grouped_session_command(window_target)
+
+    # Get and execute terminal-specific AppleScript
+    applescript = _get_applescript_for_terminal(terminal, tmux_cmd)
 
     try:
         subprocess.run(  # nosec B603 B607 - trusted osascript command
-            ["osascript", "-e", applescript], check=True, capture_output=True
+            ["osascript", "-e", applescript],
+            check=True,
+            capture_output=True,
+            timeout=10,
         )
         return {
             "status": "opened",
             "session_id": session_id,
             "terminal": terminal,
             "pane_target": pane_target,
-            "window_target": window_target,
+            "window_target": str(window_target),
         }
     except subprocess.CalledProcessError as e:
-        logger.warning(f"Failed to open {terminal} for session {session_id}: {e}")
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        logger.error(
+            "Failed to open %s for session %s: %s", terminal, session_id, error_msg
+        )
         return {
             "status": "error",
             "terminal": terminal,
-            "error": str(e.stderr.decode() if e.stderr else e),
+            "error": error_msg,
+        }
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout opening %s for session %s", terminal, session_id)
+        return {
+            "status": "error",
+            "terminal": terminal,
+            "error": "Timeout executing AppleScript",
         }
 
 
 @router.post("/sessions/{session_id}/keys")
-async def send_keys_to_session(session_id: str, keys: str, enter: bool = True):
+async def send_keys_to_session(
+    session_id: str, keys: str, enter: bool = True
+) -> JsonResponse:
     """Send keystrokes to a session's tmux pane.
 
     Args:
@@ -400,48 +560,38 @@ async def send_keys_to_session(session_id: str, keys: str, enter: bool = True):
         enter: Whether to send Enter after keys (default: True)
 
     Returns:
-        Success status
+        dict: Success status or error information
 
     Raises:
         SessionNotFoundError: If session_id doesn't exist
 
     Example:
         POST /api/sessions/sess-456/keys?keys=hello&enter=true
+        Response: {"status": "sent", "keys": "hello", "enter": true}
     """
-    registry = _get_registry()
+    session = _get_session_or_raise(session_id)
     tmux_orch = _get_tmux()
 
-    # Find session across all projects
-    session = None
-    for project in registry.list_all():
-        if session_id in project.sessions:
-            session = project.sessions[session_id]
-            break
-
-    if session is None:
-        raise SessionNotFoundError(session_id)
-
-    # Send keys to tmux
     try:
         tmux_orch.send_keys(session.tmux_target, keys, enter=enter)
         return {"status": "sent", "keys": keys, "enter": enter}
     except Exception as e:
-        logger.warning(f"Failed to send keys to session {session_id}: {e}")
+        logger.warning("Failed to send keys to session %s: %s", session_id, e)
         return {"status": "error", "error": str(e)}
 
 
 @router.get("/sessions/{session_id}/output")
-async def get_session_output(session_id: str, lines: int = 100):
+async def get_session_output(session_id: str, lines: int = 100) -> JsonResponse:
     """Get terminal output from a session.
 
     Captures the recent output from the session's tmux pane.
 
     Args:
         session_id: Unique session identifier
-        lines: Number of lines to capture (default: 100)
+        lines: Number of lines to capture (default: 100, max: 10000)
 
     Returns:
-        Session output and metadata
+        dict: Session output and metadata
 
     Raises:
         SessionNotFoundError: If session_id doesn't exist
@@ -454,24 +604,16 @@ async def get_session_output(session_id: str, lines: int = 100):
             "lines": 50
         }
     """
-    registry = _get_registry()
+    session = _get_session_or_raise(session_id)
     tmux_orch = _get_tmux()
 
-    # Find session across all projects
-    session = None
-    for project in registry.list_all():
-        if session_id in project.sessions:
-            session = project.sessions[session_id]
-            break
+    # Clamp lines to reasonable bounds
+    lines = max(1, min(lines, 10000))
 
-    if session is None:
-        raise SessionNotFoundError(session_id)
-
-    # Capture output from tmux pane
     try:
         output = tmux_orch.capture_output(session.tmux_target, lines=lines)
     except Exception as e:
-        logger.warning(f"Failed to capture output for session {session_id}: {e}")
+        logger.warning("Failed to capture output for session %s: %s", session_id, e)
         output = f"[Error capturing output: {e}]"
 
     return {"session_id": session_id, "output": output, "lines": lines}
@@ -482,8 +624,15 @@ async def get_session_output(session_id: str, lines: int = 100):
 # ============================================================================
 
 
-def _get_activity_tracker():
-    """Get activity tracker instance from app global."""
+def _get_activity_tracker() -> Any:
+    """Get activity tracker instance from app global.
+
+    Returns:
+        ActivityTracker instance
+
+    Raises:
+        RuntimeError: If activity tracker is not initialized
+    """
     from ..app import activity_tracker
 
     if activity_tracker is None:
@@ -492,7 +641,7 @@ def _get_activity_tracker():
 
 
 @router.get("/sessions/{session_id}/activity")
-async def get_session_activity(session_id: str):
+async def get_session_activity(session_id: str) -> JsonResponse:
     """Get activity metrics for a session.
 
     Returns real-time metrics for monitoring agent state:
@@ -508,11 +657,12 @@ async def get_session_activity(session_id: str):
         session_id: Unique session identifier
 
     Returns:
-        Activity metrics dict
+        dict: Activity metrics
 
     Example:
         GET /api/sessions/sess-456/activity
         Response: {
+            "session_id": "sess-456",
             "total_lines": 1523,
             "lines_since_prompt": 45,
             "seconds_since_change": 2.3,
@@ -523,18 +673,8 @@ async def get_session_activity(session_id: str):
             "status": "active"
         }
     """
+    session = _get_session_or_raise(session_id)
     tracker = _get_activity_tracker()
-    registry = _get_registry()
-
-    # Find session to verify it exists and get tmux_target
-    session = None
-    for project in registry.list_all():
-        if session_id in project.sessions:
-            session = project.sessions[session_id]
-            break
-
-    if session is None:
-        raise SessionNotFoundError(session_id)
 
     # Auto-register session if not tracked yet
     stats = tracker.get_stats(session_id)
@@ -546,7 +686,7 @@ async def get_session_activity(session_id: str):
 
 
 @router.get("/sessions/activity/all")
-async def get_all_sessions_activity():
+async def get_all_sessions_activity() -> JsonResponse:
     """Get activity metrics for all tracked sessions.
 
     Returns:
@@ -569,7 +709,7 @@ async def get_all_sessions_activity():
 
 
 @router.post("/sessions/{session_id}/activity/prompt")
-async def record_user_prompt(session_id: str, prompt: str):
+async def record_user_prompt(session_id: str, prompt: str) -> JsonResponse:
     """Record a user prompt event (for hook integration).
 
     This endpoint is called by the Claude Code hook system when
@@ -580,20 +720,10 @@ async def record_user_prompt(session_id: str, prompt: str):
         prompt: The user's prompt text
 
     Returns:
-        Updated activity stats
+        dict: Updated activity stats with status confirmation
     """
+    session = _get_session_or_raise(session_id)
     tracker = _get_activity_tracker()
-    registry = _get_registry()
-
-    # Find session to get tmux_target
-    session = None
-    for project in registry.list_all():
-        if session_id in project.sessions:
-            session = project.sessions[session_id]
-            break
-
-    if session is None:
-        raise SessionNotFoundError(session_id)
 
     tracker.on_user_prompt(session_id, session.tmux_target, prompt)
 
@@ -605,7 +735,7 @@ async def record_user_prompt(session_id: str, prompt: str):
 
 
 @router.post("/sessions/{session_id}/activity/stop")
-async def record_agent_stop(session_id: str, response: str = ""):
+async def record_agent_stop(session_id: str, response: str = "") -> JsonResponse:
     """Record an agent stop event (for hook integration).
 
     This endpoint is called by the Claude Code hook system when
