@@ -6,6 +6,17 @@
 
 ### Fixed
 
+## [5.6.6] - 2026-01-17
+
+### Fixed
+- **Lazy yaml import for hooks** (#211) - Performance improvement by deferring yaml import
+- **uv run --directory flag** (#212) - Correct uv command usage
+- **PM core skills always deployed** (#181) - Deployment consistency improvements
+- **Private repo authentication** (#182) - GitHub access for private repositories
+- **--all flag for deploy-github** (#184) - Better deployment control
+- **Category validation warnings** (#185) - Cleaner console output
+- **Debug logging for skill discovery** (#186) - Enhanced troubleshooting
+
 ## [5.6.5] - 2026-01-16
 
 ### Changed
