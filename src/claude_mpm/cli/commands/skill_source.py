@@ -11,6 +11,7 @@ for better UX. Handles errors gracefully with actionable messages.
 
 import json
 import logging
+import os
 import re
 
 from ...config.skill_sources import SkillSource, SkillSourceConfiguration
@@ -18,6 +19,20 @@ from ...services.skills.git_skill_source_manager import GitSkillSourceManager
 from ...services.skills.skill_discovery_service import SkillDiscoveryService
 
 logger = logging.getLogger(__name__)
+
+
+def _get_github_token() -> str | None:
+    """Get GitHub token from environment variables.
+
+    Checks GITHUB_TOKEN and GH_TOKEN environment variables.
+
+    Returns:
+        GitHub token if found, None otherwise
+
+    Security Note:
+        Token is never logged or printed to avoid exposure.
+    """
+    return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
 def _test_skill_repository_access(source: SkillSource) -> dict:
@@ -58,7 +73,13 @@ def _test_skill_repository_access(source: SkillSource) -> dict:
         # Test GitHub API access
         api_url = f"https://api.github.com/repos/{owner_repo}"
 
-        response = requests.get(api_url, timeout=10)
+        # Build headers with authentication if token available
+        headers = {"Accept": "application/vnd.github+json"}
+        token = _get_github_token()
+        if token:
+            headers["Authorization"] = f"token {token}"
+
+        response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             return {"accessible": True, "error": None}
@@ -68,9 +89,14 @@ def _test_skill_repository_access(source: SkillSource) -> dict:
                 "error": f"Repository not found: {owner_repo}",
             }
         if response.status_code == 403:
+            error_msg = "Access denied (private repository or rate limit)"
+            if not token:
+                error_msg += (
+                    ". Try setting GITHUB_TOKEN environment variable for private repos"
+                )
             return {
                 "accessible": False,
-                "error": "Access denied (private repository or rate limit)",
+                "error": error_msg,
             }
         return {
             "accessible": False,

@@ -16,6 +16,7 @@ Trade-offs:
 - Flexibility: Easy to extend with skills-specific features
 """
 
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +31,20 @@ from claude_mpm.services.agents.sources.git_source_sync_service import (
 from claude_mpm.services.skills.skill_discovery_service import SkillDiscoveryService
 
 logger = get_logger(__name__)
+
+
+def _get_github_token() -> Optional[str]:
+    """Get GitHub token from environment variables.
+
+    Checks GITHUB_TOKEN and GH_TOKEN environment variables.
+
+    Returns:
+        GitHub token if found, None otherwise
+
+    Security Note:
+        Token is never logged or printed to avoid exposure.
+    """
+    return os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
 
 
 class GitSkillSourceManager:
@@ -217,8 +232,20 @@ class GitSkillSourceManager:
             )
 
             # Discover skills in cache
+            self.logger.debug(f"Scanning cache path for skills: {cache_path}")
             discovery_service = SkillDiscoveryService(cache_path)
             discovered_skills = discovery_service.discover_skills()
+
+            # Log discovery results
+            if len(discovered_skills) == 0:
+                self.logger.info(
+                    f"No SKILL.md files found in {cache_path}. "
+                    "Ensure your skill source has SKILL.md files with valid frontmatter."
+                )
+            else:
+                self.logger.debug(
+                    f"Successfully parsed {len(discovered_skills)} skills from {cache_path}"
+                )
 
             # Build result
             result = {
@@ -596,9 +623,14 @@ class GitSkillSourceManager:
             )
             self.logger.debug(f"Fetching commit SHA from {refs_url}")
 
-            refs_response = requests.get(
-                refs_url, headers={"Accept": "application/vnd.github+json"}, timeout=30
-            )
+            # Build headers with authentication if token available
+            headers = {"Accept": "application/vnd.github+json"}
+            token = _get_github_token()
+            if token:
+                headers["Authorization"] = f"token {token}"
+                self.logger.debug("Using GitHub token for authentication")
+
+            refs_response = requests.get(refs_url, headers=headers, timeout=30)
 
             # Check for rate limiting
             if refs_response.status_code == 403:
@@ -621,7 +653,7 @@ class GitSkillSourceManager:
             self.logger.debug(f"Fetching recursive tree from {tree_url}")
             tree_response = requests.get(
                 tree_url,
-                headers={"Accept": "application/vnd.github+json"},
+                headers=headers,  # Reuse headers with auth from Step 1
                 params=params,
                 timeout=30,
             )
@@ -691,6 +723,11 @@ class GitSkillSourceManager:
         headers = {}
         if cached_etag and not force:
             headers["If-None-Match"] = cached_etag
+
+        # Add GitHub authentication if token available
+        token = _get_github_token()
+        if token:
+            headers["Authorization"] = f"token {token}"
 
         try:
             response = requests.get(url, headers=headers, timeout=30)
