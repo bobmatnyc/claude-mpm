@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.10] - 2026-01-17
+
+### Fixed
+- **PM browser tool delegation** - Added claude-in-chrome and playwright to forbidden tools, must delegate to web-qa (#214)
+
 ## [5.6.9] - 2026-01-17
 
 ### Fixed
