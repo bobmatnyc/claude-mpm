@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.9] - 2026-01-17
+
+### Fixed
+- **Commander tmux pane exhaustion** - Returns HTTP 409 with helpful message instead of 500 (#209)
+
 ## [5.6.8] - 2026-01-17
 
 ### Fixed
