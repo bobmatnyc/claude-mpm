@@ -246,14 +246,15 @@ async def sync_sessions():
     }
 
 
-@router.post("/sessions/{session_id}/open-iterm")
-async def open_session_in_iterm(session_id: str):
-    """Open the session's tmux window in iTerm.
+@router.post("/sessions/{session_id}/open-terminal")
+async def open_session_in_terminal(session_id: str, terminal: str = "iterm"):
+    """Open the session's tmux window in the specified terminal.
 
-    Uses AppleScript to open iTerm and attach to the tmux session.
+    Uses AppleScript (macOS) to open the terminal and attach to the tmux session.
 
     Args:
         session_id: Unique session identifier
+        terminal: Terminal to use (iterm, terminal, warp, alacritty, kitty)
 
     Returns:
         Success status
@@ -276,23 +277,67 @@ async def open_session_in_iterm(session_id: str):
     if session is None:
         raise SessionNotFoundError(session_id)
 
-    # AppleScript to open iTerm and attach to tmux session
-    applescript = f'''
-    tell application "iTerm"
-        activate
-        create window with default profile
-        tell current session of current window
-            write text "tmux attach -t {tmux_orch.session_name}"
-        end tell
-    end tell
-    '''
+    tmux_cmd = f"tmux attach -t {tmux_orch.session_name}"
+
+    # Terminal-specific AppleScripts
+    applescripts = {
+        "iterm": f'''
+            tell application "iTerm"
+                activate
+                create window with default profile
+                tell current session of current window
+                    write text "{tmux_cmd}"
+                end tell
+            end tell
+        ''',
+        "terminal": f'''
+            tell application "Terminal"
+                activate
+                do script "{tmux_cmd}"
+            end tell
+        ''',
+        "warp": f'''
+            tell application "Warp"
+                activate
+            end tell
+            delay 0.5
+            tell application "System Events"
+                tell process "Warp"
+                    keystroke "{tmux_cmd}"
+                    keystroke return
+                end tell
+            end tell
+        ''',
+        "alacritty": f'''
+            do shell script "open -a Alacritty"
+            delay 0.5
+            tell application "System Events"
+                tell process "Alacritty"
+                    keystroke "{tmux_cmd}"
+                    keystroke return
+                end tell
+            end tell
+        ''',
+        "kitty": f'''
+            do shell script "open -a Kitty"
+            delay 0.5
+            tell application "System Events"
+                tell process "kitty"
+                    keystroke "{tmux_cmd}"
+                    keystroke return
+                end tell
+            end tell
+        '''
+    }
+
+    applescript = applescripts.get(terminal, applescripts["iterm"])
 
     try:
         subprocess.run(["osascript", "-e", applescript], check=True, capture_output=True)  # nosec B603
-        return {"status": "opened", "session_id": session_id, "tmux_session": tmux_orch.session_name}
+        return {"status": "opened", "session_id": session_id, "terminal": terminal, "tmux_session": tmux_orch.session_name}
     except subprocess.CalledProcessError as e:
-        logger.warning(f"Failed to open iTerm for session {session_id}: {e}")
-        return {"status": "error", "error": str(e.stderr.decode() if e.stderr else e)}
+        logger.warning(f"Failed to open {terminal} for session {session_id}: {e}")
+        return {"status": "error", "terminal": terminal, "error": str(e.stderr.decode() if e.stderr else e)}
 
 
 @router.post("/sessions/{session_id}/keys")

@@ -33,6 +33,10 @@
             <button onclick="showRegisterModal()" class="bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-sm font-medium transition">
                 + Project
             </button>
+            <!-- Settings -->
+            <button onclick="showSettingsModal()" class="bg-gray-700 hover:bg-gray-600 px-2 py-1.5 rounded text-sm transition" title="Settings">
+                ⚙️
+            </button>
         </div>
     </header>
 
@@ -68,8 +72,8 @@
                         <button onclick="sendText()" class="action-btn">Send</button>
                     </div>
                     <div class="border-l border-gray-700 h-6 mx-2"></div>
-                    <button onclick="openInITerm()" class="action-btn bg-green-700 hover:bg-green-600" title="Open in iTerm">
-                        <span class="mr-1">🖥️</span>iTerm
+                    <button onclick="openInTerminal()" class="action-btn bg-green-700 hover:bg-green-600" title="Open in Terminal">
+                        <span class="mr-1">🖥️</span>Terminal
                     </button>
                 </div>
             </div>
@@ -141,6 +145,65 @@
             <div class="flex justify-end gap-2">
                 <button onclick="hideRegisterModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
                 <button onclick="registerProject()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Add Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 w-[450px] shadow-2xl">
+            <h3 class="text-lg font-semibold mb-4">⚙️ Settings</h3>
+
+            <!-- Terminal Selection -->
+            <div class="mb-4">
+                <label class="text-sm text-gray-400 mb-2 block">Preferred Terminal</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal" value="iterm" class="text-blue-500">
+                        <span class="text-xl">🖥️</span>
+                        <div>
+                            <div class="font-medium">iTerm2</div>
+                            <div class="text-xs text-gray-400">macOS - Feature-rich terminal</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal" value="terminal" class="text-blue-500">
+                        <span class="text-xl">⬛</span>
+                        <div>
+                            <div class="font-medium">Terminal.app</div>
+                            <div class="text-xs text-gray-400">macOS - Built-in terminal</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal" value="warp" class="text-blue-500">
+                        <span class="text-xl">🚀</span>
+                        <div>
+                            <div class="font-medium">Warp</div>
+                            <div class="text-xs text-gray-400">macOS - Modern AI-powered terminal</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal" value="alacritty" class="text-blue-500">
+                        <span class="text-xl">🔲</span>
+                        <div>
+                            <div class="font-medium">Alacritty</div>
+                            <div class="text-xs text-gray-400">Cross-platform - GPU-accelerated</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal" value="kitty" class="text-blue-500">
+                        <span class="text-xl">🐱</span>
+                        <div>
+                            <div class="font-medium">Kitty</div>
+                            <div class="text-xs text-gray-400">Cross-platform - Fast, feature-rich</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="hideSettingsModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Save</button>
             </div>
         </div>
     </div>

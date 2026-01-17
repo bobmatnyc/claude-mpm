@@ -294,15 +294,16 @@ async function createSession(projectId) {
     }
 }
 
-async function openInITerm() {
+async function openInTerminal() {
     if (!state.currentSession) return;
+    const terminal = getPreferredTerminal();
     try {
-        await fetchAPI(`/sessions/${state.currentSession}/open-iterm`, {
+        await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=${terminal}`, {
             method: 'POST'
         });
-        log('Opened in iTerm');
+        log(`Opened in ${terminal}`);
     } catch (err) {
-        log(`Failed to open iTerm: ${err.message}`, 'error');
+        log(`Failed to open terminal: ${err.message}`, 'error');
     }
 }
 
@@ -466,6 +467,33 @@ async function registerProject() {
     } catch (err) {
         alert('Failed to register: ' + err.message);
     }
+}
+
+// =============================================================================
+// Settings Modal
+// =============================================================================
+
+function showSettingsModal() {
+    document.getElementById('settings-modal').classList.remove('hidden');
+    // Load current settings
+    const terminal = localStorage.getItem('preferred-terminal') || 'iterm';
+    const radio = document.querySelector(`input[name="terminal"][value="${terminal}"]`);
+    if (radio) radio.checked = true;
+}
+
+function hideSettingsModal() {
+    document.getElementById('settings-modal').classList.add('hidden');
+}
+
+function saveSettings() {
+    const terminal = document.querySelector('input[name="terminal"]:checked')?.value || 'iterm';
+    localStorage.setItem('preferred-terminal', terminal);
+    hideSettingsModal();
+    log(`Settings saved: Terminal = ${terminal}`);
+}
+
+function getPreferredTerminal() {
+    return localStorage.getItem('preferred-terminal') || 'iterm';
 }
 
 // =============================================================================
