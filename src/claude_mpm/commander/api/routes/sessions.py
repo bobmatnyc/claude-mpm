@@ -246,6 +246,46 @@ async def sync_sessions():
     }
 
 
+@router.post("/sessions/{session_id}/keys")
+async def send_keys_to_session(session_id: str, keys: str, enter: bool = True):
+    """Send keystrokes to a session's tmux pane.
+
+    Args:
+        session_id: Unique session identifier
+        keys: Keys to send (use special values: "C-c" for Ctrl+C, "Escape" for ESC)
+        enter: Whether to send Enter after keys (default: True)
+
+    Returns:
+        Success status
+
+    Raises:
+        SessionNotFoundError: If session_id doesn't exist
+
+    Example:
+        POST /api/sessions/sess-456/keys?keys=hello&enter=true
+    """
+    registry = _get_registry()
+    tmux_orch = _get_tmux()
+
+    # Find session across all projects
+    session = None
+    for project in registry.list_all():
+        if session_id in project.sessions:
+            session = project.sessions[session_id]
+            break
+
+    if session is None:
+        raise SessionNotFoundError(session_id)
+
+    # Send keys to tmux
+    try:
+        tmux_orch.send_keys(session.tmux_target, keys, enter=enter)
+        return {"status": "sent", "keys": keys, "enter": enter}
+    except Exception as e:
+        logger.warning(f"Failed to send keys to session {session_id}: {e}")
+        return {"status": "error", "error": str(e)}
+
+
 @router.get("/sessions/{session_id}/output")
 async def get_session_output(session_id: str, lines: int = 100):
     """Get terminal output from a session.

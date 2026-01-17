@@ -297,8 +297,10 @@ async function createSession(projectId) {
 async function sendEscape() {
     if (!state.currentSession) return;
     try {
-        // TODO: Implement escape endpoint
-        log('ESC sent (not implemented yet)', 'warn');
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=Escape&enter=false`, {
+            method: 'POST'
+        });
+        log('ESC sent');
     } catch (err) {
         log(`Failed to send ESC: ${err.message}`, 'error');
     }
@@ -307,8 +309,10 @@ async function sendEscape() {
 async function sendCtrlC() {
     if (!state.currentSession) return;
     try {
-        // TODO: Implement Ctrl+C endpoint
-        log('Ctrl+C sent (not implemented yet)', 'warn');
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=C-c&enter=false`, {
+            method: 'POST'
+        });
+        log('Ctrl+C sent');
     } catch (err) {
         log(`Failed to send Ctrl+C: ${err.message}`, 'error');
     }
@@ -317,8 +321,10 @@ async function sendCtrlC() {
 async function sendEnter() {
     if (!state.currentSession) return;
     try {
-        // TODO: Implement Enter endpoint
-        log('Enter sent (not implemented yet)', 'warn');
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=&enter=true`, {
+            method: 'POST'
+        });
+        log('Enter sent');
     } catch (err) {
         log(`Failed to send Enter: ${err.message}`, 'error');
     }
@@ -327,12 +333,11 @@ async function sendEnter() {
 async function sendText() {
     const input = document.getElementById('send-text-input');
     const text = input.value.trim();
-    if (!text || !state.currentProject) return;
+    if (!text || !state.currentSession) return;
 
     try {
-        await fetchAPI(`/projects/${state.currentProject}/messages`, {
-            method: 'POST',
-            body: JSON.stringify({ content: text })
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=${encodeURIComponent(text)}&enter=true`, {
+            method: 'POST'
         });
         input.value = '';
         log(`Sent: ${text.substring(0, 30)}...`);
@@ -344,12 +349,11 @@ async function sendText() {
 async function sendQuickMessage() {
     const input = document.getElementById('quick-input');
     const text = input.value.trim();
-    if (!text || !state.currentProject) return;
+    if (!text || !state.currentSession) return;
 
     try {
-        await fetchAPI(`/projects/${state.currentProject}/messages`, {
-            method: 'POST',
-            body: JSON.stringify({ content: text })
+        await fetchAPI(`/sessions/${state.currentSession}/keys?keys=${encodeURIComponent(text)}&enter=true`, {
+            method: 'POST'
         });
         input.value = '';
         log(`Sent message: ${text.substring(0, 30)}...`);
