@@ -1,0 +1,245 @@
+/* =============================================================================
+   MPM Commander Pro - Styles
+   ============================================================================= */
+
+/* Custom Colors */
+:root {
+    --bg-950: #0a0a0f;
+    --bg-900: #111118;
+    --bg-850: #16161d;
+    --bg-800: #1c1c24;
+    --bg-700: #2a2a35;
+    --border-800: #2a2a35;
+    --border-700: #3a3a45;
+}
+
+/* Base */
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Critical: Ensure proper flex layout for output panel */
+#output-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Critical for flex children to respect overflow */
+}
+
+#output-content {
+    flex: 1 1 0;
+    min-height: 0; /* Critical for scrolling to work */
+    overflow-y: auto;
+}
+
+#quick-input-bar {
+    flex-shrink: 0; /* Never shrink the input bar */
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-900);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-700);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a4a55;
+}
+
+/* Tree Panel */
+#tree-panel {
+    background: var(--bg-900);
+}
+
+.project-header:hover {
+    background: var(--bg-800);
+}
+
+.session-item:hover {
+    background: var(--bg-800);
+}
+
+.session-item.selected {
+    background: var(--bg-700);
+}
+
+/* Expand Icon Animation */
+.expand-icon {
+    transition: transform 0.15s ease;
+}
+
+.expand-icon.rotate-90 {
+    transform: rotate(90deg);
+}
+
+/* Output Panel */
+#output-content {
+    background: var(--bg-950);
+    color: #d4d4d4;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ANSI Color Overrides - ensure visibility on dark background */
+#output-content span {
+    /* Let ansi_up handle colors */
+}
+
+/* Action Buttons */
+.action-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #374151;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+
+.action-btn:hover {
+    background: #4b5563;
+}
+
+/* Debug Panel */
+#debug-panel {
+    background: var(--bg-900);
+    overflow: hidden;
+}
+
+#debug-content {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+/* Modal Backdrop */
+#register-modal {
+    backdrop-filter: blur(4px);
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Focus States */
+input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Last Line Preview */
+.last-line {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #tree-panel {
+        width: 100%;
+        max-height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-800);
+    }
+
+    main {
+        flex-direction: column;
+    }
+}
+
+/* Status Badge Colors */
+.status-running {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.status-stopped {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.status-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* Hover transitions */
+button {
+    transition: all 0.15s ease;
+}
+
+/* Tree indentation */
+.sessions-container {
+    margin-left: 12px;
+    padding-left: 8px;
+}
+
+/* Project item hover effect */
+.project-item {
+    border-radius: 6px;
+    margin-bottom: 2px;
+}
+
+/* Selected session highlight */
+.session-item.bg-gray-800 {
+    background: var(--bg-700);
+    border-left: 2px solid #3b82f6;
+    margin-left: -2px;
+}
+
+/* Empty state styling */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6b7280;
+}
+
+/* Quick input bar */
+#quick-input-bar {
+    background: var(--bg-900);
+}
+
+#quick-input {
+    min-height: 40px;
+    max-height: 150px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Keyboard shortcut styling */
+kbd {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+/* Header styling */
+header {
+    background: linear-gradient(to bottom, var(--bg-900), var(--bg-850));
+}
+
+/* Monospace for output */
+#output-content {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', monospace;
+}

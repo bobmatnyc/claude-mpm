@@ -134,67 +134,58 @@ class TmuxOrchestrator:
         return True
 
     def create_pane(self, pane_id: str, working_dir: str) -> str:
-        """Create new pane for a project.
+        """Create new pane for a project (DEPRECATED - use create_window).
 
-        Creates a new split pane in the commander session with the specified
-        working directory.
+        This method is kept for backward compatibility but now creates a window instead.
+        """
+        return self.create_window(pane_id, working_dir)
+
+    def create_window(self, window_name: str, working_dir: str) -> str:
+        """Create new window for a project session.
+
+        Creates a new window in the commander session with the specified
+        working directory. Each session gets its own window to avoid
+        pane size issues.
 
         Args:
-            pane_id: Identifier for this pane (used in logging)
-            working_dir: Working directory for the pane
+            window_name: Name for the window (e.g., project name)
+            working_dir: Working directory for the window
 
         Returns:
-            Tmux target string (pane ID like "%0", "%1", etc.)
+            Tmux target string using pane ID (like "%5") for reliable targeting
 
         Raises:
-            subprocess.CalledProcessError: If pane creation fails
+            subprocess.CalledProcessError: If window creation fails
 
         Example:
             >>> orchestrator = TmuxOrchestrator()
             >>> orchestrator.create_session()
-            >>> target = orchestrator.create_pane("my-project", "/Users/user/projects/my-project")
+            >>> target = orchestrator.create_window("my-project", "/path/to/project")
             >>> print(target)
-            %1
+            %5
         """
-        logger.info(f"Creating pane '{pane_id}' in {working_dir}")
+        logger.info(f"Creating window '{window_name}' in {working_dir}")
 
-        # Split window to create new pane
-        self._run_tmux(
-            [
-                "split-window",
-                "-t",
-                self.session_name,
-                "-c",
-                working_dir,  # Working directory
-                "-P",  # Print target of new pane
-                "-F",
-                "#{pane_id}",  # Format: just pane ID
-            ]
-        )
-
-        # Get the newly created pane's target
-        # List panes and get the last one (most recently created)
+        # Create new window and get the pane ID (more reliable than window name)
         result = self._run_tmux(
             [
-                "list-panes",
+                "new-window",
                 "-t",
                 self.session_name,
+                "-n",
+                window_name,  # Window name (for display)
+                "-c",
+                working_dir,  # Working directory
+                "-P",  # Print info about new window
                 "-F",
-                "#{pane_id}",
+                "#{pane_id}",  # Return the pane ID
             ]
         )
 
-        panes = [p for p in result.stdout.strip().split("\n") if p]
-        if not panes:
-            raise RuntimeError(f"Failed to create pane '{pane_id}'")
-
-        # Get last pane ID (most recently created)
-        # Pane ID already includes % prefix and can be used directly as target
-        new_pane_id = panes[-1]
-        target = new_pane_id  # Use pane ID directly as target
-
-        logger.debug(f"Created pane with target: {target}")
-        return target
+        # Use pane ID as target (format: %N) - unique and reliable
+        pane_id = result.stdout.strip()
+        logger.debug(f"Created window '{window_name}' with pane target: {pane_id}")
+        return pane_id
 
     def send_keys(self, target: str, keys: str, enter: bool = True) -> bool:
         """Send keystrokes to a pane.
@@ -264,78 +255,142 @@ class TmuxOrchestrator:
         return result.stdout
 
     def list_panes(self) -> List[Dict[str, str]]:
-        """List all panes with their status.
+        """List all panes with their status (DEPRECATED - use list_windows).
+
+        Kept for backward compatibility.
+        """
+        return self.list_windows()
+
+    def list_windows(self) -> List[Dict[str, str]]:
+        """List all windows in the commander session.
 
         Returns:
-            List of dicts with pane info (id, path, pid, active)
+            List of dicts with window info (name, path, target/pane_id, active)
 
         Example:
             >>> orchestrator = TmuxOrchestrator()
             >>> orchestrator.create_session()
-            >>> panes = orchestrator.list_panes()
-            >>> for pane in panes:
-            ...     print(f"{pane['id']}: {pane['path']}")
-            %0: /Users/user/projects/proj1
-            %1: /Users/user/projects/proj2
+            >>> windows = orchestrator.list_windows()
+            >>> for win in windows:
+            ...     print(f"{win['name']}: {win['pane_id']}")
+            commander: %0
+            my-project: %5
         """
         if not self.session_exists():
             logger.warning(f"Session '{self.session_name}' does not exist")
             return []
 
-        logger.debug(f"Listing panes for session '{self.session_name}'")
+        logger.debug(f"Listing windows for session '{self.session_name}'")
 
         result = self._run_tmux(
             [
-                "list-panes",
+                "list-windows",
                 "-t",
                 self.session_name,
                 "-F",
-                "#{pane_id}|#{pane_current_path}|#{pane_pid}|#{pane_active}",
+                "#{window_name}|#{pane_current_path}|#{window_active}|#{pane_pid}|#{pane_id}",
             ]
         )
 
-        panes = []
+        windows = []
         for line in result.stdout.strip().split("\n"):
             if not line:
                 continue
 
             parts = line.split("|")
-            if len(parts) >= 4:
-                panes.append(
+            if len(parts) >= 5:
+                window_name = parts[0]
+                pane_id = parts[4]
+                windows.append(
                     {
-                        "id": parts[0],
+                        "name": window_name,
                         "path": parts[1],
-                        "pid": parts[2],
-                        "active": parts[3] == "1",
+                        "target": pane_id,  # Use pane_id as target
+                        "pane_id": pane_id,
+                        "active": parts[2] == "1",
+                        "pid": parts[3],
                     }
                 )
 
-        logger.debug(f"Found {len(panes)} panes")
-        return panes
+        logger.debug(f"Found {len(windows)} windows")
+        return windows
 
     def kill_pane(self, target: str) -> bool:
-        """Kill a specific pane.
+        """Kill a specific pane/window (DEPRECATED - use kill_window).
+
+        Kept for backward compatibility.
+        """
+        return self.kill_window(target)
+
+    def kill_window(self, target: str) -> bool:
+        """Kill a specific window.
 
         Args:
-            target: Tmux target (from create_pane or list_panes)
+            target: Tmux target (from create_window or list_windows)
 
         Returns:
             True if successful
 
         Raises:
-            subprocess.CalledProcessError: If target pane doesn't exist
+            subprocess.CalledProcessError: If target window doesn't exist
 
         Example:
             >>> orchestrator = TmuxOrchestrator()
             >>> orchestrator.create_session()
-            >>> target = orchestrator.create_pane("proj", "/tmp")
-            >>> orchestrator.kill_pane(target)
+            >>> target = orchestrator.create_window("proj", "/tmp")
+            >>> orchestrator.kill_window(target)
             True
         """
-        logger.info(f"Killing pane {target}")
+        logger.info(f"Killing window {target}")
 
-        self._run_tmux(["kill-pane", "-t", target])
+        self._run_tmux(["kill-window", "-t", target])
         return True
+
+    def sync_windows_with_registry(self, registry) -> Dict[str, str]:
+        """Synchronize tmux windows with project registry.
+
+        Checks which windows/panes exist in tmux and updates session status
+        in the registry accordingly. Matches by pane_id (tmux_target).
+
+        Args:
+            registry: ProjectRegistry instance
+
+        Returns:
+            Dict mapping session IDs to their status (found/missing)
+
+        Example:
+            >>> orchestrator = TmuxOrchestrator()
+            >>> sync_result = orchestrator.sync_windows_with_registry(registry)
+            >>> print(sync_result)
+            {'sess-123': 'found', 'sess-456': 'missing'}
+        """
+        logger.info("Synchronizing tmux windows with registry")
+
+        # Get current tmux windows/panes - index by pane_id
+        tmux_panes = {w["pane_id"]: w for w in self.list_windows()}
+        sync_result = {}
+
+        # Check each project's sessions
+        for project in registry.list_all():
+            for session_id, session in project.sessions.items():
+                # tmux_target should be a pane_id like "%5"
+                pane_id = session.tmux_target
+
+                if pane_id and pane_id in tmux_panes:
+                    # Pane exists - update status to running
+                    if session.status != "running":
+                        session.status = "running"
+                        logger.debug(f"Session {session_id} marked as running (pane {pane_id})")
+                    sync_result[session_id] = "found"
+                else:
+                    # Pane missing - update status to stopped
+                    if session.status == "running" or session.status == "initializing":
+                        session.status = "stopped"
+                        logger.debug(f"Session {session_id} marked as stopped (pane {pane_id} not found)")
+                    sync_result[session_id] = "missing"
+
+        logger.info(f"Sync complete: {len(sync_result)} sessions checked")
+        return sync_result
 
     def kill_session(self) -> bool:
         """Kill the entire commander session.

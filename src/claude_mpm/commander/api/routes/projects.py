@@ -4,8 +4,9 @@ This module implements REST endpoints for registering, listing, and managing
 projects in the MPM Commander.
 """
 
+import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Response
 
@@ -58,6 +59,75 @@ def _project_to_response(project) -> ProjectResponse:
         last_activity=project.last_activity,
         created_at=project.created_at,
     )
+
+
+@router.get("/filesystem/browse")
+async def browse_filesystem(path: Optional[str] = None):
+    """Browse filesystem directories for project selection.
+
+    Args:
+        path: Directory path to browse (default: user's home directory)
+
+    Returns:
+        Current path and list of subdirectories
+
+    Example:
+        GET /api/filesystem/browse?path=/Users/user/projects
+        Response: {
+            "current_path": "/Users/user/projects",
+            "parent_path": "/Users/user",
+            "directories": [
+                {"name": "my-app", "path": "/Users/user/projects/my-app", "is_git": true},
+                {"name": "other-project", "path": "/Users/user/projects/other-project", "is_git": false}
+            ]
+        }
+    """
+    # Default to home directory
+    if not path:
+        path = os.path.expanduser("~")
+
+    path_obj = Path(path)
+
+    # Validate path exists and is directory
+    if not path_obj.exists() or not path_obj.is_dir():
+        return {
+            "current_path": str(path_obj),
+            "parent_path": str(path_obj.parent) if path_obj.parent != path_obj else None,
+            "directories": [],
+            "error": "Path does not exist or is not a directory"
+        }
+
+    # Get parent path (unless we're at root)
+    parent_path = str(path_obj.parent) if path_obj.parent != path_obj else None
+
+    # List directories
+    directories = []
+    try:
+        for entry in sorted(path_obj.iterdir()):
+            # Skip hidden directories and files
+            if entry.name.startswith('.'):
+                continue
+            if entry.is_dir():
+                # Check if it's a git repo
+                is_git = (entry / '.git').exists()
+                directories.append({
+                    "name": entry.name,
+                    "path": str(entry),
+                    "is_git": is_git
+                })
+    except PermissionError:
+        return {
+            "current_path": str(path_obj),
+            "parent_path": parent_path,
+            "directories": [],
+            "error": "Permission denied"
+        }
+
+    return {
+        "current_path": str(path_obj),
+        "parent_path": parent_path,
+        "directories": directories
+    }
 
 
 @router.get("/projects", response_model=List[ProjectResponse])

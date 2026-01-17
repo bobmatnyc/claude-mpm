@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..activity_tracker import ActivityTracker
 from ..events.manager import EventManager
 from ..inbox import Inbox
 from ..registry import ProjectRegistry
@@ -27,6 +28,7 @@ event_manager: Optional[EventManager] = None
 inbox: Optional[Inbox] = None
 event_handler: Optional[EventHandler] = None
 session_manager: dict = {}  # project_id -> ProjectSession
+activity_tracker: Optional[ActivityTracker] = None
 
 
 @asynccontextmanager
@@ -42,18 +44,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         None during application runtime
     """
     # Startup
-    global registry, tmux, event_manager, inbox, event_handler, session_manager
+    global \
+        registry, \
+        tmux, \
+        event_manager, \
+        inbox, \
+        event_handler, \
+        session_manager, \
+        activity_tracker
     registry = ProjectRegistry()
     tmux = TmuxOrchestrator()
     event_manager = EventManager()
     inbox = Inbox(event_manager, registry)
     session_manager = {}  # Populated by daemon when sessions are created
     event_handler = EventHandler(inbox, session_manager)
+    activity_tracker = ActivityTracker(poll_interval=1.0)
+    activity_tracker.start_polling()
 
     yield
 
     # Shutdown
-    # No cleanup needed for Phase 1
+    if activity_tracker:
+        activity_tracker.stop_polling()
 
 
 app = FastAPI(
@@ -82,6 +94,7 @@ app.include_router(work.router, prefix="/api", tags=["work"])
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "web" / "static"
+static_v2_path = static_path / "v2"
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
 
@@ -103,3 +116,29 @@ async def root() -> FileResponse:
         HTML page for the web UI
     """
     return FileResponse(static_path / "index.html")
+
+
+@app.get("/v2")
+async def root_v2() -> FileResponse:
+    """Serve the new Pro web UI index page.
+
+    Returns:
+        HTML page for the Pro web UI
+    """
+    return FileResponse(static_v2_path / "index.html")
+
+
+@app.get("/v2/{path:path}")
+async def serve_v2_static(path: str) -> FileResponse:
+    """Serve static files for v2 UI.
+
+    Args:
+        path: Relative path to the static file
+
+    Returns:
+        The requested static file
+    """
+    file_path = static_v2_path / path
+    if file_path.exists():
+        return FileResponse(file_path)
+    return FileResponse(static_v2_path / "index.html")

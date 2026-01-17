@@ -142,7 +142,25 @@ async def send_message(project_id: str, req: SendMessageRequest) -> MessageRespo
     # Update last activity
     registry.touch(project_id)
 
-    # TODO: Send to session/runtime adapter (Phase 2)
-    # For Phase 1, message is just stored in thread
+    # Send to tmux session if available
+    if project.sessions:
+        from ..app import tmux
+
+        # Get target session (specified or first available)
+        target_session = None
+        if req.session_id and req.session_id in project.sessions:
+            target_session = project.sessions[req.session_id]
+        else:
+            # Use first running session
+            for sess in project.sessions.values():
+                if sess.status in ("running", "initializing"):
+                    target_session = sess
+                    break
+
+        if target_session and tmux:
+            try:
+                tmux.send_keys(target_session.tmux_target, req.content)
+            except Exception:
+                pass  # Best effort - don't fail if tmux fails
 
     return _message_to_response(message)
