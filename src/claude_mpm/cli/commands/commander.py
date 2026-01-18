@@ -53,20 +53,50 @@ def display_commander_banner():
     print(banner)
 
 
+def _count_deployed_agents() -> int:
+    """Count deployed agents from .claude/agents/."""
+    try:
+        deploy_target = Path.cwd() / ".claude" / "agents"
+        if not deploy_target.exists():
+            return 0
+        agent_files = [
+            f
+            for f in deploy_target.glob("*.md")
+            if not f.name.startswith(("README", "INSTRUCTIONS", "."))
+        ]
+        return len(agent_files)
+    except Exception:
+        return 0
+
+
+def _count_mpm_skills() -> int:
+    """Count user-level MPM skills from ~/.claude/skills/."""
+    try:
+        user_skills_dir = Path.home() / ".claude" / "skills"
+        if not user_skills_dir.exists():
+            return 0
+        skill_count = 0
+        for item in user_skills_dir.iterdir():
+            if item.is_dir():
+                skill_file = item / "SKILL.md"
+                if skill_file.exists():
+                    skill_count += 1
+            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
+                skill_count += 1
+        return skill_count
+    except Exception:
+        return 0
+
+
 def load_agents_and_skills():
     """Load agents and skills for Commander sessions."""
     try:
-        from claude_mpm.agents.loader import get_agent_registry
-        from claude_mpm.skills.loader import get_skill_registry
-
         print(f"{DIM}Loading agents...{RESET}", end=" ", flush=True)
-        agent_registry = get_agent_registry()
-        agent_count = len(agent_registry.list_agents()) if agent_registry else 0
+        agent_count = _count_deployed_agents()
         print(f"{GREEN}✓{RESET} {agent_count} agents")
 
         print(f"{DIM}Loading skills...{RESET}", end=" ", flush=True)
-        skill_registry = get_skill_registry()
-        skill_count = len(skill_registry.list_skills()) if skill_registry else 0
+        skill_count = _count_mpm_skills()
         print(f"{GREEN}✓{RESET} {skill_count} skills")
 
         return agent_count, skill_count
