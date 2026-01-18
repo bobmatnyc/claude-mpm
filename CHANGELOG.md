@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.18] - 2026-01-18
+
+### Fixed
+- Fix deployment state path mismatch
+
 ## [5.6.17] - 2026-01-18
 
 ### Fixed
