@@ -210,7 +210,16 @@ def should_skip_background_services(args, processed_argv):
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands) or (
         hasattr(args, "command")
         and args.command
-        in ["info", "doctor", "config", "mcp", "configure", "hook-errors", "autotodos"]
+        in [
+            "info",
+            "doctor",
+            "config",
+            "mcp",
+            "configure",
+            "hook-errors",
+            "autotodos",
+            "commander",
+        ]
     )
 
 
