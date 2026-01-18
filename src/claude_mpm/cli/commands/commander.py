@@ -53,37 +53,34 @@ def display_commander_banner():
     print(banner)
 
 
-def _count_deployed_agents() -> int:
-    """Count deployed agents from .claude/agents/."""
+def _count_cached_agents() -> int:
+    """Count cached agents from ~/.claude-mpm/cache/agents/."""
     try:
-        deploy_target = Path.cwd() / ".claude" / "agents"
-        if not deploy_target.exists():
+        cache_agents_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+        if not cache_agents_dir.exists():
             return 0
+        # Recursively find all .md files excluding base/README files
         agent_files = [
             f
-            for f in deploy_target.glob("*.md")
-            if not f.name.startswith(("README", "INSTRUCTIONS", "."))
+            for f in cache_agents_dir.rglob("*.md")
+            if f.is_file()
+            and not f.name.startswith(".")
+            and f.name not in ("README.md", "BASE-AGENT.md", "INSTRUCTIONS.md")
         ]
         return len(agent_files)
     except Exception:
         return 0
 
 
-def _count_mpm_skills() -> int:
-    """Count user-level MPM skills from ~/.claude/skills/."""
+def _count_cached_skills() -> int:
+    """Count cached skills from ~/.claude-mpm/cache/skills/."""
     try:
-        user_skills_dir = Path.home() / ".claude" / "skills"
-        if not user_skills_dir.exists():
+        cache_skills_dir = Path.home() / ".claude-mpm" / "cache" / "skills"
+        if not cache_skills_dir.exists():
             return 0
-        skill_count = 0
-        for item in user_skills_dir.iterdir():
-            if item.is_dir():
-                skill_file = item / "SKILL.md"
-                if skill_file.exists():
-                    skill_count += 1
-            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
-                skill_count += 1
-        return skill_count
+        # Recursively find all directories containing SKILL.md
+        skill_files = list(cache_skills_dir.rglob("SKILL.md"))
+        return len(skill_files)
     except Exception:
         return 0
 
@@ -92,11 +89,11 @@ def load_agents_and_skills():
     """Load agents and skills for Commander sessions."""
     try:
         print(f"{DIM}Loading agents...{RESET}", end=" ", flush=True)
-        agent_count = _count_deployed_agents()
+        agent_count = _count_cached_agents()
         print(f"{GREEN}✓{RESET} {agent_count} agents")
 
         print(f"{DIM}Loading skills...{RESET}", end=" ", flush=True)
-        skill_count = _count_mpm_skills()
+        skill_count = _count_cached_skills()
         print(f"{GREEN}✓{RESET} {skill_count} skills")
 
         return agent_count, skill_count
