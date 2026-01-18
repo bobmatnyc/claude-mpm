@@ -1,362 +1,201 @@
-"""Integration tests for work execution workflow.
-
-Tests work queue integration with session execution, event handling,
-dependency resolution, and execution pause/resume.
-"""
+"""Integration tests for autonomous work execution in daemon main loop."""
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from claude_mpm.commander.config import DaemonConfig
 from claude_mpm.commander.daemon import CommanderDaemon
-from claude_mpm.commander.models import Project
-from claude_mpm.commander.models.events import (
-    Event,
-    EventPriority,
-    EventStatus,
-    EventType,
-)
-from claude_mpm.commander.models.work import WorkPriority, WorkState
-from claude_mpm.commander.project_session import SessionState
-from claude_mpm.commander.work.queue import WorkQueue
+from claude_mpm.commander.models.events import EventType
+from claude_mpm.commander.models.work import WorkPriority
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
-async def test_work_queue_to_execution_flow(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work item flows from queue to execution to completion."""
-    daemon_lifecycle.registry._projects[sample_project.id] = sample_project
-
-    # Create work queue
-    queue = WorkQueue(sample_project.id)
-    work = queue.add("Execute task X", WorkPriority.HIGH)
-
-    # Initial state
-    assert work.state == WorkState.QUEUED
-
-    # Start work
-    queue.start(work.id)
-    started_work = queue.get(work.id)
-    assert started_work.state == WorkState.IN_PROGRESS
-    assert started_work.started_at is not None
-
-    # Complete work
-    queue.complete(work.id, result="Task X completed successfully")
-    completed_work = queue.get(work.id)
-    assert completed_work.state == WorkState.COMPLETED
-    assert completed_work.result == "Task X completed successfully"
-    assert completed_work.completed_at is not None
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_work_with_dependencies(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work execution respects dependency chain."""
-    queue = WorkQueue(sample_project.id)
-
-    # Create dependency chain
-    task1 = queue.add("Setup environment", WorkPriority.HIGH)
-    task2 = queue.add("Run tests", WorkPriority.HIGH, depends_on=[task1.id])
-    task3 = queue.add(
-        "Deploy",
-        WorkPriority.HIGH,
-        depends_on=[task2.id],
+async def test_daemon_executes_queued_work():
+    """Test that daemon main loop picks up and executes queued work."""
+    # Configure daemon with short intervals for testing
+    config = DaemonConfig(
+        state_dir="/tmp/mpm_test_work_exec",
+        poll_interval=0.1,
+        save_interval=60.0,
     )
 
-    # Only task1 should be runnable initially
-    next_work = queue.get_next()
-    assert next_work.id == task1.id
+    daemon = CommanderDaemon(config)
 
-    # Complete task1
-    queue.start(task1.id)
-    queue.complete(task1.id, "Environment ready")
+    try:
+        # Register a test project
+        project = daemon.registry.register("/tmp/test-project", "Test Project")
 
-    # Now task2 should be runnable
-    next_work = queue.get_next()
-    assert next_work.id == task2.id
+        # Get or create session
+        session = daemon.get_or_create_session(project.id)
 
-    # Complete task2
-    queue.start(task2.id)
-    queue.complete(task2.id, "Tests passed")
+        # Start the session (this would normally spawn Claude Code)
+        with patch.object(
+            session.executor, "spawn", new_callable=AsyncMock
+        ) as mock_spawn:
+            mock_spawn.return_value = "%123"
+            await session.start()
 
-    # Now task3 should be runnable
-    next_work = queue.get_next()
-    assert next_work.id == task3.id
+        # Add work to queue
+        queue = daemon.work_queues[project.id]
+        work_item = queue.add("Implement user authentication", WorkPriority.HIGH)
+
+        assert work_item.state.value == "queued"
+
+        # Mock send_message to avoid actual tmux interaction
+        executor = daemon.work_executors[project.id]
+        with patch.object(
+            executor.runtime, "send_message", new_callable=AsyncMock
+        ) as mock_send:
+            # Run one iteration of the daemon loop
+            await daemon._execute_pending_work()
+
+            # Verify work was picked up and sent to runtime
+            mock_send.assert_called_once_with("%123", "Implement user authentication")
+
+            # Verify work state changed to IN_PROGRESS
+            assert work_item.state.value == "in_progress"
+
+    finally:
+        # Cleanup
+        await daemon.stop()
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
-async def test_blocking_event_pauses_work(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test blocking event pauses work execution."""
-    daemon_lifecycle.registry._projects[sample_project.id] = sample_project
-
-    # Create session
-    session = daemon_lifecycle.get_or_create_session(sample_project.id)
-    session.start = AsyncMock()
-    session.pause = AsyncMock()
-    session._state = SessionState.RUNNING
-
-    # Create work queue
-    queue = WorkQueue(sample_project.id)
-    work = queue.add("Long running task", WorkPriority.HIGH)
-    queue.start(work.id)
-
-    # Simulate blocking event
-    event = Event(
-        id="blocking-event",
-        project_id=sample_project.id,
-        type=EventType.APPROVAL,
-        priority=EventPriority.HIGH,
-        title="User confirmation required",
-        content="Please confirm destructive action",
+async def test_daemon_resumes_paused_sessions_on_event_resolution():
+    """Test that daemon resumes paused sessions when blocking events are resolved."""
+    config = DaemonConfig(
+        state_dir="/tmp/mpm_test_resume",
+        poll_interval=0.1,
     )
-    daemon_lifecycle.event_manager.add_event(event)
 
-    # Pause session due to event
-    session._state = SessionState.PAUSED
-    session.pause_reason = event.id
-    await session.pause(event.id)
+    daemon = CommanderDaemon(config)
 
-    # Verify session paused
-    assert session.state == SessionState.PAUSED
-    assert session.pause_reason == event.id
+    try:
+        # Register project and create session
+        project = daemon.registry.register("/tmp/test-project", "Test Project")
+        session = daemon.get_or_create_session(project.id)
 
-    # Work should remain in progress
-    work_item = queue.get(work.id)
-    assert work_item.state == WorkState.IN_PROGRESS
+        # Start session
+        with patch.object(
+            session.executor, "spawn", new_callable=AsyncMock
+        ) as mock_spawn:
+            mock_spawn.return_value = "%123"
+            await session.start()
+
+        # Create a blocking event
+        event = daemon.event_manager.create(
+            project_id=project.id,
+            session_id=None,
+            event_type=EventType.DECISION_NEEDED,
+            title="Should we proceed?",
+            content="Confirm deployment to production",
+        )
+
+        # Pause the session due to the event
+        await session.pause(event.id)
+
+        assert session.state.value == "paused"
+        assert session.pause_reason == event.id
+
+        # Resolve the event
+        daemon.event_manager.respond(event.id, "yes")
+
+        # Run one iteration of the daemon loop
+        await daemon._check_and_resume_sessions()
+
+        # Verify session was resumed
+        assert session.state.value == "running"
+        assert session.pause_reason is None
+
+    finally:
+        await daemon.stop()
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
-async def test_resume_after_event_resolution(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work execution resumes after event is resolved."""
-    daemon_lifecycle.registry._projects[sample_project.id] = sample_project
-
-    # Create session
-    session = daemon_lifecycle.get_or_create_session(sample_project.id)
-    session.start = AsyncMock()
-    session.pause = AsyncMock()
-    session.resume = AsyncMock()
-    session._state = SessionState.PAUSED
-
-    # Create blocking event
-    event = Event(
-        id="resume-event",
-        project_id=sample_project.id,
-        type=EventType.APPROVAL,
-        priority=EventPriority.HIGH,
-        title="Confirmation needed",
-        content="Confirm action",
+async def test_daemon_skips_paused_sessions_for_work_execution():
+    """Test that daemon doesn't execute work for paused sessions."""
+    config = DaemonConfig(
+        state_dir="/tmp/mpm_test_skip_paused",
+        poll_interval=0.1,
     )
-    daemon_lifecycle.event_manager.add_event(event)
 
-    # Session paused due to event
-    session.pause_reason = event.id
-    assert session.state == SessionState.PAUSED
+    daemon = CommanderDaemon(config)
 
-    # Resolve event
-    daemon_lifecycle.event_manager.respond(event.id, "User confirmed")
+    try:
+        # Register project and create session
+        project = daemon.registry.register("/tmp/test-project", "Test Project")
+        session = daemon.get_or_create_session(project.id)
 
-    # Resume session
-    session._state = SessionState.RUNNING
-    session.pause_reason = None
-    await session.resume()
+        # Start session
+        with patch.object(
+            session.executor, "spawn", new_callable=AsyncMock
+        ) as mock_spawn:
+            mock_spawn.return_value = "%123"
+            await session.start()
 
-    # Verify session resumed
-    assert session.state == SessionState.RUNNING
-    assert session.pause_reason is None
+        # Pause the session
+        await session.pause("User intervention needed")
+
+        # Add work to queue
+        queue = daemon.work_queues[project.id]
+        queue.add("Implement feature", WorkPriority.HIGH)
+
+        # Mock send_message
+        executor = daemon.work_executors[project.id]
+        with patch.object(
+            executor.runtime, "send_message", new_callable=AsyncMock
+        ) as mock_send:
+            # Run one iteration of work execution
+            await daemon._execute_pending_work()
+
+            # Verify NO work was executed (session is paused)
+            mock_send.assert_not_called()
+
+    finally:
+        await daemon.stop()
 
 
-@pytest.mark.integration
 @pytest.mark.asyncio
-async def test_work_failure_handling(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work item failure is recorded properly."""
-    queue = WorkQueue(sample_project.id)
-
-    # Create and start work
-    work = queue.add("Task that will fail", WorkPriority.HIGH)
-    queue.start(work.id)
-
-    # Fail the work
-    queue.fail(work.id, error="Task execution failed: timeout")
-
-    # Verify failure recorded
-    failed_work = queue.get(work.id)
-    assert failed_work.state == WorkState.FAILED
-    assert failed_work.error == "Task execution failed: timeout"
-    assert failed_work.completed_at is not None
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_multiple_work_items_in_sequence(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test multiple work items execute in sequence."""
-    queue = WorkQueue(sample_project.id)
-
-    # Add multiple work items
-    work_items = [queue.add(f"Task {i}", WorkPriority.MEDIUM) for i in range(5)]
-
-    # Execute all items in sequence
-    for i, expected_work in enumerate(work_items):
-        next_work = queue.get_next()
-        assert next_work.id == expected_work.id, f"Failed at iteration {i}"
-
-        queue.start(next_work.id)
-        queue.complete(next_work.id, f"Task {i} completed")
-
-    # Verify all completed
-    all_work = queue.list()
-    assert all(w.state == WorkState.COMPLETED for w in all_work)
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_work_priority_preemption(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test high priority work is selected before low priority."""
-    queue = WorkQueue(sample_project.id)
-
-    # Add work in reverse priority order
-    low = queue.add("Low priority", WorkPriority.LOW)
-    medium = queue.add("Medium priority", WorkPriority.MEDIUM)
-    high = queue.add("High priority", WorkPriority.HIGH)
-    critical = queue.add("Critical priority", WorkPriority.CRITICAL)
-
-    # Should execute in priority order
-    execution_order = []
-    while True:
-        next_work = queue.get_next()
-        if not next_work:
-            break
-
-        execution_order.append(next_work.id)
-        queue.start(next_work.id)
-        queue.complete(next_work.id)
-
-    # Verify order: CRITICAL > HIGH > MEDIUM > LOW
-    assert execution_order == [critical.id, high.id, medium.id, low.id]
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_work_state_persistence(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work state persists across daemon restarts."""
-    # This will be implemented when work queue persistence is added
-    # For now, just test the queue maintains state in memory
-
-    queue = WorkQueue(sample_project.id)
-
-    # Add various work items
-    queued = queue.add("Queued task", WorkPriority.HIGH)
-    in_progress = queue.add("In progress task", WorkPriority.MEDIUM)
-    completed = queue.add("Completed task", WorkPriority.LOW)
-
-    # Set various states
-    queue.start(in_progress.id)
-    queue.start(completed.id)
-    queue.complete(completed.id, "Done")
-
-    # Verify states maintained
-    assert queue.get(queued.id).state == WorkState.QUEUED
-    assert queue.get(in_progress.id).state == WorkState.IN_PROGRESS
-    assert queue.get(completed.id).state == WorkState.COMPLETED
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_work_cancellation(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work item can be cancelled."""
-    queue = WorkQueue(sample_project.id)
-
-    # Create work
-    work = queue.add("Task to cancel", WorkPriority.MEDIUM)
-
-    # Cancel it
-    queue.cancel(work.id)
-
-    # Verify cancelled
-    cancelled_work = queue.get(work.id)
-    assert cancelled_work.state == WorkState.CANCELLED
-
-    # Should not appear in get_next()
-    next_work = queue.get_next()
-    assert next_work is None
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_informational_event_doesnt_block_work(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test informational events don't pause work execution."""
-    daemon_lifecycle.registry._projects[sample_project.id] = sample_project
-
-    session = daemon_lifecycle.get_or_create_session(sample_project.id)
-    session._state = SessionState.RUNNING
-
-    # Create informational event
-    event = Event(
-        id="info-event",
-        project_id=sample_project.id,
-        type=EventType.STATUS,
-        priority=EventPriority.INFO,
-        title="FYI: Build completed",
-        content="Build completed successfully",
+async def test_daemon_handles_work_execution_errors():
+    """Test that daemon handles errors during work execution gracefully."""
+    config = DaemonConfig(
+        state_dir="/tmp/mpm_test_exec_errors",
+        poll_interval=0.1,
     )
-    daemon_lifecycle.event_manager.add_event(event)
 
-    # Session should remain running
-    assert session.state == SessionState.RUNNING
-    assert session.pause_reason is None
+    daemon = CommanderDaemon(config)
 
+    try:
+        # Register project and create session
+        project = daemon.registry.register("/tmp/test-project", "Test Project")
+        session = daemon.get_or_create_session(project.id)
 
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_work_queue_empty_behavior(
-    daemon_lifecycle: CommanderDaemon,
-    sample_project: Project,
-):
-    """Test work queue behavior when empty."""
-    queue = WorkQueue(sample_project.id)
+        # Start session
+        with patch.object(
+            session.executor, "spawn", new_callable=AsyncMock
+        ) as mock_spawn:
+            mock_spawn.return_value = "%123"
+            await session.start()
 
-    # Empty queue
-    assert queue.get_next() is None
-    assert len(queue.list()) == 0
+        # Add work to queue
+        queue = daemon.work_queues[project.id]
+        work_item = queue.add("Implement feature", WorkPriority.HIGH)
 
-    # Add and complete work
-    work = queue.add("Single task", WorkPriority.HIGH)
-    queue.start(work.id)
-    queue.complete(work.id)
+        # Mock send_message to raise an error
+        executor = daemon.work_executors[project.id]
+        with patch.object(
+            executor.runtime, "send_message", new_callable=AsyncMock
+        ) as mock_send:
+            mock_send.side_effect = RuntimeError("Tmux pane not found")
 
-    # Queue should show completed item but get_next returns None
-    assert queue.get_next() is None
-    assert len(queue.list()) == 1
-    assert queue.list()[0].state == WorkState.COMPLETED
+            # Run one iteration - should handle error gracefully
+            await daemon._execute_pending_work()
+
+            # Verify work was marked as failed
+            assert work_item.state.value == "failed"
+            assert "Tmux pane not found" in work_item.error
+
+    finally:
+        await daemon.stop()

@@ -16,8 +16,10 @@ from .api.app import (
 )
 from .config import DaemonConfig
 from .core.block_manager import BlockManager
+from .env_loader import load_env
 from .events.manager import EventManager
 from .inbox import Inbox
+from .models.events import EventStatus
 from .parsing.output_parser import OutputParser
 from .persistence import EventStore, StateStore
 from .project_session import ProjectSession, SessionState
@@ -27,6 +29,9 @@ from .tmux_orchestrator import TmuxOrchestrator
 from .work.executor import WorkExecutor
 from .work.queue import WorkQueue
 from .workflow.event_handler import EventHandler
+
+# Load environment variables at module import
+load_env()
 
 logger = logging.getLogger(__name__)
 
@@ -159,12 +164,16 @@ class CommanderDaemon:
         # Set up signal handlers
         self._setup_signal_handlers()
 
-        # Inject global instances into API app
-        global api_registry, api_tmux, api_event_manager, api_inbox
-        api_registry = self.registry
-        api_tmux = self.orchestrator
-        api_event_manager = self.event_manager
-        api_inbox = self.inbox
+        # Inject daemon instances into API app.state (BEFORE lifespan runs)
+        app.state.registry = self.registry
+        app.state.tmux = self.orchestrator
+        app.state.event_manager = self.event_manager
+        app.state.inbox = self.inbox
+        app.state.work_queues = self.work_queues
+        app.state.daemon_instance = self
+        app.state.session_manager = self.sessions
+        app.state.event_handler = self.event_handler
+        logger.info(f"Injected work_queues dict id: {id(self.work_queues)}")
 
         # Start API server in background
         logger.info(f"Starting API server on {self.config.host}:{self.config.port}")
@@ -257,9 +266,19 @@ class CommanderDaemon:
 
         while self._running:
             try:
-                # TODO: Check for resolved events and resume sessions (Phase 2 Sprint 3)
-                # TODO: Check each ProjectSession for runnable work (Phase 2 Sprint 2)
-                # TODO: Spawn RuntimeExecutors for new work items (Phase 2 Sprint 1)
+                logger.info(f"🔄 Main loop iteration (running={self._running})")
+                logger.info(
+                    f"work_queues dict id: {id(self.work_queues)}, keys: {list(self.work_queues.keys())}"
+                )
+
+                # Check for resolved events and resume sessions
+                await self._check_and_resume_sessions()
+
+                # Check each ProjectSession for runnable work
+                logger.info(
+                    f"Checking for pending work across {len(self.work_queues)} queues"
+                )
+                await self._execute_pending_work()
 
                 # Periodic state persistence
                 current_time = asyncio.get_event_loop().time()
@@ -428,6 +447,117 @@ class CommanderDaemon:
             logger.debug("State saved successfully")
         except Exception as e:
             logger.error(f"Failed to save state: {e}", exc_info=True)
+
+    async def _check_and_resume_sessions(self) -> None:
+        """Check for resolved events and resume paused sessions.
+
+        Iterates through all paused sessions, checks if their blocking events
+        have been resolved, and resumes execution if ready.
+        """
+        for project_id, session in list(self.sessions.items()):
+            # Skip non-paused sessions
+            if session.state != SessionState.PAUSED:
+                continue
+
+            # Check if pause reason (event ID) is resolved
+            if not session.pause_reason:
+                logger.warning(f"Session {project_id} paused with no reason, resuming")
+                await session.resume()
+                continue
+
+            # Check if event is resolved
+            event = self.event_manager.get(session.pause_reason)
+            if event and event.status == EventStatus.RESOLVED:
+                logger.info(
+                    f"Event {event.id} resolved, resuming session for {project_id}"
+                )
+                await session.resume()
+
+                # Unblock any work items that were blocked by this event
+                if project_id in self.work_executors:
+                    executor = self.work_executors[project_id]
+                    queue = self.work_queues[project_id]
+
+                    # Find work items blocked by this event
+                    blocked_items = [
+                        item
+                        for item in queue.list()
+                        if item.state.value == "blocked"
+                        and item.metadata.get("block_reason") == event.id
+                    ]
+
+                    for item in blocked_items:
+                        await executor.handle_unblock(item.id)
+                        logger.info(f"Unblocked work item {item.id}")
+
+    async def _execute_pending_work(self) -> None:
+        """Execute pending work for all ready sessions.
+
+        Scans all work queues for pending work. For projects with work but no session,
+        auto-creates a session. Then executes the next available work item via WorkExecutor.
+        """
+        # First pass: Auto-create and start sessions for projects with pending work
+        for project_id, queue in list(self.work_queues.items()):
+            logger.info(
+                f"Checking queue for {project_id}: pending={queue.pending_count}"
+            )
+            # Skip if no pending work
+            if queue.pending_count == 0:
+                continue
+
+            # Auto-create session if needed
+            if project_id not in self.sessions:
+                try:
+                    logger.info(
+                        f"Auto-creating session for project {project_id} with pending work"
+                    )
+                    session = self.get_or_create_session(project_id)
+
+                    # Start the session so it's ready for work
+                    if session.state.value == "idle":
+                        logger.info(f"Auto-starting session for {project_id}")
+                        await session.start()
+                except Exception as e:
+                    logger.error(
+                        f"Failed to auto-create/start session for {project_id}: {e}",
+                        exc_info=True,
+                    )
+                    continue
+
+        # Second pass: Execute work for ready sessions
+        for project_id, session in list(self.sessions.items()):
+            # Skip sessions that aren't ready for work
+            if not session.is_ready():
+                continue
+
+            # Skip if no work queue exists
+            if project_id not in self.work_queues:
+                continue
+
+            # Get work executor for project
+            executor = self.work_executors.get(project_id)
+            if not executor:
+                logger.warning(
+                    f"No work executor found for project {project_id}, skipping"
+                )
+                continue
+
+            # Check if there's work available
+            queue = self.work_queues[project_id]
+            if queue.pending_count == 0:
+                continue
+
+            # Try to execute next work item
+            try:
+                # Pass the session's active pane for execution
+                executed = await executor.execute_next(pane_target=session.active_pane)
+                if executed:
+                    logger.info(f"Started work execution for project {project_id}")
+            except Exception as e:
+                logger.error(
+                    f"Error executing work for project {project_id}: {e}",
+                    exc_info=True,
+                )
 
 
 async def main(config: Optional[DaemonConfig] = None) -> None:

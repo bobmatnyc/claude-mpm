@@ -7,7 +7,7 @@ projects in the MPM Commander.
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 
 from ...models import ProjectState
 from ..errors import InvalidPathError, ProjectAlreadyExistsError, ProjectNotFoundError
@@ -16,13 +16,11 @@ from ..schemas import ProjectResponse, RegisterProjectRequest, SessionResponse
 router = APIRouter()
 
 
-def _get_registry():
-    """Get registry instance from app global."""
-    from ..app import registry
-
-    if registry is None:
+def _get_registry(request: Request):
+    """Get registry instance from app.state."""
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
 
 
 def _project_to_response(project) -> ProjectResponse:
@@ -61,7 +59,7 @@ def _project_to_response(project) -> ProjectResponse:
 
 
 @router.get("/projects", response_model=List[ProjectResponse])
-async def list_projects() -> List[ProjectResponse]:
+async def list_projects(request: Request) -> List[ProjectResponse]:
     """List all registered projects.
 
     Returns:
@@ -83,13 +81,13 @@ async def list_projects() -> List[ProjectResponse]:
             }
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     projects = registry.list_all()
     return [_project_to_response(p) for p in projects]
 
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
-async def get_project(project_id: str) -> ProjectResponse:
+async def get_project(request: Request, project_id: str) -> ProjectResponse:
     """Get project details by ID.
 
     Args:
@@ -111,7 +109,7 @@ async def get_project(project_id: str) -> ProjectResponse:
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -121,7 +119,9 @@ async def get_project(project_id: str) -> ProjectResponse:
 
 
 @router.post("/projects", response_model=ProjectResponse, status_code=201)
-async def register_project(req: RegisterProjectRequest) -> ProjectResponse:
+async def register_project(
+    request: Request, req: RegisterProjectRequest
+) -> ProjectResponse:
     """Register a new project.
 
     Args:
@@ -148,7 +148,7 @@ async def register_project(req: RegisterProjectRequest) -> ProjectResponse:
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
 
     # Validate path exists and is directory
     path_obj = Path(req.path)
@@ -156,7 +156,7 @@ async def register_project(req: RegisterProjectRequest) -> ProjectResponse:
         raise InvalidPathError(req.path)
 
     try:
-        project = registry.register(req.path, req.name)
+        project = registry.register(req.path, req.name, req.project_id)
         return _project_to_response(project)
     except ValueError as e:
         # Registry raises ValueError for duplicate registration
@@ -168,7 +168,7 @@ async def register_project(req: RegisterProjectRequest) -> ProjectResponse:
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-async def unregister_project(project_id: str) -> Response:
+async def unregister_project(request: Request, project_id: str) -> Response:
     """Unregister a project.
 
     Args:
@@ -184,7 +184,7 @@ async def unregister_project(project_id: str) -> Response:
         DELETE /api/projects/abc-123
         Response: 204 No Content
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
 
     try:
         registry.unregister(project_id)
@@ -194,7 +194,7 @@ async def unregister_project(project_id: str) -> Response:
 
 
 @router.post("/projects/{project_id}/pause", response_model=ProjectResponse)
-async def pause_project(project_id: str) -> ProjectResponse:
+async def pause_project(request: Request, project_id: str) -> ProjectResponse:
     """Pause a project.
 
     Sets project state to PAUSED to prevent automatic work processing.
@@ -217,7 +217,7 @@ async def pause_project(project_id: str) -> ProjectResponse:
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -233,7 +233,7 @@ async def pause_project(project_id: str) -> ProjectResponse:
 
 
 @router.post("/projects/{project_id}/resume", response_model=ProjectResponse)
-async def resume_project(project_id: str) -> ProjectResponse:
+async def resume_project(request: Request, project_id: str) -> ProjectResponse:
     """Resume a paused project.
 
     Sets project state back to IDLE to allow work processing.
@@ -256,7 +256,7 @@ async def resume_project(project_id: str) -> ProjectResponse:
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:

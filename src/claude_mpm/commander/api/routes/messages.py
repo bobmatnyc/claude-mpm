@@ -7,7 +7,7 @@ conversation threads for projects.
 import uuid
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ...models import ThreadMessage
 from ..errors import ProjectNotFoundError
@@ -16,13 +16,11 @@ from ..schemas import MessageResponse, SendMessageRequest
 router = APIRouter()
 
 
-def _get_registry():
-    """Get registry instance from app global."""
-    from ..app import registry
-
-    if registry is None:
+def _get_registry(request: Request):
+    """Get registry instance from app.state."""
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
 
 
 def _message_to_response(message: ThreadMessage) -> MessageResponse:
@@ -44,7 +42,7 @@ def _message_to_response(message: ThreadMessage) -> MessageResponse:
 
 
 @router.get("/projects/{project_id}/thread", response_model=List[MessageResponse])
-async def get_thread(project_id: str) -> List[MessageResponse]:
+async def get_thread(request: Request, project_id: str) -> List[MessageResponse]:
     """Get conversation thread for a project.
 
     Returns all messages in chronological order.
@@ -77,7 +75,7 @@ async def get_thread(project_id: str) -> List[MessageResponse]:
             }
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -90,7 +88,9 @@ async def get_thread(project_id: str) -> List[MessageResponse]:
 @router.post(
     "/projects/{project_id}/messages", response_model=MessageResponse, status_code=201
 )
-async def send_message(project_id: str, req: SendMessageRequest) -> MessageResponse:
+async def send_message(
+    request: Request, project_id: str, req: SendMessageRequest
+) -> MessageResponse:
     """Send a message to a project's active session.
 
     Adds message to conversation thread and sends to specified or active session.
@@ -119,7 +119,7 @@ async def send_message(project_id: str, req: SendMessageRequest) -> MessageRespo
             "timestamp": "2025-01-12T10:00:00Z"
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:

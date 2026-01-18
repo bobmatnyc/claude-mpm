@@ -9,7 +9,7 @@ import subprocess  # nosec B404 - needed for tmux error handling
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 
 from ...models import ToolSession
 from ..errors import (
@@ -27,22 +27,18 @@ logger = logging.getLogger(__name__)
 VALID_RUNTIMES = {"claude-code"}
 
 
-def _get_registry():
-    """Get registry instance from app global."""
-    from ..app import registry
-
-    if registry is None:
+def _get_registry(request: Request):
+    """Get registry instance from app.state."""
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
 
 
-def _get_tmux():
-    """Get tmux orchestrator instance from app global."""
-    from ..app import tmux
-
-    if tmux is None:
+def _get_tmux(request: Request):
+    """Get tmux orchestrator instance from app.state."""
+    if not hasattr(request.app.state, "tmux") or request.app.state.tmux is None:
         raise RuntimeError("Tmux orchestrator not initialized")
-    return tmux
+    return request.app.state.tmux
 
 
 def _session_to_response(session: ToolSession) -> SessionResponse:
@@ -65,7 +61,7 @@ def _session_to_response(session: ToolSession) -> SessionResponse:
 
 
 @router.get("/projects/{project_id}/sessions", response_model=List[SessionResponse])
-async def list_sessions(project_id: str) -> List[SessionResponse]:
+async def list_sessions(request: Request, project_id: str) -> List[SessionResponse]:
     """List all sessions for a project.
 
     Args:
@@ -90,7 +86,7 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
             }
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -103,7 +99,9 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
 @router.post(
     "/projects/{project_id}/sessions", response_model=SessionResponse, status_code=201
 )
-async def create_session(project_id: str, req: CreateSessionRequest) -> SessionResponse:
+async def create_session(
+    request: Request, project_id: str, req: CreateSessionRequest
+) -> SessionResponse:
     """Create a new session for a project.
 
     Creates a new tmux pane and initializes the specified runtime adapter.
@@ -135,8 +133,8 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
             "created_at": "2025-01-12T10:00:00Z"
         }
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Validate project exists
     project = registry.get(project_id)
@@ -181,7 +179,7 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
 
 
 @router.delete("/sessions/{session_id}", status_code=204)
-async def stop_session(session_id: str) -> Response:
+async def stop_session(request: Request, session_id: str) -> Response:
     """Stop and remove a session.
 
     Kills the tmux pane and removes the session from its project.
@@ -199,8 +197,8 @@ async def stop_session(session_id: str) -> Response:
         DELETE /api/sessions/sess-456
         Response: 204 No Content
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Find session across all projects
     session = None
