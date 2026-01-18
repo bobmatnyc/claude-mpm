@@ -11,7 +11,7 @@ defines the interface it needs.
 
 import contextlib
 import os
-import subprocess
+import subprocess  # nosec B404
 import tempfile
 import time
 import uuid
@@ -86,11 +86,12 @@ class OneshotSession:
         Returns:
             True if successful, False otherwise
         """
-        # Deploy system agents
-        if not self.runner.setup_agents():
-            print("Continuing without native agents...")
+        # NOTE: System agents are deployed via reconciliation during startup.
+        # The reconciliation process respects user configuration and handles
+        # both native and custom mode deployment. No need to call setup_agents() here.
 
-        # Deploy project-specific agents
+        # Deploy project-specific agents from .claude-mpm/agents/
+        # This is separate from system agents and handles user-defined agents
         self.runner.deploy_project_agents_to_claude()
 
         return True
@@ -225,7 +226,7 @@ class OneshotSession:
             if len(cmd) > 5:
                 self.logger.debug(f"Command has {len(cmd)} arguments total")
 
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 cmd, capture_output=True, text=True, env=env, check=False
             )
 

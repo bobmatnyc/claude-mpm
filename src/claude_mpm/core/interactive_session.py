@@ -143,11 +143,12 @@ class InteractiveSession:
             Tuple of (success, environment_dict)
         """
         try:
-            # Deploy system agents
-            if not self.runner.setup_agents():
-                print("Continuing without native agents...")
+            # NOTE: System agents are deployed via reconciliation during startup.
+            # The reconciliation process respects user configuration and handles
+            # both native and custom mode deployment. No need to call setup_agents() here.
 
-            # Deploy project-specific agents
+            # Deploy project-specific agents from .claude-mpm/agents/
+            # This is separate from system agents and handles user-defined agents
             self.runner.deploy_project_agents_to_claude()
 
             # Build command
