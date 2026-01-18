@@ -887,16 +887,22 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                 if result.returncode == 0:
                     content = result.stdout
 
+                    # Fix 2: Remove trailing whitespace from each line
+                    # tmux capture-pane pads lines to full width which causes layout issues
+                    lines = content.split("\n")
+                    content = "\n".join(line.rstrip() for line in lines)
+
                     # Only send if changed
                     if content != last_content:
                         frame_count += 1
 
-                        # Send frame update with clear screen and cursor home
+                        # Send frame update with terminal reset
                         # \x1b[?25l = hide cursor during redraw
-                        # \x1b[2J = clear screen
-                        # \x1b[H = cursor home
+                        # \x1bc = RIS (Reset to Initial State) - clears screen AND scrollback buffer
+                        #        This fixes the vertical offset issue where old content accumulated
                         # \x1b[?25h = show cursor after redraw
-                        frame_data = f"\x1b[?25l\x1b[2J\x1b[H{content}\x1b[?25h"
+                        # Note: \x1bc also resets cursor to 0,0 so \x1b[H is not needed
+                        frame_data = f"\x1b[?25l\x1bc{content}\x1b[?25h"
                         await websocket.send_text(frame_data)
                         last_content = content
 

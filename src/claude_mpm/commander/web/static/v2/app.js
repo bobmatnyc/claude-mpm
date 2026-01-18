@@ -1253,7 +1253,7 @@ async function openBrowserTerminal() {
                 brightWhite: '#ffffff'
             },
             allowProposedApi: true,
-            scrollback: 1000,  // Allow some scrollback for reviewing history
+            scrollback: 0,  // Fix 3: Disabled - xterm.js mirrors tmux pane, no scrollback needed
             disableStdin: false,
             convertEol: false,  // Don't convert EOL - tmux handles this
             windowsMode: false
