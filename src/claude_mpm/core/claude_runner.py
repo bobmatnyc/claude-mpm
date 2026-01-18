@@ -1,5 +1,7 @@
 """Claude runner with both exec and subprocess launch methods."""
 
+import hashlib
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -211,9 +213,137 @@ class ClaudeRunner:
                 }
             )
 
+    def _get_deployment_state_path(self) -> Path:
+        """Get path to deployment state file."""
+        return Path.cwd() / ".claude" / "agents" / ".deployment-state.json"
+
+    def _calculate_deployment_hash(self, agents_dir: Path) -> str:
+        """Calculate hash of all agent files for change detection.
+
+        Args:
+            agents_dir: Directory containing agent .md files
+
+        Returns:
+            SHA256 hash of agent file contents
+        """
+        if not agents_dir.exists():
+            return ""
+
+        # Get all .md files sorted for consistent hashing
+        agent_files = sorted(agents_dir.glob("*.md"))
+
+        hash_obj = hashlib.sha256()
+        for agent_file in agent_files:
+            # Include filename and content in hash
+            hash_obj.update(agent_file.name.encode())
+            try:
+                hash_obj.update(agent_file.read_bytes())
+            except Exception as e:
+                self.logger.debug(f"Error reading {agent_file} for hash: {e}")
+
+        return hash_obj.hexdigest()
+
+    def _check_deployment_state(self) -> bool:
+        """Check if agents are already deployed and up-to-date.
+
+        Returns:
+            True if agents are already deployed and match current version, False otherwise
+        """
+        state_file = self._get_deployment_state_path()
+        agents_dir = Path.cwd() / ".claude" / "agents"
+
+        # If state file doesn't exist, need to deploy
+        if not state_file.exists():
+            return False
+
+        # If agents directory doesn't exist, need to deploy
+        if not agents_dir.exists():
+            return False
+
+        try:
+            # Load deployment state
+            state_data = json.loads(state_file.read_text())
+
+            # Get current version from package
+            from claude_mpm import __version__
+
+            # Check if version matches
+            if state_data.get("version") != __version__:
+                self.logger.debug(
+                    f"Version mismatch: {state_data.get('version')} != {__version__}"
+                )
+                return False
+
+            # Check if agent count and hash match
+            current_hash = self._calculate_deployment_hash(agents_dir)
+            stored_hash = state_data.get("deployment_hash", "")
+
+            if current_hash != stored_hash:
+                self.logger.debug("Agent deployment hash mismatch")
+                return False
+
+            # All checks passed - agents are already deployed
+            agent_count = state_data.get("agent_count", 0)
+            self.logger.debug(
+                f"Agents already deployed: {agent_count} agents (v{__version__})"
+            )
+            return True
+
+        except Exception as e:
+            self.logger.debug(f"Error checking deployment state: {e}")
+            return False
+
+    def _save_deployment_state(self, agent_count: int) -> None:
+        """Save current deployment state.
+
+        Args:
+            agent_count: Number of agents deployed
+        """
+        state_file = self._get_deployment_state_path()
+        agents_dir = Path.cwd() / ".claude" / "agents"
+
+        try:
+            import time
+
+            from claude_mpm import __version__
+
+            # Calculate deployment hash
+            deployment_hash = self._calculate_deployment_hash(agents_dir)
+
+            # Create state data
+            state_data = {
+                "version": __version__,
+                "agent_count": agent_count,
+                "deployment_hash": deployment_hash,
+                "deployed_at": time.time(),
+            }
+
+            # Ensure directory exists
+            state_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write state file
+            state_file.write_text(json.dumps(state_data, indent=2))
+            self.logger.debug(f"Saved deployment state: {agent_count} agents")
+
+        except Exception as e:
+            self.logger.debug(f"Error saving deployment state: {e}")
+
     def setup_agents(self) -> bool:
         """Deploy native agents to .claude/agents/."""
         try:
+            # Check if agents are already deployed and up-to-date
+            if self._check_deployment_state():
+                agents_dir = Path.cwd() / ".claude" / "agents"
+                agent_count = len(list(agents_dir.glob("*.md")))
+                print(f"✓ Agents: {agent_count} cached")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        f"Agents already deployed: {agent_count} cached",
+                        level="INFO",
+                        component="deployment",
+                    )
+                return True
+
             if self.project_logger:
                 self.project_logger.log_system(
                     "Starting agent deployment", level="INFO", component="deployment"
@@ -239,6 +369,12 @@ class ClaudeRunner:
 
                 # Set Claude environment
                 self.deployment_service.set_claude_environment()
+
+                # Save deployment state for future runs
+                agents_dir = Path.cwd() / ".claude" / "agents"
+                total_agents = len(list(agents_dir.glob("*.md")))
+                self._save_deployment_state(total_agents)
+
                 return True
             self.logger.info("All agents already up to date")
             if self.project_logger:
@@ -247,6 +383,13 @@ class ClaudeRunner:
                     level="INFO",
                     component="deployment",
                 )
+
+            # Save deployment state even if no changes
+            agents_dir = Path.cwd() / ".claude" / "agents"
+            if agents_dir.exists():
+                total_agents = len(list(agents_dir.glob("*.md")))
+                self._save_deployment_state(total_agents)
+
             return True
 
         except PermissionError as e:
