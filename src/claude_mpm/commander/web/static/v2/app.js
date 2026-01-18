@@ -1307,7 +1307,7 @@ async function openBrowserTerminal() {
             state.browserTerminal.focus();
         };
 
-        // Track if we've received pane size and cleared scrollback
+        // Track if we've received pane size
         let paneConfigured = false;
         let serverPaneCols = 80;
         let serverPaneRows = 24;
@@ -1332,11 +1332,7 @@ async function openBrowserTerminal() {
 
                         // Resize xterm.js to match the tmux pane exactly
                         if (state.browserTerminal) {
-                            // Clear any existing content first
-                            state.browserTerminal.clear();
-                            state.browserTerminal.reset();
-
-                            // Now resize to match pane
+                            // Resize to match pane dimensions
                             state.browserTerminal.resize(serverPaneCols, serverPaneRows);
                             log(`Terminal configured: ${serverPaneCols}x${serverPaneRows}`);
                             paneConfigured = true;
