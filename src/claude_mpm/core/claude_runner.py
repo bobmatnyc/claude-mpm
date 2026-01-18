@@ -215,7 +215,7 @@ class ClaudeRunner:
 
     def _get_deployment_state_path(self) -> Path:
         """Get path to deployment state file."""
-        return Path.cwd() / ".claude" / "agents" / ".deployment-state.json"
+        return Path.cwd() / ".claude-mpm" / "deployment-state.json"
 
     def _calculate_deployment_hash(self, agents_dir: Path) -> str:
         """Calculate hash of all agent files for change detection.
