@@ -258,15 +258,17 @@ header {
 
 #xterm-container {
     padding: 4px 8px;
-    /* Height is determined by xterm.js based on server pane dimensions */
-    /* We use min-height to ensure container doesn't collapse */
-    min-height: 200px;
+    /* Height is set dynamically by JavaScript based on terminal rows */
+    /* min-height is a fallback before dimensions are calculated */
+    min-height: 100px;
     overflow: hidden;
+    /* Ensure no extra space around terminal */
+    display: flex;
+    align-items: flex-start;
 }
 
-/* xterm.js overrides - ensure terminal fills container properly */
+/* xterm.js overrides - terminal uses its own calculated dimensions */
 .xterm {
-    height: 100% !important;
     padding: 0 !important;
 }
 
@@ -277,7 +279,7 @@ header {
 }
 
 .xterm-screen {
-    height: 100% !important;
+    /* Let xterm.js determine screen size based on cols/rows */
 }
 
 /* Ensure text is visible */

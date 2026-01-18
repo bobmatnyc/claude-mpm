@@ -1214,92 +1214,21 @@ async function openBrowserTerminal() {
     container.innerHTML = '';  // Clear any previous content
 
     try {
-        // Create terminal instance
-        // Note: We use minimal scrollback since we're mirroring a tmux pane
-        // which has its own scrollback. The terminal acts as a "viewport".
-        state.browserTerminal = new Terminal({
-            cursorBlink: true,
-            cursorStyle: 'block',
-            fontSize: 13,
-            fontFamily: "'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
-            lineHeight: 1.0,
-            letterSpacing: 0,
-            theme: {
-                background: '#0a0a0f',
-                foreground: '#e4e4e7',
-                cursor: '#f4f4f5',
-                cursorAccent: '#0a0a0f',
-                selectionBackground: 'rgba(59, 130, 246, 0.3)',
-                black: '#1e1e1e',
-                red: '#f44747',
-                green: '#6a9955',
-                yellow: '#d7ba7d',
-                blue: '#569cd6',
-                magenta: '#c586c0',
-                cyan: '#4ec9b0',
-                white: '#d4d4d4',
-                brightBlack: '#808080',
-                brightRed: '#f44747',
-                brightGreen: '#6a9955',
-                brightYellow: '#d7ba7d',
-                brightBlue: '#569cd6',
-                brightMagenta: '#c586c0',
-                brightCyan: '#4ec9b0',
-                brightWhite: '#ffffff'
-            },
-            cols: 80,  // Default, will be overridden by server pane_size
-            rows: 24,  // Default, will be overridden by server pane_size
-            scrollback: 0,
-            disableStdin: false,
-            convertEol: false
-        });
-
-        // Add FitAddon for auto-sizing
-        state.terminalFitAddon = new FitAddon.FitAddon();
-        state.browserTerminal.loadAddon(state.terminalFitAddon);
-
-        // Add WebLinksAddon for clickable URLs
-        if (typeof WebLinksAddon !== 'undefined') {
-            const webLinksAddon = new WebLinksAddon.WebLinksAddon();
-            state.browserTerminal.loadAddon(webLinksAddon);
-        }
-
-        // Open terminal in container
-        state.browserTerminal.open(container);
-
-        // Note: We do NOT call fit() initially anymore
-        // The terminal will start with default dimensions (80x24)
-        // and then resize to match the tmux pane when we receive
-        // the pane_size message from the server.
-        // This prevents the browser from breaking Claude Code's UI
-        // by resizing the tmux pane to fit the browser window.
-
-        // We keep ResizeObserver but it no longer triggers resizes
-        state.terminalResizeObserver = new ResizeObserver(() => {
-            // Intentionally empty - terminal size comes from server
-        });
-        state.terminalResizeObserver.observe(container);
-
-        // Connect WebSocket
+        // Connect WebSocket FIRST to get pane dimensions before creating terminal
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${wsProtocol}//${window.location.host}/api/sessions/${state.currentSession}/terminal`;
 
         state.terminalSocket = new WebSocket(wsUrl);
-
         state.terminalSocket.binaryType = 'arraybuffer';
 
+        // Track if terminal is initialized (waiting for pane_size)
+        let terminalInitialized = false;
+        let pendingData = [];
+
         state.terminalSocket.onopen = () => {
-            log('Browser terminal WebSocket connected');
-            statusEl.textContent = 'connected';
-            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400';
-
-            // We no longer send initial size from browser to server
-            // Instead, the server sends us the tmux pane dimensions
-            // via a pane_size message, and we resize xterm.js to match.
-            // This prevents breaking Claude Code's UI by resizing tmux.
-
-            // Focus terminal
-            state.browserTerminal.focus();
+            log('Browser terminal WebSocket connected, waiting for pane_size...');
+            statusEl.textContent = 'syncing...';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
         };
 
         state.terminalSocket.onmessage = (event) => {
@@ -1310,52 +1239,119 @@ async function openBrowserTerminal() {
                 text = event.data;
             }
 
-            // Check for pane_size message from server
-            // This tells us the actual tmux pane dimensions to match
+            // Check for pane_size message from server - this MUST come first
             if (text.startsWith('{"type":"pane_size"')) {
                 try {
                     const msg = JSON.parse(text);
                     if (msg.type === 'pane_size' && msg.cols && msg.rows) {
                         log(`Server pane size: ${msg.cols}x${msg.rows}`);
 
-                        // Resize xterm.js to match the tmux pane exactly
-                        if (state.browserTerminal) {
-                            state.browserTerminal.resize(msg.cols, msg.rows);
-                            log(`Terminal resized to: ${msg.cols}x${msg.rows}`);
+                        if (!terminalInitialized) {
+                            // NOW create the terminal with correct dimensions
+                            state.browserTerminal = new Terminal({
+                                cursorBlink: true,
+                                cursorStyle: 'block',
+                                fontSize: 13,
+                                fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
+                                lineHeight: 1.0,
+                                theme: {
+                                    background: '#0a0a0f',
+                                    foreground: '#e4e4e7',
+                                    cursor: '#f4f4f5',
+                                    cursorAccent: '#0a0a0f',
+                                    black: '#1e1e1e',
+                                    red: '#f44747',
+                                    green: '#6a9955',
+                                    yellow: '#d7ba7d',
+                                    blue: '#569cd6',
+                                    magenta: '#c586c0',
+                                    cyan: '#4ec9b0',
+                                    white: '#d4d4d4',
+                                    brightBlack: '#808080',
+                                    brightRed: '#f44747',
+                                    brightGreen: '#6a9955',
+                                    brightYellow: '#d7ba7d',
+                                    brightBlue: '#569cd6',
+                                    brightMagenta: '#c586c0',
+                                    brightCyan: '#4ec9b0',
+                                    brightWhite: '#ffffff'
+                                },
+                                cols: msg.cols,  // Use server pane dimensions
+                                rows: msg.rows,
+                                scrollback: 0,
+                                disableStdin: false
+                            });
+
+                            // Open terminal in container
+                            state.browserTerminal.open(container);
+
+                            // CRITICAL: Set container height based on terminal dimensions
+                            // With fontSize: 13 and lineHeight: 1.0, typical cell height is ~16-17px
+                            // We calculate based on xterm.js actual rendered size after a brief delay
+                            setTimeout(() => {
+                                // Get the actual xterm-screen element size
+                                const xtermScreen = container.querySelector('.xterm-screen');
+                                if (xtermScreen) {
+                                    const actualHeight = xtermScreen.offsetHeight;
+                                    const actualWidth = xtermScreen.offsetWidth;
+                                    // Set container to exactly match the terminal size
+                                    container.style.height = `${actualHeight + 8}px`;
+                                    container.style.minHeight = `${actualHeight + 8}px`;
+                                    container.style.maxHeight = `${actualHeight + 8}px`;
+                                    log(`Container sized to ${actualWidth}x${actualHeight}px (terminal: ${msg.cols}x${msg.rows})`);
+                                }
+                            }, 50); // Small delay for xterm.js to render
+
+                            // Handle terminal input
+                            state.browserTerminal.onData((data) => {
+                                if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
+                                    state.terminalSocket.send(data);
+                                }
+                            });
+
+                            terminalInitialized = true;
+                            statusEl.textContent = 'connected';
+                            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400';
+
+                            log(`Terminal created with dimensions: ${msg.cols}x${msg.rows}`);
+
+                            // Write any pending data
+                            for (const data of pendingData) {
+                                state.browserTerminal.write(data);
+                            }
+                            pendingData = [];
+
+                            // Focus terminal
+                            state.browserTerminal.focus();
                         }
                     }
                     return; // Don't write JSON to terminal
                 } catch (e) {
-                    // Not valid JSON, treat as terminal output
+                    log(`Error parsing pane_size: ${e}`, 'error');
                 }
             }
 
-            // Write the data to terminal immediately
-            if (state.browserTerminal) {
+            // Write data to terminal (or buffer if not initialized yet)
+            if (terminalInitialized && state.browserTerminal) {
                 state.browserTerminal.write(text);
+            } else {
+                pendingData.push(text);
             }
         };
 
         state.terminalSocket.onclose = (event) => {
-            log(`Browser terminal WebSocket closed: ${event.code} ${event.reason}`);
+            log(`Browser terminal WebSocket closed: ${event.code}`);
             statusEl.textContent = 'disconnected';
             statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
         };
 
         state.terminalSocket.onerror = (error) => {
-            log(`Browser terminal WebSocket error: ${error}`, 'error');
+            log(`Browser terminal WebSocket error`, 'error');
             statusEl.textContent = 'error';
             statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
         };
 
-        // Handle terminal input - send to WebSocket
-        state.browserTerminal.onData((data) => {
-            if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
-                state.terminalSocket.send(data);
-            }
-        });
-
-        log('Browser terminal initialized');
+        log('Browser terminal connecting...');
 
     } catch (err) {
         log(`Failed to initialize browser terminal: ${err.message}`, 'error');
