@@ -896,13 +896,17 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                     if content != last_content:
                         frame_count += 1
 
-                        # Send frame update with terminal reset
+                        # Send frame update with clear screen and cursor positioning
                         # \x1b[?25l = hide cursor during redraw
-                        # \x1bc = RIS (Reset to Initial State) - clears screen AND scrollback buffer
-                        #        This fixes the vertical offset issue where old content accumulated
+                        # \x1b[2J = clear entire screen (ED2 - Erase Display)
+                        # \x1b[H = cursor to home position (1,1)
                         # \x1b[?25h = show cursor after redraw
-                        # Note: \x1bc also resets cursor to 0,0 so \x1b[H is not needed
-                        frame_data = f"\x1b[?25l\x1bc{content}\x1b[?25h"
+                        #
+                        # Note: We avoid \x1bc (RIS - Reset to Initial State) because
+                        # it resets terminal dimensions which breaks our pane size sync.
+                        # Instead, we clear scrollback via xterm.js API (clear() method)
+                        # which is triggered by the browser when receiving frames.
+                        frame_data = f"\x1b[?25l\x1b[2J\x1b[H{content}\x1b[?25h"
                         await websocket.send_text(frame_data)
                         last_content = content
 

@@ -1307,6 +1307,11 @@ async function openBrowserTerminal() {
             state.browserTerminal.focus();
         };
 
+        // Track if we've received pane size and cleared scrollback
+        let paneConfigured = false;
+        let serverPaneCols = 80;
+        let serverPaneRows = 24;
+
         state.terminalSocket.onmessage = (event) => {
             let text;
             if (event.data instanceof ArrayBuffer) {
@@ -1321,13 +1326,20 @@ async function openBrowserTerminal() {
                 try {
                     const msg = JSON.parse(text);
                     if (msg.type === 'pane_size' && msg.cols && msg.rows) {
-                        log(`Server pane size: ${msg.cols}x${msg.rows}`);
-                        // Resize xterm.js to match the tmux pane
-                        // This is the opposite of the previous approach where
-                        // the browser tried to resize tmux
+                        serverPaneCols = msg.cols;
+                        serverPaneRows = msg.rows;
+                        log(`Server pane size: ${serverPaneCols}x${serverPaneRows}`);
+
+                        // Resize xterm.js to match the tmux pane exactly
                         if (state.browserTerminal) {
-                            state.browserTerminal.resize(msg.cols, msg.rows);
-                            log(`Terminal resized to match pane: ${msg.cols}x${msg.rows}`);
+                            // Clear any existing content first
+                            state.browserTerminal.clear();
+                            state.browserTerminal.reset();
+
+                            // Now resize to match pane
+                            state.browserTerminal.resize(serverPaneCols, serverPaneRows);
+                            log(`Terminal configured: ${serverPaneCols}x${serverPaneRows}`);
+                            paneConfigured = true;
                         }
                     }
                     return; // Don't write JSON to terminal
@@ -1338,16 +1350,14 @@ async function openBrowserTerminal() {
 
             // Write the data to terminal
             if (state.browserTerminal) {
+                // If not yet configured, wait for pane_size first
+                if (!paneConfigured) {
+                    log('Received data before pane_size, buffering...', 'warn');
+                    return;
+                }
+
                 state.browserTerminal.write(text);
             }
-
-            // Scroll to bottom after write completes
-            // Use requestAnimationFrame to ensure DOM is updated
-            requestAnimationFrame(() => {
-                if (state.browserTerminal) {
-                    state.browserTerminal.scrollToBottom();
-                }
-            });
         };
 
         state.terminalSocket.onclose = (event) => {
