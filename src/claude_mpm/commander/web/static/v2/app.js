@@ -1240,18 +1240,52 @@ async function openBrowserTerminal() {
             }
 
             // Check for pane_size message from server - this MUST come first
-            if (text.startsWith('{"type":"pane_size"')) {
+            // Note: JSON may have spaces after colons depending on serializer
+            if (text.startsWith('{"type":') && text.includes('pane_size')) {
                 try {
                     const msg = JSON.parse(text);
                     if (msg.type === 'pane_size' && msg.cols && msg.rows) {
                         log(`Server pane size: ${msg.cols}x${msg.rows}`);
 
                         if (!terminalInitialized) {
-                            // NOW create the terminal with correct dimensions
+                            // Use fixed font size of 12px for readable terminal text
+                            const fontSize = 12;
+                            // Measure actual character width for Menlo font
+                            // Create a test span to measure
+                            const testSpan = document.createElement('span');
+                            testSpan.style.cssText = `
+                                font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+                                font-size: ${fontSize}px;
+                                position: absolute;
+                                visibility: hidden;
+                                white-space: pre;
+                            `;
+                            testSpan.textContent = 'M'.repeat(10);
+                            document.body.appendChild(testSpan);
+                            const charWidth = testSpan.offsetWidth / 10;
+                            document.body.removeChild(testSpan);
+
+                            // Get container width - may need to wait for layout
+                            // Terminal panel should be visible at this point
+                            let containerWidth = container.clientWidth - 8; // Subtract padding
+                            if (containerWidth <= 0) {
+                                // Fallback if container hasn't been laid out yet
+                                // Use parent's width or a reasonable default
+                                const terminalPanel = document.getElementById('browser-terminal-panel');
+                                containerWidth = (terminalPanel?.clientWidth || 800) - 16;
+                            }
+
+                            const fitCols = Math.floor(containerWidth / charWidth);
+                            // Use the smaller of: server cols or calculated fit cols
+                            const useCols = Math.min(msg.cols, Math.max(fitCols, 40)); // Min 40 cols
+
+                            log(`Container: ${containerWidth}px, charWidth: ${charWidth.toFixed(1)}px, fitCols: ${fitCols}, using: ${useCols}x${msg.rows}`);
+
+                            // NOW create the terminal with calculated dimensions
                             state.browserTerminal = new Terminal({
                                 cursorBlink: true,
                                 cursorStyle: 'block',
-                                fontSize: 13,
+                                fontSize: fontSize,
                                 fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
                                 lineHeight: 1.0,
                                 theme: {
@@ -1276,7 +1310,7 @@ async function openBrowserTerminal() {
                                     brightCyan: '#4ec9b0',
                                     brightWhite: '#ffffff'
                                 },
-                                cols: msg.cols,  // Use server pane dimensions
+                                cols: useCols,  // Use calculated columns that fit
                                 rows: msg.rows,
                                 scrollback: 0,
                                 disableStdin: false

@@ -257,14 +257,15 @@ header {
 }
 
 #xterm-container {
-    padding: 4px 8px;
+    padding: 4px 0;
     /* Height is set dynamically by JavaScript based on terminal rows */
     /* min-height is a fallback before dimensions are calculated */
     min-height: 100px;
-    overflow: hidden;
-    /* Ensure no extra space around terminal */
-    display: flex;
-    align-items: flex-start;
+    /* Allow horizontal scrolling for full terminal width */
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Ensure container doesn't clip terminal */
+    width: 100%;
 }
 
 /* xterm.js overrides - terminal uses its own calculated dimensions */
