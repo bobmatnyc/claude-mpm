@@ -1197,14 +1197,14 @@ async function openBrowserTerminal() {
 
     log(`Opening browser terminal for session ${state.currentSession.slice(0, 8)}...`);
 
-    // Show terminal panel, hide output content (split view)
+    // Show terminal panel - output content will shrink to accommodate
     const terminalPanel = document.getElementById('browser-terminal-panel');
     const outputContent = document.getElementById('output-content');
     const statusEl = document.getElementById('terminal-connection-status');
 
     terminalPanel.classList.remove('hidden');
-    outputContent.style.flex = '0.6';  // Output takes 60%
-    terminalPanel.style.flex = '0.4';  // Terminal takes 40%
+    // Terminal has fixed height in CSS (for exactly 24 rows)
+    // Output content will flex to fill remaining space
 
     statusEl.textContent = 'connecting...';
     statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
@@ -1220,10 +1220,12 @@ async function openBrowserTerminal() {
         state.browserTerminal = new Terminal({
             cursorBlink: true,
             cursorStyle: 'block',
-            fontSize: 14,  // Slightly larger for better readability
-            fontFamily: "'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace",
-            lineHeight: 1.1,
+            fontSize: 13,  // Standard terminal size
+            fontFamily: "'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
+            lineHeight: 1.0,  // Tight line height for proper alignment
             letterSpacing: 0,
+            fontWeight: 'normal',
+            fontWeightBold: 'bold',
             theme: {
                 background: '#0a0a0f',
                 foreground: '#e4e4e7',  // Brighter foreground for better readability
@@ -1399,15 +1401,11 @@ function closeBrowserTerminal() {
         state.terminalFitAddon = null;
     }
 
-    // Hide terminal panel, restore output content
+    // Hide terminal panel - output content will expand automatically
     const terminalPanel = document.getElementById('browser-terminal-panel');
-    const outputContent = document.getElementById('output-content');
 
     if (terminalPanel) {
         terminalPanel.classList.add('hidden');
-    }
-    if (outputContent) {
-        outputContent.style.flex = '1';  // Restore full height
     }
 
     // Reset fullscreen if active

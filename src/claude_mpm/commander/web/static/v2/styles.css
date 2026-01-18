@@ -250,17 +250,21 @@ header {
 
 #browser-terminal-panel {
     background: #0a0a0f;
-    min-height: 300px;
-    height: 50vh;  /* Take 50% of viewport height by default */
-    max-height: 70vh;
+    /* Terminal height should be exactly 24 rows plus header */
+    /* 24 rows * ~17px line height + header (~36px) + padding */
+    height: auto;
+    flex: 0 0 auto !important;  /* Don't grow, don't shrink, auto height */
     display: flex;
     flex-direction: column;
 }
 
 #xterm-container {
     padding: 4px 8px;
-    flex: 1;
-    min-height: 0;
+    /* Fixed height for 24 rows: 24 * ~15px (13px font * 1.0 line height + buffer) */
+    /* Let xterm.js determine actual height based on font metrics */
+    height: 380px;
+    min-height: 380px;
+    max-height: 380px;
     overflow: hidden;
 }
 
