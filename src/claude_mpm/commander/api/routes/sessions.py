@@ -4,13 +4,15 @@ This module implements REST endpoints for creating and managing tool sessions
 (Claude Code, Aider, etc.) within projects.
 """
 
+import asyncio
+import json
 import logging
 import subprocess  # nosec B404 - required for tmux/osascript commands
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, WebSocket, WebSocketDisconnect
 
 from ...models import ToolSession
 from ..errors import (
@@ -766,3 +768,269 @@ async def record_agent_stop(session_id: str, response: str = "") -> JsonResponse
         "session_id": session_id,
         **tracker.get_stats(session_id),
     }
+
+
+# ============================================================================
+# Browser Terminal WebSocket Endpoint
+# ============================================================================
+
+
+@router.websocket("/sessions/{session_id}/terminal")
+async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
+    """WebSocket endpoint for Browser Terminal.
+
+    Connects a browser-based xterm.js terminal directly to the session's tmux pane
+    using capture-pane for output and send-keys for input. This provides a direct
+    view of the pane without tmux's own UI/statusbar getting in the way.
+
+    Protocol:
+    - Text messages: Input to send via tmux send-keys
+    - JSON messages with "resize": {"cols": N, "rows": M} → Resize tmux pane
+
+    Args:
+        websocket: The WebSocket connection
+        session_id: Unique session identifier
+
+    Raises:
+        WebSocketDisconnect: When client disconnects
+    """
+    await websocket.accept()
+
+    # Validate session and get pane_id
+    try:
+        session = _get_session_or_raise(session_id)
+    except SessionNotFoundError:
+        await websocket.close(code=4000, reason="Session not found")
+        return
+
+    pane_id = session.tmux_target
+    if not pane_id:
+        await websocket.close(code=4001, reason="Session has no tmux target")
+        return
+
+    logger.info(
+        "Browser terminal connecting to session %s (pane %s)", session_id, pane_id
+    )
+
+    # Get actual tmux pane dimensions
+    # We send these to the browser so xterm.js can match the pane size
+    # instead of the browser trying to resize the tmux pane
+    pane_size_result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+        [
+            "tmux",
+            "display-message",
+            "-t",
+            pane_id,
+            "-p",
+            "#{pane_width} #{pane_height}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=2,
+        check=False,
+    )
+    if pane_size_result.returncode == 0:
+        try:
+            parts = pane_size_result.stdout.strip().split()
+            pane_cols = int(parts[0])
+            pane_rows = int(parts[1])
+        except (ValueError, IndexError):
+            pane_cols, pane_rows = 80, 24
+    else:
+        pane_cols, pane_rows = 80, 24
+
+    logger.info("Tmux pane %s has size %dx%d", pane_id, pane_cols, pane_rows)
+
+    running = True
+    last_content = ""
+    current_cols = pane_cols
+    current_rows = pane_rows
+    frame_count = 0
+
+    async def capture_output() -> None:
+        """Continuously capture pane output and send to WebSocket."""
+        nonlocal running, last_content, current_rows, frame_count
+
+        # Send pane size to browser first so it can configure xterm.js to match
+        # The browser should NOT resize the tmux pane - it adapts to the pane size
+        await websocket.send_text(
+            json.dumps({"type": "pane_size", "cols": pane_cols, "rows": pane_rows})
+        )
+
+        # Small delay to let browser configure xterm.js
+        await asyncio.sleep(0.1)
+
+        while running:
+            try:
+                await asyncio.sleep(
+                    0.1
+                )  # 100ms polling - balance between responsiveness and CPU
+
+                # Capture pane content with ANSI colors
+                # -S 0 means start from the first visible line
+                # -E '' means end at last line
+                result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+                    [
+                        "tmux",
+                        "capture-pane",
+                        "-t",
+                        pane_id,
+                        "-p",  # Print to stdout
+                        "-e",  # Include escape sequences (colors)
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    content = result.stdout
+
+                    # Only send if changed
+                    if content != last_content:
+                        frame_count += 1
+
+                        # Send frame update with clear screen and cursor home
+                        # \x1b[?25l = hide cursor during redraw
+                        # \x1b[2J = clear screen
+                        # \x1b[H = cursor home
+                        # \x1b[?25h = show cursor after redraw
+                        frame_data = f"\x1b[?25l\x1b[2J\x1b[H{content}\x1b[?25h"
+                        await websocket.send_text(frame_data)
+                        last_content = content
+
+            except subprocess.TimeoutExpired:
+                pass
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                if running:
+                    logger.debug("Capture error: %s", e)
+                await asyncio.sleep(0.2)
+
+        running = False
+
+    async def handle_input() -> None:
+        """Receive WebSocket input and send to tmux pane."""
+        nonlocal running, current_cols, current_rows
+
+        try:
+            while running:
+                try:
+                    data = await asyncio.wait_for(websocket.receive(), timeout=0.5)
+                except asyncio.TimeoutError:
+                    continue
+
+                if data.get("type") == "websocket.disconnect":
+                    break
+
+                if "text" in data:
+                    text = data["text"]
+
+                    # Check for resize message - we now ignore these to prevent
+                    # the browser from resizing the tmux pane (which breaks Claude Code UI)
+                    if text.startswith('{"resize":'):
+                        try:
+                            msg = json.loads(text)
+                            cols = msg["resize"]["cols"]
+                            rows = msg["resize"]["rows"]
+                            logger.debug(
+                                "Browser requested resize to %dx%d (ignored - using pane size %dx%d)",
+                                cols,
+                                rows,
+                                pane_cols,
+                                pane_rows,
+                            )
+                            # DO NOT resize tmux pane - we want the browser to adapt to the pane
+                            # not the other way around
+                        except (json.JSONDecodeError, KeyError):
+                            pass
+                    else:
+                        # Send input to tmux pane via send-keys
+                        # nosec B603 B607 - all subprocess calls here use trusted
+                        # tmux commands with validated pane_id from session lookup
+                        for char in text:
+                            if char == "\r":
+                                # Enter key
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Enter"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char in ("\x7f", "\b"):
+                                # Backspace
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "BSpace"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x1b":
+                                # Escape
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Escape"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x03":
+                                # Ctrl+C
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "C-c"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x04":
+                                # Ctrl+D
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "C-d"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\t":
+                                # Tab
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Tab"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif ord(char) < 32:
+                                # Other control characters
+                                ctrl_char = chr(ord(char) + 64)
+                                subprocess.run(  # nosec B603 B607
+                                    [
+                                        "tmux",
+                                        "send-keys",
+                                        "-t",
+                                        pane_id,
+                                        f"C-{ctrl_char.lower()}",
+                                    ],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            else:
+                                # Regular character - send literally
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "-l", char],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+
+        except WebSocketDisconnect:
+            logger.info("Browser terminal disconnected from session %s", session_id)
+        finally:
+            running = False
+
+    # Run capture and input handler in parallel
+    try:
+        await asyncio.gather(capture_output(), handle_input(), return_exceptions=True)
+    finally:
+        running = False
+        logger.info("Browser terminal closed for session %s", session_id)

@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MPM Commander Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ansi_up@6.0.2/ansi_up.js"></script>
+    <!-- ansi_up for ANSI color rendering (UMD build) -->
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.2.1/ansi_up.min.js"></script>
+    <!-- xterm.js für Browser Terminal -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
     <link rel="stylesheet" href="/v2/styles.css">
 </head>
 <body class="bg-gray-950 text-gray-100 h-screen flex flex-col overflow-hidden">
@@ -80,6 +86,10 @@
                     <button onclick="openInTerminal()" class="action-btn bg-green-700 hover:bg-green-600" title="Open in Terminal">
                         <span class="mr-1">🖥️</span>Terminal
                     </button>
+                    <div class="border-l border-gray-700 h-6 mx-2"></div>
+                    <button onclick="terminateSession()" class="action-btn bg-red-700 hover:bg-red-600" title="Terminate Session">
+                        <span class="mr-1">⏹</span>Terminate
+                    </button>
                 </div>
             </div>
 
@@ -109,6 +119,22 @@
                     <div class="text-4xl mb-4">📺</div>
                     <div>Select a session from the left panel to view output</div>
                 </div>
+            </div>
+
+            <!-- Browser Terminal Panel (standardmäßig versteckt) -->
+            <div id="browser-terminal-panel" class="hidden flex-1 flex flex-col border-t border-gray-800 min-h-0">
+                <div class="bg-gray-900 px-4 py-2 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-green-400">❯</span>
+                        <span class="text-sm font-medium text-gray-300">Browser Terminal</span>
+                        <span id="terminal-connection-status" class="text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400">connecting...</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleTerminalFullscreen()" class="text-gray-400 hover:text-white text-xs px-2 py-1" title="Fullscreen">⛶</button>
+                        <button onclick="closeBrowserTerminal()" class="text-gray-400 hover:text-red-400 text-xs px-2 py-1" title="Schließen">✕</button>
+                    </div>
+                </div>
+                <div id="xterm-container" class="flex-1 min-h-0 overflow-hidden"></div>
             </div>
 
             <!-- Quick Input Bar - ALWAYS visible at bottom, never scrolls away -->
@@ -232,6 +258,27 @@
                         <div>
                             <div class="font-medium">Kitty</div>
                             <div class="text-xs text-gray-400">Cross-platform - Fast, feature-rich</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Terminal Mode Selection -->
+            <div class="mb-4 border-t border-gray-700 pt-4 mt-4">
+                <label class="text-sm text-gray-400 mb-2 block">Terminal Modus</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal-mode" value="external" class="text-blue-500">
+                        <div>
+                            <div class="font-medium">Externes Terminal</div>
+                            <div class="text-xs text-gray-400">Öffnet in iTerm / Terminal.app</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
+                        <input type="radio" name="terminal-mode" value="browser" class="text-blue-500">
+                        <div>
+                            <div class="font-medium">Browser Terminal</div>
+                            <div class="text-xs text-gray-400">Integriertes Terminal in diesem Fenster</div>
                         </div>
                     </label>
                 </div>

@@ -243,3 +243,78 @@ header {
 #output-content {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Fira Code', monospace;
 }
+
+/* =============================================================================
+   Browser Terminal Panel
+   ============================================================================= */
+
+#browser-terminal-panel {
+    background: #0a0a0f;
+    min-height: 300px;
+    height: 50vh;  /* Take 50% of viewport height by default */
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#xterm-container {
+    padding: 4px 8px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* xterm.js overrides - ensure terminal fills container properly */
+.xterm {
+    height: 100% !important;
+    padding: 0 !important;
+}
+
+.xterm-viewport {
+    background: #0a0a0f !important;
+    /* Disable scrollbar since we're mirroring tmux visible area */
+    overflow-y: hidden !important;
+}
+
+.xterm-screen {
+    height: 100% !important;
+}
+
+/* Ensure text is visible */
+.xterm-rows {
+    color: #e4e4e7 !important;
+}
+
+/* Hide scrollbar completely for cleaner look */
+.xterm-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+/* Terminal connection status badges */
+#terminal-connection-status {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+/* Terminal fullscreen mode */
+.terminal-fullscreen #browser-terminal-panel {
+    flex: 1 !important;
+    border-top: none !important;
+}
+
+.terminal-fullscreen #output-content,
+.terminal-fullscreen #output-header,
+.terminal-fullscreen #activity-panel,
+.terminal-fullscreen #quick-input-bar {
+    display: none !important;
+}
+
+/* Terminal header buttons */
+#browser-terminal-panel button {
+    transition: all 0.15s ease;
+}
+
+#browser-terminal-panel button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}

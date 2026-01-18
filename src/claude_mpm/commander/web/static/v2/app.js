@@ -13,7 +13,13 @@ const state = {
     debugPanelOpen: false,
     ansiUp: null,
     sessionActivity: {},  // session_id -> activity stats
-    hasUserScrolled: false  // Track if user manually scrolled up
+    hasUserScrolled: false,  // Track if user manually scrolled up
+    // Browser Terminal State
+    browserTerminal: null,       // xterm.js Terminal instance
+    terminalSocket: null,        // WebSocket connection
+    terminalFitAddon: null,      // FitAddon for auto-sizing
+    terminalFullscreen: false,   // Fullscreen mode
+    terminalResizeObserver: null // ResizeObserver for container
 };
 
 // Config
@@ -317,14 +323,23 @@ async function createSession(projectId) {
 
 async function openInTerminal() {
     if (!state.currentSession) return;
-    const terminal = getPreferredTerminal();
-    try {
-        await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=${terminal}`, {
-            method: 'POST'
-        });
-        log(`Opened in ${terminal}`);
-    } catch (err) {
-        log(`Failed to open terminal: ${err.message}`, 'error');
+
+    const mode = getTerminalMode();
+
+    if (mode === 'browser') {
+        // Open Browser Terminal
+        await openBrowserTerminal();
+    } else {
+        // Open external terminal (existing logic)
+        const terminal = getPreferredTerminal();
+        try {
+            await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=${terminal}`, {
+                method: 'POST'
+            });
+            log(`Opened in ${terminal}`);
+        } catch (err) {
+            log(`Failed to open terminal: ${err.message}`, 'error');
+        }
     }
 }
 
@@ -390,6 +405,44 @@ async function sendText() {
         log(`Sent: ${text.substring(0, 30)}...`);
     } catch (err) {
         log(`Failed to send text: ${err.message}`, 'error');
+    }
+}
+
+/**
+ * Terminate the current session.
+ * Kills the tmux pane and removes the session.
+ */
+async function terminateSession() {
+    if (!state.currentSession) return;
+
+    // Confirm before terminating
+    if (!confirm('Are you sure you want to terminate this session? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        // Close browser terminal if open
+        closeBrowserTerminal();
+
+        // Delete the session
+        await fetchAPI(`/sessions/${state.currentSession}`, {
+            method: 'DELETE'
+        });
+
+        log(`Session ${state.currentSession.slice(0, 8)}... terminated`);
+
+        // Clear current session and refresh
+        state.currentSession = null;
+        document.getElementById('output-content').textContent = 'Session terminated. Select another session.';
+        document.getElementById('output-header').classList.add('hidden');
+        document.getElementById('output-actions').classList.add('hidden');
+        document.getElementById('activity-panel').classList.add('hidden');
+
+        // Refresh project list
+        await loadProjects();
+
+    } catch (err) {
+        log(`Failed to terminate session: ${err.message}`, 'error');
     }
 }
 
@@ -590,6 +643,11 @@ function showSettingsModal() {
     const terminal = localStorage.getItem('preferred-terminal') || 'iterm';
     const radio = document.querySelector(`input[name="terminal"][value="${terminal}"]`);
     if (radio) radio.checked = true;
+
+    // Load terminal mode
+    const mode = localStorage.getItem('terminal-mode') || 'external';
+    const modeRadio = document.querySelector(`input[name="terminal-mode"][value="${mode}"]`);
+    if (modeRadio) modeRadio.checked = true;
 }
 
 function hideSettingsModal() {
@@ -599,12 +657,24 @@ function hideSettingsModal() {
 function saveSettings() {
     const terminal = document.querySelector('input[name="terminal"]:checked')?.value || 'iterm';
     localStorage.setItem('preferred-terminal', terminal);
+
+    const mode = document.querySelector('input[name="terminal-mode"]:checked')?.value || 'external';
+    localStorage.setItem('terminal-mode', mode);
+
     hideSettingsModal();
-    log(`Settings saved: Terminal = ${terminal}`);
+    log(`Settings saved: Terminal = ${terminal}, Mode = ${mode}`);
 }
 
 function getPreferredTerminal() {
     return localStorage.getItem('preferred-terminal') || 'iterm';
+}
+
+function getTerminalMode() {
+    return localStorage.getItem('terminal-mode') || 'external';
+}
+
+function setTerminalMode(mode) {
+    localStorage.setItem('terminal-mode', mode);
 }
 
 // =============================================================================
@@ -868,8 +938,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadProjects();
     startProjectPoll();
 
+    // Auto-select first session if available
+    autoSelectFirstSession();
+
     log('Ready!');
 });
+
+/**
+ * Auto-select the first available session on page load.
+ * Prioritizes running sessions, then falls back to any session.
+ */
+function autoSelectFirstSession() {
+    if (!state.projects || state.projects.length === 0) return;
+
+    // Find first project with sessions
+    for (const project of state.projects) {
+        if (project.sessions && project.sessions.length > 0) {
+            // Prefer running session, otherwise first session
+            const runningSession = project.sessions.find(s => s.status === 'running');
+            const session = runningSession || project.sessions[0];
+
+            log(`Auto-selecting session ${session.id.slice(0, 8)}...`);
+            selectSession(project.id, session.id);
+            return;
+        }
+    }
+}
 
 // =============================================================================
 // Help Modal
@@ -1083,3 +1177,303 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// =============================================================================
+// Browser Terminal Functions
+// =============================================================================
+
+/**
+ * Open the Browser Terminal for the current session.
+ * Initializes xterm.js, connects WebSocket, and shows the terminal panel.
+ */
+async function openBrowserTerminal() {
+    if (!state.currentSession) {
+        log('No session selected for browser terminal', 'error');
+        return;
+    }
+
+    // Close existing terminal if open
+    closeBrowserTerminal();
+
+    log(`Opening browser terminal for session ${state.currentSession.slice(0, 8)}...`);
+
+    // Show terminal panel, hide output content (split view)
+    const terminalPanel = document.getElementById('browser-terminal-panel');
+    const outputContent = document.getElementById('output-content');
+    const statusEl = document.getElementById('terminal-connection-status');
+
+    terminalPanel.classList.remove('hidden');
+    outputContent.style.flex = '0.6';  // Output takes 60%
+    terminalPanel.style.flex = '0.4';  // Terminal takes 40%
+
+    statusEl.textContent = 'connecting...';
+    statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
+
+    // Initialize xterm.js
+    const container = document.getElementById('xterm-container');
+    container.innerHTML = '';  // Clear any previous content
+
+    try {
+        // Create terminal instance
+        // Note: We use minimal scrollback since we're mirroring a tmux pane
+        // which has its own scrollback. The terminal acts as a "viewport".
+        state.browserTerminal = new Terminal({
+            cursorBlink: true,
+            cursorStyle: 'block',
+            fontSize: 14,  // Slightly larger for better readability
+            fontFamily: "'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace",
+            lineHeight: 1.1,
+            letterSpacing: 0,
+            theme: {
+                background: '#0a0a0f',
+                foreground: '#e4e4e7',  // Brighter foreground for better readability
+                cursor: '#f4f4f5',
+                cursorAccent: '#0a0a0f',
+                selectionBackground: 'rgba(59, 130, 246, 0.3)',
+                selectionForeground: '#ffffff',
+                // Standard ANSI colors (0-7) - matched to typical terminal themes
+                black: '#1e1e1e',
+                red: '#f44747',
+                green: '#6a9955',
+                yellow: '#d7ba7d',
+                blue: '#569cd6',
+                magenta: '#c586c0',
+                cyan: '#4ec9b0',
+                white: '#d4d4d4',
+                // Bright variants (8-15)
+                brightBlack: '#808080',
+                brightRed: '#f44747',
+                brightGreen: '#6a9955',
+                brightYellow: '#d7ba7d',
+                brightBlue: '#569cd6',
+                brightMagenta: '#c586c0',
+                brightCyan: '#4ec9b0',
+                brightWhite: '#ffffff'
+            },
+            allowProposedApi: true,
+            scrollback: 1000,  // Allow some scrollback for reviewing history
+            disableStdin: false,
+            convertEol: false,  // Don't convert EOL - tmux handles this
+            windowsMode: false
+        });
+
+        // Add FitAddon for auto-sizing
+        state.terminalFitAddon = new FitAddon.FitAddon();
+        state.browserTerminal.loadAddon(state.terminalFitAddon);
+
+        // Add WebLinksAddon for clickable URLs
+        if (typeof WebLinksAddon !== 'undefined') {
+            const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+            state.browserTerminal.loadAddon(webLinksAddon);
+        }
+
+        // Open terminal in container
+        state.browserTerminal.open(container);
+
+        // Note: We do NOT call fit() initially anymore
+        // The terminal will start with default dimensions (80x24)
+        // and then resize to match the tmux pane when we receive
+        // the pane_size message from the server.
+        // This prevents the browser from breaking Claude Code's UI
+        // by resizing the tmux pane to fit the browser window.
+
+        // We keep ResizeObserver but it no longer triggers resizes
+        state.terminalResizeObserver = new ResizeObserver(() => {
+            // Intentionally empty - terminal size comes from server
+        });
+        state.terminalResizeObserver.observe(container);
+
+        // Connect WebSocket
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/sessions/${state.currentSession}/terminal`;
+
+        state.terminalSocket = new WebSocket(wsUrl);
+
+        state.terminalSocket.binaryType = 'arraybuffer';
+
+        state.terminalSocket.onopen = () => {
+            log('Browser terminal WebSocket connected');
+            statusEl.textContent = 'connected';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400';
+
+            // We no longer send initial size from browser to server
+            // Instead, the server sends us the tmux pane dimensions
+            // via a pane_size message, and we resize xterm.js to match.
+            // This prevents breaking Claude Code's UI by resizing tmux.
+
+            // Focus terminal
+            state.browserTerminal.focus();
+        };
+
+        state.terminalSocket.onmessage = (event) => {
+            let text;
+            if (event.data instanceof ArrayBuffer) {
+                text = new TextDecoder().decode(event.data);
+            } else {
+                text = event.data;
+            }
+
+            // Check for pane_size message from server
+            // This tells us the actual tmux pane dimensions to match
+            if (text.startsWith('{"type":"pane_size"')) {
+                try {
+                    const msg = JSON.parse(text);
+                    if (msg.type === 'pane_size' && msg.cols && msg.rows) {
+                        log(`Server pane size: ${msg.cols}x${msg.rows}`);
+                        // Resize xterm.js to match the tmux pane
+                        // This is the opposite of the previous approach where
+                        // the browser tried to resize tmux
+                        if (state.browserTerminal) {
+                            state.browserTerminal.resize(msg.cols, msg.rows);
+                            log(`Terminal resized to match pane: ${msg.cols}x${msg.rows}`);
+                        }
+                    }
+                    return; // Don't write JSON to terminal
+                } catch (e) {
+                    // Not JSON, continue to write as terminal output
+                }
+            }
+
+            // Write the data to terminal
+            if (state.browserTerminal) {
+                state.browserTerminal.write(text);
+            }
+
+            // Scroll to bottom after write completes
+            // Use requestAnimationFrame to ensure DOM is updated
+            requestAnimationFrame(() => {
+                if (state.browserTerminal) {
+                    state.browserTerminal.scrollToBottom();
+                }
+            });
+        };
+
+        state.terminalSocket.onclose = (event) => {
+            log(`Browser terminal WebSocket closed: ${event.code} ${event.reason}`);
+            statusEl.textContent = 'disconnected';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+        };
+
+        state.terminalSocket.onerror = (error) => {
+            log(`Browser terminal WebSocket error: ${error}`, 'error');
+            statusEl.textContent = 'error';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+        };
+
+        // Handle terminal input - send to WebSocket
+        state.browserTerminal.onData((data) => {
+            if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
+                state.terminalSocket.send(data);
+            }
+        });
+
+        log('Browser terminal initialized');
+
+    } catch (err) {
+        log(`Failed to initialize browser terminal: ${err.message}`, 'error');
+        statusEl.textContent = 'error';
+        statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+    }
+}
+
+/**
+ * Close the Browser Terminal and cleanup resources.
+ */
+function closeBrowserTerminal() {
+    // Close WebSocket
+    if (state.terminalSocket) {
+        state.terminalSocket.close();
+        state.terminalSocket = null;
+    }
+
+    // Dispose ResizeObserver
+    if (state.terminalResizeObserver) {
+        state.terminalResizeObserver.disconnect();
+        state.terminalResizeObserver = null;
+    }
+
+    // Dispose terminal
+    if (state.browserTerminal) {
+        state.browserTerminal.dispose();
+        state.browserTerminal = null;
+        state.terminalFitAddon = null;
+    }
+
+    // Hide terminal panel, restore output content
+    const terminalPanel = document.getElementById('browser-terminal-panel');
+    const outputContent = document.getElementById('output-content');
+
+    if (terminalPanel) {
+        terminalPanel.classList.add('hidden');
+    }
+    if (outputContent) {
+        outputContent.style.flex = '1';  // Restore full height
+    }
+
+    // Reset fullscreen if active
+    if (state.terminalFullscreen) {
+        state.terminalFullscreen = false;
+        const outputPanel = document.getElementById('output-panel');
+        if (outputPanel) {
+            outputPanel.classList.remove('terminal-fullscreen');
+        }
+    }
+
+    log('Browser terminal closed');
+}
+
+/**
+ * Toggle Browser Terminal fullscreen mode.
+ */
+function toggleTerminalFullscreen() {
+    state.terminalFullscreen = !state.terminalFullscreen;
+
+    const terminalPanel = document.getElementById('browser-terminal-panel');
+    const outputContent = document.getElementById('output-content');
+    const outputHeader = document.getElementById('output-header');
+    const activityPanel = document.getElementById('activity-panel');
+    const quickInputBar = document.getElementById('quick-input-bar');
+
+    if (state.terminalFullscreen) {
+        // Fullscreen: Hide other elements, terminal takes full space
+        if (outputContent) outputContent.classList.add('hidden');
+        if (outputHeader) outputHeader.classList.add('hidden');
+        if (activityPanel) activityPanel.classList.add('hidden');
+        if (quickInputBar) quickInputBar.classList.add('hidden');
+        if (terminalPanel) {
+            terminalPanel.style.flex = '1';
+            terminalPanel.classList.remove('border-t');
+        }
+        log('Terminal fullscreen enabled');
+    } else {
+        // Exit fullscreen: Restore split view
+        if (outputContent) {
+            outputContent.classList.remove('hidden');
+            outputContent.style.flex = '0.6';
+        }
+        if (outputHeader) outputHeader.classList.remove('hidden');
+        if (activityPanel) activityPanel.classList.remove('hidden');
+        if (quickInputBar) quickInputBar.classList.remove('hidden');
+        if (terminalPanel) {
+            terminalPanel.style.flex = '0.4';
+            terminalPanel.classList.add('border-t');
+        }
+        log('Terminal fullscreen disabled');
+    }
+
+    // Re-fit terminal after layout change
+    if (state.terminalFitAddon) {
+        setTimeout(() => {
+            state.terminalFitAddon.fit();
+            // Send resize to backend
+            if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
+                const dims = state.terminalFitAddon.proposeDimensions();
+                if (dims) {
+                    state.terminalSocket.send(JSON.stringify({
+                        resize: { cols: dims.cols, rows: dims.rows }
+                    }));
+                }
+            }
+        }, 100);
+    }
+}
