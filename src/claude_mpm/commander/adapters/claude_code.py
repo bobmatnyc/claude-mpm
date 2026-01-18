@@ -9,7 +9,13 @@ import re
 import shlex
 from typing import List, Optional, Set
 
-from .base import Capability, ParsedResponse, RuntimeAdapter
+from .base import (
+    Capability,
+    ParsedResponse,
+    RuntimeAdapter,
+    RuntimeCapability,
+    RuntimeInfo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +101,27 @@ class ClaudeCodeAdapter(RuntimeAdapter):
             Capability.WEB_SEARCH,
             Capability.COMPLEX_REASONING,
         }
+
+    @property
+    def runtime_info(self) -> RuntimeInfo:
+        """Return detailed runtime information."""
+        return RuntimeInfo(
+            name="claude-code",
+            version=None,  # Version detection could be added
+            capabilities={
+                RuntimeCapability.FILE_READ,
+                RuntimeCapability.FILE_EDIT,
+                RuntimeCapability.FILE_CREATE,
+                RuntimeCapability.BASH_EXECUTION,
+                RuntimeCapability.GIT_OPERATIONS,
+                RuntimeCapability.TOOL_USE,
+                RuntimeCapability.WEB_SEARCH,
+                RuntimeCapability.COMPLEX_REASONING,
+            },
+            command="claude",
+            supports_agents=False,  # No native agent support
+            instruction_file="CLAUDE.md",
+        )
 
     def build_launch_command(
         self, project_path: str, agent_prompt: Optional[str] = None
