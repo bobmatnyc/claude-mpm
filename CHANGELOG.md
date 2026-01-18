@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.17] - 2026-01-18
+
+### Fixed
+- Fix duplicate agent deployment after sync
+
 ## [5.6.16] - 2026-01-18
 
 ### Changed
