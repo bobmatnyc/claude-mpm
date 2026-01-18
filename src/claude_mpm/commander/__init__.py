@@ -12,12 +12,18 @@ Key Components:
     - ProjectSession: Per-project lifecycle management
     - InstanceManager: Framework selection and instance lifecycle
     - Frameworks: Claude Code, MPM framework abstractions
+    - Memory: Conversation storage, semantic search, context compression
 
 Example:
     >>> from claude_mpm.commander import ProjectRegistry
     >>> registry = ProjectRegistry()
     >>> project = registry.register("/path/to/project")
     >>> registry.update_state(project.id, ProjectState.WORKING)
+
+    >>> # Memory integration
+    >>> from claude_mpm.commander.memory import MemoryIntegration
+    >>> memory = MemoryIntegration.create()
+    >>> await memory.capture_project_conversation(project)
 """
 
 from claude_mpm.commander.config import DaemonConfig
