@@ -297,6 +297,9 @@ class OutputStyleManager:
             target_path = style_config["target"]
             style_name = style_config["name"]
 
+            # Check if this is a fresh install (file doesn't exist yet)
+            is_fresh_install = not target_path.exists()
+
             # If content not provided, read from source
             if content is None:
                 content = self.extract_output_style_content(style=style)
@@ -310,7 +313,9 @@ class OutputStyleManager:
 
             # Activate the style if requested
             if activate:
-                self._activate_output_style(style_name)
+                self._activate_output_style(
+                    style_name, is_fresh_install=is_fresh_install
+                )
 
             return True
 
@@ -318,12 +323,21 @@ class OutputStyleManager:
             self.logger.error(f"Failed to deploy {style} style: {e}")
             return False
 
-    def _activate_output_style(self, style_name: str = "Claude MPM") -> bool:
+    def _activate_output_style(
+        self, style_name: str = "Claude MPM", is_fresh_install: bool = False
+    ) -> bool:
         """
         Update Claude Code settings to activate a specific output style.
 
+        Only activates the style if:
+        1. No active style is currently set (first deployment), OR
+        2. This is a fresh install (style file didn't exist before deployment)
+
+        This preserves user preferences if they've manually changed their active style.
+
         Args:
             style_name: Name of the style to activate (e.g., "Claude MPM", "Claude MPM Teacher")
+            is_fresh_install: Whether this is a fresh install (style file didn't exist before)
 
         Returns:
             True if activated successfully, False otherwise
@@ -342,8 +356,12 @@ class OutputStyleManager:
             # Check current active style
             current_style = settings.get("activeOutputStyle")
 
-            # Update active output style if different
-            if current_style != style_name:
+            # Only set activeOutputStyle if:
+            # 1. No active style is set (first deployment), OR
+            # 2. This is a fresh install (file didn't exist before deployment)
+            should_activate = current_style is None or is_fresh_install
+
+            if should_activate and current_style != style_name:
                 settings["activeOutputStyle"] = style_name
 
                 # Ensure settings directory exists
@@ -358,7 +376,10 @@ class OutputStyleManager:
                     f"✅ Activated {style_name} output style (was: {current_style or 'none'})"
                 )
             else:
-                self.logger.debug(f"{style_name} output style already active")
+                self.logger.debug(
+                    f"Preserving user preference: {current_style or 'none'} "
+                    f"(skipping activation of {style_name})"
+                )
 
             return True
 
@@ -452,6 +473,10 @@ class OutputStyleManager:
         """
         results: Dict[str, bool] = {}
 
+        # Check if professional style exists BEFORE deployment
+        # This determines if this is a fresh install
+        professional_style_existed = self.styles["professional"]["target"].exists()
+
         for style_type_key in self.styles:
             # Deploy without activation
             # Cast is safe because we know self.styles keys are OutputStyleType
@@ -459,9 +484,11 @@ class OutputStyleManager:
             success = self.deploy_output_style(style=style_type, activate=False)
             results[style_type] = success
 
-        # Activate the default style if requested
+        # Activate the default style if requested AND this is first deployment
         if activate_default and results.get("professional", False):
-            self._activate_output_style("Claude MPM")
+            self._activate_output_style(
+                "Claude MPM", is_fresh_install=not professional_style_existed
+            )
 
         return results
 
