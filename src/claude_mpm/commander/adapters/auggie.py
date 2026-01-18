@@ -103,9 +103,10 @@ class AuggieAdapter(RuntimeAdapter):
                 RuntimeCapability.MCP_TOOLS,  # Auggie supports MCP
                 RuntimeCapability.INSTRUCTIONS,
                 RuntimeCapability.COMPLEX_REASONING,
+                RuntimeCapability.AGENT_DELEGATION,  # Auggie now supports agents
             },
             command="auggie",
-            supports_agents=False,  # No native agent support yet
+            supports_agents=True,  # Auggie now supports agent delegation
             instruction_file=".augment/instructions.md",
         )
 

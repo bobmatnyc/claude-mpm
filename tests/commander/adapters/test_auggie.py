@@ -44,7 +44,7 @@ class TestAuggieAdapter:
         assert info is not None
         assert info.name == "auggie"
         assert info.command == "auggie"
-        assert info.supports_agents is False
+        assert info.supports_agents is True
         assert info.instruction_file == ".augment/instructions.md"
 
         # Check runtime capabilities - Auggie has MCP support
@@ -53,8 +53,10 @@ class TestAuggieAdapter:
         assert RuntimeCapability.FILE_EDIT in info.capabilities
         assert RuntimeCapability.TOOL_USE in info.capabilities
 
-        # Should NOT have agent-specific features
-        assert RuntimeCapability.AGENT_DELEGATION not in info.capabilities
+        # Should now have AGENT_DELEGATION
+        assert RuntimeCapability.AGENT_DELEGATION in info.capabilities
+
+        # Should NOT have Claude Code-specific features
         assert RuntimeCapability.HOOKS not in info.capabilities
         assert RuntimeCapability.SKILLS not in info.capabilities
         assert RuntimeCapability.MONITOR not in info.capabilities

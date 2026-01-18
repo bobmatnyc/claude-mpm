@@ -47,7 +47,7 @@ class TestClaudeCodeAdapter:
         assert info is not None
         assert info.name == "claude-code"
         assert info.command == "claude"
-        assert info.supports_agents is False
+        assert info.supports_agents is True
         assert info.instruction_file == "CLAUDE.md"
 
         # Check runtime capabilities
@@ -60,10 +60,11 @@ class TestClaudeCodeAdapter:
         assert RuntimeCapability.WEB_SEARCH in info.capabilities
         assert RuntimeCapability.COMPLEX_REASONING in info.capabilities
 
-        # Should NOT have agent capabilities
-        assert RuntimeCapability.AGENT_DELEGATION not in info.capabilities
-        assert RuntimeCapability.HOOKS not in info.capabilities
-        assert RuntimeCapability.SKILLS not in info.capabilities
+        # Should now have agent capabilities
+        assert RuntimeCapability.AGENT_DELEGATION in info.capabilities
+        assert RuntimeCapability.HOOKS in info.capabilities
+        assert RuntimeCapability.SKILLS in info.capabilities
+        assert RuntimeCapability.MONITOR in info.capabilities
 
     # build_launch_command tests
     def test_build_launch_command_basic(self, adapter):

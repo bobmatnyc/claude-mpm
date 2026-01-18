@@ -117,9 +117,13 @@ class ClaudeCodeAdapter(RuntimeAdapter):
                 RuntimeCapability.TOOL_USE,
                 RuntimeCapability.WEB_SEARCH,
                 RuntimeCapability.COMPLEX_REASONING,
+                RuntimeCapability.AGENT_DELEGATION,  # Claude Code supports Task tool
+                RuntimeCapability.HOOKS,  # Claude Code supports hooks
+                RuntimeCapability.SKILLS,  # Claude Code can load skills
+                RuntimeCapability.MONITOR,  # Can be monitored
             },
             command="claude",
-            supports_agents=False,  # No native agent support
+            supports_agents=True,  # Claude Code supports agent delegation
             instruction_file="CLAUDE.md",
         )
 
