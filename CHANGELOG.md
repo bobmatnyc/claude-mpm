@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.16] - 2026-01-18
+
+### Changed
+- Move deployment state to .claude-mpm directory
+
 ## [5.6.15] - 2026-01-18
 
 ### Fixed
