@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.12] - 2026-01-17
+
+### Fixed
+- **Auto-pause integration** - Wired up auto-pause in event handlers (#220)
+
 ## [5.6.11] - 2026-01-17
 
 ### Added
