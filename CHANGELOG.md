@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.19] - 2026-01-18
+
+### Fixed
+- Remove redundant setup_agents calls
+
 ## [5.6.18] - 2026-01-18
 
 ### Fixed
