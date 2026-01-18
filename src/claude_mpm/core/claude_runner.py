@@ -335,19 +335,23 @@ class ClaudeRunner:
     def setup_agents(self) -> bool:
         """Deploy native agents to .claude/agents/."""
         try:
-            # Check if agents are already deployed and up-to-date
-            # This detects if reconciliation already ran during startup
-            if self._check_deployment_state():
-                agents_dir = Path.cwd() / ".claude" / "agents"
-                agent_count = len(list(agents_dir.glob("*.md")))
-                # Silent return - reconciliation already logged deployment
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        f"Agents already deployed via reconciliation: {agent_count} agents",
-                        level="DEBUG",
-                        component="deployment",
+            # SIMPLE CHECK: If agents already exist from reconciliation, skip deployment
+            # This ensures reconciliation's user-configured agents are never overwritten
+            agents_dir = Path.cwd() / ".claude" / "agents"
+            if agents_dir.exists():
+                existing_agents = list(agents_dir.glob("*.md"))
+                if len(existing_agents) > 0:
+                    # Reconciliation already deployed agents - skip
+                    self.logger.debug(
+                        f"Skipping setup_agents: {len(existing_agents)} agents already deployed by reconciliation"
                     )
-                return True
+                    if self.project_logger:
+                        self.project_logger.log_system(
+                            f"Agents already deployed via reconciliation: {len(existing_agents)} agents",
+                            level="DEBUG",
+                            component="deployment",
+                        )
+                    return True
 
             if self.project_logger:
                 self.project_logger.log_system(
