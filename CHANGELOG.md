@@ -6,6 +6,13 @@
 
 ### Fixed
 
+## [5.6.13] - 2026-01-18
+
+### Added
+- **agentskills.io specification support** - Skills now conform to the agentskills.io spec for cross-platform compatibility (Claude Code, VS Code Copilot, OpenCode)
+- New spec fields: `license`, `compatibility`, `metadata`, `allowed-tools`
+- Backward compatible - existing skills work without changes
+
 ## [5.6.12] - 2026-01-17
 
 ### Fixed
