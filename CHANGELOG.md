@@ -6,6 +6,11 @@
 
 ### Fixed
 
+## [5.6.15] - 2026-01-18
+
+### Fixed
+- Agent redeployment on every startup
+
 ## [5.6.14] - 2026-01-18
 
 ### Added
