@@ -856,9 +856,13 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
         await websocket.send_text(
             json.dumps({"type": "pane_size", "cols": pane_cols, "rows": pane_rows})
         )
+        logger.info("Sent pane_size: %dx%d", pane_cols, pane_rows)
 
         # Small delay to let browser configure xterm.js
         await asyncio.sleep(0.1)
+
+        # Force send first frame immediately
+        first_frame = True
 
         while running:
             try:
@@ -892,9 +896,10 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                     lines = content.split("\n")
                     content = "\n".join(line.rstrip() for line in lines)
 
-                    # Only send if changed
-                    if content != last_content:
+                    # Send if changed or if this is the first frame
+                    if content != last_content or first_frame:
                         frame_count += 1
+                        first_frame = False
 
                         # Send frame update with cursor positioning only
                         # \x1b[H = cursor to home position (1,1)
@@ -906,6 +911,12 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                         frame_data = f"\x1b[H{content}"
                         await websocket.send_text(frame_data)
                         last_content = content
+
+                        if frame_count == 1:
+                            logger.info(
+                                "Sent first frame (%d bytes) to browser terminal",
+                                len(frame_data),
+                            )
 
             except subprocess.TimeoutExpired:
                 pass

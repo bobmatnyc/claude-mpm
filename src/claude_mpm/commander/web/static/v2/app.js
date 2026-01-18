@@ -1307,11 +1307,6 @@ async function openBrowserTerminal() {
             state.browserTerminal.focus();
         };
 
-        // Track if we've received pane size
-        let paneConfigured = false;
-        let serverPaneCols = 80;
-        let serverPaneRows = 24;
-
         state.terminalSocket.onmessage = (event) => {
             let text;
             if (event.data instanceof ArrayBuffer) {
@@ -1326,32 +1321,22 @@ async function openBrowserTerminal() {
                 try {
                     const msg = JSON.parse(text);
                     if (msg.type === 'pane_size' && msg.cols && msg.rows) {
-                        serverPaneCols = msg.cols;
-                        serverPaneRows = msg.rows;
-                        log(`Server pane size: ${serverPaneCols}x${serverPaneRows}`);
+                        log(`Server pane size: ${msg.cols}x${msg.rows}`);
 
                         // Resize xterm.js to match the tmux pane exactly
                         if (state.browserTerminal) {
-                            // Resize to match pane dimensions
-                            state.browserTerminal.resize(serverPaneCols, serverPaneRows);
-                            log(`Terminal configured: ${serverPaneCols}x${serverPaneRows}`);
-                            paneConfigured = true;
+                            state.browserTerminal.resize(msg.cols, msg.rows);
+                            log(`Terminal resized to: ${msg.cols}x${msg.rows}`);
                         }
                     }
                     return; // Don't write JSON to terminal
                 } catch (e) {
-                    // Not JSON, continue to write as terminal output
+                    // Not valid JSON, treat as terminal output
                 }
             }
 
-            // Write the data to terminal
+            // Write the data to terminal immediately
             if (state.browserTerminal) {
-                // If not yet configured, wait for pane_size first
-                if (!paneConfigured) {
-                    log('Received data before pane_size, buffering...', 'warn');
-                    return;
-                }
-
                 state.browserTerminal.write(text);
             }
         };
