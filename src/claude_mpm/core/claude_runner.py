@@ -214,8 +214,12 @@ class ClaudeRunner:
             )
 
     def _get_deployment_state_path(self) -> Path:
-        """Get path to deployment state file."""
-        return Path.cwd() / ".claude-mpm" / "deployment-state.json"
+        """Get path to deployment state file.
+
+        CRITICAL: Must match path used by startup.py::_save_deployment_state_after_reconciliation()
+        Located at: .claude-mpm/cache/deployment_state.json
+        """
+        return Path.cwd() / ".claude-mpm" / "cache" / "deployment_state.json"
 
     def _calculate_deployment_hash(self, agents_dir: Path) -> str:
         """Calculate hash of all agent files for change detection.
@@ -332,14 +336,15 @@ class ClaudeRunner:
         """Deploy native agents to .claude/agents/."""
         try:
             # Check if agents are already deployed and up-to-date
+            # This detects if reconciliation already ran during startup
             if self._check_deployment_state():
                 agents_dir = Path.cwd() / ".claude" / "agents"
                 agent_count = len(list(agents_dir.glob("*.md")))
-                print(f"✓ Agents: {agent_count} cached")
+                # Silent return - reconciliation already logged deployment
                 if self.project_logger:
                     self.project_logger.log_system(
-                        f"Agents already deployed: {agent_count} cached",
-                        level="INFO",
+                        f"Agents already deployed via reconciliation: {agent_count} agents",
+                        level="DEBUG",
                         component="deployment",
                     )
                 return True
