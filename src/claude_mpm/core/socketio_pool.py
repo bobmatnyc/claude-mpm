@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Socket.IO connection pool for efficient client connection management.
 
 This module provides a connection pool to reuse Socket.IO client connections,
@@ -31,12 +30,21 @@ except ImportError:
 # Import constants for configuration
 try:
     from claude_mpm.core.constants import NetworkConfig
+    from claude_mpm.core.network_config import NetworkPorts
 except ImportError:
     # Fallback if constants module not available
+    class NetworkPorts:
+        MONITOR_DEFAULT = 8765
+        COMMANDER_DEFAULT = 8766
+        DASHBOARD_DEFAULT = 8767
+        SOCKETIO_DEFAULT = 8768
+        PORT_RANGE_START = 8765
+        PORT_RANGE_END = 8785
+
     class NetworkConfig:
-        DEFAULT_DASHBOARD_PORT = 8765
+        DEFAULT_DASHBOARD_PORT = 8767
         SOCKETIO_PORT_RANGE = (8765, 8785)
-        DEFAULT_SOCKETIO_PORT = 8765
+        DEFAULT_SOCKETIO_PORT = 8768
 
     socketio = None
 
@@ -309,7 +317,7 @@ class SocketIOConnectionPool:
                         self.server_url = f"http://localhost:{port}"
                         self.logger.debug(f"Detected Socket.IO server on port {port}")
                         return
-            except Exception:
+            except Exception:  # nosec B112 - intentional: skip ports that fail
                 continue
 
         # Fall back to default
@@ -579,7 +587,7 @@ class SocketIOConnectionPool:
                     loop.stop()
                     loop.run_until_complete(loop.shutdown_asyncgens())
                     loop.close()
-                except Exception:
+                except Exception:  # nosec B110 - intentional: cleanup best-effort
                     pass
 
     async def _connect_client(self, client: socketio.AsyncClient):

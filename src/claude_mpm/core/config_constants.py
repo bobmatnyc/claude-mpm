@@ -44,11 +44,14 @@ class ConfigConstants:
             "startup": 60,
             "graceful_shutdown": 30,
         },
-        # Ports
+        # Ports (updated to use network_config.NetworkPorts defaults)
         "ports": {
-            "socketio_default": 8765,
-            "socketio_range_start": 8765,
-            "socketio_range_end": 8775,
+            "monitor_default": 8765,  # NetworkPorts.MONITOR_DEFAULT
+            "commander_default": 8766,  # NetworkPorts.COMMANDER_DEFAULT
+            "dashboard_default": 8767,  # NetworkPorts.DASHBOARD_DEFAULT
+            "socketio_default": 8768,  # NetworkPorts.SOCKETIO_DEFAULT
+            "socketio_range_start": 8765,  # NetworkPorts.PORT_RANGE_START
+            "socketio_range_end": 8785,  # NetworkPorts.PORT_RANGE_END
         },
         # Cache settings
         "cache": {
@@ -134,23 +137,70 @@ class ConfigConstants:
         Get port value by type.
 
         Args:
-            port_type: Type of port (e.g., 'socketio_default')
+            port_type: Type of port (e.g., 'socketio_default', 'monitor_default')
 
         Returns:
             Port number
         """
         try:
+            # Try to get from unified config first
             config = cls._get_config_service().config
 
+            if port_type == "monitor_default":
+                return (
+                    config.network.monitor_port
+                    if hasattr(config.network, "monitor_port")
+                    else 8765
+                )
+            if port_type == "commander_default":
+                return (
+                    config.network.commander_port
+                    if hasattr(config.network, "commander_port")
+                    else 8766
+                )
+            if port_type == "dashboard_default":
+                return (
+                    config.network.dashboard_port
+                    if hasattr(config.network, "dashboard_port")
+                    else 8767
+                )
             if port_type == "socketio_default":
-                return config.network.socketio_port
+                return (
+                    config.network.socketio_port
+                    if hasattr(config.network, "socketio_port")
+                    else 8768
+                )
             if port_type == "socketio_range_start":
-                return config.network.socketio_port_range[0]
+                return (
+                    config.network.socketio_port_range[0]
+                    if hasattr(config.network, "socketio_port_range")
+                    else 8765
+                )
             if port_type == "socketio_range_end":
-                return config.network.socketio_port_range[1]
+                return (
+                    config.network.socketio_port_range[1]
+                    if hasattr(config.network, "socketio_port_range")
+                    else 8785
+                )
             return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
         except Exception:
-            return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
+            # Fallback to network_config.NetworkPorts or DEFAULT_VALUES
+            try:
+                from .network_config import NetworkPorts
+
+                port_map = {
+                    "monitor_default": NetworkPorts.MONITOR_DEFAULT,
+                    "commander_default": NetworkPorts.COMMANDER_DEFAULT,
+                    "dashboard_default": NetworkPorts.DASHBOARD_DEFAULT,
+                    "socketio_default": NetworkPorts.SOCKETIO_DEFAULT,
+                    "socketio_range_start": NetworkPorts.PORT_RANGE_START,
+                    "socketio_range_end": NetworkPorts.PORT_RANGE_END,
+                }
+                return port_map.get(
+                    port_type, cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
+                )
+            except Exception:
+                return cls.DEFAULT_VALUES["ports"].get(port_type, 8765)
 
     @classmethod
     def get_cache_setting(cls, setting_name: str) -> Any:
@@ -302,6 +352,21 @@ def get_default_timeout() -> int:
 def get_socketio_port() -> int:
     """Get default SocketIO port."""
     return ConfigConstants.get_port("socketio_default")
+
+
+def get_monitor_port() -> int:
+    """Get default monitor port."""
+    return ConfigConstants.get_port("monitor_default")
+
+
+def get_commander_port() -> int:
+    """Get default commander port."""
+    return ConfigConstants.get_port("commander_default")
+
+
+def get_dashboard_port() -> int:
+    """Get default dashboard port."""
+    return ConfigConstants.get_port("dashboard_default")
 
 
 def get_cache_size() -> float:

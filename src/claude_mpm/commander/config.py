@@ -14,7 +14,7 @@ class DaemonConfig:
 
     Attributes:
         host: API server bind address
-        port: API server port
+        port: API server port (default: 8766 from NetworkPorts.COMMANDER_DEFAULT)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
         state_dir: Directory for state persistence
         max_projects: Maximum concurrent projects
@@ -23,13 +23,13 @@ class DaemonConfig:
         poll_interval: Event polling interval in seconds
 
     Example:
-        >>> config = DaemonConfig(port=8765, log_level="DEBUG")
+        >>> config = DaemonConfig(port=8766, log_level="DEBUG")
         >>> config.state_dir
         PosixPath('/Users/user/.claude-mpm/commander')
     """
 
     host: str = "127.0.0.1"
-    port: int = 8765
+    port: int = 8766  # Default commander port (from network_config.NetworkPorts.COMMANDER_DEFAULT)
     log_level: str = "INFO"
     state_dir: Path = Path.home() / ".claude-mpm" / "commander"
     max_projects: int = 10
