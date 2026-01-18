@@ -1220,20 +1220,16 @@ async function openBrowserTerminal() {
         state.browserTerminal = new Terminal({
             cursorBlink: true,
             cursorStyle: 'block',
-            fontSize: 13,  // Standard terminal size
+            fontSize: 13,
             fontFamily: "'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
-            lineHeight: 1.0,  // Tight line height for proper alignment
+            lineHeight: 1.0,
             letterSpacing: 0,
-            fontWeight: 'normal',
-            fontWeightBold: 'bold',
             theme: {
                 background: '#0a0a0f',
-                foreground: '#e4e4e7',  // Brighter foreground for better readability
+                foreground: '#e4e4e7',
                 cursor: '#f4f4f5',
                 cursorAccent: '#0a0a0f',
                 selectionBackground: 'rgba(59, 130, 246, 0.3)',
-                selectionForeground: '#ffffff',
-                // Standard ANSI colors (0-7) - matched to typical terminal themes
                 black: '#1e1e1e',
                 red: '#f44747',
                 green: '#6a9955',
@@ -1242,7 +1238,6 @@ async function openBrowserTerminal() {
                 magenta: '#c586c0',
                 cyan: '#4ec9b0',
                 white: '#d4d4d4',
-                // Bright variants (8-15)
                 brightBlack: '#808080',
                 brightRed: '#f44747',
                 brightGreen: '#6a9955',
@@ -1252,11 +1247,11 @@ async function openBrowserTerminal() {
                 brightCyan: '#4ec9b0',
                 brightWhite: '#ffffff'
             },
-            allowProposedApi: true,
-            scrollback: 0,  // Fix 3: Disabled - xterm.js mirrors tmux pane, no scrollback needed
+            cols: 80,  // Default, will be overridden by server pane_size
+            rows: 24,  // Default, will be overridden by server pane_size
+            scrollback: 0,
             disableStdin: false,
-            convertEol: false,  // Don't convert EOL - tmux handles this
-            windowsMode: false
+            convertEol: false
         });
 
         // Add FitAddon for auto-sizing

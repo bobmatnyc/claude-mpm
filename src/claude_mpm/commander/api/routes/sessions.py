@@ -901,14 +901,10 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                         frame_count += 1
                         first_frame = False
 
-                        # Send frame update with cursor positioning only
+                        # Send frame update with clear screen and cursor home
+                        # \x1b[2J = clear entire screen
                         # \x1b[H = cursor to home position (1,1)
-                        #
-                        # We don't use \x1b[2J (clear screen) because it can cause
-                        # flickering and rendering issues. Instead, we just position
-                        # the cursor at home and let the content overwrite.
-                        # The content from tmux capture-pane already fills the screen.
-                        frame_data = f"\x1b[H{content}"
+                        frame_data = f"\x1b[2J\x1b[H{content}"
                         await websocket.send_text(frame_data)
                         last_content = content
 
