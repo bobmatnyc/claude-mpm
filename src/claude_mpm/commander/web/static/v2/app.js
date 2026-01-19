@@ -1250,6 +1250,48 @@ function navigatePrevSession() {
     navigateToSession(prevIndex);
 }
 
+// =============================================================================
+// Terminal Scroll Functions (iTerm-style)
+// Note: Limited functionality in tmux mirror mode since we show live pane view.
+// For full scrollback, use tmux directly or Fallback mode with scrollback.
+// =============================================================================
+
+/**
+ * Scroll terminal by a number of lines.
+ * @param {number} lines - Positive = down, Negative = up
+ */
+function scrollTerminalLines(lines) {
+    if (!state.browserTerminal) return;
+    // Note: With scrollback: 0, this won't show history but still responds to calls
+    state.browserTerminal.scrollLines(lines);
+}
+
+/**
+ * Scroll terminal by pages.
+ * @param {number} pages - Positive = down, Negative = up
+ */
+function scrollTerminalPages(pages) {
+    if (!state.browserTerminal) return;
+    const rows = state.browserTerminal.rows || 24;
+    state.browserTerminal.scrollLines(pages * rows);
+}
+
+/**
+ * Scroll terminal to top.
+ */
+function scrollTerminalToTop() {
+    if (!state.browserTerminal) return;
+    state.browserTerminal.scrollToTop();
+}
+
+/**
+ * Scroll terminal to bottom.
+ */
+function scrollTerminalToBottom() {
+    if (!state.browserTerminal) return;
+    state.browserTerminal.scrollToBottom();
+}
+
 // Track double-escape for sending ESC to session
 let lastEscapeTime = 0;
 
@@ -1257,6 +1299,106 @@ let lastEscapeTime = 0;
 document.addEventListener('keydown', (e) => {
     const activeElement = document.activeElement;
     const isInputFocused = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
+    const isTerminalFocused = activeElement.closest('#browser-terminal-panel') !== null ||
+                               activeElement.closest('.xterm') !== null;
+
+    // ==========================================================================
+    // iTerm-style Terminal Shortcuts (only when terminal is active/visible)
+    // ==========================================================================
+    const terminalVisible = state.browserTerminal && state.viewMode === 'terminal';
+
+    if (terminalVisible) {
+        // Cmd+↑ = Scroll One Line Up
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            scrollTerminalLines(-1);
+            return;
+        }
+
+        // Cmd+↓ = Scroll One Line Down
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            scrollTerminalLines(1);
+            return;
+        }
+
+        // Cmd+Home = Scroll To Top
+        if (e.metaKey && e.key === 'Home') {
+            e.preventDefault();
+            scrollTerminalToTop();
+            return;
+        }
+
+        // Cmd+End = Scroll To End
+        if (e.metaKey && e.key === 'End') {
+            e.preventDefault();
+            scrollTerminalToBottom();
+            return;
+        }
+
+        // Shift+PageUp = Scroll One Page Up
+        if (e.shiftKey && !e.metaKey && e.key === 'PageUp') {
+            e.preventDefault();
+            scrollTerminalPages(-1);
+            return;
+        }
+
+        // Shift+PageDown = Scroll One Page Down
+        if (e.shiftKey && !e.metaKey && e.key === 'PageDown') {
+            e.preventDefault();
+            scrollTerminalPages(1);
+            return;
+        }
+
+        // Cmd+PageUp = Scroll One Page Up (alternative)
+        if (e.metaKey && e.key === 'PageUp') {
+            e.preventDefault();
+            scrollTerminalPages(-1);
+            return;
+        }
+
+        // Cmd+PageDown = Scroll One Page Down (alternative)
+        if (e.metaKey && e.key === 'PageDown') {
+            e.preventDefault();
+            scrollTerminalPages(1);
+            return;
+        }
+
+        // Cmd+← = Previous Session (like Previous Tab in iTerm)
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowLeft') {
+            e.preventDefault();
+            navigatePrevSession();
+            return;
+        }
+
+        // Cmd+→ = Next Session (like Next Tab in iTerm)
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowRight') {
+            e.preventDefault();
+            navigateNextSession();
+            return;
+        }
+
+        // Shift+Cmd+← = Move Session Left (not implemented yet, placeholder)
+        // Shift+Cmd+→ = Move Session Right (not implemented yet, placeholder)
+    }
+
+    // Ctrl+Tab = Cycle Sessions Forward (works globally)
+    if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        navigateNextSession();
+        return;
+    }
+
+    // Ctrl+Shift+Tab = Cycle Sessions Backward (works globally)
+    if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        navigatePrevSession();
+        return;
+    }
+
+    // ==========================================================================
+    // General Shortcuts
+    // ==========================================================================
 
     // ? = Show help (when not in input)
     if (e.key === '?' && !isInputFocused) {
@@ -1317,16 +1459,7 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Ctrl+Tab = Next session
-    if (e.ctrlKey && e.key === 'Tab') {
-        e.preventDefault();
-        if (e.shiftKey) {
-            navigatePrevSession();
-        } else {
-            navigateNextSession();
-        }
-        return;
-    }
+    // Note: Ctrl+Tab shortcuts moved to top of handler (iTerm-style section)
 
     // Ctrl+1-9 = Jump to session
     if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
