@@ -156,11 +156,14 @@ function renderProjectTree() {
                         const globalIdx = sessionIndex++;
                         const shortcutHint = globalIdx < 9 ? `<span class="text-gray-600 text-[10px] ml-1">^${globalIdx + 1}</span>` : '';
                         return `
-                        <div class="session-item flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer transition ${state.currentSession === session.id ? 'bg-gray-800' : ''}"
+                        <div class="session-item group flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer transition ${state.currentSession === session.id ? 'bg-gray-800' : ''}"
                              onclick="selectSession('${project.id}', '${session.id}')" data-session="${session.id}">
                             <span class="text-xs ${session.status === 'running' ? 'text-green-400' : 'text-gray-500'}">●</span>
                             <span class="text-sm truncate flex-1">${session.id.slice(0, 8)}...${shortcutHint}</span>
                             <span class="text-xs text-gray-500">${session.runtime}</span>
+                            <button onclick="event.stopPropagation(); terminateSession('${session.id}')"
+                                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs px-1 transition-opacity"
+                                    title="Terminate Session">✕</button>
                         </div>
                     `}).join('')
                 }
@@ -488,8 +491,10 @@ async function sendText() {
  * Terminate the current session.
  * Kills the tmux pane and removes the session.
  */
-async function terminateSession() {
-    if (!state.currentSession) return;
+async function terminateSession(sessionId = null) {
+    // Use provided sessionId or fall back to current session
+    const targetSession = sessionId || state.currentSession;
+    if (!targetSession) return;
 
     // Confirm before terminating
     if (!confirm('Are you sure you want to terminate this session? This cannot be undone.')) {
@@ -497,22 +502,28 @@ async function terminateSession() {
     }
 
     try {
-        // Close browser terminal if open
-        closeBrowserTerminal();
+        // Close browser terminal if this is the current session
+        if (targetSession === state.currentSession) {
+            closeBrowserTerminal();
+        }
 
         // Delete the session
-        await fetchAPI(`/sessions/${state.currentSession}`, {
+        await fetchAPI(`/sessions/${targetSession}`, {
             method: 'DELETE'
         });
 
-        log(`Session ${state.currentSession.slice(0, 8)}... terminated`);
+        log(`Session ${targetSession.slice(0, 8)}... terminated`);
 
-        // Clear current session and refresh
-        state.currentSession = null;
-        document.getElementById('output-content').textContent = 'Session terminated. Select another session.';
-        document.getElementById('output-header').classList.add('hidden');
-        document.getElementById('output-actions').classList.add('hidden');
-        document.getElementById('activity-panel').classList.add('hidden');
+        // Clear current session if we terminated it
+        if (targetSession === state.currentSession) {
+            state.currentSession = null;
+            state.viewMode = 'tmux-follow';
+            document.getElementById('output-content').innerHTML = '<div class="text-gray-500 text-center mt-20"><div class="text-4xl mb-4">📺</div><div>Session terminated. Select another session.</div></div>';
+            document.getElementById('output-actions').classList.add('hidden');
+            document.getElementById('activity-panel').classList.add('hidden');
+            document.getElementById('quick-input-bar').classList.add('hidden');
+            document.getElementById('browser-terminal-panel').classList.add('hidden');
+        }
 
         // Refresh project list
         await loadProjects();

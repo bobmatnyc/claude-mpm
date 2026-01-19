@@ -251,10 +251,18 @@ header {
 
 #browser-terminal-panel {
     background: #0a0a0f;
-    /* Terminal panel grows to fit the xterm.js terminal which sizes based on server pane */
-    flex: 0 0 auto;  /* Don't grow, don't shrink, use natural height */
-    display: flex;
     flex-direction: column;
+}
+
+/* Ensure hidden class works on terminal panel */
+#browser-terminal-panel.hidden {
+    display: none !important;
+}
+
+#browser-terminal-panel:not(.hidden) {
+    display: flex;
+    flex: 1;
+    min-height: 0;
 }
 
 #xterm-container {
