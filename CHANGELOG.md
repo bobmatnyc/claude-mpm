@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.29] - 2026-01-19
+
+### Fixed
+- fix(hooks): default DEBUG to false in all hook modules - fixes REPL pollution from debug logging
+
 ## [5.6.28] - 2026-01-19
 
 ### Fixed
