@@ -19,6 +19,7 @@ class InstanceInfo:
         pane_target: Tmux pane target (e.g., "%1")
         git_branch: Current git branch if project is a git repo
         git_status: Git status summary if project is a git repo
+        connected: Whether instance has an active adapter connection
 
     Example:
         >>> info = InstanceInfo(
@@ -28,7 +29,8 @@ class InstanceInfo:
         ...     tmux_session="mpm-commander",
         ...     pane_target="%1",
         ...     git_branch="main",
-        ...     git_status="clean"
+        ...     git_status="clean",
+        ...     connected=True
         ... )
     """
 
@@ -39,6 +41,7 @@ class InstanceInfo:
     pane_target: str
     git_branch: Optional[str] = None
     git_status: Optional[str] = None
+    connected: bool = False
 
 
 class BaseFramework(ABC):

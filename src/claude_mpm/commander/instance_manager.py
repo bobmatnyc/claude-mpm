@@ -167,6 +167,20 @@ class InstanceManager:
         startup_cmd = framework_obj.get_startup_command(project_path)
         self.orchestrator.send_keys(pane_target, startup_cmd)
 
+        # Create communication adapter for the instance (only for Claude Code for now)
+        # Do this BEFORE creating InstanceInfo so we can set connected=True
+        has_adapter = False
+        if framework == "cc":
+            runtime_adapter = ClaudeCodeAdapter()
+            comm_adapter = ClaudeCodeCommunicationAdapter(
+                orchestrator=self.orchestrator,
+                pane_target=pane_target,
+                runtime_adapter=runtime_adapter,
+            )
+            self._adapters[name] = comm_adapter
+            has_adapter = True
+            logger.debug(f"Created communication adapter for instance '{name}'")
+
         # Create instance info
         instance = InstanceInfo(
             name=name,
@@ -176,21 +190,11 @@ class InstanceManager:
             pane_target=pane_target,
             git_branch=git_branch,
             git_status=git_status,
+            connected=has_adapter,
         )
 
         # Track instance
         self._instances[name] = instance
-
-        # Create communication adapter for the instance (only for Claude Code for now)
-        if framework == "cc":
-            runtime_adapter = ClaudeCodeAdapter()
-            comm_adapter = ClaudeCodeCommunicationAdapter(
-                orchestrator=self.orchestrator,
-                pane_target=pane_target,
-                runtime_adapter=runtime_adapter,
-            )
-            self._adapters[name] = comm_adapter
-            logger.debug(f"Created communication adapter for instance '{name}'")
 
         logger.info(
             f"Started instance '{name}' with framework '{framework}' at {project_path}"
@@ -226,6 +230,7 @@ class InstanceManager:
         # Remove adapter if exists
         if name in self._adapters:
             del self._adapters[name]
+            instance.connected = False
             logger.debug(f"Removed adapter for instance '{name}'")
 
         # Remove from tracking
@@ -335,3 +340,111 @@ class InstanceManager:
             ...         print(chunk, end='')
         """
         return self._adapters.get(name)
+
+    async def rename_instance(self, old_name: str, new_name: str) -> bool:
+        """Rename an instance.
+
+        Args:
+            old_name: Current instance name
+            new_name: New instance name
+
+        Returns:
+            True if renamed successfully
+
+        Raises:
+            InstanceNotFoundError: If old_name doesn't exist
+            InstanceAlreadyExistsError: If new_name already exists
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> await manager.rename_instance("myapp", "myapp-v2")
+            True
+        """
+        # Validate old_name exists
+        if old_name not in self._instances:
+            raise InstanceNotFoundError(old_name)
+
+        # Validate new_name doesn't exist
+        if new_name in self._instances:
+            raise InstanceAlreadyExistsError(new_name)
+
+        # Get instance and update name
+        instance = self._instances[old_name]
+        instance.name = new_name
+
+        # Update _instances dict (remove old key, add new)
+        del self._instances[old_name]
+        self._instances[new_name] = instance
+
+        # Update _adapters dict if exists
+        if old_name in self._adapters:
+            adapter = self._adapters[old_name]
+            del self._adapters[old_name]
+            self._adapters[new_name] = adapter
+            logger.debug(f"Moved adapter from '{old_name}' to '{new_name}'")
+
+        logger.info(f"Renamed instance from '{old_name}' to '{new_name}'")
+
+        return True
+
+    async def close_instance(self, name: str) -> bool:
+        """Close and remove an instance.
+
+        Alias for stop_instance that provides clearer semantics for closing.
+
+        Args:
+            name: Instance name to close
+
+        Returns:
+            True if closed successfully
+
+        Raises:
+            InstanceNotFoundError: If instance not found
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> await manager.close_instance("myapp")
+            True
+        """
+        return await self.stop_instance(name)
+
+    async def disconnect_instance(self, name: str) -> bool:
+        """Disconnect from an instance without closing it.
+
+        The instance keeps running but we stop communication.
+        Removes the adapter while keeping the instance tracked.
+
+        Args:
+            name: Instance name to disconnect from
+
+        Returns:
+            True if disconnected successfully
+
+        Raises:
+            InstanceNotFoundError: If instance not found
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> await manager.disconnect_instance("myapp")
+            True
+            >>> # Instance still running, but no adapter connection
+            >>> adapter = manager.get_adapter("myapp")
+            >>> print(adapter)
+            None
+        """
+        # Validate instance exists
+        if name not in self._instances:
+            raise InstanceNotFoundError(name)
+
+        instance = self._instances[name]
+
+        # Remove adapter if exists (but keep instance)
+        if name in self._adapters:
+            # Could add cleanup here if adapter has resources to close
+            del self._adapters[name]
+            instance.connected = False
+            logger.info(f"Disconnected from instance '{name}' (instance still running)")
+        else:
+            logger.debug(f"No adapter to disconnect for instance '{name}'")
+
+        return True

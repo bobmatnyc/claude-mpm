@@ -21,6 +21,7 @@ class DaemonConfig:
         healthcheck_interval: Healthcheck interval in seconds
         save_interval: State persistence interval in seconds
         poll_interval: Event polling interval in seconds
+        summarize_responses: Whether to use LLM to summarize instance responses
 
     Example:
         >>> config = DaemonConfig(port=8766, log_level="DEBUG")
@@ -36,6 +37,7 @@ class DaemonConfig:
     healthcheck_interval: int = 30
     save_interval: int = 30
     poll_interval: float = 2.0
+    summarize_responses: bool = True
 
     def __post_init__(self):
         """Ensure state_dir is a Path object and create if needed."""
