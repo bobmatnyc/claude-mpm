@@ -288,6 +288,11 @@ header {
     color: #e4e4e7 !important;
 }
 
+/* Hide xterm.js cursor - we're in mirror mode, tmux cursor is in the content */
+.xterm-cursor-layer {
+    display: none !important;
+}
+
 /* Hide scrollbar completely for cleaner look */
 .xterm-viewport::-webkit-scrollbar {
     display: none;
