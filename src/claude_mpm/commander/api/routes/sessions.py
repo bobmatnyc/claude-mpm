@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Response, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 
 from ...models import ToolSession
 from ..errors import (
@@ -37,8 +37,11 @@ TMUX_MAIN_SESSION = "mpm-commander"
 TMUX_COMMAND_TIMEOUT = 2  # seconds
 
 
-def _get_registry() -> Any:
-    """Get registry instance from app global.
+def _get_registry(request: Request) -> Any:
+    """Get registry instance from app.state.
+
+    Args:
+        request: FastAPI request object
 
     Returns:
         ProjectRegistry instance
@@ -46,15 +49,16 @@ def _get_registry() -> Any:
     Raises:
         RuntimeError: If registry is not initialized
     """
-    from ..app import registry
-
-    if registry is None:
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
 
 
-def _get_tmux() -> Any:
-    """Get tmux orchestrator instance from app global.
+def _get_tmux(request: Request) -> Any:
+    """Get tmux orchestrator instance from app.state.
+
+    Args:
+        request: FastAPI request object
 
     Returns:
         TmuxOrchestrator instance
@@ -62,34 +66,47 @@ def _get_tmux() -> Any:
     Raises:
         RuntimeError: If tmux orchestrator is not initialized
     """
-    from ..app import tmux
-
-    if tmux is None:
+    if not hasattr(request.app.state, "tmux") or request.app.state.tmux is None:
         raise RuntimeError("Tmux orchestrator not initialized")
-    return tmux
+    return request.app.state.tmux
 
 
-def _find_session(session_id: str) -> Tuple[Optional[ToolSession], Optional[str]]:
+def _find_session(
+    session_id: str, request: Optional[Request] = None
+) -> Tuple[Optional[ToolSession], Optional[str]]:
     """Find a session across all projects.
 
     Args:
         session_id: Unique session identifier
+        request: Optional FastAPI request (uses global app if not provided)
 
     Returns:
         Tuple of (session, project_id) or (None, None) if not found
     """
-    registry = _get_registry()
+    if request:
+        registry = _get_registry(request)
+    else:
+        # Fallback for WebSocket endpoints without request
+        from ..app import app
+
+        if not hasattr(app.state, "registry") or app.state.registry is None:
+            raise RuntimeError("Registry not initialized")
+        registry = app.state.registry
+
     for project in registry.list_all():
         if session_id in project.sessions:
             return project.sessions[session_id], project.id
     return None, None
 
 
-def _get_session_or_raise(session_id: str) -> ToolSession:
+def _get_session_or_raise(
+    session_id: str, request: Optional[Request] = None
+) -> ToolSession:
     """Get a session or raise SessionNotFoundError.
 
     Args:
         session_id: Unique session identifier
+        request: Optional FastAPI request (uses global app if not provided)
 
     Returns:
         The ToolSession instance
@@ -97,7 +114,7 @@ def _get_session_or_raise(session_id: str) -> ToolSession:
     Raises:
         SessionNotFoundError: If session doesn't exist
     """
-    session, _ = _find_session(session_id)
+    session, _ = _find_session(session_id, request)
     if session is None:
         raise SessionNotFoundError(session_id)
     return session
@@ -218,7 +235,7 @@ def _session_to_response(session: ToolSession) -> SessionResponse:
 
 
 @router.get("/projects/{project_id}/sessions", response_model=List[SessionResponse])
-async def list_sessions(project_id: str) -> List[SessionResponse]:
+async def list_sessions(request: Request, project_id: str) -> List[SessionResponse]:
     """List all sessions for a project.
 
     Args:
@@ -243,7 +260,7 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
             }
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -256,7 +273,9 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
 @router.post(
     "/projects/{project_id}/sessions", response_model=SessionResponse, status_code=201
 )
-async def create_session(project_id: str, req: CreateSessionRequest) -> SessionResponse:
+async def create_session(
+    request: Request, project_id: str, req: CreateSessionRequest
+) -> SessionResponse:
     """Create a new session for a project.
 
     Creates a new tmux pane and initializes the specified runtime adapter.
@@ -288,8 +307,8 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
             "created_at": "2025-01-12T10:00:00Z"
         }
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Validate project exists
     project = registry.get(project_id)
@@ -334,7 +353,7 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
 
 
 @router.delete("/sessions/{session_id}", status_code=204)
-async def stop_session(session_id: str) -> Response:
+async def stop_session(request: Request, session_id: str) -> Response:
     """Stop and remove a session.
 
     Kills the tmux pane and removes the session from its project.
@@ -352,8 +371,8 @@ async def stop_session(session_id: str) -> Response:
         DELETE /api/sessions/sess-456
         Response: 204 No Content
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Find session across all projects
     session = None
@@ -382,7 +401,7 @@ async def stop_session(session_id: str) -> Response:
 
 
 @router.post("/sessions/sync")
-async def sync_sessions() -> JsonResponse:
+async def sync_sessions(request: Request) -> JsonResponse:
     """Synchronize sessions with tmux windows.
 
     Checks which tmux windows exist and updates session status accordingly.
@@ -401,8 +420,8 @@ async def sync_sessions() -> JsonResponse:
             }
         }
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     results = tmux_orch.sync_windows_with_registry(registry)
 
@@ -555,6 +574,22 @@ async def open_session_in_terminal(
         }
 
 
+def _get_tmux_from_app() -> Any:
+    """Get tmux orchestrator from global app (for endpoints without request).
+
+    Returns:
+        TmuxOrchestrator instance
+
+    Raises:
+        RuntimeError: If tmux orchestrator is not initialized
+    """
+    from ..app import app
+
+    if not hasattr(app.state, "tmux") or app.state.tmux is None:
+        raise RuntimeError("Tmux orchestrator not initialized")
+    return app.state.tmux
+
+
 @router.post("/sessions/{session_id}/keys")
 async def send_keys_to_session(
     session_id: str, keys: str, enter: bool = True
@@ -577,7 +612,7 @@ async def send_keys_to_session(
         Response: {"status": "sent", "keys": "hello", "enter": true}
     """
     session = _get_session_or_raise(session_id)
-    tmux_orch = _get_tmux()
+    tmux_orch = _get_tmux_from_app()
 
     try:
         tmux_orch.send_keys(session.tmux_target, keys, enter=enter)
@@ -612,7 +647,7 @@ async def get_session_output(session_id: str, lines: int = 100) -> JsonResponse:
         }
     """
     session = _get_session_or_raise(session_id)
-    tmux_orch = _get_tmux()
+    tmux_orch = _get_tmux_from_app()
 
     # Clamp lines to reasonable bounds
     lines = max(1, min(lines, 10000))
@@ -632,7 +667,7 @@ async def get_session_output(session_id: str, lines: int = 100) -> JsonResponse:
 
 
 def _get_activity_tracker() -> Any:
-    """Get activity tracker instance from app global.
+    """Get activity tracker instance from app.state.
 
     Returns:
         ActivityTracker instance
@@ -640,11 +675,11 @@ def _get_activity_tracker() -> Any:
     Raises:
         RuntimeError: If activity tracker is not initialized
     """
-    from ..app import activity_tracker
+    from ..app import app
 
-    if activity_tracker is None:
+    if not hasattr(app.state, "activity_tracker") or app.state.activity_tracker is None:
         raise RuntimeError("Activity tracker not initialized")
-    return activity_tracker
+    return app.state.activity_tracker
 
 
 @router.get("/sessions/{session_id}/activity")
@@ -973,15 +1008,21 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
 
                     # Build frame with cursor position
                     # \x1b[2J = clear screen
-                    # \x1b[H = cursor home
-                    # \x1b[row;colH = move cursor to position (1-indexed)
+                    # \x1b[H = cursor home (row 1, col 1)
+                    # \x1b[row;colH = move cursor to absolute position (1-indexed)
+                    #
+                    # tmux cursor_x and cursor_y are 0-indexed
+                    # ANSI escape sequences are 1-indexed
+                    # We position cursor BEFORE writing content (not after)
+                    # This way xterm.js cursor ends up at correct position
                     cursor_pos = f"\x1b[{cursor_y + 1};{cursor_x + 1}H"
 
                     # Send only if content changed
                     if content != last_content:
                         frame_count += 1
 
-                        # Send frame: clear, content, then position cursor
+                        # Send frame: clear, write content, move cursor to tmux position
+                        # The cursor_pos at end moves xterm.js cursor to match tmux
                         frame_data = f"\x1b[2J\x1b[H{content}{cursor_pos}"
                         await websocket.send_text(frame_data)
                         last_content = content

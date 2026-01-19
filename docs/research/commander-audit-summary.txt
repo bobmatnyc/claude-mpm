@@ -1,0 +1,86 @@
+MPM COMMANDER ISSUES AUDIT - EXECUTIVE SUMMARY
+Date: 2026-01-17
+
+═══════════════════════════════════════════════════════════════════
+
+QUICK STATS
+───────────
+Total Issues: 53 (28 OPEN, 25 CLOSED)
+To Close: 9 (duplicates + obsolete)
+Active Work: 10 issues
+Critical Bugs: 2 (#198 UAT, #209 pane exhaustion)
+
+PHASE STATUS
+────────────
+Phase 1: Foundation              ████████████████████ 100% ✅
+Phase 2: Event System            ██████████████░░░░░░  70% 🟡
+Phase 3: Chat Interface          ██████████████████░░  90% 🟡
+Phase 4: Multi-Runtime           ████████░░░░░░░░░░░░  40% 🔴
+Phase 5: Persistence             ████████████░░░░░░░░  60% 🟡
+Phase 6: Enhanced Interface      ██░░░░░░░░░░░░░░░░░░  10% 🔴
+
+ISSUES TO CLOSE (9 total)
+─────────────────────────
+Duplicates: #135, #142, #149, #156 (old epics)
+Obsolete:   #136, #137, #138, #140, #141 (already done)
+
+CRITICAL PATH
+─────────────
+1. Fix #209 (pane exhaustion bug)         [2 hours]
+2. Complete #198 UAT                      [4 hours]
+3. Finish #176 Event Queue                [3 days]
+4. Implement #177 Response Routing        [2 days]
+5. Complete #178 Blocking Logic           [2 days]
+
+PRIORITY ISSUES
+───────────────
+CRITICAL:  #198 (UAT), #209 (bug)
+HIGH:      #176 (event queue)
+MEDIUM:    #177, #178, #152, #205, #159
+LOW:       #158 (skip), #179 (defer)
+
+ARCHITECTURE
+────────────
+Entry Point:    uv run claude-mpm commander
+Module:         src/claude_mpm/commander/ (73 files)
+Tests:          tests/commander/ (47 files)
+Independence:   ✅ Fully independent from main MPM
+                Can launch MPM as managed runtime
+
+CODEBASE HEALTH
+───────────────
+Source Files:   73 modules (~15K LOC)
+Tests:          230+ passing, 0 failing
+Coverage:       ~85%
+Quality:        High - well structured, tested
+
+RECOMMENDED ACTIONS
+───────────────────
+WEEK 1:
+  □ Close 9 duplicate/obsolete issues
+  □ Fix #209 pane exhaustion
+  □ Complete #198 UAT
+
+WEEK 2-3:
+  □ Finish Phase 2: #176, #177, #178
+  
+WEEK 4:
+  □ Finish Phase 3: #152, #205
+
+FUTURE:
+  □ Add Aider adapter (#159)
+  □ Add health monitoring (new issue)
+  □ Defer WebSocket (#179) to Phase 6
+
+DOCUMENTATION
+─────────────
+Full Audit:     docs/research/commander-issues-audit-2026-01-17.md
+Action Plan:    docs/research/commander-cleanup-action-plan.md
+Visual Roadmap: docs/research/commander-roadmap-visual.md
+
+PROJECT URL
+───────────
+GitHub: https://github.com/users/bobmatnyc/projects/17
+Status: Public, Active (19 items tracked)
+
+═══════════════════════════════════════════════════════════════════

@@ -540,7 +540,8 @@ def should_show_banner(args) -> bool:
         return False
 
     # Check for commands that should skip banner
-    skip_commands = {"info", "doctor", "config", "configure"}
+    # Commander has its own banner, so skip the main MPM banner
+    skip_commands = {"info", "doctor", "config", "configure", "commander"}
     if hasattr(args, "command") and args.command in skip_commands:
         return False
 

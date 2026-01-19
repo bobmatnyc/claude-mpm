@@ -17,10 +17,14 @@ class RegisterProjectRequest(BaseModel):
 
     Attributes:
         path: Filesystem path to project directory
+        project_id: Optional project identifier (UUID generated if omitted)
         name: Optional display name (derived from path if omitted)
     """
 
     path: str = Field(..., description="Filesystem path to project")
+    project_id: Optional[str] = Field(
+        None, description="Project identifier (UUID generated if omitted)"
+    )
     name: Optional[str] = Field(
         None, description="Display name (derived from path if omitted)"
     )

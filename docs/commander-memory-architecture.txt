@@ -1,0 +1,266 @@
+# Commander Memory System - Architecture Diagram
+
+## System Overview
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Commander Memory System                          │
+│                                                                          │
+│  ┌────────────────┐  ┌─────────────────┐  ┌──────────────────┐         │
+│  │ RuntimeMonitor │  │   Chat CLI      │  │ Session Resumption│         │
+│  │                │  │                 │  │                  │         │
+│  │ • Captures     │  │ • /search cmd   │  │ • Load context   │         │
+│  │   output       │  │ • /search-file  │  │ • Inject into    │         │
+│  │ • Detects      │  │ • /similar      │  │   new session    │         │
+│  │   completion   │  │                 │  │                  │         │
+│  └────────┬───────┘  └────────┬────────┘  └────────┬─────────┘         │
+│           │                   │                     │                   │
+│           └───────────────────┼─────────────────────┘                   │
+│                               ▼                                         │
+│                    ┌──────────────────────┐                             │
+│                    │  MemoryIntegration   │                             │
+│                    │                      │                             │
+│                    │ • capture_project_   │                             │
+│                    │   conversation()     │                             │
+│                    │ • search_            │                             │
+│                    │   conversations()    │                             │
+│                    │ • load_context_for_  │                             │
+│                    │   session()          │                             │
+│                    └──────────┬───────────┘                             │
+│                               │                                         │
+│         ┌─────────────────────┼─────────────────────┐                   │
+│         ▼                     ▼                     ▼                   │
+│  ┌─────────────┐      ┌──────────────┐     ┌──────────────┐            │
+│  │   Search    │      │ Compression  │     │   Entities   │            │
+│  │             │      │              │     │              │            │
+│  │ • semantic  │      │ • summarize  │     │ • extract    │            │
+│  │ • find_     │      │ • compress_  │     │ • filter     │            │
+│  │   similar   │      │   for_       │     │ • dedupe     │            │
+│  │ • by_entity │      │   context    │     │              │            │
+│  └──────┬──────┘      └──────┬───────┘     └──────┬───────┘            │
+│         │                    │                    │                    │
+│         └────────────────────┼────────────────────┘                    │
+│                              ▼                                         │
+│                    ┌──────────────────┐                                │
+│                    │   Embeddings     │                                │
+│                    │                  │                                │
+│                    │ • embed()        │                                │
+│                    │ • embed_batch()  │                                │
+│                    │ • cosine_        │                                │
+│                    │   similarity()   │                                │
+│                    └──────────────────┘                                │
+│                              │                                         │
+│                              ▼                                         │
+│                    ┌──────────────────┐                                │
+│                    │   Store          │                                │
+│                    │                  │                                │
+│                    │ • save()         │                                │
+│                    │ • load()         │                                │
+│                    │ • list_by_       │                                │
+│                    │   project()      │                                │
+│                    │ • search_by_     │                                │
+│                    │   text()         │                                │
+│                    └──────────┬───────┘                                │
+│                               │                                         │
+│                               ▼                                         │
+│                    ┌──────────────────┐                                │
+│                    │   SQLite DB      │                                │
+│                    │                  │                                │
+│                    │ • conversations  │                                │
+│                    │ • messages       │                                │
+│                    │ • embeddings     │                                │
+│                    │   (optional)     │                                │
+│                    └──────────────────┘                                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+## Data Flow
+
+### 1. Capture Conversation
+
+Project (thread) → MemoryIntegration → EntityExtractor → Embeddings → Store
+                                     ↓                                    ↓
+                              Extract entities                    Save to SQLite
+                              (files, functions)                  (with vector)
+
+
+### 2. Search Conversations
+
+User Query → SemanticSearch → Embeddings (query vector)
+                            → Store (similarity search)
+                            → Results (ranked by score)
+
+
+### 3. Load Context for Resumption
+
+Project ID → MemoryIntegration → Store (list by project)
+                                → ContextCompressor (summarize)
+                                → Context String (4000 tokens)
+
+
+## Component Dependencies
+
+┌────────────────────────────────────────────────────────────────┐
+│                     External Dependencies                       │
+│                                                                 │
+│  Required:                                                      │
+│  • sqlite3 (built-in)                                          │
+│  • aiofiles                                                    │
+│                                                                 │
+│  Optional (Recommended):                                        │
+│  • sentence-transformers (local embeddings)                    │
+│  • sqlite-vec (vector search)                                  │
+│                                                                 │
+│  Optional:                                                      │
+│  • openai (OpenAI embeddings)                                  │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│                      Internal Dependencies                      │
+│                                                                 │
+│  Commander:                                                     │
+│  • models.project (Project, ThreadMessage)                     │
+│  • llm.openrouter_client (OpenRouterClient)                    │
+│  • registry (ProjectRegistry)                                  │
+│  • runtime.monitor (RuntimeMonitor)                            │
+└────────────────────────────────────────────────────────────────┘
+
+
+## Database Schema
+
+┌──────────────────────────────────────────────────────────────────┐
+│                      conversations                                │
+├──────────────────────────────────────────────────────────────────┤
+│ id                TEXT PRIMARY KEY                               │
+│ project_id        TEXT NOT NULL                                  │
+│ instance_name     TEXT NOT NULL                                  │
+│ session_id        TEXT NOT NULL UNIQUE                           │
+│ summary           TEXT                                           │
+│ created_at        TEXT NOT NULL                                  │
+│ updated_at        TEXT NOT NULL                                  │
+│ metadata          TEXT (JSON)                                    │
+└──────────────────────────────────────────────────────────────────┘
+                              ▲
+                              │ conversation_id (FK)
+                              │
+┌──────────────────────────────────────────────────────────────────┐
+│                         messages                                  │
+├──────────────────────────────────────────────────────────────────┤
+│ id                INTEGER PRIMARY KEY AUTOINCREMENT              │
+│ conversation_id   TEXT NOT NULL                                  │
+│ role              TEXT NOT NULL                                  │
+│ content           TEXT NOT NULL                                  │
+│ timestamp         TEXT NOT NULL                                  │
+│ token_count       INTEGER NOT NULL                               │
+│ entities          TEXT (JSON array)                              │
+│ metadata          TEXT (JSON)                                    │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│               conversation_embeddings (optional)                  │
+├──────────────────────────────────────────────────────────────────┤
+│ conversation_id   TEXT PRIMARY KEY                               │
+│ embedding         FLOAT[384] or FLOAT[1536]                      │
+└──────────────────────────────────────────────────────────────────┘
+
+
+## Entity Types
+
+┌─────────────────────────────────────────────────────────┐
+│                    Entity Types                          │
+├─────────────────────────────────────────────────────────┤
+│ FILE      → "src/auth.py", "tests/test_auth.py"        │
+│ FUNCTION  → "login()", "authenticate()"                 │
+│ CLASS     → "UserService", "AuthController"            │
+│ ERROR     → "ValueError", "AuthenticationError"         │
+│ COMMAND   → "pytest tests/", "npm run build"           │
+│ URL       → "https://example.com"                       │
+│ PACKAGE   → "requests", "flask"                         │
+└─────────────────────────────────────────────────────────┘
+
+
+## Embedding Providers
+
+┌──────────────────────────────────────────────────────────────┐
+│              sentence-transformers (default)                  │
+├──────────────────────────────────────────────────────────────┤
+│ Model:      all-MiniLM-L6-v2                                 │
+│ Dimensions: 384                                              │
+│ Speed:      ~100 texts/sec (CPU), ~1000 texts/sec (GPU)     │
+│ Cost:       Free                                             │
+│ Quality:    Good                                             │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│                   OpenAI (optional)                           │
+├──────────────────────────────────────────────────────────────┤
+│ Model:      text-embedding-3-small                           │
+│ Dimensions: 1536                                             │
+│ Speed:      ~1000 texts/sec (API limited)                   │
+│ Cost:       $0.02 per 1M tokens                             │
+│ Quality:    Excellent                                        │
+└──────────────────────────────────────────────────────────────┘
+
+
+## Search Flow
+
+┌────────────────────────────────────────────────────────────────┐
+│                      Semantic Search                            │
+├────────────────────────────────────────────────────────────────┤
+│  1. User Query: "how did we fix the login bug?"               │
+│  2. Generate Embedding: [0.234, -0.123, ..., 0.456]           │
+│  3. Load Conversations: from project (or all)                  │
+│  4. Calculate Similarity: cosine_similarity(query, conv)       │
+│  5. Rank Results: by similarity score (0-1)                    │
+│  6. Apply Filters: project_id, date_range, entity_types        │
+│  7. Generate Snippets: extract relevant text                   │
+│  8. Return Results: List[SearchResult]                         │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│                       Text Search (fallback)                    │
+├────────────────────────────────────────────────────────────────┤
+│  1. User Query: "login bug"                                    │
+│  2. SQLite LIKE: WHERE summary LIKE '%login%bug%'              │
+│  3. Filter: by project_id                                      │
+│  4. Rank: by match count                                       │
+│  5. Return Results: List[Conversation]                         │
+└────────────────────────────────────────────────────────────────┘
+
+
+## Context Compression Strategy
+
+┌────────────────────────────────────────────────────────────────┐
+│                  Multi-Level Compression                        │
+├────────────────────────────────────────────────────────────────┤
+│  Recent (< 5 msgs):    Include full conversation               │
+│  Medium (5-10 msgs):   Include summary + key messages          │
+│  Old (> 10 msgs):      Include summary only                    │
+│  Oldest:               Include one-sentence or omit            │
+│                                                                 │
+│  Token Budget: 4000 tokens (~16,000 chars)                     │
+│  Priority: Recent > Relevant > Older                           │
+└────────────────────────────────────────────────────────────────┘
+
+
+## File Organization
+
+src/claude_mpm/commander/memory/
+├── __init__.py              # Exports all public APIs
+├── store.py                 # ConversationStore (SQLite CRUD)
+├── embeddings.py            # EmbeddingService (vector generation)
+├── entities.py              # EntityExtractor (regex patterns)
+├── search.py                # SemanticSearch (semantic + text)
+├── compression.py           # ContextCompressor (summarization)
+├── integration.py           # MemoryIntegration (high-level API)
+├── README.md                # User documentation
+└── example_usage.py         # Usage examples
+
+tests/commander/memory/
+├── __init__.py
+└── test_store.py            # ConversationStore unit tests
+
+docs/
+├── commander-memory-design.md       # Architecture design
+├── commander-memory-summary.md      # Implementation summary
+└── commander-memory-architecture.txt # This file

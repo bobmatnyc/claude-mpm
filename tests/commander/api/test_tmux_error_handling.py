@@ -83,8 +83,10 @@ class TestSessionCreatePaneErrorHandling:
                 # Should raise TmuxNoSpaceError
                 with pytest.raises(TmuxNoSpaceError) as exc_info:
                     import asyncio
+                    from unittest.mock import Mock
 
-                    asyncio.run(create_session("test-proj-123", request))
+                    mock_request = Mock()
+                    asyncio.run(create_session(mock_request, "test-proj-123", request))
 
                 # Verify error details
                 assert exc_info.value.status_code == 409
@@ -121,8 +123,10 @@ class TestSessionCreatePaneErrorHandling:
                 # Should re-raise original CalledProcessError
                 with pytest.raises(subprocess.CalledProcessError) as exc_info:
                     import asyncio
+                    from unittest.mock import Mock
 
-                    asyncio.run(create_session("test-proj-123", request))
+                    mock_request = Mock()
+                    asyncio.run(create_session(mock_request, "test-proj-123", request))
 
                 # Verify it's the original error
                 assert exc_info.value.returncode == 1
@@ -150,8 +154,12 @@ class TestSessionCreatePaneErrorHandling:
 
                 # Should succeed
                 import asyncio
+                from unittest.mock import Mock
 
-                response = asyncio.run(create_session("test-proj-123", request))
+                mock_request = Mock()
+                response = asyncio.run(
+                    create_session(mock_request, "test-proj-123", request)
+                )
 
                 # Verify response
                 assert response.project_id == "test-proj-123"
@@ -190,5 +198,7 @@ class TestSessionCreatePaneErrorHandling:
                 # Should raise TmuxNoSpaceError
                 with pytest.raises(TmuxNoSpaceError):
                     import asyncio
+                    from unittest.mock import Mock
 
-                    asyncio.run(create_session("test-proj-123", request))
+                    mock_request = Mock()
+                    asyncio.run(create_session(mock_request, "test-proj-123", request))

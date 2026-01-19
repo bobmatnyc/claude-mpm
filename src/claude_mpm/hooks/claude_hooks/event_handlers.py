@@ -126,6 +126,15 @@ class EventHandlers:
             # Response tracking is optional - silently continue if it fails
             pass
 
+        # Record user message for auto-pause if active
+        auto_pause = getattr(self.hook_handler, "auto_pause_handler", None)
+        if auto_pause and auto_pause.is_pause_active():
+            try:
+                auto_pause.on_user_message(prompt)
+            except Exception as e:
+                if DEBUG:
+                    _log(f"Auto-pause user message recording error: {e}")
+
         # Emit normalized event (namespace no longer needed with normalized events)
         self.hook_handler._emit_socketio_event("", "user_prompt", prompt_data)
 
@@ -602,6 +611,19 @@ class EventHandlers:
                 except Exception as e:
                     if DEBUG:
                         _log(f"Auto-pause error in handle_stop_fast: {e}")
+
+                # Finalize pause session if active
+                try:
+                    if auto_pause.is_pause_active():
+                        session_file = auto_pause.on_session_end()
+                        if session_file:
+                            if DEBUG:
+                                _log(
+                                    f"✅ Auto-pause session finalized: {session_file.name}"
+                                )
+                except Exception as e:
+                    if DEBUG:
+                        _log(f"❌ Failed to finalize auto-pause session: {e}")
 
         # Track response if enabled
         try:

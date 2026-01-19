@@ -61,15 +61,18 @@ class ProjectRegistry:
 
         logger.info("Initialized ProjectRegistry (persist=%s)", self._persist_path)
 
-    def register(self, path: str, name: Optional[str] = None) -> Project:
+    def register(
+        self, path: str, name: Optional[str] = None, project_id: Optional[str] = None
+    ) -> Project:
         """Register a new project.
 
-        Creates a new project with unique UUID and adds it to the registry.
+        Creates a new project with unique UUID (or user-provided ID) and adds it to registry.
         Path must be a valid directory and cannot already be registered.
 
         Args:
             path: Absolute filesystem path to project directory
             name: Optional human-readable name (defaults to directory name)
+            project_id: Optional project identifier (UUID generated if omitted)
 
         Returns:
             Newly created Project instance
@@ -111,8 +114,11 @@ class ProjectRegistry:
             if name is None:
                 name = path_obj.name
 
-            # Generate unique project ID
-            project_id = str(uuid.uuid4())
+            # Generate unique project ID if not provided
+            if project_id is None:
+                project_id = str(uuid.uuid4())
+            elif project_id in self._projects:
+                raise ValueError(f"Project ID already exists: {project_id}")
 
             # Create project instance
             project = Project(
