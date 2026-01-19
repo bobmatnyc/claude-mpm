@@ -52,7 +52,7 @@ class TestDaemonConfig:
         config = DaemonConfig()
 
         assert config.host == "127.0.0.1"
-        assert config.port == 8765
+        assert config.port == 8766
         assert config.log_level == "INFO"
         assert config.max_projects == 10
         assert config.healthcheck_interval == 30
