@@ -14,8 +14,8 @@ const state = {
     ansiUp: null,
     sessionActivity: {},  // session_id -> activity stats
     hasUserScrolled: false,  // Track if user manually scrolled up
-    // View Mode: 'tmux-follow' (default) or 'terminal'
-    viewMode: 'tmux-follow',
+    // View Mode: 'terminal' (default, ON) or 'tmux-follow' (fallback, OFF)
+    viewMode: 'terminal',
     // Browser Terminal State
     browserTerminal: null,       // xterm.js Terminal instance
     terminalSocket: null,        // WebSocket connection
@@ -221,7 +221,7 @@ async function selectSession(projectId, sessionId) {
     // Close Browser Terminal if switching sessions
     if (state.currentSession !== sessionId) {
         closeBrowserTerminal();
-        state.viewMode = 'tmux-follow';  // Reset to default mode
+        state.viewMode = 'terminal';  // Reset to default mode (Terminal ON)
     }
 
     state.currentProject = projectId;
@@ -252,10 +252,15 @@ async function selectSession(projectId, sessionId) {
     document.getElementById('output-actions').classList.remove('hidden');
     document.getElementById('activity-panel').classList.remove('hidden');
 
-    // Update UI based on current view mode (default: tmux-follow)
+    // Update UI based on current view mode (default: terminal)
     updateViewModeUI();
 
-    // Load output
+    // If terminal mode is active, open browser terminal automatically
+    if (state.viewMode === 'terminal') {
+        await openBrowserTerminal();
+    }
+
+    // Load output (for TMUX follow mode background)
     await loadSessionOutput();
 
     // Start output polling
@@ -355,6 +360,8 @@ async function toggleViewMode() {
 
 /**
  * Update UI elements based on current view mode
+ * Terminal ON (default) = Browser Terminal
+ * Terminal OFF (fallback) = TMUX Follow Mode
  */
 function updateViewModeUI() {
     const tmuxFollowActions = document.getElementById('tmux-follow-actions');
@@ -362,40 +369,37 @@ function updateViewModeUI() {
     const outputContent = document.getElementById('output-content');
     const activityPanel = document.getElementById('activity-panel');
     const browserTerminalPanel = document.getElementById('browser-terminal-panel');
-    const modeToggleIcon = document.getElementById('mode-toggle-icon');
-    const modeToggleLabel = document.getElementById('mode-toggle-label');
-    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const terminalSwitch = document.getElementById('terminal-switch');
+    const terminalSwitchLabel = document.getElementById('terminal-switch-label');
 
     if (state.viewMode === 'terminal') {
-        // Terminal Mode: Hide TMUX Follow elements, show Browser Terminal
+        // Terminal Mode ON: Show Browser Terminal, hide TMUX Follow elements
         if (tmuxFollowActions) tmuxFollowActions.classList.add('hidden');
         if (quickInputBar) quickInputBar.classList.add('hidden');
         if (outputContent) outputContent.classList.add('hidden');
         if (activityPanel) activityPanel.classList.add('hidden');
         if (browserTerminalPanel) browserTerminalPanel.classList.remove('hidden');
-        // Rotate icon down (expanded state)
-        if (modeToggleIcon) modeToggleIcon.style.transform = 'rotate(90deg)';
-        if (modeToggleLabel) {
-            modeToggleLabel.textContent = 'Terminal';
-            modeToggleLabel.classList.remove('text-gray-400');
-            modeToggleLabel.classList.add('text-green-400');
+        // Switch ON (green, knob right)
+        if (terminalSwitch) terminalSwitch.classList.add('active');
+        if (terminalSwitchLabel) {
+            terminalSwitchLabel.textContent = 'Terminal';
+            terminalSwitchLabel.classList.remove('text-gray-400');
+            terminalSwitchLabel.classList.add('text-green-400');
         }
-        if (modeToggleBtn) modeToggleBtn.title = 'Switch to TMUX Follow';
     } else {
-        // TMUX Follow Mode: Show TMUX Follow elements, hide Browser Terminal
+        // Terminal Mode OFF (Fallback): Show TMUX Follow elements, hide Browser Terminal
         if (tmuxFollowActions) tmuxFollowActions.classList.remove('hidden');
         if (quickInputBar) quickInputBar.classList.remove('hidden');
         if (outputContent) outputContent.classList.remove('hidden');
         if (activityPanel) activityPanel.classList.remove('hidden');
         if (browserTerminalPanel) browserTerminalPanel.classList.add('hidden');
-        // Icon pointing right (collapsed state)
-        if (modeToggleIcon) modeToggleIcon.style.transform = 'rotate(0deg)';
-        if (modeToggleLabel) {
-            modeToggleLabel.textContent = 'Terminal';
-            modeToggleLabel.classList.remove('text-green-400');
-            modeToggleLabel.classList.add('text-gray-400');
+        // Switch OFF (gray, knob left)
+        if (terminalSwitch) terminalSwitch.classList.remove('active');
+        if (terminalSwitchLabel) {
+            terminalSwitchLabel.textContent = 'Terminal';
+            terminalSwitchLabel.classList.remove('text-green-400');
+            terminalSwitchLabel.classList.add('text-gray-400');
         }
-        if (modeToggleBtn) modeToggleBtn.title = 'Switch to Browser Terminal';
     }
 }
 
@@ -485,26 +489,53 @@ async function sendText() {
     }
 }
 
+// Track which session is pending termination (for modal)
+let pendingTerminateSessionId = null;
+
 /**
- * Terminate the current session.
- * Kills the tmux pane and removes the session.
+ * Show the terminate confirmation modal.
  */
-async function terminateSession(sessionId = null) {
-    console.log('terminateSession called with:', sessionId);
-    // Use provided sessionId or fall back to current session
-    const targetSession = sessionId || state.currentSession;
-    console.log('targetSession:', targetSession);
-    if (!targetSession) {
-        console.log('No target session, returning');
-        return;
+function showTerminateModal(sessionId) {
+    pendingTerminateSessionId = sessionId;
+
+    // Find session info for display
+    let sessionName = sessionId.slice(0, 8) + '...';
+    let projectName = '';
+    for (const project of state.projects) {
+        const session = project.sessions.find(s => s.id === sessionId);
+        if (session) {
+            projectName = project.name;
+            break;
+        }
     }
 
-    // Confirm before terminating
-    if (!confirm('Are you sure you want to terminate this session? This cannot be undone.')) {
-        console.log('User cancelled');
+    // Update modal content
+    const nameEl = document.getElementById('terminate-session-name');
+    if (nameEl) {
+        nameEl.textContent = projectName ? `${projectName} / ${sessionName}` : sessionName;
+    }
+
+    // Show modal
+    document.getElementById('terminate-modal').classList.remove('hidden');
+}
+
+/**
+ * Hide the terminate confirmation modal.
+ */
+function hideTerminateModal() {
+    document.getElementById('terminate-modal').classList.add('hidden');
+    pendingTerminateSessionId = null;
+}
+
+/**
+ * Confirm and execute session termination.
+ */
+async function confirmTerminateSession() {
+    const targetSession = pendingTerminateSessionId;
+    if (!targetSession) {
+        hideTerminateModal();
         return;
     }
-    console.log('User confirmed, proceeding...');
 
     try {
         // Close browser terminal if this is the current session
@@ -535,7 +566,22 @@ async function terminateSession(sessionId = null) {
 
     } catch (err) {
         log(`Failed to terminate session: ${err.message}`, 'error');
+    } finally {
+        hideTerminateModal();
     }
+}
+
+/**
+ * Terminate session - shows confirmation modal.
+ * Called from session list terminate button (✕).
+ */
+function terminateSession(sessionId = null) {
+    const targetSession = sessionId || state.currentSession;
+    if (!targetSession) {
+        return;
+    }
+
+    showTerminateModal(targetSession);
 }
 
 async function sendQuickMessage() {
@@ -1176,6 +1222,10 @@ document.addEventListener('keydown', (e) => {
     // Escape handling
     if (e.key === 'Escape') {
         // Close modals first
+        if (!document.getElementById('terminate-modal').classList.contains('hidden')) {
+            hideTerminateModal();
+            return;
+        }
         if (!document.getElementById('help-modal').classList.contains('hidden')) {
             hideHelpModal();
             return;

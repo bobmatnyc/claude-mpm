@@ -77,13 +77,29 @@ body {
 }
 
 /* Expand Icon Animation */
-.expand-icon,
-#mode-toggle-icon {
+.expand-icon {
     transition: transform 0.15s ease;
 }
 
 .expand-icon.rotate-90 {
     transform: rotate(90deg);
+}
+
+/* Terminal Toggle Switch */
+#terminal-switch {
+    background-color: var(--bg-600);
+}
+
+#terminal-switch.active {
+    background-color: #22c55e; /* green-500 */
+}
+
+#terminal-switch-knob {
+    transform: translateX(0);
+}
+
+#terminal-switch.active #terminal-switch-knob {
+    transform: translateX(20px);
 }
 
 /* Output Panel */

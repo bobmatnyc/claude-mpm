@@ -89,13 +89,16 @@
                     <button onclick="openIniTerm()" class="action-btn bg-purple-700 hover:bg-purple-600" title="Open in iTerm">
                         <span class="mr-1">🍎</span>iTerm
                     </button>
-                    <!-- Mode Toggle: Compact like project expand/collapse -->
-                    <button id="mode-toggle-btn" onclick="toggleViewMode()"
-                            class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all hover:bg-gray-700"
-                            title="Toggle Browser Terminal">
-                        <span id="mode-toggle-icon" class="transition-transform">▶</span>
-                        <span id="mode-toggle-label" class="text-gray-400">Terminal</span>
-                    </button>
+                    <!-- Terminal Toggle Switch -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">Fallback</span>
+                        <button id="terminal-switch" onclick="toggleViewMode()"
+                                class="relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                                title="Terminal Mode">
+                            <span id="terminal-switch-knob" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"></span>
+                        </button>
+                        <span id="terminal-switch-label" class="text-xs font-medium">Terminal</span>
+                    </div>
                 </div>
             </div>
 
@@ -271,6 +274,50 @@
             <div class="flex justify-end gap-2 mt-6 border-t border-gray-700 pt-4">
                 <button onclick="hideSettingsModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
                 <button onclick="saveSettings()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminate Session Confirmation Modal -->
+    <div id="terminate-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50" onclick="if(event.target===this)hideTerminateModal()">
+        <div class="bg-gray-800 rounded-lg p-6 w-[400px] shadow-2xl border border-gray-700">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-600/20 flex items-center justify-center">
+                    <span class="text-2xl">⚠️</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Terminate Session?</h3>
+                    <p class="text-sm text-gray-400">This action cannot be undone</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-red-400">●</span>
+                    <span id="terminate-session-name" class="font-medium text-gray-200">Session</span>
+                </div>
+                <p class="text-sm text-gray-400">
+                    The tmux session and all running processes will be killed immediately.
+                    Any unsaved work will be lost.
+                </p>
+            </div>
+
+            <div class="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <span class="text-yellow-400 mt-0.5">💡</span>
+                    <p class="text-sm text-yellow-200/80">
+                        Tip: Use the <strong>iTerm</strong> button to check session state before terminating.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="hideTerminateModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition text-sm font-medium">
+                    Cancel
+                </button>
+                <button onclick="confirmTerminateSession()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition text-sm font-medium flex items-center gap-2">
+                    <span>🗑️</span> Terminate Session
+                </button>
             </div>
         </div>
     </div>
