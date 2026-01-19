@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.24] - 2026-01-19
+
+### Fixed
+- fix(output-style): treat 'default' as no preference in deployer - ensures Claude MPM style is activated on deployment
+
 ## [5.6.23] - 2026-01-19
 
 ### Fixed
