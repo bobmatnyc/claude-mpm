@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.26] - 2026-01-19
+
+### Fixed
+- fix(startup): remove blank line printing in non-TTY mode - eliminates REPL pollution from newline fallbacks
+
 ## [5.6.25] - 2026-01-19
 
 ### Fixed
