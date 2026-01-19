@@ -1206,6 +1206,12 @@ async function openBrowserTerminal() {
     // Terminal has fixed height in CSS (for exactly 24 rows)
     // Output content will flex to fill remaining space
 
+    // Hide Quick Input Bar - user interacts via Browser Terminal instead
+    const quickInputBar = document.getElementById('quick-input-bar');
+    if (quickInputBar) {
+        quickInputBar.classList.add('hidden');
+    }
+
     statusEl.textContent = 'connecting...';
     statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
 
@@ -1424,6 +1430,14 @@ function closeBrowserTerminal() {
 
     if (terminalPanel) {
         terminalPanel.classList.add('hidden');
+    }
+
+    // Show Quick Input Bar again (if a session is selected)
+    if (state.currentSession) {
+        const quickInputBar = document.getElementById('quick-input-bar');
+        if (quickInputBar) {
+            quickInputBar.classList.remove('hidden');
+        }
     }
 
     // Reset fullscreen if active
