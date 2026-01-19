@@ -1,10 +1,19 @@
 ## [Unreleased]
 
 ### Added
+- feat(network): centralize port configuration with service-specific defaults
+- feat(commander): add instance management features (rename, close, disconnect)
 
 ### Changed
 
 ### Fixed
+- fix(commander): skip signal handlers when running in background thread
+
+### Documentation
+- docs: add MPM Commander vision and architecture document
+
+### Tests
+- test(commander): add instance management tests
 
 ## [5.6.19] - 2026-01-18
 
