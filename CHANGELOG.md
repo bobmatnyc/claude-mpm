@@ -1,10 +1,28 @@
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Documentation
+
+### Tests
+
+## [5.6.21] - 2026-01-19
+
+### Changed
+- chore: index cleanup and rebuild for mcp-vector-search
+
+## [5.6.20] - 2026-01-19
+
+### Added
 - feat(network): centralize port configuration with service-specific defaults
 - feat(commander): add instance management features (rename, close, disconnect)
 
 ### Changed
+- chore: index cleanup and rebuild for mcp-vector-search
 
 ### Fixed
 - fix(commander): skip signal handlers when running in background thread
