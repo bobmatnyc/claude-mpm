@@ -23,17 +23,21 @@ def add_commander_subparser(subparsers: argparse._SubParsersAction) -> None:
     """
     commander_parser = subparsers.add_parser(
         "commander",
-        help="Interactive Commander mode for managing multiple Claude instances",
+        help="Launch Commander multi-project orchestration (ALPHA)",
         description="""
-Commander Mode - Interactive Instance Management
+Commander Mode - Multi-Project Orchestration (ALPHA)
 
-Commander provides an interactive REPL interface for:
-- Starting and stopping Claude Code/MPM instances in tmux
-- Connecting to instances and sending natural language commands
-- Managing multiple concurrent projects
-- Viewing instance status and output
+The commander subcommand auto-starts the Commander daemon (if not already running)
+and launches an interactive REPL for managing multiple Claude Code instances.
 
-Commands:
+Commander provides:
+- Auto-starting daemon that manages project lifecycles
+- Interactive REPL for controlling instances
+- Tmux-based session management
+- Real-time output monitoring
+- REST API for external control (http://127.0.0.1:8765)
+
+REPL Commands:
   list, ls, instances   List active instances
   start <path>          Start new instance at path
     --framework <cc|mpm>  Specify framework (default: cc)
@@ -50,7 +54,16 @@ Natural Language:
   command will be sent to the connected instance as a message.
 
 Examples:
+  # Start daemon and launch interactive chat
   claude-mpm commander
+
+  # Start daemon only (no chat interface)
+  claude-mpm commander --daemon-only
+
+  # Use custom port
+  claude-mpm commander --port 9000
+
+  # In REPL:
   > start ~/myproject --framework cc --name myapp
   > connect myapp
   > Fix the authentication bug in login.py
@@ -80,4 +93,24 @@ Examples:
         "--debug",
         action="store_true",
         help="Enable debug logging",
+    )
+
+    # Daemon auto-start options
+    commander_parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Daemon host (default: 127.0.0.1)",
+    )
+
+    commander_parser.add_argument(
+        "--no-chat",
+        action="store_true",
+        help="Start daemon only without interactive chat",
+    )
+
+    commander_parser.add_argument(
+        "--daemon-only",
+        action="store_true",
+        help="Alias for --no-chat (start daemon only)",
     )

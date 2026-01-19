@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MPM Commander Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ansi_up@6.0.2/ansi_up.js"></script>
+    <!-- ansi_up for ANSI color rendering (UMD build) -->
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.2.1/ansi_up.min.js"></script>
+    <!-- xterm.js für Browser Terminal -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
     <link rel="stylesheet" href="/v2/styles.css">
 </head>
 <body class="bg-gray-950 text-gray-100 h-screen flex flex-col overflow-hidden">
@@ -65,21 +71,34 @@
                     <span id="output-status" class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400 hidden">running</span>
                 </div>
                 <div id="output-actions" class="flex items-center gap-2 hidden">
-                    <!-- Session Actions -->
-                    <button onclick="sendEscape()" class="action-btn" title="Send ESC">ESC</button>
-                    <button onclick="sendCtrlC()" class="action-btn" title="Send Ctrl+C">^C</button>
-                    <button onclick="sendShiftTab()" class="action-btn" title="Send Shift+Tab (cycle permissions)">⇧⇥</button>
-                    <button onclick="sendEnter()" class="action-btn" title="Send Enter">↵</button>
-                    <div class="flex items-center gap-1 ml-2">
-                        <input type="text" id="send-text-input" placeholder="Send text..."
-                               class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
-                               onkeypress="if(event.key==='Enter')sendText()">
-                        <button onclick="sendText()" class="action-btn">Send</button>
+                    <!-- TMUX Follow Mode Actions (hidden in Terminal Mode) -->
+                    <div id="tmux-follow-actions" class="flex items-center gap-2">
+                        <button onclick="sendEscape()" class="action-btn" title="Send ESC">ESC</button>
+                        <button onclick="sendCtrlC()" class="action-btn" title="Send Ctrl+C">^C</button>
+                        <button onclick="sendShiftTab()" class="action-btn" title="Send Shift+Tab (cycle permissions)">⇧⇥</button>
+                        <button onclick="sendEnter()" class="action-btn" title="Send Enter">↵</button>
+                        <div class="flex items-center gap-1 ml-2">
+                            <input type="text" id="send-text-input" placeholder="Send text..."
+                                   class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
+                                   onkeypress="if(event.key==='Enter')sendText()">
+                            <button onclick="sendText()" class="action-btn">Send</button>
+                        </div>
                     </div>
                     <div class="border-l border-gray-700 h-6 mx-2"></div>
-                    <button onclick="openInTerminal()" class="action-btn bg-green-700 hover:bg-green-600" title="Open in Terminal">
-                        <span class="mr-1">🖥️</span>Terminal
+                    <!-- Always Visible: iTerm Button -->
+                    <button onclick="openIniTerm()" class="action-btn bg-purple-700 hover:bg-purple-600" title="Open in iTerm">
+                        <span class="mr-1">🍎</span>iTerm
                     </button>
+                    <!-- Terminal Toggle Switch -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500">Fallback</span>
+                        <button id="terminal-switch" onclick="toggleViewMode()"
+                                class="relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                                title="Terminal Mode">
+                            <span id="terminal-switch-knob" class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"></span>
+                        </button>
+                        <span id="terminal-switch-label" class="text-xs font-medium">Terminal</span>
+                    </div>
                 </div>
             </div>
 
@@ -109,6 +128,21 @@
                     <div class="text-4xl mb-4">📺</div>
                     <div>Select a session from the left panel to view output</div>
                 </div>
+            </div>
+
+            <!-- Browser Terminal Panel (hidden by default, shown in Terminal Mode) -->
+            <div id="browser-terminal-panel" class="hidden flex-1 flex flex-col border-t border-gray-800 min-h-0">
+                <div class="bg-gray-900 px-4 py-2 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-green-400">❯</span>
+                        <span class="text-sm font-medium text-gray-300">Browser Terminal</span>
+                        <span id="terminal-connection-status" class="text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400">connecting...</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleTerminalFullscreen()" class="text-gray-400 hover:text-white text-xs px-2 py-1" title="Fullscreen">⛶</button>
+                    </div>
+                </div>
+                <div id="xterm-container" class="flex-1 min-h-0"></div>
             </div>
 
             <!-- Quick Input Bar - ALWAYS visible at bottom, never scrolls away -->
@@ -237,9 +271,53 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 mt-6">
+            <div class="flex justify-end gap-2 mt-6 border-t border-gray-700 pt-4">
                 <button onclick="hideSettingsModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
                 <button onclick="saveSettings()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminate Session Confirmation Modal -->
+    <div id="terminate-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50" onclick="if(event.target===this)hideTerminateModal()">
+        <div class="bg-gray-800 rounded-lg p-6 w-[400px] shadow-2xl border border-gray-700">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-600/20 flex items-center justify-center">
+                    <span class="text-2xl">⚠️</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Terminate Session?</h3>
+                    <p class="text-sm text-gray-400">This action cannot be undone</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-lg p-4 mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-red-400">●</span>
+                    <span id="terminate-session-name" class="font-medium text-gray-200">Session</span>
+                </div>
+                <p class="text-sm text-gray-400">
+                    The tmux session and all running processes will be killed immediately.
+                    Any unsaved work will be lost.
+                </p>
+            </div>
+
+            <div class="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-3 mb-4">
+                <div class="flex items-start gap-2">
+                    <span class="text-yellow-400 mt-0.5">💡</span>
+                    <p class="text-sm text-yellow-200/80">
+                        Tip: Use the <strong>iTerm</strong> button to check session state before terminating.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="terminate-cancel-btn" onclick="hideTerminateModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    Cancel <kbd class="ml-1 text-xs opacity-60">Esc</kbd>
+                </button>
+                <button id="terminate-confirm-btn" onclick="confirmTerminateSession()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition text-sm font-medium flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-400">
+                    <span>🗑️</span> Terminate <kbd class="ml-1 text-xs opacity-60">↵</kbd>
+                </button>
             </div>
         </div>
     </div>
@@ -253,21 +331,42 @@
             </div>
 
             <div class="space-y-4 text-sm">
-                <!-- Navigation -->
+                <!-- Session Navigation -->
                 <div>
-                    <h4 class="text-gray-400 text-xs uppercase tracking-wider mb-2">Navigation</h4>
+                    <h4 class="text-gray-400 text-xs uppercase tracking-wider mb-2">Session Navigation</h4>
                     <div class="space-y-1">
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">Next session</span>
                             <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Ctrl + Tab</kbd>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs ml-1">⌘ + →</kbd>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">Previous session</span>
                             <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Ctrl + Shift + Tab</kbd>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs ml-1">⌘ + ←</kbd>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">Jump to session 1-9</span>
                             <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Ctrl + 1-9</kbd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terminal Scroll (iTerm-style) -->
+                <div>
+                    <h4 class="text-gray-400 text-xs uppercase tracking-wider mb-2">Terminal Scroll (iTerm-style)</h4>
+                    <div class="space-y-1">
+                        <div class="flex justify-between py-1 border-b border-gray-700">
+                            <span class="text-gray-300">Scroll one line up/down</span>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">⌘ + ↑/↓</kbd>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-gray-700">
+                            <span class="text-gray-300">Scroll page up/down</span>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">⇧ + PageUp/Down</kbd>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-gray-700">
+                            <span class="text-gray-300">Scroll to top/end</span>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">⌘ + Home/End</kbd>
                         </div>
                     </div>
                 </div>
@@ -295,6 +394,10 @@
                 <div>
                     <h4 class="text-gray-400 text-xs uppercase tracking-wider mb-2">Actions</h4>
                     <div class="space-y-1">
+                        <div class="flex justify-between py-1 border-b border-gray-700">
+                            <span class="text-gray-300">New session</span>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Alt + N</kbd>
+                        </div>
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">Send ESC to session</span>
                             <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Escape (×2)</kbd>

@@ -51,16 +51,19 @@ class WorkExecutor:
 
         logger.debug(f"Initialized WorkExecutor for project {queue.project_id}")
 
-    async def execute_next(self) -> bool:
+    async def execute_next(self, pane_target: Optional[str] = None) -> bool:
         """Execute next available work item.
 
         Gets next work from queue, starts it, and executes via RuntimeExecutor.
+
+        Args:
+            pane_target: Optional tmux pane target for execution
 
         Returns:
             True if work was executed, False if queue empty/blocked
 
         Example:
-            >>> executed = await executor.execute_next()
+            >>> executed = await executor.execute_next("%5")
             >>> if not executed:
             ...     print("No work available")
         """
@@ -71,10 +74,12 @@ class WorkExecutor:
             return False
 
         # Execute the work item
-        await self.execute(work_item)
+        await self.execute(work_item, pane_target)
         return True
 
-    async def execute(self, work_item: WorkItem) -> None:
+    async def execute(
+        self, work_item: WorkItem, pane_target: Optional[str] = None
+    ) -> None:
         """Execute a specific work item.
 
         Marks work as IN_PROGRESS and sends to RuntimeExecutor.
@@ -83,12 +88,13 @@ class WorkExecutor:
 
         Args:
             work_item: WorkItem to execute
+            pane_target: Optional tmux pane target for execution
 
         Raises:
             RuntimeError: If execution fails
 
         Example:
-            >>> await executor.execute(work_item)
+            >>> await executor.execute(work_item, "%5")
         """
         # Mark as in progress
         if not self.queue.start(work_item.id):
@@ -103,16 +109,20 @@ class WorkExecutor:
         )
 
         try:
-            # Send work content to runtime
-            # Note: In actual implementation, this would integrate with
-            # ProjectSession which manages the pane_target
-            # For now, we assume runtime has active session
-            # This will be properly integrated when wiring with ProjectSession
+            # Send work content to runtime if pane target provided
+            if pane_target:
+                await self.runtime.send_message(pane_target, work_item.content)
+                logger.info(
+                    f"Work item {work_item.id} sent to pane {pane_target} for execution"
+                )
+            else:
+                logger.warning(
+                    f"No pane target provided for work item {work_item.id}, "
+                    f"work marked as in-progress but not sent to runtime"
+                )
 
             # Store work item ID in metadata for callback tracking
             work_item.metadata["execution_started"] = True
-
-            logger.info(f"Work item {work_item.id} sent to runtime for execution")
 
         except Exception as e:
             logger.error(f"Failed to execute work item {work_item.id}: {e}")

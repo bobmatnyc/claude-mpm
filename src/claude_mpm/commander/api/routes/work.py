@@ -4,25 +4,39 @@ This module implements REST endpoints for managing work items
 in project work queues.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from ...models.work import WorkPriority, WorkState
 from ...work import WorkQueue
-from ..errors import ProjectNotFoundError
 from ..schemas import CreateWorkRequest, WorkItemResponse
 
 router = APIRouter()
 
 
-def _get_registry():
-    """Get registry instance from app global."""
-    from ..app import registry
-
-    if registry is None:
+def _get_registry(request: Request):
+    """Get registry instance from app.state."""
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
+
+
+def _get_work_queues(request: Request) -> Dict:
+    """Get work queues dict from app.state (shared with daemon)."""
+    if (
+        not hasattr(request.app.state, "work_queues")
+        or request.app.state.work_queues is None
+    ):
+        raise RuntimeError("Work queues not initialized")
+    return request.app.state.work_queues
+
+
+def _get_daemon(request: Request):
+    """Get daemon instance from app.state."""
+    if not hasattr(request.app.state, "daemon_instance"):
+        return None
+    return request.app.state.daemon_instance
 
 
 def _work_item_to_response(work_item) -> WorkItemResponse:
@@ -51,10 +65,13 @@ def _work_item_to_response(work_item) -> WorkItemResponse:
 
 
 @router.post("/projects/{project_id}/work", response_model=WorkItemResponse)
-async def add_work(project_id: str, work: CreateWorkRequest) -> WorkItemResponse:
+async def add_work(
+    request: Request, project_id: str, work: CreateWorkRequest
+) -> WorkItemResponse:
     """Add work item to project queue.
 
     Args:
+        request: FastAPI request (for accessing app.state)
         project_id: Project identifier
         work: Work item creation request
 
@@ -80,22 +97,29 @@ async def add_work(project_id: str, work: CreateWorkRequest) -> WorkItemResponse
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
+    work_queues = _get_work_queues(request)
+    daemon = _get_daemon(request)
 
     # Get project
-    try:
-        project = registry.get(project_id)
-    except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+    project = registry.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
-    # Get or create work queue for project
-    # Note: In full implementation, this would be managed by ProjectSession
-    # For now, we'll need to integrate with project's work queue
-    # Access or create work queue
-    if not hasattr(project, "_work_queue"):
-        project._work_queue = WorkQueue(project_id)
+    # Get or create work queue (shared with daemon)
+    import logging
 
-    queue = project._work_queue
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"work_queues dict id: {id(work_queues)}, keys: {list(work_queues.keys())}"
+    )
+
+    if project_id not in work_queues:
+        logger.info(f"Creating new work queue for {project_id}")
+        work_queues[project_id] = WorkQueue(project_id)
+        logger.info(f"After creation, work_queues keys: {list(work_queues.keys())}")
+
+    queue = work_queues[project_id]
 
     # Convert priority int to enum
     priority = WorkPriority(work.priority)
@@ -105,16 +129,25 @@ async def add_work(project_id: str, work: CreateWorkRequest) -> WorkItemResponse
         content=work.content, priority=priority, depends_on=work.depends_on
     )
 
+    # Ensure daemon has a session for this project (creates if needed)
+    if daemon and not daemon.sessions.get(project_id):
+        # Session creation will be handled by daemon's main loop
+        # when it detects work in the queue
+        pass
+
     return _work_item_to_response(work_item)
 
 
 @router.get("/projects/{project_id}/work", response_model=List[WorkItemResponse])
 async def list_work(
-    project_id: str, state: Optional[str] = Query(None, description="Filter by state")
+    request: Request,
+    project_id: str,
+    state: Optional[str] = Query(None, description="Filter by state"),
 ) -> List[WorkItemResponse]:
     """List work items for project.
 
     Args:
+        request: FastAPI request (for accessing app.state)
         project_id: Project identifier
         state: Optional state filter (pending, queued, in_progress, etc.)
 
@@ -136,19 +169,20 @@ async def list_work(
             {"id": "work-1", "state": "queued", ...}
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
+    work_queues = _get_work_queues(request)
 
     # Get project
-    try:
-        project = registry.get(project_id)
-    except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+    project = registry.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
-    # Get work queue
-    if not hasattr(project, "_work_queue"):
-        project._work_queue = WorkQueue(project_id)
+    # Get work queue (shared with daemon)
+    if project_id not in work_queues:
+        # Return empty list if no work queue exists yet
+        return []
 
-    queue = project._work_queue
+    queue = work_queues[project_id]
 
     # Parse state filter
     state_filter = None
@@ -169,10 +203,11 @@ async def list_work(
 
 
 @router.get("/projects/{project_id}/work/{work_id}", response_model=WorkItemResponse)
-async def get_work(project_id: str, work_id: str) -> WorkItemResponse:
+async def get_work(request: Request, project_id: str, work_id: str) -> WorkItemResponse:
     """Get work item details.
 
     Args:
+        request: FastAPI request (for accessing app.state)
         project_id: Project identifier
         work_id: Work item identifier
 
@@ -191,19 +226,19 @@ async def get_work(project_id: str, work_id: str) -> WorkItemResponse:
             ...
         }
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
+    work_queues = _get_work_queues(request)
 
     # Get project
-    try:
-        project = registry.get(project_id)
-    except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+    project = registry.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
-    # Get work queue
-    if not hasattr(project, "_work_queue"):
+    # Get work queue (shared with daemon)
+    if project_id not in work_queues:
         raise HTTPException(status_code=404, detail="Work queue not found")
 
-    queue = project._work_queue
+    queue = work_queues[project_id]
 
     # Get work item
     work_item = queue.get(work_id)
@@ -214,10 +249,11 @@ async def get_work(project_id: str, work_id: str) -> WorkItemResponse:
 
 
 @router.post("/projects/{project_id}/work/{work_id}/cancel")
-async def cancel_work(project_id: str, work_id: str) -> dict:
+async def cancel_work(request: Request, project_id: str, work_id: str) -> dict:
     """Cancel pending work item.
 
     Args:
+        request: FastAPI request (for accessing app.state)
         project_id: Project identifier
         work_id: Work item identifier
 
@@ -231,19 +267,19 @@ async def cancel_work(project_id: str, work_id: str) -> dict:
         POST /api/projects/proj-123/work/work-xyz/cancel
         Response: {"status": "cancelled", "id": "work-xyz"}
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
+    work_queues = _get_work_queues(request)
 
     # Get project
-    try:
-        project = registry.get(project_id)
-    except ProjectNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+    project = registry.get(project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
-    # Get work queue
-    if not hasattr(project, "_work_queue"):
+    # Get work queue (shared with daemon)
+    if project_id not in work_queues:
         raise HTTPException(status_code=404, detail="Work queue not found")
 
-    queue = project._work_queue
+    queue = work_queues[project_id]
 
     # Cancel work item
     if not queue.cancel(work_id):

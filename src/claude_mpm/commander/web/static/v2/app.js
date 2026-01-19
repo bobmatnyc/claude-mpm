@@ -13,7 +13,15 @@ const state = {
     debugPanelOpen: false,
     ansiUp: null,
     sessionActivity: {},  // session_id -> activity stats
-    hasUserScrolled: false  // Track if user manually scrolled up
+    hasUserScrolled: false,  // Track if user manually scrolled up
+    // View Mode: 'terminal' (default, ON) or 'tmux-follow' (fallback, OFF)
+    viewMode: 'terminal',
+    // Browser Terminal State
+    browserTerminal: null,       // xterm.js Terminal instance
+    terminalSocket: null,        // WebSocket connection
+    terminalFitAddon: null,      // FitAddon for auto-sizing
+    terminalFullscreen: false,   // Fullscreen mode
+    terminalResizeObserver: null // ResizeObserver for container
 };
 
 // Config
@@ -148,11 +156,12 @@ function renderProjectTree() {
                         const globalIdx = sessionIndex++;
                         const shortcutHint = globalIdx < 9 ? `<span class="text-gray-600 text-[10px] ml-1">^${globalIdx + 1}</span>` : '';
                         return `
-                        <div class="session-item flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer transition ${state.currentSession === session.id ? 'bg-gray-800' : ''}"
+                        <div class="session-item group flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer transition ${state.currentSession === session.id ? 'bg-gray-800' : ''}"
                              onclick="selectSession('${project.id}', '${session.id}')" data-session="${session.id}">
                             <span class="text-xs ${session.status === 'running' ? 'text-green-400' : 'text-gray-500'}">●</span>
                             <span class="text-sm truncate flex-1">${session.id.slice(0, 8)}...${shortcutHint}</span>
                             <span class="text-xs text-gray-500">${session.runtime}</span>
+                            <button onclick="event.stopPropagation(); terminateSession('${session.id}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs px-1 transition-opacity" title="Terminate Session">✕</button>
                         </div>
                     `}).join('')
                 }
@@ -209,6 +218,12 @@ async function loadSessionPreviews(projectId) {
 // =============================================================================
 
 async function selectSession(projectId, sessionId) {
+    // Close Browser Terminal if switching sessions
+    if (state.currentSession !== sessionId) {
+        closeBrowserTerminal();
+        state.viewMode = 'terminal';  // Reset to default mode (Terminal ON)
+    }
+
     state.currentProject = projectId;
     state.currentSession = sessionId;
 
@@ -235,11 +250,20 @@ async function selectSession(projectId, sessionId) {
 
     // Show actions and activity panel
     document.getElementById('output-actions').classList.remove('hidden');
-    document.getElementById('quick-input-bar').classList.remove('hidden');
     document.getElementById('activity-panel').classList.remove('hidden');
 
-    // Load output
+    // Load output first (needed for both modes)
     await loadSessionOutput();
+
+    // Update UI based on current view mode (default: terminal)
+    updateViewModeUI();
+
+    // If terminal mode is active, open browser terminal automatically
+    // Small delay to ensure UI is ready and panel is visible
+    if (state.viewMode === 'terminal') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await openBrowserTerminal();
+    }
 
     // Start output polling
     startOutputPoll();
@@ -304,28 +328,140 @@ function startOutputPoll() {
 
 async function createSession(projectId) {
     try {
-        await fetchAPI(`/projects/${projectId}/sessions`, {
+        // Create the session and get the response with new session ID
+        const response = await fetchAPI(`/projects/${projectId}/sessions`, {
             method: 'POST',
             body: JSON.stringify({ runtime: 'claude-code' })
         });
+
+        // Reload projects to get updated session list
         await loadProjects();
-        log(`Created new session for project`);
+
+        // Find and select the newly created session
+        const newSessionId = response?.session_id || response?.id;
+        if (newSessionId) {
+            log(`Created new session ${newSessionId.slice(0, 8)}..., switching to it`);
+            // Small delay to ensure tmux pane is ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await selectSession(projectId, newSessionId);
+        } else {
+            // Fallback: select the last session in the project (most recent)
+            const project = state.projects.find(p => p.id === projectId);
+            if (project && project.sessions.length > 0) {
+                const lastSession = project.sessions[project.sessions.length - 1];
+                log(`Created new session, switching to ${lastSession.id.slice(0, 8)}...`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await selectSession(projectId, lastSession.id);
+            }
+        }
     } catch (err) {
         alert('Failed to create session: ' + err.message);
     }
 }
 
-async function openInTerminal() {
+/**
+ * Create a new session for the current project (keyboard shortcut handler)
+ */
+async function createSessionForCurrentProject() {
+    // Use current project, or first project if none selected
+    let projectId = state.currentProject;
+    if (!projectId && state.projects.length > 0) {
+        projectId = state.projects[0].id;
+    }
+
+    if (!projectId) {
+        log('No project available to create session', 'error');
+        return;
+    }
+
+    await createSession(projectId);
+}
+
+/**
+ * Toggle between TMUX Follow mode and Browser Terminal mode
+ */
+async function toggleViewMode() {
     if (!state.currentSession) return;
-    const terminal = getPreferredTerminal();
+
+    if (state.viewMode === 'tmux-follow') {
+        // Switch to Terminal Mode
+        state.viewMode = 'terminal';
+        await openBrowserTerminal();
+        updateViewModeUI();
+    } else {
+        // Switch to TMUX Follow Mode
+        state.viewMode = 'tmux-follow';
+        closeBrowserTerminal();
+        updateViewModeUI();
+    }
+
+    log(`Switched to ${state.viewMode} mode`);
+}
+
+/**
+ * Update UI elements based on current view mode
+ * Terminal ON (default) = Browser Terminal
+ * Terminal OFF (fallback) = TMUX Follow Mode
+ */
+function updateViewModeUI() {
+    const tmuxFollowActions = document.getElementById('tmux-follow-actions');
+    const quickInputBar = document.getElementById('quick-input-bar');
+    const outputContent = document.getElementById('output-content');
+    const activityPanel = document.getElementById('activity-panel');
+    const browserTerminalPanel = document.getElementById('browser-terminal-panel');
+    const terminalSwitch = document.getElementById('terminal-switch');
+    const terminalSwitchLabel = document.getElementById('terminal-switch-label');
+
+    if (state.viewMode === 'terminal') {
+        // Terminal Mode ON: Show Browser Terminal, hide TMUX Follow elements
+        if (tmuxFollowActions) tmuxFollowActions.classList.add('hidden');
+        if (quickInputBar) quickInputBar.classList.add('hidden');
+        if (outputContent) outputContent.classList.add('hidden');
+        if (activityPanel) activityPanel.classList.add('hidden');
+        if (browserTerminalPanel) browserTerminalPanel.classList.remove('hidden');
+        // Switch ON (green, knob right)
+        if (terminalSwitch) terminalSwitch.classList.add('active');
+        if (terminalSwitchLabel) {
+            terminalSwitchLabel.textContent = 'Terminal';
+            terminalSwitchLabel.classList.remove('text-gray-400');
+            terminalSwitchLabel.classList.add('text-green-400');
+        }
+    } else {
+        // Terminal Mode OFF (Fallback): Show TMUX Follow elements, hide Browser Terminal
+        if (tmuxFollowActions) tmuxFollowActions.classList.remove('hidden');
+        if (quickInputBar) quickInputBar.classList.remove('hidden');
+        if (outputContent) outputContent.classList.remove('hidden');
+        if (activityPanel) activityPanel.classList.remove('hidden');
+        if (browserTerminalPanel) browserTerminalPanel.classList.add('hidden');
+        // Switch OFF (gray, knob left)
+        if (terminalSwitch) terminalSwitch.classList.remove('active');
+        if (terminalSwitchLabel) {
+            terminalSwitchLabel.textContent = 'Terminal';
+            terminalSwitchLabel.classList.remove('text-green-400');
+            terminalSwitchLabel.classList.add('text-gray-400');
+        }
+    }
+}
+
+/**
+ * Open session in external iTerm (always available)
+ */
+async function openIniTerm() {
+    if (!state.currentSession) return;
+
     try {
-        await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=${terminal}`, {
+        await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=iterm`, {
             method: 'POST'
         });
-        log(`Opened in ${terminal}`);
+        log('Opened in iTerm');
     } catch (err) {
-        log(`Failed to open terminal: ${err.message}`, 'error');
+        log(`Failed to open iTerm: ${err.message}`, 'error');
     }
+}
+
+// Legacy function - kept for compatibility
+async function openInTerminal() {
+    await toggleViewMode();
 }
 
 async function sendEscape() {
@@ -391,6 +527,107 @@ async function sendText() {
     } catch (err) {
         log(`Failed to send text: ${err.message}`, 'error');
     }
+}
+
+// Track which session is pending termination (for modal)
+let pendingTerminateSessionId = null;
+
+/**
+ * Show the terminate confirmation modal.
+ */
+function showTerminateModal(sessionId) {
+    pendingTerminateSessionId = sessionId;
+
+    // Find session info for display
+    let sessionName = sessionId.slice(0, 8) + '...';
+    let projectName = '';
+    for (const project of state.projects) {
+        const session = project.sessions.find(s => s.id === sessionId);
+        if (session) {
+            projectName = project.name;
+            break;
+        }
+    }
+
+    // Update modal content
+    const nameEl = document.getElementById('terminate-session-name');
+    if (nameEl) {
+        nameEl.textContent = projectName ? `${projectName} / ${sessionName}` : sessionName;
+    }
+
+    // Show modal
+    document.getElementById('terminate-modal').classList.remove('hidden');
+
+    // Focus the cancel button (safer default), user can Tab to confirm
+    setTimeout(() => {
+        const cancelBtn = document.getElementById('terminate-cancel-btn');
+        if (cancelBtn) cancelBtn.focus();
+    }, 50);
+}
+
+/**
+ * Hide the terminate confirmation modal.
+ */
+function hideTerminateModal() {
+    document.getElementById('terminate-modal').classList.add('hidden');
+    pendingTerminateSessionId = null;
+}
+
+/**
+ * Confirm and execute session termination.
+ */
+async function confirmTerminateSession() {
+    const targetSession = pendingTerminateSessionId;
+    if (!targetSession) {
+        hideTerminateModal();
+        return;
+    }
+
+    try {
+        // Close browser terminal if this is the current session
+        if (targetSession === state.currentSession) {
+            closeBrowserTerminal();
+        }
+
+        // Delete the session
+        await fetchAPI(`/sessions/${targetSession}`, {
+            method: 'DELETE'
+        });
+
+        log(`Session ${targetSession.slice(0, 8)}... terminated`);
+
+        // Clear current session if we terminated it
+        if (targetSession === state.currentSession) {
+            state.currentSession = null;
+            state.viewMode = 'tmux-follow';
+            document.getElementById('output-content').innerHTML = '<div class="text-gray-500 text-center mt-20"><div class="text-4xl mb-4">📺</div><div>Session terminated. Select another session.</div></div>';
+            document.getElementById('output-actions').classList.add('hidden');
+            document.getElementById('activity-panel').classList.add('hidden');
+            document.getElementById('quick-input-bar').classList.add('hidden');
+            document.getElementById('browser-terminal-panel').classList.add('hidden');
+        }
+
+        // Refresh project list
+        await loadProjects();
+
+    } catch (err) {
+        log(`Failed to terminate session: ${err.message}`, 'error');
+    } finally {
+        hideTerminateModal();
+    }
+}
+
+/**
+ * Terminate session - shows confirmation modal.
+ * Called from session list terminate button (✕).
+ */
+function terminateSession(sessionId = null) {
+    const targetSession = sessionId || state.currentSession;
+    if (!targetSession) {
+        return;
+    }
+
+    showTerminateModal(targetSession);
 }
 
 async function sendQuickMessage() {
@@ -599,6 +836,7 @@ function hideSettingsModal() {
 function saveSettings() {
     const terminal = document.querySelector('input[name="terminal"]:checked')?.value || 'iterm';
     localStorage.setItem('preferred-terminal', terminal);
+
     hideSettingsModal();
     log(`Settings saved: Terminal = ${terminal}`);
 }
@@ -868,8 +1106,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadProjects();
     startProjectPoll();
 
+    // Auto-select first session if available
+    autoSelectFirstSession();
+
     log('Ready!');
 });
+
+/**
+ * Auto-select the first available session on page load.
+ * Prioritizes running sessions, then falls back to any session.
+ */
+function autoSelectFirstSession() {
+    if (!state.projects || state.projects.length === 0) return;
+
+    // Find first project with sessions
+    for (const project of state.projects) {
+        if (project.sessions && project.sessions.length > 0) {
+            // Prefer running session, otherwise first session
+            const runningSession = project.sessions.find(s => s.status === 'running');
+            const session = runningSession || project.sessions[0];
+
+            log(`Auto-selecting session ${session.id.slice(0, 8)}...`);
+            selectSession(project.id, session.id);
+            return;
+        }
+    }
+}
 
 // =============================================================================
 // Help Modal
@@ -988,6 +1250,48 @@ function navigatePrevSession() {
     navigateToSession(prevIndex);
 }
 
+// =============================================================================
+// Terminal Scroll Functions (iTerm-style)
+// Note: Limited functionality in tmux mirror mode since we show live pane view.
+// For full scrollback, use tmux directly or Fallback mode with scrollback.
+// =============================================================================
+
+/**
+ * Scroll terminal by a number of lines.
+ * @param {number} lines - Positive = down, Negative = up
+ */
+function scrollTerminalLines(lines) {
+    if (!state.browserTerminal) return;
+    // Note: With scrollback: 0, this won't show history but still responds to calls
+    state.browserTerminal.scrollLines(lines);
+}
+
+/**
+ * Scroll terminal by pages.
+ * @param {number} pages - Positive = down, Negative = up
+ */
+function scrollTerminalPages(pages) {
+    if (!state.browserTerminal) return;
+    const rows = state.browserTerminal.rows || 24;
+    state.browserTerminal.scrollLines(pages * rows);
+}
+
+/**
+ * Scroll terminal to top.
+ */
+function scrollTerminalToTop() {
+    if (!state.browserTerminal) return;
+    state.browserTerminal.scrollToTop();
+}
+
+/**
+ * Scroll terminal to bottom.
+ */
+function scrollTerminalToBottom() {
+    if (!state.browserTerminal) return;
+    state.browserTerminal.scrollToBottom();
+}
+
 // Track double-escape for sending ESC to session
 let lastEscapeTime = 0;
 
@@ -995,6 +1299,106 @@ let lastEscapeTime = 0;
 document.addEventListener('keydown', (e) => {
     const activeElement = document.activeElement;
     const isInputFocused = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA';
+    const isTerminalFocused = activeElement.closest('#browser-terminal-panel') !== null ||
+                               activeElement.closest('.xterm') !== null;
+
+    // ==========================================================================
+    // iTerm-style Terminal Shortcuts (only when terminal is active/visible)
+    // ==========================================================================
+    const terminalVisible = state.browserTerminal && state.viewMode === 'terminal';
+
+    if (terminalVisible) {
+        // Cmd+↑ = Scroll One Line Up
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowUp') {
+            e.preventDefault();
+            scrollTerminalLines(-1);
+            return;
+        }
+
+        // Cmd+↓ = Scroll One Line Down
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowDown') {
+            e.preventDefault();
+            scrollTerminalLines(1);
+            return;
+        }
+
+        // Cmd+Home = Scroll To Top
+        if (e.metaKey && e.key === 'Home') {
+            e.preventDefault();
+            scrollTerminalToTop();
+            return;
+        }
+
+        // Cmd+End = Scroll To End
+        if (e.metaKey && e.key === 'End') {
+            e.preventDefault();
+            scrollTerminalToBottom();
+            return;
+        }
+
+        // Shift+PageUp = Scroll One Page Up
+        if (e.shiftKey && !e.metaKey && e.key === 'PageUp') {
+            e.preventDefault();
+            scrollTerminalPages(-1);
+            return;
+        }
+
+        // Shift+PageDown = Scroll One Page Down
+        if (e.shiftKey && !e.metaKey && e.key === 'PageDown') {
+            e.preventDefault();
+            scrollTerminalPages(1);
+            return;
+        }
+
+        // Cmd+PageUp = Scroll One Page Up (alternative)
+        if (e.metaKey && e.key === 'PageUp') {
+            e.preventDefault();
+            scrollTerminalPages(-1);
+            return;
+        }
+
+        // Cmd+PageDown = Scroll One Page Down (alternative)
+        if (e.metaKey && e.key === 'PageDown') {
+            e.preventDefault();
+            scrollTerminalPages(1);
+            return;
+        }
+
+        // Cmd+← = Previous Session (like Previous Tab in iTerm)
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowLeft') {
+            e.preventDefault();
+            navigatePrevSession();
+            return;
+        }
+
+        // Cmd+→ = Next Session (like Next Tab in iTerm)
+        if (e.metaKey && !e.shiftKey && e.key === 'ArrowRight') {
+            e.preventDefault();
+            navigateNextSession();
+            return;
+        }
+
+        // Shift+Cmd+← = Move Session Left (not implemented yet, placeholder)
+        // Shift+Cmd+→ = Move Session Right (not implemented yet, placeholder)
+    }
+
+    // Ctrl+Tab = Cycle Sessions Forward (works globally)
+    if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        navigateNextSession();
+        return;
+    }
+
+    // Ctrl+Shift+Tab = Cycle Sessions Backward (works globally)
+    if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        navigatePrevSession();
+        return;
+    }
+
+    // ==========================================================================
+    // General Shortcuts
+    // ==========================================================================
 
     // ? = Show help (when not in input)
     if (e.key === '?' && !isInputFocused) {
@@ -1003,9 +1407,20 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
+    // Enter in terminate modal = confirm (when modal is open)
+    if (e.key === 'Enter' && !document.getElementById('terminate-modal').classList.contains('hidden')) {
+        e.preventDefault();
+        confirmTerminateSession();
+        return;
+    }
+
     // Escape handling
     if (e.key === 'Escape') {
         // Close modals first
+        if (!document.getElementById('terminate-modal').classList.contains('hidden')) {
+            hideTerminateModal();
+            return;
+        }
         if (!document.getElementById('help-modal').classList.contains('hidden')) {
             hideHelpModal();
             return;
@@ -1037,16 +1452,14 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Ctrl+Tab = Next session
-    if (e.ctrlKey && e.key === 'Tab') {
+    // Alt+N = New session (for current project)
+    if (e.altKey && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
-        if (e.shiftKey) {
-            navigatePrevSession();
-        } else {
-            navigateNextSession();
-        }
+        createSessionForCurrentProject();
         return;
     }
+
+    // Note: Ctrl+Tab shortcuts moved to top of handler (iTerm-style section)
 
     // Ctrl+1-9 = Jump to session
     if (e.ctrlKey && e.key >= '1' && e.key <= '9') {
@@ -1083,3 +1496,316 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// =============================================================================
+// Browser Terminal Functions
+// =============================================================================
+
+/**
+ * Open the Browser Terminal for the current session.
+ * Initializes xterm.js, connects WebSocket, and shows the terminal panel.
+ */
+async function openBrowserTerminal() {
+    if (!state.currentSession) {
+        log('No session selected for browser terminal', 'error');
+        return;
+    }
+
+    // Close existing terminal if open (but don't change view mode)
+    if (state.browserTerminal) {
+        state.browserTerminal.dispose();
+        state.browserTerminal = null;
+    }
+    if (state.terminalSocket) {
+        state.terminalSocket.close();
+        state.terminalSocket = null;
+    }
+
+    log(`Opening browser terminal for session ${state.currentSession.slice(0, 8)}...`);
+
+    // UI is managed by updateViewModeUI() - just update connection status
+    const statusEl = document.getElementById('terminal-connection-status');
+    statusEl.textContent = 'connecting...';
+    statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
+
+    // Initialize xterm.js
+    const container = document.getElementById('xterm-container');
+    container.innerHTML = '';  // Clear any previous content
+
+    try {
+        // Connect WebSocket FIRST to get pane dimensions before creating terminal
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/sessions/${state.currentSession}/terminal`;
+
+        state.terminalSocket = new WebSocket(wsUrl);
+        state.terminalSocket.binaryType = 'arraybuffer';
+
+        // Track if terminal is initialized (waiting for pane_size)
+        let terminalInitialized = false;
+        let pendingData = [];
+
+        state.terminalSocket.onopen = () => {
+            log('Browser terminal WebSocket connected, waiting for pane_size...');
+            statusEl.textContent = 'syncing...';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
+        };
+
+        state.terminalSocket.onmessage = (event) => {
+            let text;
+            if (event.data instanceof ArrayBuffer) {
+                text = new TextDecoder().decode(event.data);
+            } else {
+                text = event.data;
+            }
+
+            // Check for pane_size message from server - this MUST come first
+            // Note: JSON may have spaces after colons depending on serializer
+            if (text.startsWith('{"type":') && text.includes('pane_size')) {
+                try {
+                    const msg = JSON.parse(text);
+                    if (msg.type === 'pane_size' && msg.cols && msg.rows) {
+                        log(`Server pane size: ${msg.cols}x${msg.rows}`);
+
+                        if (!terminalInitialized) {
+                            // Get container width
+                            const terminalPanel = document.getElementById('browser-terminal-panel');
+                            let containerWidth = container.clientWidth || terminalPanel?.clientWidth || 800;
+                            containerWidth -= 16; // Account for padding
+
+                            // Measure ACTUAL character width by creating a hidden span
+                            // This is more accurate than using font-size ratios
+                            const measureSpan = document.createElement('span');
+                            measureSpan.style.cssText = `
+                                font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+                                font-size: 13px;
+                                position: absolute;
+                                visibility: hidden;
+                                white-space: pre;
+                            `;
+                            measureSpan.textContent = 'X'.repeat(80); // 80 chars
+                            document.body.appendChild(measureSpan);
+                            const measuredWidth = measureSpan.offsetWidth;
+                            const actualCharWidth = measuredWidth / 80;
+                            document.body.removeChild(measureSpan);
+
+                            log(`Measured char width at 13px: ${actualCharWidth.toFixed(2)}px for 80 chars = ${measuredWidth}px`);
+
+                            // Calculate optimal font size: we need (charWidth * cols) <= containerWidth
+                            // charWidth scales linearly with fontSize
+                            // So: newFontSize = 13 * (containerWidth / measuredWidth)
+                            let fontSize = Math.floor(13 * (containerWidth / measuredWidth));
+                            // Clamp between 9 and 16 for readability
+                            fontSize = Math.min(Math.max(fontSize, 9), 16);
+
+                            // Always use server's column count to match tmux line wrapping
+                            const useCols = msg.cols;
+
+                            log(`Container: ${containerWidth}px, optimal fontSize: ${fontSize}px for ${useCols} cols`);
+
+                            // NOW create the terminal with calculated dimensions
+                            // Note: We're mirroring tmux output - tmux cursor is rendered in content
+                            // So we hide xterm.js cursor to avoid having two cursors
+                            state.browserTerminal = new Terminal({
+                                cursorBlink: true,
+                                cursorStyle: 'block',
+                                cursorInactiveStyle: 'outline',  // Show cursor - positioned by backend
+                                fontSize: fontSize,
+                                fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
+                                lineHeight: 1.0,
+                                theme: {
+                                    background: '#0a0a0f',
+                                    foreground: '#e4e4e7',
+                                    cursor: '#f4f4f5',
+                                    cursorAccent: '#0a0a0f',
+                                    black: '#1e1e1e',
+                                    red: '#f44747',
+                                    green: '#6a9955',
+                                    yellow: '#d7ba7d',
+                                    blue: '#569cd6',
+                                    magenta: '#c586c0',
+                                    cyan: '#4ec9b0',
+                                    white: '#d4d4d4',
+                                    brightBlack: '#808080',
+                                    brightRed: '#f44747',
+                                    brightGreen: '#6a9955',
+                                    brightYellow: '#d7ba7d',
+                                    brightBlue: '#569cd6',
+                                    brightMagenta: '#c586c0',
+                                    brightCyan: '#4ec9b0',
+                                    brightWhite: '#ffffff'
+                                },
+                                cols: useCols,  // Use calculated columns that fit
+                                rows: msg.rows,
+                                scrollback: 0,
+                                disableStdin: false
+                            });
+
+                            // Open terminal in container
+                            state.browserTerminal.open(container);
+
+                            // CRITICAL: Set container height based on terminal dimensions
+                            // With fontSize: 13 and lineHeight: 1.0, typical cell height is ~16-17px
+                            // We calculate based on xterm.js actual rendered size after a brief delay
+                            setTimeout(() => {
+                                // Get the actual xterm-screen element size
+                                const xtermScreen = container.querySelector('.xterm-screen');
+                                if (xtermScreen) {
+                                    const actualHeight = xtermScreen.offsetHeight;
+                                    const actualWidth = xtermScreen.offsetWidth;
+                                    // Set container to exactly match the terminal size
+                                    container.style.height = `${actualHeight + 8}px`;
+                                    container.style.minHeight = `${actualHeight + 8}px`;
+                                    container.style.maxHeight = `${actualHeight + 8}px`;
+                                    log(`Container sized to ${actualWidth}x${actualHeight}px (terminal: ${msg.cols}x${msg.rows})`);
+                                }
+                            }, 50); // Small delay for xterm.js to render
+
+                            // Handle terminal input
+                            state.browserTerminal.onData((data) => {
+                                if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
+                                    state.terminalSocket.send(data);
+                                }
+                            });
+
+                            terminalInitialized = true;
+                            statusEl.textContent = 'connected';
+                            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400';
+
+                            log(`Terminal created with dimensions: ${msg.cols}x${msg.rows}`);
+
+                            // Write any pending data
+                            for (const data of pendingData) {
+                                state.browserTerminal.write(data);
+                            }
+                            pendingData = [];
+
+                            // Focus terminal
+                            state.browserTerminal.focus();
+                        }
+                    }
+                    return; // Don't write JSON to terminal
+                } catch (e) {
+                    log(`Error parsing pane_size: ${e}`, 'error');
+                }
+            }
+
+            // Write data to terminal (or buffer if not initialized yet)
+            if (terminalInitialized && state.browserTerminal) {
+                state.browserTerminal.write(text);
+            } else {
+                pendingData.push(text);
+            }
+        };
+
+        state.terminalSocket.onclose = (event) => {
+            log(`Browser terminal WebSocket closed: ${event.code}`);
+            statusEl.textContent = 'disconnected';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+        };
+
+        state.terminalSocket.onerror = (error) => {
+            log(`Browser terminal WebSocket error`, 'error');
+            statusEl.textContent = 'error';
+            statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+        };
+
+        log('Browser terminal connecting...');
+
+    } catch (err) {
+        log(`Failed to initialize browser terminal: ${err.message}`, 'error');
+        statusEl.textContent = 'error';
+        statusEl.className = 'text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400';
+    }
+}
+
+/**
+ * Close the Browser Terminal and cleanup resources.
+ * UI visibility is managed by updateViewModeUI().
+ */
+function closeBrowserTerminal() {
+    // Close WebSocket
+    if (state.terminalSocket) {
+        state.terminalSocket.close();
+        state.terminalSocket = null;
+    }
+
+    // Dispose ResizeObserver
+    if (state.terminalResizeObserver) {
+        state.terminalResizeObserver.disconnect();
+        state.terminalResizeObserver = null;
+    }
+
+    // Dispose terminal
+    if (state.browserTerminal) {
+        state.browserTerminal.dispose();
+        state.browserTerminal = null;
+        state.terminalFitAddon = null;
+    }
+
+    // Reset fullscreen if active
+    if (state.terminalFullscreen) {
+        state.terminalFullscreen = false;
+        const outputPanel = document.getElementById('output-panel');
+        if (outputPanel) {
+            outputPanel.classList.remove('terminal-fullscreen');
+        }
+    }
+
+    log('Browser terminal closed');
+}
+
+/**
+ * Toggle Browser Terminal fullscreen mode.
+ */
+function toggleTerminalFullscreen() {
+    state.terminalFullscreen = !state.terminalFullscreen;
+
+    const terminalPanel = document.getElementById('browser-terminal-panel');
+    const outputContent = document.getElementById('output-content');
+    const outputHeader = document.getElementById('output-header');
+    const activityPanel = document.getElementById('activity-panel');
+    const quickInputBar = document.getElementById('quick-input-bar');
+
+    if (state.terminalFullscreen) {
+        // Fullscreen: Hide other elements, terminal takes full space
+        if (outputContent) outputContent.classList.add('hidden');
+        if (outputHeader) outputHeader.classList.add('hidden');
+        if (activityPanel) activityPanel.classList.add('hidden');
+        if (quickInputBar) quickInputBar.classList.add('hidden');
+        if (terminalPanel) {
+            terminalPanel.style.flex = '1';
+            terminalPanel.classList.remove('border-t');
+        }
+        log('Terminal fullscreen enabled');
+    } else {
+        // Exit fullscreen: Restore split view
+        if (outputContent) {
+            outputContent.classList.remove('hidden');
+            outputContent.style.flex = '0.6';
+        }
+        if (outputHeader) outputHeader.classList.remove('hidden');
+        if (activityPanel) activityPanel.classList.remove('hidden');
+        if (quickInputBar) quickInputBar.classList.remove('hidden');
+        if (terminalPanel) {
+            terminalPanel.style.flex = '0.4';
+            terminalPanel.classList.add('border-t');
+        }
+        log('Terminal fullscreen disabled');
+    }
+
+    // Re-fit terminal after layout change
+    if (state.terminalFitAddon) {
+        setTimeout(() => {
+            state.terminalFitAddon.fit();
+            // Send resize to backend
+            if (state.terminalSocket && state.terminalSocket.readyState === WebSocket.OPEN) {
+                const dims = state.terminalFitAddon.proposeDimensions();
+                if (dims) {
+                    state.terminalSocket.send(JSON.stringify({
+                        resize: { cols: dims.cols, rows: dims.rows }
+                    }));
+                }
+            }
+        }, 100);
+    }
+}

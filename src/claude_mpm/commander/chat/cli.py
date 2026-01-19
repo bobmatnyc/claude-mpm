@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from claude_mpm.commander.env_loader import load_env
 from claude_mpm.commander.instance_manager import InstanceManager
 from claude_mpm.commander.llm.openrouter_client import (
     OpenRouterClient,
@@ -18,6 +19,9 @@ from claude_mpm.commander.session.manager import SessionManager
 from claude_mpm.commander.tmux_orchestrator import TmuxOrchestrator
 
 from .repl import CommanderREPL
+
+# Load environment variables at module import
+load_env()
 
 logger = logging.getLogger(__name__)
 

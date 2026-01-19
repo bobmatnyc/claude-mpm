@@ -4,13 +4,15 @@ This module implements REST endpoints for creating and managing tool sessions
 (Claude Code, Aider, etc.) within projects.
 """
 
+import asyncio
+import json
 import logging
 import subprocess  # nosec B404 - required for tmux/osascript commands
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 
 from ...models import ToolSession
 from ..errors import (
@@ -35,8 +37,11 @@ TMUX_MAIN_SESSION = "mpm-commander"
 TMUX_COMMAND_TIMEOUT = 2  # seconds
 
 
-def _get_registry() -> Any:
-    """Get registry instance from app global.
+def _get_registry(request: Request) -> Any:
+    """Get registry instance from app.state.
+
+    Args:
+        request: FastAPI request object
 
     Returns:
         ProjectRegistry instance
@@ -44,15 +49,16 @@ def _get_registry() -> Any:
     Raises:
         RuntimeError: If registry is not initialized
     """
-    from ..app import registry
-
-    if registry is None:
+    if not hasattr(request.app.state, "registry") or request.app.state.registry is None:
         raise RuntimeError("Registry not initialized")
-    return registry
+    return request.app.state.registry
 
 
-def _get_tmux() -> Any:
-    """Get tmux orchestrator instance from app global.
+def _get_tmux(request: Request) -> Any:
+    """Get tmux orchestrator instance from app.state.
+
+    Args:
+        request: FastAPI request object
 
     Returns:
         TmuxOrchestrator instance
@@ -60,34 +66,47 @@ def _get_tmux() -> Any:
     Raises:
         RuntimeError: If tmux orchestrator is not initialized
     """
-    from ..app import tmux
-
-    if tmux is None:
+    if not hasattr(request.app.state, "tmux") or request.app.state.tmux is None:
         raise RuntimeError("Tmux orchestrator not initialized")
-    return tmux
+    return request.app.state.tmux
 
 
-def _find_session(session_id: str) -> Tuple[Optional[ToolSession], Optional[str]]:
+def _find_session(
+    session_id: str, request: Optional[Request] = None
+) -> Tuple[Optional[ToolSession], Optional[str]]:
     """Find a session across all projects.
 
     Args:
         session_id: Unique session identifier
+        request: Optional FastAPI request (uses global app if not provided)
 
     Returns:
         Tuple of (session, project_id) or (None, None) if not found
     """
-    registry = _get_registry()
+    if request:
+        registry = _get_registry(request)
+    else:
+        # Fallback for WebSocket endpoints without request
+        from ..app import app
+
+        if not hasattr(app.state, "registry") or app.state.registry is None:
+            raise RuntimeError("Registry not initialized")
+        registry = app.state.registry
+
     for project in registry.list_all():
         if session_id in project.sessions:
             return project.sessions[session_id], project.id
     return None, None
 
 
-def _get_session_or_raise(session_id: str) -> ToolSession:
+def _get_session_or_raise(
+    session_id: str, request: Optional[Request] = None
+) -> ToolSession:
     """Get a session or raise SessionNotFoundError.
 
     Args:
         session_id: Unique session identifier
+        request: Optional FastAPI request (uses global app if not provided)
 
     Returns:
         The ToolSession instance
@@ -95,7 +114,7 @@ def _get_session_or_raise(session_id: str) -> ToolSession:
     Raises:
         SessionNotFoundError: If session doesn't exist
     """
-    session, _ = _find_session(session_id)
+    session, _ = _find_session(session_id, request)
     if session is None:
         raise SessionNotFoundError(session_id)
     return session
@@ -216,7 +235,7 @@ def _session_to_response(session: ToolSession) -> SessionResponse:
 
 
 @router.get("/projects/{project_id}/sessions", response_model=List[SessionResponse])
-async def list_sessions(project_id: str) -> List[SessionResponse]:
+async def list_sessions(request: Request, project_id: str) -> List[SessionResponse]:
     """List all sessions for a project.
 
     Args:
@@ -241,7 +260,7 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
             }
         ]
     """
-    registry = _get_registry()
+    registry = _get_registry(request)
     project = registry.get(project_id)
 
     if project is None:
@@ -254,7 +273,9 @@ async def list_sessions(project_id: str) -> List[SessionResponse]:
 @router.post(
     "/projects/{project_id}/sessions", response_model=SessionResponse, status_code=201
 )
-async def create_session(project_id: str, req: CreateSessionRequest) -> SessionResponse:
+async def create_session(
+    request: Request, project_id: str, req: CreateSessionRequest
+) -> SessionResponse:
     """Create a new session for a project.
 
     Creates a new tmux pane and initializes the specified runtime adapter.
@@ -286,8 +307,8 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
             "created_at": "2025-01-12T10:00:00Z"
         }
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Validate project exists
     project = registry.get(project_id)
@@ -332,7 +353,7 @@ async def create_session(project_id: str, req: CreateSessionRequest) -> SessionR
 
 
 @router.delete("/sessions/{session_id}", status_code=204)
-async def stop_session(session_id: str) -> Response:
+async def stop_session(request: Request, session_id: str) -> Response:
     """Stop and remove a session.
 
     Kills the tmux pane and removes the session from its project.
@@ -350,8 +371,8 @@ async def stop_session(session_id: str) -> Response:
         DELETE /api/sessions/sess-456
         Response: 204 No Content
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     # Find session across all projects
     session = None
@@ -380,7 +401,7 @@ async def stop_session(session_id: str) -> Response:
 
 
 @router.post("/sessions/sync")
-async def sync_sessions() -> JsonResponse:
+async def sync_sessions(request: Request) -> JsonResponse:
     """Synchronize sessions with tmux windows.
 
     Checks which tmux windows exist and updates session status accordingly.
@@ -399,8 +420,8 @@ async def sync_sessions() -> JsonResponse:
             }
         }
     """
-    registry = _get_registry()
-    tmux_orch = _get_tmux()
+    registry = _get_registry(request)
+    tmux_orch = _get_tmux(request)
 
     results = tmux_orch.sync_windows_with_registry(registry)
 
@@ -553,6 +574,22 @@ async def open_session_in_terminal(
         }
 
 
+def _get_tmux_from_app() -> Any:
+    """Get tmux orchestrator from global app (for endpoints without request).
+
+    Returns:
+        TmuxOrchestrator instance
+
+    Raises:
+        RuntimeError: If tmux orchestrator is not initialized
+    """
+    from ..app import app
+
+    if not hasattr(app.state, "tmux") or app.state.tmux is None:
+        raise RuntimeError("Tmux orchestrator not initialized")
+    return app.state.tmux
+
+
 @router.post("/sessions/{session_id}/keys")
 async def send_keys_to_session(
     session_id: str, keys: str, enter: bool = True
@@ -575,7 +612,7 @@ async def send_keys_to_session(
         Response: {"status": "sent", "keys": "hello", "enter": true}
     """
     session = _get_session_or_raise(session_id)
-    tmux_orch = _get_tmux()
+    tmux_orch = _get_tmux_from_app()
 
     try:
         tmux_orch.send_keys(session.tmux_target, keys, enter=enter)
@@ -610,7 +647,7 @@ async def get_session_output(session_id: str, lines: int = 100) -> JsonResponse:
         }
     """
     session = _get_session_or_raise(session_id)
-    tmux_orch = _get_tmux()
+    tmux_orch = _get_tmux_from_app()
 
     # Clamp lines to reasonable bounds
     lines = max(1, min(lines, 10000))
@@ -630,7 +667,7 @@ async def get_session_output(session_id: str, lines: int = 100) -> JsonResponse:
 
 
 def _get_activity_tracker() -> Any:
-    """Get activity tracker instance from app global.
+    """Get activity tracker instance from app.state.
 
     Returns:
         ActivityTracker instance
@@ -638,11 +675,11 @@ def _get_activity_tracker() -> Any:
     Raises:
         RuntimeError: If activity tracker is not initialized
     """
-    from ..app import activity_tracker
+    from ..app import app
 
-    if activity_tracker is None:
+    if not hasattr(app.state, "activity_tracker") or app.state.activity_tracker is None:
         raise RuntimeError("Activity tracker not initialized")
-    return activity_tracker
+    return app.state.activity_tracker
 
 
 @router.get("/sessions/{session_id}/activity")
@@ -766,3 +803,375 @@ async def record_agent_stop(session_id: str, response: str = "") -> JsonResponse
         "session_id": session_id,
         **tracker.get_stats(session_id),
     }
+
+
+# ============================================================================
+# Browser Terminal WebSocket Endpoint
+# ============================================================================
+
+
+@router.websocket("/sessions/{session_id}/terminal")
+async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
+    """WebSocket endpoint for Browser Terminal.
+
+    Connects a browser-based xterm.js terminal directly to the session's tmux pane
+    using capture-pane for output and send-keys for input. This provides a direct
+    view of the pane without tmux's own UI/statusbar getting in the way.
+
+    Protocol:
+    - Text messages: Input to send via tmux send-keys
+    - JSON messages with "resize": {"cols": N, "rows": M} → Resize tmux pane
+
+    Args:
+        websocket: The WebSocket connection
+        session_id: Unique session identifier
+
+    Raises:
+        WebSocketDisconnect: When client disconnects
+    """
+    await websocket.accept()
+
+    # Validate session and get pane_id
+    try:
+        session = _get_session_or_raise(session_id)
+    except SessionNotFoundError:
+        await websocket.close(code=4000, reason="Session not found")
+        return
+
+    pane_id = session.tmux_target
+    if not pane_id:
+        await websocket.close(code=4001, reason="Session has no tmux target")
+        return
+
+    logger.info(
+        "Browser terminal connecting to session %s (pane %s)", session_id, pane_id
+    )
+
+    # Get actual tmux pane dimensions
+    # We send these to the browser so xterm.js can match the pane size
+    # instead of the browser trying to resize the tmux pane
+    pane_size_result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+        [
+            "tmux",
+            "display-message",
+            "-t",
+            pane_id,
+            "-p",
+            "#{pane_width} #{pane_height}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=2,
+        check=False,
+    )
+    if pane_size_result.returncode == 0:
+        try:
+            parts = pane_size_result.stdout.strip().split()
+            pane_cols = int(parts[0])
+            pane_rows = int(parts[1])
+        except (ValueError, IndexError):
+            pane_cols, pane_rows = 80, 24
+    else:
+        pane_cols, pane_rows = 80, 24
+
+    logger.info("Tmux pane %s has size %dx%d", pane_id, pane_cols, pane_rows)
+
+    running = True
+    last_content = ""
+    current_cols = pane_cols
+    current_rows = pane_rows
+    frame_count = 0
+
+    async def capture_output() -> None:
+        """Continuously capture pane output and send to WebSocket."""
+        nonlocal running, last_content, current_rows, frame_count
+
+        # Send pane size to browser first so it can configure xterm.js to match
+        # The browser should NOT resize the tmux pane - it adapts to the pane size
+        await websocket.send_text(
+            json.dumps({"type": "pane_size", "cols": pane_cols, "rows": pane_rows})
+        )
+        logger.info("Sent pane_size: %dx%d", pane_cols, pane_rows)
+
+        # Small delay to let browser configure xterm.js
+        await asyncio.sleep(0.1)
+
+        # Capture and send first frame IMMEDIATELY (don't wait for loop sleep)
+        try:
+            initial_result = subprocess.run(  # nosec B603 B607
+                ["tmux", "capture-pane", "-t", pane_id, "-p", "-e"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if initial_result.returncode == 0:
+                initial_content = initial_result.stdout
+                lines = initial_content.split("\n")
+                lines = [line.rstrip() for line in lines]
+
+                # Remove trailing empty lines to prevent scroll-off
+                while lines and not lines[-1]:
+                    lines.pop()
+
+                initial_content = "\n".join(lines)
+                initial_content = initial_content.replace("\n", "\r\n")
+
+                # Get cursor position for initial frame too
+                cursor_result = subprocess.run(  # nosec B603 B607
+                    [
+                        "tmux",
+                        "display-message",
+                        "-t",
+                        pane_id,
+                        "-p",
+                        "#{cursor_x} #{cursor_y}",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=1,
+                    check=False,
+                )
+                cursor_x, cursor_y = 0, 0
+                if cursor_result.returncode == 0:
+                    try:
+                        parts = cursor_result.stdout.strip().split()
+                        cursor_x = int(parts[0])
+                        cursor_y = int(parts[1])
+                    except (ValueError, IndexError):
+                        pass
+
+                cursor_pos = f"\x1b[{cursor_y + 1};{cursor_x + 1}H"
+                frame_data = f"\x1b[2J\x1b[H{initial_content}{cursor_pos}"
+                await websocket.send_text(frame_data)
+                last_content = initial_content
+                frame_count = 1
+                logger.info(
+                    "Sent initial frame (%d bytes, cursor at %d,%d) to browser terminal",
+                    len(frame_data),
+                    cursor_x,
+                    cursor_y,
+                )
+        except Exception as e:
+            logger.debug("Failed to send initial frame: %s", e)
+
+        while running:
+            try:
+                await asyncio.sleep(
+                    0.1
+                )  # 100ms polling - balance between responsiveness and CPU
+
+                # Capture pane content with ANSI colors
+                result = subprocess.run(  # nosec B603 B607 - trusted tmux command
+                    [
+                        "tmux",
+                        "capture-pane",
+                        "-t",
+                        pane_id,
+                        "-p",  # Print to stdout
+                        "-e",  # Include escape sequences (colors)
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                )
+
+                if result.returncode == 0:
+                    content = result.stdout
+
+                    # Remove trailing whitespace from each line
+                    # tmux capture-pane pads lines to full width which causes layout issues
+                    lines = content.split("\n")
+                    lines = [line.rstrip() for line in lines]
+
+                    # Remove trailing empty lines - CRITICAL!
+                    # If we send 24 lines with CRLF to a 24-row terminal,
+                    # the last CRLF causes scrolling and loses the first line
+                    while lines and not lines[-1]:
+                        lines.pop()
+
+                    content = "\n".join(lines)
+
+                    # Convert LF to CR+LF for proper xterm.js rendering
+                    content = content.replace("\n", "\r\n")
+
+                    # Get cursor position from tmux
+                    cursor_result = subprocess.run(  # nosec B603 B607
+                        [
+                            "tmux",
+                            "display-message",
+                            "-t",
+                            pane_id,
+                            "-p",
+                            "#{cursor_x} #{cursor_y}",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1,
+                        check=False,
+                    )
+                    cursor_x, cursor_y = 0, 0
+                    if cursor_result.returncode == 0:
+                        try:
+                            parts = cursor_result.stdout.strip().split()
+                            cursor_x = int(parts[0])
+                            cursor_y = int(parts[1])
+                        except (ValueError, IndexError):
+                            pass
+
+                    # Build frame with cursor position
+                    # \x1b[2J = clear screen
+                    # \x1b[H = cursor home (row 1, col 1)
+                    # \x1b[row;colH = move cursor to absolute position (1-indexed)
+                    #
+                    # tmux cursor_x and cursor_y are 0-indexed
+                    # ANSI escape sequences are 1-indexed
+                    # We position cursor BEFORE writing content (not after)
+                    # This way xterm.js cursor ends up at correct position
+                    cursor_pos = f"\x1b[{cursor_y + 1};{cursor_x + 1}H"
+
+                    # Send only if content changed
+                    if content != last_content:
+                        frame_count += 1
+
+                        # Send frame: clear, write content, move cursor to tmux position
+                        # The cursor_pos at end moves xterm.js cursor to match tmux
+                        frame_data = f"\x1b[2J\x1b[H{content}{cursor_pos}"
+                        await websocket.send_text(frame_data)
+                        last_content = content
+
+            except subprocess.TimeoutExpired:
+                pass
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                if running:
+                    logger.debug("Capture error: %s", e)
+                await asyncio.sleep(0.2)
+
+        running = False
+
+    async def handle_input() -> None:
+        """Receive WebSocket input and send to tmux pane."""
+        nonlocal running, current_cols, current_rows
+
+        try:
+            while running:
+                try:
+                    data = await asyncio.wait_for(websocket.receive(), timeout=0.5)
+                except asyncio.TimeoutError:
+                    continue
+
+                if data.get("type") == "websocket.disconnect":
+                    break
+
+                if "text" in data:
+                    text = data["text"]
+
+                    # Check for resize message - we now ignore these to prevent
+                    # the browser from resizing the tmux pane (which breaks Claude Code UI)
+                    if text.startswith('{"resize":'):
+                        try:
+                            msg = json.loads(text)
+                            cols = msg["resize"]["cols"]
+                            rows = msg["resize"]["rows"]
+                            logger.debug(
+                                "Browser requested resize to %dx%d (ignored - using pane size %dx%d)",
+                                cols,
+                                rows,
+                                pane_cols,
+                                pane_rows,
+                            )
+                            # DO NOT resize tmux pane - we want the browser to adapt to the pane
+                            # not the other way around
+                        except (json.JSONDecodeError, KeyError):
+                            pass
+                    else:
+                        # Send input to tmux pane via send-keys
+                        # nosec B603 B607 - all subprocess calls here use trusted
+                        # tmux commands with validated pane_id from session lookup
+                        for char in text:
+                            if char == "\r":
+                                # Enter key
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Enter"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char in ("\x7f", "\b"):
+                                # Backspace
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "BSpace"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x1b":
+                                # Escape
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Escape"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x03":
+                                # Ctrl+C
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "C-c"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\x04":
+                                # Ctrl+D
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "C-d"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif char == "\t":
+                                # Tab
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "Tab"],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            elif ord(char) < 32:
+                                # Other control characters
+                                ctrl_char = chr(ord(char) + 64)
+                                subprocess.run(  # nosec B603 B607
+                                    [
+                                        "tmux",
+                                        "send-keys",
+                                        "-t",
+                                        pane_id,
+                                        f"C-{ctrl_char.lower()}",
+                                    ],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+                            else:
+                                # Regular character - send literally
+                                subprocess.run(  # nosec B603 B607
+                                    ["tmux", "send-keys", "-t", pane_id, "-l", char],
+                                    capture_output=True,
+                                    timeout=1,
+                                    check=False,
+                                )
+
+        except WebSocketDisconnect:
+            logger.info("Browser terminal disconnected from session %s", session_id)
+        finally:
+            running = False
+
+    # Run capture and input handler in parallel
+    try:
+        await asyncio.gather(capture_output(), handle_input(), return_exceptions=True)
+    finally:
+        running = False
+        logger.info("Browser terminal closed for session %s", session_id)

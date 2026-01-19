@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from claude_mpm.commander.api.app import app, registry, tmux
+from claude_mpm.commander.api.app import app
 from claude_mpm.commander.models import ProjectState
 
 
@@ -31,11 +31,12 @@ def temp_project_dir():
 @pytest.fixture
 def clear_registry():
     """Clear registry before each test."""
-    if registry is not None:
+    # Access registry from app.state
+    if hasattr(app.state, "registry") and app.state.registry is not None:
         # Clear all projects
-        for project in registry.list_all():
+        for project in app.state.registry.list_all():
             try:
-                registry.unregister(project.id)
+                app.state.registry.unregister(project.id)
             except KeyError:
                 pass
     yield
@@ -214,7 +215,10 @@ class TestSessionEndpoints:
         assert data["detail"]["error"]["code"] == "PROJECT_NOT_FOUND"
 
     @pytest.mark.skipif(
-        not tmux or not hasattr(tmux, "session_exists") or not tmux.session_exists(),
+        not hasattr(app.state, "tmux")
+        or app.state.tmux is None
+        or not hasattr(app.state.tmux, "session_exists")
+        or not app.state.tmux.session_exists(),
         reason="Requires tmux session",
     )
     def test_create_session_success(self, client, clear_registry, temp_project_dir):
@@ -267,7 +271,10 @@ class TestSessionEndpoints:
         assert data["detail"]["error"]["code"] == "PROJECT_NOT_FOUND"
 
     @pytest.mark.skipif(
-        not tmux or not hasattr(tmux, "session_exists") or not tmux.session_exists(),
+        not hasattr(app.state, "tmux")
+        or app.state.tmux is None
+        or not hasattr(app.state.tmux, "session_exists")
+        or not app.state.tmux.session_exists(),
         reason="Requires tmux session",
     )
     def test_stop_session_success(self, client, clear_registry, temp_project_dir):

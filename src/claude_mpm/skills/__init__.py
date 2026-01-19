@@ -24,7 +24,7 @@ Legacy System (maintained for compatibility):
 from .agent_skills_injector import AgentSkillsInjector
 
 # Legacy System (maintained for compatibility)
-from .registry import Skill, SkillsRegistry, get_registry
+from .registry import Skill, SkillsRegistry, get_registry, validate_agentskills_spec
 from .skill_manager import SkillManager
 from .skills_registry import SkillsRegistry as SkillsRegistryHelper
 from .skills_service import SkillsService
@@ -39,4 +39,5 @@ __all__ = [
     # New Skills Integration System
     "SkillsService",
     "get_registry",
+    "validate_agentskills_spec",
 ]

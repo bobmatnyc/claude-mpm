@@ -6,6 +6,65 @@
 
 ### Fixed
 
+## [5.6.19] - 2026-01-18
+
+### Fixed
+- Remove redundant setup_agents calls
+
+## [5.6.18] - 2026-01-18
+
+### Fixed
+- Fix deployment state path mismatch
+
+## [5.6.17] - 2026-01-18
+
+### Fixed
+- Fix duplicate agent deployment after sync
+
+## [5.6.16] - 2026-01-18
+
+### Changed
+- Move deployment state to .claude-mpm directory
+
+## [5.6.15] - 2026-01-18
+
+### Fixed
+- Agent redeployment on every startup
+
+## [5.6.14] - 2026-01-18
+
+### Added
+- **Commander full-cycle work execution** - Complete autonomous work execution with API integration
+  - POST /api/events endpoint for hook event handling
+  - Autonomous work pickup and execution in daemon main loop
+  - python-dotenv auto-loading via env_loader.py
+  - FastAPI app.state for shared work queue state
+  - Project ID parameter support in registry
+- **Multi-runtime adapter architecture** - Support for multiple AI coding assistants
+  - ClaudeCodeAdapter: Full capabilities (agents, hooks, skills, monitoring)
+  - AuggieAdapter: MCP tools and agent delegation support
+  - CodexAdapter: Limited capabilities (no agents yet)
+  - MPMAdapter: Full MPM feature support
+  - AdapterRegistry with auto-detection and priority-based selection
+
+### Fixed
+- Work endpoint error handling (404 vs 500 for missing projects)
+
+### Note
+**Commander is in ALPHA status.** The multi-project orchestration system is functional but still under active development. APIs may change.
+
+## [5.6.13] - 2026-01-18
+
+### Added
+- **agentskills.io specification support** - Skills now conform to the agentskills.io spec for cross-platform compatibility (Claude Code, VS Code Copilot, OpenCode)
+- New spec fields: `license`, `compatibility`, `metadata`, `allowed-tools`
+- Backward compatible - existing skills work without changes
+
+## [5.6.12] - 2026-01-17
+
+### Fixed
+- **Auto-pause integration** - Wired up auto-pause in event handlers (#220)
+
 ## [5.6.11] - 2026-01-17
 
 ### Added

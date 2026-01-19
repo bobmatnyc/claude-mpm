@@ -6,7 +6,7 @@ between the TmuxOrchestrator and various AI coding tools (Claude Code, Cursor, e
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from typing import List, Optional, Set
 
 
@@ -20,6 +20,56 @@ class Capability(Enum):
     SHELL_COMMANDS = "shell_commands"
     WEB_SEARCH = "web_search"
     COMPLEX_REASONING = "complex_reasoning"
+
+
+class RuntimeCapability(Enum):
+    """Extended capabilities a runtime may support (MPM-specific features)."""
+
+    FILE_READ = auto()
+    FILE_EDIT = auto()
+    FILE_CREATE = auto()
+    BASH_EXECUTION = auto()
+    GIT_OPERATIONS = auto()
+    TOOL_USE = auto()
+    AGENT_DELEGATION = auto()  # Sub-agent spawning
+    HOOKS = auto()  # Lifecycle hooks
+    INSTRUCTIONS = auto()  # Custom instructions file
+    MCP_TOOLS = auto()  # MCP server integration
+    SKILLS = auto()  # Loadable skills
+    MONITOR = auto()  # Real-time monitoring
+    WEB_SEARCH = auto()
+    COMPLEX_REASONING = auto()
+
+
+@dataclass
+class RuntimeInfo:
+    """Information about a runtime environment.
+
+    Attributes:
+        name: Runtime identifier (e.g., "claude-code", "auggie")
+        version: Optional version string
+        capabilities: Set of RuntimeCapability enums
+        command: CLI command to invoke runtime
+        supports_agents: Whether runtime supports agent delegation
+        instruction_file: Path to instructions file (e.g., "CLAUDE.md")
+
+    Example:
+        >>> info = RuntimeInfo(
+        ...     name="claude-code",
+        ...     version="1.0.0",
+        ...     capabilities={RuntimeCapability.FILE_EDIT, RuntimeCapability.TOOL_USE},
+        ...     command="claude",
+        ...     supports_agents=False,
+        ...     instruction_file="CLAUDE.md"
+        ... )
+    """
+
+    name: str
+    version: Optional[str]
+    capabilities: Set[RuntimeCapability]
+    command: str
+    supports_agents: bool = False
+    instruction_file: Optional[str] = None
 
 
 @dataclass
@@ -189,3 +239,50 @@ class RuntimeAdapter(ABC):
             >>> adapter.name
             'claude-code'
         """
+
+    @property
+    def runtime_info(self) -> Optional[RuntimeInfo]:
+        """Return detailed runtime information.
+
+        Returns:
+            RuntimeInfo with capabilities and configuration, or None if not implemented
+
+        Example:
+            >>> info = adapter.runtime_info
+            >>> if info and RuntimeCapability.AGENT_DELEGATION in info.capabilities:
+            ...     print("Supports agent delegation")
+        """
+        return None
+
+    def inject_instructions(self, instructions: str) -> Optional[str]:
+        """Return command/method to inject custom instructions.
+
+        Args:
+            instructions: Instructions text to inject
+
+        Returns:
+            Command string to inject instructions, or None if not supported
+
+        Example:
+            >>> cmd = adapter.inject_instructions("You are a Python expert")
+            >>> if cmd:
+            ...     # Execute command to inject instructions
+        """
+        return None
+
+    def inject_agent_context(self, agent_id: str, context: dict) -> Optional[str]:
+        """Return command to inject agent context.
+
+        Args:
+            agent_id: Unique identifier for agent
+            context: Context dictionary with agent metadata
+
+        Returns:
+            Command string to inject context, or None if not supported
+
+        Example:
+            >>> cmd = adapter.inject_agent_context("eng-001", {"role": "Engineer"})
+            >>> if cmd:
+            ...     # Execute command to inject context
+        """
+        return None

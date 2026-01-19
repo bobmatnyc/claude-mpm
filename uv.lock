@@ -677,7 +677,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "5.6.5"
+version = "5.6.18"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
@@ -839,7 +839,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytest-timeout", marker = "extra == 'eval'", specifier = ">=2.1.0" },
     { name = "python-dateutil", marker = "extra == 'data-processing'", specifier = ">=2.8.0" },
-    { name = "python-dotenv", specifier = ">=0.19.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-engineio", specifier = ">=4.8.0" },
     { name = "python-engineio", marker = "extra == 'monitor'", specifier = ">=4.8.0" },
     { name = "python-frontmatter", specifier = ">=1.0.0" },

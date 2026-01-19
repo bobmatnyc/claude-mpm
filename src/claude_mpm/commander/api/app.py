@@ -6,7 +6,7 @@ lifecycle management, and route registration.
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,15 +20,6 @@ from ..registry import ProjectRegistry
 from ..tmux_orchestrator import TmuxOrchestrator
 from ..workflow import EventHandler
 from .routes import events, inbox as inbox_routes, messages, projects, sessions, work
-
-# Global instances (injected at startup via lifespan)
-registry: Optional[ProjectRegistry] = None
-tmux: Optional[TmuxOrchestrator] = None
-event_manager: Optional[EventManager] = None
-inbox: Optional[Inbox] = None
-event_handler: Optional[EventHandler] = None
-session_manager: dict = {}  # project_id -> ProjectSession
-activity_tracker: Optional[ActivityTracker] = None
 
 
 @asynccontextmanager
@@ -44,28 +35,46 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         None during application runtime
     """
     # Startup
-    global \
-        registry, \
-        tmux, \
-        event_manager, \
-        inbox, \
-        event_handler, \
-        session_manager, \
-        activity_tracker
-    registry = ProjectRegistry()
-    tmux = TmuxOrchestrator()
-    event_manager = EventManager()
-    inbox = Inbox(event_manager, registry)
-    session_manager = {}  # Populated by daemon when sessions are created
-    event_handler = EventHandler(inbox, session_manager)
-    activity_tracker = ActivityTracker(poll_interval=1.0)
-    activity_tracker.start_polling()
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info("Lifespan starting. Initializing app.state resources...")
+
+    # Initialize app.state resources (daemon will inject its instances later)
+    if not hasattr(app.state, "registry"):
+        app.state.registry = ProjectRegistry()
+    if not hasattr(app.state, "tmux"):
+        app.state.tmux = TmuxOrchestrator()
+    if not hasattr(app.state, "event_manager"):
+        app.state.event_manager = EventManager()
+    if not hasattr(app.state, "inbox"):
+        app.state.inbox = Inbox(app.state.event_manager, app.state.registry)
+    if not hasattr(app.state, "session_manager"):
+        app.state.session_manager = {}
+    if not hasattr(app.state, "work_queues"):
+        logger.info("work_queues not set, creating new dict")
+        app.state.work_queues = {}
+    else:
+        logger.info(
+            f"work_queues already set, preserving id: {id(app.state.work_queues)}"
+        )
+    if not hasattr(app.state, "daemon_instance"):
+        app.state.daemon_instance = None
+    if not hasattr(app.state, "event_handler"):
+        app.state.event_handler = EventHandler(
+            app.state.inbox, app.state.session_manager
+        )
+    if not hasattr(app.state, "activity_tracker"):
+        app.state.activity_tracker = ActivityTracker(poll_interval=1.0)
+        app.state.activity_tracker.start_polling()
+
+    logger.info(f"Lifespan complete. work_queues id: {id(app.state.work_queues)}")
 
     yield
 
     # Shutdown
-    if activity_tracker:
-        activity_tracker.stop_polling()
+    if hasattr(app.state, "activity_tracker") and app.state.activity_tracker:
+        app.state.activity_tracker.stop_polling()
 
 
 app = FastAPI(

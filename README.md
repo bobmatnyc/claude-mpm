@@ -35,8 +35,10 @@ Claude MPM transforms Claude Code into a **multi-agent orchestration platform** 
 
 ### Prerequisites
 
-1. **Python 3.10+** (3.11+ recommended)
+1. **Python 3.11+** (required - older versions will install outdated claude-mpm)
 2. **Claude Code CLI v2.1.3+** (required!)
+
+> ⚠️ **Python Version Note**: Claude MPM requires Python 3.11 or higher. If you have Python 3.9 or 3.10, you'll get an old version (4.x) that lacks current features. Check with `python3 --version` before installing.
 
 ```bash
 # Verify Claude Code is installed

@@ -210,7 +210,16 @@ def should_skip_background_services(args, processed_argv):
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands) or (
         hasattr(args, "command")
         and args.command
-        in ["info", "doctor", "config", "mcp", "configure", "hook-errors", "autotodos"]
+        in [
+            "info",
+            "doctor",
+            "config",
+            "mcp",
+            "configure",
+            "hook-errors",
+            "autotodos",
+            "commander",
+        ]
     )
 
 
@@ -469,6 +478,94 @@ def _cleanup_orphaned_agents(deploy_target: Path, deployed_agents: list[str]) ->
     return removed_count
 
 
+def _save_deployment_state_after_reconciliation(
+    agent_result, project_path: Path
+) -> None:
+    """Save deployment state after reconciliation to prevent duplicate deployment.
+
+    WHY: After perform_startup_reconciliation() deploys agents to .claude/agents/,
+    we need to save a deployment state file so that ClaudeRunner.setup_agents()
+    can detect agents are already deployed and skip redundant deployment.
+
+    This prevents the "✓ Deployed 31 native agents" duplicate deployment that
+    occurs when setup_agents() doesn't know reconciliation already ran.
+
+    Args:
+        agent_result: DeploymentResult from perform_startup_reconciliation()
+        project_path: Project root directory
+
+    DESIGN DECISION: Use same state file format as ClaudeRunner._save_deployment_state()
+    Located at: .claude-mpm/cache/deployment_state.json
+
+    State file format:
+    {
+        "version": "5.6.13",
+        "agent_count": 15,
+        "deployment_hash": "sha256:...",
+        "deployed_at": 1234567890.123
+    }
+    """
+    import hashlib
+    import json
+    import time
+
+    from ..core.logger import get_logger
+
+    logger = get_logger("cli")
+
+    try:
+        # Get version from package
+        from claude_mpm import __version__
+
+        # Path to state file (matches ClaudeRunner._get_deployment_state_path())
+        state_file = project_path / ".claude-mpm" / "cache" / "deployment_state.json"
+        agents_dir = project_path / ".claude" / "agents"
+
+        # Count deployed agents
+        if agents_dir.exists():
+            agent_count = len(list(agents_dir.glob("*.md")))
+        else:
+            agent_count = 0
+
+        # Calculate deployment hash (matches ClaudeRunner._calculate_deployment_hash())
+        # CRITICAL: Must match exact hash algorithm used in ClaudeRunner
+        # Hashes filename + file content (not mtime) for consistency
+        deployment_hash = ""
+        if agents_dir.exists():
+            agent_files = sorted(agents_dir.glob("*.md"))
+            hash_obj = hashlib.sha256()
+            for agent_file in agent_files:
+                # Include filename and content in hash (matches ClaudeRunner)
+                hash_obj.update(agent_file.name.encode())
+                try:
+                    hash_obj.update(agent_file.read_bytes())
+                except Exception as e:
+                    logger.debug(f"Error reading {agent_file} for hash: {e}")
+
+            deployment_hash = hash_obj.hexdigest()
+
+        # Create state data
+        state_data = {
+            "version": __version__,
+            "agent_count": agent_count,
+            "deployment_hash": deployment_hash,
+            "deployed_at": time.time(),
+        }
+
+        # Ensure directory exists
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write state file
+        state_file.write_text(json.dumps(state_data, indent=2))
+        logger.debug(
+            f"Saved deployment state after reconciliation: {agent_count} agents"
+        )
+
+    except Exception as e:
+        # Non-critical error - log but don't fail startup
+        logger.debug(f"Failed to save deployment state: {e}")
+
+
 def sync_remote_agents_on_startup(force_sync: bool = False):
     """
     Synchronize agent templates from remote sources on startup.
@@ -630,6 +727,12 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                         "Please check the error messages above."
                     )
                     print("   Run with --verbose for detailed error information.\n")
+
+                # Save deployment state to prevent duplicate deployment in ClaudeRunner
+                # This ensures setup_agents() skips deployment since we already reconciled
+                _save_deployment_state_after_reconciliation(
+                    agent_result=agent_result, project_path=project_path
+                )
 
             except Exception as e:
                 # Deployment failure shouldn't block startup
