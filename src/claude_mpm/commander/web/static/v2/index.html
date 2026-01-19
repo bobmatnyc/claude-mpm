@@ -71,20 +71,27 @@
                     <span id="output-status" class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400 hidden">running</span>
                 </div>
                 <div id="output-actions" class="flex items-center gap-2 hidden">
-                    <!-- Session Actions -->
-                    <button onclick="sendEscape()" class="action-btn" title="Send ESC">ESC</button>
-                    <button onclick="sendCtrlC()" class="action-btn" title="Send Ctrl+C">^C</button>
-                    <button onclick="sendShiftTab()" class="action-btn" title="Send Shift+Tab (cycle permissions)">⇧⇥</button>
-                    <button onclick="sendEnter()" class="action-btn" title="Send Enter">↵</button>
-                    <div class="flex items-center gap-1 ml-2">
-                        <input type="text" id="send-text-input" placeholder="Send text..."
-                               class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
-                               onkeypress="if(event.key==='Enter')sendText()">
-                        <button onclick="sendText()" class="action-btn">Send</button>
+                    <!-- TMUX Follow Mode Actions (hidden in Terminal Mode) -->
+                    <div id="tmux-follow-actions" class="flex items-center gap-2">
+                        <button onclick="sendEscape()" class="action-btn" title="Send ESC">ESC</button>
+                        <button onclick="sendCtrlC()" class="action-btn" title="Send Ctrl+C">^C</button>
+                        <button onclick="sendShiftTab()" class="action-btn" title="Send Shift+Tab (cycle permissions)">⇧⇥</button>
+                        <button onclick="sendEnter()" class="action-btn" title="Send Enter">↵</button>
+                        <div class="flex items-center gap-1 ml-2">
+                            <input type="text" id="send-text-input" placeholder="Send text..."
+                                   class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm w-40 focus:outline-none focus:border-blue-500"
+                                   onkeypress="if(event.key==='Enter')sendText()">
+                            <button onclick="sendText()" class="action-btn">Send</button>
+                        </div>
                     </div>
                     <div class="border-l border-gray-700 h-6 mx-2"></div>
-                    <button onclick="openInTerminal()" class="action-btn bg-green-700 hover:bg-green-600" title="Open in Terminal">
-                        <span class="mr-1">🖥️</span>Terminal
+                    <!-- Always Visible: iTerm Button -->
+                    <button onclick="openIniTerm()" class="action-btn bg-purple-700 hover:bg-purple-600" title="Open in iTerm">
+                        <span class="mr-1">🍎</span>iTerm
+                    </button>
+                    <!-- Mode Toggle: TMUX Follow ↔ Terminal -->
+                    <button id="mode-toggle-btn" onclick="toggleViewMode()" class="action-btn bg-green-700 hover:bg-green-600" title="Switch to Browser Terminal">
+                        <span class="mr-1">🖥️</span><span id="mode-toggle-label">Terminal</span>
                     </button>
                     <div class="border-l border-gray-700 h-6 mx-2"></div>
                     <button onclick="terminateSession()" class="action-btn bg-red-700 hover:bg-red-600" title="Terminate Session">
@@ -121,9 +128,8 @@
                 </div>
             </div>
 
-            <!-- Browser Terminal Panel (standardmäßig versteckt) -->
-            <!-- Note: Panel has flex: 0 0 auto in CSS - it sizes based on terminal content, not flex-grow -->
-            <div id="browser-terminal-panel" class="hidden flex flex-col border-t border-gray-800 shrink-0">
+            <!-- Browser Terminal Panel (hidden by default, shown in Terminal Mode) -->
+            <div id="browser-terminal-panel" class="hidden flex-1 flex flex-col border-t border-gray-800 min-h-0">
                 <div class="bg-gray-900 px-4 py-2 flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-2">
                         <span class="text-green-400">❯</span>
@@ -132,10 +138,9 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="toggleTerminalFullscreen()" class="text-gray-400 hover:text-white text-xs px-2 py-1" title="Fullscreen">⛶</button>
-                        <button onclick="closeBrowserTerminal()" class="text-gray-400 hover:text-red-400 text-xs px-2 py-1" title="Schließen">✕</button>
                     </div>
                 </div>
-                <div id="xterm-container"></div>
+                <div id="xterm-container" class="flex-1 min-h-0"></div>
             </div>
 
             <!-- Quick Input Bar - ALWAYS visible at bottom, never scrolls away -->
@@ -264,28 +269,7 @@
                 </div>
             </div>
 
-            <!-- Terminal Mode Selection -->
-            <div class="mb-4 border-t border-gray-700 pt-4 mt-4">
-                <label class="text-sm text-gray-400 mb-2 block">Terminal Modus</label>
-                <div class="space-y-2">
-                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
-                        <input type="radio" name="terminal-mode" value="external" class="text-blue-500">
-                        <div>
-                            <div class="font-medium">Externes Terminal</div>
-                            <div class="text-xs text-gray-400">Öffnet in iTerm / Terminal.app</div>
-                        </div>
-                    </label>
-                    <label class="flex items-center gap-3 p-3 bg-gray-700 rounded cursor-pointer hover:bg-gray-650 transition">
-                        <input type="radio" name="terminal-mode" value="browser" class="text-blue-500">
-                        <div>
-                            <div class="font-medium">Browser Terminal</div>
-                            <div class="text-xs text-gray-400">Integriertes Terminal in diesem Fenster</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-2 mt-6">
+            <div class="flex justify-end gap-2 mt-6 border-t border-gray-700 pt-4">
                 <button onclick="hideSettingsModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
                 <button onclick="saveSettings()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 transition">Save</button>
             </div>

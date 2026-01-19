@@ -14,6 +14,8 @@ const state = {
     ansiUp: null,
     sessionActivity: {},  // session_id -> activity stats
     hasUserScrolled: false,  // Track if user manually scrolled up
+    // View Mode: 'tmux-follow' (default) or 'terminal'
+    viewMode: 'tmux-follow',
     // Browser Terminal State
     browserTerminal: null,       // xterm.js Terminal instance
     terminalSocket: null,        // WebSocket connection
@@ -215,6 +217,12 @@ async function loadSessionPreviews(projectId) {
 // =============================================================================
 
 async function selectSession(projectId, sessionId) {
+    // Close Browser Terminal if switching sessions
+    if (state.currentSession !== sessionId) {
+        closeBrowserTerminal();
+        state.viewMode = 'tmux-follow';  // Reset to default mode
+    }
+
     state.currentProject = projectId;
     state.currentSession = sessionId;
 
@@ -241,8 +249,10 @@ async function selectSession(projectId, sessionId) {
 
     // Show actions and activity panel
     document.getElementById('output-actions').classList.remove('hidden');
-    document.getElementById('quick-input-bar').classList.remove('hidden');
     document.getElementById('activity-panel').classList.remove('hidden');
+
+    // Update UI based on current view mode (default: tmux-follow)
+    updateViewModeUI();
 
     // Load output
     await loadSessionOutput();
@@ -321,26 +331,84 @@ async function createSession(projectId) {
     }
 }
 
-async function openInTerminal() {
+/**
+ * Toggle between TMUX Follow mode and Browser Terminal mode
+ */
+async function toggleViewMode() {
     if (!state.currentSession) return;
 
-    const mode = getTerminalMode();
-
-    if (mode === 'browser') {
-        // Open Browser Terminal
+    if (state.viewMode === 'tmux-follow') {
+        // Switch to Terminal Mode
+        state.viewMode = 'terminal';
         await openBrowserTerminal();
+        updateViewModeUI();
     } else {
-        // Open external terminal (existing logic)
-        const terminal = getPreferredTerminal();
-        try {
-            await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=${terminal}`, {
-                method: 'POST'
-            });
-            log(`Opened in ${terminal}`);
-        } catch (err) {
-            log(`Failed to open terminal: ${err.message}`, 'error');
-        }
+        // Switch to TMUX Follow Mode
+        state.viewMode = 'tmux-follow';
+        closeBrowserTerminal();
+        updateViewModeUI();
     }
+
+    log(`Switched to ${state.viewMode} mode`);
+}
+
+/**
+ * Update UI elements based on current view mode
+ */
+function updateViewModeUI() {
+    const tmuxFollowActions = document.getElementById('tmux-follow-actions');
+    const quickInputBar = document.getElementById('quick-input-bar');
+    const outputContent = document.getElementById('output-content');
+    const browserTerminalPanel = document.getElementById('browser-terminal-panel');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const modeToggleLabel = document.getElementById('mode-toggle-label');
+
+    if (state.viewMode === 'terminal') {
+        // Terminal Mode: Hide TMUX Follow elements, show Browser Terminal
+        if (tmuxFollowActions) tmuxFollowActions.classList.add('hidden');
+        if (quickInputBar) quickInputBar.classList.add('hidden');
+        if (outputContent) outputContent.classList.add('hidden');
+        if (browserTerminalPanel) browserTerminalPanel.classList.remove('hidden');
+        if (modeToggleBtn) {
+            modeToggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600');
+            modeToggleBtn.classList.add('bg-blue-700', 'hover:bg-blue-600');
+            modeToggleBtn.title = 'Switch to TMUX Follow';
+        }
+        if (modeToggleLabel) modeToggleLabel.textContent = 'TMUX Follow';
+    } else {
+        // TMUX Follow Mode: Show TMUX Follow elements, hide Browser Terminal
+        if (tmuxFollowActions) tmuxFollowActions.classList.remove('hidden');
+        if (quickInputBar) quickInputBar.classList.remove('hidden');
+        if (outputContent) outputContent.classList.remove('hidden');
+        if (browserTerminalPanel) browserTerminalPanel.classList.add('hidden');
+        if (modeToggleBtn) {
+            modeToggleBtn.classList.remove('bg-blue-700', 'hover:bg-blue-600');
+            modeToggleBtn.classList.add('bg-green-700', 'hover:bg-green-600');
+            modeToggleBtn.title = 'Switch to Browser Terminal';
+        }
+        if (modeToggleLabel) modeToggleLabel.textContent = 'Terminal';
+    }
+}
+
+/**
+ * Open session in external iTerm (always available)
+ */
+async function openIniTerm() {
+    if (!state.currentSession) return;
+
+    try {
+        await fetchAPI(`/sessions/${state.currentSession}/open-terminal?terminal=iterm`, {
+            method: 'POST'
+        });
+        log('Opened in iTerm');
+    } catch (err) {
+        log(`Failed to open iTerm: ${err.message}`, 'error');
+    }
+}
+
+// Legacy function - kept for compatibility
+async function openInTerminal() {
+    await toggleViewMode();
 }
 
 async function sendEscape() {
@@ -643,11 +711,6 @@ function showSettingsModal() {
     const terminal = localStorage.getItem('preferred-terminal') || 'iterm';
     const radio = document.querySelector(`input[name="terminal"][value="${terminal}"]`);
     if (radio) radio.checked = true;
-
-    // Load terminal mode
-    const mode = localStorage.getItem('terminal-mode') || 'external';
-    const modeRadio = document.querySelector(`input[name="terminal-mode"][value="${mode}"]`);
-    if (modeRadio) modeRadio.checked = true;
 }
 
 function hideSettingsModal() {
@@ -658,23 +721,12 @@ function saveSettings() {
     const terminal = document.querySelector('input[name="terminal"]:checked')?.value || 'iterm';
     localStorage.setItem('preferred-terminal', terminal);
 
-    const mode = document.querySelector('input[name="terminal-mode"]:checked')?.value || 'external';
-    localStorage.setItem('terminal-mode', mode);
-
     hideSettingsModal();
-    log(`Settings saved: Terminal = ${terminal}, Mode = ${mode}`);
+    log(`Settings saved: Terminal = ${terminal}`);
 }
 
 function getPreferredTerminal() {
     return localStorage.getItem('preferred-terminal') || 'iterm';
-}
-
-function getTerminalMode() {
-    return localStorage.getItem('terminal-mode') || 'external';
-}
-
-function setTerminalMode(mode) {
-    localStorage.setItem('terminal-mode', mode);
 }
 
 // =============================================================================
@@ -1192,26 +1244,20 @@ async function openBrowserTerminal() {
         return;
     }
 
-    // Close existing terminal if open
-    closeBrowserTerminal();
+    // Close existing terminal if open (but don't change view mode)
+    if (state.browserTerminal) {
+        state.browserTerminal.dispose();
+        state.browserTerminal = null;
+    }
+    if (state.terminalSocket) {
+        state.terminalSocket.close();
+        state.terminalSocket = null;
+    }
 
     log(`Opening browser terminal for session ${state.currentSession.slice(0, 8)}...`);
 
-    // Show terminal panel - output content will shrink to accommodate
-    const terminalPanel = document.getElementById('browser-terminal-panel');
-    const outputContent = document.getElementById('output-content');
+    // UI is managed by updateViewModeUI() - just update connection status
     const statusEl = document.getElementById('terminal-connection-status');
-
-    terminalPanel.classList.remove('hidden');
-    // Terminal has fixed height in CSS (for exactly 24 rows)
-    // Output content will flex to fill remaining space
-
-    // Hide Quick Input Bar - user interacts via Browser Terminal instead
-    const quickInputBar = document.getElementById('quick-input-bar');
-    if (quickInputBar) {
-        quickInputBar.classList.add('hidden');
-    }
-
     statusEl.textContent = 'connecting...';
     statusEl.className = 'text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400';
 
@@ -1407,6 +1453,7 @@ async function openBrowserTerminal() {
 
 /**
  * Close the Browser Terminal and cleanup resources.
+ * UI visibility is managed by updateViewModeUI().
  */
 function closeBrowserTerminal() {
     // Close WebSocket
@@ -1426,21 +1473,6 @@ function closeBrowserTerminal() {
         state.browserTerminal.dispose();
         state.browserTerminal = null;
         state.terminalFitAddon = null;
-    }
-
-    // Hide terminal panel - output content will expand automatically
-    const terminalPanel = document.getElementById('browser-terminal-panel');
-
-    if (terminalPanel) {
-        terminalPanel.classList.add('hidden');
-    }
-
-    // Show Quick Input Bar again (if a session is selected)
-    if (state.currentSession) {
-        const quickInputBar = document.getElementById('quick-input-bar');
-        if (quickInputBar) {
-            quickInputBar.classList.remove('hidden');
-        }
     }
 
     // Reset fullscreen if active
