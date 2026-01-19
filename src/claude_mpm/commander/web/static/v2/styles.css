@@ -289,8 +289,22 @@ header {
 }
 
 /* Hide xterm.js cursor - we're in mirror mode, tmux cursor is in the content */
-.xterm-cursor-layer {
+/* Multiple selectors to ensure cursor is hidden regardless of xterm.js version */
+.xterm-cursor-layer,
+.xterm .xterm-cursor-layer,
+#xterm-container .xterm-cursor-layer {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Also hide any cursor elements directly */
+.xterm-cursor,
+.xterm-cursor-bar,
+.xterm-cursor-block,
+.xterm-cursor-underline {
+    display: none !important;
+    visibility: hidden !important;
 }
 
 /* Hide scrollbar completely for cleaner look */
