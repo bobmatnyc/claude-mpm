@@ -359,34 +359,42 @@ function updateViewModeUI() {
     const tmuxFollowActions = document.getElementById('tmux-follow-actions');
     const quickInputBar = document.getElementById('quick-input-bar');
     const outputContent = document.getElementById('output-content');
+    const activityPanel = document.getElementById('activity-panel');
     const browserTerminalPanel = document.getElementById('browser-terminal-panel');
-    const modeToggleBtn = document.getElementById('mode-toggle-btn');
+    const modeToggleIcon = document.getElementById('mode-toggle-icon');
     const modeToggleLabel = document.getElementById('mode-toggle-label');
+    const modeToggleBtn = document.getElementById('mode-toggle-btn');
 
     if (state.viewMode === 'terminal') {
         // Terminal Mode: Hide TMUX Follow elements, show Browser Terminal
         if (tmuxFollowActions) tmuxFollowActions.classList.add('hidden');
         if (quickInputBar) quickInputBar.classList.add('hidden');
         if (outputContent) outputContent.classList.add('hidden');
+        if (activityPanel) activityPanel.classList.add('hidden');
         if (browserTerminalPanel) browserTerminalPanel.classList.remove('hidden');
-        if (modeToggleBtn) {
-            modeToggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600');
-            modeToggleBtn.classList.add('bg-blue-700', 'hover:bg-blue-600');
-            modeToggleBtn.title = 'Switch to TMUX Follow';
+        // Rotate icon down (expanded state)
+        if (modeToggleIcon) modeToggleIcon.style.transform = 'rotate(90deg)';
+        if (modeToggleLabel) {
+            modeToggleLabel.textContent = 'Terminal';
+            modeToggleLabel.classList.remove('text-gray-400');
+            modeToggleLabel.classList.add('text-green-400');
         }
-        if (modeToggleLabel) modeToggleLabel.textContent = 'TMUX Follow';
+        if (modeToggleBtn) modeToggleBtn.title = 'Switch to TMUX Follow';
     } else {
         // TMUX Follow Mode: Show TMUX Follow elements, hide Browser Terminal
         if (tmuxFollowActions) tmuxFollowActions.classList.remove('hidden');
         if (quickInputBar) quickInputBar.classList.remove('hidden');
         if (outputContent) outputContent.classList.remove('hidden');
+        if (activityPanel) activityPanel.classList.remove('hidden');
         if (browserTerminalPanel) browserTerminalPanel.classList.add('hidden');
-        if (modeToggleBtn) {
-            modeToggleBtn.classList.remove('bg-blue-700', 'hover:bg-blue-600');
-            modeToggleBtn.classList.add('bg-green-700', 'hover:bg-green-600');
-            modeToggleBtn.title = 'Switch to Browser Terminal';
+        // Icon pointing right (collapsed state)
+        if (modeToggleIcon) modeToggleIcon.style.transform = 'rotate(0deg)';
+        if (modeToggleLabel) {
+            modeToggleLabel.textContent = 'Terminal';
+            modeToggleLabel.classList.remove('text-green-400');
+            modeToggleLabel.classList.add('text-gray-400');
         }
-        if (modeToggleLabel) modeToggleLabel.textContent = 'Terminal';
+        if (modeToggleBtn) modeToggleBtn.title = 'Switch to Browser Terminal';
     }
 }
 

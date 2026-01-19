@@ -77,7 +77,8 @@ body {
 }
 
 /* Expand Icon Animation */
-.expand-icon {
+.expand-icon,
+#mode-toggle-icon {
     transition: transform 0.15s ease;
 }
 
