@@ -389,8 +389,9 @@ class PMSkillsDeployerService(LoggerMixin):
             if not skill_dir.is_dir() or skill_dir.name.startswith("."):
                 continue
 
-            # Only process mpm-* skills (framework management)
-            if not skill_dir.name.startswith("mpm-"):
+            # Only process mpm* skills (framework management)
+            # Note: Includes both 'mpm' (core skill) and 'mpm-*' (other PM skills)
+            if not skill_dir.name.startswith("mpm"):
                 self.logger.debug(f"Skipping non-mpm skill: {skill_dir.name}")
                 continue
 
