@@ -1530,16 +1530,14 @@ def check_mcp_auto_configuration():
         # Only use carriage return clearing if stdout is a real TTY
         if sys.stdout.isatty():
             print("\r" + " " * 30 + "\r", end="", flush=True)
-        else:
-            print()  # Simple newline for non-TTY (like Claude Code REPL)
+        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
 
     except Exception as e:
         # Clear progress message on error
         # Only use carriage return clearing if stdout is a real TTY
         if sys.stdout.isatty():
             print("\r" + " " * 30 + "\r", end="", flush=True)
-        else:
-            print()  # Simple newline for non-TTY (like Claude Code REPL)
+        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
 
         # Non-critical - log but don't fail
         from ..core.logger import get_logger
