@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.28] - 2026-01-19
+
+### Fixed
+- fix(startup): add TTY detection to all progress messages - prevents REPL pollution in Claude Code
+
 ## [5.6.27] - 2026-01-19
 
 ### Fixed
