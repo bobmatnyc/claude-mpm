@@ -33,8 +33,8 @@ except ImportError:
         QUICK_TIMEOUT = 2.0
 
 
-# Debug mode is enabled by default for better visibility into hook processing
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+# Debug mode - disabled by default to prevent logging overhead in production
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 
 class StateManagerService:

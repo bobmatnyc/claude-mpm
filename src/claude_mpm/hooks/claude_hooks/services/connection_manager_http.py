@@ -28,8 +28,8 @@ except ImportError:
         pass  # Silent fallback
 
 
-# Debug mode is enabled by default for better visibility into hook processing
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+# Debug mode - disabled by default to prevent logging overhead in production
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Import requests for HTTP POST communication
 try:
