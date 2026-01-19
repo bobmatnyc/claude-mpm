@@ -1455,10 +1455,12 @@ async function openBrowserTerminal() {
                             log(`Container: ${containerWidth}px, optimal fontSize: ${fontSize}px for ${useCols} cols`);
 
                             // NOW create the terminal with calculated dimensions
+                            // Note: We're mirroring tmux output - tmux cursor is rendered in content
+                            // So we hide xterm.js cursor to avoid having two cursors
                             state.browserTerminal = new Terminal({
-                                cursorBlink: true,
-                                cursorStyle: 'block',
-                                cursorInactiveStyle: 'outline',  // Show outline cursor when terminal loses focus
+                                cursorBlink: false,
+                                cursorStyle: 'bar',
+                                cursorInactiveStyle: 'none',  // Hide cursor - tmux cursor is in content
                                 fontSize: fontSize,
                                 fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
                                 lineHeight: 1.0,
