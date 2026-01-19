@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.22] - 2026-01-19
+
+### Fixed
+- fix(skills): include core 'mpm' skill in discovery filter - the startup deployment was skipping 'mpm' because filter required hyphen
+
 ## [5.6.21] - 2026-01-19
 
 ### Changed
