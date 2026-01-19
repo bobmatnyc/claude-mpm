@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.25] - 2026-01-19
+
+### Fixed
+- fix(logging): preserve FileHandlers in LoggerFactory.initialize() - prevents log messages leaking to stderr during hook execution
+
 ## [5.6.24] - 2026-01-19
 
 ### Fixed
