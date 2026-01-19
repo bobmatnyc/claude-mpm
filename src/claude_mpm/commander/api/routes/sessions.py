@@ -908,7 +908,13 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
             if initial_result.returncode == 0:
                 initial_content = initial_result.stdout
                 lines = initial_content.split("\n")
-                initial_content = "\n".join(line.rstrip() for line in lines)
+                lines = [line.rstrip() for line in lines]
+
+                # Remove trailing empty lines to prevent scroll-off
+                while lines and not lines[-1]:
+                    lines.pop()
+
+                initial_content = "\n".join(lines)
                 initial_content = initial_content.replace("\n", "\r\n")
 
                 # Get cursor position for initial frame too
@@ -977,7 +983,15 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                     # Remove trailing whitespace from each line
                     # tmux capture-pane pads lines to full width which causes layout issues
                     lines = content.split("\n")
-                    content = "\n".join(line.rstrip() for line in lines)
+                    lines = [line.rstrip() for line in lines]
+
+                    # Remove trailing empty lines - CRITICAL!
+                    # If we send 24 lines with CRLF to a 24-row terminal,
+                    # the last CRLF causes scrolling and loses the first line
+                    while lines and not lines[-1]:
+                        lines.pop()
+
+                    content = "\n".join(lines)
 
                     # Convert LF to CR+LF for proper xterm.js rendering
                     content = content.replace("\n", "\r\n")
