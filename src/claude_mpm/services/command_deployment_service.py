@@ -1,10 +1,14 @@
-"""Service for deploying MPM slash commands to user's Claude configuration.
+"""Service for managing MPM slash commands in user's Claude configuration.
 
-This service handles:
-1. Copying command markdown files from source to user's ~/.claude/commands directory
-2. Creating the commands directory if it doesn't exist
-3. Overwriting existing commands to ensure they're up-to-date
-4. Parsing and validating YAML frontmatter for namespace metadata (Phase 1 - 1M-400)
+DEPRECATED: User-level commands in ~/.claude/commands/ are deprecated.
+Project-level skills (.claude/skills/) are now the only source for commands.
+
+This service now only handles:
+1. Cleanup of deprecated commands from previous versions
+2. Cleanup of stale commands that no longer exist in source
+3. Parsing and validating YAML frontmatter (for internal use)
+
+New command deployment is intentionally disabled - see deploy_commands_on_startup().
 """
 
 from pathlib import Path
@@ -17,20 +21,34 @@ from claude_mpm.core.logger import get_logger
 
 
 class CommandDeploymentService(BaseService):
-    """Service for deploying MPM slash commands."""
+    """Service for managing MPM slash commands (cleanup only - deployment deprecated)."""
 
-    # Deprecated commands that have been replaced (cleanup on startup)
+    # Deprecated commands that should be removed from ~/.claude/commands/
+    # ALL user-level commands are now deprecated - project-level skills are the only source
     DEPRECATED_COMMANDS = [
+        # Legacy deprecated commands (historical)
         "mpm-agents.md",  # Replaced by mpm-agents-list.md
         "mpm-auto-configure.md",  # Replaced by mpm-agents-auto-configure.md
         "mpm-config-view.md",  # Replaced by mpm-config.md
         "mpm-resume.md",  # Replaced by mpm-session-resume.md
         "mpm-ticket.md",  # Replaced by mpm-ticket-view.md
-        # Removed - consolidated into /mpm-configure
         "mpm-agents-list.md",  # Consolidated into /mpm-configure
         "mpm-agents-detect.md",  # Consolidated into /mpm-configure
         "mpm-agents-auto-configure.md",  # Consolidated into /mpm-configure
         "mpm-agents-recommend.md",  # Consolidated into /mpm-configure
+        # ALL user-level commands are now deprecated (use project-level skills)
+        "mpm.md",
+        "mpm-config.md",
+        "mpm-doctor.md",
+        "mpm-help.md",
+        "mpm-init.md",
+        "mpm-monitor.md",
+        "mpm-organize.md",
+        "mpm-postmortem.md",
+        "mpm-session-resume.md",
+        "mpm-status.md",
+        "mpm-ticket-view.md",
+        "mpm-version.md",
     ]
 
     def __init__(self):
@@ -414,33 +432,33 @@ class CommandDeploymentService(BaseService):
 def deploy_commands_on_startup(force: bool = False) -> None:
     """Convenience function to deploy commands during startup.
 
-    This function:
-    1. Removes deprecated commands that have been replaced
-    2. Removes stale commands that no longer exist in source
-    3. Deploys current command files
+    DEPRECATED: User-level commands in ~/.claude/commands/ are deprecated.
+    Project-level skills should be the only source for commands.
+
+    This function now only cleans up any existing deprecated/stale commands
+    without deploying new ones.
 
     Args:
-        force: Force deployment even if files exist
+        force: Force deployment even if files exist (ignored - deployment disabled)
     """
-    service = CommandDeploymentService()
     logger = get_logger("startup")
+    logger.debug(
+        "User-level command deployment is deprecated - "
+        "project-level skills are the only command source"
+    )
 
-    # Clean up deprecated commands FIRST (known old commands)
+    # Still clean up any lingering deprecated/stale commands from previous versions
+    service = CommandDeploymentService()
+
+    # Clean up deprecated commands
     deprecated_count = service.remove_deprecated_commands()
     if deprecated_count > 0:
         logger.info(f"Cleaned up {deprecated_count} deprecated command(s)")
 
-    # Clean up stale commands SECOND (deployed but not in source anymore)
+    # Clean up stale commands
     stale_count = service.remove_stale_commands()
     if stale_count > 0:
         logger.info(f"Cleaned up {stale_count} stale command(s)")
 
-    # Deploy current commands LAST
-    result = service.deploy_commands(force=force)
-
-    if result["deployed"]:
-        logger.info(f"MPM commands deployed: {', '.join(result['deployed'])}")
-
-    if result["errors"]:
-        for error in result["errors"]:
-            logger.warning(f"Command deployment issue: {error}")
+    # NOTE: Deployment of new commands is intentionally disabled.
+    # Project-level skills (.claude/skills/) are the only source for commands.
