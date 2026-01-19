@@ -1248,38 +1248,40 @@ async function openBrowserTerminal() {
                         log(`Server pane size: ${msg.cols}x${msg.rows}`);
 
                         if (!terminalInitialized) {
-                            // Use fixed font size of 12px for readable terminal text
-                            const fontSize = 12;
-                            // Measure actual character width for Menlo font
-                            // Create a test span to measure
-                            const testSpan = document.createElement('span');
-                            testSpan.style.cssText = `
+                            // Get container width
+                            const terminalPanel = document.getElementById('browser-terminal-panel');
+                            let containerWidth = container.clientWidth || terminalPanel?.clientWidth || 800;
+                            containerWidth -= 16; // Account for padding
+
+                            // Measure ACTUAL character width by creating a hidden span
+                            // This is more accurate than using font-size ratios
+                            const measureSpan = document.createElement('span');
+                            measureSpan.style.cssText = `
                                 font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-                                font-size: ${fontSize}px;
+                                font-size: 13px;
                                 position: absolute;
                                 visibility: hidden;
                                 white-space: pre;
                             `;
-                            testSpan.textContent = 'M'.repeat(10);
-                            document.body.appendChild(testSpan);
-                            const charWidth = testSpan.offsetWidth / 10;
-                            document.body.removeChild(testSpan);
+                            measureSpan.textContent = 'X'.repeat(80); // 80 chars
+                            document.body.appendChild(measureSpan);
+                            const measuredWidth = measureSpan.offsetWidth;
+                            const actualCharWidth = measuredWidth / 80;
+                            document.body.removeChild(measureSpan);
 
-                            // Get container width - may need to wait for layout
-                            // Terminal panel should be visible at this point
-                            let containerWidth = container.clientWidth - 8; // Subtract padding
-                            if (containerWidth <= 0) {
-                                // Fallback if container hasn't been laid out yet
-                                // Use parent's width or a reasonable default
-                                const terminalPanel = document.getElementById('browser-terminal-panel');
-                                containerWidth = (terminalPanel?.clientWidth || 800) - 16;
-                            }
+                            log(`Measured char width at 13px: ${actualCharWidth.toFixed(2)}px for 80 chars = ${measuredWidth}px`);
 
-                            const fitCols = Math.floor(containerWidth / charWidth);
-                            // Use the smaller of: server cols or calculated fit cols
-                            const useCols = Math.min(msg.cols, Math.max(fitCols, 40)); // Min 40 cols
+                            // Calculate optimal font size: we need (charWidth * cols) <= containerWidth
+                            // charWidth scales linearly with fontSize
+                            // So: newFontSize = 13 * (containerWidth / measuredWidth)
+                            let fontSize = Math.floor(13 * (containerWidth / measuredWidth));
+                            // Clamp between 9 and 16 for readability
+                            fontSize = Math.min(Math.max(fontSize, 9), 16);
 
-                            log(`Container: ${containerWidth}px, charWidth: ${charWidth.toFixed(1)}px, fitCols: ${fitCols}, using: ${useCols}x${msg.rows}`);
+                            // Always use server's column count to match tmux line wrapping
+                            const useCols = msg.cols;
+
+                            log(`Container: ${containerWidth}px, optimal fontSize: ${fontSize}px for ${useCols} cols`);
 
                             // NOW create the terminal with calculated dimensions
                             state.browserTerminal = new Terminal({

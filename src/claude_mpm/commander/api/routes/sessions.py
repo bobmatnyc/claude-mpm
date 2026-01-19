@@ -896,6 +896,12 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                     lines = content.split("\n")
                     content = "\n".join(line.rstrip() for line in lines)
 
+                    # Fix 3: Convert LF to CR+LF for proper xterm.js rendering
+                    # xterm.js treats LF (\n) as "move down" without carriage return
+                    # This causes text to appear at wrong column positions
+                    # CR+LF (\r\n) properly moves cursor to beginning of next line
+                    content = content.replace("\n", "\r\n")
+
                     # Send if changed or if this is the first frame
                     if content != last_content or first_frame:
                         frame_count += 1
