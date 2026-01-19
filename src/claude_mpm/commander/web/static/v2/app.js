@@ -252,16 +252,18 @@ async function selectSession(projectId, sessionId) {
     document.getElementById('output-actions').classList.remove('hidden');
     document.getElementById('activity-panel').classList.remove('hidden');
 
+    // Load output first (needed for both modes)
+    await loadSessionOutput();
+
     // Update UI based on current view mode (default: terminal)
     updateViewModeUI();
 
     // If terminal mode is active, open browser terminal automatically
+    // Small delay to ensure UI is ready and panel is visible
     if (state.viewMode === 'terminal') {
+        await new Promise(resolve => setTimeout(resolve, 100));
         await openBrowserTerminal();
     }
-
-    // Load output (for TMUX follow mode background)
-    await loadSessionOutput();
 
     // Start output polling
     startOutputPoll();
@@ -555,6 +557,12 @@ function showTerminateModal(sessionId) {
 
     // Show modal
     document.getElementById('terminate-modal').classList.remove('hidden');
+
+    // Focus the cancel button (safer default), user can Tab to confirm
+    setTimeout(() => {
+        const cancelBtn = document.getElementById('terminate-cancel-btn');
+        if (cancelBtn) cancelBtn.focus();
+    }, 50);
 }
 
 /**
@@ -1257,6 +1265,13 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
+    // Enter in terminate modal = confirm (when modal is open)
+    if (e.key === 'Enter' && !document.getElementById('terminate-modal').classList.contains('hidden')) {
+        e.preventDefault();
+        confirmTerminateSession();
+        return;
+    }
+
     // Escape handling
     if (e.key === 'Escape') {
         // Close modals first
@@ -1295,8 +1310,8 @@ document.addEventListener('keydown', (e) => {
         return;
     }
 
-    // Ctrl+Shift+N = New session (for current project)
-    if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+    // Alt+N = New session (for current project)
+    if (e.altKey && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
         createSessionForCurrentProject();
         return;

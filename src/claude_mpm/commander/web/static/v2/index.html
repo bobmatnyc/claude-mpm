@@ -312,11 +312,11 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                <button onclick="hideTerminateModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition text-sm font-medium">
-                    Cancel
+                <button id="terminate-cancel-btn" onclick="hideTerminateModal()" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    Cancel <kbd class="ml-1 text-xs opacity-60">Esc</kbd>
                 </button>
-                <button onclick="confirmTerminateSession()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition text-sm font-medium flex items-center gap-2">
-                    <span>🗑️</span> Terminate Session
+                <button id="terminate-confirm-btn" onclick="confirmTerminateSession()" class="px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition text-sm font-medium flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-400">
+                    <span>🗑️</span> Terminate <kbd class="ml-1 text-xs opacity-60">↵</kbd>
                 </button>
             </div>
         </div>
@@ -375,7 +375,7 @@
                     <div class="space-y-1">
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">New session</span>
-                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Ctrl + Shift + N</kbd>
+                            <kbd class="bg-gray-700 px-2 py-0.5 rounded text-xs">Alt + N</kbd>
                         </div>
                         <div class="flex justify-between py-1 border-b border-gray-700">
                             <span class="text-gray-300">Send ESC to session</span>

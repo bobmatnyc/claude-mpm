@@ -164,6 +164,18 @@ input:focus {
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+/* Button focus states for keyboard navigation */
+button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Session item focus for keyboard navigation */
+.session-item:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
 /* Last Line Preview */
 .last-line {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
