@@ -161,9 +161,7 @@ function renderProjectTree() {
                             <span class="text-xs ${session.status === 'running' ? 'text-green-400' : 'text-gray-500'}">●</span>
                             <span class="text-sm truncate flex-1">${session.id.slice(0, 8)}...${shortcutHint}</span>
                             <span class="text-xs text-gray-500">${session.runtime}</span>
-                            <button onclick="event.stopPropagation(); terminateSession('${session.id}')"
-                                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs px-1 transition-opacity"
-                                    title="Terminate Session">✕</button>
+                            <button onclick="event.stopPropagation(); terminateSession('${session.id}')" class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs px-1 transition-opacity" title="Terminate Session">✕</button>
                         </div>
                     `}).join('')
                 }
@@ -492,14 +490,21 @@ async function sendText() {
  * Kills the tmux pane and removes the session.
  */
 async function terminateSession(sessionId = null) {
+    console.log('terminateSession called with:', sessionId);
     // Use provided sessionId or fall back to current session
     const targetSession = sessionId || state.currentSession;
-    if (!targetSession) return;
+    console.log('targetSession:', targetSession);
+    if (!targetSession) {
+        console.log('No target session, returning');
+        return;
+    }
 
     // Confirm before terminating
     if (!confirm('Are you sure you want to terminate this session? This cannot be undone.')) {
+        console.log('User cancelled');
         return;
     }
+    console.log('User confirmed, proceeding...');
 
     try {
         // Close browser terminal if this is the current session
