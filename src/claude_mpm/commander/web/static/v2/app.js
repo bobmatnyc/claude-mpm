@@ -1473,9 +1473,9 @@ async function openBrowserTerminal() {
                             // Note: We're mirroring tmux output - tmux cursor is rendered in content
                             // So we hide xterm.js cursor to avoid having two cursors
                             state.browserTerminal = new Terminal({
-                                cursorBlink: false,
-                                cursorStyle: 'bar',
-                                cursorInactiveStyle: 'none',  // Hide cursor - tmux cursor is in content
+                                cursorBlink: true,
+                                cursorStyle: 'block',
+                                cursorInactiveStyle: 'outline',  // Show cursor - positioned by backend
                                 fontSize: fontSize,
                                 fontFamily: "'Menlo', 'Monaco', 'Consolas', monospace",
                                 lineHeight: 1.0,

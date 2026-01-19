@@ -861,8 +861,58 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
         # Small delay to let browser configure xterm.js
         await asyncio.sleep(0.1)
 
-        # Force send first frame immediately
-        first_frame = True
+        # Capture and send first frame IMMEDIATELY (don't wait for loop sleep)
+        try:
+            initial_result = subprocess.run(  # nosec B603 B607
+                ["tmux", "capture-pane", "-t", pane_id, "-p", "-e"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=False,
+            )
+            if initial_result.returncode == 0:
+                initial_content = initial_result.stdout
+                lines = initial_content.split("\n")
+                initial_content = "\n".join(line.rstrip() for line in lines)
+                initial_content = initial_content.replace("\n", "\r\n")
+
+                # Get cursor position for initial frame too
+                cursor_result = subprocess.run(  # nosec B603 B607
+                    [
+                        "tmux",
+                        "display-message",
+                        "-t",
+                        pane_id,
+                        "-p",
+                        "#{cursor_x} #{cursor_y}",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=1,
+                    check=False,
+                )
+                cursor_x, cursor_y = 0, 0
+                if cursor_result.returncode == 0:
+                    try:
+                        parts = cursor_result.stdout.strip().split()
+                        cursor_x = int(parts[0])
+                        cursor_y = int(parts[1])
+                    except (ValueError, IndexError):
+                        pass
+
+                cursor_pos = f"\x1b[{cursor_y + 1};{cursor_x + 1}H"
+                frame_data = f"\x1b[2J\x1b[H{initial_content}{cursor_pos}"
+                await websocket.send_text(frame_data)
+                last_content = initial_content
+                frame_count = 1
+                logger.info(
+                    "Sent initial frame (%d bytes, cursor at %d,%d) to browser terminal",
+                    len(frame_data),
+                    cursor_x,
+                    cursor_y,
+                )
+        except Exception as e:
+            logger.debug("Failed to send initial frame: %s", e)
 
         while running:
             try:
@@ -871,8 +921,6 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                 )  # 100ms polling - balance between responsiveness and CPU
 
                 # Capture pane content with ANSI colors
-                # -S 0 means start from the first visible line
-                # -E '' means end at last line
                 result = subprocess.run(  # nosec B603 B607 - trusted tmux command
                     [
                         "tmux",
@@ -891,34 +939,52 @@ async def terminal_websocket(websocket: WebSocket, session_id: str) -> None:
                 if result.returncode == 0:
                     content = result.stdout
 
-                    # Fix 2: Remove trailing whitespace from each line
+                    # Remove trailing whitespace from each line
                     # tmux capture-pane pads lines to full width which causes layout issues
                     lines = content.split("\n")
                     content = "\n".join(line.rstrip() for line in lines)
 
-                    # Fix 3: Convert LF to CR+LF for proper xterm.js rendering
-                    # xterm.js treats LF (\n) as "move down" without carriage return
-                    # This causes text to appear at wrong column positions
-                    # CR+LF (\r\n) properly moves cursor to beginning of next line
+                    # Convert LF to CR+LF for proper xterm.js rendering
                     content = content.replace("\n", "\r\n")
 
-                    # Send if changed or if this is the first frame
-                    if content != last_content or first_frame:
-                        frame_count += 1
-                        first_frame = False
+                    # Get cursor position from tmux
+                    cursor_result = subprocess.run(  # nosec B603 B607
+                        [
+                            "tmux",
+                            "display-message",
+                            "-t",
+                            pane_id,
+                            "-p",
+                            "#{cursor_x} #{cursor_y}",
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=1,
+                        check=False,
+                    )
+                    cursor_x, cursor_y = 0, 0
+                    if cursor_result.returncode == 0:
+                        try:
+                            parts = cursor_result.stdout.strip().split()
+                            cursor_x = int(parts[0])
+                            cursor_y = int(parts[1])
+                        except (ValueError, IndexError):
+                            pass
 
-                        # Send frame update with clear screen and cursor home
-                        # \x1b[2J = clear entire screen
-                        # \x1b[H = cursor to home position (1,1)
-                        frame_data = f"\x1b[2J\x1b[H{content}"
+                    # Build frame with cursor position
+                    # \x1b[2J = clear screen
+                    # \x1b[H = cursor home
+                    # \x1b[row;colH = move cursor to position (1-indexed)
+                    cursor_pos = f"\x1b[{cursor_y + 1};{cursor_x + 1}H"
+
+                    # Send only if content changed
+                    if content != last_content:
+                        frame_count += 1
+
+                        # Send frame: clear, content, then position cursor
+                        frame_data = f"\x1b[2J\x1b[H{content}{cursor_pos}"
                         await websocket.send_text(frame_data)
                         last_content = content
-
-                        if frame_count == 1:
-                            logger.info(
-                                "Sent first frame (%d bytes) to browser terminal",
-                                len(frame_data),
-                            )
 
             except subprocess.TimeoutExpired:
                 pass
