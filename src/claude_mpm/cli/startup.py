@@ -34,13 +34,13 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         installer = HookInstaller()
 
         # Show brief status (hooks sync is fast)
-        if not quiet:
+        if not quiet and sys.stdout.isatty():
             print("Syncing Claude Code hooks...", end=" ", flush=True)
 
         # Reinstall hooks (force=True ensures update)
         success = installer.install_hooks(force=True)
 
-        if not quiet:
+        if not quiet and sys.stdout.isatty():
             if success:
                 print("✓")
             else:
@@ -49,7 +49,7 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         return success
 
     except Exception as e:
-        if not quiet:
+        if not quiet and sys.stdout.isatty():
             print("(error)")
         # Log but don't fail startup
         from ..core.logger import get_logger
@@ -280,11 +280,13 @@ def deploy_bundled_skills():
         if deployment_result.get("deployed"):
             # Show simple feedback for deployed skills
             deployed_count = len(deployment_result["deployed"])
-            print(f"✓ Bundled skills ready ({deployed_count} deployed)", flush=True)
+            if sys.stdout.isatty():
+                print(f"✓ Bundled skills ready ({deployed_count} deployed)", flush=True)
             logger.info(f"Skills: Deployed {deployed_count} skill(s)")
         elif not deployment_result.get("errors"):
             # No deployment needed, skills already present
-            print("✓ Bundled skills ready", flush=True)
+            if sys.stdout.isatty():
+                print("✓ Bundled skills ready", flush=True)
 
         if deployment_result.get("errors"):
             logger.warning(
@@ -318,7 +320,8 @@ def discover_and_link_runtime_skills():
 
         discover_skills()
         # Show simple success feedback
-        print("✓ Runtime skills linked", flush=True)
+        if sys.stdout.isatty():
+            print("✓ Runtime skills linked", flush=True)
     except Exception as e:
         # Import logger here to avoid circular imports
         from ..core.logger import get_logger
@@ -373,7 +376,8 @@ def deploy_output_style_on_startup():
 
         if all_up_to_date:
             # Show feedback that output styles are ready
-            print("✓ Output styles ready", flush=True)
+            if sys.stdout.isatty():
+                print("✓ Output styles ready", flush=True)
             return
 
         # Deploy all styles using the manager
@@ -383,7 +387,8 @@ def deploy_output_style_on_startup():
         deployed_count = sum(1 for success in results.values() if success)
 
         if deployed_count > 0:
-            print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
+            if sys.stdout.isatty():
+                print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
         else:
             # Deployment failed - log but don't fail startup
             from ..core.logger import get_logger
@@ -1290,9 +1295,11 @@ def verify_and_show_pm_skills():
         if result.verified:
             # Show verified status with count
             total_required = len(REQUIRED_PM_SKILLS)
-            print(
-                f"✓ PM skills: {total_required}/{total_required} verified", flush=True
-            )
+            if sys.stdout.isatty():
+                print(
+                    f"✓ PM skills: {total_required}/{total_required} verified",
+                    flush=True,
+                )
         else:
             # Show warning with details
             missing_count = len(result.missing_skills)
@@ -1311,13 +1318,15 @@ def verify_and_show_pm_skills():
             if "Auto-repaired" in result.message:
                 # Auto-repair succeeded
                 total_required = len(REQUIRED_PM_SKILLS)
-                print(
-                    f"✓ PM skills: {total_required}/{total_required} verified (auto-repaired)",
-                    flush=True,
-                )
+                if sys.stdout.isatty():
+                    print(
+                        f"✓ PM skills: {total_required}/{total_required} verified (auto-repaired)",
+                        flush=True,
+                    )
             else:
                 # Auto-repair failed or not attempted
-                print(f"⚠ PM skills: {status}", flush=True)
+                if sys.stdout.isatty():
+                    print(f"⚠ PM skills: {status}", flush=True)
 
                 # Log warnings for debugging
                 from ..core.logger import get_logger
@@ -1516,7 +1525,9 @@ def check_mcp_auto_configuration():
         from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
 
         # Show progress feedback - this operation can take 10+ seconds
-        print("Checking MCP configuration...", end="", flush=True)
+        # Only show progress message in TTY mode to avoid interfering with Claude Code's status display
+        if sys.stdout.isatty():
+            print("Checking MCP configuration...", end="", flush=True)
 
         # This function handles all the logic:
         # - Checks if already configured
