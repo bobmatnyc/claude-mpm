@@ -326,15 +326,53 @@ function startOutputPoll() {
 
 async function createSession(projectId) {
     try {
-        await fetchAPI(`/projects/${projectId}/sessions`, {
+        // Create the session and get the response with new session ID
+        const response = await fetchAPI(`/projects/${projectId}/sessions`, {
             method: 'POST',
             body: JSON.stringify({ runtime: 'claude-code' })
         });
+
+        // Reload projects to get updated session list
         await loadProjects();
-        log(`Created new session for project`);
+
+        // Find and select the newly created session
+        const newSessionId = response?.session_id || response?.id;
+        if (newSessionId) {
+            log(`Created new session ${newSessionId.slice(0, 8)}..., switching to it`);
+            // Small delay to ensure tmux pane is ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await selectSession(projectId, newSessionId);
+        } else {
+            // Fallback: select the last session in the project (most recent)
+            const project = state.projects.find(p => p.id === projectId);
+            if (project && project.sessions.length > 0) {
+                const lastSession = project.sessions[project.sessions.length - 1];
+                log(`Created new session, switching to ${lastSession.id.slice(0, 8)}...`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await selectSession(projectId, lastSession.id);
+            }
+        }
     } catch (err) {
         alert('Failed to create session: ' + err.message);
     }
+}
+
+/**
+ * Create a new session for the current project (keyboard shortcut handler)
+ */
+async function createSessionForCurrentProject() {
+    // Use current project, or first project if none selected
+    let projectId = state.currentProject;
+    if (!projectId && state.projects.length > 0) {
+        projectId = state.projects[0].id;
+    }
+
+    if (!projectId) {
+        log('No project available to create session', 'error');
+        return;
+    }
+
+    await createSession(projectId);
 }
 
 /**
@@ -1254,6 +1292,13 @@ document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
         toggleDebugPanel();
+        return;
+    }
+
+    // Ctrl+Shift+N = New session (for current project)
+    if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+        e.preventDefault();
+        createSessionForCurrentProject();
         return;
     }
 
