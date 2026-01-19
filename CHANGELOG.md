@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.27] - 2026-01-19
+
+### Fixed
+- fix(deploy): disable user-level command deployment - project-level skills are now the only source, old commands cleaned up automatically
+
 ## [5.6.26] - 2026-01-19
 
 ### Fixed
