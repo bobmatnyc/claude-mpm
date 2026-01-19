@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.23] - 2026-01-19
+
+### Fixed
+- fix(startup): add TTY detection for progress clearing - prevents CR characters from appearing in Claude Code REPL
+
 ## [5.6.22] - 2026-01-19
 
 ### Fixed
