@@ -17,6 +17,12 @@ NOTE: Requires Claude Code version 1.0.92 or higher for proper hook support.
 Earlier versions do not support matcher-based hook configuration.
 """
 
+# Suppress RuntimeWarning from frozen runpy (prevents REPL pollution in Claude Code)
+# Must be before other imports to suppress warnings during import
+import warnings
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 import json
 import os
 import re

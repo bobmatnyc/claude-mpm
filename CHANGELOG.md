@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.40] - 2026-01-20
+
+### Fixed
+- fix: suppress RuntimeWarning to prevent REPL pollution
+  - Added warnings.filterwarnings at module level before other imports
+  - Suppresses RuntimeWarning from frozen runpy during hook execution
+  - Prevents extra whitespace from appearing in Claude Code terminal
+
 ## [5.6.39] - 2026-01-20
 
 ### Added
