@@ -101,7 +101,9 @@ class HookServiceContainer:
         if self._state_manager is None:
             with self._init_lock:
                 if self._state_manager is None:
-                    from .state_manager import StateManagerService
+                    from claude_mpm.hooks.claude_hooks.services.state_manager import (
+                        StateManagerService,
+                    )
 
                     self._state_manager = StateManagerService()
         return self._state_manager
@@ -114,7 +116,9 @@ class HookServiceContainer:
         if self._connection_manager is None:
             with self._init_lock:
                 if self._connection_manager is None:
-                    from .connection_manager_http import ConnectionManagerService
+                    from claude_mpm.hooks.claude_hooks.services.connection_manager_http import (
+                        ConnectionManagerService,
+                    )
 
                     self._connection_manager = ConnectionManagerService()
         return self._connection_manager
@@ -127,7 +131,9 @@ class HookServiceContainer:
         if self._duplicate_detector is None:
             with self._init_lock:
                 if self._duplicate_detector is None:
-                    from .duplicate_detector import DuplicateEventDetector
+                    from claude_mpm.hooks.claude_hooks.services.duplicate_detector import (
+                        DuplicateEventDetector,
+                    )
 
                     self._duplicate_detector = DuplicateEventDetector()
         return self._duplicate_detector
@@ -140,7 +146,9 @@ class HookServiceContainer:
         if self._response_tracking_manager is None:
             with self._init_lock:
                 if self._response_tracking_manager is None:
-                    from ..response_tracking import ResponseTrackingManager
+                    from claude_mpm.hooks.claude_hooks.response_tracking import (
+                        ResponseTrackingManager,
+                    )
 
                     self._response_tracking_manager = ResponseTrackingManager()
         return self._response_tracking_manager
@@ -153,7 +161,9 @@ class HookServiceContainer:
         if self._memory_hook_manager is None:
             with self._init_lock:
                 if self._memory_hook_manager is None:
-                    from ..memory_integration import MemoryHookManager
+                    from claude_mpm.hooks.claude_hooks.memory_integration import (
+                        MemoryHookManager,
+                    )
 
                     self._memory_hook_manager = MemoryHookManager()
         return self._memory_hook_manager
@@ -170,7 +180,9 @@ class HookServiceContainer:
             with self._init_lock:
                 if self._auto_pause_handler is None:
                     try:
-                        from ..auto_pause_handler import AutoPauseHandler
+                        from claude_mpm.hooks.claude_hooks.auto_pause_handler import (
+                            AutoPauseHandler,
+                        )
 
                         self._auto_pause_handler = AutoPauseHandler()
                     except Exception:
@@ -197,7 +209,9 @@ class HookServiceContainer:
         if self._subagent_processor is None:
             with self._init_lock:
                 if self._subagent_processor is None:
-                    from .subagent_processor import SubagentResponseProcessor
+                    from claude_mpm.hooks.claude_hooks.services.subagent_processor import (
+                        SubagentResponseProcessor,
+                    )
 
                     # Use provided dependencies or get from container
                     sm = state_manager or self.get_state_manager()
@@ -223,7 +237,9 @@ class HookServiceContainer:
         if self._event_handlers is None:
             with self._init_lock:
                 if self._event_handlers is None:
-                    from ..event_handlers import EventHandlers
+                    from claude_mpm.hooks.claude_hooks.event_handlers import (
+                        EventHandlers,
+                    )
 
                     if hook_handler is None:
                         raise ValueError(
