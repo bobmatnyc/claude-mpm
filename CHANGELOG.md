@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.30] - 2026-01-19
+
+### Fixed
+- fix(hooks): use correct JSON response format for Claude Code - changed from {action: continue} to {continue: true}
+
 ## [5.6.29] - 2026-01-19
 
 ### Fixed
