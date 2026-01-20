@@ -38,6 +38,7 @@ try:
     from .services import (
         ConnectionManagerService,
         DuplicateEventDetector,
+        HookServiceContainer,
         StateManagerService,
         SubagentResponseProcessor,
     )
@@ -55,6 +56,7 @@ except ImportError:
     from services import (
         ConnectionManagerService,
         DuplicateEventDetector,
+        HookServiceContainer,
         StateManagerService,
         SubagentResponseProcessor,
     )
@@ -243,35 +245,69 @@ class ClaudeHookHandler:
     - Each service handles a specific responsibility
     - Easier to test, maintain, and extend
     - Reduced complexity in main handler class
+
+    Supports Dependency Injection:
+    - Pass a HookServiceContainer to override default services
+    - Useful for testing with mock services
+    - Maintains backward compatibility when no container is provided
     """
 
-    def __init__(self):
-        # Initialize services
-        self.state_manager = StateManagerService()
-        self.connection_manager = ConnectionManagerService()
-        self.duplicate_detector = DuplicateEventDetector()
+    def __init__(self, container: Optional[HookServiceContainer] = None):
+        """Initialize hook handler with optional DI container.
 
-        # Initialize extracted managers
-        self.memory_hook_manager = MemoryHookManager()
-        self.response_tracking_manager = ResponseTrackingManager()
-        self.event_handlers = EventHandlers(self)
+        Args:
+            container: Optional HookServiceContainer for dependency injection.
+                      If None, services are created directly (backward compatible).
+        """
+        # Use container if provided, otherwise create services directly
+        if container is not None:
+            # DI mode: get services from container
+            self._container = container
+            self.state_manager = container.get_state_manager()
+            self.connection_manager = container.get_connection_manager()
+            self.duplicate_detector = container.get_duplicate_detector()
+            self.memory_hook_manager = container.get_memory_hook_manager()
+            self.response_tracking_manager = container.get_response_tracking_manager()
+            self.auto_pause_handler = container.get_auto_pause_handler()
 
-        # Initialize subagent processor with dependencies
-        self.subagent_processor = SubagentResponseProcessor(
-            self.state_manager, self.response_tracking_manager, self.connection_manager
-        )
+            # Event handlers need reference to this handler (circular, but contained)
+            self.event_handlers = EventHandlers(self)
 
-        # Initialize auto-pause handler
-        try:
-            self.auto_pause_handler = AutoPauseHandler()
-            # Pass reference to ResponseTrackingManager so it can call auto_pause
-            if hasattr(self, "response_tracking_manager"):
-                self.response_tracking_manager.auto_pause_handler = (
-                    self.auto_pause_handler
-                )
-        except Exception as e:
-            self.auto_pause_handler = None
-            _log(f"Auto-pause initialization failed: {e}")
+            # Subagent processor with injected dependencies
+            self.subagent_processor = container.get_subagent_processor(
+                self.state_manager,
+                self.response_tracking_manager,
+                self.connection_manager,
+            )
+        else:
+            # Backward compatible mode: create services directly
+            self._container = None
+            self.state_manager = StateManagerService()
+            self.connection_manager = ConnectionManagerService()
+            self.duplicate_detector = DuplicateEventDetector()
+
+            # Initialize extracted managers
+            self.memory_hook_manager = MemoryHookManager()
+            self.response_tracking_manager = ResponseTrackingManager()
+            self.event_handlers = EventHandlers(self)
+
+            # Initialize subagent processor with dependencies
+            self.subagent_processor = SubagentResponseProcessor(
+                self.state_manager,
+                self.response_tracking_manager,
+                self.connection_manager,
+            )
+
+            # Initialize auto-pause handler
+            try:
+                self.auto_pause_handler = AutoPauseHandler()
+            except Exception as e:
+                self.auto_pause_handler = None
+                _log(f"Auto-pause initialization failed: {e}")
+
+        # Link auto-pause handler to response tracking manager
+        if self.auto_pause_handler and hasattr(self, "response_tracking_manager"):
+            self.response_tracking_manager.auto_pause_handler = self.auto_pause_handler
 
         # Backward compatibility properties for tests
         # Note: HTTP-based connection manager doesn't use connection_pool

@@ -3,15 +3,21 @@
 
 This module provides individual event handlers for different types of
 Claude Code hook events.
+
+Supports Dependency Injection:
+- Optional services can be passed via constructor
+- Lazy loading fallback for services not provided
+- Eliminates runtime imports inside methods
 """
 
+import asyncio
 import os
 import re
 import subprocess  # nosec B404 - subprocess used for safe claude CLI version checking only
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
 # Import _log helper to avoid stderr writes (which cause hook errors)
 try:
@@ -61,12 +67,185 @@ except ImportError:
         QUICK_TIMEOUT = 2.0
 
 
-class EventHandlers:
-    """Collection of event handlers for different Claude Code hook events."""
+# ============================================================================
+# Optional Dependencies - loaded once at module level for DI
+# ============================================================================
 
-    def __init__(self, hook_handler):
-        """Initialize with reference to the main hook handler."""
+# Log manager (for agent prompt logging)
+_log_manager: Optional[Any] = None
+_log_manager_loaded = False
+
+
+def _get_log_manager() -> Optional[Any]:
+    """Get log manager with lazy loading."""
+    global _log_manager, _log_manager_loaded
+    if not _log_manager_loaded:
+        try:
+            from claude_mpm.core.log_manager import get_log_manager
+
+            _log_manager = get_log_manager()
+        except ImportError:
+            _log_manager = None
+        _log_manager_loaded = True
+    return _log_manager
+
+
+# Config service (for autotodos configuration)
+_config: Optional[Any] = None
+_config_loaded = False
+
+
+def _get_config() -> Optional[Any]:
+    """Get Config with lazy loading."""
+    global _config, _config_loaded
+    if not _config_loaded:
+        try:
+            from claude_mpm.core.config import Config
+
+            _config = Config()
+        except ImportError:
+            _config = None
+        _config_loaded = True
+    return _config
+
+
+# Autotodos function (for pending todos injection)
+_get_pending_todos_fn: Optional[Callable] = None
+_get_pending_todos_loaded = False
+
+
+def _get_pending_todos_func() -> Optional[Callable]:
+    """Get get_pending_todos function with lazy loading."""
+    global _get_pending_todos_fn, _get_pending_todos_loaded
+    if not _get_pending_todos_loaded:
+        try:
+            from claude_mpm.cli.commands.autotodos import get_pending_todos
+
+            _get_pending_todos_fn = get_pending_todos
+        except ImportError:
+            _get_pending_todos_fn = None
+        _get_pending_todos_loaded = True
+    return _get_pending_todos_fn
+
+
+# Delegation detector (for anti-pattern detection)
+_delegation_detector: Optional[Any] = None
+_delegation_detector_loaded = False
+
+
+def _get_delegation_detector_service() -> Optional[Any]:
+    """Get delegation detector with lazy loading."""
+    global _delegation_detector, _delegation_detector_loaded
+    if not _delegation_detector_loaded:
+        try:
+            from claude_mpm.services.delegation_detector import get_delegation_detector
+
+            _delegation_detector = get_delegation_detector()
+        except ImportError:
+            _delegation_detector = None
+        _delegation_detector_loaded = True
+    return _delegation_detector
+
+
+# Event log (for PM violation logging)
+_event_log: Optional[Any] = None
+_event_log_loaded = False
+
+
+def _get_event_log_service() -> Optional[Any]:
+    """Get event log with lazy loading."""
+    global _event_log, _event_log_loaded
+    if not _event_log_loaded:
+        try:
+            from claude_mpm.services.event_log import get_event_log
+
+            _event_log = get_event_log()
+        except ImportError:
+            _event_log = None
+        _event_log_loaded = True
+    return _event_log
+
+
+class EventHandlers:
+    """Collection of event handlers for different Claude Code hook events.
+
+    Supports dependency injection for optional services:
+    - log_manager: For agent prompt logging
+    - config: For autotodos configuration
+    - delegation_detector: For anti-pattern detection
+    - event_log: For PM violation logging
+
+    If services are not provided, they are loaded lazily on first use.
+    """
+
+    def __init__(
+        self,
+        hook_handler,
+        *,
+        log_manager: Optional[Any] = None,
+        config: Optional[Any] = None,
+        delegation_detector: Optional[Any] = None,
+        event_log: Optional[Any] = None,
+        get_pending_todos_fn: Optional[Callable] = None,
+    ):
+        """Initialize with reference to the main hook handler and optional services.
+
+        Args:
+            hook_handler: The main ClaudeHookHandler instance
+            log_manager: Optional LogManager for agent prompt logging
+            config: Optional Config for autotodos configuration
+            delegation_detector: Optional DelegationDetector for anti-pattern detection
+            event_log: Optional EventLog for PM violation logging
+            get_pending_todos_fn: Optional function to get pending todos
+        """
         self.hook_handler = hook_handler
+
+        # Store injected services (None means use lazy loading)
+        self._log_manager = log_manager
+        self._config = config
+        self._delegation_detector = delegation_detector
+        self._event_log = event_log
+        self._get_pending_todos_fn = get_pending_todos_fn
+
+    @property
+    def log_manager(self) -> Optional[Any]:
+        """Get log manager (injected or lazy loaded)."""
+        if self._log_manager is not None:
+            return self._log_manager
+        return _get_log_manager()
+
+    @property
+    def config(self) -> Optional[Any]:
+        """Get config (injected or lazy loaded)."""
+        if self._config is not None:
+            return self._config
+        return _get_config()
+
+    @property
+    def delegation_detector(self) -> Optional[Any]:
+        """Get delegation detector (injected or lazy loaded)."""
+        if self._delegation_detector is not None:
+            return self._delegation_detector
+        return _get_delegation_detector_service()
+
+    @property
+    def event_log(self) -> Optional[Any]:
+        """Get event log (injected or lazy loaded)."""
+        if self._event_log is not None:
+            return self._event_log
+        return _get_event_log_service()
+
+    def get_pending_todos(
+        self, max_todos: int = 10, working_dir: Optional[Path] = None
+    ) -> list:
+        """Get pending todos (using injected function or lazy loaded)."""
+        fn = self._get_pending_todos_fn or _get_pending_todos_func()
+        if fn is None:
+            return []
+        try:
+            return fn(max_todos=max_todos, working_dir=working_dir)
+        except Exception:
+            return []
 
     def handle_user_prompt_fast(self, event):
         """Handle user prompt with comprehensive data capture.
@@ -322,53 +501,50 @@ class EventHandlers:
         )
 
         # Log agent prompt if LogManager is available
-        try:
-            from claude_mpm.core.log_manager import get_log_manager
+        # Uses injected log_manager or lazy-loaded module-level instance
+        log_manager = self.log_manager
+        if log_manager is not None:
+            try:
+                # Prepare prompt content
+                prompt_content = tool_input.get("prompt", "")
+                if not prompt_content:
+                    prompt_content = tool_input.get("description", "")
 
-            log_manager = get_log_manager()
+                if prompt_content:
+                    # Prepare metadata
+                    metadata = {
+                        "agent_type": agent_type,
+                        "agent_id": f"{agent_type}_{session_id}",
+                        "session_id": session_id,
+                        "delegation_context": {
+                            "description": tool_input.get("description", ""),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
+                    }
 
-            # Prepare prompt content
-            prompt_content = tool_input.get("prompt", "")
-            if not prompt_content:
-                prompt_content = tool_input.get("description", "")
-
-            if prompt_content:
-                import asyncio
-
-                # Prepare metadata
-                metadata = {
-                    "agent_type": agent_type,
-                    "agent_id": f"{agent_type}_{session_id}",
-                    "session_id": session_id,
-                    "delegation_context": {
-                        "description": tool_input.get("description", ""),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    },
-                }
-
-                # Log the agent prompt asynchronously
-                try:
-                    loop = asyncio.get_running_loop()
-                    _task = asyncio.create_task(
-                        log_manager.log_prompt(
-                            f"agent_{agent_type}", prompt_content, metadata
+                    # Log the agent prompt asynchronously
+                    try:
+                        loop = asyncio.get_running_loop()
+                        _task = asyncio.create_task(
+                            log_manager.log_prompt(
+                                f"agent_{agent_type}", prompt_content, metadata
+                            )
+                        )  # Fire-and-forget logging (ephemeral hook process)
+                    except RuntimeError:
+                        # No running loop, create one
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
+                            log_manager.log_prompt(
+                                f"agent_{agent_type}", prompt_content, metadata
+                            )
                         )
-                    )  # Fire-and-forget logging (ephemeral hook process)
-                except RuntimeError:
-                    # No running loop, create one
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(
-                        log_manager.log_prompt(
-                            f"agent_{agent_type}", prompt_content, metadata
-                        )
-                    )
 
+                    if DEBUG:
+                        _log(f"  - Agent prompt logged for {agent_type}")
+            except Exception as e:
                 if DEBUG:
-                    _log(f"  - Agent prompt logged for {agent_type}")
-        except Exception as e:
-            if DEBUG:
-                _log(f"  - Could not log agent prompt: {e}")
+                    _log(f"  - Could not log agent prompt: {e}")
 
     def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
@@ -958,32 +1134,33 @@ class EventHandlers:
         }
 
         # Auto-inject pending autotodos if enabled
-        try:
-            from pathlib import Path
-
-            from claude_mpm.cli.commands.autotodos import get_pending_todos
-            from claude_mpm.core.config import Config
-
-            config = Config()
-            auto_inject_enabled = config.get("autotodos.auto_inject_on_startup", True)
-            max_todos = config.get("autotodos.max_todos_per_session", 10)
-
-            if auto_inject_enabled:
-                # Pass working directory from event to avoid Path.cwd() issues
-                working_dir_param = None
-                if working_dir:
-                    working_dir_param = Path(working_dir)
-
-                pending_todos = get_pending_todos(
-                    max_todos=max_todos, working_dir=working_dir_param
+        # Uses injected config and get_pending_todos or lazy-loaded instances
+        config = self.config
+        if config is not None:
+            try:
+                auto_inject_enabled = config.get(
+                    "autotodos.auto_inject_on_startup", True
                 )
-                if pending_todos:
-                    session_start_data["pending_autotodos"] = pending_todos
-                    session_start_data["autotodos_count"] = len(pending_todos)
-                    _log(f"  - Auto-injected {len(pending_todos)} pending autotodos")
-        except Exception as e:  # nosec B110
-            # Auto-injection is optional - continue if it fails
-            _log(f"  - Failed to auto-inject autotodos: {e}")
+                max_todos = config.get("autotodos.max_todos_per_session", 10)
+
+                if auto_inject_enabled:
+                    # Pass working directory from event to avoid Path.cwd() issues
+                    working_dir_param = None
+                    if working_dir:
+                        working_dir_param = Path(working_dir)
+
+                    pending_todos = self.get_pending_todos(
+                        max_todos=max_todos, working_dir=working_dir_param
+                    )
+                    if pending_todos:
+                        session_start_data["pending_autotodos"] = pending_todos
+                        session_start_data["autotodos_count"] = len(pending_todos)
+                        _log(
+                            f"  - Auto-injected {len(pending_todos)} pending autotodos"
+                        )
+            except Exception as e:  # nosec B110
+                # Auto-injection is optional - continue if it fails
+                _log(f"  - Failed to auto-inject autotodos: {e}")
 
         # Debug logging
         _log(f"Hook handler: Processing SessionStart - session: '{session_id}'")
@@ -1059,11 +1236,12 @@ class EventHandlers:
         - Delegation patterns = PM doing something WRONG → pm.violation (error)
         - Script failures = Something BROKEN → autotodo.error (todo)
         """
-        # Only scan if delegation detector is available
-        try:
-            from claude_mpm.services.delegation_detector import get_delegation_detector
-            from claude_mpm.services.event_log import get_event_log
-        except ImportError:
+        # Only scan if delegation detector and event log are available
+        # Uses injected services or lazy-loaded module-level instances
+        detector = self.delegation_detector
+        event_log_service = self.event_log
+
+        if detector is None or event_log_service is None:
             if DEBUG:
                 _log("Delegation detector or event log not available")
             return
@@ -1072,22 +1250,16 @@ class EventHandlers:
         if not response_text:
             return
 
-        # Get the delegation detector
-        detector = get_delegation_detector()
-
         # Detect delegation patterns
         detections = detector.detect_user_delegation(response_text)
 
         if not detections:
             return  # No patterns detected
 
-        # Get event log for violation recording
-        event_log = get_event_log()
-
         # Create PM violation events (NOT autotodos)
         for detection in detections:
             # Create event log entry as pm.violation
-            event_log.append_event(
+            event_log_service.append_event(
                 event_type="pm.violation",
                 payload={
                     "violation_type": "delegation_anti_pattern",
