@@ -1,4 +1,32 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# CRITICAL: EARLY LOGGING SUPPRESSION - MUST BE FIRST
+# ==============================================================================
+# Suppress ALL logging before any other imports to prevent REPL pollution.
+# The StreamingHandler in logger.py writes carriage returns (\r) and spaces
+# to stderr which pollutes Claude Code's REPL output.
+#
+# This MUST be before any imports that could trigger module-level loggers.
+# ==============================================================================
+import logging as _early_logging
+import sys as _early_sys
+
+# Force redirect all logging to NullHandler before any module imports
+# This prevents ANY log output from polluting stdout/stderr during hook execution
+_early_logging.basicConfig(handlers=[_early_logging.NullHandler()], force=True)
+# Also ensure root logger has no handlers that write to stderr
+_early_logging.getLogger().handlers = [_early_logging.NullHandler()]
+# Suppress all loggers by setting a very high level initially
+_early_logging.getLogger().setLevel(_early_logging.CRITICAL + 1)
+
+# Clean up namespace to avoid polluting module scope
+del _early_logging
+del _early_sys
+
+# ==============================================================================
+# END EARLY LOGGING SUPPRESSION
+# ==============================================================================
+
 """Refactored Claude Code hook handler with modular service architecture.
 
 This handler uses a service-oriented architecture with:

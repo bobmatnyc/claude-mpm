@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.41] - 2026-01-20
+
+### Fixed
+- fix: add early logging suppression to prevent REPL pollution
+  - Added logging suppression at the very top of hook_handler.py before any other imports
+  - Prevents StreamingHandler's carriage returns from polluting Claude Code's REPL output
+  - Fixes the repeated status lines in Claude Code terminal output
+
 ## [5.6.40] - 2026-01-20
 
 ### Fixed
