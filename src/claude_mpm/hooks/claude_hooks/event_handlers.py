@@ -17,7 +17,7 @@ import subprocess  # nosec B404 - subprocess used for safe claude CLI version ch
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 # Import _log helper to avoid stderr writes (which cause hook errors)
 try:
@@ -109,25 +109,6 @@ def _get_config() -> Optional[Any]:
     return _config
 
 
-# Autotodos function (for pending todos injection)
-_get_pending_todos_fn: Optional[Callable] = None
-_get_pending_todos_loaded = False
-
-
-def _get_pending_todos_func() -> Optional[Callable]:
-    """Get get_pending_todos function with lazy loading."""
-    global _get_pending_todos_fn, _get_pending_todos_loaded
-    if not _get_pending_todos_loaded:
-        try:
-            from claude_mpm.cli.commands.autotodos import get_pending_todos
-
-            _get_pending_todos_fn = get_pending_todos
-        except ImportError:
-            _get_pending_todos_fn = None
-        _get_pending_todos_loaded = True
-    return _get_pending_todos_fn
-
-
 # Delegation detector (for anti-pattern detection)
 _delegation_detector: Optional[Any] = None
 _delegation_detector_loaded = False
@@ -186,7 +167,6 @@ class EventHandlers:
         config: Optional[Any] = None,
         delegation_detector: Optional[Any] = None,
         event_log: Optional[Any] = None,
-        get_pending_todos_fn: Optional[Callable] = None,
     ):
         """Initialize with reference to the main hook handler and optional services.
 
@@ -196,7 +176,6 @@ class EventHandlers:
             config: Optional Config for autotodos configuration
             delegation_detector: Optional DelegationDetector for anti-pattern detection
             event_log: Optional EventLog for PM violation logging
-            get_pending_todos_fn: Optional function to get pending todos
         """
         self.hook_handler = hook_handler
 
@@ -205,7 +184,6 @@ class EventHandlers:
         self._config = config
         self._delegation_detector = delegation_detector
         self._event_log = event_log
-        self._get_pending_todos_fn = get_pending_todos_fn
 
     @property
     def log_manager(self) -> Optional[Any]:
@@ -234,18 +212,6 @@ class EventHandlers:
         if self._event_log is not None:
             return self._event_log
         return _get_event_log_service()
-
-    def get_pending_todos(
-        self, max_todos: int = 10, working_dir: Optional[Path] = None
-    ) -> list:
-        """Get pending todos (using injected function or lazy loaded)."""
-        fn = self._get_pending_todos_fn or _get_pending_todos_func()
-        if fn is None:
-            return []
-        try:
-            return fn(max_todos=max_todos, working_dir=working_dir)
-        except Exception:
-            return []
 
     def handle_user_prompt_fast(self, event):
         """Handle user prompt with comprehensive data capture.
@@ -1119,7 +1085,9 @@ class EventHandlers:
         - Provides visibility into new conversation sessions
         - Enables tracking of session lifecycle and duration
         - Useful for monitoring concurrent sessions and resource usage
-        - Auto-inject pending autotodos if enabled in config
+
+        NOTE: This handler is intentionally lightweight - only event monitoring.
+        All initialization/deployment logic runs in MPM CLI startup, not here.
         """
         session_id = event.get("session_id", "")
         working_dir = event.get("cwd", "")
@@ -1132,35 +1100,6 @@ class EventHandlers:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "hook_event_name": "SessionStart",
         }
-
-        # Auto-inject pending autotodos if enabled
-        # Uses injected config and get_pending_todos or lazy-loaded instances
-        config = self.config
-        if config is not None:
-            try:
-                auto_inject_enabled = config.get(
-                    "autotodos.auto_inject_on_startup", True
-                )
-                max_todos = config.get("autotodos.max_todos_per_session", 10)
-
-                if auto_inject_enabled:
-                    # Pass working directory from event to avoid Path.cwd() issues
-                    working_dir_param = None
-                    if working_dir:
-                        working_dir_param = Path(working_dir)
-
-                    pending_todos = self.get_pending_todos(
-                        max_todos=max_todos, working_dir=working_dir_param
-                    )
-                    if pending_todos:
-                        session_start_data["pending_autotodos"] = pending_todos
-                        session_start_data["autotodos_count"] = len(pending_todos)
-                        _log(
-                            f"  - Auto-injected {len(pending_todos)} pending autotodos"
-                        )
-            except Exception as e:  # nosec B110
-                # Auto-injection is optional - continue if it fails
-                _log(f"  - Failed to auto-inject autotodos: {e}")
 
         # Debug logging
         _log(f"Hook handler: Processing SessionStart - session: '{session_id}'")

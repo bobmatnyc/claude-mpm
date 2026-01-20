@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.6.37] - 2026-01-20
+
+### Changed
+- refactor: consolidate startup deployment and clean up SessionStart
+- Consolidated hook cleanup, hook reinstall, and agent sync into single `sync_deployment_on_startup()` function in startup.py
+- Removed autotodos and initialization logic from SessionStart handler
+- SessionStart now only does lightweight event monitoring
+- Hook cleanup removes stale `~/.claude/hooks/claude-mpm/` on MPM startup
+- Hook reinstall updates `.claude/settings.local.json` on MPM startup
+
 ## [5.6.36] - 2026-01-19
 
 ### Fixed

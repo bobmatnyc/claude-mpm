@@ -13,6 +13,44 @@ import sys
 from pathlib import Path
 
 
+def cleanup_user_level_hooks() -> None:
+    """Remove stale user-level hooks directory.
+
+    WHY: claude-mpm previously deployed hooks to ~/.claude/hooks/claude-mpm/
+    (user-level). This is now deprecated in favor of project-level hooks
+    configured in .claude/settings.local.json. Stale user-level hooks can
+    cause conflicts and confusion.
+
+    DESIGN DECISION: Runs early in startup, before project hook sync.
+    Non-blocking - failures are logged at debug level but don't prevent startup.
+    """
+    import shutil
+
+    user_hooks_dir = Path.home() / ".claude" / "hooks" / "claude-mpm"
+
+    if not user_hooks_dir.exists():
+        return
+
+    try:
+        from ..core.logger import get_logger
+
+        logger = get_logger("startup")
+        logger.debug(f"Removing stale user-level hooks directory: {user_hooks_dir}")
+
+        shutil.rmtree(user_hooks_dir)
+
+        logger.debug("User-level hooks cleanup complete")
+    except Exception as e:
+        # Non-critical - log but don't fail startup
+        try:
+            from ..core.logger import get_logger
+
+            logger = get_logger("startup")
+            logger.debug(f"Failed to cleanup user-level hooks (non-fatal): {e}")
+        except Exception:  # nosec B110
+            pass  # Avoid any errors in error handling
+
+
 def sync_hooks_on_startup(quiet: bool = False) -> bool:
     """Ensure hooks are up-to-date on startup.
 
@@ -20,7 +58,12 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     Reinstalling hooks ensures the hook format matches the current code.
 
     DESIGN DECISION: Shows brief status message on success for user awareness.
-    Failures are logged but don't prevent startup to ensure claude-mpm remains functional.
+    Failures are logged but don't prevent startup to ensure claude-mpm
+    remains functional.
+
+    Workflow:
+    1. Cleanup stale user-level hooks (~/.claude/hooks/claude-mpm/)
+    2. Reinstall project-level hooks to .claude/settings.local.json
 
     Args:
         quiet: If True, suppress all output (used internally)
@@ -28,6 +71,9 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     Returns:
         bool: True if hooks were synced successfully, False otherwise
     """
+    # Step 1: Cleanup stale user-level hooks first
+    cleanup_user_level_hooks()
+
     try:
         from ..hooks.claude_hooks.installer import HookInstaller
 
@@ -1386,6 +1432,28 @@ def auto_install_chrome_devtools_on_startup():
         # Continue execution - chrome-devtools installation failure shouldn't block startup
 
 
+def sync_deployment_on_startup(force_sync: bool = False) -> None:
+    """Consolidated deployment block: hooks + agents.
+
+    WHY: Groups all deployment tasks into a single logical block for clarity.
+    This ensures hooks and agents are deployed together before other services.
+
+    Order:
+    1. Hook cleanup (remove ~/.claude/hooks/claude-mpm/)
+    2. Hook reinstall (update .claude/settings.local.json)
+    3. Agent sync from remote Git sources
+
+    Args:
+        force_sync: Force download even if cache is fresh (bypasses ETag).
+    """
+    # Step 1-2: Hooks (cleanup + reinstall handled by sync_hooks_on_startup)
+    sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
+
+    # Step 3: Agents from remote sources
+    sync_remote_agents_on_startup(force_sync=force_sync)
+    show_agent_summary()  # Display agent counts after deployment
+
+
 def run_background_services(force_sync: bool = False):
     """
     Initialize all background services on startup.
@@ -1401,19 +1469,15 @@ def run_background_services(force_sync: bool = False):
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
     """
-    # Sync hooks early to ensure up-to-date configuration
-    # RATIONALE: Hooks should be synced before other services to fix stale configs
-    # This is fast (<100ms) and non-blocking, so it doesn't delay startup
-    sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
+    # Consolidated deployment block: hooks + agents
+    # RATIONALE: Hooks and agents are deployed together before other services
+    # This ensures the deployment phase is complete before configuration checks
+    sync_deployment_on_startup(force_sync=force_sync)
 
     initialize_project_registry()
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
-    sync_remote_agents_on_startup(
-        force_sync=force_sync
-    )  # Sync agents from remote sources
-    show_agent_summary()  # Display agent counts after deployment
 
     # Skills deployment order (precedence: remote > bundled)
     # 1. Deploy bundled skills first (base layer from package)
