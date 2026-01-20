@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.39] - 2026-01-20
+
+### Added
+- feat: add direct Python entry point for faster hook execution
+  - Added `claude-hook` console script entry point in pyproject.toml
+  - Updated installer to prefer entry point over bash wrapper (~400ms faster)
+  - Falls back to bash script for development installs
+  - Status now shows `using_entry_point` and `deployment_type`
+
 ## [5.6.38] - 2026-01-20
 
 ### Added

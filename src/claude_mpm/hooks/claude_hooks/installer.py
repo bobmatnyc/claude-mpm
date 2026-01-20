@@ -387,8 +387,35 @@ main "$@"
             return False
         return self._version_meets_minimum(version, self.MIN_SKILLS_VERSION)
 
-    def get_hook_script_path(self) -> Path:
-        """Get the path to the hook handler script based on installation method.
+    def get_hook_command(self) -> str:
+        """Get the hook command based on installation method.
+
+        Priority order:
+        1. claude-hook entry point (uv tool install, pipx install, pip install)
+        2. Fallback to bash script (development installs)
+
+        Returns:
+            Command string for the hook handler (either 'claude-hook' or path to bash script)
+
+        Raises:
+            FileNotFoundError: If no hook handler can be found
+        """
+        # Check if claude-hook entry point is available in PATH
+        claude_hook_path = shutil.which("claude-hook")
+        if claude_hook_path:
+            self.logger.info(f"Using claude-hook entry point: {claude_hook_path}")
+            return "claude-hook"
+
+        # Fallback to bash script for development installs
+        script_path = self._get_hook_script_path()
+        self.logger.info(f"Using fallback bash script: {script_path}")
+        return str(script_path.absolute())
+
+    def _get_hook_script_path(self) -> Path:
+        """Get the path to the fallback bash hook handler script.
+
+        This is used when the claude-hook entry point is not available
+        (e.g., development installs without uv tool install).
 
         Returns:
             Path to the claude-hook-handler.sh script
@@ -441,6 +468,19 @@ main "$@"
 
         raise FileNotFoundError(f"Hook handler script not found at {script_path}")
 
+    def get_hook_script_path(self) -> Path:
+        """Get the path to the hook handler script based on installation method.
+
+        DEPRECATED: Use get_hook_command() instead for proper entry point support.
+
+        Returns:
+            Path to the claude-hook-handler.sh script
+
+        Raises:
+            FileNotFoundError: If the script cannot be found
+        """
+        return self._get_hook_script_path()
+
     def install_hooks(self, force: bool = False) -> bool:
         """
         Install Claude MPM hooks.
@@ -473,18 +513,16 @@ main "$@"
             # Create Claude directory (hooks_dir no longer needed)
             self.claude_dir.mkdir(exist_ok=True)
 
-            # Get the deployment-root hook script path
+            # Get the hook command (either claude-hook entry point or fallback bash script)
             try:
-                hook_script_path = self.get_hook_script_path()
-                self.logger.info(
-                    f"Using deployment-root hook script: {hook_script_path}"
-                )
+                hook_command = self.get_hook_command()
+                self.logger.info(f"Using hook command: {hook_command}")
             except FileNotFoundError as e:
-                self.logger.error(f"Failed to locate hook script: {e}")
+                self.logger.error(f"Failed to locate hook handler: {e}")
                 return False
 
-            # Update Claude settings to use deployment-root script
-            self._update_claude_settings(hook_script_path)
+            # Update Claude settings to use the hook command
+            self._update_claude_settings(hook_command)
 
             # Install commands if available
             self._install_commands()
@@ -579,8 +617,12 @@ main "$@"
                 "StatusLine command already supports both schemas or not present"
             )
 
-    def _update_claude_settings(self, hook_script_path: Path) -> None:
-        """Update Claude settings to use the installed hook."""
+    def _update_claude_settings(self, hook_cmd: str) -> None:
+        """Update Claude settings to use the installed hook.
+
+        Args:
+            hook_cmd: The hook command to use (either 'claude-hook' or path to bash script)
+        """
         self.logger.info("Updating Claude settings...")
 
         # Load existing settings.json or create new
@@ -603,15 +645,18 @@ main "$@"
             settings["hooks"] = {}
 
         # Hook configuration for each event type
-        hook_command = {"type": "command", "command": str(hook_script_path.absolute())}
+        hook_command = {"type": "command", "command": hook_cmd}
 
         def is_our_hook(cmd: dict) -> bool:
             """Check if a hook command belongs to claude-mpm."""
             if cmd.get("type") != "command":
                 return False
             command = cmd.get("command", "")
-            return "claude-hook-handler.sh" in command or command.endswith(
-                "claude-mpm-hook.sh"
+            # Match claude-hook entry point or bash script fallback
+            return (
+                command == "claude-hook"
+                or "claude-hook-handler.sh" in command
+                or command.endswith("claude-mpm-hook.sh")
             )
 
         def merge_hooks_for_event(
@@ -867,7 +912,8 @@ main "$@"
                                         ):
                                             cmd = hook_cmd.get("command", "")
                                             if (
-                                                "claude-hook-handler.sh" in cmd
+                                                cmd == "claude-hook"
+                                                or "claude-hook-handler.sh" in cmd
                                                 or cmd.endswith("claude-mpm-hook.sh")
                                             ):
                                                 is_claude_mpm = True
@@ -912,27 +958,42 @@ main "$@"
 
         is_valid, issues = self.verify_hooks()
 
-        # Try to get deployment-root script path
+        # Try to get hook command (entry point or fallback script)
+        hook_command = None
+        using_entry_point = False
         try:
-            hook_script_path = self.get_hook_script_path()
+            hook_command = self.get_hook_command()
+            using_entry_point = hook_command == "claude-hook"
+        except FileNotFoundError:
+            hook_command = None
+
+        # For backward compatibility, also try to get the script path
+        hook_script_str = None
+        script_exists = False
+        try:
+            hook_script_path = self._get_hook_script_path()
             hook_script_str = str(hook_script_path)
             script_exists = hook_script_path.exists()
         except FileNotFoundError:
-            hook_script_str = None
-            script_exists = False
+            pass
 
         status = {
-            "installed": script_exists and self.settings_file.exists(),
+            "installed": (hook_command is not None or script_exists)
+            and self.settings_file.exists(),
             "valid": is_valid,
             "issues": issues,
-            "hook_script": hook_script_str,
+            "hook_command": hook_command,
+            "hook_script": hook_script_str,  # Kept for backward compatibility
+            "using_entry_point": using_entry_point,
             "settings_file": (
                 str(self.settings_file) if self.settings_file.exists() else None
             ),
             "claude_version": claude_version,
             "version_compatible": is_compatible,
             "version_message": version_message,
-            "deployment_type": "deployment-root",  # New field to indicate new architecture
+            "deployment_type": "entry-point"
+            if using_entry_point
+            else "deployment-root",
             "pretool_modify_supported": pretool_modify_supported,  # v2.0.30+ feature
             "pretool_modify_message": (
                 f"PreToolUse input modification supported (v{claude_version})"
