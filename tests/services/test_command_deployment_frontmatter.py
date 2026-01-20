@@ -745,6 +745,6 @@ description: Test command
             frontmatter, _ = service._parse_frontmatter(deployed_content)
 
             assert frontmatter is not None
-            assert (
-                "deprecated_aliases" not in frontmatter
-            ), f"{filename} should not have deprecated_aliases"
+            assert "deprecated_aliases" not in frontmatter, (
+                f"{filename} should not have deprecated_aliases"
+            )

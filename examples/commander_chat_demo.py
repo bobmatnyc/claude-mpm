@@ -33,9 +33,9 @@ RESET = "\033[0m"
 
 def print_section(title: str):
     """Print a section header."""
-    print(f"\n{BLUE}{'='*60}{RESET}")
+    print(f"\n{BLUE}{'=' * 60}{RESET}")
     print(f"{BLUE}{title}{RESET}")
-    print(f"{BLUE}{'='*60}{RESET}\n")
+    print(f"{BLUE}{'=' * 60}{RESET}\n")
 
 
 async def demo_framework_selection():
@@ -294,9 +294,9 @@ async def demo_error_handling():
 
 async def main():
     """Run all demos."""
-    print(f"\n{GREEN}{'*'*60}{RESET}")
+    print(f"\n{GREEN}{'*' * 60}{RESET}")
     print(f"{GREEN}Commander Chat Interface Demo{RESET}")
-    print(f"{GREEN}{'*'*60}{RESET}")
+    print(f"{GREEN}{'*' * 60}{RESET}")
 
     demos = [
         ("Framework Selection", demo_framework_selection),

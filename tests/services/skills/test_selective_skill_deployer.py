@@ -369,9 +369,9 @@ skills:
 
         # Verify all PM_CORE_SKILLS are present
         for pm_skill in PM_CORE_SKILLS:
-            assert (
-                pm_skill in result
-            ), f"PM core skill {pm_skill} should always be included"
+            assert pm_skill in result, (
+                f"PM core skill {pm_skill} should always be included"
+            )
 
         # Verify the agent's skill is also present
         assert "some-other-skill" in result
@@ -393,9 +393,9 @@ name: agent1
         result = get_required_skills_from_agents(agents_dir)
 
         # PM_CORE_SKILLS should still be present
-        assert PM_CORE_SKILLS.issubset(
-            result
-        ), "PM core skills should be included even with no agent-declared skills"
+        assert PM_CORE_SKILLS.issubset(result), (
+            "PM core skills should be included even with no agent-declared skills"
+        )
 
 
 class TestUserRequestedSkills:
