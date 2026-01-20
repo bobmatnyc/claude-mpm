@@ -724,7 +724,8 @@ main "$@"
             )
 
         # Simple events (no subtypes, no matcher needed)
-        simple_events = ["Stop", "SubagentStop", "SubagentStart"]
+        # Note: SubagentStart is NOT a valid Claude Code event (only SubagentStop is)
+        simple_events = ["Stop", "SubagentStop"]
         for event_type in simple_events:
             existing = settings["hooks"].get(event_type, [])
             settings["hooks"][event_type] = merge_hooks_for_event(
@@ -843,10 +844,10 @@ main "$@"
                     issues.append("No hooks configured in Claude settings")
                 else:
                     # Check for required event types
+                    # Note: SubagentStart is NOT a valid Claude Code event
                     required_events = [
                         "Stop",
                         "SubagentStop",
-                        "SubagentStart",
                         "PreToolUse",
                         "PostToolUse",
                     ]
