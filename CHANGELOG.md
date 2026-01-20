@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.36] - 2026-01-19
+
+### Fixed
+- fix(hook_manager): run hook handler as module (`python -m`) instead of script to fix "attempted relative import with no known parent package" errors
+
 ## [5.6.35] - 2026-01-19
 
 ### Changed
