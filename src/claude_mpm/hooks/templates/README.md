@@ -112,9 +112,9 @@ event = json.loads(sys.stdin.read())
 if event.get("tool_name") == "Grep":
     modified = event["tool_input"].copy()
     modified["-n"] = True
-    print(json.dumps({"action": "continue", "tool_input": modified}))
+    print(json.dumps({"continue": True, "tool_input": modified}))
 else:
-    print(json.dumps({"action": "continue"}))
+    print(json.dumps({"continue": True}))
 ```
 
 ### Block Sensitive Files
@@ -129,10 +129,10 @@ tool_name = event.get("tool_name", "")
 if tool_name in ["Write", "Edit", "Read"]:
     file_path = event["tool_input"].get("file_path", "")
     if ".env" in file_path:
-        print(json.dumps({"action": "block", "message": "Access to .env blocked"}))
+        print(json.dumps({"continue": False, "stopReason": "Access to .env blocked"}))
         sys.exit(0)
 
-print(json.dumps({"action": "continue"}))
+print(json.dumps({"continue": True}))
 ```
 
 ### Add Default Timeout to Bash
@@ -147,10 +147,10 @@ if event.get("tool_name") == "Bash":
     modified = event["tool_input"].copy()
     if "timeout" not in modified:
         modified["timeout"] = 30000  # 30 seconds
-        print(json.dumps({"action": "continue", "tool_input": modified}))
+        print(json.dumps({"continue": True, "tool_input": modified}))
         sys.exit(0)
 
-print(json.dumps({"action": "continue"}))
+print(json.dumps({"continue": True}))
 ```
 
 ## Testing Your Hook

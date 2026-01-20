@@ -496,11 +496,11 @@ class ClaudeHookHandler:
         if modified_input is not None:
             # Claude Code v2.0.30+ supports modifying PreToolUse tool inputs
             print(
-                json.dumps({"action": "continue", "tool_input": modified_input}),
+                json.dumps({"continue": True, "tool_input": modified_input}),
                 flush=True,
             )
         else:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):
@@ -673,7 +673,7 @@ def main():
         # This prevents errors on older Claude Code versions
         if version:
             _log(f"Skipping hook processing due to version incompatibility ({version})")
-        print(json.dumps({"action": "continue"}), flush=True)
+        print(json.dumps({"continue": True}), flush=True)
         sys.exit(0)
 
     def cleanup_handler(signum=None, frame=None):
@@ -682,7 +682,7 @@ def main():
         _log(f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})")
         # Only output continue if we haven't already (i.e., if interrupted by signal)
         if signum is not None and not _continue_printed:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
             _continue_printed = True
             sys.exit(0)
 
@@ -715,7 +715,7 @@ def main():
     except Exception as e:
         # Only output continue if not already printed
         if not _continue_printed:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
             _continue_printed = True
         # Log error for debugging
         _log(f"Hook handler error: {e}")
@@ -727,5 +727,5 @@ if __name__ == "__main__":
         main()
     except Exception:
         # Catastrophic failure (import error, etc.) - always output valid JSON
-        print(json.dumps({"action": "continue"}), flush=True)
+        print(json.dumps({"continue": True}), flush=True)
         sys.exit(0)

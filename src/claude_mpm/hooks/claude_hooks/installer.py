@@ -149,7 +149,7 @@ main() {
         if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Claude MPM not found, continuing..." >> /tmp/claude-mpm-hook.log
         fi
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 
@@ -176,7 +176,7 @@ main() {
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/claude-mpm-hook-error.log" >> /tmp/claude-mpm-hook.log
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Error: $(cat /tmp/claude-mpm-hook-error.log 2>/dev/null | head -5)" >> /tmp/claude-mpm-hook.log
         fi
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 
