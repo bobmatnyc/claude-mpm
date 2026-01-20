@@ -59,6 +59,21 @@ except ImportError:
         SubagentResponseProcessor,
     )
 
+# Import CorrelationManager with fallback (used in _route_event cleanup)
+# WHY at top level: Runtime relative imports fail with "no known parent package" error
+try:
+    from .correlation_manager import CorrelationManager
+except ImportError:
+    try:
+        from correlation_manager import CorrelationManager
+    except ImportError:
+        # Fallback: create a no-op class if module unavailable
+        class CorrelationManager:
+            @staticmethod
+            def cleanup_old():
+                pass
+
+
 """
 Debug mode configuration for hook processing.
 
@@ -329,8 +344,6 @@ class ClaudeHookHandler:
             if self.state_manager.increment_events_processed():
                 self.state_manager.cleanup_old_entries()
                 # Also cleanup old correlation files
-                from .correlation_manager import CorrelationManager
-
                 CorrelationManager.cleanup_old()
                 _log(
                     f"🧹 Performed cleanup after {self.state_manager.events_processed} events"

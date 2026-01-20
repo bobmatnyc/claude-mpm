@@ -42,6 +42,13 @@ except ImportError:
         extract_tool_results,
     )
 
+# Import correlation manager with fallback for direct execution
+# WHY at top level: Runtime relative imports fail with "no known parent package" error
+try:
+    from .correlation_manager import CorrelationManager
+except ImportError:
+    from correlation_manager import CorrelationManager
+
 # Debug mode - MUST match hook_handler.py default (false) to prevent stderr writes
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
@@ -189,8 +196,6 @@ class EventHandlers:
 
         # Store tool_call_id using CorrelationManager for cross-process retrieval
         if session_id:
-            from .correlation_manager import CorrelationManager
-
             CorrelationManager.store(session_id, tool_call_id, tool_name)
             if DEBUG:
                 _log(
@@ -447,8 +452,6 @@ class EventHandlers:
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
 
         # Retrieve tool_call_id using CorrelationManager for cross-process correlation
-        from .correlation_manager import CorrelationManager
-
         tool_call_id = CorrelationManager.retrieve(session_id) if session_id else None
         if DEBUG and tool_call_id:
             _log(
@@ -600,8 +603,6 @@ class EventHandlers:
                         warning = auto_pause.emit_threshold_warning(threshold_crossed)
                         # CRITICAL: Never write to stderr unconditionally - causes hook errors
                         # Use _log() instead which only writes to file if DEBUG=true
-                        from . import _log
-
                         _log(f"⚠️  Auto-pause threshold crossed: {warning}")
 
                         if DEBUG:
