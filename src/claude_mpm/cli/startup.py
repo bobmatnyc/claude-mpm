@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 
-def cleanup_user_level_hooks() -> None:
+def cleanup_user_level_hooks() -> bool:
     """Remove stale user-level hooks directory.
 
     WHY: claude-mpm previously deployed hooks to ~/.claude/hooks/claude-mpm/
@@ -23,13 +23,16 @@ def cleanup_user_level_hooks() -> None:
 
     DESIGN DECISION: Runs early in startup, before project hook sync.
     Non-blocking - failures are logged at debug level but don't prevent startup.
+
+    Returns:
+        bool: True if hooks were cleaned up, False if none found or cleanup failed
     """
     import shutil
 
     user_hooks_dir = Path.home() / ".claude" / "hooks" / "claude-mpm"
 
     if not user_hooks_dir.exists():
-        return
+        return False
 
     try:
         from ..core.logger import get_logger
@@ -40,6 +43,7 @@ def cleanup_user_level_hooks() -> None:
         shutil.rmtree(user_hooks_dir)
 
         logger.debug("User-level hooks cleanup complete")
+        return True
     except Exception as e:
         # Non-critical - log but don't fail startup
         try:
@@ -49,6 +53,7 @@ def cleanup_user_level_hooks() -> None:
             logger.debug(f"Failed to cleanup user-level hooks (non-fatal): {e}")
         except Exception:  # nosec B110
             pass  # Avoid any errors in error handling
+        return False
 
 
 def sync_hooks_on_startup(quiet: bool = False) -> bool:
@@ -71,31 +76,45 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     Returns:
         bool: True if hooks were synced successfully, False otherwise
     """
-    # Step 1: Cleanup stale user-level hooks first
-    cleanup_user_level_hooks()
+    is_tty = not quiet and sys.stdout.isatty()
 
+    # Step 1: Cleanup stale user-level hooks first
+    if is_tty:
+        print("Cleaning user-level hooks...", end=" ", flush=True)
+
+    cleaned = cleanup_user_level_hooks()
+
+    if is_tty:
+        if cleaned:
+            print("✓")
+        else:
+            print("(none found)")
+
+    # Step 2: Install project-level hooks
     try:
         from ..hooks.claude_hooks.installer import HookInstaller
 
         installer = HookInstaller()
 
         # Show brief status (hooks sync is fast)
-        if not quiet and sys.stdout.isatty():
-            print("Syncing Claude Code hooks...", end=" ", flush=True)
+        if is_tty:
+            print("Installing project hooks...", end=" ", flush=True)
 
         # Reinstall hooks (force=True ensures update)
         success = installer.install_hooks(force=True)
 
-        if not quiet and sys.stdout.isatty():
+        if is_tty:
             if success:
-                print("✓")
+                # Count hooks from settings file
+                hook_count = _count_installed_hooks(installer.settings_file)
+                print(f"{hook_count} hooks configured ✓")
             else:
                 print("(skipped)")
 
         return success
 
     except Exception as e:
-        if not quiet and sys.stdout.isatty():
+        if is_tty:
             print("(error)")
         # Log but don't fail startup
         from ..core.logger import get_logger
@@ -103,6 +122,30 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         logger = get_logger("startup")
         logger.warning(f"Hook sync failed (non-fatal): {e}")
         return False
+
+
+def _count_installed_hooks(settings_file: Path) -> int:
+    """Count the number of hook event types configured in settings.
+
+    Args:
+        settings_file: Path to the settings.local.json file
+
+    Returns:
+        int: Number of hook event types configured (e.g., 7 for all events)
+    """
+    import json
+
+    try:
+        if not settings_file.exists():
+            return 0
+
+        with settings_file.open() as f:
+            settings = json.load(f)
+
+        hooks = settings.get("hooks", {})
+        return len(hooks)
+    except Exception:
+        return 0
 
 
 def cleanup_legacy_agent_cache() -> None:

@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.38] - 2026-01-20
+
+### Added
+- feat: add detailed hook installation output
+  - Show cleanup status: "Cleaning user-level hooks... (removed)" or "(none found)"
+  - Show hook count: "Installing project hooks... 7 hooks configured"
+  - Added `_count_installed_hooks()` helper to count configured hooks
+
 ## [5.6.37] - 2026-01-20
 
 ### Changed
