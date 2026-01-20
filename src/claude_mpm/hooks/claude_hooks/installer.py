@@ -605,40 +605,98 @@ main "$@"
         # Hook configuration for each event type
         hook_command = {"type": "command", "command": str(hook_script_path.absolute())}
 
+        def is_our_hook(cmd: dict) -> bool:
+            """Check if a hook command belongs to claude-mpm."""
+            if cmd.get("type") != "command":
+                return False
+            command = cmd.get("command", "")
+            return "claude-hook-handler.sh" in command or command.endswith(
+                "claude-mpm-hook.sh"
+            )
+
+        def merge_hooks_for_event(
+            existing_hooks: list, new_hook_command: dict, use_matcher: bool = True
+        ) -> list:
+            """Merge new hook command into existing hooks without duplication.
+
+            Args:
+                existing_hooks: Current hooks configuration for an event type
+                new_hook_command: The claude-mpm hook command to add
+                use_matcher: Whether to include matcher: "*" in the config
+
+            Returns:
+                Updated hooks list with our hook merged in
+            """
+            # Check if our hook already exists in any existing hook config
+            our_hook_exists = False
+
+            for hook_config in existing_hooks:
+                if "hooks" in hook_config and isinstance(hook_config["hooks"], list):
+                    for hook in hook_config["hooks"]:
+                        if is_our_hook(hook):
+                            # Update existing hook command path (in case it changed)
+                            hook["command"] = new_hook_command["command"]
+                            our_hook_exists = True
+                            break
+                if our_hook_exists:
+                    break
+
+            if our_hook_exists:
+                # Our hook already exists, just return the updated list
+                return existing_hooks
+
+            # Our hook doesn't exist - need to add it
+            # Strategy: Add our hook to the first "*" matcher config, or create new config
+            added = False
+
+            for hook_config in existing_hooks:
+                # Check if this config has matcher: "*" (or no matcher for simple events)
+                matcher = hook_config.get("matcher")
+                if matcher == "*" or (not use_matcher and matcher is None):
+                    # Add our hook to this config's hooks array
+                    if "hooks" not in hook_config:
+                        hook_config["hooks"] = []
+                    hook_config["hooks"].append(new_hook_command)
+                    added = True
+                    break
+
+            if not added:
+                # No suitable config found, create a new one
+                if use_matcher:
+                    new_config = {"matcher": "*", "hooks": [new_hook_command]}
+                else:
+                    new_config = {"hooks": [new_hook_command]}
+                existing_hooks.append(new_config)
+
+            return existing_hooks
+
         # Tool-related events need a matcher string
         tool_events = ["PreToolUse", "PostToolUse"]
         for event_type in tool_events:
-            settings["hooks"][event_type] = [
-                {
-                    "matcher": "*",  # String value to match all tools
-                    "hooks": [hook_command],
-                }
-            ]
+            existing = settings["hooks"].get(event_type, [])
+            settings["hooks"][event_type] = merge_hooks_for_event(
+                existing, hook_command, use_matcher=True
+            )
 
         # Simple events (no subtypes, no matcher needed)
         simple_events = ["Stop", "SubagentStop", "SubagentStart"]
         for event_type in simple_events:
-            settings["hooks"][event_type] = [
-                {
-                    "hooks": [hook_command],
-                }
-            ]
+            existing = settings["hooks"].get(event_type, [])
+            settings["hooks"][event_type] = merge_hooks_for_event(
+                existing, hook_command, use_matcher=False
+            )
 
         # SessionStart needs matcher for subtypes (startup, resume)
-        settings["hooks"]["SessionStart"] = [
-            {
-                "matcher": "*",  # Match all SessionStart subtypes
-                "hooks": [hook_command],
-            }
-        ]
+        existing = settings["hooks"].get("SessionStart", [])
+        settings["hooks"]["SessionStart"] = merge_hooks_for_event(
+            existing, hook_command, use_matcher=True
+        )
 
         # UserPromptSubmit needs matcher for potential subtypes
-        settings["hooks"]["UserPromptSubmit"] = [
-            {
-                "matcher": "*",
-                "hooks": [hook_command],
-            }
-        ]
+        existing = settings["hooks"].get("UserPromptSubmit", [])
+        settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
+            existing, hook_command, use_matcher=True
+        )
 
         # Fix statusLine command to handle both output style schemas
         self._fix_status_line(settings)

@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.32] - 2026-01-19
+
+### Fixed
+- fix(hooks): hook installer now properly MERGES with existing hooks instead of overwriting them
+- feat(hooks): kuzu-memory hooks and claude-mpm hooks can now coexist correctly
+- refactor(hooks): add `is_our_hook()` and `merge_hooks_for_event()` helper functions
+
 ## [5.6.31] - 2026-01-19
 
 ### Fixed
