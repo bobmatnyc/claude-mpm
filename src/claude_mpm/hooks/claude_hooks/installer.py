@@ -203,10 +203,14 @@ main "$@"
         import logging
 
         self.logger = logging.getLogger(__name__)
-        self.claude_dir = Path.home() / ".claude"
+        # Use project-level paths, NEVER global ~/.claude/settings.json
+        # This ensures hooks are scoped to the current project only
+        self.project_root = Path.cwd()
+        self.claude_dir = self.project_root / ".claude"
         self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
-        # Use settings.json for hooks (Claude Code reads from this file)
-        self.settings_file = self.claude_dir / "settings.json"
+        # Use settings.local.json for project-level hook settings
+        # Claude Code reads project-level settings from .claude/settings.local.json
+        self.settings_file = self.claude_dir / "settings.local.json"
         # There is no legacy settings file - this was a bug where both pointed to same file
         # Setting to None to disable cleanup that was deleting freshly installed hooks
         self.old_settings_file = None

@@ -20,8 +20,13 @@ class HookInstallerService:
     def __init__(self):
         """Initialize the hook installer service."""
         self.logger = get_logger(__name__)
-        self.claude_dir = Path.home() / ".claude"
-        self.settings_file = self.claude_dir / "settings.json"
+        # Use project-level paths, NEVER global ~/.claude/settings.json
+        # This ensures hooks are scoped to the current project only
+        self.project_root = Path.cwd()
+        self.claude_dir = self.project_root / ".claude"
+        # Use settings.local.json for project-level hook settings
+        # Claude Code reads project-level settings from .claude/settings.local.json
+        self.settings_file = self.claude_dir / "settings.local.json"
 
     def is_hooks_configured(self) -> bool:
         """Check if hooks are configured in Claude settings.

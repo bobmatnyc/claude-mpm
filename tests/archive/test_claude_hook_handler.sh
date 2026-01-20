@@ -83,7 +83,7 @@ EOF
 #!/usr/bin/env python3
 import json
 import sys
-print(json.dumps({"action": "continue"}))
+print(json.dumps({"continue": True}))
 sys.exit(0)
 EOF
 }
@@ -152,7 +152,7 @@ EOF
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
 
     # Should still output continue action
-    if echo "$output" | grep -q '{"action": "continue"}'; then
+    if echo "$output" | grep -q '{"continue": true}'; then
         return 0
     else
         return 1
@@ -246,7 +246,7 @@ EOF
     output=$("$TEST_DIR/src/claude_mpm/scripts/claude-hook-handler.sh" 2>&1)
 
     # Should still output continue action
-    if echo "$output" | grep -q '{"action": "continue"}'; then
+    if echo "$output" | grep -q '{"continue": true}'; then
         # Check error log was created
         if [ -f "/tmp/claude-mpm-hook-error.log" ]; then
             rm -f /tmp/claude-mpm-hook-error.log
@@ -265,7 +265,7 @@ test_argument_passing() {
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
 echo "Arguments received: $@"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"
@@ -288,7 +288,7 @@ test_exit_code() {
     # Test successful execution (exit 0)
     cat > "$TEST_DIR/venv/bin/python" << 'EOF'
 #!/bin/bash
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 EOF
     chmod +x "$TEST_DIR/venv/bin/python"

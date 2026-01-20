@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.31] - 2026-01-19
+
+### Fixed
+- fix(hooks): deploy hooks to project-level settings only - changed from `~/.claude/settings.json` to `{project}/.claude/settings.local.json`
+- fix(tests): update hook format expectations from `{"action": "continue"}` to `{"continue": true}`
+
 ## [5.6.30] - 2026-01-19
 
 ### Fixed
