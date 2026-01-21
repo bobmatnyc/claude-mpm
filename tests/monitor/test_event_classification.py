@@ -534,6 +534,6 @@ class TestParameterizedEventClassification:
     def test_event_classification(self, server, event_name, expected_category):
         """Verify each event is classified correctly."""
         result = server._categorize_event(event_name)
-        assert (
-            result == expected_category
-        ), f"Event '{event_name}' expected '{expected_category}', got '{result}'"
+        assert result == expected_category, (
+            f"Event '{event_name}' expected '{expected_category}', got '{result}'"
+        )

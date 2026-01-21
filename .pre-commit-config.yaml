@@ -26,7 +26,7 @@ repos:
 
   # Ruff - replaces black, isort, flake8, pyupgrade (10-200x faster)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4  # Use latest version
+    rev: v0.14.8  # Match project's ruff version
     hooks:
       # Run the linter
       - id: ruff
