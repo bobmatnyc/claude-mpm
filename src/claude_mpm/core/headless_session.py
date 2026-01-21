@@ -10,13 +10,15 @@ WHY: Headless mode is essential for:
 - Piping output to other tools
 - Integration with external systems
 
-DESIGN DECISION: Uses subprocess.communicate() for simple stdin/stdout passthrough
+DESIGN DECISION: Uses real-time streaming for stdin/stdout passthrough
 without any Rich formatting, progress bars, or interactive elements.
+Output is streamed line-by-line for vibe-kanban compatibility.
 """
 
 import os
 import subprocess  # nosec B404
 import sys
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -59,6 +61,26 @@ class HeadlessSession:
             return Path(os.environ["CLAUDE_MPM_USER_PWD"])
         return Path.cwd()
 
+    def _has_adjacent_args(self, args: list, flag: str, value: str) -> bool:
+        """Check if flag is followed by value in args list.
+
+        This handles space-separated CLI args like: --input-format stream-json
+        where args = ["--input-format", "stream-json", ...]
+
+        Args:
+            args: List of command-line arguments
+            flag: The flag to look for (e.g., "--input-format")
+            value: The expected value following the flag (e.g., "stream-json")
+
+        Returns:
+            True if flag is immediately followed by value in the args list
+        """
+        try:
+            idx = args.index(flag)
+            return idx + 1 < len(args) and args[idx + 1] == value
+        except ValueError:
+            return False
+
     def build_claude_command(
         self, resume_session: Optional[str] = None
     ) -> list:
@@ -76,10 +98,11 @@ class HeadlessSession:
         )
 
         # Base command - only add stream-json if no output format specified
+        # --verbose is required when using --print with --output-format=stream-json
         if has_output_format:
-            cmd = ["claude"]
+            cmd = ["claude", "--verbose"]
         else:
-            cmd = ["claude", "--output-format", "stream-json"]
+            cmd = ["claude", "--verbose", "--output-format", "stream-json"]
 
         # Add resume flag if specified
         if resume_session:
@@ -130,23 +153,39 @@ class HeadlessSession:
         # Build the command
         cmd = self.build_claude_command(resume_session=resume_session)
 
-        # Get prompt from argument or stdin
-        if prompt is None:
-            # Read from stdin for piping support
-            if sys.stdin.isatty():
-                self.logger.warning(
-                    "No prompt provided and stdin is a TTY. "
-                    "Use -i 'prompt' or pipe input: echo 'prompt' | claude-mpm run --headless"
-                )
+        # Check if using stream-json input format (vibe-kanban compatibility)
+        # When --input-format stream-json is passed, stdin should be passed
+        # through to Claude Code directly, not read by claude-mpm
+        # NOTE: Args can be space-separated ["--input-format", "stream-json"]
+        # or combined ["--input-format=stream-json"] - we need to handle both
+        claude_args = self.runner.claude_args or []
+        uses_stream_json_input = (
+            "--input-format=stream-json" in claude_args
+            or self._has_adjacent_args(claude_args, "--input-format", "stream-json")
+        )
+
+        if uses_stream_json_input:
+            # Vibe-kanban mode: pass stdin through to Claude Code
+            # Don't read stdin here, let Claude Code handle it
+            self.logger.debug("Using stream-json input mode (vibe-kanban compatibility)")
+        else:
+            # Standard headless mode: read prompt from argument or stdin
+            if prompt is None:
+                # Read from stdin for piping support
+                if sys.stdin.isatty():
+                    self.logger.warning(
+                        "No prompt provided and stdin is a TTY. "
+                        "Use -i 'prompt' or pipe input: echo 'prompt' | claude-mpm run --headless"
+                    )
+                    return 1
+                prompt = sys.stdin.read().strip()
+
+            if not prompt:
+                self.logger.error("Empty prompt provided")
                 return 1
-            prompt = sys.stdin.read().strip()
 
-        if not prompt:
-            self.logger.error("Empty prompt provided")
-            return 1
-
-        # Add the prompt to command
-        cmd.extend(["--print", prompt])
+            # Add the prompt to command
+            cmd.extend(["--print", prompt])
 
         self.logger.debug(f"Headless command: {' '.join(cmd[:5])}...")
 
@@ -154,10 +193,14 @@ class HeadlessSession:
         env = self._prepare_environment()
 
         try:
+            # For vibe-kanban mode (stream-json input), pass stdin through
+            # For standard headless mode, use PIPE and close immediately
+            stdin_mode = sys.stdin if uses_stream_json_input else subprocess.PIPE
+
             # Run subprocess with direct stdout/stderr passthrough
             process = subprocess.Popen(
                 cmd,
-                stdin=subprocess.PIPE,
+                stdin=stdin_mode,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -165,18 +208,31 @@ class HeadlessSession:
                 env=env,
             )
 
-            # Communicate and get output
-            stdout, stderr = process.communicate()
+            # Stream output in real-time instead of buffering with communicate()
+            # This is critical for vibe-kanban integration which expects streaming output
+            def stream_stderr():
+                """Stream stderr in a separate thread."""
+                for line in process.stderr:
+                    sys.stderr.write(line)
+                    sys.stderr.flush()
 
-            # Pass through stdout (stream-json) directly - no Rich formatting
-            if stdout:
-                sys.stdout.write(stdout)
+            # Start stderr streaming in background thread
+            stderr_thread = threading.Thread(target=stream_stderr, daemon=True)
+            stderr_thread.start()
+
+            # Close stdin to signal we're done sending input (only for non-passthrough mode)
+            # Claude Code needs this signal to start processing
+            if not uses_stream_json_input:
+                process.stdin.close()
+
+            # Stream stdout (stream-json) directly in main thread - no Rich formatting
+            for line in process.stdout:
+                sys.stdout.write(line)
                 sys.stdout.flush()
 
-            # Write stderr to stderr
-            if stderr:
-                sys.stderr.write(stderr)
-                sys.stderr.flush()
+            # Wait for process to complete and stderr thread to finish
+            process.wait()
+            stderr_thread.join(timeout=1.0)
 
             return process.returncode
 

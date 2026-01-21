@@ -1166,3 +1166,110 @@ class TestPassthroughFlags:
         # Should have default stream-json since no output_format specified
         assert "--output-format" in cmd
         assert "stream-json" in cmd
+
+
+# =============================================================================
+# 13. Stream-JSON Input Detection Tests (Vibe Kanban Bug Fix)
+# =============================================================================
+
+
+class TestStreamJsonInputDetection:
+    """Test stream-json input format detection for vibe-kanban integration.
+
+    This tests the fix for the bug where claude-mpm couldn't detect
+    space-separated --input-format stream-json args.
+    """
+
+    def test_has_adjacent_args_space_separated(self, mock_runner):
+        """_has_adjacent_args should detect space-separated args."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        # Space-separated: ["--input-format", "stream-json"]
+        args = ["--input-format", "stream-json", "--other", "arg"]
+        assert session._has_adjacent_args(args, "--input-format", "stream-json") is True
+
+    def test_has_adjacent_args_combined(self, mock_runner):
+        """_has_adjacent_args should return False for combined args (not its job)."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        # Combined args should be handled by direct "in" check
+        args = ["--input-format=stream-json"]
+        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
+
+    def test_has_adjacent_args_flag_not_found(self, mock_runner):
+        """_has_adjacent_args should return False when flag not present."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        args = ["--output-format", "stream-json"]
+        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
+
+    def test_has_adjacent_args_wrong_value(self, mock_runner):
+        """_has_adjacent_args should return False when value doesn't match."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        args = ["--input-format", "text"]
+        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
+
+    def test_has_adjacent_args_flag_at_end(self, mock_runner):
+        """_has_adjacent_args should return False when flag is last element."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        args = ["--other", "arg", "--input-format"]
+        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
+
+    def test_has_adjacent_args_empty_list(self, mock_runner):
+        """_has_adjacent_args should return False for empty list."""
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        assert session._has_adjacent_args([], "--input-format", "stream-json") is False
+
+    def test_stream_json_detection_space_separated(self, mock_runner):
+        """Should detect stream-json input with space-separated args."""
+        # This is what vibe-kanban passes: ["--input-format", "stream-json"]
+        mock_runner.claude_args = ["--input-format", "stream-json", "--output-format", "stream-json"]
+
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        mock_process = Mock()
+        mock_process.stdout = iter([])
+        mock_process.stderr = iter([])
+        mock_process.wait.return_value = None
+        mock_process.returncode = 0
+
+        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
+            with patch("sys.stdin", Mock()):
+                # Should NOT try to read from stdin (would call stdin.read())
+                # and should NOT require a prompt argument
+                exit_code = session.run(prompt=None)
+
+        # Verify stdin was passed through (sys.stdin, not subprocess.PIPE)
+        popen_kwargs = mock_popen.call_args[1]
+        assert popen_kwargs.get("stdin") is not None
+        # When using stream-json input, stdin should be sys.stdin (passthrough)
+        # not subprocess.PIPE (which would be used for standard headless mode)
+
+    def test_stream_json_detection_combined(self, mock_runner):
+        """Should detect stream-json input with combined args."""
+        mock_runner.claude_args = ["--input-format=stream-json"]
+
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        mock_process = Mock()
+        mock_process.stdout = iter([])
+        mock_process.stderr = iter([])
+        mock_process.wait.return_value = None
+        mock_process.returncode = 0
+
+        with patch("subprocess.Popen", return_value=mock_process):
+            with patch("sys.stdin", Mock()):
+                exit_code = session.run(prompt=None)
+
+        assert exit_code == 0
