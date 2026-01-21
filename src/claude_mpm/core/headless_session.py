@@ -70,8 +70,16 @@ class HeadlessSession:
         Returns:
             List of command arguments
         """
-        # Base command with stream-json output for programmatic consumption
-        cmd = ["claude", "--output-format", "stream-json"]
+        # Check if --output-format is already in claude_args (from passthrough flags)
+        has_output_format = any(
+            arg == "--output-format" for arg in (self.runner.claude_args or [])
+        )
+
+        # Base command - only add stream-json if no output format specified
+        if has_output_format:
+            cmd = ["claude"]
+        else:
+            cmd = ["claude", "--output-format", "stream-json"]
 
         # Add resume flag if specified
         if resume_session:

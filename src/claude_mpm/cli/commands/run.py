@@ -715,6 +715,21 @@ def _run_headless_session(args) -> int:
             # No session ID - just pass --resume (resume last session)
             claude_args.insert(0, "--resume")
 
+    # Add Claude Code passthrough flags (for Vibe Kanban compatibility)
+    # These flags are parsed by claude-mpm but need to be forwarded to Claude Code
+    if getattr(args, "passthrough_print", False):
+        claude_args.append("-p")
+    if getattr(args, "dangerously_skip_permissions", False):
+        claude_args.append("--dangerously-skip-permissions")
+    if getattr(args, "output_format", None):
+        claude_args.extend(["--output-format", args.output_format])
+    if getattr(args, "input_format", None):
+        claude_args.extend(["--input-format", args.input_format])
+    if getattr(args, "include_partial_messages", False):
+        claude_args.append("--include-partial-messages")
+    if getattr(args, "disallowedTools", None):
+        claude_args.extend(["--disallowedTools", args.disallowedTools])
+
     # Create minimal runner-like object for HeadlessSession
     class MinimalRunner:
         def __init__(self, args_list):

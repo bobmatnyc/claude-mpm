@@ -60,6 +60,13 @@ def base_args():
         logging="INFO",
         resume=None,
         mpm_resume=None,
+        # Claude Code passthrough flags
+        passthrough_print=False,
+        dangerously_skip_permissions=False,
+        output_format=None,
+        input_format=None,
+        include_partial_messages=False,
+        disallowedTools=None,
     )
 
 
@@ -985,3 +992,177 @@ class TestEdgeCases:
             exit_code = session.run(prompt=unicode_prompt)
 
         assert exit_code == 0
+
+
+# =============================================================================
+# 12. Claude Code Passthrough Flags Tests (Vibe Kanban Compatibility)
+# =============================================================================
+
+
+class TestPassthroughFlags:
+    """Test Claude Code passthrough flags for Vibe Kanban compatibility."""
+
+    def test_passthrough_flags_parsing(self):
+        """All passthrough flags should be parsed correctly."""
+        import argparse
+        parser = argparse.ArgumentParser()
+        add_run_arguments(parser)
+
+        args = parser.parse_args([
+            "-p",
+            "--dangerously-skip-permissions",
+            "--output-format=stream-json",
+            "--input-format=stream-json",
+            "--include-partial-messages",
+            "--disallowedTools=AskUserQuestion",
+        ])
+
+        assert args.passthrough_print is True
+        assert args.dangerously_skip_permissions is True
+        assert args.output_format == "stream-json"
+        assert args.input_format == "stream-json"
+        assert args.include_partial_messages is True
+        assert args.disallowedTools == "AskUserQuestion"
+
+    def test_passthrough_flags_defaults(self):
+        """Passthrough flags should have correct default values."""
+        import argparse
+        parser = argparse.ArgumentParser()
+        add_run_arguments(parser)
+
+        args = parser.parse_args([])
+
+        assert args.passthrough_print is False
+        assert args.dangerously_skip_permissions is False
+        assert args.output_format is None
+        assert args.input_format is None
+        assert args.include_partial_messages is False
+        assert args.disallowedTools is None
+
+    def test_passthrough_flags_with_headless(self):
+        """Passthrough flags should work together with --headless."""
+        import argparse
+        parser = argparse.ArgumentParser()
+        add_run_arguments(parser)
+
+        args = parser.parse_args([
+            "--headless",
+            "-p",
+            "--dangerously-skip-permissions",
+            "--output-format", "stream-json",
+        ])
+
+        assert args.headless is True
+        assert args.passthrough_print is True
+        assert args.dangerously_skip_permissions is True
+        assert args.output_format == "stream-json"
+
+    def test_passthrough_flags_forwarded_to_claude(self, headless_args):
+        """Passthrough flags should be forwarded to Claude Code in headless mode."""
+        headless_args.input = "test prompt"
+        headless_args.passthrough_print = True
+        headless_args.dangerously_skip_permissions = True
+        headless_args.output_format = "stream-json"
+        headless_args.input_format = "stream-json"
+        headless_args.include_partial_messages = True
+        headless_args.disallowedTools = "AskUserQuestion"
+
+        mock_process = Mock()
+        mock_process.communicate.return_value = ("", "")
+        mock_process.returncode = 0
+
+        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
+            _run_headless_session(headless_args)
+
+        cmd = mock_popen.call_args[0][0]
+        assert "-p" in cmd
+        assert "--dangerously-skip-permissions" in cmd
+        assert "--output-format" in cmd
+        assert "stream-json" in cmd
+        assert "--input-format" in cmd
+        assert "--include-partial-messages" in cmd
+        assert "--disallowedTools" in cmd
+        assert "AskUserQuestion" in cmd
+
+    def test_output_format_not_duplicated(self, mock_runner):
+        """When --output-format is passed through, it should not be added twice."""
+        # Simulate passthrough args including --output-format
+        mock_runner.claude_args = [
+            "-p",
+            "--output-format", "stream-json",
+            "--include-partial-messages",
+        ]
+
+        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+            session = HeadlessSession(mock_runner)
+
+        cmd = session.build_claude_command()
+
+        # Should start with just "claude" (no extra --output-format added)
+        assert cmd[0] == "claude"
+        # Count occurrences of --output-format
+        assert cmd.count("--output-format") == 1
+
+    def test_vibe_kanban_full_command(self, headless_args):
+        """Test the full Vibe Kanban command flow."""
+        # Simulate Vibe Kanban's CLAUDE_CODE executor call
+        headless_args.input = "implement feature X"
+        headless_args.passthrough_print = True
+        headless_args.dangerously_skip_permissions = True
+        headless_args.output_format = "stream-json"
+        headless_args.input_format = "stream-json"
+        headless_args.include_partial_messages = True
+        headless_args.disallowedTools = "AskUserQuestion"
+
+        mock_process = Mock()
+        mock_process.communicate.return_value = (
+            '{"type": "init", "session_id": "vk-123"}\n',
+            ""
+        )
+        mock_process.returncode = 0
+
+        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
+            exit_code = _run_headless_session(headless_args)
+
+        assert exit_code == 0
+
+        # Verify the full command
+        cmd = mock_popen.call_args[0][0]
+        assert "claude" in cmd
+        # Should NOT have --output-format added twice
+        format_indices = [i for i, x in enumerate(cmd) if x == "--output-format"]
+        assert len(format_indices) == 1
+        # All passthrough flags should be present
+        assert "-p" in cmd
+        assert "--dangerously-skip-permissions" in cmd
+        assert "--include-partial-messages" in cmd
+        assert "--disallowedTools" in cmd
+
+    def test_partial_passthrough_flags(self, headless_args):
+        """Test that only specified passthrough flags are forwarded."""
+        headless_args.input = "test prompt"
+        headless_args.passthrough_print = False
+        headless_args.dangerously_skip_permissions = True
+        headless_args.output_format = None
+        headless_args.input_format = None
+        headless_args.include_partial_messages = False
+        headless_args.disallowedTools = "SomeTool"
+
+        mock_process = Mock()
+        mock_process.communicate.return_value = ("", "")
+        mock_process.returncode = 0
+
+        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
+            _run_headless_session(headless_args)
+
+        cmd = mock_popen.call_args[0][0]
+        # Should have --dangerously-skip-permissions and --disallowedTools
+        assert "--dangerously-skip-permissions" in cmd
+        assert "--disallowedTools" in cmd
+        assert "SomeTool" in cmd
+        # Should NOT have -p or --include-partial-messages
+        assert "-p" not in cmd
+        assert "--include-partial-messages" not in cmd
+        # Should have default stream-json since no output_format specified
+        assert "--output-format" in cmd
+        assert "stream-json" in cmd
