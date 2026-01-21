@@ -77,6 +77,7 @@ def filter_claude_mpm_args(claude_args):
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         "--input",
         "--non-interactive",
+        "--headless",  # Headless mode (stream-json output, no Rich formatting)
         # Common logging flags (these are MPM-specific, not Claude CLI flags)
         "--debug",
         "--logging",
@@ -652,6 +653,59 @@ def _handle_reload_agents(logger):
         print("⚠️  Continuing with existing agents...")
 
 
+def _run_headless_session(args) -> int:
+    """
+    Run Claude in headless mode with stream-json output.
+
+    WHY: Headless mode bypasses all Rich console formatting and provides
+    clean NDJSON output suitable for programmatic consumption. This is
+    essential for CI/CD pipelines, automation, and piping to other tools.
+
+    DESIGN DECISION: Uses a separate HeadlessSession class to keep the
+    implementation clean and focused. The session handles:
+    - Reading prompt from stdin (for piping: echo "prompt" | claude-mpm run --headless)
+    - Or from -i flag
+    - Passing raw stream-json output to stdout without Rich formatting
+    - Passing stderr to stderr
+    - Returning appropriate exit code
+
+    Args:
+        args: Parsed command line arguments
+
+    Returns:
+        Exit code from Claude Code process
+    """
+    from ...core.headless_session import HeadlessSession
+
+    # Get prompt from -i flag or stdin
+    prompt = None
+    if hasattr(args, "input") and args.input:
+        prompt = get_user_input(args.input, get_logger("cli"))
+
+    # Get resume session if specified
+    resume_session = None
+    if hasattr(args, "mpm_resume") and args.mpm_resume:
+        resume_session = args.mpm_resume if args.mpm_resume != "last" else None
+
+    # Filter claude args
+    raw_claude_args = getattr(args, "claude_args", []) or []
+    claude_args = filter_claude_mpm_args(raw_claude_args)
+
+    # Add --resume if flag is set
+    if getattr(args, "resume", False) and "--resume" not in claude_args:
+        claude_args.insert(0, "--resume")
+
+    # Create minimal runner-like object for HeadlessSession
+    class MinimalRunner:
+        def __init__(self, args_list):
+            self.claude_args = args_list
+
+    runner = MinimalRunner(claude_args)
+    session = HeadlessSession(runner)
+
+    return session.run(prompt=prompt, resume_session=resume_session)
+
+
 def run_session(args):
     """
     Main entry point for run command.
@@ -680,6 +734,11 @@ def run_session_legacy(args):
     Args:
         args: Parsed command line arguments
     """
+    # Handle headless mode early - bypass all Rich console output
+    if getattr(args, "headless", False):
+        exit_code = _run_headless_session(args)
+        sys.exit(exit_code)
+
     # Only setup startup logging if user wants logging
     if args.logging != LogLevel.OFF.value:
         # Set up startup logging to file early in the process
