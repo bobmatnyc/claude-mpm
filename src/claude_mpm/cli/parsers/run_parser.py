@@ -86,7 +86,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         nargs="?",
         const="",  # Empty string means resume last session (no specific ID)
         default=None,  # None means flag not used
-        help="Resume a Claude Code session. Without argument: resume last session. With session_id: resume specific session (uses --fork-session for safe branching)",
+        help="Resume a Claude Code session (useful with --headless for automation). Without argument: resume last session. With session_id: resume specific session",
     )
     run_group.add_argument(
         "--chrome",
@@ -139,7 +139,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     io_group.add_argument(
         "--headless",
         action="store_true",
-        help="Run in headless mode (disables Rich console, uses stream-json output for programmatic use)",
+        help="Run in headless mode for automation/CI/CD (disables Rich console, outputs NDJSON for programmatic parsing)",
     )
 
     # Claude CLI arguments

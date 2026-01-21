@@ -190,6 +190,47 @@ claude-mpm cleanup-memory
 
 ---
 
+## Headless Mode (Programmatic Use)
+
+Claude-MPM supports headless mode for integration with automation tools, CI/CD pipelines, and orchestration platforms like Vibe Kanban.
+
+### Basic Usage
+
+```bash
+# Run with prompt from stdin
+echo "implement feature X" | claude-mpm run --headless
+
+# Run with prompt from -i flag
+claude-mpm run --headless -i "implement feature X"
+
+# Combine with non-interactive mode
+claude-mpm run --headless --non-interactive -i "fix the bug in auth.py"
+```
+
+### Output Format
+
+Headless mode outputs newline-delimited JSON (NDJSON) for easy parsing:
+
+```json
+{"type":"system","subtype":"init","session_id":"abc123",...}
+{"type":"assistant","message":{...},"session_id":"abc123"}
+{"type":"result","subtype":"success","session_id":"abc123"}
+```
+
+### Session Resume
+
+```bash
+# Capture session ID from initial run
+SESSION_ID=$(claude-mpm run --headless -i "start task" | jq -r 'select(.session_id) | .session_id' | head -1)
+
+# Continue conversation with --resume
+echo "continue task" | claude-mpm run --headless --resume
+```
+
+[→ Complete headless mode documentation](docs/guides/headless-mode.md)
+
+---
+
 ## What's New in v5.0
 
 ### Git Repository Integration for Agents & Skills
