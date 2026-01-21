@@ -702,8 +702,18 @@ def _run_headless_session(args) -> int:
     claude_args = filter_claude_mpm_args(raw_claude_args)
 
     # Add --resume if flag is set
-    if getattr(args, "resume", False) and "--resume" not in claude_args:
-        claude_args.insert(0, "--resume")
+    # args.resume can be:
+    #   None - flag not used
+    #   "" (empty string) - flag used without argument (resume last session)
+    #   "<session_id>" - flag used with specific session ID
+    resume_value = getattr(args, "resume", None)
+    if resume_value is not None and "--resume" not in claude_args:
+        if resume_value:
+            # Specific session ID provided - use --resume <id> --fork-session
+            claude_args = ["--resume", resume_value, "--fork-session", *claude_args]
+        else:
+            # No session ID - just pass --resume (resume last session)
+            claude_args.insert(0, "--resume")
 
     # Create minimal runner-like object for HeadlessSession
     class MinimalRunner:

@@ -80,10 +80,27 @@ class HeadlessSession:
         # Add custom arguments from runner (filtered)
         if self.runner.claude_args:
             # Filter out arguments that don't make sense in headless mode
-            filtered_args = [
-                arg for arg in self.runner.claude_args
-                if arg not in ("--resume",)  # Already handled above
-            ]
+            # If resume_session is provided, skip --resume and the following session ID
+            filtered_args = []
+            skip_next = False
+            for i, arg in enumerate(self.runner.claude_args):
+                if skip_next:
+                    skip_next = False
+                    continue
+                if arg == "--resume":
+                    if resume_session:
+                        # Skip --resume and check if next arg is a session ID
+                        if i + 1 < len(self.runner.claude_args):
+                            next_arg = self.runner.claude_args[i + 1]
+                            # If next arg doesn't start with '-', it's a session ID
+                            if not next_arg.startswith("-"):
+                                skip_next = True
+                        continue
+                    # If no resume_session provided, keep --resume from runner
+                if arg == "--fork-session" and resume_session:
+                    # Skip --fork-session if we're using resume_session
+                    continue
+                filtered_args.append(arg)
             cmd.extend(filtered_args)
 
         return cmd
