@@ -491,8 +491,18 @@ class RunCommand(BaseCommand):
             claude_args.extend(args.claude_args)
 
         # Add --resume if flag is set
-        if getattr(args, "resume", False) and "--resume" not in claude_args:
-            claude_args.insert(0, "--resume")
+        # args.resume can be:
+        #   None - flag not used
+        #   "" (empty string) - flag used without argument (resume last session)
+        #   "<session_id>" - flag used with specific session ID
+        resume_value = getattr(args, "resume", None)
+        if resume_value is not None and "--resume" not in claude_args:
+            if resume_value:
+                # Specific session ID provided - use --resume <id> --fork-session
+                claude_args = ["--resume", resume_value, "--fork-session", *claude_args]
+            else:
+                # No session ID - just pass --resume (resume last session)
+                claude_args.insert(0, "--resume")
 
         # Add --chrome if flag is set
         if getattr(args, "chrome", False) and "--chrome" not in claude_args:
@@ -969,14 +979,24 @@ def run_session_legacy(args):
     raw_claude_args = getattr(args, "claude_args", []) or []
 
     # Add --resume to claude_args if the flag is set
-    resume_flag_present = getattr(args, "resume", False)
-    if resume_flag_present:
-        logger.info("📌 --resume flag detected in args")
+    # args.resume can be:
+    #   None - flag not used
+    #   "" (empty string) - flag used without argument (resume last session)
+    #   "<session_id>" - flag used with specific session ID
+    resume_value = getattr(args, "resume", None)
+    if resume_value is not None:  # Flag was used (could be empty string or session_id)
+        logger.info(f"📌 --resume flag detected in args with value: '{resume_value}'")
         if "--resume" not in raw_claude_args:
-            raw_claude_args = ["--resume", *raw_claude_args]
-            logger.info("✅ Added --resume to claude_args")
+            if resume_value:
+                # Specific session ID provided - use --resume <id> --fork-session
+                raw_claude_args = ["--resume", resume_value, "--fork-session", *raw_claude_args]
+                logger.info(f"✅ Added --resume {resume_value} --fork-session to claude_args")
+            else:
+                # No session ID - just pass --resume (resume last session)
+                raw_claude_args = ["--resume", *raw_claude_args]
+                logger.info("✅ Added --resume to claude_args (resume last session)")
         else:
-            logger.info("[INFO]️ --resume already in claude_args")
+            logger.info("ℹ️ --resume already in claude_args")
 
     # Add --chrome to claude_args if the flag is set
     chrome_flag_present = getattr(args, "chrome", False)
@@ -1011,9 +1031,11 @@ def run_session_legacy(args):
     logger.info(f"Final claude_args being passed: {claude_args}")
 
     # Explicit verification of --resume flag
-    if resume_flag_present:
+    if resume_value is not None:
         if "--resume" in claude_args:
             logger.info("✅ CONFIRMED: --resume flag will be passed to Claude CLI")
+            if resume_value and "--fork-session" in claude_args:
+                logger.info("✅ CONFIRMED: --fork-session flag will be passed to Claude CLI")
         else:
             logger.error("❌ WARNING: --resume flag was filtered out! This is a bug!")
             logger.error(f"   Original args: {raw_claude_args}")

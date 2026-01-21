@@ -82,8 +82,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
     run_group.add_argument(
         "--resume",
-        action="store_true",
-        help="Pass --resume flag to Claude Code to resume the last conversation",
+        type=str,
+        nargs="?",
+        const="",  # Empty string means resume last session (no specific ID)
+        default=None,  # None means flag not used
+        help="Resume a Claude Code session. Without argument: resume last session. With session_id: resume specific session (uses --fork-session for safe branching)",
     )
     run_group.add_argument(
         "--chrome",

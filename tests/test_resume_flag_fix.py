@@ -57,25 +57,31 @@ def test_argument_parsing():
 
     parser = create_parser()
 
-    # Test 1: --resume without command (defaults to run)
+    # Test 1: --resume without command (defaults to run) - resumes last session
     args = parser.parse_args(["--resume"])
     assert hasattr(args, "resume"), "Parser should have resume attribute"
-    assert args.resume, f"resume should be True, got: {args.resume}"
-    print("✓ --resume parsed at top level")
+    # args.resume is now "" (empty string) when used without session_id
+    assert args.resume == "", f"resume should be '' (empty string), got: {repr(args.resume)}"
+    print("✓ --resume parsed at top level (resume last session)")
 
-    # Test 2: run command with --resume
-    args = parser.parse_args(["run", "--resume"])
+    # Test 2: run command with --resume and session_id
+    args = parser.parse_args(["run", "--resume", "session123"])
     assert hasattr(args, "resume"), "Parser should have resume attribute"
-    assert args.resume, f"resume should be True, got: {args.resume}"
-    print("✓ 'run --resume' parsed correctly")
+    assert args.resume == "session123", f"resume should be 'session123', got: {repr(args.resume)}"
+    print("✓ 'run --resume session123' parsed correctly")
 
     # Test 3: --resume with --mpm-resume
-    args = parser.parse_args(["--resume", "--mpm-resume", "last"])
-    assert args.resume, f"resume should be True, got: {args.resume}"
+    args = parser.parse_args(["--resume", "abc", "--mpm-resume", "last"])
+    assert args.resume == "abc", f"resume should be 'abc', got: {repr(args.resume)}"
     assert args.mpm_resume == "last", (
         f"mpm_resume should be 'last', got: {args.mpm_resume}"
     )
     print("✓ Both --resume and --mpm-resume work together")
+
+    # Test 4: No --resume flag means None
+    args = parser.parse_args([])
+    assert args.resume is None, f"resume should be None when not used, got: {repr(args.resume)}"
+    print("✓ No --resume flag results in None")
 
     print("✅ All argument parsing tests passed!\n")
 
@@ -89,7 +95,7 @@ def test_command_construction():
     # Create a mock args object
     class Args:
         def __init__(self):
-            self.resume = False
+            self.resume = None  # None means flag not used
             self.claude_args = []
             self.no_tickets = False
             self.no_hooks = False
@@ -97,27 +103,45 @@ def test_command_construction():
             self.mpm_resume = None
             self.force = False
 
-    # Test 1: --resume flag adds to claude_args
+    # Test 1: --resume without session_id (resume last) adds just --resume to claude_args
     args = Args()
-    args.resume = True
+    args.resume = ""  # Empty string means resume last session
     _ensure_run_attributes(args)
     assert "--resume" in args.claude_args, (
         f"Expected --resume in claude_args, got: {args.claude_args}"
     )
-    print("✓ --resume added to claude_args when flag is set")
+    assert "--fork-session" not in args.claude_args, (
+        f"--fork-session should not be present for resume last, got: {args.claude_args}"
+    )
+    print("✓ --resume added to claude_args when resuming last session")
 
-    # Test 2: --resume not added when flag is False
+    # Test 2: --resume with session_id adds --resume <id> --fork-session
     args = Args()
-    args.resume = False
+    args.resume = "session123"
+    _ensure_run_attributes(args)
+    assert "--resume" in args.claude_args, (
+        f"Expected --resume in claude_args, got: {args.claude_args}"
+    )
+    assert "session123" in args.claude_args, (
+        f"Expected session123 in claude_args, got: {args.claude_args}"
+    )
+    assert "--fork-session" in args.claude_args, (
+        f"Expected --fork-session in claude_args, got: {args.claude_args}"
+    )
+    print("✓ --resume with session_id adds --resume <id> --fork-session")
+
+    # Test 3: --resume not added when flag is None (not used)
+    args = Args()
+    args.resume = None
     _ensure_run_attributes(args)
     assert "--resume" not in args.claude_args, (
-        f"--resume should not be in claude_args, got: {args.claude_args}"
+        f"--resume should not be in claude_args when None, got: {args.claude_args}"
     )
-    print("✓ --resume not added when flag is False")
+    print("✓ --resume not added when flag is None")
 
-    # Test 3: --resume not duplicated if already in claude_args
+    # Test 4: --resume not duplicated if already in claude_args
     args = Args()
-    args.resume = True
+    args.resume = ""  # Resume last
     args.claude_args = ["--resume", "--model", "opus"]
     _ensure_run_attributes(args)
     assert args.claude_args.count("--resume") == 1, (
