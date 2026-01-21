@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.42] - 2026-01-21
+
+### Changed
+- chore: patch version bump for PyPI release
+
 ## [5.6.41] - 2026-01-20
 
 ### Fixed
