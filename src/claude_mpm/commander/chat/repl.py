@@ -99,6 +99,39 @@ class CommanderREPL:
         if handler:
             await handler(cmd.args)
 
+    def _classify_intent(self, text: str) -> str:
+        """Classify user input intent.
+
+        Args:
+            text: User input text.
+
+        Returns:
+            Intent type: 'greeting', 'capabilities', or 'chat'.
+        """
+        t = text.lower().strip()
+        if any(t.startswith(g) for g in ["hello", "hi", "hey", "howdy"]):
+            return "greeting"
+        if any(p in t for p in ["what can you", "can you", "help me", "how do i"]):
+            return "capabilities"
+        return "chat"
+
+    def _handle_greeting(self) -> None:
+        """Handle greeting intent."""
+        self._print(
+            "Hello! I'm MPM Commander. Type 'help' for commands, or 'list' to see instances."
+        )
+
+    def _handle_capabilities(self) -> None:
+        """Handle capabilities inquiry intent."""
+        self._print(
+            """MPM Commander can:
+  - list - Show Claude Code instances
+  - connect <name> - Connect to an instance
+  - status - Show connection status
+  - help - Show all commands
+When connected, send messages to Claude."""
+        )
+
     async def _cmd_list(self, args: list[str]) -> None:
         """List active instances."""
         instances = self.instances.list_instances()
@@ -257,6 +290,15 @@ Examples:
         Args:
             message: User message to send.
         """
+        # Check for greeting/capabilities intent before requiring connection
+        intent = self._classify_intent(message)
+        if intent == "greeting":
+            self._handle_greeting()
+            return
+        if intent == "capabilities":
+            self._handle_capabilities()
+            return
+
         if not self.session.context.is_connected:
             self._print("Not connected to any instance. Use 'connect <name>' first.")
             return

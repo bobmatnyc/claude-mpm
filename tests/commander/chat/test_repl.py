@@ -205,10 +205,57 @@ async def test_cmd_exit(repl):
 @pytest.mark.asyncio
 async def test_send_to_instance_not_connected(repl, capsys):
     """Test sending message when not connected."""
-    await repl._send_to_instance("Hello")
+    await repl._send_to_instance("Fix the login bug")
 
     captured = capsys.readouterr()
     assert "Not connected" in captured.out
+
+
+class TestIntentDetection:
+    """Tests for intent classification and handling."""
+
+    def test_classify_intent_greeting(self, repl):
+        """Test greeting intent classification."""
+        assert repl._classify_intent("hello") == "greeting"
+        assert repl._classify_intent("Hello there") == "greeting"
+        assert repl._classify_intent("hi") == "greeting"
+        assert repl._classify_intent("Hi Claude") == "greeting"
+        assert repl._classify_intent("hey") == "greeting"
+        assert repl._classify_intent("howdy") == "greeting"
+
+    def test_classify_intent_capabilities(self, repl):
+        """Test capabilities intent classification."""
+        assert repl._classify_intent("what can you do") == "capabilities"
+        assert repl._classify_intent("What can you do?") == "capabilities"
+        assert repl._classify_intent("can you help me") == "capabilities"
+        assert repl._classify_intent("help me with something") == "capabilities"
+        assert repl._classify_intent("how do I use this") == "capabilities"
+
+    def test_classify_intent_chat(self, repl):
+        """Test chat intent classification (default)."""
+        assert repl._classify_intent("fix the bug") == "chat"
+        assert repl._classify_intent("deploy to production") == "chat"
+        assert repl._classify_intent("run the tests") == "chat"
+
+    @pytest.mark.asyncio
+    async def test_handle_greeting_not_connected(self, repl, capsys):
+        """Test greeting response when not connected."""
+        await repl._send_to_instance("hello")
+
+        captured = capsys.readouterr()
+        assert "Hello!" in captured.out
+        assert "MPM Commander" in captured.out
+        assert "help" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_capabilities_not_connected(self, repl, capsys):
+        """Test capabilities response when not connected."""
+        await repl._send_to_instance("what can you do")
+
+        captured = capsys.readouterr()
+        assert "MPM Commander can:" in captured.out
+        assert "list" in captured.out
+        assert "connect" in captured.out
 
 
 @pytest.mark.asyncio
@@ -216,7 +263,7 @@ async def test_send_to_instance_instance_gone(repl, session_manager, capsys):
     """Test sending message when instance no longer exists."""
     session_manager.connect_to("myapp")
 
-    await repl._send_to_instance("Hello")
+    await repl._send_to_instance("Fix the authentication bug")
 
     captured = capsys.readouterr()
     assert "no longer exists" in captured.out
