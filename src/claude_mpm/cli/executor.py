@@ -47,6 +47,7 @@ def ensure_run_attributes(args):
     args.intercept_commands = getattr(args, "intercept_commands", False)
     args.input = getattr(args, "input", None)
     args.non_interactive = getattr(args, "non_interactive", False)
+    args.headless = getattr(args, "headless", False)
     args.no_native_agents = getattr(args, "no_native_agents", False)
 
     # Handle claude_args - if --resume flag is set, add it to claude_args

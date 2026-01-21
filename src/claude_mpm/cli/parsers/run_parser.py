@@ -133,6 +133,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Run in non-interactive mode (read from stdin or --input)",
     )
+    io_group.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run in headless mode (disables Rich console, uses stream-json output for programmatic use)",
+    )
 
     # Claude CLI arguments
     parser.add_argument(
