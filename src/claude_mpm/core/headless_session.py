@@ -168,6 +168,9 @@ class HeadlessSession:
             # Vibe-kanban mode: pass stdin through to Claude Code
             # Don't read stdin here, let Claude Code handle it
             self.logger.debug("Using stream-json input mode (vibe-kanban compatibility)")
+            self.logger.info(f"DEBUG: claude_args={claude_args}")
+            self.logger.info(f"DEBUG: uses_stream_json_input={uses_stream_json_input}")
+            self.logger.info(f"DEBUG: cmd={cmd}")
         else:
             # Standard headless mode: read prompt from argument or stdin
             if prompt is None:
@@ -188,6 +191,7 @@ class HeadlessSession:
             cmd.extend(["--print", prompt])
 
         self.logger.debug(f"Headless command: {' '.join(cmd[:5])}...")
+        self.logger.info(f"DEBUG: Full command: {' '.join(cmd)}")
 
         # Prepare environment
         env = self._prepare_environment()
