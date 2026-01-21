@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.43] - 2026-01-21
+
+### Fixed
+- fix: Add missing httpx dependency for commander
+  - httpx is required by the commander module but was not listed as a dependency
+  - Caused ImportError when the package was installed fresh
+
 ## [5.6.42] - 2026-01-21
 
 ### Changed
