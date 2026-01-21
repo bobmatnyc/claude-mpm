@@ -18,6 +18,34 @@ from .commands import Command, CommandParser, CommandType
 class CommanderREPL:
     """Interactive REPL for Commander mode."""
 
+    CAPABILITIES_CONTEXT = """
+MPM Commander Capabilities:
+
+INSTANCE MANAGEMENT:
+- list/ls: Show all running Claude Code instances with their status
+- connect <name>: Connect to a specific instance for interactive chat
+- disconnect: Disconnect from current instance
+- start <name>: Start a new Claude Code instance
+- stop <name>: Stop a running instance
+- status: Show current connection status
+
+WHEN CONNECTED:
+- Send natural language messages to Claude
+- Receive streaming responses
+- Access instance memory and context
+- Execute multi-turn conversations
+
+BUILT-IN COMMANDS:
+- help: Show available commands
+- exit/quit/q: Exit Commander
+
+FEATURES:
+- Real-time streaming responses
+- Instance discovery via daemon
+- Automatic reconnection handling
+- Session context preservation
+"""
+
     def __init__(
         self,
         instance_manager: InstanceManager,
@@ -121,16 +149,31 @@ class CommanderREPL:
             "Hello! I'm MPM Commander. Type 'help' for commands, or 'list' to see instances."
         )
 
-    def _handle_capabilities(self) -> None:
-        """Handle capabilities inquiry intent."""
-        self._print(
-            """MPM Commander can:
-  - list - Show Claude Code instances
-  - connect <name> - Connect to an instance
-  - status - Show connection status
-  - help - Show all commands
-When connected, send messages to Claude."""
-        )
+    async def _handle_capabilities(self, query: str = "") -> None:
+        """Answer questions about capabilities, using LLM if available.
+
+        Args:
+            query: Optional user query about capabilities.
+        """
+        if query and self.llm:
+            try:
+                messages = [
+                    {
+                        "role": "user",
+                        "content": f"Based on these capabilities:\n{self.CAPABILITIES_CONTEXT}\n\nUser asks: {query}",
+                    }
+                ]
+                system = (
+                    "Answer concisely about MPM Commander capabilities. "
+                    "If asked about something not in the capabilities, say so."
+                )
+                response = await self.llm.chat(messages, system=system)
+                self._print(response)
+                return
+            except Exception:  # nosec B110 - Graceful fallback to static output
+                pass
+        # Fallback to static output
+        self._print(self.CAPABILITIES_CONTEXT)
 
     async def _cmd_list(self, args: list[str]) -> None:
         """List active instances."""
@@ -296,7 +339,7 @@ Examples:
             self._handle_greeting()
             return
         if intent == "capabilities":
-            self._handle_capabilities()
+            await self._handle_capabilities(message)
             return
 
         if not self.session.context.is_connected:

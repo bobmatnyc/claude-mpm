@@ -253,9 +253,52 @@ class TestIntentDetection:
         await repl._send_to_instance("what can you do")
 
         captured = capsys.readouterr()
-        assert "MPM Commander can:" in captured.out
+        assert "MPM Commander Capabilities:" in captured.out
         assert "list" in captured.out
         assert "connect" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_capabilities_with_llm(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test capabilities response uses LLM when available."""
+        mock_llm = AsyncMock()
+        mock_llm.chat = AsyncMock(return_value="You can list and connect to instances.")
+
+        repl_with_llm = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+            llm_client=mock_llm,
+        )
+
+        await repl_with_llm._send_to_instance("how do I see running instances")
+
+        captured = capsys.readouterr()
+        assert "You can list and connect to instances." in captured.out
+        mock_llm.chat.assert_called_once()
+        # Verify the call included capabilities context
+        call_args = mock_llm.chat.call_args
+        assert "INSTANCE MANAGEMENT" in call_args[0][0][0]["content"]
+
+    @pytest.mark.asyncio
+    async def test_handle_capabilities_llm_fallback(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test capabilities falls back to static output on LLM error."""
+        mock_llm = AsyncMock()
+        mock_llm.chat = AsyncMock(side_effect=Exception("API Error"))
+
+        repl_with_llm = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+            llm_client=mock_llm,
+        )
+
+        await repl_with_llm._send_to_instance("what can you do")
+
+        captured = capsys.readouterr()
+        # Should fall back to static output
+        assert "MPM Commander Capabilities:" in captured.out
 
 
 @pytest.mark.asyncio
