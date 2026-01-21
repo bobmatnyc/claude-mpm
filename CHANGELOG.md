@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.44] - 2026-01-21
+
+### Changed
+- chore: clean up root directory, move docs to proper locations
+- chore: update ruff pre-commit to v0.14.8 and fix formatting
+
 ## [5.6.43] - 2026-01-21
 
 ### Fixed
