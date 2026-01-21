@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.45] - 2026-01-21
+
+### Added
+- feat: Add RAG-powered capabilities search to Commander
+- feat: Add intent detection for greetings and capability queries
+
 ## [5.6.44] - 2026-01-21
 
 ### Changed
