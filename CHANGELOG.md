@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.49] - 2026-01-22
+
+### Added
+- feat: Async event-driven command model with pending request tracking
+  - Non-blocking command dispatch (cursor returns immediately)
+  - Pending requests shown above cursor with status icons
+  - Responses appear above cursor when ready
+  - Can continue issuing commands while waiting
+
 ## [5.6.48] - 2026-01-21
 
 ### Added
