@@ -287,10 +287,18 @@ class InstanceManager:
             r"hook success",  # Generic hook success
             r"hook.*Success",  # Hook with Success (case-sensitive)
             r"SessionStart.*success",  # Session start hook completed
+            r"Success$",  # Line ending with Success
             # CLAUDE.md loaded (various formats)
             r"claudeMd",  # CLAUDE.md context
             r"CLAUDE\.md",  # Literal file reference
             r"project instructions",  # From CLAUDE.md loading
+            # MPM-specific patterns
+            r"UserPromptSubmit",  # MPM hook
+            r"PM_INSTRUCTIONS",  # MPM instructions loaded
+            r"Agent Memory",  # Agent memory loaded
+            r"Available Agent",  # Agent list shown
+            # Generic ready indicators
+            r"Human:",  # Anthropic prompt format (waiting for input)
         ]
 
         start_time = asyncio.get_event_loop().time()
