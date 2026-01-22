@@ -947,7 +947,7 @@ Examples:
                 if not inst:
                     request.status = RequestStatus.ERROR
                     request.error = f"Instance '{request.target}' no longer exists"
-                    print(f"\n⚠ [{request.target}] {request.error}")
+                    print(f"\n[{request.target}] {request.error}")
                     continue
 
                 # Send to instance
@@ -970,7 +970,7 @@ Examples:
                     except Exception as e:
                         request.status = RequestStatus.ERROR
                         request.error = str(e)
-                        print(f"\n⚠ [{request.target}] Error: {e}")
+                        print(f"\n[{request.target}] Error: {e}")
 
                 # Remove from pending after a short delay
                 await asyncio.sleep(0.5)
@@ -979,7 +979,7 @@ Examples:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"\n⚠ Response processor error: {e}")
+                print(f"\nResponse processor error: {e}")
 
     def _render_pending_status(self) -> None:
         """Render pending request status above the prompt."""
@@ -995,14 +995,14 @@ Examples:
         status_parts = []
         for req in pending:
             elapsed = req.elapsed_seconds()
-            status_icon = {
-                RequestStatus.QUEUED: "⏳",
-                RequestStatus.SENDING: "📤",
-                RequestStatus.WAITING: "⏱",
-                RequestStatus.STARTING: "🚀",
+            status_indicator = {
+                RequestStatus.QUEUED: "...",
+                RequestStatus.SENDING: ">>>",
+                RequestStatus.WAITING: "...",
+                RequestStatus.STARTING: "...",
             }.get(req.status, "?")
             status_parts.append(
-                f"{status_icon} [{req.target}] {req.display_message(30)} ({elapsed}s)"
+                f"{status_indicator} [{req.target}] {req.display_message(30)} ({elapsed}s)"
             )
 
         # Print above prompt (patch_stdout handles cursor positioning)
@@ -1045,10 +1045,10 @@ Examples:
         """Get prompt string.
 
         Returns:
-            Prompt string for input, showing instance name when ready.
+            Prompt string for input, showing instance name when connected.
         """
         connected = self.session.context.connected_instance
-        if connected and self._instance_ready.get(connected):
+        if connected:
             return f"Commander ({connected})> "
         return "Commander> "
 
@@ -1074,7 +1074,7 @@ Examples:
             timeout: Maximum seconds to wait
         """
         # Print starting message (once)
-        print(f"🚀 Waiting for '{name}' to be ready...")
+        print(f"Waiting for '{name}' to be ready...")
 
         # Spawn background task
         task = asyncio.create_task(
@@ -1102,7 +1102,7 @@ Examples:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
                     # Print success
-                    print(f"✓ '{name}' is ready ({int(elapsed)}s)")
+                    print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
@@ -1116,7 +1116,7 @@ Examples:
                 elapsed += interval
 
             # Timeout
-            print(f"⚠ '{name}' startup timeout ({timeout}s) - may still work")
+            print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
@@ -1129,7 +1129,7 @@ Examples:
         except asyncio.CancelledError:
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            print(f"⚠ '{name}' startup error: {e}")
+            print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
@@ -1155,7 +1155,7 @@ Examples:
             inst = self.instances.get_instance(name)
             if inst and inst.ready:
                 # Clear spinner line and show success
-                sys.stdout.write(f"\r\033[K✓ '{name}' is ready\n")
+                sys.stdout.write(f"\r\033[K'{name}' ready\n")
                 sys.stdout.flush()
                 return True
 
@@ -1171,7 +1171,7 @@ Examples:
             frame_idx += 1
 
         # Timeout - clear spinner and show warning
-        sys.stdout.write(f"\r\033[K⚠ '{name}' startup timeout (may still work)\n")
+        sys.stdout.write(f"\r\033[K'{name}' startup timeout (may still work)\n")
         sys.stdout.flush()
         return False
 

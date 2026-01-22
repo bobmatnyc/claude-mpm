@@ -201,14 +201,19 @@ MCP_VECTOR_SEARCH = MCPServiceDefinition(
 # Google Workspace MCP - Google Drive, Docs, Sheets integration
 GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
     name="google_workspace_mcp",
-    package="google-workspace-mcp",
+    package="google_workspace_mcp",
     install_method=InstallMethod.UVX,
     command="uvx",
-    args=["google-workspace-mcp"],
-    required_env=["GOOGLE_OAUTH_CREDENTIALS"],
-    optional_env=["GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_SHEETS_ENABLED"],
-    description="Google Workspace integration (Drive, Docs, Sheets)",
-    env_defaults={},
+    args=["google_workspace_mcp"],
+    required_env=["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+    optional_env=[
+        "OAUTHLIB_INSECURE_TRANSPORT",
+        "USER_GOOGLE_EMAIL",
+        "GOOGLE_PSE_API_KEY",
+        "GOOGLE_PSE_ENGINE_ID",
+    ],
+    description="Google Workspace integration (Gmail, Calendar, Drive, Docs, Sheets, Slides)",
+    env_defaults={"OAUTHLIB_INSECURE_TRANSPORT": "1"},
     enabled_by_default=False,
 )
 
