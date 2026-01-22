@@ -1,8 +1,10 @@
 """Manages running Claude Code/MPM instances."""
 
+import asyncio
 import logging
+import re
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from claude_mpm.commander.adapters import (
     AdapterResponse,
@@ -12,7 +14,11 @@ from claude_mpm.commander.adapters import (
 from claude_mpm.commander.frameworks.base import BaseFramework, InstanceInfo
 from claude_mpm.commander.frameworks.claude_code import ClaudeCodeFramework
 from claude_mpm.commander.frameworks.mpm import MPMFramework
+from claude_mpm.commander.models.events import EventType
 from claude_mpm.commander.tmux_orchestrator import TmuxOrchestrator
+
+if TYPE_CHECKING:
+    from claude_mpm.commander.events.manager import EventManager
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +81,19 @@ class InstanceManager:
         self._instances: dict[str, InstanceInfo] = {}
         self._frameworks = self._load_frameworks()
         self._adapters: dict[str, ClaudeCodeCommunicationAdapter] = {}
+        self._event_manager: Optional[EventManager] = None
+
+    def set_event_manager(self, event_manager: "EventManager") -> None:
+        """Set the event manager for emitting instance events.
+
+        Args:
+            event_manager: EventManager instance for event emission
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_event_manager(event_manager)
+        """
+        self._event_manager = event_manager
 
     def _load_frameworks(self) -> dict[str, BaseFramework]:
         """Load available frameworks.
@@ -200,7 +219,79 @@ class InstanceManager:
             f"Started instance '{name}' with framework '{framework}' at {project_path}"
         )
 
+        # Emit starting event and start background ready detection
+        if self._event_manager:
+            self._event_manager.create(
+                project_id=name,
+                event_type=EventType.INSTANCE_STARTING,
+                title=f"Starting instance '{name}'",
+                content=f"Instance {name} is starting at {project_path}",
+                context={"instance_name": name, "working_dir": str(project_path)},
+            )
+            # Start background ready detection
+            asyncio.create_task(self._detect_ready(name, instance))
+
         return instance
+
+    async def _detect_ready(
+        self, name: str, instance_info: InstanceInfo, timeout: int = 30
+    ) -> None:
+        """Background task to detect when instance is ready.
+
+        Monitors the pane output for patterns indicating the instance
+        is ready to accept commands.
+
+        Args:
+            name: Instance name
+            instance_info: InstanceInfo with pane details
+            timeout: Maximum seconds to wait for ready state
+
+        Example:
+            >>> # Called internally by start_instance
+            >>> asyncio.create_task(self._detect_ready(name, instance))
+        """
+        ready_patterns = [
+            r"^>\s*$",  # Prompt line (just >)
+            r"What would you like",
+            r"How can I help",
+            r"Ready for input",
+        ]
+
+        start_time = asyncio.get_event_loop().time()
+        while asyncio.get_event_loop().time() - start_time < timeout:
+            await asyncio.sleep(1)
+            try:
+                # Get pane output using capture_output
+                output = self.orchestrator.capture_output(
+                    instance_info.pane_target, lines=50
+                )
+                if output:
+                    for pattern in ready_patterns:
+                        if re.search(pattern, output, re.MULTILINE):
+                            # Emit ready event
+                            if self._event_manager:
+                                self._event_manager.create(
+                                    project_id=name,
+                                    event_type=EventType.INSTANCE_READY,
+                                    title=f"Instance '{name}' ready",
+                                    content=f"Instance {name} is ready for commands",
+                                    context={"instance_name": name},
+                                )
+                            logger.info(f"Instance '{name}' is ready")
+                            return
+            except Exception as e:
+                logger.debug(f"Error checking ready state for '{name}': {e}")
+
+        # Timeout - emit ready event anyway since instance might still work
+        if self._event_manager:
+            self._event_manager.create(
+                project_id=name,
+                event_type=EventType.INSTANCE_READY,
+                title=f"Instance '{name}' started",
+                content=f"Instance {name} startup timeout, may be ready",
+                context={"instance_name": name, "timeout": True},
+            )
+        logger.warning(f"Instance '{name}' ready detection timed out after {timeout}s")
 
     async def stop_instance(self, name: str) -> bool:
         """Stop an instance.

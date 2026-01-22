@@ -6,8 +6,10 @@ Tests the new instance management features added in commit 8c0a93a2:
 - disconnect_instance()
 - auto-connect on create
 - summarize_responses config flag
+- set_event_manager() and ready detection
 """
 
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -15,12 +17,14 @@ import pytest
 
 from claude_mpm.commander.chat.cli import CommanderCLIConfig
 from claude_mpm.commander.config import DaemonConfig
+from claude_mpm.commander.events.manager import EventManager
 from claude_mpm.commander.frameworks.base import InstanceInfo
 from claude_mpm.commander.instance_manager import (
     InstanceAlreadyExistsError,
     InstanceManager,
     InstanceNotFoundError,
 )
+from claude_mpm.commander.models.events import EventType
 
 
 class TestRenameInstance:
@@ -525,3 +529,187 @@ class TestStateConsistency:
         assert len(instance_manager._adapters) == 0
         assert "test" not in instance_manager._instances
         assert "test" not in instance_manager._adapters
+
+
+class TestEventManagerIntegration:
+    """Test suite for event manager integration and ready detection."""
+
+    @pytest.fixture
+    def mock_orchestrator(self):
+        """Create mock TmuxOrchestrator."""
+        mock = MagicMock()
+        mock.session_name = "test-session"
+        mock.create_pane = Mock(return_value="%1")
+        mock.capture_output = Mock(return_value="")
+        return mock
+
+    @pytest.fixture
+    def instance_manager(self, mock_orchestrator):
+        """Create InstanceManager with mock orchestrator."""
+        return InstanceManager(mock_orchestrator)
+
+    @pytest.fixture
+    def event_manager(self):
+        """Create real EventManager for testing."""
+        return EventManager()
+
+    def test_set_event_manager(self, instance_manager, event_manager):
+        """Test set_event_manager sets the event manager."""
+        assert instance_manager._event_manager is None
+
+        instance_manager.set_event_manager(event_manager)
+
+        assert instance_manager._event_manager is event_manager
+
+    @pytest.mark.asyncio
+    async def test_start_instance_emits_starting_event(
+        self, instance_manager, mock_orchestrator, event_manager
+    ):
+        """Test start_instance emits INSTANCE_STARTING event."""
+        with patch(
+            "claude_mpm.commander.instance_manager.ClaudeCodeFramework"
+        ) as mock_framework_class, patch(
+            "claude_mpm.commander.instance_manager.ClaudeCodeAdapter"
+        ) as mock_adapter_class, patch(
+            "claude_mpm.commander.instance_manager.ClaudeCodeCommunicationAdapter"
+        ) as mock_comm_adapter_class, patch(
+            "claude_mpm.commander.instance_manager.asyncio.create_task"
+        ) as mock_create_task:
+            # Setup framework mock
+            mock_framework = MagicMock()
+            mock_framework.name = "cc"
+            mock_framework.display_name = "Claude Code"
+            mock_framework.is_available = Mock(return_value=True)
+            mock_framework.get_git_info = Mock(return_value=("main", "clean"))
+            mock_framework.get_startup_command = Mock(return_value="claude")
+            mock_framework_class.return_value = mock_framework
+
+            # Re-create instance manager to pick up framework mock
+            manager = InstanceManager(mock_orchestrator)
+            manager._frameworks["cc"] = mock_framework
+            manager.set_event_manager(event_manager)
+
+            # Setup adapter mocks
+            mock_adapter_class.return_value = MagicMock()
+            mock_comm_adapter_class.return_value = MagicMock()
+
+            await manager.start_instance("test-instance", Path("/test"), framework="cc")
+
+            # Verify INSTANCE_STARTING event was created
+            events = event_manager.get_pending("test-instance")
+            assert len(events) >= 1
+            starting_events = [
+                e for e in events if e.type == EventType.INSTANCE_STARTING
+            ]
+            assert len(starting_events) == 1
+            assert starting_events[0].title == "Starting instance 'test-instance'"
+
+            # Verify background task was created for ready detection
+            mock_create_task.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_detect_ready_emits_ready_event_on_prompt(
+        self, instance_manager, mock_orchestrator, event_manager
+    ):
+        """Test _detect_ready emits INSTANCE_READY when prompt detected."""
+        instance_manager.set_event_manager(event_manager)
+
+        instance = InstanceInfo(
+            name="test",
+            project_path=Path("/test"),
+            framework="cc",
+            tmux_session="test-session",
+            pane_target="%1",
+        )
+
+        # Mock capture_output to return a prompt on second call
+        call_count = [0]
+
+        def mock_capture(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] >= 2:
+                return "Some output\n> "
+            return "Loading..."
+
+        mock_orchestrator.capture_output = mock_capture
+
+        # Run detect_ready with short timeout
+        await instance_manager._detect_ready("test", instance, timeout=3)
+
+        # Verify INSTANCE_READY event was created
+        events = event_manager.get_pending("test")
+        ready_events = [e for e in events if e.type == EventType.INSTANCE_READY]
+        assert len(ready_events) == 1
+        assert ready_events[0].title == "Instance 'test' ready"
+        assert ready_events[0].context.get("instance_name") == "test"
+
+    @pytest.mark.asyncio
+    async def test_detect_ready_emits_timeout_event(
+        self, instance_manager, mock_orchestrator, event_manager
+    ):
+        """Test _detect_ready emits INSTANCE_READY with timeout flag when times out."""
+        instance_manager.set_event_manager(event_manager)
+
+        instance = InstanceInfo(
+            name="test",
+            project_path=Path("/test"),
+            framework="cc",
+            tmux_session="test-session",
+            pane_target="%1",
+        )
+
+        # Mock capture_output to never return a ready prompt
+        mock_orchestrator.capture_output = Mock(return_value="Still loading...")
+
+        # Run detect_ready with very short timeout
+        await instance_manager._detect_ready("test", instance, timeout=2)
+
+        # Verify INSTANCE_READY event was created with timeout flag
+        events = event_manager.get_pending("test")
+        ready_events = [e for e in events if e.type == EventType.INSTANCE_READY]
+        assert len(ready_events) == 1
+        assert "timeout" in ready_events[0].title.lower() or ready_events[
+            0
+        ].context.get("timeout")
+
+    @pytest.mark.asyncio
+    async def test_detect_ready_handles_capture_errors(
+        self, instance_manager, mock_orchestrator, event_manager
+    ):
+        """Test _detect_ready handles errors from capture_output gracefully."""
+        instance_manager.set_event_manager(event_manager)
+
+        instance = InstanceInfo(
+            name="test",
+            project_path=Path("/test"),
+            framework="cc",
+            tmux_session="test-session",
+            pane_target="%1",
+        )
+
+        # Mock capture_output to raise exception then return prompt
+        call_count = [0]
+
+        def mock_capture(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise RuntimeError("Pane not ready")
+            return "What would you like me to do?"
+
+        mock_orchestrator.capture_output = mock_capture
+
+        # Run detect_ready - should handle error and eventually detect ready
+        await instance_manager._detect_ready("test", instance, timeout=5)
+
+        # Verify INSTANCE_READY event was created despite initial error
+        events = event_manager.get_pending("test")
+        ready_events = [e for e in events if e.type == EventType.INSTANCE_READY]
+        assert len(ready_events) == 1
+
+    def test_no_event_without_event_manager(self, instance_manager):
+        """Test no errors when event_manager is not set."""
+        # Should not have event manager by default
+        assert instance_manager._event_manager is None
+
+        # No exception should be raised accessing it
+        instance_manager._event_manager
