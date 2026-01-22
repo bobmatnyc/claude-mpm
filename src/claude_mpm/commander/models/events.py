@@ -26,6 +26,9 @@ class EventType(Enum):
     MILESTONE = "milestone"  # Significant progress
     STATUS = "status"  # General update
     PROJECT_IDLE = "project_idle"  # Project has no work
+    INSTANCE_STARTING = "instance_starting"  # Instance is starting up
+    INSTANCE_READY = "instance_ready"  # Instance is ready for work
+    INSTANCE_ERROR = "instance_error"  # Instance encountered an error
 
 
 class EventPriority(Enum):
@@ -62,6 +65,9 @@ DEFAULT_PRIORITIES: Dict[EventType, EventPriority] = {
     EventType.MILESTONE: EventPriority.LOW,
     EventType.STATUS: EventPriority.INFO,
     EventType.PROJECT_IDLE: EventPriority.INFO,
+    EventType.INSTANCE_STARTING: EventPriority.INFO,
+    EventType.INSTANCE_READY: EventPriority.INFO,
+    EventType.INSTANCE_ERROR: EventPriority.HIGH,
 }
 
 
