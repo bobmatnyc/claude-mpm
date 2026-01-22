@@ -10,6 +10,21 @@
 
 ### Tests
 
+## [5.6.46] - 2026-01-21
+
+### Added
+- feat: Add WorktreeManager for git worktree session isolation
+- feat: Extend RegisteredInstance with worktree tracking fields
+- feat: Integrate worktree creation into instance registration
+- feat: Add /close command and unify @name/(name) syntax
+- feat: Add autocomplete for slash commands and instance names
+
+### Fixed
+- fix: MPM framework uses claude-mpm command
+- fix: Use tmux new-window to avoid 'no space for new pane' error
+- fix: Show instance name in prompt when ready
+- fix: Emit events to subscribers for ready detection
+
 ## [5.6.45] - 2026-01-21
 
 ### Added
