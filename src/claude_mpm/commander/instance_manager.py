@@ -272,10 +272,13 @@ class InstanceManager:
             >>> asyncio.create_task(self._detect_ready(name, instance))
         """
         ready_patterns = [
-            r"^>\s*$",  # Prompt line (just >)
+            r"^>\s*$",  # Claude CLI prompt line (just >)
+            r">\s*$",  # Claude CLI prompt at end of line
             r"What would you like",
             r"How can I help",
             r"Ready for input",
+            r"Tips for getting",  # Claude CLI tips message
+            r"Use /help",  # Claude CLI help hint
         ]
 
         start_time = asyncio.get_event_loop().time()
@@ -290,6 +293,9 @@ class InstanceManager:
                     for pattern in ready_patterns:
                         if re.search(pattern, output, re.MULTILINE):
                             # Emit ready event
+                            # Mark instance as ready
+                            if name in self._instances:
+                                self._instances[name].ready = True
                             if self._event_manager:
                                 event = self._event_manager.create(
                                     project_id=name,
@@ -304,7 +310,9 @@ class InstanceManager:
             except Exception as e:
                 logger.debug(f"Error checking ready state for '{name}': {e}")
 
-        # Timeout - emit ready event anyway since instance might still work
+        # Timeout - mark as ready anyway since instance might still work
+        if name in self._instances:
+            self._instances[name].ready = True
         if self._event_manager:
             event = self._event_manager.create(
                 project_id=name,
@@ -315,6 +323,32 @@ class InstanceManager:
             )
             await self._event_manager.emit(event)
         logger.warning(f"Instance '{name}' ready detection timed out after {timeout}s")
+
+    async def wait_for_ready(self, name: str, timeout: int = 30) -> bool:
+        """Wait for an instance to be ready.
+
+        Polls the instance's ready flag until it becomes True or timeout.
+
+        Args:
+            name: Instance name
+            timeout: Maximum seconds to wait
+
+        Returns:
+            True if instance is ready, False if timeout
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> await manager.start_instance("myapp", "/path/to/app", "mpm")
+            >>> if await manager.wait_for_ready("myapp", timeout=30):
+            ...     print("Ready!")
+        """
+        start_time = asyncio.get_event_loop().time()
+        while asyncio.get_event_loop().time() - start_time < timeout:
+            inst = self._instances.get(name)
+            if inst and inst.ready:
+                return True
+            await asyncio.sleep(0.5)
+        return False
 
     async def stop_instance(self, name: str) -> bool:
         """Stop an instance.

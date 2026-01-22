@@ -42,6 +42,7 @@ class InstanceInfo:
     git_branch: Optional[str] = None
     git_status: Optional[str] = None
     connected: bool = False
+    ready: bool = False
 
 
 @dataclass

@@ -19,7 +19,7 @@ class MPMFramework(BaseFramework):
         >>> framework.is_available()
         True
         >>> framework.get_startup_command(Path("/Users/user/myapp"))
-        "cd '/Users/user/myapp' && claude-mpm --dangerously-skip-permissions"
+        "cd '/Users/user/myapp' && claude-mpm"
     """
 
     name = "mpm"
@@ -38,10 +38,10 @@ class MPMFramework(BaseFramework):
         Example:
             >>> framework = MPMFramework()
             >>> framework.get_startup_command(Path("/Users/user/myapp"))
-            "cd '/Users/user/myapp' && claude-mpm --dangerously-skip-permissions"
+            "cd '/Users/user/myapp' && claude-mpm"
         """
         quoted_path = shlex.quote(str(project_path))
-        return f"cd {quoted_path} && claude-mpm --dangerously-skip-permissions"
+        return f"cd {quoted_path} && claude-mpm"
 
     def is_available(self) -> bool:
         """Check if 'claude-mpm' command is available.

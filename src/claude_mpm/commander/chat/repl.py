@@ -584,9 +584,13 @@ Return ONLY valid JSON."""
             )
             self._print(f"Registered and started '{name}' ({framework}) at {path}")
             self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
-            # Auto-connect after register
-            self.session.connect_to(name)
-            self._print(f"Connected to '{name}'")
+            self._print(f"Waiting for '{name}' to be ready...")
+
+            # Wait for instance to be ready before auto-connecting
+            ready = await self.instances.wait_for_ready(name, timeout=30)
+            if ready:
+                self.session.connect_to(name)
+                self._print(f"Connected to '{name}'")
         except Exception as e:
             self._print(f"Failed to register: {e}")
 
