@@ -729,6 +729,8 @@ def _run_headless_session(args) -> int:
         claude_args.append("--include-partial-messages")
     if getattr(args, "disallowedTools", None):
         claude_args.extend(["--disallowedTools", args.disallowedTools])
+    if getattr(args, "fork_session", False):
+        claude_args.append("--fork-session")
 
     # Create minimal runner-like object for HeadlessSession
     class MinimalRunner:

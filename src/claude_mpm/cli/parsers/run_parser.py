@@ -182,6 +182,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="TOOLS",
         help="Comma-separated list of disallowed tools (passed to Claude Code)",
     )
+    passthrough_group.add_argument(
+        "--fork-session",
+        action="store_true",
+        help="Fork the session for follow-up messages (passed to Claude Code)",
+    )
 
     # Claude CLI arguments
     parser.add_argument(
