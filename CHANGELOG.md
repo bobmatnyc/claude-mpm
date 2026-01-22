@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.48] - 2026-01-21
+
+### Added
+- feat: Add animated spinner while waiting for instance ready
+  - Shows spinning animation with elapsed time counter
+  - Displays checkmark on success, warning symbol on timeout
+
 ## [5.6.47] - 2026-01-21
 
 ### Fixed
