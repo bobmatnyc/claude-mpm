@@ -32,9 +32,19 @@ class Command:
 class CommandParser:
     """Parses user input into commands."""
 
-    ALIASES = {
+    # Map slash command names to CommandType
+    SLASH_COMMANDS = {
+        "register": CommandType.REGISTER,
+        "start": CommandType.START,
+        "stop": CommandType.STOP,
+        "connect": CommandType.CONNECT,
+        "disconnect": CommandType.DISCONNECT,
+        "switch": CommandType.CONNECT,  # alias for connect
+        "list": CommandType.LIST,
         "ls": CommandType.LIST,
-        "instances": CommandType.LIST,
+        "status": CommandType.STATUS,
+        "help": CommandType.HELP,
+        "exit": CommandType.EXIT,
         "quit": CommandType.EXIT,
         "q": CommandType.EXIT,
     }
@@ -42,17 +52,18 @@ class CommandParser:
     def parse(self, input_text: str) -> Optional[Command]:
         """Parse input into a Command.
 
-        Returns None if input is not a built-in command (natural language).
+        Returns None if input is not a slash command (natural language).
+        System commands must start with '/'.
 
         Args:
             input_text: Raw user input.
 
         Returns:
-            Command if input is a built-in command, None otherwise.
+            Command if input is a slash command, None otherwise.
 
         Example:
             >>> parser = CommandParser()
-            >>> cmd = parser.parse("list")
+            >>> cmd = parser.parse("/list")
             >>> cmd.type
             <CommandType.LIST: 'list'>
             >>> parser.parse("tell me about the code")
@@ -61,22 +72,26 @@ class CommandParser:
         if not input_text:
             return None
 
-        parts = input_text.split()
+        # System commands must start with /
+        if not input_text.startswith("/"):
+            return None
+
+        # Remove the leading / and parse
+        cmd_line = input_text[1:]
+        parts = cmd_line.split()
+        if not parts:
+            return None
+
         command_str = parts[0].lower()
         args = parts[1:] if len(parts) > 1 else []
 
-        # Check if it's an alias
-        if command_str in self.ALIASES:
-            cmd_type = self.ALIASES[command_str]
+        # Check if it's a valid slash command
+        if command_str in self.SLASH_COMMANDS:
+            cmd_type = self.SLASH_COMMANDS[command_str]
             return Command(type=cmd_type, args=args, raw=input_text)
 
-        # Check if it's a direct command
-        try:
-            cmd_type = CommandType(command_str)
-            return Command(type=cmd_type, args=args, raw=input_text)
-        except ValueError:
-            # Not a built-in command
-            return None
+        # Unknown slash command
+        return None
 
     def is_command(self, input_text: str) -> bool:
         """Check if input is a built-in command.

@@ -189,9 +189,9 @@ async def test_cmd_help(repl, capsys):
     await repl._cmd_help([])
 
     captured = capsys.readouterr()
-    assert "Commander Commands:" in captured.out
-    assert "list" in captured.out
-    assert "start" in captured.out
+    assert "Commander Commands" in captured.out
+    assert "/list" in captured.out
+    assert "/start" in captured.out
 
 
 @pytest.mark.asyncio
@@ -247,7 +247,7 @@ class TestIntentDetection:
         captured = capsys.readouterr()
         assert "Hello!" in captured.out
         assert "MPM Commander" in captured.out
-        assert "help" in captured.out
+        assert "/help" in captured.out
 
     @pytest.mark.asyncio
     async def test_handle_capabilities_not_connected(self, repl, capsys):
@@ -256,8 +256,8 @@ class TestIntentDetection:
 
         captured = capsys.readouterr()
         assert "MPM Commander Capabilities:" in captured.out
-        assert "list" in captured.out
-        assert "connect" in captured.out
+        assert "/list" in captured.out
+        assert "/connect" in captured.out
 
     @pytest.mark.asyncio
     async def test_handle_capabilities_with_llm(
@@ -377,6 +377,29 @@ async def test_cmd_stop_no_args(repl, capsys):
     assert "Usage:" in captured.out
 
 
+@pytest.mark.asyncio
+async def test_cmd_register_auto_connects(
+    repl, mock_instance_manager, session_manager, capsys, tmp_path
+):
+    """Test register command auto-connects after successful registration."""
+    instance = InstanceInfo(
+        name="myapp",
+        project_path=tmp_path,
+        framework="cc",
+        tmux_session="mpm-commander",
+        pane_target="%1",
+    )
+    mock_instance_manager.register_instance = AsyncMock(return_value=instance)
+
+    await repl._cmd_register([str(tmp_path), "cc", "myapp"])
+
+    captured = capsys.readouterr()
+    assert "Registered and started 'myapp'" in captured.out
+    assert "Connected to 'myapp'" in captured.out
+    assert session_manager.context.is_connected
+    assert session_manager.context.connected_instance == "myapp"
+
+
 class TestEventNotifications:
     """Tests for event-driven instance notifications."""
 
@@ -435,7 +458,7 @@ class TestEventNotifications:
 
         captured = capsys.readouterr()
         assert "[Ready]" in captured.out
-        assert "connect myapp" in captured.out
+        assert "/connect myapp" in captured.out
 
     def test_on_instance_event_ready_with_timeout(
         self, mock_instance_manager, session_manager, capsys
@@ -460,7 +483,7 @@ class TestEventNotifications:
         captured = capsys.readouterr()
         assert "[Warning]" in captured.out
         assert "timeout" in captured.out
-        assert "connect myapp" in captured.out
+        assert "/connect myapp" in captured.out
 
     def test_on_instance_event_error(
         self, mock_instance_manager, session_manager, capsys

@@ -26,25 +26,25 @@ class CommanderREPL:
     CAPABILITIES_CONTEXT = """
 MPM Commander Capabilities:
 
-INSTANCE MANAGEMENT:
-- list/ls: Show all running Claude Code instances with their status
-- register <path> <framework> <name>: Register and start an instance (persisted)
-- start <name>: Start a registered instance by name
-- start <path>: Start a new Claude Code instance at path
-- stop <name>: Stop a running instance
-- connect <name>: Connect to a specific instance for interactive chat
-- disconnect: Disconnect from current instance
-- status: Show current connection status
+INSTANCE MANAGEMENT (use / prefix):
+- /list, /ls: Show all running Claude Code instances with their status
+- /register <path> <framework> <name>: Register, start, and auto-connect
+- /start <name>: Start a registered instance by name
+- /stop <name>: Stop a running instance
+- /connect <name>: Connect to a specific instance for interactive chat
+- /switch <name>: Alias for /connect
+- /disconnect: Disconnect from current instance
+- /status: Show current connection status
 
 WHEN CONNECTED:
-- Send natural language messages to Claude
+- Send natural language messages to Claude (no / prefix)
 - Receive streaming responses
 - Access instance memory and context
 - Execute multi-turn conversations
 
 BUILT-IN COMMANDS:
-- help: Show available commands
-- exit/quit/q: Exit Commander
+- /help: Show available commands
+- /exit, /quit, /q: Exit Commander
 
 FEATURES:
 - Real-time streaming responses
@@ -173,7 +173,7 @@ FEATURES:
     def _handle_greeting(self) -> None:
         """Handle greeting intent."""
         self._print(
-            "Hello! I'm MPM Commander. Type 'help' for commands, or 'list' to see instances."
+            "Hello! I'm MPM Commander. Type '/help' for commands, or '/list' to see instances."
         )
 
     async def _handle_capabilities(self, query: str = "") -> None:
@@ -327,6 +327,9 @@ FEATURES:
             )
             self._print(f"Registered and started '{name}' ({framework}) at {path}")
             self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
+            # Auto-connect after register
+            self.session.connect_to(name)
+            self._print(f"Connected to '{name}'")
         except Exception as e:
             self._print(f"Failed to register: {e}")
 
@@ -377,33 +380,29 @@ FEATURES:
     async def _cmd_help(self, args: list[str]) -> None:
         """Show help message."""
         help_text = """
-Commander Commands:
-  list, ls, instances   List active instances
-  register <path> <framework> <name>
-                        Register and start instance (persisted for future use)
-  start <name>          Start a registered instance by name
-  start <path>          Start new instance at path
-    --framework <cc|mpm>  Specify framework (default: cc)
-    --name <name>         Specify instance name (default: dir name)
-  stop <name>           Stop an instance
-  connect <name>        Connect to an instance
-  disconnect            Disconnect from current instance
-  status                Show current session status
-  help                  Show this help message
-  exit, quit, q         Exit Commander
+Commander Commands (use / prefix):
+  /register <path> <framework> <name>
+                        Register, start, and auto-connect to instance
+  /start <name>         Start a registered instance by name
+  /stop <name>          Stop an instance
+  /connect <name>       Connect to an instance
+  /switch <name>        Alias for /connect
+  /disconnect           Disconnect from current instance
+  /list, /ls            List active instances
+  /status               Show current session status
+  /help                 Show this help message
+  /exit, /quit, /q      Exit Commander
 
 Natural Language:
-  When connected to an instance, any input that is not a built-in
-  command will be sent to the connected instance as a message.
+  Any input without / prefix is sent to the connected instance.
 
 Examples:
-  register ~/myproject cc myapp   # Register and start
-  start myapp                     # Start registered instance
-  start ~/myproject --framework cc --name myapp
-  connect myapp
-  Fix the authentication bug in login.py
-  disconnect
-  exit
+  /register ~/myproject cc myapp  # Register, start, and connect
+  /start myapp                    # Start registered instance
+  /connect myapp                  # Connect to instance
+  Fix the authentication bug      # Send to connected instance
+  /disconnect
+  /exit
 """
         self._print(help_text)
 
@@ -469,7 +468,7 @@ Examples:
             # Show prompt hint
             instance_name = metadata.get("instance_name", "")
             if instance_name:
-                print(f"   Use 'connect {instance_name}' to start chatting")
+                print(f"   Use '/connect {instance_name}' to start chatting")
         elif event.type == EventType.INSTANCE_ERROR:
             print(f"\n[Error] {event.title}: {event.content}")
 
@@ -496,5 +495,5 @@ Examples:
         print("╔══════════════════════════════════════════╗")
         print("║  MPM Commander - Interactive Mode        ║")
         print("╚══════════════════════════════════════════╝")
-        print("Type 'help' for commands, or natural language to chat.")
+        print("Type '/help' for commands, or natural language to chat.")
         print()
