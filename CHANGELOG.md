@@ -10,6 +10,18 @@
 
 ### Tests
 
+## [5.6.52] - 2026-01-22
+
+### Fixed
+- fix: Commander startup wait no longer spams console
+  - Simplified to print once at start and once when ready
+  - No more ANSI escape code issues or duplicated output
+- fix: Suppress httpx INFO logging in Commander CLI
+  - Added httpx/httpcore log level suppression
+- fix: Add claude-mpm ready detection patterns
+  - MPM now detected as ready via MPM-specific output patterns
+  - Detects: "MPM initialized", "SessionStart hook success", etc.
+
 ## [5.6.51] - 2026-01-22
 
 ### Fixed

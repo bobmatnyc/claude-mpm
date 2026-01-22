@@ -272,6 +272,7 @@ class InstanceManager:
             >>> asyncio.create_task(self._detect_ready(name, instance))
         """
         ready_patterns = [
+            # Claude CLI patterns
             r"^>\s*$",  # Claude CLI prompt line (just >)
             r">\s*$",  # Claude CLI prompt at end of line
             r"What would you like",
@@ -279,6 +280,12 @@ class InstanceManager:
             r"Ready for input",
             r"Tips for getting",  # Claude CLI tips message
             r"Use /help",  # Claude CLI help hint
+            # Claude MPM patterns
+            r"MPM initialized",  # MPM startup message
+            r"Project Manager Agent",  # PM agent loaded
+            r"Available Agent Capabilities",  # Agents ready
+            r"SessionStart.*hook success",  # Hooks completed
+            r"claudeMd",  # CLAUDE.md loaded
         ]
 
         start_time = asyncio.get_event_loop().time()

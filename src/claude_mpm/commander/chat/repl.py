@@ -1066,43 +1066,34 @@ Examples:
         """Spawn a background task to wait for instance ready.
 
         This returns immediately - the wait happens in the background.
-        Status is tracked in _pending_requests and displayed above prompt.
+        Prints status when starting and when complete.
 
         Args:
             name: Instance name to wait for
             auto_connect: Whether to auto-connect when ready
             timeout: Maximum seconds to wait
         """
-        request_id = str(uuid.uuid4())[:8]
-        request = PendingRequest(
-            id=request_id,
-            target=name,
-            message="Starting up...",
-            request_type=RequestType.STARTUP,
-            status=RequestStatus.STARTING,
-        )
-        self._pending_requests[request_id] = request
+        # Print starting message (once)
+        print(f"🚀 Waiting for '{name}' to be ready...")
 
         # Spawn background task
         task = asyncio.create_task(
-            self._wait_for_ready_background(request, auto_connect, timeout)
+            self._wait_for_ready_background(name, auto_connect, timeout)
         )
         self._startup_tasks[name] = task
 
-        # Initial status render
-        self._render_pending_status()
-
     async def _wait_for_ready_background(
-        self, request: PendingRequest, auto_connect: bool, timeout: int
+        self, name: str, auto_connect: bool, timeout: int
     ) -> None:
         """Background task that waits for instance ready.
 
+        Prints result when done (ready or timeout).
+
         Args:
-            request: The pending request tracking this startup
+            name: Instance name to wait for
             auto_connect: Whether to auto-connect when ready
             timeout: Maximum seconds to wait
         """
-        name = request.target
         elapsed = 0.0
         interval = 0.5  # Check every 500ms
 
@@ -1110,10 +1101,7 @@ Examples:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    request.status = RequestStatus.COMPLETED
-                    request.response = "ready"
-
-                    # Print success above prompt (patch_stdout handles positioning)
+                    # Print success
                     print(f"✓ '{name}' is ready ({int(elapsed)}s)")
 
                     if auto_connect:
@@ -1121,21 +1109,13 @@ Examples:
                         print(f"  Connected to '{name}'")
 
                     # Cleanup
-                    await asyncio.sleep(0.5)
-                    self._pending_requests.pop(request.id, None)
                     self._startup_tasks.pop(name, None)
                     return
-
-                # Update elapsed in message for display
-                request.message = f"Starting up... ({int(elapsed)}s)"
-                self._render_pending_status()
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
             # Timeout
-            request.status = RequestStatus.ERROR
-            request.error = "startup timeout"
             print(f"⚠ '{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
@@ -1144,18 +1124,12 @@ Examples:
                 print(f"  Connected to '{name}' (may not be fully ready)")
 
             # Cleanup
-            await asyncio.sleep(0.5)
-            self._pending_requests.pop(request.id, None)
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
-            self._pending_requests.pop(request.id, None)
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            request.status = RequestStatus.ERROR
-            request.error = str(e)
             print(f"⚠ '{name}' startup error: {e}")
-            self._pending_requests.pop(request.id, None)
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
