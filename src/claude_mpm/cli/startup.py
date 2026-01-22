@@ -13,6 +13,49 @@ import sys
 from pathlib import Path
 
 
+def cleanup_user_level_hooks() -> bool:
+    """Remove stale user-level hooks directory.
+
+    WHY: claude-mpm previously deployed hooks to ~/.claude/hooks/claude-mpm/
+    (user-level). This is now deprecated in favor of project-level hooks
+    configured in .claude/settings.local.json. Stale user-level hooks can
+    cause conflicts and confusion.
+
+    DESIGN DECISION: Runs early in startup, before project hook sync.
+    Non-blocking - failures are logged at debug level but don't prevent startup.
+
+    Returns:
+        bool: True if hooks were cleaned up, False if none found or cleanup failed
+    """
+    import shutil
+
+    user_hooks_dir = Path.home() / ".claude" / "hooks" / "claude-mpm"
+
+    if not user_hooks_dir.exists():
+        return False
+
+    try:
+        from ..core.logger import get_logger
+
+        logger = get_logger("startup")
+        logger.debug(f"Removing stale user-level hooks directory: {user_hooks_dir}")
+
+        shutil.rmtree(user_hooks_dir)
+
+        logger.debug("User-level hooks cleanup complete")
+        return True
+    except Exception as e:
+        # Non-critical - log but don't fail startup
+        try:
+            from ..core.logger import get_logger
+
+            logger = get_logger("startup")
+            logger.debug(f"Failed to cleanup user-level hooks (non-fatal): {e}")
+        except Exception:  # nosec B110
+            pass  # Avoid any errors in error handling
+        return False
+
+
 def sync_hooks_on_startup(quiet: bool = False) -> bool:
     """Ensure hooks are up-to-date on startup.
 
@@ -20,7 +63,12 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     Reinstalling hooks ensures the hook format matches the current code.
 
     DESIGN DECISION: Shows brief status message on success for user awareness.
-    Failures are logged but don't prevent startup to ensure claude-mpm remains functional.
+    Failures are logged but don't prevent startup to ensure claude-mpm
+    remains functional.
+
+    Workflow:
+    1. Cleanup stale user-level hooks (~/.claude/hooks/claude-mpm/)
+    2. Reinstall project-level hooks to .claude/settings.local.json
 
     Args:
         quiet: If True, suppress all output (used internally)
@@ -28,28 +76,45 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
     Returns:
         bool: True if hooks were synced successfully, False otherwise
     """
+    is_tty = not quiet and sys.stdout.isatty()
+
+    # Step 1: Cleanup stale user-level hooks first
+    if is_tty:
+        print("Cleaning user-level hooks...", end=" ", flush=True)
+
+    cleaned = cleanup_user_level_hooks()
+
+    if is_tty:
+        if cleaned:
+            print("✓")
+        else:
+            print("(none found)")
+
+    # Step 2: Install project-level hooks
     try:
         from ..hooks.claude_hooks.installer import HookInstaller
 
         installer = HookInstaller()
 
         # Show brief status (hooks sync is fast)
-        if not quiet:
-            print("Syncing Claude Code hooks...", end=" ", flush=True)
+        if is_tty:
+            print("Installing project hooks...", end=" ", flush=True)
 
         # Reinstall hooks (force=True ensures update)
         success = installer.install_hooks(force=True)
 
-        if not quiet:
+        if is_tty:
             if success:
-                print("✓")
+                # Count hooks from settings file
+                hook_count = _count_installed_hooks(installer.settings_file)
+                print(f"{hook_count} hooks configured ✓")
             else:
                 print("(skipped)")
 
         return success
 
     except Exception as e:
-        if not quiet:
+        if is_tty:
             print("(error)")
         # Log but don't fail startup
         from ..core.logger import get_logger
@@ -57,6 +122,30 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         logger = get_logger("startup")
         logger.warning(f"Hook sync failed (non-fatal): {e}")
         return False
+
+
+def _count_installed_hooks(settings_file: Path) -> int:
+    """Count the number of hook event types configured in settings.
+
+    Args:
+        settings_file: Path to the settings.local.json file
+
+    Returns:
+        int: Number of hook event types configured (e.g., 7 for all events)
+    """
+    import json
+
+    try:
+        if not settings_file.exists():
+            return 0
+
+        with settings_file.open() as f:
+            settings = json.load(f)
+
+        hooks = settings.get("hooks", {})
+        return len(hooks)
+    except Exception:
+        return 0
 
 
 def cleanup_legacy_agent_cache() -> None:
@@ -284,11 +373,13 @@ def deploy_bundled_skills():
         if deployment_result.get("deployed"):
             # Show simple feedback for deployed skills
             deployed_count = len(deployment_result["deployed"])
-            print(f"✓ Bundled skills ready ({deployed_count} deployed)", flush=True)
+            if sys.stdout.isatty():
+                print(f"✓ Bundled skills ready ({deployed_count} deployed)", flush=True)
             logger.info(f"Skills: Deployed {deployed_count} skill(s)")
         elif not deployment_result.get("errors"):
             # No deployment needed, skills already present
-            print("✓ Bundled skills ready", flush=True)
+            if sys.stdout.isatty():
+                print("✓ Bundled skills ready", flush=True)
 
         if deployment_result.get("errors"):
             logger.warning(
@@ -322,7 +413,8 @@ def discover_and_link_runtime_skills():
 
         discover_skills()
         # Show simple success feedback
-        print("✓ Runtime skills linked", flush=True)
+        if sys.stdout.isatty():
+            print("✓ Runtime skills linked", flush=True)
     except Exception as e:
         # Import logger here to avoid circular imports
         from ..core.logger import get_logger
@@ -377,7 +469,8 @@ def deploy_output_style_on_startup():
 
         if all_up_to_date:
             # Show feedback that output styles are ready
-            print("✓ Output styles ready", flush=True)
+            if sys.stdout.isatty():
+                print("✓ Output styles ready", flush=True)
             return
 
         # Deploy all styles using the manager
@@ -387,7 +480,8 @@ def deploy_output_style_on_startup():
         deployed_count = sum(1 for success in results.values() if success)
 
         if deployed_count > 0:
-            print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
+            if sys.stdout.isatty():
+                print(f"✓ Output styles deployed ({deployed_count} styles)", flush=True)
         else:
             # Deployment failed - log but don't fail startup
             from ..core.logger import get_logger
@@ -1294,9 +1388,11 @@ def verify_and_show_pm_skills():
         if result.verified:
             # Show verified status with count
             total_required = len(REQUIRED_PM_SKILLS)
-            print(
-                f"✓ PM skills: {total_required}/{total_required} verified", flush=True
-            )
+            if sys.stdout.isatty():
+                print(
+                    f"✓ PM skills: {total_required}/{total_required} verified",
+                    flush=True,
+                )
         else:
             # Show warning with details
             missing_count = len(result.missing_skills)
@@ -1315,13 +1411,15 @@ def verify_and_show_pm_skills():
             if "Auto-repaired" in result.message:
                 # Auto-repair succeeded
                 total_required = len(REQUIRED_PM_SKILLS)
-                print(
-                    f"✓ PM skills: {total_required}/{total_required} verified (auto-repaired)",
-                    flush=True,
-                )
+                if sys.stdout.isatty():
+                    print(
+                        f"✓ PM skills: {total_required}/{total_required} verified (auto-repaired)",
+                        flush=True,
+                    )
             else:
                 # Auto-repair failed or not attempted
-                print(f"⚠ PM skills: {status}", flush=True)
+                if sys.stdout.isatty():
+                    print(f"⚠ PM skills: {status}", flush=True)
 
                 # Log warnings for debugging
                 from ..core.logger import get_logger
@@ -1381,6 +1479,28 @@ def auto_install_chrome_devtools_on_startup():
         # Continue execution - chrome-devtools installation failure shouldn't block startup
 
 
+def sync_deployment_on_startup(force_sync: bool = False) -> None:
+    """Consolidated deployment block: hooks + agents.
+
+    WHY: Groups all deployment tasks into a single logical block for clarity.
+    This ensures hooks and agents are deployed together before other services.
+
+    Order:
+    1. Hook cleanup (remove ~/.claude/hooks/claude-mpm/)
+    2. Hook reinstall (update .claude/settings.local.json)
+    3. Agent sync from remote Git sources
+
+    Args:
+        force_sync: Force download even if cache is fresh (bypasses ETag).
+    """
+    # Step 1-2: Hooks (cleanup + reinstall handled by sync_hooks_on_startup)
+    sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
+
+    # Step 3: Agents from remote sources
+    sync_remote_agents_on_startup(force_sync=force_sync)
+    show_agent_summary()  # Display agent counts after deployment
+
+
 def run_background_services(force_sync: bool = False):
     """
     Initialize all background services on startup.
@@ -1396,19 +1516,15 @@ def run_background_services(force_sync: bool = False):
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
     """
-    # Sync hooks early to ensure up-to-date configuration
-    # RATIONALE: Hooks should be synced before other services to fix stale configs
-    # This is fast (<100ms) and non-blocking, so it doesn't delay startup
-    sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
+    # Consolidated deployment block: hooks + agents
+    # RATIONALE: Hooks and agents are deployed together before other services
+    # This ensures the deployment phase is complete before configuration checks
+    sync_deployment_on_startup(force_sync=force_sync)
 
     initialize_project_registry()
     check_mcp_auto_configuration()
     verify_mcp_gateway_startup()
     check_for_updates_async()
-    sync_remote_agents_on_startup(
-        force_sync=force_sync
-    )  # Sync agents from remote sources
-    show_agent_summary()  # Display agent counts after deployment
 
     # Skills deployment order (precedence: remote > bundled)
     # 1. Deploy bundled skills first (base layer from package)
@@ -1520,7 +1636,9 @@ def check_mcp_auto_configuration():
         from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
 
         # Show progress feedback - this operation can take 10+ seconds
-        print("Checking MCP configuration...", end="", flush=True)
+        # Only show progress message in TTY mode to avoid interfering with Claude Code's status display
+        if sys.stdout.isatty():
+            print("Checking MCP configuration...", end="", flush=True)
 
         # This function handles all the logic:
         # - Checks if already configured
@@ -1531,11 +1649,17 @@ def check_mcp_auto_configuration():
         check_and_configure_mcp()
 
         # Clear the "Checking..." message by overwriting with spaces
-        print("\r" + " " * 30 + "\r", end="", flush=True)
+        # Only use carriage return clearing if stdout is a real TTY
+        if sys.stdout.isatty():
+            print("\r" + " " * 30 + "\r", end="", flush=True)
+        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
 
     except Exception as e:
         # Clear progress message on error
-        print("\r" + " " * 30 + "\r", end="", flush=True)
+        # Only use carriage return clearing if stdout is a real TTY
+        if sys.stdout.isatty():
+            print("\r" + " " * 30 + "\r", end="", flush=True)
+        # In non-TTY mode, don't print anything - the "Checking..." message will just remain on its line
 
         # Non-critical - log but don't fail
         from ..core.logger import get_logger

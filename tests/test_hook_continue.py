@@ -48,7 +48,7 @@ def test_hook_handler():
 
     # Check output
     output_lines = result.stdout.strip().split("\n")
-    continue_lines = [line for line in output_lines if '{"action": "continue"}' in line]
+    continue_lines = [line for line in output_lines if '{"continue": true}' in line]
 
     print(f"Test Event: {test_event['hook_event_name']}")
     print(f"Exit Code: {result.returncode}")
@@ -101,7 +101,7 @@ def test_hook_wrapper():
 
     # Check output
     output_lines = result.stdout.strip().split("\n")
-    continue_lines = [line for line in output_lines if '{"action": "continue"}' in line]
+    continue_lines = [line for line in output_lines if '{"continue": true}' in line]
 
     print(f"\nTest Event: {test_event['hook_event_name']}")
     print(f"Exit Code: {result.returncode}")

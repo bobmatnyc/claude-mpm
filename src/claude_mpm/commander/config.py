@@ -14,28 +14,30 @@ class DaemonConfig:
 
     Attributes:
         host: API server bind address
-        port: API server port
+        port: API server port (default: 8766 from NetworkPorts.COMMANDER_DEFAULT)
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
         state_dir: Directory for state persistence
         max_projects: Maximum concurrent projects
         healthcheck_interval: Healthcheck interval in seconds
         save_interval: State persistence interval in seconds
         poll_interval: Event polling interval in seconds
+        summarize_responses: Whether to use LLM to summarize instance responses
 
     Example:
-        >>> config = DaemonConfig(port=8765, log_level="DEBUG")
+        >>> config = DaemonConfig(port=8766, log_level="DEBUG")
         >>> config.state_dir
         PosixPath('/Users/user/.claude-mpm/commander')
     """
 
     host: str = "127.0.0.1"
-    port: int = 8765
+    port: int = 8766  # Default commander port (from network_config.NetworkPorts.COMMANDER_DEFAULT)
     log_level: str = "INFO"
     state_dir: Path = Path.home() / ".claude-mpm" / "commander"
     max_projects: int = 10
     healthcheck_interval: int = 30
     save_interval: int = 30
     poll_interval: float = 2.0
+    summarize_responses: bool = True
 
     def __post_init__(self):
         """Ensure state_dir is a Path object and create if needed."""

@@ -35,9 +35,9 @@ def test_output_style_exists():
 
     # Check for key PM delegation directives
     assert "MANDATORY DELEGATION" in content, "Missing mandatory delegation directive"
-    assert (
-        "FORBIDDEN FROM DOING ANY WORK DIRECTLY" in content
-    ), "Missing prohibition on direct work"
+    assert "FORBIDDEN FROM DOING ANY WORK DIRECTLY" in content, (
+        "Missing prohibition on direct work"
+    )
     assert "DELEGATE" in content, "Missing delegation keyword"
     assert "Override phrases" in content, "Missing override phrases section"
 
@@ -95,9 +95,9 @@ def test_deployment_function():
                 # Check settings.json was created
                 assert settings_file.exists(), "settings.json not created"
                 settings = json.loads(settings_file.read_text())
-                assert (
-                    settings.get("activeOutputStyle") == "Claude MPM"
-                ), "activeOutputStyle not set"
+                assert settings.get("activeOutputStyle") == "Claude MPM", (
+                    "activeOutputStyle not set"
+                )
 
                 print(f"✓ Output style file created at: {output_style_file}")
                 print(f"✓ Content matches source ({len(deployed_content)} characters)")
@@ -135,9 +135,9 @@ def test_idempotency():
 
                 # Check file was not modified
                 second_mtime = output_style_file.stat().st_mtime
-                assert (
-                    first_mtime == second_mtime
-                ), "File was modified on second deployment"
+                assert first_mtime == second_mtime, (
+                    "File was modified on second deployment"
+                )
 
                 print("✓ First deployment completed")
                 print("✓ Second deployment skipped (file not modified)")
@@ -158,9 +158,9 @@ def test_startup_integration():
     source = inspect.getsource(run_background_services)
 
     # Check that deploy_output_style_on_startup is called
-    assert (
-        "deploy_output_style_on_startup()" in source
-    ), "deploy_output_style_on_startup not called in run_background_services"
+    assert "deploy_output_style_on_startup()" in source, (
+        "deploy_output_style_on_startup not called in run_background_services"
+    )
 
     print("✓ run_background_services() calls deploy_output_style_on_startup()")
 
@@ -206,9 +206,9 @@ def test_version_check():
 
                 # Verify no files were created
                 output_styles_dir = temp_home / ".claude" / "output-styles"
-                assert (
-                    not output_styles_dir.exists()
-                ), "Output styles directory should not be created"
+                assert not output_styles_dir.exists(), (
+                    "Output styles directory should not be created"
+                )
 
                 print("✓ Deployment skipped for unsupported versions")
                 print("✓ No files created when version check fails")

@@ -77,8 +77,8 @@ Examples:
     commander_parser.add_argument(
         "--port",
         type=int,
-        default=8765,
-        help="Port for internal services (default: 8765)",
+        default=8766,  # NetworkPorts.COMMANDER_DEFAULT
+        help="Port for internal services (default: 8766)",
     )
 
     # Optional: State directory

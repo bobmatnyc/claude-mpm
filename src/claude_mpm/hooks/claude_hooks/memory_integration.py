@@ -67,7 +67,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 # Debug mode
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Memory hooks integration
 MEMORY_HOOKS_AVAILABLE = False

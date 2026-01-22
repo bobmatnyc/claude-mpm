@@ -38,7 +38,7 @@ def main():
         # Read event from stdin
         event_data = sys.stdin.read()
         if not event_data.strip():
-            print(json.dumps({"action": "continue"}))
+            print(json.dumps({"continue": True}))
             return
 
         event = json.loads(event_data)
@@ -49,7 +49,7 @@ def main():
         if tool_name == "Grep" and "-n" not in tool_input:
             modified_input = tool_input.copy()
             modified_input["-n"] = True
-            print(json.dumps({"action": "continue", "tool_input": modified_input}))
+            print(json.dumps({"continue": True, "tool_input": modified_input}))
             return
 
         # Example: Block operations on .env files
@@ -59,19 +59,19 @@ def main():
                 print(
                     json.dumps(
                         {
-                            "action": "block",
-                            "message": "Access to .env file blocked for security",
+                            "continue": False,
+                            "stopReason": "Access to .env file blocked for security",
                         }
                     )
                 )
                 return
 
         # Default: continue without modification
-        print(json.dumps({"action": "continue"}))
+        print(json.dumps({"continue": True}))
 
     except Exception:
         # Always continue on error to avoid blocking Claude
-        print(json.dumps({"action": "continue"}))
+        print(json.dumps({"continue": True}))
 
 
 if __name__ == "__main__":

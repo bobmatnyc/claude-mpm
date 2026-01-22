@@ -72,8 +72,12 @@ function deleteAdmin(adminId) {
         print(f"\nFound {len(clones)} clones:\n")
         for i, clone in enumerate(clones, 1):
             print(f"Clone {i}:")
-            print(f"  File 1: {clone.file1.name} (lines {clone.line_start1}-{clone.line_end1})")
-            print(f"  File 2: {clone.file2.name} (lines {clone.line_start2}-{clone.line_end2})")
+            print(
+                f"  File 1: {clone.file1.name} (lines {clone.line_start1}-{clone.line_end1})"
+            )
+            print(
+                f"  File 2: {clone.file2.name} (lines {clone.line_start2}-{clone.line_end2})"
+            )
             print(f"  Similarity: {clone.similarity:.2%}")
             print(f"  Type: {clone.clone_type}")
             print()
@@ -135,8 +139,12 @@ function product(x: number, y: number): number {
         print(f"\nFound {len(clones)} clones:\n")
         for i, clone in enumerate(clones, 1):
             print(f"Clone {i}:")
-            print(f"  File 1: {clone.file1.name} (lines {clone.line_start1}-{clone.line_end1})")
-            print(f"  File 2: {clone.file2.name} (lines {clone.line_start2}-{clone.line_end2})")
+            print(
+                f"  File 1: {clone.file1.name} (lines {clone.line_start1}-{clone.line_end1})"
+            )
+            print(
+                f"  File 2: {clone.file2.name} (lines {clone.line_start2}-{clone.line_end2})"
+            )
             print(f"  Similarity: {clone.similarity:.2%}")
             print(f"  Type: {clone.clone_type}")
             print()
@@ -152,7 +160,9 @@ def demo_multi_language_project():
         # Create files in different languages
         (project / "utils.py").write_text("def process_data(data): return data")
         (project / "utils.js").write_text("function processData(data) { return data; }")
-        (project / "utils.ts").write_text("function processData(data: any): any { return data; }")
+        (project / "utils.ts").write_text(
+            "function processData(data: any): any { return data; }"
+        )
 
         detector = CloneDetector(min_similarity=0.60)
 

@@ -499,7 +499,7 @@ class Config:
             # Socket.IO server health and recovery configuration
             "socketio_server": {
                 "host": "localhost",
-                "port": 8765,
+                "port": 8768,  # Default SocketIO port (from network_config.NetworkPorts)
                 "enable_health_monitoring": True,
                 "enable_recovery": True,
                 "health_monitoring": {
@@ -540,7 +540,7 @@ class Config:
             # Monitor server configuration (decoupled from dashboard)
             "monitor_server": {
                 "host": "localhost",
-                "port": 8765,  # Default monitor port (shared with dashboard)
+                "port": 8765,  # Default monitor port (from network_config.NetworkPorts.MONITOR_DEFAULT)
                 "enable_health_monitoring": True,
                 "auto_start": False,  # Don't auto-start with dashboard by default
                 "event_buffer_size": 2000,  # Larger buffer for monitor server
@@ -549,7 +549,7 @@ class Config:
             # Dashboard server configuration (connects to monitor)
             "dashboard_server": {
                 "host": "localhost",
-                "port": 8765,  # Dashboard UI port
+                "port": 8767,  # Dashboard UI port (from network_config.NetworkPorts.DASHBOARD_DEFAULT)
                 "monitor_host": "localhost",  # Monitor server host to connect to
                 "monitor_port": 8765,  # Monitor server port to connect to
                 "auto_connect_monitor": True,  # Automatically connect to monitor

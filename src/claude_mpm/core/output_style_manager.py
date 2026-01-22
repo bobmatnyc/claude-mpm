@@ -358,8 +358,11 @@ class OutputStyleManager:
 
             # Only set activeOutputStyle if:
             # 1. No active style is set (first deployment), OR
-            # 2. This is a fresh install (file didn't exist before deployment)
-            should_activate = current_style is None or is_fresh_install
+            # 2. Current style is "default" (not a real user preference), OR
+            # 3. This is a fresh install (file didn't exist before deployment)
+            should_activate = (
+                current_style is None or current_style == "default" or is_fresh_install
+            )
 
             if should_activate and current_style != style_name:
                 settings["activeOutputStyle"] = style_name

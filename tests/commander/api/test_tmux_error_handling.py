@@ -63,7 +63,7 @@ class TestSessionCreatePaneErrorHandling:
         # Mock subprocess error with "no space for new pane" in stderr
         error = subprocess.CalledProcessError(
             returncode=1,
-            cmd=["tmux", "split-window"],
+            cmd=["tmux", "new-window"],
             stderr=b"tmux: no space for new pane",
         )
         mock_tmux.create_pane.side_effect = error
@@ -103,7 +103,7 @@ class TestSessionCreatePaneErrorHandling:
         # Mock subprocess error without "no space" message
         error = subprocess.CalledProcessError(
             returncode=1,
-            cmd=["tmux", "split-window"],
+            cmd=["tmux", "new-window"],
             stderr=b"tmux: session not found",
         )
         mock_tmux.create_pane.side_effect = error
@@ -178,7 +178,7 @@ class TestSessionCreatePaneErrorHandling:
         # Mock subprocess error with mixed-case message
         error = subprocess.CalledProcessError(
             returncode=1,
-            cmd=["tmux", "split-window"],
+            cmd=["tmux", "new-window"],
             stderr=b"tmux: No Space For New Pane",
         )
         mock_tmux.create_pane.side_effect = error

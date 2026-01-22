@@ -56,7 +56,7 @@ except ImportError:
 logger = get_logger(__name__)
 
 # Debug mode
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Warning messages for threshold crossings
 THRESHOLD_WARNINGS = {

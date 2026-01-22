@@ -33,7 +33,9 @@ def main():
     print("\n[Hook 1] Code analysis request")
     state = tracker.update_usage(input_tokens=15000, output_tokens=3000)
     print(f"  Input: 15,000 | Output: 3,000")
-    print(f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens")
+    print(
+        f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
+    )
     print(f"  Usage: {state.percentage_used:.1f}%")
     print(f"  Threshold: {state.threshold_reached or 'None'}")
 
@@ -46,7 +48,9 @@ def main():
         cache_read=3000,
     )
     print(f"  Input: 25,000 | Output: 8,000 | Cache Read: 3,000")
-    print(f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens")
+    print(
+        f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
+    )
     print(f"  Usage: {state.percentage_used:.1f}%")
     print(f"  Threshold: {state.threshold_reached or 'None'}")
 
@@ -54,7 +58,9 @@ def main():
     print("\n[Hook 3] Large refactoring request")
     state = tracker.update_usage(input_tokens=40000, output_tokens=12000)
     print(f"  Input: 40,000 | Output: 12,000")
-    print(f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens")
+    print(
+        f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
+    )
     print(f"  Usage: {state.percentage_used:.1f}%")
     print(f"  Threshold: {state.threshold_reached or 'None'}")
 
@@ -62,7 +68,9 @@ def main():
     print("\n[Hook 4] Documentation generation")
     state = tracker.update_usage(input_tokens=30000, output_tokens=10000)
     print(f"  Input: 30,000 | Output: 10,000")
-    print(f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens")
+    print(
+        f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
+    )
     print(f"  Usage: {state.percentage_used:.1f}%")
     print(f"  Threshold: {state.threshold_reached or 'None'}")
 
@@ -107,7 +115,9 @@ def main():
     for name, percentage in tracker.THRESHOLDS.items():
         tokens = int(tracker.CONTEXT_BUDGET * percentage)
         status = "✓" if state.percentage_used < (percentage * 100) else "⚠️"
-        print(f"{status} {name.upper():12} - {percentage*100:.0f}% ({tokens:,} tokens)")
+        print(
+            f"{status} {name.upper():12} - {percentage * 100:.0f}% ({tokens:,} tokens)"
+        )
 
     # Demonstrate session reset
     print()

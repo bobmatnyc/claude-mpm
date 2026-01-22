@@ -307,7 +307,16 @@ class CommanderDaemon:
 
         Registers handlers for SIGINT and SIGTERM that trigger
         daemon shutdown via asyncio event loop.
+
+        Note: Signal handlers can only be registered from the main thread.
+        If called from a background thread, registration is skipped.
         """
+        import threading
+
+        # Signal handlers can only be registered from the main thread
+        if threading.current_thread() is not threading.main_thread():
+            logger.info("Running in background thread - signal handlers skipped")
+            return
 
         def handle_signal(signum: int, frame) -> None:
             """Handle shutdown signal.

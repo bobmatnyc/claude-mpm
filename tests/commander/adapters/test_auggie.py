@@ -142,14 +142,14 @@ class TestAuggieAdapter:
     # detect_question tests
     def test_detect_question_yes_no(self, adapter):
         """Test detecting yes/no questions."""
-        is_q, text, options = adapter.detect_question("Continue? (y/n)?")
+        is_q, text, _options = adapter.detect_question("Continue? (y/n)?")
         assert is_q is True
         assert text is not None
 
     def test_detect_question_with_options(self, adapter):
         """Test detecting questions with numbered options."""
         output = "Which option:\n1. First option\n2. Second option"
-        is_q, text, options = adapter.detect_question(output)
+        is_q, _text, options = adapter.detect_question(output)
 
         assert is_q is True
         assert options is not None
@@ -157,7 +157,7 @@ class TestAuggieAdapter:
 
     def test_detect_question_no_question(self, adapter):
         """Test that non-questions are not detected."""
-        is_q, text, options = adapter.detect_question("Task completed")
+        is_q, _text, _options = adapter.detect_question("Task completed")
         assert is_q is False
 
     # parse_response tests

@@ -19,6 +19,7 @@ class InstanceInfo:
         pane_target: Tmux pane target (e.g., "%1")
         git_branch: Current git branch if project is a git repo
         git_status: Git status summary if project is a git repo
+        connected: Whether instance has an active adapter connection
 
     Example:
         >>> info = InstanceInfo(
@@ -28,7 +29,8 @@ class InstanceInfo:
         ...     tmux_session="mpm-commander",
         ...     pane_target="%1",
         ...     git_branch="main",
-        ...     git_status="clean"
+        ...     git_status="clean",
+        ...     connected=True
         ... )
     """
 
@@ -39,6 +41,94 @@ class InstanceInfo:
     pane_target: str
     git_branch: Optional[str] = None
     git_status: Optional[str] = None
+    connected: bool = False
+    ready: bool = False
+
+
+@dataclass
+class RegisteredInstance:
+    """Persistent instance configuration (survives daemon restart).
+
+    Attributes:
+        name: Instance identifier
+        path: Original project directory path (stored as string for JSON)
+        framework: Framework identifier ("cc" or "mpm")
+        registered_at: ISO timestamp when instance was registered
+        worktree_path: Path to git worktree (if using worktree isolation)
+        worktree_branch: Branch name in the worktree
+        use_worktree: Whether worktree isolation is enabled
+
+    Example:
+        >>> instance = RegisteredInstance(
+        ...     name="myapp",
+        ...     path="/Users/user/myapp",
+        ...     framework="cc",
+        ...     registered_at="2024-01-15T10:30:00"
+        ... )
+        >>> instance.to_dict()
+        {'name': 'myapp', 'path': '/Users/user/myapp', 'framework': 'cc', ...}
+        >>> instance.working_path
+        '/Users/user/myapp'
+
+        >>> # With worktree enabled
+        >>> instance = RegisteredInstance(
+        ...     name="myapp",
+        ...     path="/Users/user/myapp",
+        ...     framework="cc",
+        ...     registered_at="2024-01-15T10:30:00",
+        ...     worktree_path="/Users/user/.mpm/worktrees/myapp",
+        ...     worktree_branch="feature/new-feature",
+        ...     use_worktree=True
+        ... )
+        >>> instance.working_path
+        '/Users/user/.mpm/worktrees/myapp'
+    """
+
+    name: str
+    path: str  # Original project path
+    framework: str
+    registered_at: str
+    # Worktree fields
+    worktree_path: Optional[str] = None  # Path to worktree (if using)
+    worktree_branch: Optional[str] = None  # Branch in worktree
+    use_worktree: bool = False  # Whether worktree is enabled
+
+    def to_dict(self) -> dict:
+        """Serialize for JSON storage."""
+        return {
+            "name": self.name,
+            "path": self.path,
+            "framework": self.framework,
+            "registered_at": self.registered_at,
+            "worktree_path": self.worktree_path,
+            "worktree_branch": self.worktree_branch,
+            "use_worktree": self.use_worktree,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "RegisteredInstance":
+        """Deserialize from JSON."""
+        return cls(
+            name=data["name"],
+            path=data["path"],
+            framework=data["framework"],
+            registered_at=data.get("registered_at", ""),
+            worktree_path=data.get("worktree_path"),
+            worktree_branch=data.get("worktree_branch"),
+            use_worktree=data.get("use_worktree", False),
+        )
+
+    @property
+    def working_path(self) -> str:
+        """Get the actual working path (worktree or original).
+
+        Returns:
+            The worktree path if worktree is enabled and configured,
+            otherwise the original project path.
+        """
+        if self.use_worktree and self.worktree_path:
+            return self.worktree_path
+        return self.path
 
 
 class BaseFramework(ABC):

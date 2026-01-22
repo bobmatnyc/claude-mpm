@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Socket.IO connection pool for efficient client connection management.
 
 This module provides a connection pool to reuse Socket.IO client connections,
@@ -31,12 +30,21 @@ except ImportError:
 # Import constants for configuration
 try:
     from claude_mpm.core.constants import NetworkConfig
+    from claude_mpm.core.network_config import NetworkPorts
 except ImportError:
     # Fallback if constants module not available
+    class NetworkPorts:
+        MONITOR_DEFAULT = 8765
+        COMMANDER_DEFAULT = 8766
+        DASHBOARD_DEFAULT = 8767
+        SOCKETIO_DEFAULT = 8768
+        PORT_RANGE_START = 8765
+        PORT_RANGE_END = 8785
+
     class NetworkConfig:
-        DEFAULT_DASHBOARD_PORT = 8765
+        DEFAULT_DASHBOARD_PORT = 8767
         SOCKETIO_PORT_RANGE = (8765, 8785)
-        DEFAULT_SOCKETIO_PORT = 8765
+        DEFAULT_SOCKETIO_PORT = 8768
 
     socketio = None
 
@@ -184,9 +192,14 @@ class SocketIOConnectionPool:
         self.health_running = False
         self.last_health_check = datetime.now(timezone.utc)
 
-        # Server configuration
-        self.server_url = None
-        self.server_port = None
+        # Server configuration - use default immediately, update async
+        self.server_port = int(
+            os.environ.get(
+                "CLAUDE_MPM_SOCKETIO_PORT", str(NetworkConfig.DEFAULT_SOCKETIO_PORT)
+            )
+        )
+        self.server_url = f"http://localhost:{self.server_port}"
+        self._port_detection_complete = False
 
         # Pool lifecycle
         self._running = False
@@ -200,7 +213,10 @@ class SocketIOConnectionPool:
             return
 
         self._running = True
-        self._detect_server()
+
+        # Start async port detection in background (non-blocking)
+        # Default port is already set in __init__, this just updates if a better one is found
+        self._detect_server_async()
 
         # Start batch processing thread
         self.batch_running = True
@@ -266,14 +282,29 @@ class SocketIOConnectionPool:
 
         self.logger.info("Socket.IO connection pool stopped")
 
+    def _detect_server_async(self):
+        """Start server detection in background thread.
+
+        This runs port scanning asynchronously to avoid blocking the main thread.
+        The default port is already set in __init__, so this just updates if a better one is found.
+        """
+        threading.Thread(
+            target=self._detect_server, daemon=True, name="port-detect"
+        ).start()
+
     def _detect_server(self):
-        """Detect Socket.IO server configuration."""
-        # Check environment variable first
+        """Detect Socket.IO server configuration.
+
+        This method scans ports to find a running Socket.IO server.
+        It's designed to be run in a background thread to avoid blocking.
+        """
+        # Check environment variable first - if set, use it and skip detection
         env_port = os.environ.get("CLAUDE_MPM_SOCKETIO_PORT")
         if env_port:
             try:
                 self.server_port = int(env_port)
                 self.server_url = f"http://localhost:{self.server_port}"
+                self._port_detection_complete = True
                 self.logger.debug(
                     f"Using Socket.IO server from environment: {self.server_url}"
                 )
@@ -302,19 +333,20 @@ class SocketIOConnectionPool:
         for port in common_ports:
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.settimeout(0.05)
+                    # Use 10ms timeout (reduced from 50ms) for faster scanning
+                    s.settimeout(0.01)
                     result = s.connect_ex(("localhost", port))
                     if result == 0:
                         self.server_port = port
                         self.server_url = f"http://localhost:{port}"
+                        self._port_detection_complete = True
                         self.logger.debug(f"Detected Socket.IO server on port {port}")
                         return
-            except Exception:
+            except Exception:  # nosec B112 - intentional: skip ports that fail
                 continue
 
-        # Fall back to default
-        self.server_port = NetworkConfig.DEFAULT_DASHBOARD_PORT
-        self.server_url = f"http://localhost:{self.server_port}"
+        # Keep default port set in __init__, mark detection complete
+        self._port_detection_complete = True
         self.logger.debug(f"Using default Socket.IO server: {self.server_url}")
 
     def _create_client(self) -> Optional[socketio.AsyncClient]:
@@ -579,7 +611,7 @@ class SocketIOConnectionPool:
                     loop.stop()
                     loop.run_until_complete(loop.shutdown_asyncgens())
                     loop.close()
-                except Exception:
+                except Exception:  # nosec B110 - intentional: cleanup best-effort
                     pass
 
     async def _connect_client(self, client: socketio.AsyncClient):

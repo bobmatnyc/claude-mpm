@@ -1,4 +1,32 @@
 #!/usr/bin/env python3
+# ==============================================================================
+# CRITICAL: EARLY LOGGING SUPPRESSION - MUST BE FIRST
+# ==============================================================================
+# Suppress ALL logging before any other imports to prevent REPL pollution.
+# The StreamingHandler in logger.py writes carriage returns (\r) and spaces
+# to stderr which pollutes Claude Code's REPL output.
+#
+# This MUST be before any imports that could trigger module-level loggers.
+# ==============================================================================
+import logging as _early_logging
+import sys as _early_sys
+
+# Force redirect all logging to NullHandler before any module imports
+# This prevents ANY log output from polluting stdout/stderr during hook execution
+_early_logging.basicConfig(handlers=[_early_logging.NullHandler()], force=True)
+# Also ensure root logger has no handlers that write to stderr
+_early_logging.getLogger().handlers = [_early_logging.NullHandler()]
+# Suppress all loggers by setting a very high level initially
+_early_logging.getLogger().setLevel(_early_logging.CRITICAL + 1)
+
+# Clean up namespace to avoid polluting module scope
+del _early_logging
+del _early_sys
+
+# ==============================================================================
+# END EARLY LOGGING SUPPRESSION
+# ==============================================================================
+
 """Refactored Claude Code hook handler with modular service architecture.
 
 This handler uses a service-oriented architecture with:
@@ -16,6 +44,12 @@ WHY service-oriented approach:
 NOTE: Requires Claude Code version 1.0.92 or higher for proper hook support.
 Earlier versions do not support matcher-based hook configuration.
 """
+
+# Suppress RuntimeWarning from frozen runpy (prevents REPL pollution in Claude Code)
+# Must be before other imports to suppress warnings during import
+import warnings
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import json
 import os
@@ -38,6 +72,7 @@ try:
     from .services import (
         ConnectionManagerService,
         DuplicateEventDetector,
+        HookServiceContainer,
         StateManagerService,
         SubagentResponseProcessor,
     )
@@ -55,9 +90,25 @@ except ImportError:
     from services import (
         ConnectionManagerService,
         DuplicateEventDetector,
+        HookServiceContainer,
         StateManagerService,
         SubagentResponseProcessor,
     )
+
+# Import CorrelationManager with fallback (used in _route_event cleanup)
+# WHY at top level: Runtime relative imports fail with "no known parent package" error
+try:
+    from .correlation_manager import CorrelationManager
+except ImportError:
+    try:
+        from correlation_manager import CorrelationManager
+    except ImportError:
+        # Fallback: create a no-op class if module unavailable
+        class CorrelationManager:
+            @staticmethod
+            def cleanup_old():
+                pass
+
 
 """
 Debug mode configuration for hook processing.
@@ -228,35 +279,69 @@ class ClaudeHookHandler:
     - Each service handles a specific responsibility
     - Easier to test, maintain, and extend
     - Reduced complexity in main handler class
+
+    Supports Dependency Injection:
+    - Pass a HookServiceContainer to override default services
+    - Useful for testing with mock services
+    - Maintains backward compatibility when no container is provided
     """
 
-    def __init__(self):
-        # Initialize services
-        self.state_manager = StateManagerService()
-        self.connection_manager = ConnectionManagerService()
-        self.duplicate_detector = DuplicateEventDetector()
+    def __init__(self, container: Optional[HookServiceContainer] = None):
+        """Initialize hook handler with optional DI container.
 
-        # Initialize extracted managers
-        self.memory_hook_manager = MemoryHookManager()
-        self.response_tracking_manager = ResponseTrackingManager()
-        self.event_handlers = EventHandlers(self)
+        Args:
+            container: Optional HookServiceContainer for dependency injection.
+                      If None, services are created directly (backward compatible).
+        """
+        # Use container if provided, otherwise create services directly
+        if container is not None:
+            # DI mode: get services from container
+            self._container = container
+            self.state_manager = container.get_state_manager()
+            self.connection_manager = container.get_connection_manager()
+            self.duplicate_detector = container.get_duplicate_detector()
+            self.memory_hook_manager = container.get_memory_hook_manager()
+            self.response_tracking_manager = container.get_response_tracking_manager()
+            self.auto_pause_handler = container.get_auto_pause_handler()
 
-        # Initialize subagent processor with dependencies
-        self.subagent_processor = SubagentResponseProcessor(
-            self.state_manager, self.response_tracking_manager, self.connection_manager
-        )
+            # Event handlers need reference to this handler (circular, but contained)
+            self.event_handlers = EventHandlers(self)
 
-        # Initialize auto-pause handler
-        try:
-            self.auto_pause_handler = AutoPauseHandler()
-            # Pass reference to ResponseTrackingManager so it can call auto_pause
-            if hasattr(self, "response_tracking_manager"):
-                self.response_tracking_manager.auto_pause_handler = (
-                    self.auto_pause_handler
-                )
-        except Exception as e:
-            self.auto_pause_handler = None
-            _log(f"Auto-pause initialization failed: {e}")
+            # Subagent processor with injected dependencies
+            self.subagent_processor = container.get_subagent_processor(
+                self.state_manager,
+                self.response_tracking_manager,
+                self.connection_manager,
+            )
+        else:
+            # Backward compatible mode: create services directly
+            self._container = None
+            self.state_manager = StateManagerService()
+            self.connection_manager = ConnectionManagerService()
+            self.duplicate_detector = DuplicateEventDetector()
+
+            # Initialize extracted managers
+            self.memory_hook_manager = MemoryHookManager()
+            self.response_tracking_manager = ResponseTrackingManager()
+            self.event_handlers = EventHandlers(self)
+
+            # Initialize subagent processor with dependencies
+            self.subagent_processor = SubagentResponseProcessor(
+                self.state_manager,
+                self.response_tracking_manager,
+                self.connection_manager,
+            )
+
+            # Initialize auto-pause handler
+            try:
+                self.auto_pause_handler = AutoPauseHandler()
+            except Exception as e:
+                self.auto_pause_handler = None
+                _log(f"Auto-pause initialization failed: {e}")
+
+        # Link auto-pause handler to response tracking manager
+        if self.auto_pause_handler and hasattr(self, "response_tracking_manager"):
+            self.response_tracking_manager.auto_pause_handler = self.auto_pause_handler
 
         # Backward compatibility properties for tests
         # Note: HTTP-based connection manager doesn't use connection_pool
@@ -329,8 +414,6 @@ class ClaudeHookHandler:
             if self.state_manager.increment_events_processed():
                 self.state_manager.cleanup_old_entries()
                 # Also cleanup old correlation files
-                from .correlation_manager import CorrelationManager
-
                 CorrelationManager.cleanup_old()
                 _log(
                     f"🧹 Performed cleanup after {self.state_manager.events_processed} events"
@@ -496,11 +579,11 @@ class ClaudeHookHandler:
         if modified_input is not None:
             # Claude Code v2.0.30+ supports modifying PreToolUse tool inputs
             print(
-                json.dumps({"action": "continue", "tool_input": modified_input}),
+                json.dumps({"continue": True, "tool_input": modified_input}),
                 flush=True,
             )
         else:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
 
     # Delegation methods for compatibility with event_handlers
     def _track_delegation(self, session_id: str, agent_type: str, request_data=None):
@@ -673,7 +756,7 @@ def main():
         # This prevents errors on older Claude Code versions
         if version:
             _log(f"Skipping hook processing due to version incompatibility ({version})")
-        print(json.dumps({"action": "continue"}), flush=True)
+        print(json.dumps({"continue": True}), flush=True)
         sys.exit(0)
 
     def cleanup_handler(signum=None, frame=None):
@@ -682,7 +765,7 @@ def main():
         _log(f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})")
         # Only output continue if we haven't already (i.e., if interrupted by signal)
         if signum is not None and not _continue_printed:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
             _continue_printed = True
             sys.exit(0)
 
@@ -715,7 +798,7 @@ def main():
     except Exception as e:
         # Only output continue if not already printed
         if not _continue_printed:
-            print(json.dumps({"action": "continue"}), flush=True)
+            print(json.dumps({"continue": True}), flush=True)
             _continue_printed = True
         # Log error for debugging
         _log(f"Hook handler error: {e}")
@@ -727,5 +810,5 @@ if __name__ == "__main__":
         main()
     except Exception:
         # Catastrophic failure (import error, etc.) - always output valid JSON
-        print(json.dumps({"action": "continue"}), flush=True)
+        print(json.dumps({"continue": True}), flush=True)
         sys.exit(0)

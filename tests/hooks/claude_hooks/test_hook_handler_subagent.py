@@ -148,7 +148,7 @@ class TestErrorHandling:
 
         # Check that continue was printed
         output = mock_stdout.getvalue()
-        assert '{"action": "continue"}' in output
+        assert '{"continue": true}' in output
 
     def test_handle_json_parse_error(self):
         """Test handling of JSON parsing errors."""
@@ -161,7 +161,7 @@ class TestErrorHandling:
                 handler.handle()
 
         output = mock_stdout.getvalue()
-        assert '{"action": "continue"}' in output
+        assert '{"continue": true}' in output
 
     def test_handle_exception_recovery(self):
         """Test recovery from exceptions during event handling."""
@@ -175,7 +175,7 @@ class TestErrorHandling:
             handler.handle()
 
         output = mock_stdout.getvalue()
-        assert '{"action": "continue"}' in output
+        assert '{"continue": true}' in output
 
     @patch("subprocess.run")
     def test_git_branch_subprocess_errors(self, mock_run):
@@ -232,4 +232,4 @@ class TestErrorHandling:
 
         output = mock_stdout.getvalue()
         # Should only have one continue
-        assert output.count('{"action": "continue"}') == 2  # Each call prints
+        assert output.count('{"continue": true}') == 2  # Each call prints

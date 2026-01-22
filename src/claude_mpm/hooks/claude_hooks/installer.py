@@ -149,7 +149,7 @@ main() {
         if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Claude MPM not found, continuing..." >> /tmp/claude-mpm-hook.log
         fi
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 
@@ -176,7 +176,7 @@ main() {
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/claude-mpm-hook-error.log" >> /tmp/claude-mpm-hook.log
             echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Error: $(cat /tmp/claude-mpm-hook-error.log 2>/dev/null | head -5)" >> /tmp/claude-mpm-hook.log
         fi
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 
@@ -203,10 +203,14 @@ main "$@"
         import logging
 
         self.logger = logging.getLogger(__name__)
-        self.claude_dir = Path.home() / ".claude"
+        # Use project-level paths, NEVER global ~/.claude/settings.json
+        # This ensures hooks are scoped to the current project only
+        self.project_root = Path.cwd()
+        self.claude_dir = self.project_root / ".claude"
         self.hooks_dir = self.claude_dir / "hooks"  # Kept for backward compatibility
-        # Use settings.json for hooks (Claude Code reads from this file)
-        self.settings_file = self.claude_dir / "settings.json"
+        # Use settings.local.json for project-level hook settings
+        # Claude Code reads project-level settings from .claude/settings.local.json
+        self.settings_file = self.claude_dir / "settings.local.json"
         # There is no legacy settings file - this was a bug where both pointed to same file
         # Setting to None to disable cleanup that was deleting freshly installed hooks
         self.old_settings_file = None
@@ -383,8 +387,35 @@ main "$@"
             return False
         return self._version_meets_minimum(version, self.MIN_SKILLS_VERSION)
 
-    def get_hook_script_path(self) -> Path:
-        """Get the path to the hook handler script based on installation method.
+    def get_hook_command(self) -> str:
+        """Get the hook command based on installation method.
+
+        Priority order:
+        1. claude-hook entry point (uv tool install, pipx install, pip install)
+        2. Fallback to bash script (development installs)
+
+        Returns:
+            Command string for the hook handler (either 'claude-hook' or path to bash script)
+
+        Raises:
+            FileNotFoundError: If no hook handler can be found
+        """
+        # Check if claude-hook entry point is available in PATH
+        claude_hook_path = shutil.which("claude-hook")
+        if claude_hook_path:
+            self.logger.info(f"Using claude-hook entry point: {claude_hook_path}")
+            return "claude-hook"
+
+        # Fallback to bash script for development installs
+        script_path = self._get_hook_script_path()
+        self.logger.info(f"Using fallback bash script: {script_path}")
+        return str(script_path.absolute())
+
+    def _get_hook_script_path(self) -> Path:
+        """Get the path to the fallback bash hook handler script.
+
+        This is used when the claude-hook entry point is not available
+        (e.g., development installs without uv tool install).
 
         Returns:
             Path to the claude-hook-handler.sh script
@@ -437,6 +468,19 @@ main "$@"
 
         raise FileNotFoundError(f"Hook handler script not found at {script_path}")
 
+    def get_hook_script_path(self) -> Path:
+        """Get the path to the hook handler script based on installation method.
+
+        DEPRECATED: Use get_hook_command() instead for proper entry point support.
+
+        Returns:
+            Path to the claude-hook-handler.sh script
+
+        Raises:
+            FileNotFoundError: If the script cannot be found
+        """
+        return self._get_hook_script_path()
+
     def install_hooks(self, force: bool = False) -> bool:
         """
         Install Claude MPM hooks.
@@ -469,18 +513,16 @@ main "$@"
             # Create Claude directory (hooks_dir no longer needed)
             self.claude_dir.mkdir(exist_ok=True)
 
-            # Get the deployment-root hook script path
+            # Get the hook command (either claude-hook entry point or fallback bash script)
             try:
-                hook_script_path = self.get_hook_script_path()
-                self.logger.info(
-                    f"Using deployment-root hook script: {hook_script_path}"
-                )
+                hook_command = self.get_hook_command()
+                self.logger.info(f"Using hook command: {hook_command}")
             except FileNotFoundError as e:
-                self.logger.error(f"Failed to locate hook script: {e}")
+                self.logger.error(f"Failed to locate hook handler: {e}")
                 return False
 
-            # Update Claude settings to use deployment-root script
-            self._update_claude_settings(hook_script_path)
+            # Update Claude settings to use the hook command
+            self._update_claude_settings(hook_command)
 
             # Install commands if available
             self._install_commands()
@@ -575,8 +617,12 @@ main "$@"
                 "StatusLine command already supports both schemas or not present"
             )
 
-    def _update_claude_settings(self, hook_script_path: Path) -> None:
-        """Update Claude settings to use the installed hook."""
+    def _update_claude_settings(self, hook_cmd: str) -> None:
+        """Update Claude settings to use the installed hook.
+
+        Args:
+            hook_cmd: The hook command to use (either 'claude-hook' or path to bash script)
+        """
         self.logger.info("Updating Claude settings...")
 
         # Load existing settings.json or create new
@@ -599,42 +645,104 @@ main "$@"
             settings["hooks"] = {}
 
         # Hook configuration for each event type
-        hook_command = {"type": "command", "command": str(hook_script_path.absolute())}
+        hook_command = {"type": "command", "command": hook_cmd}
+
+        def is_our_hook(cmd: dict) -> bool:
+            """Check if a hook command belongs to claude-mpm."""
+            if cmd.get("type") != "command":
+                return False
+            command = cmd.get("command", "")
+            # Match claude-hook entry point or bash script fallback
+            return (
+                command == "claude-hook"
+                or "claude-hook-handler.sh" in command
+                or command.endswith("claude-mpm-hook.sh")
+            )
+
+        def merge_hooks_for_event(
+            existing_hooks: list, new_hook_command: dict, use_matcher: bool = True
+        ) -> list:
+            """Merge new hook command into existing hooks without duplication.
+
+            Args:
+                existing_hooks: Current hooks configuration for an event type
+                new_hook_command: The claude-mpm hook command to add
+                use_matcher: Whether to include matcher: "*" in the config
+
+            Returns:
+                Updated hooks list with our hook merged in
+            """
+            # Check if our hook already exists in any existing hook config
+            our_hook_exists = False
+
+            for hook_config in existing_hooks:
+                if "hooks" in hook_config and isinstance(hook_config["hooks"], list):
+                    for hook in hook_config["hooks"]:
+                        if is_our_hook(hook):
+                            # Update existing hook command path (in case it changed)
+                            hook["command"] = new_hook_command["command"]
+                            our_hook_exists = True
+                            break
+                if our_hook_exists:
+                    break
+
+            if our_hook_exists:
+                # Our hook already exists, just return the updated list
+                return existing_hooks
+
+            # Our hook doesn't exist - need to add it
+            # Strategy: Add our hook to the first "*" matcher config, or create new config
+            added = False
+
+            for hook_config in existing_hooks:
+                # Check if this config has matcher: "*" (or no matcher for simple events)
+                matcher = hook_config.get("matcher")
+                if matcher == "*" or (not use_matcher and matcher is None):
+                    # Add our hook to this config's hooks array
+                    if "hooks" not in hook_config:
+                        hook_config["hooks"] = []
+                    hook_config["hooks"].append(new_hook_command)
+                    added = True
+                    break
+
+            if not added:
+                # No suitable config found, create a new one
+                if use_matcher:
+                    new_config = {"matcher": "*", "hooks": [new_hook_command]}
+                else:
+                    new_config = {"hooks": [new_hook_command]}
+                existing_hooks.append(new_config)
+
+            return existing_hooks
 
         # Tool-related events need a matcher string
         tool_events = ["PreToolUse", "PostToolUse"]
         for event_type in tool_events:
-            settings["hooks"][event_type] = [
-                {
-                    "matcher": "*",  # String value to match all tools
-                    "hooks": [hook_command],
-                }
-            ]
+            existing = settings["hooks"].get(event_type, [])
+            settings["hooks"][event_type] = merge_hooks_for_event(
+                existing, hook_command, use_matcher=True
+            )
 
         # Simple events (no subtypes, no matcher needed)
-        simple_events = ["Stop", "SubagentStop", "SubagentStart"]
+        # Note: SubagentStart is NOT a valid Claude Code event (only SubagentStop is)
+        simple_events = ["Stop", "SubagentStop"]
         for event_type in simple_events:
-            settings["hooks"][event_type] = [
-                {
-                    "hooks": [hook_command],
-                }
-            ]
+            existing = settings["hooks"].get(event_type, [])
+            settings["hooks"][event_type] = merge_hooks_for_event(
+                existing, hook_command, use_matcher=False
+            )
 
         # SessionStart needs matcher for subtypes (startup, resume)
-        settings["hooks"]["SessionStart"] = [
-            {
-                "matcher": "*",  # Match all SessionStart subtypes
-                "hooks": [hook_command],
-            }
-        ]
+        existing = settings["hooks"].get("SessionStart", [])
+        settings["hooks"]["SessionStart"] = merge_hooks_for_event(
+            existing, hook_command, use_matcher=True
+        )
 
         # UserPromptSubmit needs matcher for potential subtypes
-        settings["hooks"]["UserPromptSubmit"] = [
-            {
-                "matcher": "*",
-                "hooks": [hook_command],
-            }
-        ]
+        existing = settings["hooks"].get("UserPromptSubmit", [])
+        settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
+            existing, hook_command, use_matcher=True
+        )
 
         # Fix statusLine command to handle both output style schemas
         self._fix_status_line(settings)
@@ -736,10 +844,10 @@ main "$@"
                     issues.append("No hooks configured in Claude settings")
                 else:
                     # Check for required event types
+                    # Note: SubagentStart is NOT a valid Claude Code event
                     required_events = [
                         "Stop",
                         "SubagentStop",
-                        "SubagentStart",
                         "PreToolUse",
                         "PostToolUse",
                     ]
@@ -805,7 +913,8 @@ main "$@"
                                         ):
                                             cmd = hook_cmd.get("command", "")
                                             if (
-                                                "claude-hook-handler.sh" in cmd
+                                                cmd == "claude-hook"
+                                                or "claude-hook-handler.sh" in cmd
                                                 or cmd.endswith("claude-mpm-hook.sh")
                                             ):
                                                 is_claude_mpm = True
@@ -850,27 +959,42 @@ main "$@"
 
         is_valid, issues = self.verify_hooks()
 
-        # Try to get deployment-root script path
+        # Try to get hook command (entry point or fallback script)
+        hook_command = None
+        using_entry_point = False
         try:
-            hook_script_path = self.get_hook_script_path()
+            hook_command = self.get_hook_command()
+            using_entry_point = hook_command == "claude-hook"
+        except FileNotFoundError:
+            hook_command = None
+
+        # For backward compatibility, also try to get the script path
+        hook_script_str = None
+        script_exists = False
+        try:
+            hook_script_path = self._get_hook_script_path()
             hook_script_str = str(hook_script_path)
             script_exists = hook_script_path.exists()
         except FileNotFoundError:
-            hook_script_str = None
-            script_exists = False
+            pass
 
         status = {
-            "installed": script_exists and self.settings_file.exists(),
+            "installed": (hook_command is not None or script_exists)
+            and self.settings_file.exists(),
             "valid": is_valid,
             "issues": issues,
-            "hook_script": hook_script_str,
+            "hook_command": hook_command,
+            "hook_script": hook_script_str,  # Kept for backward compatibility
+            "using_entry_point": using_entry_point,
             "settings_file": (
                 str(self.settings_file) if self.settings_file.exists() else None
             ),
             "claude_version": claude_version,
             "version_compatible": is_compatible,
             "version_message": version_message,
-            "deployment_type": "deployment-root",  # New field to indicate new architecture
+            "deployment_type": "entry-point"
+            if using_entry_point
+            else "deployment-root",
             "pretool_modify_supported": pretool_modify_supported,  # v2.0.30+ feature
             "pretool_modify_message": (
                 f"PreToolUse input modification supported (v{claude_version})"

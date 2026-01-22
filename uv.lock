@@ -677,7 +677,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "5.6.19"
+version = "5.6.46"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
@@ -688,6 +688,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "flask" },
     { name = "flask-cors" },
+    { name = "httpx" },
     { name = "ijson" },
     { name = "mistune" },
     { name = "packaging" },
@@ -806,6 +807,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100.0" },
     { name = "flask", specifier = ">=3.0.0" },
     { name = "flask-cors", specifier = ">=4.0.0" },
+    { name = "httpx", specifier = ">=0.24.0" },
     { name = "ijson", specifier = ">=3.2.0" },
     { name = "jsonschema", marker = "extra == 'data-processing'", specifier = ">=4.19.0" },
     { name = "kuzu-memory", marker = "extra == 'memory'", specifier = ">=1.1.5" },

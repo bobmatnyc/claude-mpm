@@ -6,6 +6,213 @@
 
 ### Fixed
 
+### Documentation
+
+### Tests
+
+## [5.6.48] - 2026-01-21
+
+### Added
+- feat: Add animated spinner while waiting for instance ready
+  - Shows spinning animation with elapsed time counter
+  - Displays checkmark on success, warning symbol on timeout
+
+## [5.6.47] - 2026-01-21
+
+### Fixed
+- fix: Remove invalid --dangerously-skip-permissions flag from mpm framework
+  - The --dangerously-skip-permissions flag is only valid for 'claude' CLI, not 'claude-mpm'
+  - This was causing startup issues in certain configurations
+- fix: Add wait_for_ready() method and instance ready tracking
+  - Prevents messages being sent before instance is fully initialized
+  - Improves reliability of inter-agent communication
+- fix: Add more ready detection patterns for Claude CLI startup
+  - Better detection of when Claude CLI is ready to accept input
+  - Reduces race conditions during instance initialization
+
+## [5.6.46] - 2026-01-21
+
+### Added
+- feat: Add WorktreeManager for git worktree session isolation
+- feat: Extend RegisteredInstance with worktree tracking fields
+- feat: Integrate worktree creation into instance registration
+- feat: Add /close command and unify @name/(name) syntax
+- feat: Add autocomplete for slash commands and instance names
+
+### Fixed
+- fix: MPM framework uses claude-mpm command
+- fix: Use tmux new-window to avoid 'no space for new pane' error
+- fix: Show instance name in prompt when ready
+- fix: Emit events to subscribers for ready detection
+
+## [5.6.45] - 2026-01-21
+
+### Added
+- feat: Add RAG-powered capabilities search to Commander
+- feat: Add intent detection for greetings and capability queries
+
+## [5.6.44] - 2026-01-21
+
+### Changed
+- chore: clean up root directory, move docs to proper locations
+- chore: update ruff pre-commit to v0.14.8 and fix formatting
+
+## [5.6.43] - 2026-01-21
+
+### Fixed
+- fix: Add missing httpx dependency for commander
+  - httpx is required by the commander module but was not listed as a dependency
+  - Caused ImportError when the package was installed fresh
+
+## [5.6.42] - 2026-01-21
+
+### Changed
+- chore: patch version bump for PyPI release
+
+## [5.6.41] - 2026-01-20
+
+### Fixed
+- fix: add early logging suppression to prevent REPL pollution
+  - Added logging suppression at the very top of hook_handler.py before any other imports
+  - Prevents StreamingHandler's carriage returns from polluting Claude Code's REPL output
+  - Fixes the repeated status lines in Claude Code terminal output
+
+## [5.6.40] - 2026-01-20
+
+### Fixed
+- fix: suppress RuntimeWarning to prevent REPL pollution
+  - Added warnings.filterwarnings at module level before other imports
+  - Suppresses RuntimeWarning from frozen runpy during hook execution
+  - Prevents extra whitespace from appearing in Claude Code terminal
+
+## [5.6.39] - 2026-01-20
+
+### Added
+- feat: add direct Python entry point for faster hook execution
+  - Added `claude-hook` console script entry point in pyproject.toml
+  - Updated installer to prefer entry point over bash wrapper (~400ms faster)
+  - Falls back to bash script for development installs
+  - Status now shows `using_entry_point` and `deployment_type`
+
+## [5.6.38] - 2026-01-20
+
+### Added
+- feat: add detailed hook installation output
+  - Show cleanup status: "Cleaning user-level hooks... (removed)" or "(none found)"
+  - Show hook count: "Installing project hooks... 7 hooks configured"
+  - Added `_count_installed_hooks()` helper to count configured hooks
+
+## [5.6.37] - 2026-01-20
+
+### Changed
+- refactor: consolidate startup deployment and clean up SessionStart
+- Consolidated hook cleanup, hook reinstall, and agent sync into single `sync_deployment_on_startup()` function in startup.py
+- Removed autotodos and initialization logic from SessionStart handler
+- SessionStart now only does lightweight event monitoring
+- Hook cleanup removes stale `~/.claude/hooks/claude-mpm/` on MPM startup
+- Hook reinstall updates `.claude/settings.local.json` on MPM startup
+
+## [5.6.36] - 2026-01-19
+
+### Fixed
+- fix(hook_manager): run hook handler as module (`python -m`) instead of script to fix "attempted relative import with no known parent package" errors
+
+## [5.6.35] - 2026-01-19
+
+### Changed
+- chore: patch version bump for PyPI release
+
+## [5.6.34] - 2026-01-19
+
+### Changed
+- chore: patch version bump for PyPI release
+
+## [5.6.33] - 2026-01-19
+
+### Changed
+- chore: patch version bump for PyPI release
+
+## [5.6.32] - 2026-01-19
+
+### Fixed
+- fix(hooks): hook installer now properly MERGES with existing hooks instead of overwriting them
+- feat(hooks): kuzu-memory hooks and claude-mpm hooks can now coexist correctly
+- refactor(hooks): add `is_our_hook()` and `merge_hooks_for_event()` helper functions
+
+## [5.6.31] - 2026-01-19
+
+### Fixed
+- fix(hooks): deploy hooks to project-level settings only - changed from `~/.claude/settings.json` to `{project}/.claude/settings.local.json`
+- fix(tests): update hook format expectations from `{"action": "continue"}` to `{"continue": true}`
+
+## [5.6.30] - 2026-01-19
+
+### Fixed
+- fix(hooks): use correct JSON response format for Claude Code - changed from {action: continue} to {continue: true}
+
+## [5.6.29] - 2026-01-19
+
+### Fixed
+- fix(hooks): default DEBUG to false in all hook modules - fixes REPL pollution from debug logging
+
+## [5.6.28] - 2026-01-19
+
+### Fixed
+- fix(startup): add TTY detection to all progress messages - prevents REPL pollution in Claude Code
+
+## [5.6.27] - 2026-01-19
+
+### Fixed
+- fix(deploy): disable user-level command deployment - project-level skills are now the only source, old commands cleaned up automatically
+
+## [5.6.26] - 2026-01-19
+
+### Fixed
+- fix(startup): remove blank line printing in non-TTY mode - eliminates REPL pollution from newline fallbacks
+
+## [5.6.25] - 2026-01-19
+
+### Fixed
+- fix(logging): preserve FileHandlers in LoggerFactory.initialize() - prevents log messages leaking to stderr during hook execution
+
+## [5.6.24] - 2026-01-19
+
+### Fixed
+- fix(output-style): treat 'default' as no preference in deployer - ensures Claude MPM style is activated on deployment
+
+## [5.6.23] - 2026-01-19
+
+### Fixed
+- fix(startup): add TTY detection for progress clearing - prevents CR characters from appearing in Claude Code REPL
+
+## [5.6.22] - 2026-01-19
+
+### Fixed
+- fix(skills): include core 'mpm' skill in discovery filter - the startup deployment was skipping 'mpm' because filter required hyphen
+
+## [5.6.21] - 2026-01-19
+
+### Changed
+- chore: index cleanup and rebuild for mcp-vector-search
+
+## [5.6.20] - 2026-01-19
+
+### Added
+- feat(network): centralize port configuration with service-specific defaults
+- feat(commander): add instance management features (rename, close, disconnect)
+
+### Changed
+- chore: index cleanup and rebuild for mcp-vector-search
+
+### Fixed
+- fix(commander): skip signal handlers when running in background thread
+
+### Documentation
+- docs: add MPM Commander vision and architecture document
+
+### Tests
+- test(commander): add instance management tests
+
 ## [5.6.19] - 2026-01-18
 
 ### Fixed

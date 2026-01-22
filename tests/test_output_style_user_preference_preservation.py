@@ -44,9 +44,9 @@ def test_first_deployment_sets_active_style(temp_home):
     assert settings_path.exists(), "settings.json should be created"
 
     settings = json.loads(settings_path.read_text())
-    assert (
-        settings.get("activeOutputStyle") == "Claude MPM"
-    ), "activeOutputStyle should be set to 'Claude MPM' on first deployment"
+    assert settings.get("activeOutputStyle") == "Claude MPM", (
+        "activeOutputStyle should be set to 'Claude MPM' on first deployment"
+    )
 
 
 def test_second_deployment_preserves_user_choice(temp_home):
@@ -69,9 +69,9 @@ def test_second_deployment_preserves_user_choice(temp_home):
 
     # Verify user's choice was preserved
     settings_after = json.loads(settings_path.read_text())
-    assert (
-        settings_after.get("activeOutputStyle") == "My Custom Style"
-    ), "User's custom style choice should be preserved on second deployment"
+    assert settings_after.get("activeOutputStyle") == "My Custom Style", (
+        "User's custom style choice should be preserved on second deployment"
+    )
 
 
 def test_redeployment_after_file_deletion_sets_active_style(temp_home):
@@ -98,9 +98,9 @@ def test_redeployment_after_file_deletion_sets_active_style(temp_home):
 
     # Verify activeOutputStyle was reset (because file was deleted - fresh install)
     settings_after = json.loads(settings_path.read_text())
-    assert (
-        settings_after.get("activeOutputStyle") == "Claude MPM"
-    ), "activeOutputStyle should be reset when file is re-deployed after deletion"
+    assert settings_after.get("activeOutputStyle") == "Claude MPM", (
+        "activeOutputStyle should be reset when file is re-deployed after deletion"
+    )
 
 
 def test_no_active_style_set_activates_default(temp_home):
@@ -117,12 +117,12 @@ def test_no_active_style_set_activates_default(temp_home):
 
     # Verify activeOutputStyle was set
     settings_after = json.loads(settings_path.read_text())
-    assert (
-        settings_after.get("activeOutputStyle") == "Claude MPM"
-    ), "activeOutputStyle should be set when missing"
-    assert (
-        settings_after.get("someOtherSetting") == "value"
-    ), "Other settings should be preserved"
+    assert settings_after.get("activeOutputStyle") == "Claude MPM", (
+        "activeOutputStyle should be set when missing"
+    )
+    assert settings_after.get("someOtherSetting") == "value", (
+        "Other settings should be preserved"
+    )
 
 
 def test_deploy_output_style_with_activate_false(temp_home):
@@ -158,9 +158,9 @@ def test_deploy_output_style_with_activate_true_on_fresh_install(temp_home):
     assert settings_path.exists(), "settings.json should be created"
 
     settings = json.loads(settings_path.read_text())
-    assert (
-        settings.get("activeOutputStyle") == "Claude MPM"
-    ), "activeOutputStyle should be set on fresh install with activate=True"
+    assert settings.get("activeOutputStyle") == "Claude MPM", (
+        "activeOutputStyle should be set on fresh install with activate=True"
+    )
 
 
 def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home):
@@ -184,9 +184,9 @@ def test_deploy_output_style_with_activate_true_preserves_user_choice(temp_home)
 
     # Verify user preference was preserved
     settings_after = json.loads(settings_path.read_text())
-    assert (
-        settings_after.get("activeOutputStyle") == "User's Preference"
-    ), "User preference should be preserved even with activate=True on re-deployment"
+    assert settings_after.get("activeOutputStyle") == "User's Preference", (
+        "User preference should be preserved even with activate=True on re-deployment"
+    )
 
 
 if __name__ == "__main__":
