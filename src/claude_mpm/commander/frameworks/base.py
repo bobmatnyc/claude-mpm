@@ -44,6 +44,52 @@ class InstanceInfo:
     connected: bool = False
 
 
+@dataclass
+class RegisteredInstance:
+    """Persistent instance configuration (survives daemon restart).
+
+    Attributes:
+        name: Instance identifier
+        path: Project directory path (stored as string for JSON)
+        framework: Framework identifier ("cc" or "mpm")
+        registered_at: ISO timestamp when instance was registered
+
+    Example:
+        >>> instance = RegisteredInstance(
+        ...     name="myapp",
+        ...     path="/Users/user/myapp",
+        ...     framework="cc",
+        ...     registered_at="2024-01-15T10:30:00"
+        ... )
+        >>> instance.to_dict()
+        {'name': 'myapp', 'path': '/Users/user/myapp', 'framework': 'cc', 'registered_at': '2024-01-15T10:30:00'}
+    """
+
+    name: str
+    path: str
+    framework: str
+    registered_at: str
+
+    def to_dict(self) -> dict:
+        """Serialize for JSON storage."""
+        return {
+            "name": self.name,
+            "path": self.path,
+            "framework": self.framework,
+            "registered_at": self.registered_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "RegisteredInstance":
+        """Deserialize from JSON."""
+        return cls(
+            name=data["name"],
+            path=data["path"],
+            framework=data["framework"],
+            registered_at=data.get("registered_at", ""),
+        )
+
+
 class BaseFramework(ABC):
     """Base class for AI coding assistant frameworks.
 
