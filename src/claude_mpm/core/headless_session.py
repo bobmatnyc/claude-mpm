@@ -10,15 +10,15 @@ WHY: Headless mode is essential for:
 - Piping output to other tools
 - Integration with external systems
 
-DESIGN DECISION: Uses real-time streaming for stdin/stdout passthrough
-without any Rich formatting, progress bars, or interactive elements.
-Output is streamed line-by-line for vibe-kanban compatibility.
+DESIGN DECISION: Uses os.execvpe() to replace the claude-mpm process with claude,
+matching the behavior of normal interactive mode. This ensures:
+- Initialization happens only ONCE (hooks, agents, skills)
+- Claude handles the entire session directly
+- No claude-mpm process overhead during the session
 """
 
 import os
-import subprocess  # nosec B404
 import sys
-import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -38,11 +38,12 @@ class HeadlessSession:
     WHY: Headless mode bypasses all Rich console formatting and provides
     clean NDJSON output suitable for programmatic consumption.
 
-    DESIGN DECISION: Minimal wrapper around subprocess that:
-    - Reads prompt from stdin or argument
-    - Passes stream-json output to stdout without modification
-    - Passes stderr to stderr
-    - Returns Claude Code's exit code
+    DESIGN DECISION: Uses os.execvpe() to replace claude-mpm with claude,
+    matching normal interactive mode behavior:
+    - claude-mpm initializes once (hooks, agents, skills)
+    - os.execvpe() replaces the process with claude
+    - Claude handles the entire session directly
+    - No re-initialization on subsequent messages
     """
 
     def __init__(self, runner: "ClaudeRunnerProtocol"):
@@ -60,6 +61,30 @@ class HeadlessSession:
         if "CLAUDE_MPM_USER_PWD" in os.environ:
             return Path(os.environ["CLAUDE_MPM_USER_PWD"])
         return Path.cwd()
+
+    def _verify_hooks_deployed(self) -> None:
+        """Verify hooks are deployed, warn to stderr if not.
+
+        WHY: In headless mode, hooks are critical for MPM features like
+        session management, auto-todos, and skill integration. If hooks
+        aren't properly deployed, MPM features won't work.
+
+        DESIGN DECISION: Warnings go to stderr (not stdout) to keep
+        stdout clean for JSON streaming. Non-blocking - continues
+        execution even if verification fails.
+        """
+        try:
+            from claude_mpm.hooks.claude_hooks.installer import HookInstaller
+
+            installer = HookInstaller()
+            is_valid, issues = installer.verify_hooks()
+            if not is_valid:
+                # Write warning to stderr to keep stdout clean for JSON
+                sys.stderr.write(f"Warning: Hook issues detected: {issues}\n")
+                sys.stderr.flush()
+        except Exception as e:
+            # Non-blocking - log at debug level and continue
+            self.logger.debug(f"Could not verify hooks: {e}")
 
     def _has_adjacent_args(self, args: list, flag: str, value: str) -> bool:
         """Check if flag is followed by value in args list.
@@ -143,21 +168,26 @@ class HeadlessSession:
     ) -> int:
         """Run Claude Code in headless mode with stream-json output.
 
+        Uses os.execvpe() to replace the claude-mpm process with claude,
+        matching normal interactive mode. This ensures initialization
+        happens only once - claude handles the entire session directly.
+
         Args:
-            prompt: The prompt to send to Claude. If None, reads from stdin.
+            prompt: The prompt to send to Claude. If None, stdin passes through.
             resume_session: Optional session ID to resume
 
         Returns:
-            Exit code from Claude Code process
+            Exit code from Claude Code process (only on exec failure)
         """
+        # Verify hooks are deployed before execution
+        # This ensures MPM features (session management, skills) work in headless mode
+        self._verify_hooks_deployed()
+
         # Build the command
         cmd = self.build_claude_command(resume_session=resume_session)
 
         # Check if using stream-json input format (vibe-kanban compatibility)
-        # When --input-format stream-json is passed, stdin should be passed
-        # through to Claude Code directly, not read by claude-mpm
-        # NOTE: Args can be space-separated ["--input-format", "stream-json"]
-        # or combined ["--input-format=stream-json"] - we need to handle both
+        # When --input-format stream-json is passed, stdin passes through to Claude
         claude_args = self.runner.claude_args or []
         uses_stream_json_input = (
             "--input-format=stream-json" in claude_args
@@ -165,23 +195,24 @@ class HeadlessSession:
         )
 
         if uses_stream_json_input:
-            # Vibe-kanban mode: pass stdin through to Claude Code
-            # Don't read stdin here, let Claude Code handle it
+            # Vibe-kanban mode: stdin passes through to Claude Code via exec
             self.logger.debug("Using stream-json input mode (vibe-kanban compatibility)")
         else:
             # Standard headless mode: read prompt from argument or stdin
             if prompt is None:
                 # Read from stdin for piping support
                 if sys.stdin.isatty():
-                    self.logger.warning(
-                        "No prompt provided and stdin is a TTY. "
-                        "Use -i 'prompt' or pipe input: echo 'prompt' | claude-mpm run --headless"
+                    sys.stderr.write(
+                        "Error: No prompt provided and stdin is a TTY. "
+                        "Use -i 'prompt' or pipe input: echo 'prompt' | claude-mpm run --headless\n"
                     )
+                    sys.stderr.flush()
                     return 1
                 prompt = sys.stdin.read().strip()
 
             if not prompt:
-                self.logger.error("Empty prompt provided")
+                sys.stderr.write("Error: Empty prompt provided\n")
+                sys.stderr.flush()
                 return 1
 
             # Add the prompt to command
@@ -192,49 +223,19 @@ class HeadlessSession:
         # Prepare environment
         env = self._prepare_environment()
 
+        # Change to working directory before exec
+        os.chdir(str(self.working_dir))
+
         try:
-            # For vibe-kanban mode (stream-json input), pass stdin through
-            # For standard headless mode, use PIPE and close immediately
-            stdin_mode = sys.stdin if uses_stream_json_input else subprocess.PIPE
+            # Replace this process with claude - no return on success
+            # This matches normal interactive mode behavior:
+            # - claude-mpm initializes once
+            # - os.execvpe() replaces process with claude
+            # - Claude handles the entire session
+            os.execvpe(cmd[0], cmd, env)  # nosec B606
 
-            # Run subprocess with direct stdout/stderr passthrough
-            process = subprocess.Popen(
-                cmd,
-                stdin=stdin_mode,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                cwd=str(self.working_dir),
-                env=env,
-            )
-
-            # Stream output in real-time instead of buffering with communicate()
-            # This is critical for vibe-kanban integration which expects streaming output
-            def stream_stderr():
-                """Stream stderr in a separate thread."""
-                for line in process.stderr:
-                    sys.stderr.write(line)
-                    sys.stderr.flush()
-
-            # Start stderr streaming in background thread
-            stderr_thread = threading.Thread(target=stream_stderr, daemon=True)
-            stderr_thread.start()
-
-            # Close stdin to signal we're done sending input (only for non-passthrough mode)
-            # Claude Code needs this signal to start processing
-            if not uses_stream_json_input:
-                process.stdin.close()
-
-            # Stream stdout (stream-json) directly in main thread - no Rich formatting
-            for line in process.stdout:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-
-            # Wait for process to complete and stderr thread to finish
-            process.wait()
-            stderr_thread.join(timeout=1.0)
-
-            return process.returncode
+            # Only reached on exec failure
+            return 1
 
         except FileNotFoundError:
             sys.stderr.write(
