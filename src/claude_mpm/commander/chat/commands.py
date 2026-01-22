@@ -21,7 +21,7 @@ class CommandType(Enum):
     HELP = "help"
     EXIT = "exit"
     INSTANCES = "instances"  # alias for list
-    OAUTH = "oauth"
+    MPM_OAUTH = "mpm-oauth"
 
 
 @dataclass
@@ -54,7 +54,7 @@ class CommandParser:
         "exit": CommandType.EXIT,
         "quit": CommandType.EXIT,
         "q": CommandType.EXIT,
-        "oauth": CommandType.OAUTH,
+        "mpm-oauth": CommandType.MPM_OAUTH,
     }
 
     def parse(self, input_text: str) -> Optional[Command]:

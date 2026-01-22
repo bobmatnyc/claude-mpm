@@ -467,7 +467,7 @@ FEATURES:
             CommandType.STATUS: self._cmd_status,
             CommandType.HELP: self._cmd_help,
             CommandType.EXIT: self._cmd_exit,
-            CommandType.OAUTH: self._cmd_oauth,
+            CommandType.MPM_OAUTH: self._cmd_oauth,
         }
         handler = handlers.get(cmd.type)
         if handler:
@@ -909,12 +909,12 @@ Examples:
         """Handle OAuth command with subcommands.
 
         Usage:
-            /oauth                 - Show help
-            /oauth list            - List OAuth-capable services
-            /oauth setup <service> - Set up OAuth for a service
-            /oauth status <service> - Show token status
-            /oauth revoke <service> - Revoke OAuth tokens
-            /oauth refresh <service> - Refresh OAuth tokens
+            /mpm-oauth                 - Show help
+            /mpm-oauth list            - List OAuth-capable services
+            /mpm-oauth setup <service> - Set up OAuth for a service
+            /mpm-oauth status <service> - Show token status
+            /mpm-oauth revoke <service> - Revoke OAuth tokens
+            /mpm-oauth refresh <service> - Refresh OAuth tokens
         """
         if not args:
             await self._cmd_oauth_help()
@@ -929,22 +929,22 @@ Examples:
             await self._cmd_oauth_list()
         elif subcommand == "setup":
             if not subargs:
-                self._print("Usage: /oauth setup <service>")
+                self._print("Usage: /mpm-oauth setup <service>")
                 return
             await self._cmd_oauth_setup(subargs[0])
         elif subcommand == "status":
             if not subargs:
-                self._print("Usage: /oauth status <service>")
+                self._print("Usage: /mpm-oauth status <service>")
                 return
             await self._cmd_oauth_status(subargs[0])
         elif subcommand == "revoke":
             if not subargs:
-                self._print("Usage: /oauth revoke <service>")
+                self._print("Usage: /mpm-oauth revoke <service>")
                 return
             await self._cmd_oauth_revoke(subargs[0])
         elif subcommand == "refresh":
             if not subargs:
-                self._print("Usage: /oauth refresh <service>")
+                self._print("Usage: /mpm-oauth refresh <service>")
                 return
             await self._cmd_oauth_refresh(subargs[0])
         else:
@@ -955,17 +955,17 @@ Examples:
         """Print OAuth command help."""
         help_text = """
 OAuth Commands:
-  /oauth list            List OAuth-capable MCP services
-  /oauth setup <service> Set up OAuth authentication for a service
-  /oauth status <service> Show token status for a service
-  /oauth revoke <service> Revoke OAuth tokens for a service
-  /oauth refresh <service> Refresh OAuth tokens for a service
-  /oauth help            Show this help message
+  /mpm-oauth list            List OAuth-capable MCP services
+  /mpm-oauth setup <service> Set up OAuth authentication for a service
+  /mpm-oauth status <service> Show token status for a service
+  /mpm-oauth revoke <service> Revoke OAuth tokens for a service
+  /mpm-oauth refresh <service> Refresh OAuth tokens for a service
+  /mpm-oauth help            Show this help message
 
 Examples:
-  /oauth list
-  /oauth setup google-drive
-  /oauth status google-drive
+  /mpm-oauth list
+  /mpm-oauth setup google-drive
+  /mpm-oauth status google-drive
 """
         self._print(help_text)
 
@@ -989,23 +989,83 @@ Examples:
         except Exception as e:
             self._print(f"Error listing services: {e}")
 
+    def _load_oauth_credentials_from_env_files(self) -> tuple[str | None, str | None]:
+        """Load OAuth credentials from .env files.
+
+        Checks .env.local first (user overrides), then .env.
+        Returns tuple of (client_id, client_secret), either may be None.
+        """
+        client_id = None
+        client_secret = None
+
+        # Priority order: .env.local first (user overrides), then .env
+        env_files = [".env.local", ".env"]
+
+        for env_file in env_files:
+            env_path = Path.cwd() / env_file
+            if env_path.exists():
+                try:
+                    with open(env_path) as f:
+                        for line in f:
+                            line = line.strip()
+                            # Skip empty lines and comments
+                            if not line or line.startswith("#"):
+                                continue
+                            if "=" in line:
+                                key, _, value = line.partition("=")
+                                key = key.strip()
+                                value = value.strip().strip('"').strip("'")
+
+                                if key == "GOOGLE_OAUTH_CLIENT_ID" and not client_id:
+                                    client_id = value
+                                elif (
+                                    key == "GOOGLE_OAUTH_CLIENT_SECRET"
+                                    and not client_secret
+                                ):
+                                    client_secret = value
+
+                        # If we found both, no need to check more files
+                        if client_id and client_secret:
+                            break
+                except Exception:  # nosec B110 - intentionally ignore .env file read errors
+                    # Silently ignore read errors
+                    pass
+
+        return client_id, client_secret
+
     async def _cmd_oauth_setup(self, service_name: str) -> None:
         """Set up OAuth for a service.
 
         Args:
             service_name: Name of the service to authenticate.
         """
-        # Check for required environment variables
-        client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
-        client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+        # Priority: 1) .env files, 2) environment variables, 3) interactive prompt
+        # Check .env files first
+        client_id, client_secret = self._load_oauth_credentials_from_env_files()
+
+        # Fall back to environment variables if not found in .env files
+        if not client_id:
+            client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+        if not client_secret:
+            client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
         # If credentials missing, prompt for them interactively
         if not client_id or not client_secret:
             self._console.print(
-                "\n[yellow]Google OAuth credentials not found in environment.[/yellow]"
+                "\n[yellow]Google OAuth credentials not found.[/yellow]"
+            )
+            self._console.print(
+                "Checked: .env.local, .env, and environment variables.\n"
             )
             self._console.print(
                 "Get credentials from: https://console.cloud.google.com/apis/credentials\n"
+            )
+            self._console.print(
+                "[dim]Tip: Add to .env.local for automatic loading:[/dim]"
+            )
+            self._console.print('[dim]  GOOGLE_OAUTH_CLIENT_ID="your-client-id"[/dim]')
+            self._console.print(
+                '[dim]  GOOGLE_OAUTH_CLIENT_SECRET="your-client-secret"[/dim]\n'  # pragma: allowlist secret
             )
 
             try:
