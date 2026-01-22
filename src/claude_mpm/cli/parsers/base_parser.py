@@ -279,8 +279,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
     run_group.add_argument(
         "--resume",
-        action="store_true",
-        help="Pass --resume flag to Claude Code to resume the last conversation",
+        type=str,
+        nargs="?",
+        const="",
+        default=None,
+        help="Resume a Claude Code session. Without argument: resume last session. With session_id: resume specific session",
     )
     run_group.add_argument(
         "--force",
@@ -348,6 +351,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         "--non-interactive",
         action="store_true",
         help="Run in non-interactive mode (read from stdin or --input)",
+    )
+    io_group.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run in headless mode (disables Rich console, uses stream-json output for programmatic use)",
     )
 
 
