@@ -4,12 +4,52 @@ import asyncio
 import json
 import re
 import sys
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.patch_stdout import patch_stdout
+
+
+class RequestStatus(Enum):
+    """Status of a pending request."""
+
+    QUEUED = "queued"
+    SENDING = "sending"
+    WAITING = "waiting"
+    COMPLETED = "completed"
+    ERROR = "error"
+
+
+@dataclass
+class PendingRequest:
+    """Tracks an in-flight request to an instance."""
+
+    id: str
+    target: str  # Instance name
+    message: str
+    status: RequestStatus = RequestStatus.QUEUED
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    response: Optional[str] = None
+    error: Optional[str] = None
+
+    def elapsed_seconds(self) -> int:
+        """Get elapsed time since request was created."""
+        return int((datetime.now(timezone.utc) - self.created_at).total_seconds())
+
+    def display_message(self, max_len: int = 40) -> str:
+        """Get truncated message for display."""
+        msg = self.message.replace("\n", " ")
+        if len(msg) > max_len:
+            return msg[: max_len - 3] + "..."
+        return msg
+
 
 from claude_mpm.commander.instance_manager import InstanceManager
 from claude_mpm.commander.llm.openrouter_client import OpenRouterClient
@@ -185,6 +225,12 @@ FEATURES:
         self._running = False
         self._instance_ready: dict[str, bool] = {}
 
+        # Async request tracking
+        self._pending_requests: dict[str, PendingRequest] = {}
+        self._request_queue: asyncio.Queue[PendingRequest] = asyncio.Queue()
+        self._response_task: Optional[asyncio.Task] = None
+        self._stdout_context = None  # For patch_stdout
+
     async def run(self) -> None:
         """Start the REPL loop."""
         self._running = True
@@ -219,14 +265,29 @@ FEATURES:
             complete_while_typing=False,  # Only complete on Tab
         )
 
-        while self._running:
+        # Start background response processor
+        self._response_task = asyncio.create_task(self._process_responses())
+
+        # Use patch_stdout to allow printing above prompt
+        with patch_stdout():
+            while self._running:
+                try:
+                    # Show pending requests status above prompt
+                    self._render_pending_status()
+                    user_input = await prompt.prompt_async(self._get_prompt())
+                    await self._handle_input(user_input.strip())
+                except KeyboardInterrupt:
+                    continue
+                except EOFError:
+                    break
+
+        # Cleanup
+        if self._response_task:
+            self._response_task.cancel()
             try:
-                user_input = await asyncio.to_thread(prompt.prompt, self._get_prompt())
-                await self._handle_input(user_input.strip())
-            except KeyboardInterrupt:
-                continue
-            except EOFError:
-                break
+                await self._response_task
+            except asyncio.CancelledError:
+                pass
 
         self._print("\nGoodbye!")
 
@@ -754,7 +815,10 @@ Examples:
         await self._cmd_connect([name])
 
     async def _cmd_message_instance(self, target: str, message: str) -> None:
-        """Send message to specific instance without connecting.
+        """Send message to specific instance without connecting (non-blocking).
+
+        Enqueues the request and returns immediately. Response will appear
+        above the prompt when it arrives.
 
         Args:
             target: Instance name to message.
@@ -766,6 +830,10 @@ Examples:
             # Try to start if registered
             try:
                 inst = await self.instances.start_by_name(target)
+                # Wait for ready
+                ready = await self._wait_for_ready_with_spinner(target, timeout=30)
+                if not ready:
+                    self._print(f"⚠ '{target}' may not be ready yet")
             except Exception:
                 inst = None
 
@@ -775,18 +843,16 @@ Examples:
                 )
                 return
 
-        # Send message to instance
-        await self.instances.send_to_instance(target, message)
+        # Create and enqueue request (non-blocking)
+        request = PendingRequest(
+            id=str(uuid.uuid4())[:8],
+            target=target,
+            message=message,
+        )
+        self._pending_requests[request.id] = request
+        await self._request_queue.put(request)
 
-        # Wait for and display response
-        if self.relay:
-            try:
-                output = await self.relay.get_latest_output(
-                    target, inst.pane_target, context=message
-                )
-                self._display_response(target, output)
-            except Exception as e:
-                self._print(f"\n[Error getting response from {target}: {e}]")
+        # Return immediately - response will be handled by _process_responses
 
     def _display_response(self, instance_name: str, response: str) -> None:
         """Display response from instance above prompt.
@@ -801,7 +867,10 @@ Examples:
         print(f"\n@{instance_name}: {summary}")
 
     async def _send_to_instance(self, message: str) -> None:
-        """Send natural language to connected instance.
+        """Send natural language to connected instance (non-blocking).
+
+        Enqueues the request and returns immediately. Response will appear
+        above the prompt when it arrives.
 
         Args:
             message: User message to send.
@@ -818,20 +887,98 @@ Examples:
             self.session.disconnect()
             return
 
-        self._print(f"[Sending to {name}...]")
-        await self.instances.send_to_instance(name, message)
+        # Create and enqueue request (non-blocking)
+        request = PendingRequest(
+            id=str(uuid.uuid4())[:8],
+            target=name,
+            message=message,
+        )
+        self._pending_requests[request.id] = request
+        await self._request_queue.put(request)
         self.session.add_user_message(message)
 
-        # Wait for and display response
-        if self.relay:
+        # Return immediately - response will be handled by _process_responses
+
+    async def _process_responses(self) -> None:
+        """Background task that processes queued requests and waits for responses."""
+        while self._running:
             try:
-                output = await self.relay.get_latest_output(
-                    name, inst.pane_target, context=message
-                )
-                self._print(f"\n[Response from {name}]:\n{output}")
-                self.session.add_assistant_message(output)
+                # Get next request from queue (with timeout to allow checking _running)
+                try:
+                    request = await asyncio.wait_for(
+                        self._request_queue.get(), timeout=0.5
+                    )
+                except asyncio.TimeoutError:
+                    continue
+
+                # Update status and send to instance
+                request.status = RequestStatus.SENDING
+                self._render_pending_status()
+
+                inst = self.instances.get_instance(request.target)
+                if not inst:
+                    request.status = RequestStatus.ERROR
+                    request.error = f"Instance '{request.target}' no longer exists"
+                    print(f"\n⚠ [{request.target}] {request.error}")
+                    continue
+
+                # Send to instance
+                await self.instances.send_to_instance(request.target, request.message)
+                request.status = RequestStatus.WAITING
+                self._render_pending_status()
+
+                # Wait for response
+                if self.relay:
+                    try:
+                        output = await self.relay.get_latest_output(
+                            request.target, inst.pane_target, context=request.message
+                        )
+                        request.status = RequestStatus.COMPLETED
+                        request.response = output
+
+                        # Display response above prompt
+                        self._display_response(request.target, output)
+                        self.session.add_assistant_message(output)
+                    except Exception as e:
+                        request.status = RequestStatus.ERROR
+                        request.error = str(e)
+                        print(f"\n⚠ [{request.target}] Error: {e}")
+
+                # Remove from pending after a short delay
+                await asyncio.sleep(0.5)
+                self._pending_requests.pop(request.id, None)
+
+            except asyncio.CancelledError:
+                break
             except Exception as e:
-                self._print(f"\n[Error getting response: {e}]")
+                print(f"\n⚠ Response processor error: {e}")
+
+    def _render_pending_status(self) -> None:
+        """Render pending request status above the prompt."""
+        pending = [
+            r
+            for r in self._pending_requests.values()
+            if r.status not in (RequestStatus.COMPLETED, RequestStatus.ERROR)
+        ]
+        if not pending:
+            return
+
+        # Build status line
+        status_parts = []
+        for req in pending:
+            elapsed = req.elapsed_seconds()
+            status_icon = {
+                RequestStatus.QUEUED: "⏳",
+                RequestStatus.SENDING: "📤",
+                RequestStatus.WAITING: "⏱",
+            }.get(req.status, "?")
+            status_parts.append(
+                f"{status_icon} [{req.target}] {req.display_message(30)} ({elapsed}s)"
+            )
+
+        # Print above prompt (patch_stdout handles cursor positioning)
+        for part in status_parts:
+            print(f"\r\033[K{part}")
 
     def _on_instance_event(self, event: "Event") -> None:
         """Handle instance lifecycle events with interrupt display.
