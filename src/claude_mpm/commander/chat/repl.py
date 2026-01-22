@@ -1549,94 +1549,52 @@ Examples:
             timeout: Maximum seconds to wait
         """
         elapsed = 0.0
-        interval = 0.1  # Check every 100ms
+        interval = 0.5  # Check every 500ms
         spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         frame_idx = 0
-        last_print = 0.0
-        print_interval = 0.2  # Update spinner every 200ms
-        spinner_started = False
-
-        # Use raw stdout to bypass patch_stdout for in-place updates
-        raw_out = sys.__stdout__
-
-        # ANSI codes
-        CURSOR_UP = "\033[A"
-        CLEAR_LINE = "\033[K"
+        last_print = -5.0  # Start with -5 so first print happens at 0
+        print_interval = 5.0  # Update every 5 seconds (less intrusive)
 
         try:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Move up to spinner line, clear it, print success
-                    if spinner_started:
-                        raw_out.write(
-                            f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' ready ({int(elapsed)}s)\n"
-                        )
-                    else:
-                        raw_out.write(f"'{name}' ready ({int(elapsed)}s)\n")
-                    raw_out.flush()
+                    # Print success (patch_stdout handles cursor)
+                    print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
-                        raw_out.write(f"  Connected to '{name}'\n")
-                        raw_out.flush()
+                        print(f"  Connected to '{name}'")
 
                     # Cleanup
                     self._startup_tasks.pop(name, None)
                     return
 
-                # Print spinner update periodically
+                # Print spinner update periodically (every 5 seconds)
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    if spinner_started:
-                        # Move up, clear, write spinner, move down for prompt
-                        raw_out.write(
-                            f"{CURSOR_UP}\r{CLEAR_LINE}{frame} Waiting for '{name}'... ({int(elapsed)}s)\n"
-                        )
-                    else:
-                        # First spinner - just print with newline so prompt appears below
-                        raw_out.write(
-                            f"{frame} Waiting for '{name}'... ({int(elapsed)}s)\n"
-                        )
-                        spinner_started = True
-                    raw_out.flush()
+                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
                     frame_idx += 1
                     last_print = elapsed
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
-            # Timeout - clear spinner and show message
-            if spinner_started:
-                raw_out.write(
-                    f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' startup timeout ({timeout}s) - may still work\n"
-                )
-            else:
-                raw_out.write(
-                    f"'{name}' startup timeout ({timeout}s) - may still work\n"
-                )
-            raw_out.flush()
+            # Timeout
+            print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
                 self.session.connect_to(name)
-                raw_out.write(f"  Connected to '{name}' (may not be fully ready)\n")
-                raw_out.flush()
+                print(f"  Connected to '{name}' (may not be fully ready)")
 
             # Cleanup
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
-            if spinner_started:
-                raw_out.write(f"{CURSOR_UP}\r{CLEAR_LINE}")  # Clear spinner line
-                raw_out.flush()
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            if spinner_started:
-                raw_out.write(f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' startup error: {e}\n")
-            else:
-                raw_out.write(f"'{name}' startup error: {e}\n")
-            raw_out.flush()
+            print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
