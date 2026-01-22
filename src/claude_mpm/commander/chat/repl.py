@@ -12,7 +12,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from prompt_toolkit import PromptSession
+from prompt_toolkit import PromptSession, prompt as pt_prompt
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -999,12 +999,52 @@ Examples:
         client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
         client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
+        # If credentials missing, prompt for them interactively
         if not client_id or not client_secret:
-            self._print("Error: OAuth credentials not configured.")
-            self._print("Please set the following environment variables:")
-            self._print("  GOOGLE_OAUTH_CLIENT_ID")
-            self._print("  GOOGLE_OAUTH_CLIENT_SECRET")
-            return
+            self._console.print(
+                "\n[yellow]Google OAuth credentials not found in environment.[/yellow]"
+            )
+            self._console.print(
+                "Get credentials from: https://console.cloud.google.com/apis/credentials\n"
+            )
+
+            try:
+                client_id = pt_prompt("Enter GOOGLE_OAUTH_CLIENT_ID: ")
+                if not client_id.strip():
+                    self._print("Error: Client ID is required")
+                    return
+
+                client_secret = pt_prompt(
+                    "Enter GOOGLE_OAUTH_CLIENT_SECRET: ", is_password=True
+                )
+                if not client_secret.strip():
+                    self._print("Error: Client Secret is required")
+                    return
+
+                # Set in environment for this session
+                os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id.strip()
+                os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret.strip()
+                self._console.print(
+                    "\n[green]Credentials set for this session.[/green]"
+                )
+
+                # Ask if user wants to save credentials
+                save_response = pt_prompt(
+                    "\nSave credentials to shell profile? (y/n): "
+                )
+                if save_response.strip().lower() in ("y", "yes"):
+                    self._console.print("\nAdd these lines to your shell profile:")
+                    self._console.print(
+                        f'  export GOOGLE_OAUTH_CLIENT_ID="{client_id.strip()}"'
+                    )
+                    self._console.print(
+                        f'  export GOOGLE_OAUTH_CLIENT_SECRET="{client_secret.strip()}"'
+                    )
+                    self._console.print("")
+
+            except (EOFError, KeyboardInterrupt):
+                self._print("\nCredential entry cancelled.")
+                return
 
         try:
             from claude_mpm.auth import OAuthManager
