@@ -146,10 +146,11 @@ class ProjectInitializer:
             self.logger.debug("Created directories: agents, config, responses, logs")
 
             # Print appropriate message to console for visibility during startup
-            # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
+            # BUT: Don't print to stdout when running MCP server or headless mode
             is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
+            is_headless_mode = "--headless" in sys.argv
 
-            if not is_mcp_mode:
+            if not is_mcp_mode and not is_headless_mode:
                 if directory_existed:
                     print(f"✓ Found existing .claude-mpm/ directory in {project_root}")
                 else:

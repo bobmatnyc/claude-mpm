@@ -51,11 +51,21 @@ def ensure_run_attributes(args):
     args.no_native_agents = getattr(args, "no_native_agents", False)
 
     # Handle claude_args - if --resume flag is set, add it to claude_args
+    # args.resume can be:
+    #   None - flag not used
+    #   "" (empty string) - flag used without argument (resume last session)
+    #   "<session_id>" - flag used with specific session ID
     claude_args = getattr(args, "claude_args", [])
-    if getattr(args, "resume", False):
+    resume_value = getattr(args, "resume", None)
+    if resume_value is not None:  # Flag was used
         # Add --resume to claude_args if not already present
         if "--resume" not in claude_args:
-            claude_args = ["--resume", *claude_args]
+            if resume_value:
+                # Specific session ID provided - use --resume <id> --fork-session
+                claude_args = ["--resume", resume_value, "--fork-session", *claude_args]
+            else:
+                # No session ID - just pass --resume (resume last session)
+                claude_args = ["--resume", *claude_args]
     args.claude_args = claude_args
 
     args.launch_method = getattr(args, "launch_method", "exec")

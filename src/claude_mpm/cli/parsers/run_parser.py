@@ -82,8 +82,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
     run_group.add_argument(
         "--resume",
-        action="store_true",
-        help="Pass --resume flag to Claude Code to resume the last conversation",
+        type=str,
+        nargs="?",
+        const="",  # Empty string means resume last session (no specific ID)
+        default=None,  # None means flag not used
+        help="Resume a Claude Code session (useful with --headless for automation). Without argument: resume last session. With session_id: resume specific session",
     )
     run_group.add_argument(
         "--chrome",
@@ -136,7 +139,53 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     io_group.add_argument(
         "--headless",
         action="store_true",
-        help="Run in headless mode (disables Rich console, uses stream-json output for programmatic use)",
+        help="Run in headless mode for automation/CI/CD (disables Rich console, outputs NDJSON for programmatic parsing)",
+    )
+
+    # Claude Code passthrough flags for Vibe Kanban compatibility
+    # These flags are accepted by claude-mpm and forwarded to Claude Code
+    passthrough_group = parser.add_argument_group(
+        "claude code passthrough options",
+        description="Flags passed through to Claude Code (for automation/Vibe Kanban compatibility)",
+    )
+    passthrough_group.add_argument(
+        "-p",
+        action="store_true",
+        dest="passthrough_print",
+        help="Print flag (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--dangerously-skip-permissions",
+        action="store_true",
+        help="Skip permission prompts (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--output-format",
+        type=str,
+        metavar="FORMAT",
+        help="Output format (e.g., stream-json) (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--input-format",
+        type=str,
+        metavar="FORMAT",
+        help="Input format (e.g., stream-json) (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--include-partial-messages",
+        action="store_true",
+        help="Include partial messages in output (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--disallowedTools",
+        type=str,
+        metavar="TOOLS",
+        help="Comma-separated list of disallowed tools (passed to Claude Code)",
+    )
+    passthrough_group.add_argument(
+        "--fork-session",
+        action="store_true",
+        help="Fork the session for follow-up messages (passed to Claude Code)",
     )
 
     # Claude CLI arguments
