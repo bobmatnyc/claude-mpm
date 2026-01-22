@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.51] - 2026-01-22
+
+### Fixed
+- fix: Commander REPL now returns control immediately during instance startup
+  - `/register` and `/start` no longer block waiting for instance ready
+  - Background task tracks startup progress and auto-connects when ready
+  - Status shows above prompt with 🚀 icon (e.g., `🚀 [myapp] Starting up... (5s)`)
+  - Truly async event-driven model - can issue other commands while waiting
+
 ## [5.6.50] - 2026-01-22
 
 ### Fixed

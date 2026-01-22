@@ -23,8 +23,16 @@ class RequestStatus(Enum):
     QUEUED = "queued"
     SENDING = "sending"
     WAITING = "waiting"
+    STARTING = "starting"  # Instance starting up
     COMPLETED = "completed"
     ERROR = "error"
+
+
+class RequestType(Enum):
+    """Type of pending request."""
+
+    MESSAGE = "message"  # Message to instance
+    STARTUP = "startup"  # Instance startup/ready wait
 
 
 @dataclass
@@ -34,6 +42,7 @@ class PendingRequest:
     id: str
     target: str  # Instance name
     message: str
+    request_type: RequestType = RequestType.MESSAGE
     status: RequestStatus = RequestStatus.QUEUED
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     response: Optional[str] = None
@@ -230,6 +239,7 @@ FEATURES:
         self._pending_requests: dict[str, PendingRequest] = {}
         self._request_queue: asyncio.Queue[PendingRequest] = asyncio.Queue()
         self._response_task: Optional[asyncio.Task] = None
+        self._startup_tasks: dict[str, asyncio.Task] = {}  # Background startup tasks
         self._stdout_context = None  # For patch_stdout
 
     async def run(self) -> None:
@@ -581,11 +591,9 @@ Return ONLY valid JSON."""
                     self._print(f"  Worktree: {registered.worktree_path}")
                     self._print(f"  Branch: {registered.worktree_branch}")
 
-            # Wait for instance to be ready with animated spinner
-            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
-            if ready:
-                self.session.connect_to(name)
-                self._print(f"Connected to '{name}'")
+            # Spawn background task to wait for ready and auto-connect
+            # Control returns immediately to the prompt
+            self._spawn_startup_task(name, auto_connect=True, timeout=30)
         except Exception as e:
             self._print(f"Error starting instance: {e}")
 
@@ -661,11 +669,9 @@ Return ONLY valid JSON."""
             self._print(f"Registered and started '{name}' ({framework}) at {path}")
             self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
 
-            # Wait for instance to be ready with animated spinner
-            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
-            if ready:
-                self.session.connect_to(name)
-                self._print(f"Connected to '{name}'")
+            # Spawn background task to wait for ready and auto-connect
+            # Control returns immediately to the prompt
+            self._spawn_startup_task(name, auto_connect=True, timeout=30)
         except Exception as e:
             self._print(f"Failed to register: {e}")
 
@@ -850,10 +856,12 @@ Examples:
             # Try to start if registered
             try:
                 inst = await self.instances.start_by_name(target)
-                # Wait for ready
-                ready = await self._wait_for_ready_with_spinner(target, timeout=30)
-                if not ready:
-                    self._print(f"⚠ '{target}' may not be ready yet")
+                if inst:
+                    # Spawn background startup task (non-blocking)
+                    self._spawn_startup_task(target, auto_connect=False, timeout=30)
+                    self._print(
+                        f"Starting '{target}'... message will be sent when ready"
+                    )
             except Exception:
                 inst = None
 
@@ -991,6 +999,7 @@ Examples:
                 RequestStatus.QUEUED: "⏳",
                 RequestStatus.SENDING: "📤",
                 RequestStatus.WAITING: "⏱",
+                RequestStatus.STARTING: "🚀",
             }.get(req.status, "?")
             status_parts.append(
                 f"{status_icon} [{req.target}] {req.display_message(30)} ({elapsed}s)"
@@ -1051,8 +1060,108 @@ Examples:
         """
         print(msg)
 
+    def _spawn_startup_task(
+        self, name: str, auto_connect: bool = True, timeout: int = 30
+    ) -> None:
+        """Spawn a background task to wait for instance ready.
+
+        This returns immediately - the wait happens in the background.
+        Status is tracked in _pending_requests and displayed above prompt.
+
+        Args:
+            name: Instance name to wait for
+            auto_connect: Whether to auto-connect when ready
+            timeout: Maximum seconds to wait
+        """
+        request_id = str(uuid.uuid4())[:8]
+        request = PendingRequest(
+            id=request_id,
+            target=name,
+            message="Starting up...",
+            request_type=RequestType.STARTUP,
+            status=RequestStatus.STARTING,
+        )
+        self._pending_requests[request_id] = request
+
+        # Spawn background task
+        task = asyncio.create_task(
+            self._wait_for_ready_background(request, auto_connect, timeout)
+        )
+        self._startup_tasks[name] = task
+
+        # Initial status render
+        self._render_pending_status()
+
+    async def _wait_for_ready_background(
+        self, request: PendingRequest, auto_connect: bool, timeout: int
+    ) -> None:
+        """Background task that waits for instance ready.
+
+        Args:
+            request: The pending request tracking this startup
+            auto_connect: Whether to auto-connect when ready
+            timeout: Maximum seconds to wait
+        """
+        name = request.target
+        elapsed = 0.0
+        interval = 0.5  # Check every 500ms
+
+        try:
+            while elapsed < timeout:
+                inst = self.instances.get_instance(name)
+                if inst and inst.ready:
+                    request.status = RequestStatus.COMPLETED
+                    request.response = "ready"
+
+                    # Print success above prompt (patch_stdout handles positioning)
+                    print(f"✓ '{name}' is ready ({int(elapsed)}s)")
+
+                    if auto_connect:
+                        self.session.connect_to(name)
+                        print(f"  Connected to '{name}'")
+
+                    # Cleanup
+                    await asyncio.sleep(0.5)
+                    self._pending_requests.pop(request.id, None)
+                    self._startup_tasks.pop(name, None)
+                    return
+
+                # Update elapsed in message for display
+                request.message = f"Starting up... ({int(elapsed)}s)"
+                self._render_pending_status()
+
+                await asyncio.sleep(interval)
+                elapsed += interval
+
+            # Timeout
+            request.status = RequestStatus.ERROR
+            request.error = "startup timeout"
+            print(f"⚠ '{name}' startup timeout ({timeout}s) - may still work")
+
+            # Still auto-connect on timeout (instance may become ready later)
+            if auto_connect:
+                self.session.connect_to(name)
+                print(f"  Connected to '{name}' (may not be fully ready)")
+
+            # Cleanup
+            await asyncio.sleep(0.5)
+            self._pending_requests.pop(request.id, None)
+            self._startup_tasks.pop(name, None)
+
+        except asyncio.CancelledError:
+            self._pending_requests.pop(request.id, None)
+            self._startup_tasks.pop(name, None)
+        except Exception as e:
+            request.status = RequestStatus.ERROR
+            request.error = str(e)
+            print(f"⚠ '{name}' startup error: {e}")
+            self._pending_requests.pop(request.id, None)
+            self._startup_tasks.pop(name, None)
+
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
-        """Wait for instance to be ready with animated spinner.
+        """Wait for instance to be ready with animated spinner (BLOCKING).
+
+        NOTE: This method blocks. For non-blocking, use _spawn_startup_task().
 
         Shows an animated waiting indicator that updates in place.
 
