@@ -28,10 +28,12 @@ MPM Commander Capabilities:
 
 INSTANCE MANAGEMENT:
 - list/ls: Show all running Claude Code instances with their status
+- register <path> <framework> <name>: Register and start an instance (persisted)
+- start <name>: Start a registered instance by name
+- start <path>: Start a new Claude Code instance at path
+- stop <name>: Stop a running instance
 - connect <name>: Connect to a specific instance for interactive chat
 - disconnect: Disconnect from current instance
-- start <name>: Start a new Claude Code instance
-- stop <name>: Stop a running instance
 - status: Show current connection status
 
 WHEN CONNECTED:
@@ -141,6 +143,7 @@ FEATURES:
             CommandType.LIST: self._cmd_list,
             CommandType.START: self._cmd_start,
             CommandType.STOP: self._cmd_stop,
+            CommandType.REGISTER: self._cmd_register,
             CommandType.CONNECT: self._cmd_connect,
             CommandType.DISCONNECT: self._cmd_disconnect,
             CommandType.STATUS: self._cmd_status,
@@ -216,12 +219,32 @@ FEATURES:
                 )
 
     async def _cmd_start(self, args: list[str]) -> None:
-        """Start a new instance: start <path> [--framework cc|mpm] [--name name]."""
+        """Start instance: start <name> OR start <path> [--framework cc|mpm] [--name name]."""
         if not args:
-            self._print("Usage: start <path> [--framework cc|mpm] [--name name]")
+            self._print("Usage: start <name>  (for registered instances)")
+            self._print("       start <path> [--framework cc|mpm] [--name name]")
             return
 
-        # Parse arguments
+        # Check if first arg is a registered instance name (no path separators)
+        if len(args) == 1 and "/" not in args[0] and not args[0].startswith("~"):
+            name = args[0]
+            try:
+                instance = await self.instances.start_by_name(name)
+                if instance:
+                    self._print(f"Started registered instance '{name}'")
+                    self._print(
+                        f"  Tmux: {instance.tmux_session}:{instance.pane_target}"
+                    )
+                else:
+                    self._print(f"No registered instance named '{name}'")
+                    self._print(
+                        "Use 'register <path> <framework> <name>' to register first"
+                    )
+            except Exception as e:
+                self._print(f"Error starting instance: {e}")
+            return
+
+        # Path-based start logic
         project_path = Path(args[0]).expanduser().resolve()
         framework = "cc"  # default
         name = project_path.name  # default
@@ -275,6 +298,38 @@ FEATURES:
         except Exception as e:
             self._print(f"Error stopping instance: {e}")
 
+    async def _cmd_register(self, args: list[str]) -> None:
+        """Register and start an instance: register <path> <framework> <name>."""
+        if len(args) < 3:
+            self._print("Usage: register <path> <framework> <name>")
+            self._print("  framework: cc (Claude Code) or mpm")
+            return
+
+        path, framework, name = args[0], args[1], args[2]
+        path = Path(path).expanduser().resolve()
+
+        if framework not in ("cc", "mpm"):
+            self._print(f"Unknown framework: {framework}. Use 'cc' or 'mpm'")
+            return
+
+        # Validate path
+        if not path.exists():
+            self._print(f"Error: Path does not exist: {path}")
+            return
+
+        if not path.is_dir():
+            self._print(f"Error: Path is not a directory: {path}")
+            return
+
+        try:
+            instance = await self.instances.register_instance(
+                str(path), framework, name
+            )
+            self._print(f"Registered and started '{name}' ({framework}) at {path}")
+            self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
+        except Exception as e:
+            self._print(f"Failed to register: {e}")
+
     async def _cmd_connect(self, args: list[str]) -> None:
         """Connect to an instance: connect <name>."""
         if not args:
@@ -324,6 +379,9 @@ FEATURES:
         help_text = """
 Commander Commands:
   list, ls, instances   List active instances
+  register <path> <framework> <name>
+                        Register and start instance (persisted for future use)
+  start <name>          Start a registered instance by name
   start <path>          Start new instance at path
     --framework <cc|mpm>  Specify framework (default: cc)
     --name <name>         Specify instance name (default: dir name)
@@ -339,6 +397,8 @@ Natural Language:
   command will be sent to the connected instance as a message.
 
 Examples:
+  register ~/myproject cc myapp   # Register and start
+  start myapp                     # Start registered instance
   start ~/myproject --framework cc --name myapp
   connect myapp
   Fix the authentication bug in login.py

@@ -11,6 +11,7 @@ class CommandType(Enum):
     LIST = "list"
     START = "start"
     STOP = "stop"
+    REGISTER = "register"
     CONNECT = "connect"
     DISCONNECT = "disconnect"
     STATUS = "status"
