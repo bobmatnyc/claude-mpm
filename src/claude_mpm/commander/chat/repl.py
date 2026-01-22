@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -37,6 +38,11 @@ INSTANCE MANAGEMENT (use / prefix):
 - /disconnect: Disconnect from current instance
 - /status: Show current connection status
 
+DIRECT MESSAGING (no connection required):
+- @<name> <message>: Send message directly to any instance
+- (<name>): <message>: Alternative syntax for direct messaging
+- Instance names appear in responses: @myapp: response summary...
+
 WHEN CONNECTED:
 - Send natural language messages to Claude (no / prefix)
 - Receive streaming responses
@@ -49,6 +55,7 @@ BUILT-IN COMMANDS:
 
 FEATURES:
 - Real-time streaming responses
+- Direct @mention messaging to any instance
 - Instance discovery via daemon
 - Automatic reconnection handling
 - Session context preservation
@@ -127,6 +134,13 @@ FEATURES:
         if not input_text:
             return
 
+        # Check for direct @mention first (before any other parsing)
+        mention = self._parse_mention(input_text)
+        if mention:
+            target, message = mention
+            await self._cmd_message_instance(target, message)
+            return
+
         # Check if it's a built-in slash command first
         command = self.parser.parse(input_text)
         if command:
@@ -161,6 +175,14 @@ FEATURES:
             await self._handle_capabilities(input_text)
         elif intent == "greeting":
             self._handle_greeting()
+        elif intent == "message":
+            # Handle @mention detected by LLM
+            target = args.get("target")
+            message = args.get("message")
+            if target and message:
+                await self._cmd_message_instance(target, message)
+            else:
+                await self._send_to_instance(input_text)
         else:
             # Default to chat - send to connected instance
             await self._send_to_instance(input_text)
@@ -202,6 +224,27 @@ FEATURES:
             return "capabilities"
         return "chat"
 
+    def _parse_mention(self, text: str) -> tuple[str, str] | None:
+        """Parse @name or (name): message patterns.
+
+        Args:
+            text: User input text.
+
+        Returns:
+            Tuple of (target_name, message) if pattern matches, None otherwise.
+        """
+        # @name message
+        match = re.match(r"^@(\w+)\s+(.+)$", text.strip())
+        if match:
+            return match.group(1), match.group(2)
+
+        # (name): message or (name) message
+        match = re.match(r"^\((\w+)\):?\s+(.+)$", text.strip())
+        if match:
+            return match.group(1), match.group(2)
+
+        return None
+
     async def _classify_intent_llm(self, text: str) -> dict:
         """Use LLM to classify user intent.
 
@@ -238,6 +281,8 @@ Examples:
 "list instances" -> {"intent":"list","args":{}}
 "hello how are you" -> {"intent":"chat","args":{}}
 "what can you do" -> {"intent":"capabilities","args":{}}
+"@izzie show me the code" -> {"intent":"message","args":{"target":"izzie","message":"show me the code"}}
+"(myapp): what's the status" -> {"intent":"message","args":{"target":"myapp","message":"what's the status"}}
 
 Return ONLY valid JSON."""
 
@@ -471,15 +516,19 @@ Commander Commands (use / prefix):
   /help                 Show this help message
   /exit, /quit, /q      Exit Commander
 
+Direct Messaging (no connection required):
+  @<name> <message>     Send message to specific instance
+  (<name>): <message>   Alternative syntax for direct messaging
+
 Natural Language:
   Any input without / prefix is sent to the connected instance.
 
 Examples:
   /register ~/myproject cc myapp  # Register, start, and connect
   /start myapp                    # Start registered instance
-  /connect myapp                  # Connect to instance
+  @myapp show me the code         # Direct message to myapp
+  (izzie): what's the status      # Alternative syntax
   Fix the authentication bug      # Send to connected instance
-  /disconnect
   /exit
 """
         self._print(help_text)
@@ -562,6 +611,53 @@ Examples:
 
         await self._cmd_connect([name])
 
+    async def _cmd_message_instance(self, target: str, message: str) -> None:
+        """Send message to specific instance without connecting.
+
+        Args:
+            target: Instance name to message.
+            message: Message to send.
+        """
+        # Check if instance exists
+        inst = self.instances.get_instance(target)
+        if not inst:
+            # Try to start if registered
+            try:
+                inst = await self.instances.start_by_name(target)
+            except Exception:
+                inst = None
+
+            if not inst:
+                self._print(
+                    f"Instance '{target}' not found. Use /list to see instances."
+                )
+                return
+
+        # Send message to instance
+        await self.instances.send_to_instance(target, message)
+
+        # Wait for and display response
+        if self.relay:
+            try:
+                output = await self.relay.get_latest_output(
+                    target, inst.pane_target, context=message
+                )
+                self._display_response(target, output)
+            except Exception as e:
+                self._print(f"\n[Error getting response from {target}: {e}]")
+
+    def _display_response(self, instance_name: str, response: str) -> None:
+        """Display response from instance above prompt.
+
+        Args:
+            instance_name: Name of the instance that responded.
+            response: Response content.
+        """
+        # Summarize if too long
+        summary = response[:100] + "..." if len(response) > 100 else response
+        summary = summary.replace("\n", " ")
+        print(f"\n@{instance_name}: {summary}")
+
     async def _send_to_instance(self, message: str) -> None:
         """Send natural language to connected instance.
 
@@ -628,15 +724,11 @@ Examples:
             print(f"\n[Error] {event.title}: {event.content}")
 
     def _get_prompt(self) -> str:
-        """Get prompt string based on connection and ready state.
+        """Get prompt string.
 
         Returns:
             Prompt string for input.
         """
-        if self.session.context.is_connected:
-            name = self.session.context.connected_instance
-            if self._instance_ready.get(name):
-                return f"Commander ({name})> "
         return "Commander> "
 
     def _print(self, msg: str) -> None:

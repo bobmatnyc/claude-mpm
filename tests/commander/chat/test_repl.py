@@ -459,14 +459,17 @@ async def test_send_to_instance_success(
 
 
 def test_get_prompt_connected(repl, session_manager):
-    """Test prompt when connected to ready instance."""
+    """Test prompt is always Commander> even when connected.
+
+    With @mention support, users can message any instance without connecting,
+    so the prompt no longer shows connection state.
+    """
     session_manager.connect_to("myapp")
     repl._instance_ready["myapp"] = True  # Mark instance as ready
 
     prompt = repl._get_prompt()
 
-    assert "myapp" in prompt
-    assert "Commander" in prompt
+    assert prompt == "Commander> "
 
 
 def test_get_prompt_connected_not_ready(repl, session_manager):
@@ -476,17 +479,14 @@ def test_get_prompt_connected_not_ready(repl, session_manager):
 
     prompt = repl._get_prompt()
 
-    # Should not show instance name until ready
-    assert "myapp" not in prompt
-    assert "Commander>" in prompt
+    assert prompt == "Commander> "
 
 
 def test_get_prompt_not_connected(repl):
     """Test prompt when not connected."""
     prompt = repl._get_prompt()
 
-    assert "Commander>" in prompt
-    assert "(" not in prompt  # No instance name
+    assert prompt == "Commander> "
 
 
 @pytest.mark.asyncio
@@ -528,6 +528,147 @@ async def test_cmd_register_auto_connects(
     assert "Connected to 'myapp'" in captured.out
     assert session_manager.context.is_connected
     assert session_manager.context.connected_instance == "myapp"
+
+
+class TestMentionParsing:
+    """Tests for @mention parsing and direct instance messaging."""
+
+    def test_parse_mention_at_syntax(self, repl):
+        """Test parsing @name message syntax."""
+        result = repl._parse_mention("@myapp show me the code")
+
+        assert result is not None
+        assert result[0] == "myapp"
+        assert result[1] == "show me the code"
+
+    def test_parse_mention_paren_syntax(self, repl):
+        """Test parsing (name): message syntax."""
+        result = repl._parse_mention("(izzie): what's the status")
+
+        assert result is not None
+        assert result[0] == "izzie"
+        assert result[1] == "what's the status"
+
+    def test_parse_mention_paren_without_colon(self, repl):
+        """Test parsing (name) message syntax without colon."""
+        result = repl._parse_mention("(myapp) run the tests")
+
+        assert result is not None
+        assert result[0] == "myapp"
+        assert result[1] == "run the tests"
+
+    def test_parse_mention_no_match(self, repl):
+        """Test parsing regular text without mention."""
+        result = repl._parse_mention("fix the bug")
+
+        assert result is None
+
+    def test_parse_mention_at_no_message(self, repl):
+        """Test parsing @name without message doesn't match."""
+        result = repl._parse_mention("@myapp")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_cmd_message_instance_success(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test sending message to specific instance."""
+        instance = InstanceInfo(
+            name="myapp",
+            project_path=Path("/path/to/myapp"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.get_instance = Mock(return_value=instance)
+
+        mock_relay = MagicMock()
+        mock_relay.get_latest_output = AsyncMock(return_value="Code looks good")
+
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+            output_relay=mock_relay,
+        )
+
+        await repl._cmd_message_instance("myapp", "show me the code")
+
+        mock_instance_manager.send_to_instance.assert_called_once_with(
+            "myapp", "show me the code"
+        )
+        captured = capsys.readouterr()
+        assert "@myapp:" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_cmd_message_instance_not_found(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test messaging non-existent instance."""
+        mock_instance_manager.get_instance = Mock(return_value=None)
+        mock_instance_manager.start_by_name = AsyncMock(return_value=None)
+
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        await repl._cmd_message_instance("unknown", "hello")
+
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+        assert "unknown" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_input_with_mention(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test that @mention in input triggers direct messaging."""
+        instance = InstanceInfo(
+            name="myapp",
+            project_path=Path("/path/to/myapp"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.get_instance = Mock(return_value=instance)
+
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        await repl._handle_input("@myapp fix the bug")
+
+        mock_instance_manager.send_to_instance.assert_called_once_with(
+            "myapp", "fix the bug"
+        )
+
+    def test_display_response_short(self, repl, capsys):
+        """Test display of short response."""
+        repl._display_response("myapp", "All tests pass")
+
+        captured = capsys.readouterr()
+        assert "@myapp: All tests pass" in captured.out
+
+    def test_display_response_long_truncated(self, repl, capsys):
+        """Test display of long response is truncated."""
+        long_response = "A" * 200
+        repl._display_response("myapp", long_response)
+
+        captured = capsys.readouterr()
+        assert "@myapp:" in captured.out
+        assert "..." in captured.out
+        # Should be truncated to ~100 chars
+        assert len(captured.out.strip()) < 150
+
+    def test_display_response_newlines_replaced(self, repl, capsys):
+        """Test that newlines in response are replaced with spaces."""
+        repl._display_response("myapp", "Line 1\nLine 2\nLine 3")
+
+        captured = capsys.readouterr()
+        assert "\n\n" not in captured.out  # Only the leading newline should exist
+        assert "Line 1 Line 2 Line 3" in captured.out
 
 
 class TestEventNotifications:
