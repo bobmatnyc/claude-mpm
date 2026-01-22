@@ -97,10 +97,10 @@ class TestTmuxOrchestrator:
         """Test create_pane creates pane and returns target."""
         mock_which.return_value = "/usr/bin/tmux"
 
-        # First call: split-window
+        # First call: new-window
         # Second call: list-panes to get new pane ID
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="", stderr=""),  # split-window
+            Mock(returncode=0, stdout="", stderr=""),  # new-window
             Mock(returncode=0, stdout="%0\n%1\n%2\n", stderr=""),  # list-panes
         ]
 
@@ -110,11 +110,11 @@ class TestTmuxOrchestrator:
         assert target == "%2"  # Last pane ID in list (not prefixed with session)
         assert mock_run.call_count == 2
 
-        # Verify split-window command
-        split_call = mock_run.call_args_list[0][0][0]
-        assert "split-window" in split_call
-        assert "-c" in split_call
-        assert "/path/to/project" in split_call
+        # Verify new-window command
+        new_window_call = mock_run.call_args_list[0][0][0]
+        assert "new-window" in new_window_call
+        assert "-c" in new_window_call
+        assert "/path/to/project" in new_window_call
 
     @patch("shutil.which")
     @patch("subprocess.run")
@@ -323,10 +323,10 @@ class TestTmuxOrchestrator:
         """Test create_pane raises error when pane list is empty."""
         mock_which.return_value = "/usr/bin/tmux"
 
-        # First call: split-window
+        # First call: new-window
         # Second call: list-panes returns empty
         mock_run.side_effect = [
-            Mock(returncode=0, stdout="", stderr=""),  # split-window
+            Mock(returncode=0, stdout="", stderr=""),  # new-window
             Mock(returncode=0, stdout="", stderr=""),  # list-panes (empty)
         ]
 

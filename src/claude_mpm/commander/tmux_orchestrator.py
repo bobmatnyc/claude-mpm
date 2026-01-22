@@ -158,10 +158,11 @@ class TmuxOrchestrator:
         """
         logger.info(f"Creating pane '{pane_id}' in {working_dir}")
 
-        # Split window to create new pane
+        # Create new window instead of splitting pane to avoid "no space for new pane" error
+        # when tmux window is too small to split
         self._run_tmux(
             [
-                "split-window",
+                "new-window",
                 "-t",
                 self.session_name,
                 "-c",
