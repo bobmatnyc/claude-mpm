@@ -1554,16 +1554,26 @@ Examples:
         frame_idx = 0
         last_print = 0.0
         print_interval = 0.2  # Update spinner every 200ms
+        spinner_started = False
 
         # Use raw stdout to bypass patch_stdout for in-place updates
         raw_out = sys.__stdout__
+
+        # ANSI codes
+        CURSOR_UP = "\033[A"
+        CLEAR_LINE = "\033[K"
 
         try:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Clear spinner line and print success
-                    raw_out.write(f"\r\033[K'{name}' ready ({int(elapsed)}s)\n")
+                    # Move up to spinner line, clear it, print success
+                    if spinner_started:
+                        raw_out.write(
+                            f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' ready ({int(elapsed)}s)\n"
+                        )
+                    else:
+                        raw_out.write(f"'{name}' ready ({int(elapsed)}s)\n")
                     raw_out.flush()
 
                     if auto_connect:
@@ -1578,10 +1588,17 @@ Examples:
                 # Print spinner update periodically
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    # Use \r to return to start of line, \033[K to clear to end
-                    raw_out.write(
-                        f"\r\033[K{frame} Waiting for '{name}'... ({int(elapsed)}s)"
-                    )
+                    if spinner_started:
+                        # Move up, clear, write spinner, move down for prompt
+                        raw_out.write(
+                            f"{CURSOR_UP}\r{CLEAR_LINE}{frame} Waiting for '{name}'... ({int(elapsed)}s)\n"
+                        )
+                    else:
+                        # First spinner - just print with newline so prompt appears below
+                        raw_out.write(
+                            f"{frame} Waiting for '{name}'... ({int(elapsed)}s)\n"
+                        )
+                        spinner_started = True
                     raw_out.flush()
                     frame_idx += 1
                     last_print = elapsed
@@ -1590,9 +1607,14 @@ Examples:
                 elapsed += interval
 
             # Timeout - clear spinner and show message
-            raw_out.write(
-                f"\r\033[K'{name}' startup timeout ({timeout}s) - may still work\n"
-            )
+            if spinner_started:
+                raw_out.write(
+                    f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' startup timeout ({timeout}s) - may still work\n"
+                )
+            else:
+                raw_out.write(
+                    f"'{name}' startup timeout ({timeout}s) - may still work\n"
+                )
             raw_out.flush()
 
             # Still auto-connect on timeout (instance may become ready later)
@@ -1605,11 +1627,15 @@ Examples:
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
-            raw_out.write("\r\033[K")  # Clear spinner line
-            raw_out.flush()
+            if spinner_started:
+                raw_out.write(f"{CURSOR_UP}\r{CLEAR_LINE}")  # Clear spinner line
+                raw_out.flush()
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            raw_out.write(f"\r\033[K'{name}' startup error: {e}\n")
+            if spinner_started:
+                raw_out.write(f"{CURSOR_UP}\r{CLEAR_LINE}'{name}' startup error: {e}\n")
+            else:
+                raw_out.write(f"'{name}' startup error: {e}\n")
             raw_out.flush()
             self._startup_tasks.pop(name, None)
 
