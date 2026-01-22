@@ -199,12 +199,13 @@ MCP_VECTOR_SEARCH = MCPServiceDefinition(
 )
 
 # Google Workspace MCP - Google Drive, Docs, Sheets integration
+# Package: https://pypi.org/project/workspace-mcp/
 GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
-    name="google_workspace_mcp",
-    package="google_workspace_mcp",
+    name="workspace-mcp",
+    package="workspace-mcp",
     install_method=InstallMethod.UVX,
     command="uvx",
-    args=["google_workspace_mcp"],
+    args=["workspace-mcp", "--tool-tier", "core"],
     required_env=["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
     optional_env=[
         "OAUTHLIB_INSECURE_TRANSPORT",
