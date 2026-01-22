@@ -531,12 +531,16 @@ def should_show_banner(args) -> bool:
     """
     Determine if startup banner should be displayed.
 
-    Skip banner for: --help, --version, info, doctor, config, configure commands
+    Skip banner for: --help, --version, --headless, info, doctor, config, configure commands
     """
     # Check for help/version flags
     if hasattr(args, "help") and args.help:
         return False
     if hasattr(args, "version") and args.version:
+        return False
+
+    # Check for headless mode - no Rich output in headless mode
+    if getattr(args, "headless", False):
         return False
 
     # Check for commands that should skip banner

@@ -196,7 +196,7 @@ def should_skip_background_services(args, processed_argv):
     """
     Determine if background services should be skipped for this command.
 
-    WHY: Some commands (help, version, configure, doctor) don't need
+    WHY: Some commands (help, version, configure, doctor, headless) don't need
     background services and should start faster.
 
     Args:
@@ -206,6 +206,10 @@ def should_skip_background_services(args, processed_argv):
     Returns:
         bool: True if background services should be skipped
     """
+    # Skip for headless mode - no Rich output allowed
+    if getattr(args, "headless", False):
+        return True
+
     skip_commands = ["--version", "-v", "--help", "-h"]
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands) or (
         hasattr(args, "command")
