@@ -676,9 +676,15 @@ Return ONLY valid JSON."""
                     self._print(f"  Worktree: {registered.worktree_path}")
                     self._print(f"  Branch: {registered.worktree_branch}")
 
-            # Spawn background task to wait for ready and auto-connect
-            # Control returns immediately to the prompt
-            self._spawn_startup_task(name, auto_connect=True, timeout=30)
+            # Wait for ready with animated spinner (blocking)
+            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
+            if ready:
+                self.session.connect_to(name)
+                self._print(f"  Connected to '{name}'")
+            else:
+                # Still connect on timeout
+                self.session.connect_to(name)
+                self._print(f"  Connected to '{name}' (may not be fully ready)")
         except Exception as e:
             self._print(f"Error starting instance: {e}")
 
@@ -757,9 +763,15 @@ Return ONLY valid JSON."""
             # Save registration for persistence
             self._save_registration(name, str(path), framework)
 
-            # Spawn background task to wait for ready and auto-connect
-            # Control returns immediately to the prompt
-            self._spawn_startup_task(name, auto_connect=True, timeout=30)
+            # Wait for ready with animated spinner (blocking)
+            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
+            if ready:
+                self.session.connect_to(name)
+                self._print(f"  Connected to '{name}'")
+            else:
+                # Still connect on timeout
+                self.session.connect_to(name)
+                self._print(f"  Connected to '{name}' (may not be fully ready)")
         except Exception as e:
             self._print(f"Failed to register: {e}")
 
@@ -788,8 +800,15 @@ Return ONLY valid JSON."""
                     self._print(
                         f"  Tmux: {instance.tmux_session}:{instance.pane_target}"
                     )
-                    # Spawn background task to wait for ready and auto-connect
-                    self._spawn_startup_task(name, auto_connect=True, timeout=30)
+                    # Wait for ready with animated spinner (blocking)
+                    ready = await self._wait_for_ready_with_spinner(name, timeout=30)
+                    if ready:
+                        self.session.connect_to(name)
+                        self._print(f"  Connected to '{name}'")
+                    else:
+                        # Still connect on timeout
+                        self.session.connect_to(name)
+                        self._print(f"  Connected to '{name}' (may not be fully ready)")
                     return
                 except Exception as e:
                     self._print(f"Failed to start from saved config: {e}")
