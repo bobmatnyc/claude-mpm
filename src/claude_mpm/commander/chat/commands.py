@@ -21,6 +21,7 @@ class CommandType(Enum):
     HELP = "help"
     EXIT = "exit"
     INSTANCES = "instances"  # alias for list
+    OAUTH = "oauth"
 
 
 @dataclass
@@ -53,6 +54,7 @@ class CommandParser:
         "exit": CommandType.EXIT,
         "quit": CommandType.EXIT,
         "q": CommandType.EXIT,
+        "oauth": CommandType.OAUTH,
     }
 
     def parse(self, input_text: str) -> Optional[Command]:

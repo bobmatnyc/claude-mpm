@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import re
 import sys
 import uuid
@@ -466,6 +467,7 @@ FEATURES:
             CommandType.STATUS: self._cmd_status,
             CommandType.HELP: self._cmd_help,
             CommandType.EXIT: self._cmd_exit,
+            CommandType.OAUTH: self._cmd_oauth,
         }
         handler = handlers.get(cmd.type)
         if handler:
@@ -902,6 +904,221 @@ Examples:
     async def _cmd_exit(self, args: list[str]) -> None:
         """Exit the REPL."""
         self._running = False
+
+    async def _cmd_oauth(self, args: list[str]) -> None:
+        """Handle OAuth command with subcommands.
+
+        Usage:
+            /oauth                 - Show help
+            /oauth list            - List OAuth-capable services
+            /oauth setup <service> - Set up OAuth for a service
+            /oauth status <service> - Show token status
+            /oauth revoke <service> - Revoke OAuth tokens
+            /oauth refresh <service> - Refresh OAuth tokens
+        """
+        if not args:
+            await self._cmd_oauth_help()
+            return
+
+        subcommand = args[0].lower()
+        subargs = args[1:] if len(args) > 1 else []
+
+        if subcommand == "help":
+            await self._cmd_oauth_help()
+        elif subcommand == "list":
+            await self._cmd_oauth_list()
+        elif subcommand == "setup":
+            if not subargs:
+                self._print("Usage: /oauth setup <service>")
+                return
+            await self._cmd_oauth_setup(subargs[0])
+        elif subcommand == "status":
+            if not subargs:
+                self._print("Usage: /oauth status <service>")
+                return
+            await self._cmd_oauth_status(subargs[0])
+        elif subcommand == "revoke":
+            if not subargs:
+                self._print("Usage: /oauth revoke <service>")
+                return
+            await self._cmd_oauth_revoke(subargs[0])
+        elif subcommand == "refresh":
+            if not subargs:
+                self._print("Usage: /oauth refresh <service>")
+                return
+            await self._cmd_oauth_refresh(subargs[0])
+        else:
+            self._print(f"Unknown subcommand: {subcommand}")
+            await self._cmd_oauth_help()
+
+    async def _cmd_oauth_help(self) -> None:
+        """Print OAuth command help."""
+        help_text = """
+OAuth Commands:
+  /oauth list            List OAuth-capable MCP services
+  /oauth setup <service> Set up OAuth authentication for a service
+  /oauth status <service> Show token status for a service
+  /oauth revoke <service> Revoke OAuth tokens for a service
+  /oauth refresh <service> Refresh OAuth tokens for a service
+  /oauth help            Show this help message
+
+Examples:
+  /oauth list
+  /oauth setup google-drive
+  /oauth status google-drive
+"""
+        self._print(help_text)
+
+    async def _cmd_oauth_list(self) -> None:
+        """List OAuth-capable services from MCP registry."""
+        try:
+            from claude_mpm.services.mcp_service_registry import MCPServiceRegistry
+
+            registry = MCPServiceRegistry()
+            services = registry.list_oauth_services()
+
+            if not services:
+                self._print("No OAuth-capable services found.")
+                return
+
+            self._print("OAuth-capable services:")
+            for service in services:
+                self._print(f"  - {service}")
+        except ImportError:
+            self._print("MCP Service Registry not available.")
+        except Exception as e:
+            self._print(f"Error listing services: {e}")
+
+    async def _cmd_oauth_setup(self, service_name: str) -> None:
+        """Set up OAuth for a service.
+
+        Args:
+            service_name: Name of the service to authenticate.
+        """
+        # Check for required environment variables
+        client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+        client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+
+        if not client_id or not client_secret:
+            self._print("Error: OAuth credentials not configured.")
+            self._print("Please set the following environment variables:")
+            self._print("  GOOGLE_OAUTH_CLIENT_ID")
+            self._print("  GOOGLE_OAUTH_CLIENT_SECRET")
+            return
+
+        try:
+            from claude_mpm.auth import OAuthManager
+
+            manager = OAuthManager()
+
+            self._print(f"Setting up OAuth for '{service_name}'...")
+            self._print("Opening browser for authentication...")
+            self._print("Callback server listening on http://localhost:8085/callback")
+
+            result = await manager.authenticate(service_name)
+
+            if result.success:
+                self._print(f"OAuth setup complete for '{service_name}'")
+                self._print(f"  Token expires: {result.expires_at}")
+            else:
+                self._print(f"OAuth setup failed: {result.error}")
+        except ImportError:
+            self._print("OAuth module not available.")
+        except Exception as e:
+            self._print(f"Error during OAuth setup: {e}")
+
+    async def _cmd_oauth_status(self, service_name: str) -> None:
+        """Show OAuth token status for a service.
+
+        Args:
+            service_name: Name of the service to check.
+        """
+        try:
+            from claude_mpm.auth import OAuthManager
+
+            manager = OAuthManager()
+            status = await manager.get_status(service_name)
+
+            if status is None:
+                self._print(f"No OAuth tokens found for '{service_name}'")
+                return
+
+            self._print_token_status(service_name, status, stored=True)
+        except ImportError:
+            self._print("OAuth module not available.")
+        except Exception as e:
+            self._print(f"Error checking status: {e}")
+
+    async def _cmd_oauth_revoke(self, service_name: str) -> None:
+        """Revoke OAuth tokens for a service.
+
+        Args:
+            service_name: Name of the service to revoke.
+        """
+        try:
+            from claude_mpm.auth import OAuthManager
+
+            manager = OAuthManager()
+
+            self._print(f"Revoking OAuth tokens for '{service_name}'...")
+            result = await manager.revoke(service_name)
+
+            if result.success:
+                self._print(f"OAuth tokens revoked for '{service_name}'")
+            else:
+                self._print(f"Failed to revoke: {result.error}")
+        except ImportError:
+            self._print("OAuth module not available.")
+        except Exception as e:
+            self._print(f"Error revoking tokens: {e}")
+
+    async def _cmd_oauth_refresh(self, service_name: str) -> None:
+        """Refresh OAuth tokens for a service.
+
+        Args:
+            service_name: Name of the service to refresh.
+        """
+        try:
+            from claude_mpm.auth import OAuthManager
+
+            manager = OAuthManager()
+
+            self._print(f"Refreshing OAuth tokens for '{service_name}'...")
+            result = await manager.refresh(service_name)
+
+            if result.success:
+                self._print(f"OAuth tokens refreshed for '{service_name}'")
+                self._print(f"  New expiry: {result.expires_at}")
+            else:
+                self._print(f"Failed to refresh: {result.error}")
+        except ImportError:
+            self._print("OAuth module not available.")
+        except Exception as e:
+            self._print(f"Error refreshing tokens: {e}")
+
+    def _print_token_status(
+        self, name: str, status: dict, stored: bool = False
+    ) -> None:
+        """Print token status information.
+
+        Args:
+            name: Service name.
+            status: Status dict with token info.
+            stored: Whether tokens are stored.
+        """
+        self._print(f"OAuth Status for '{name}':")
+        self._print(f"  Stored: {'Yes' if stored else 'No'}")
+
+        if status.get("valid"):
+            self._print("  Status: Valid")
+        else:
+            self._print("  Status: Invalid/Expired")
+
+        if status.get("expires_at"):
+            self._print(f"  Expires: {status['expires_at']}")
+
+        if status.get("scopes"):
+            self._print(f"  Scopes: {', '.join(status['scopes'])}")
 
     # Helper methods for LLM-extracted arguments
 

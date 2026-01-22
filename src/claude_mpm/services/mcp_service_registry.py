@@ -48,6 +48,8 @@ class MCPServiceDefinition:
     description: str = ""
     env_defaults: dict[str, str] = field(default_factory=dict)
     enabled_by_default: bool = False
+    oauth_provider: str | None = None  # "google", "microsoft", etc.
+    oauth_scopes: list[str] = field(default_factory=list)  # OAuth scopes if applicable
 
 
 class MCPServiceRegistry:
@@ -216,6 +218,17 @@ GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
     description="Google Workspace integration (Gmail, Calendar, Drive, Docs, Sheets, Slides)",
     env_defaults={"OAUTHLIB_INSECURE_TRANSPORT": "1"},
     enabled_by_default=False,
+    oauth_provider="google",
+    oauth_scopes=[
+        "openid",
+        "email",
+        "profile",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/documents",
+        "https://www.googleapis.com/auth/spreadsheets",
+    ],
 )
 
 # MCP GitHub - GitHub repository integration (future)
