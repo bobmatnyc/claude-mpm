@@ -3,6 +3,7 @@
 import asyncio
 import json
 import re
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -584,10 +585,9 @@ Return ONLY valid JSON."""
             )
             self._print(f"Registered and started '{name}' ({framework}) at {path}")
             self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
-            self._print(f"Waiting for '{name}' to be ready...")
 
-            # Wait for instance to be ready before auto-connecting
-            ready = await self.instances.wait_for_ready(name, timeout=30)
+            # Wait for instance to be ready with animated spinner
+            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
             if ready:
                 self.session.connect_to(name)
                 self._print(f"Connected to '{name}'")
@@ -883,6 +883,47 @@ Examples:
             msg: Message to print.
         """
         print(msg)
+
+    async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
+        """Wait for instance to be ready with animated spinner.
+
+        Shows an animated waiting indicator that updates in place.
+
+        Args:
+            name: Instance name to wait for
+            timeout: Maximum seconds to wait
+
+        Returns:
+            True if instance became ready, False on timeout
+        """
+        spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        frame_idx = 0
+        elapsed = 0.0
+        interval = 0.1  # Update spinner every 100ms
+
+        while elapsed < timeout:
+            inst = self.instances.get_instance(name)
+            if inst and inst.ready:
+                # Clear spinner line and show success
+                sys.stdout.write(f"\r\033[K✓ '{name}' is ready\n")
+                sys.stdout.flush()
+                return True
+
+            # Show spinner with elapsed time
+            frame = spinner_frames[frame_idx % len(spinner_frames)]
+            sys.stdout.write(
+                f"\r{frame} Waiting for '{name}' to be ready... ({int(elapsed)}s)"
+            )
+            sys.stdout.flush()
+
+            await asyncio.sleep(interval)
+            elapsed += interval
+            frame_idx += 1
+
+        # Timeout - clear spinner and show warning
+        sys.stdout.write(f"\r\033[K⚠ '{name}' startup timeout (may still work)\n")
+        sys.stdout.flush()
+        return False
 
     def _print_welcome(self) -> None:
         """Print welcome message."""
