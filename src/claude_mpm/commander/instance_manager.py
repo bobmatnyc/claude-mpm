@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -11,7 +12,11 @@ from claude_mpm.commander.adapters import (
     ClaudeCodeAdapter,
     ClaudeCodeCommunicationAdapter,
 )
-from claude_mpm.commander.frameworks.base import BaseFramework, InstanceInfo
+from claude_mpm.commander.frameworks.base import (
+    BaseFramework,
+    InstanceInfo,
+    RegisteredInstance,
+)
 from claude_mpm.commander.frameworks.claude_code import ClaudeCodeFramework
 from claude_mpm.commander.frameworks.mpm import MPMFramework
 from claude_mpm.commander.models.events import EventType
@@ -19,6 +24,7 @@ from claude_mpm.commander.tmux_orchestrator import TmuxOrchestrator
 
 if TYPE_CHECKING:
     from claude_mpm.commander.events.manager import EventManager
+    from claude_mpm.commander.persistence.state_store import StateStore
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +88,7 @@ class InstanceManager:
         self._frameworks = self._load_frameworks()
         self._adapters: dict[str, ClaudeCodeCommunicationAdapter] = {}
         self._event_manager: Optional[EventManager] = None
+        self._state_store: Optional[StateStore] = None
 
     def set_event_manager(self, event_manager: "EventManager") -> None:
         """Set the event manager for emitting instance events.
@@ -94,6 +101,18 @@ class InstanceManager:
             >>> manager.set_event_manager(event_manager)
         """
         self._event_manager = event_manager
+
+    def set_state_store(self, state_store: "StateStore") -> None:
+        """Set state store for persistence.
+
+        Args:
+            state_store: StateStore instance for persisting registered instances
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_state_store(state_store)
+        """
+        self._state_store = state_store
 
     def _load_frameworks(self) -> dict[str, BaseFramework]:
         """Load available frameworks.
@@ -539,3 +558,122 @@ class InstanceManager:
             logger.debug(f"No adapter to disconnect for instance '{name}'")
 
         return True
+
+    async def register_instance(
+        self, path: str, framework: str, name: str
+    ) -> InstanceInfo:
+        """Register an instance and start it.
+
+        Registers the instance in persistent storage so it can be started
+        by name in future sessions, then starts the instance.
+
+        Args:
+            path: Project directory path
+            framework: Framework to use ("cc" or "mpm")
+            name: Instance name
+
+        Returns:
+            InstanceInfo with tmux session details
+
+        Raises:
+            FrameworkNotFoundError: If framework is not available
+            InstanceAlreadyExistsError: If instance already exists
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_state_store(state_store)
+            >>> instance = await manager.register_instance(
+            ...     "/Users/user/myapp", "cc", "myapp"
+            ... )
+            >>> print(instance.name, instance.framework)
+            myapp cc
+        """
+        # Create registered instance
+        registered = RegisteredInstance(
+            name=name,
+            path=str(path),
+            framework=framework,
+            registered_at=datetime.now(timezone.utc).isoformat(),
+        )
+
+        # Save to persistent storage
+        if self._state_store:
+            self._state_store.register_instance(registered)
+
+        # Start the instance
+        return await self.start_instance(name, Path(path), framework)
+
+    async def start_by_name(self, name: str) -> Optional[InstanceInfo]:
+        """Start a previously registered instance by name.
+
+        Looks up the instance registration and starts it with the
+        stored path and framework.
+
+        Args:
+            name: Instance name (must have been previously registered)
+
+        Returns:
+            InstanceInfo if instance was found and started, None if not registered
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_state_store(state_store)
+            >>> # After previous registration
+            >>> instance = await manager.start_by_name("myapp")
+            >>> if instance:
+            ...     print(instance.name, instance.project_path)
+            myapp /Users/user/myapp
+        """
+        if not self._state_store:
+            return None
+
+        registered = self._state_store.get_registered_instance(name)
+        if not registered:
+            return None
+
+        return await self.start_instance(
+            registered.name,
+            Path(registered.path),
+            registered.framework,
+        )
+
+    def list_registered(self) -> dict[str, RegisteredInstance]:
+        """List all registered instances.
+
+        Returns:
+            Dict mapping instance name to RegisteredInstance
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_state_store(state_store)
+            >>> registered = manager.list_registered()
+            >>> for name, instance in registered.items():
+            ...     print(f"{name}: {instance.path} ({instance.framework})")
+            myapp: /Users/user/myapp (cc)
+        """
+        if not self._state_store:
+            return {}
+        return self._state_store.load_instances()
+
+    def unregister(self, name: str) -> bool:
+        """Unregister an instance.
+
+        Removes the instance from persistent storage. Does not stop
+        any running instance with this name.
+
+        Args:
+            name: Instance name to unregister
+
+        Returns:
+            True if instance was found and unregistered, False if not found
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> manager.set_state_store(state_store)
+            >>> success = manager.unregister("myapp")
+            >>> print(success)
+            True
+        """
+        if not self._state_store:
+            return False
+        return self._state_store.unregister_instance(name)
