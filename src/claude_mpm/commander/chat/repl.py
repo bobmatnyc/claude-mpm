@@ -676,15 +676,8 @@ Return ONLY valid JSON."""
                     self._print(f"  Worktree: {registered.worktree_path}")
                     self._print(f"  Branch: {registered.worktree_branch}")
 
-            # Wait for ready with animated spinner (blocking)
-            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
-            if ready:
-                self.session.connect_to(name)
-                self._print(f"  Connected to '{name}'")
-            else:
-                # Still connect on timeout
-                self.session.connect_to(name)
-                self._print(f"  Connected to '{name}' (may not be fully ready)")
+            # Spawn background task to wait for ready (non-blocking with spinner)
+            self._spawn_startup_task(name, auto_connect=True, timeout=30)
         except Exception as e:
             self._print(f"Error starting instance: {e}")
 
@@ -763,15 +756,8 @@ Return ONLY valid JSON."""
             # Save registration for persistence
             self._save_registration(name, str(path), framework)
 
-            # Wait for ready with animated spinner (blocking)
-            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
-            if ready:
-                self.session.connect_to(name)
-                self._print(f"  Connected to '{name}'")
-            else:
-                # Still connect on timeout
-                self.session.connect_to(name)
-                self._print(f"  Connected to '{name}' (may not be fully ready)")
+            # Spawn background task to wait for ready (non-blocking with spinner)
+            self._spawn_startup_task(name, auto_connect=True, timeout=30)
         except Exception as e:
             self._print(f"Failed to register: {e}")
 
@@ -800,15 +786,8 @@ Return ONLY valid JSON."""
                     self._print(
                         f"  Tmux: {instance.tmux_session}:{instance.pane_target}"
                     )
-                    # Wait for ready with animated spinner (blocking)
-                    ready = await self._wait_for_ready_with_spinner(name, timeout=30)
-                    if ready:
-                        self.session.connect_to(name)
-                        self._print(f"  Connected to '{name}'")
-                    else:
-                        # Still connect on timeout
-                        self.session.connect_to(name)
-                        self._print(f"  Connected to '{name}' (may not be fully ready)")
+                    # Spawn background task to wait for ready (non-blocking with spinner)
+                    self._spawn_startup_task(name, auto_connect=True, timeout=30)
                     return
                 except Exception as e:
                     self._print(f"Failed to start from saved config: {e}")
@@ -1245,7 +1224,7 @@ Examples:
     ) -> None:
         """Background task that waits for instance ready.
 
-        Prints result when done (ready or timeout).
+        Prints periodic status updates above prompt, then result when done.
 
         Args:
             name: Instance name to wait for
@@ -1253,33 +1232,50 @@ Examples:
             timeout: Maximum seconds to wait
         """
         elapsed = 0.0
-        interval = 0.5  # Check every 500ms
+        interval = 0.1  # Check every 100ms
+        spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        frame_idx = 0
+        last_print = 0.0
+        print_interval = 0.5  # Update spinner every 500ms
 
         try:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Print success
-                    print(f"'{name}' ready ({int(elapsed)}s)")
+                    # Print success above prompt
+                    self._print_above_prompt(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
-                        print(f"  Connected to '{name}'")
+                        self._print_above_prompt(f"  Connected to '{name}'")
 
                     # Cleanup
                     self._startup_tasks.pop(name, None)
                     return
 
+                # Print spinner update periodically
+                if elapsed - last_print >= print_interval:
+                    frame = spinner_frames[frame_idx % len(spinner_frames)]
+                    self._print_above_prompt(
+                        f"{frame} Waiting for '{name}'... ({int(elapsed)}s)"
+                    )
+                    frame_idx += 1
+                    last_print = elapsed
+
                 await asyncio.sleep(interval)
                 elapsed += interval
 
             # Timeout
-            print(f"'{name}' startup timeout ({timeout}s) - may still work")
+            self._print_above_prompt(
+                f"'{name}' startup timeout ({timeout}s) - may still work"
+            )
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
                 self.session.connect_to(name)
-                print(f"  Connected to '{name}' (may not be fully ready)")
+                self._print_above_prompt(
+                    f"  Connected to '{name}' (may not be fully ready)"
+                )
 
             # Cleanup
             self._startup_tasks.pop(name, None)
@@ -1287,7 +1283,7 @@ Examples:
         except asyncio.CancelledError:
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            print(f"'{name}' startup error: {e}")
+            self._print_above_prompt(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
