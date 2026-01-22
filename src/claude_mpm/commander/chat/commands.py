@@ -11,6 +11,7 @@ class CommandType(Enum):
     LIST = "list"
     START = "start"
     STOP = "stop"
+    CLOSE = "close"
     REGISTER = "register"
     CONNECT = "connect"
     DISCONNECT = "disconnect"
@@ -37,6 +38,7 @@ class CommandParser:
         "register": CommandType.REGISTER,
         "start": CommandType.START,
         "stop": CommandType.STOP,
+        "close": CommandType.CLOSE,
         "connect": CommandType.CONNECT,
         "disconnect": CommandType.DISCONNECT,
         "switch": CommandType.CONNECT,  # alias for connect

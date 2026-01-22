@@ -32,15 +32,16 @@ INSTANCE MANAGEMENT (use / prefix):
 - /list, /ls: Show all running Claude Code instances with their status
 - /register <path> <framework> <name>: Register, start, and auto-connect
 - /start <name>: Start a registered instance by name
-- /stop <name>: Stop a running instance
+- /stop <name>: Stop a running instance (keeps worktree)
+- /close <name> [--no-merge]: Close instance, merge worktree to main, and cleanup
 - /connect <name>: Connect to a specific instance for interactive chat
 - /switch <name>: Alias for /connect
 - /disconnect: Disconnect from current instance
 - /status: Show current connection status
 
-DIRECT MESSAGING (no connection required):
+DIRECT MESSAGING (both syntaxes work the same):
 - @<name> <message>: Send message directly to any instance
-- (<name>): <message>: Alternative syntax for direct messaging
+- (<name>) <message>: Same as @name (parentheses syntax)
 - Instance names appear in responses: @myapp: response summary...
 
 WHEN CONNECTED:
@@ -56,6 +57,7 @@ BUILT-IN COMMANDS:
 FEATURES:
 - Real-time streaming responses
 - Direct @mention messaging to any instance
+- Worktree isolation and merge workflow
 - Instance discovery via daemon
 - Automatic reconnection handling
 - Session context preservation
@@ -197,6 +199,7 @@ FEATURES:
             CommandType.LIST: self._cmd_list,
             CommandType.START: self._cmd_start,
             CommandType.STOP: self._cmd_stop,
+            CommandType.CLOSE: self._cmd_close,
             CommandType.REGISTER: self._cmd_register,
             CommandType.CONNECT: self._cmd_connect,
             CommandType.DISCONNECT: self._cmd_disconnect,
@@ -225,7 +228,12 @@ FEATURES:
         return "chat"
 
     def _parse_mention(self, text: str) -> tuple[str, str] | None:
-        """Parse @name or (name): message patterns.
+        """Parse @name or (name) message patterns - both work the same.
+
+        Both syntaxes are equivalent:
+          @name message
+          (name) message
+          (name): message
 
         Args:
             text: User input text.
@@ -238,8 +246,8 @@ FEATURES:
         if match:
             return match.group(1), match.group(2)
 
-        # (name): message or (name) message
-        match = re.match(r"^\((\w+)\):?\s+(.+)$", text.strip())
+        # (name): message or (name) message - same behavior as @name
+        match = re.match(r"^\((\w+)\):?\s*(.+)$", text.strip())
         if match:
             return match.group(1), match.group(2)
 
@@ -421,6 +429,30 @@ Return ONLY valid JSON."""
         except Exception as e:
             self._print(f"Error stopping instance: {e}")
 
+    async def _cmd_close(self, args: list[str]) -> None:
+        """Close instance: merge worktree to main and end session.
+
+        Usage: /close <name> [--no-merge]
+        """
+        if not args:
+            self._print("Usage: /close <name> [--no-merge]")
+            return
+
+        name = args[0]
+        merge = "--no-merge" not in args
+
+        # Disconnect if we were connected
+        if self.session.context.connected_instance == name:
+            self.session.disconnect()
+
+        success, msg = await self.instances.close_instance(name, merge=merge)
+        if success:
+            self._print(f"Closed '{name}'")
+            if merge:
+                self._print("  Worktree merged to main")
+        else:
+            self._print(f"Error: {msg}")
+
     async def _cmd_register(self, args: list[str]) -> None:
         """Register and start an instance: register <path> <framework> <name>."""
         if len(args) < 3:
@@ -507,7 +539,9 @@ Commander Commands (use / prefix):
   /register <path> <framework> <name>
                         Register, start, and auto-connect to instance
   /start <name>         Start a registered instance by name
-  /stop <name>          Stop an instance
+  /stop <name>          Stop an instance (keeps worktree)
+  /close <name> [--no-merge]
+                        Close instance: merge worktree to main and cleanup
   /connect <name>       Connect to an instance
   /switch <name>        Alias for /connect
   /disconnect           Disconnect from current instance
@@ -516,9 +550,9 @@ Commander Commands (use / prefix):
   /help                 Show this help message
   /exit, /quit, /q      Exit Commander
 
-Direct Messaging (no connection required):
+Direct Messaging (both syntaxes work the same):
   @<name> <message>     Send message to specific instance
-  (<name>): <message>   Alternative syntax for direct messaging
+  (<name>) <message>    Same as @name (parentheses syntax)
 
 Natural Language:
   Any input without / prefix is sent to the connected instance.
@@ -526,8 +560,10 @@ Natural Language:
 Examples:
   /register ~/myproject cc myapp  # Register, start, and connect
   /start myapp                    # Start registered instance
+  /close myapp                    # Merge worktree to main and cleanup
+  /close myapp --no-merge         # Cleanup without merging
   @myapp show me the code         # Direct message to myapp
-  (izzie): what's the status      # Alternative syntax
+  (izzie) what's the status       # Same as @izzie
   Fix the authentication bug      # Send to connected instance
   /exit
 """

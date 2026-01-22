@@ -498,26 +498,50 @@ class InstanceManager:
 
         return True
 
-    async def close_instance(self, name: str) -> bool:
-        """Close and remove an instance.
-
-        Alias for stop_instance that provides clearer semantics for closing.
+    async def close_instance(self, name: str, merge: bool = True) -> tuple[bool, str]:
+        """Close instance: stop tmux, optionally merge worktree, cleanup.
 
         Args:
             name: Instance name to close
+            merge: Whether to merge worktree to main (default True)
 
         Returns:
-            True if closed successfully
-
-        Raises:
-            InstanceNotFoundError: If instance not found
+            Tuple of (success, message)
 
         Example:
             >>> manager = InstanceManager(orchestrator)
-            >>> await manager.close_instance("myapp")
-            True
+            >>> success, msg = await manager.close_instance("myapp")
+            >>> print(success, msg)
+            True Closed 'myapp'
         """
-        return await self.stop_instance(name)
+        registered = (
+            self._state_store.get_registered_instance(name)
+            if self._state_store
+            else None
+        )
+
+        # Stop the tmux session
+        try:
+            await self.stop_instance(name)
+        except InstanceNotFoundError:
+            # Instance not running, but may still have worktree to clean up
+            pass
+
+        # Merge and cleanup worktree if enabled
+        if registered and registered.use_worktree and registered.worktree_path:
+            wt_manager = WorktreeManager(Path(registered.path))
+            if merge:
+                success, msg = wt_manager.merge_to_main(name, delete_after=True)
+                if not success:
+                    return False, msg
+            else:
+                wt_manager.remove(name, force=True)
+
+        # Remove from registry
+        if self._state_store:
+            self._state_store.unregister_instance(name)
+
+        return True, f"Closed '{name}'"
 
     async def disconnect_instance(self, name: str) -> bool:
         """Disconnect from an instance without closing it.

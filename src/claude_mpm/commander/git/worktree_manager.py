@@ -147,3 +147,66 @@ class WorktreeManager:
         if worktree_path.exists():
             return self._get_worktree_info(name, worktree_path)
         return None
+
+    def merge_to_main(self, name: str, delete_after: bool = True) -> tuple[bool, str]:
+        """Merge worktree branch back to main and optionally delete worktree.
+
+        Args:
+            name: Worktree name to merge
+            delete_after: Remove worktree after merge (default True)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        worktree = self.get(name)
+        if not worktree:
+            return False, f"Worktree '{name}' not found"
+
+        # Get main branch name
+        result = subprocess.run(  # nosec B603 B607 - git command with safe args
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            check=False,
+            cwd=self.base_path,
+            capture_output=True,
+            text=True,
+        )
+        main_branch = (
+            result.stdout.strip().split("/")[-1] if result.returncode == 0 else "main"
+        )
+
+        # Checkout main in base repo
+        checkout_result = subprocess.run(  # nosec B603 B607 - git command with safe args
+            ["git", "checkout", main_branch],
+            check=False,
+            cwd=self.base_path,
+            capture_output=True,
+            text=True,
+        )
+        if checkout_result.returncode != 0:
+            return False, f"Failed to checkout {main_branch}: {checkout_result.stderr}"
+
+        # Merge worktree branch
+        merge_result = subprocess.run(  # nosec B603 B607 - git command with safe args
+            ["git", "merge", worktree.branch, "--no-edit"],
+            check=False,
+            cwd=self.base_path,
+            capture_output=True,
+            text=True,
+        )
+
+        if merge_result.returncode != 0:
+            return False, f"Merge failed: {merge_result.stderr}"
+
+        # Delete worktree if requested
+        if delete_after:
+            self.remove(name, force=True)
+            # Delete branch
+            subprocess.run(  # nosec B603 B607 - git command with safe args
+                ["git", "branch", "-d", worktree.branch],
+                check=False,
+                cwd=self.base_path,
+                capture_output=True,
+            )
+
+        logger.info(f"Merged '{worktree.branch}' to {main_branch}")
+        return True, f"Merged '{worktree.branch}' to {main_branch}"

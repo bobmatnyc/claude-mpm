@@ -168,9 +168,10 @@ class TestCloseInstance:
         """Test successful instance close."""
         instance_manager._instances["test-instance"] = sample_instance
 
-        result = await instance_manager.close_instance("test-instance")
+        success, msg = await instance_manager.close_instance("test-instance")
 
-        assert result is True
+        assert success is True
+        assert "Closed" in msg
         assert "test-instance" not in instance_manager._instances
         mock_orchestrator.kill_pane.assert_called_once_with("%1")
 
@@ -189,11 +190,16 @@ class TestCloseInstance:
 
     @pytest.mark.asyncio
     async def test_close_instance_not_found(self, instance_manager):
-        """Test close raises InstanceNotFoundError."""
-        with pytest.raises(InstanceNotFoundError) as exc_info:
-            await instance_manager.close_instance("nonexistent")
+        """Test close gracefully handles non-existent instance.
 
-        assert exc_info.value.name == "nonexistent"
+        Note: close_instance doesn't raise InstanceNotFoundError because
+        the instance might not be running but still have worktree to cleanup.
+        """
+        success, msg = await instance_manager.close_instance("nonexistent")
+
+        # Returns success even if instance doesn't exist (no worktree to clean)
+        assert success is True
+        assert "Closed" in msg
 
     @pytest.mark.asyncio
     async def test_close_instance_calls_stop_instance(
@@ -203,9 +209,10 @@ class TestCloseInstance:
         instance_manager._instances["test-instance"] = sample_instance
 
         # close_instance should have same effect as stop_instance
-        result = await instance_manager.close_instance("test-instance")
+        success, msg = await instance_manager.close_instance("test-instance")
 
-        assert result is True
+        assert success is True
+        assert "Closed" in msg
         assert "test-instance" not in instance_manager._instances
 
 
