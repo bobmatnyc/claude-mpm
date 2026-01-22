@@ -193,6 +193,18 @@ class HeadlessSession:
         self.logger.debug(f"Headless command: {' '.join(cmd[:5])}...")
         self.logger.info(f"DEBUG: Full command: {' '.join(cmd)}")
 
+        # Write debug info to file for vibe-kanban debugging
+        import tempfile
+        debug_file = Path(tempfile.gettempdir()) / "claude-mpm-debug.log"
+        with open(debug_file, "a") as f:
+            import datetime
+            f.write(f"\n=== {datetime.datetime.now()} ===\n")
+            f.write(f"uses_stream_json_input: {uses_stream_json_input}\n")
+            f.write(f"claude_args: {claude_args}\n")
+            f.write(f"cmd: {cmd}\n")
+            f.write(f"prompt: {prompt}\n")
+            f.write(f"resume_session: {resume_session}\n")
+
         # Prepare environment
         env = self._prepare_environment()
 
