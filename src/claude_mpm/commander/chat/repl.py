@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.history import FileHistory
 
 from claude_mpm.commander.instance_manager import InstanceManager
@@ -20,6 +21,100 @@ from .commands import Command, CommandParser, CommandType
 if TYPE_CHECKING:
     from claude_mpm.commander.events.manager import EventManager
     from claude_mpm.commander.models.events import Event
+
+
+class CommandCompleter(Completer):
+    """Autocomplete for slash commands and instance names."""
+
+    COMMANDS = [
+        ("register", "Register and start a new instance"),
+        ("start", "Start a registered instance"),
+        ("stop", "Stop a running instance"),
+        ("close", "Close instance and merge worktree"),
+        ("connect", "Connect to an instance"),
+        ("disconnect", "Disconnect from current instance"),
+        ("switch", "Switch to another instance"),
+        ("list", "List all instances"),
+        ("ls", "List all instances (alias)"),
+        ("status", "Show connection status"),
+        ("help", "Show help"),
+        ("exit", "Exit commander"),
+        ("quit", "Exit commander (alias)"),
+        ("q", "Exit commander (alias)"),
+    ]
+
+    def __init__(self, get_instances_func):
+        """Initialize with function to get instance names.
+
+        Args:
+            get_instances_func: Callable that returns list of instance names.
+        """
+        self.get_instances = get_instances_func
+
+    def get_completions(self, document, complete_event):
+        """Generate completions for the current input.
+
+        Args:
+            document: The document being edited.
+            complete_event: The completion event.
+
+        Yields:
+            Completion objects for matching commands or instance names.
+        """
+        text = document.text_before_cursor
+
+        # Complete slash commands
+        if text.startswith("/"):
+            cmd_text = text[1:].lower()
+            # Check if we're completing command args (has space after command)
+            if " " in cmd_text:
+                # Complete instance names after certain commands
+                parts = cmd_text.split()
+                cmd = parts[0]
+                partial = parts[-1] if len(parts) > 1 else ""
+                if cmd in ("start", "stop", "close", "connect", "switch"):
+                    yield from self._complete_instance_names(partial)
+            else:
+                # Complete command names
+                for cmd, desc in self.COMMANDS:
+                    if cmd.startswith(cmd_text):
+                        yield Completion(
+                            cmd,
+                            start_position=-len(cmd_text),
+                            display_meta=desc,
+                        )
+
+        # Complete instance names after @ prefix
+        elif text.startswith("@"):
+            partial = text[1:]
+            yield from self._complete_instance_names(partial)
+
+        # Complete instance names inside parentheses
+        elif text.startswith("("):
+            # Extract partial name, stripping ) and : if present
+            partial = text[1:].rstrip("):")
+            yield from self._complete_instance_names(partial)
+
+    def _complete_instance_names(self, partial: str):
+        """Generate completions for instance names.
+
+        Args:
+            partial: Partial instance name typed so far.
+
+        Yields:
+            Completion objects for matching instance names.
+        """
+        try:
+            instances = self.get_instances()
+            for name in instances:
+                if name.lower().startswith(partial.lower()):
+                    yield Completion(
+                        name,
+                        start_position=-len(partial),
+                        display_meta="instance",
+                    )
+        except Exception:  # nosec B110 - Graceful fallback if instance lookup fails
+            pass
 
 
 class CommanderREPL:
@@ -114,7 +209,14 @@ FEATURES:
         history_path = Path.home() / ".claude-mpm" / "commander_history"
         history_path.parent.mkdir(parents=True, exist_ok=True)
 
-        prompt = PromptSession(history=FileHistory(str(history_path)))
+        # Create completer for slash commands and instance names
+        completer = CommandCompleter(self._get_instance_names)
+
+        prompt = PromptSession(
+            history=FileHistory(str(history_path)),
+            completer=completer,
+            complete_while_typing=False,  # Only complete on Tab
+        )
 
         while self._running:
             try:
@@ -782,3 +884,33 @@ Examples:
         print("╚══════════════════════════════════════════╝")
         print("Type '/help' for commands, or natural language to chat.")
         print()
+
+    def _get_instance_names(self) -> list[str]:
+        """Get list of instance names for autocomplete.
+
+        Returns:
+            List of instance names (running and registered).
+        """
+        names: list[str] = []
+
+        # Running instances
+        if self.instances:
+            try:
+                for inst in self.instances.list_instances():
+                    if inst.name not in names:
+                        names.append(inst.name)
+            except Exception:  # nosec B110 - Graceful fallback
+                pass
+
+        # Registered instances from state store
+        if self.instances and hasattr(self.instances, "_state_store"):
+            try:
+                state_store = self.instances._state_store
+                if state_store:
+                    for name in state_store.load_instances():
+                        if name not in names:
+                            names.append(name)
+            except Exception:  # nosec B110 - Graceful fallback
+                pass
+
+        return names
