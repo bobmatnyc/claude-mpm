@@ -1243,11 +1243,11 @@ Examples:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
                     # Print success above prompt
-                    self._print_above_prompt(f"'{name}' ready ({int(elapsed)}s)")
+                    print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
-                        self._print_above_prompt(f"  Connected to '{name}'")
+                        print(f"  Connected to '{name}'")
 
                     # Cleanup
                     self._startup_tasks.pop(name, None)
@@ -1256,9 +1256,7 @@ Examples:
                 # Print spinner update periodically
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    self._print_above_prompt(
-                        f"{frame} Waiting for '{name}'... ({int(elapsed)}s)"
-                    )
+                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
                     frame_idx += 1
                     last_print = elapsed
 
@@ -1266,16 +1264,12 @@ Examples:
                 elapsed += interval
 
             # Timeout
-            self._print_above_prompt(
-                f"'{name}' startup timeout ({timeout}s) - may still work"
-            )
+            print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
                 self.session.connect_to(name)
-                self._print_above_prompt(
-                    f"  Connected to '{name}' (may not be fully ready)"
-                )
+                print(f"  Connected to '{name}' (may not be fully ready)")
 
             # Cleanup
             self._startup_tasks.pop(name, None)
@@ -1283,7 +1277,7 @@ Examples:
         except asyncio.CancelledError:
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            self._print_above_prompt(f"'{name}' startup error: {e}")
+            print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:
