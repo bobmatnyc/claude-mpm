@@ -241,8 +241,12 @@ class TestIntentDetection:
 
     @pytest.mark.asyncio
     async def test_handle_greeting_not_connected(self, repl, capsys):
-        """Test greeting response when not connected."""
-        await repl._send_to_instance("hello")
+        """Test greeting response when not connected via _handle_input."""
+        # Mock LLM to return greeting intent
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(return_value='{"intent": "greeting", "args": {}}')
+
+        await repl._handle_input("hello")
 
         captured = capsys.readouterr()
         assert "Hello!" in captured.out
@@ -251,13 +255,21 @@ class TestIntentDetection:
 
     @pytest.mark.asyncio
     async def test_handle_capabilities_not_connected(self, repl, capsys):
-        """Test capabilities response when not connected."""
-        await repl._send_to_instance("what can you do")
+        """Test capabilities response when not connected via _handle_input."""
+        # Mock LLM: first call for intent classification, second for capabilities answer
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(
+            side_effect=[
+                '{"intent": "capabilities", "args": {}}',
+                "You can list instances with /list",
+            ]
+        )
+
+        await repl._handle_input("what can you do")
 
         captured = capsys.readouterr()
-        assert "MPM Commander Capabilities:" in captured.out
-        assert "/list" in captured.out
-        assert "/connect" in captured.out
+        # Capabilities handler uses LLM when available
+        assert "You can list instances with /list" in captured.out
 
     @pytest.mark.asyncio
     async def test_handle_capabilities_with_llm(
@@ -265,7 +277,13 @@ class TestIntentDetection:
     ):
         """Test capabilities response uses LLM when available."""
         mock_llm = AsyncMock()
-        mock_llm.chat = AsyncMock(return_value="You can list and connect to instances.")
+        # First call is for intent classification, second is for capabilities
+        mock_llm.chat = AsyncMock(
+            side_effect=[
+                '{"intent": "capabilities", "args": {}}',
+                "You can list and connect to instances.",
+            ]
+        )
 
         repl_with_llm = CommanderREPL(
             instance_manager=mock_instance_manager,
@@ -273,21 +291,23 @@ class TestIntentDetection:
             llm_client=mock_llm,
         )
 
-        await repl_with_llm._send_to_instance("how do I see running instances")
+        await repl_with_llm._handle_input("how do I see running instances")
 
         captured = capsys.readouterr()
         assert "You can list and connect to instances." in captured.out
-        mock_llm.chat.assert_called_once()
-        # Verify the call included capabilities context
-        call_args = mock_llm.chat.call_args
+        # Called twice: once for classification, once for capabilities
+        assert mock_llm.chat.call_count == 2
+        # Verify the second call included capabilities context
+        call_args = mock_llm.chat.call_args_list[1]
         assert "INSTANCE MANAGEMENT" in call_args[0][0][0]["content"]
 
     @pytest.mark.asyncio
     async def test_handle_capabilities_llm_fallback(
         self, mock_instance_manager, session_manager, capsys
     ):
-        """Test capabilities falls back to static output on LLM error."""
+        """Test capabilities falls back to static output on LLM classification failure."""
         mock_llm = AsyncMock()
+        # First call fails (classification), triggers fallback to chat
         mock_llm.chat = AsyncMock(side_effect=Exception("API Error"))
 
         repl_with_llm = CommanderREPL(
@@ -296,11 +316,108 @@ class TestIntentDetection:
             llm_client=mock_llm,
         )
 
-        await repl_with_llm._send_to_instance("what can you do")
+        # When LLM fails, it defaults to "chat" intent, which requires connection
+        await repl_with_llm._handle_input("what can you do")
 
         captured = capsys.readouterr()
-        # Should fall back to static output
-        assert "MPM Commander Capabilities:" in captured.out
+        # Falls back to chat intent since LLM fails, so shows not connected message
+        assert "Not connected to any instance" in captured.out
+
+
+class TestLLMIntentClassification:
+    """Tests for LLM-mediated intent detection."""
+
+    @pytest.mark.asyncio
+    async def test_classify_intent_llm_no_client(self, repl):
+        """Test LLM classification without LLM client returns chat."""
+        result = await repl._classify_intent_llm("start myapp")
+
+        assert result == {"intent": "chat", "args": {}}
+
+    @pytest.mark.asyncio
+    async def test_classify_intent_llm_register_command(self, repl):
+        """Test LLM classification for register command."""
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(
+            return_value='{"intent": "register", "args": {"path": "~/foo", "framework": "mpm", "name": "myapp"}}'
+        )
+
+        result = await repl._classify_intent_llm("register ~/foo as myapp using mpm")
+
+        assert result["intent"] == "register"
+        assert result["args"]["path"] == "~/foo"
+        assert result["args"]["framework"] == "mpm"
+        assert result["args"]["name"] == "myapp"
+
+    @pytest.mark.asyncio
+    async def test_classify_intent_llm_start_command(self, repl):
+        """Test LLM classification for start command."""
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(
+            return_value='{"intent": "start", "args": {"name": "myapp"}}'
+        )
+
+        result = await repl._classify_intent_llm("fire up myapp")
+
+        assert result["intent"] == "start"
+        assert result["args"]["name"] == "myapp"
+
+    @pytest.mark.asyncio
+    async def test_classify_intent_llm_json_parse_error(self, repl):
+        """Test LLM classification falls back on JSON parse error."""
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(return_value="not valid json")
+
+        result = await repl._classify_intent_llm("some command")
+
+        assert result == {"intent": "chat", "args": {}}
+
+    @pytest.mark.asyncio
+    async def test_handle_input_llm_list_intent(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test _handle_input routes list intent correctly."""
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+        repl.llm = AsyncMock()
+        repl.llm.chat = AsyncMock(return_value='{"intent": "list", "args": {}}')
+
+        await repl._handle_input("show me all running instances")
+
+        captured = capsys.readouterr()
+        assert "No active instances" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_input_llm_start_with_arg_inference(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test start command infers name when only one instance exists."""
+        instance = InstanceInfo(
+            name="only-instance",
+            project_path=Path("/path/to/project"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.list_instances = Mock(return_value=[instance])
+        mock_instance_manager.start_by_name = AsyncMock(return_value=instance)
+
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+        repl.llm = AsyncMock()
+        # LLM returns start intent with no name
+        repl.llm.chat = AsyncMock(
+            return_value='{"intent": "start", "args": {"name": null}}'
+        )
+
+        await repl._handle_input("start the server")
+
+        # Should infer the only instance
+        mock_instance_manager.start_by_name.assert_called_once_with("only-instance")
 
 
 @pytest.mark.asyncio
@@ -342,13 +459,26 @@ async def test_send_to_instance_success(
 
 
 def test_get_prompt_connected(repl, session_manager):
-    """Test prompt when connected to instance."""
+    """Test prompt when connected to ready instance."""
     session_manager.connect_to("myapp")
+    repl._instance_ready["myapp"] = True  # Mark instance as ready
 
     prompt = repl._get_prompt()
 
     assert "myapp" in prompt
     assert "Commander" in prompt
+
+
+def test_get_prompt_connected_not_ready(repl, session_manager):
+    """Test prompt when connected but instance not ready yet."""
+    session_manager.connect_to("myapp")
+    # Don't mark instance as ready
+
+    prompt = repl._get_prompt()
+
+    # Should not show instance name until ready
+    assert "myapp" not in prompt
+    assert "Commander>" in prompt
 
 
 def test_get_prompt_not_connected(repl):

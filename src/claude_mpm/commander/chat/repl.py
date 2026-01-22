@@ -1,6 +1,7 @@
 """Commander chat REPL interface."""
 
 import asyncio
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -77,6 +78,7 @@ FEATURES:
         self.event_manager = event_manager
         self.parser = CommandParser()
         self._running = False
+        self._instance_ready: dict[str, bool] = {}
 
     async def run(self) -> None:
         """Start the REPL loop."""
@@ -125,12 +127,42 @@ FEATURES:
         if not input_text:
             return
 
-        # Check if it's a built-in command
+        # Check if it's a built-in slash command first
         command = self.parser.parse(input_text)
         if command:
             await self._execute_command(command)
+            return
+
+        # Use LLM to classify natural language input
+        intent_result = await self._classify_intent_llm(input_text)
+        intent = intent_result.get("intent", "chat")
+        args = intent_result.get("args", {})
+
+        # Handle command intents detected by LLM
+        if intent == "register":
+            await self._cmd_register_from_args(args)
+        elif intent == "start":
+            await self._cmd_start_from_args(args)
+        elif intent == "stop":
+            await self._cmd_stop_from_args(args)
+        elif intent in {"connect", "switch"}:
+            await self._cmd_connect_from_args(args)
+        elif intent == "disconnect":
+            await self._cmd_disconnect([])
+        elif intent == "list":
+            await self._cmd_list([])
+        elif intent == "status":
+            await self._cmd_status([])
+        elif intent == "help":
+            await self._cmd_help([])
+        elif intent == "exit":
+            await self._cmd_exit([])
+        elif intent == "capabilities":
+            await self._handle_capabilities(input_text)
+        elif intent == "greeting":
+            self._handle_greeting()
         else:
-            # Natural language - send to connected instance
+            # Default to chat - send to connected instance
             await self._send_to_instance(input_text)
 
     async def _execute_command(self, cmd: Command) -> None:
@@ -169,6 +201,52 @@ FEATURES:
         if any(p in t for p in ["what can you", "can you", "help me", "how do i"]):
             return "capabilities"
         return "chat"
+
+    async def _classify_intent_llm(self, text: str) -> dict:
+        """Use LLM to classify user intent.
+
+        Args:
+            text: User input text.
+
+        Returns:
+            Dict with 'intent' and 'args' keys.
+        """
+        if not self.llm:
+            return {"intent": "chat", "args": {}}
+
+        system_prompt = """Classify user intent. Return JSON only.
+
+Commands available:
+- register: Register new instance (needs: path, framework, name)
+- start: Start registered instance (needs: name)
+- stop: Stop instance (needs: name)
+- connect: Connect to instance (needs: name)
+- disconnect: Disconnect from current instance
+- switch: Switch to different instance (needs: name)
+- list: List instances
+- status: Show status
+- help: Show help
+- exit: Exit commander
+
+If user wants a command, extract arguments.
+If user is chatting/asking questions, intent is "chat".
+
+Examples:
+"register my project at ~/foo as myapp using mpm" -> {"intent":"register","args":{"path":"~/foo","framework":"mpm","name":"myapp"}}
+"start myapp" -> {"intent":"start","args":{"name":"myapp"}}
+"stop the server" -> {"intent":"stop","args":{"name":null}}
+"list instances" -> {"intent":"list","args":{}}
+"hello how are you" -> {"intent":"chat","args":{}}
+"what can you do" -> {"intent":"capabilities","args":{}}
+
+Return ONLY valid JSON."""
+
+        try:
+            messages = [{"role": "user", "content": f"Classify: {text}"}]
+            response = await self.llm.chat(messages, system=system_prompt)
+            return json.loads(response.strip())
+        except (json.JSONDecodeError, Exception):  # nosec B110 - Graceful fallback
+            return {"intent": "chat", "args": {}}
 
     def _handle_greeting(self) -> None:
         """Handle greeting intent."""
@@ -410,21 +488,87 @@ Examples:
         """Exit the REPL."""
         self._running = False
 
+    # Helper methods for LLM-extracted arguments
+
+    async def _cmd_register_from_args(self, args: dict) -> None:
+        """Handle register command from LLM-extracted args.
+
+        Args:
+            args: Dict with optional 'path', 'framework', 'name' keys.
+        """
+        path = args.get("path")
+        framework = args.get("framework")
+        name = args.get("name")
+
+        if not all([path, framework, name]):
+            self._print("I need the path, framework, and name to register an instance.")
+            self._print("Example: 'register ~/myproject as myapp using mpm'")
+            return
+
+        await self._cmd_register([path, framework, name])
+
+    async def _cmd_start_from_args(self, args: dict) -> None:
+        """Handle start command from LLM-extracted args.
+
+        Args:
+            args: Dict with optional 'name' key.
+        """
+        name = args.get("name")
+        if not name:
+            # Try to infer from connected instance or list available
+            instances = self.instances.list_instances()
+            if len(instances) == 1:
+                name = instances[0].name
+            else:
+                self._print("Which instance should I start?")
+                await self._cmd_list([])
+                return
+
+        await self._cmd_start([name])
+
+    async def _cmd_stop_from_args(self, args: dict) -> None:
+        """Handle stop command from LLM-extracted args.
+
+        Args:
+            args: Dict with optional 'name' key.
+        """
+        name = args.get("name")
+        if not name:
+            # Try to use connected instance
+            if self.session.context.is_connected:
+                name = self.session.context.connected_instance
+            else:
+                self._print("Which instance should I stop?")
+                await self._cmd_list([])
+                return
+
+        await self._cmd_stop([name])
+
+    async def _cmd_connect_from_args(self, args: dict) -> None:
+        """Handle connect command from LLM-extracted args.
+
+        Args:
+            args: Dict with optional 'name' key.
+        """
+        name = args.get("name")
+        if not name:
+            instances = self.instances.list_instances()
+            if len(instances) == 1:
+                name = instances[0].name
+            else:
+                self._print("Which instance should I connect to?")
+                await self._cmd_list([])
+                return
+
+        await self._cmd_connect([name])
+
     async def _send_to_instance(self, message: str) -> None:
         """Send natural language to connected instance.
 
         Args:
             message: User message to send.
         """
-        # Check for greeting/capabilities intent before requiring connection
-        intent = self._classify_intent(message)
-        if intent == "greeting":
-            self._handle_greeting()
-            return
-        if intent == "capabilities":
-            await self._handle_capabilities(message)
-            return
-
+        # Check if instance is connected and ready
         if not self.session.context.is_connected:
             self._print("Not connected to any instance. Use 'connect <name>' first.")
             return
@@ -461,25 +605,38 @@ Examples:
             print(f"\n[Starting] {event.title}")
         elif event.type == EventType.INSTANCE_READY:
             metadata = event.context or {}
+            instance_name = metadata.get("instance_name", "")
+
+            # Mark instance as ready
+            if instance_name:
+                self._instance_ready[instance_name] = True
+
             if metadata.get("timeout"):
                 print(f"\n[Warning] {event.title} (startup timeout, may still work)")
             else:
                 print(f"\n[Ready] {event.title}")
-            # Show prompt hint
-            instance_name = metadata.get("instance_name", "")
-            if instance_name:
+
+            # Show ready notification if this is the current instance
+            if (
+                instance_name
+                and instance_name == self.session.context.connected_instance
+            ):
+                print(f"\n({instance_name}) is ready for commands")
+            elif instance_name:
                 print(f"   Use '/connect {instance_name}' to start chatting")
         elif event.type == EventType.INSTANCE_ERROR:
             print(f"\n[Error] {event.title}: {event.content}")
 
     def _get_prompt(self) -> str:
-        """Get prompt string based on connection state.
+        """Get prompt string based on connection and ready state.
 
         Returns:
             Prompt string for input.
         """
         if self.session.context.is_connected:
-            return f"Commander ({self.session.context.connected_instance})> "
+            name = self.session.context.connected_instance
+            if self._instance_ready.get(name):
+                return f"Commander ({name})> "
         return "Commander> "
 
     def _print(self, msg: str) -> None:
