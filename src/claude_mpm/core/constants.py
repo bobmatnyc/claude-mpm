@@ -38,12 +38,36 @@ class SystemLimits:
 
 
 class NetworkConfig:
-    """Network-related configuration constants."""
+    """Network-related configuration constants.
 
-    # Port ranges
-    SOCKETIO_PORT_RANGE: Tuple[int, int] = (8765, 8785)
-    DEFAULT_SOCKETIO_PORT = 8765
-    DEFAULT_DASHBOARD_PORT = 8765
+    NOTE: Port defaults are now centralized in network_config.NetworkPorts.
+    This class maintains backward compatibility but delegates to NetworkPorts.
+    """
+
+    # Import from network_config for single source of truth
+    # Lazy import to avoid circular dependencies
+    @property
+    def SOCKETIO_PORT_RANGE(self) -> Tuple[int, int]:
+        from .network_config import NetworkPorts
+
+        return (NetworkPorts.PORT_RANGE_START, NetworkPorts.PORT_RANGE_END)
+
+    @property
+    def DEFAULT_SOCKETIO_PORT(self) -> int:
+        from .network_config import NetworkPorts
+
+        return NetworkPorts.SOCKETIO_DEFAULT
+
+    @property
+    def DEFAULT_DASHBOARD_PORT(self) -> int:
+        from .network_config import NetworkPorts
+
+        return NetworkPorts.DASHBOARD_DEFAULT
+
+    # Port ranges (module-level for backward compatibility)
+    SOCKETIO_PORT_RANGE: Tuple[int, int] = (8765, 8785)  # Will be updated at runtime
+    DEFAULT_SOCKETIO_PORT = 8768  # Updated to match new default
+    DEFAULT_DASHBOARD_PORT = 8767  # Updated to match new default
 
     # Connection timeouts (seconds)
     CONNECTION_TIMEOUT = 5.0
@@ -303,18 +327,38 @@ DEFAULT_TIMEOUT = TimeoutConfig.DEFAULT_TIMEOUT
 
 
 class NetworkPorts:
-    """Network port configuration."""
+    """Network port configuration.
 
-    # Use existing values from NetworkConfig
-    DEFAULT_SOCKETIO = NetworkConfig.DEFAULT_SOCKETIO_PORT
-    DEFAULT_DASHBOARD = NetworkConfig.DEFAULT_DASHBOARD_PORT
-    PORT_RANGE_START = NetworkConfig.SOCKETIO_PORT_RANGE[0]
-    PORT_RANGE_END = NetworkConfig.SOCKETIO_PORT_RANGE[1]
+    DEPRECATED: Use claude_mpm.core.network_config.NetworkPorts instead.
+    This class is maintained for backward compatibility.
+    """
+
+    # Import from network_config for single source of truth
+    @classmethod
+    def _get_config(cls):
+        from .network_config import NetworkPorts as NewNetworkPorts
+
+        return NewNetworkPorts
+
+    # Delegate to new NetworkPorts
+    @property
+    def DEFAULT_SOCKETIO(self) -> int:
+        return self._get_config().SOCKETIO_DEFAULT
+
+    @property
+    def DEFAULT_DASHBOARD(self) -> int:
+        return self._get_config().DASHBOARD_DEFAULT
+
+    # Keep class-level attributes for compatibility
+    DEFAULT_SOCKETIO = 8768  # Updated to match network_config
+    DEFAULT_DASHBOARD = 8767  # Updated to match network_config
+    PORT_RANGE_START = 8765
+    PORT_RANGE_END = 8785
 
     @classmethod
     def get_port_range(cls) -> range:
         """Get the valid port range."""
-        return range(cls.PORT_RANGE_START, cls.PORT_RANGE_END + 1)
+        return cls._get_config().get_port_range()
 
 
 class ProjectPaths:

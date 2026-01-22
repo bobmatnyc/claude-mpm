@@ -29,7 +29,7 @@ Input Format (stdin):
 
 Output Format (stdout):
 {
-  "action": "continue",
+  "continue": true,
   "tool_input": {
     "file_path": "/path/to/file.py",
     "old_string": "foo",
@@ -39,13 +39,13 @@ Output Format (stdout):
 
 Or to block execution:
 {
-  "action": "block",
-  "message": "Reason for blocking"
+  "continue": false,
+  "stopReason": "Reason for blocking"
 }
 
 Or to continue without modification:
 {
-  "action": "continue"
+  "continue": true
 }
 """
 
@@ -94,14 +94,14 @@ class PreToolUseHook:
         self, modified_input: Optional[Dict[str, Any]] = None
     ) -> None:
         """Continue execution with optional modified input."""
-        response = {"action": "continue"}
+        response = {"continue": True}
         if modified_input is not None:
             response["tool_input"] = modified_input
         print(json.dumps(response))
 
     def block_execution(self, message: str) -> None:
         """Block execution with a message."""
-        response = {"action": "block", "message": message}
+        response = {"continue": False, "stopReason": message}
         print(json.dumps(response))
 
     def modify_input(

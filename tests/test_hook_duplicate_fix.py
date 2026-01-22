@@ -77,7 +77,7 @@ def test_hook_handler():
 
     # Check that all invocations output continue
     # (each invocation needs to output continue to not block Claude)
-    expected_output = '{"action": "continue"}'
+    expected_output = '{"continue": true}'
     all_correct = all(output == expected_output for output in outputs)
 
     if len(outputs) == 3 and all_correct:

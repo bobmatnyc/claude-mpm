@@ -121,8 +121,10 @@ class LoggerFactory:
             root_logger.setLevel(desired_level)
         # else: root logger is suppressed (CRITICAL+1), keep it suppressed
 
-        # Remove existing handlers
-        root_logger.handlers = []
+        # Preserve FileHandlers (e.g., hooks logging), only remove StreamHandlers
+        root_logger.handlers = [
+            h for h in root_logger.handlers if isinstance(h, logging.FileHandler)
+        ]
 
         # CRITICAL FIX: Don't add handlers if logging is suppressed
         # If root logger is at CRITICAL+1 (startup suppression), don't add any handlers

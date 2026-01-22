@@ -22,7 +22,7 @@ except ImportError:
 
 
 # Debug mode
-DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
+DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "false").lower() == "true"
 
 # Response tracking integration
 # NOTE: ResponseTracker import moved to _initialize_response_tracking() for lazy loading

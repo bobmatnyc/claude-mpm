@@ -10,9 +10,7 @@ from .base import BaseFramework
 class MPMFramework(BaseFramework):
     """Claude MPM framework.
 
-    This framework launches Claude with MPM agent loading via CLAUDE.md.
-    It uses the same 'claude' command as Claude Code, but relies on CLAUDE.md
-    in the project to load the MPM agent system.
+    This framework launches Claude MPM with full agent orchestration.
 
     Example:
         >>> framework = MPMFramework()
@@ -21,42 +19,39 @@ class MPMFramework(BaseFramework):
         >>> framework.is_available()
         True
         >>> framework.get_startup_command(Path("/Users/user/myapp"))
-        "cd '/Users/user/myapp' && claude --dangerously-skip-permissions"
+        "cd '/Users/user/myapp' && claude-mpm"
     """
 
     name = "mpm"
     display_name = "Claude MPM"
-    command = "claude"  # Uses claude with MPM agent loading
+    command = "claude-mpm"
 
     def get_startup_command(self, project_path: Path) -> str:
         """Get the command to start Claude MPM in a project.
-
-        The MPM framework uses the standard 'claude' command, but expects
-        a CLAUDE.md file in the project to load the MPM agent system.
 
         Args:
             project_path: Path to the project directory
 
         Returns:
-            Shell command string to start Claude with MPM
+            Shell command string to start Claude MPM
 
         Example:
             >>> framework = MPMFramework()
             >>> framework.get_startup_command(Path("/Users/user/myapp"))
-            "cd '/Users/user/myapp' && claude --dangerously-skip-permissions"
+            "cd '/Users/user/myapp' && claude-mpm"
         """
         quoted_path = shlex.quote(str(project_path))
-        return f"cd {quoted_path} && claude --dangerously-skip-permissions"
+        return f"cd {quoted_path} && claude-mpm"
 
     def is_available(self) -> bool:
-        """Check if 'claude' command is available.
+        """Check if 'claude-mpm' command is available.
 
         Returns:
-            True if 'claude' command exists in PATH
+            True if 'claude-mpm' command exists in PATH
 
         Example:
             >>> framework = MPMFramework()
             >>> framework.is_available()
             True
         """
-        return shutil.which("claude") is not None
+        return shutil.which("claude-mpm") is not None

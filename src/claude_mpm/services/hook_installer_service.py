@@ -20,8 +20,13 @@ class HookInstallerService:
     def __init__(self):
         """Initialize the hook installer service."""
         self.logger = get_logger(__name__)
-        self.claude_dir = Path.home() / ".claude"
-        self.settings_file = self.claude_dir / "settings.json"
+        # Use project-level paths, NEVER global ~/.claude/settings.json
+        # This ensures hooks are scoped to the current project only
+        self.project_root = Path.cwd()
+        self.claude_dir = self.project_root / ".claude"
+        # Use settings.local.json for project-level hook settings
+        # Claude Code reads project-level settings from .claude/settings.local.json
+        self.settings_file = self.claude_dir / "settings.local.json"
 
     def is_hooks_configured(self) -> bool:
         """Check if hooks are configured in Claude settings.
@@ -299,16 +304,77 @@ class HookInstallerService:
                 self.logger.debug("Creating new Claude settings")
 
             # Configure hooks
-            hook_config = {
-                "matcher": "*",
-                "hooks": [{"type": "command", "command": hook_script_path}],
-            }
+            new_hook_command = {"type": "command", "command": hook_script_path}
 
             # Update settings
             if "hooks" not in settings:
                 settings["hooks"] = {}
 
-            # Add hooks for all event types
+            def is_our_hook(cmd: Dict[str, Any]) -> bool:
+                """Check if a hook command belongs to claude-mpm."""
+                if cmd.get("type") != "command":
+                    return False
+                command = cmd.get("command", "")
+                return (
+                    "hook_wrapper.sh" in command
+                    or "claude-hook-handler.sh" in command
+                    or "claude-mpm" in command
+                )
+
+            def merge_hooks_for_event(
+                existing_hooks: list, hook_command: Dict[str, Any]
+            ) -> list:
+                """Merge new hook command into existing hooks without duplication.
+
+                Args:
+                    existing_hooks: Current hooks configuration for an event type
+                    hook_command: The claude-mpm hook command to add
+
+                Returns:
+                    Updated hooks list with our hook merged in
+                """
+                # Check if our hook already exists in any existing hook config
+                our_hook_exists = False
+
+                for hook_config in existing_hooks:
+                    if "hooks" in hook_config and isinstance(
+                        hook_config["hooks"], list
+                    ):
+                        for hook in hook_config["hooks"]:
+                            if is_our_hook(hook):
+                                # Update existing hook command path (in case it changed)
+                                hook["command"] = hook_command["command"]
+                                our_hook_exists = True
+                                break
+                    if our_hook_exists:
+                        break
+
+                if our_hook_exists:
+                    # Our hook already exists, just return the updated list
+                    return existing_hooks
+
+                # Our hook doesn't exist - need to add it
+                # Strategy: Add our hook to the first "*" matcher config, or create new
+                added = False
+
+                for hook_config in existing_hooks:
+                    # Check if this config has matcher: "*"
+                    if hook_config.get("matcher") == "*":
+                        # Add our hook to this config's hooks array
+                        if "hooks" not in hook_config:
+                            hook_config["hooks"] = []
+                        hook_config["hooks"].append(hook_command)
+                        added = True
+                        break
+
+                if not added:
+                    # No suitable config found, create a new one
+                    new_config = {"matcher": "*", "hooks": [hook_command]}
+                    existing_hooks.append(new_config)
+
+                return existing_hooks
+
+            # Add hooks for all event types - MERGE instead of overwrite
             for event_type in [
                 "UserPromptSubmit",
                 "PreToolUse",
@@ -316,7 +382,10 @@ class HookInstallerService:
                 "Stop",
                 "SubagentStop",
             ]:
-                settings["hooks"][event_type] = [hook_config]
+                existing = settings["hooks"].get(event_type, [])
+                settings["hooks"][event_type] = merge_hooks_for_event(
+                    existing, new_hook_command
+                )
 
             # Write settings
             with self.settings_file.open("w") as f:

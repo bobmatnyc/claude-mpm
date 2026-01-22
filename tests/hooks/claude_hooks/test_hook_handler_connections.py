@@ -80,7 +80,7 @@ class TestConnectionManagement:
 
         # Check that continue was printed
         output = mock_stdout.getvalue()
-        assert '{"action": "continue"}' in output
+        assert '{"continue": true}' in output
 
     def test_cleanup_on_destruction(self):
         """Test cleanup when handler is destroyed."""

@@ -88,7 +88,7 @@ class TestMainEntryPoint:
 
         # Should still print continue
         output = mock_stdout.getvalue()
-        assert '{"action": "continue"}' in output
+        assert '{"continue": true}' in output
         mock_exit.assert_called_with(0)
 
 

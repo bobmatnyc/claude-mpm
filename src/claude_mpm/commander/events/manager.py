@@ -3,11 +3,13 @@
 Manages event lifecycle, inbox queries, and project event tracking.
 """
 
+import asyncio
 import logging
 import threading
 import uuid
+from asyncio import Queue
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ..models.events import (
     DEFAULT_PRIORITIES,
@@ -48,6 +50,8 @@ class EventManager:
         self._events: Dict[str, Event] = {}
         self._project_index: Dict[str, List[str]] = {}  # project_id -> event_ids
         self._lock = threading.RLock()
+        self._subscribers: Dict[EventType, List[Callable]] = {}
+        self._event_queue: Queue = Queue()
 
     def create(
         self,
@@ -330,3 +334,59 @@ class EventManager:
             for eid in event_ids:
                 self._events.pop(eid, None)
             return len(event_ids)
+
+    def subscribe(self, event_type: EventType, callback: Callable) -> None:
+        """Subscribe callback to event type.
+
+        Args:
+            event_type: Type of event to subscribe to
+            callback: Function to call when event occurs (sync or async)
+
+        Example:
+            def on_error(event):
+                print(f"Error: {event.title}")
+
+            manager.subscribe(EventType.ERROR, on_error)
+        """
+        if event_type not in self._subscribers:
+            self._subscribers[event_type] = []
+        self._subscribers[event_type].append(callback)
+
+    def unsubscribe(self, event_type: EventType, callback: Callable) -> None:
+        """Unsubscribe callback from event type.
+
+        Args:
+            event_type: Type of event to unsubscribe from
+            callback: Function to remove from subscribers
+
+        Example:
+            manager.unsubscribe(EventType.ERROR, on_error)
+        """
+        if (
+            event_type in self._subscribers
+            and callback in self._subscribers[event_type]
+        ):
+            self._subscribers[event_type].remove(callback)
+
+    async def emit(self, event: Event) -> None:
+        """Emit event to all subscribers.
+
+        Queues the event and notifies all subscribed callbacks.
+        Supports both sync and async callbacks.
+
+        Args:
+            event: Event to emit
+
+        Example:
+            await manager.emit(event)
+        """
+        await self._event_queue.put(event)
+        if event.type in self._subscribers:
+            for callback in self._subscribers[event.type]:
+                try:
+                    if asyncio.iscoroutinefunction(callback):
+                        await callback(event)
+                    else:
+                        callback(event)
+                except Exception as e:
+                    logger.error(f"Subscriber callback error: {e}")

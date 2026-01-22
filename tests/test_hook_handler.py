@@ -239,11 +239,11 @@ class TestClaudeHookHandler(unittest.TestCase):
         self.handler._continue_execution()
 
         output = mock_stdout.getvalue()
-        self.assertEqual(output, '{"action": "continue"}\n')
+        self.assertEqual(output, '{"continue": true}\n')
 
         # Verify it's valid JSON
         parsed = json.loads(output.strip())
-        self.assertEqual(parsed["action"], "continue")
+        self.assertEqual(parsed["continue"], True)
 
     def test_duplicate_detection(self):
         """Test duplicate event detection with 50ms threshold."""
@@ -296,7 +296,7 @@ class TestClaudeHookHandler(unittest.TestCase):
 
         # Verify continue was sent
         output = mock_stdout.getvalue()
-        self.assertIn('"action": "continue"', output)
+        self.assertIn('"continue": true', output)
 
     def test_state_cleanup_trigger(self):
         """Test that state cleanup is triggered after processing events."""
@@ -626,7 +626,7 @@ class TestIntegration(unittest.TestCase):
 
             # Verify continue was sent
             output = mock_stdout.getvalue()
-            self.assertIn('"action": "continue"', output)
+            self.assertIn('"continue": true', output)
 
             # Verify timeout was managed
             mock_alarm.assert_any_call(10)  # Set

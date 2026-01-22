@@ -458,37 +458,33 @@ class TestDeprecatedCommandCleanup:
         removed_count = service.remove_deprecated_commands()
         assert removed_count == 0
 
-    def test_remove_deprecated_commands_preserves_new_commands(self, service):
-        """Test that new/replacement commands are NOT removed."""
-        # Create replacement commands
-        new_commands = [
-            "mpm-agents-list.md",
-            "mpm-agents-auto-configure.md",
-            "mpm-config-view.md",
-            "mpm-organize.md",
-            "mpm-session-resume.md",
-            "mpm-ticket-view.md",
+    def test_remove_deprecated_commands_preserves_non_mpm_commands(self, service):
+        """Test that non-MPM commands are NOT removed."""
+        # Create non-MPM commands that should be preserved
+        non_mpm_commands = [
+            "custom-command.md",
+            "my-workflow.md",
+            "project-specific.md",
         ]
-        for new_cmd in new_commands:
-            new_file = service.target_dir / new_cmd
-            new_file.write_text("# New command content")
+        for cmd in non_mpm_commands:
+            cmd_file = service.target_dir / cmd
+            cmd_file.write_text("# Custom command content")
 
-        # Create some deprecated commands
-        for deprecated_cmd in ["mpm-agents.md", "mpm-ticket.md"]:
+        # Create some deprecated MPM commands
+        for deprecated_cmd in ["mpm-agents.md", "mpm-ticket.md", "mpm.md"]:
             deprecated_file = service.target_dir / deprecated_cmd
             deprecated_file.write_text("# Deprecated command content")
 
         # Remove deprecated commands
         removed_count = service.remove_deprecated_commands()
 
-        # Verify only deprecated were removed, new commands preserved
-        assert removed_count == 2
-        for new_cmd in new_commands:
-            assert (service.target_dir / new_cmd).exists(), (
-                f"{new_cmd} should be preserved"
-            )
+        # Verify only deprecated MPM commands were removed, non-MPM commands preserved
+        assert removed_count == 3
+        for cmd in non_mpm_commands:
+            assert (service.target_dir / cmd).exists(), f"{cmd} should be preserved"
         assert not (service.target_dir / "mpm-agents.md").exists()
         assert not (service.target_dir / "mpm-ticket.md").exists()
+        assert not (service.target_dir / "mpm.md").exists()
 
     def test_remove_deprecated_commands_error_handling(self, service, tmp_path):
         """Test error handling when file removal fails."""
@@ -536,9 +532,14 @@ class TestDeprecatedCommandCleanup:
         """Test that DEPRECATED_COMMANDS constant is defined correctly."""
         assert hasattr(CommandDeploymentService, "DEPRECATED_COMMANDS")
         assert isinstance(CommandDeploymentService.DEPRECATED_COMMANDS, list)
-        assert len(CommandDeploymentService.DEPRECATED_COMMANDS) == 5
+        # All user-level commands are now deprecated (21 total)
+        # Project-level skills are the only source for commands
+        assert len(CommandDeploymentService.DEPRECATED_COMMANDS) >= 21
         assert "mpm-agents.md" in CommandDeploymentService.DEPRECATED_COMMANDS
         assert "mpm-ticket.md" in CommandDeploymentService.DEPRECATED_COMMANDS
+        # Verify current commands are also deprecated
+        assert "mpm.md" in CommandDeploymentService.DEPRECATED_COMMANDS
+        assert "mpm-init.md" in CommandDeploymentService.DEPRECATED_COMMANDS
 
 
 class TestDeprecatedAliasStripping:

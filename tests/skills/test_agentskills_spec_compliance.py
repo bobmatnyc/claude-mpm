@@ -72,7 +72,7 @@ class TestAgentSkillsSpecCompliance:
                 description="Test skill",
                 path=Path("/tmp/test.md"),
             )
-            is_valid, warnings = validate_agentskills_spec(skill)
+            is_valid, _warnings = validate_agentskills_spec(skill)
             assert is_valid is True, f"Name '{name}' should be valid"
 
     def test_validate_spec_name_format_invalid(self):

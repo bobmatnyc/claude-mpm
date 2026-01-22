@@ -186,8 +186,9 @@ class HookManager:
             env["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 
             # Execute with timeout in background thread
+            # Run as module to ensure proper package context for relative imports
             result = subprocess.run(  # nosec B603 B607
-                ["python", str(self.hook_handler_path)],
+                ["python", "-m", "claude_mpm.hooks.claude_hooks.hook_handler"],
                 input=event_json,
                 text=True,
                 capture_output=True,

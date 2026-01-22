@@ -10,8 +10,9 @@ import logging
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from ..frameworks.base import RegisteredInstance
 from ..models import Project, ProjectState, ToolSession
 from ..registry import ProjectRegistry
 
@@ -48,6 +49,7 @@ class StateStore:
 
         self.projects_path = self.state_dir / "projects.json"
         self.sessions_path = self.state_dir / "sessions.json"
+        self.instances_path = self.state_dir / "instances.json"
 
         logger.info(f"Initialized StateStore at {self.state_dir}")
 
@@ -307,3 +309,95 @@ class StateStore:
                 else None
             ),
         )
+
+    # Instance persistence methods
+
+    def save_instances(self, instances: Dict[str, RegisteredInstance]) -> None:
+        """Save registered instances to disk.
+
+        Args:
+            instances: Dict mapping instance name to RegisteredInstance
+
+        Raises:
+            IOError: If write fails
+        """
+        data = {
+            "version": self.VERSION,
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "instances": {name: inst.to_dict() for name, inst in instances.items()},
+        }
+        self._atomic_write(self.instances_path, data)
+        logger.info(f"Saved {len(instances)} instances to {self.instances_path}")
+
+    def load_instances(self) -> Dict[str, RegisteredInstance]:
+        """Load registered instances from disk.
+
+        Returns:
+            Dict mapping instance name to RegisteredInstance
+            (empty if file missing or corrupt)
+        """
+        if not self.instances_path.exists():
+            logger.info("No instances file found, returning empty dict")
+            return {}
+
+        try:
+            data = self._read_json(self.instances_path)
+
+            if data.get("version") != self.VERSION:
+                logger.warning(
+                    f"Version mismatch: expected {self.VERSION}, "
+                    f"got {data.get('version')}"
+                )
+
+            instances = {
+                name: RegisteredInstance.from_dict(inst_data)
+                for name, inst_data in data.get("instances", {}).items()
+            }
+
+            logger.info(f"Loaded {len(instances)} instances from {self.instances_path}")
+            return instances
+
+        except Exception as e:
+            logger.error(f"Failed to load instances: {e}", exc_info=True)
+            return {}
+
+    def register_instance(self, instance: RegisteredInstance) -> None:
+        """Register a single instance (add to existing).
+
+        Args:
+            instance: RegisteredInstance to add
+        """
+        instances = self.load_instances()
+        instances[instance.name] = instance
+        self.save_instances(instances)
+        logger.info(f"Registered instance '{instance.name}'")
+
+    def unregister_instance(self, name: str) -> bool:
+        """Remove an instance registration.
+
+        Args:
+            name: Instance name to remove
+
+        Returns:
+            True if instance was found and removed, False if not found
+        """
+        instances = self.load_instances()
+        if name in instances:
+            del instances[name]
+            self.save_instances(instances)
+            logger.info(f"Unregistered instance '{name}'")
+            return True
+        logger.warning(f"Instance '{name}' not found for unregistration")
+        return False
+
+    def get_registered_instance(self, name: str) -> Optional[RegisteredInstance]:
+        """Get a single registered instance by name.
+
+        Args:
+            name: Instance name to look up
+
+        Returns:
+            RegisteredInstance if found, None otherwise
+        """
+        instances = self.load_instances()
+        return instances.get(name)

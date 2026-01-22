@@ -222,13 +222,13 @@ log_debug() {
 if [[ "$PYTHON_CMD" == "uv run"* ]]; then
     if ! uv run --directory "$CLAUDE_MPM_ROOT" python -c "import claude_mpm" 2>/dev/null; then
         log_debug "claude_mpm module not available, continuing without hook"
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 else
     if ! $PYTHON_CMD -c "import claude_mpm" 2>/dev/null; then
         log_debug "claude_mpm module not available, continuing without hook"
-        echo '{"action": "continue"}'
+        echo '{"continue": true}'
         exit 0
     fi
 fi
@@ -250,5 +250,5 @@ if [ "${CLAUDE_MPM_HOOK_DEBUG}" = "true" ]; then
     echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Error: $(cat /tmp/claude-mpm-hook-error.log 2>/dev/null | head -5)" >> /tmp/claude-mpm-hook.log
 fi
 # Return continue action to prevent blocking Claude Code
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0

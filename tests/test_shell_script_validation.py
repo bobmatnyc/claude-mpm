@@ -85,7 +85,7 @@ fi
 export CLAUDE_MPM_SOCKETIO_PORT="${CLAUDE_MPM_SOCKETIO_PORT:-8765}"
 
 if ! exec "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/claude-mpm-hook-error.log; then
-    echo '{"action": "continue"}'
+    echo '{"continue": true}'
     exit 0
 fi
 """
@@ -105,7 +105,7 @@ fi
         mock_python.write_text(
             """#!/bin/bash
 echo "PYTHONPATH=$PYTHONPATH"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -142,7 +142,7 @@ exit 0
         )
 
         # Should output continue action
-        self.assertIn('{"action": "continue"}', result.stdout)
+        self.assertIn('{"continue": true}', result.stdout)
 
     def test_script_passes_arguments(self):
         """Test that arguments are passed to the Python module."""
@@ -152,7 +152,7 @@ exit 0
         mock_python.write_text(
             """#!/bin/bash
 echo "Args: $@"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -179,7 +179,7 @@ exit 0
         mock_python.write_text(
             """#!/bin/bash
 echo "SOCKETIO_PORT=$CLAUDE_MPM_SOCKETIO_PORT"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -233,7 +233,7 @@ exit 1
         )
 
         # Should still output continue
-        self.assertIn('{"action": "continue"}', result.stdout)
+        self.assertIn('{"continue": true}', result.stdout)
         # Should have zero exit code
         self.assertEqual(result.returncode, 0)
 
@@ -255,7 +255,7 @@ try:
 except:
     pass
 
-print(json.dumps({"action": "continue"}))
+print(json.dumps({"continue": true}))
 """
         )
         mock_python.chmod(0o755)
@@ -275,7 +275,7 @@ print(json.dumps({"action": "continue"}))
 
         # Should process the input
         self.assertIn("Received: Stop", result.stdout)
-        self.assertIn('{"action": "continue"}', result.stdout)
+        self.assertIn('{"continue": true}', result.stdout)
 
     def test_script_debug_mode(self):
         """Test debug mode functionality."""
@@ -288,7 +288,7 @@ print(json.dumps({"action": "continue"}))
         mock_python.parent.mkdir(parents=True)
         mock_python.write_text(
             """#!/bin/bash
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -310,7 +310,7 @@ exit 0
         # Note: Actual debug logging depends on script implementation
 
         # Should still work normally
-        self.assertIn('{"action": "continue"}', result.stdout)
+        self.assertIn('{"continue": true}', result.stdout)
 
     def test_script_python_detection_order(self):
         """Test Python detection preference order."""
@@ -320,7 +320,7 @@ exit 0
         venv_python.write_text(
             """#!/bin/bash
 echo "Using venv Python"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -343,7 +343,7 @@ exit 0
         dot_venv_python.write_text(
             """#!/bin/bash
 echo "Using .venv Python"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -397,7 +397,7 @@ class TestShellScriptRobustness(unittest.TestCase):
             mock_python.write_text(
                 """#!/bin/bash
 echo "Executed from path with spaces"
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
             )
@@ -414,7 +414,7 @@ exit 0
             )
 
             self.assertIn("Executed from path with spaces", result.stdout)
-            self.assertIn('{"action": "continue"}', result.stdout)
+            self.assertIn('{"continue": true}', result.stdout)
 
     def test_script_concurrent_execution(self):
         """Test that multiple script instances can run concurrently."""
@@ -447,7 +447,7 @@ import os
 
 pid = os.getpid()
 time.sleep(0.1)
-print(json.dumps({"action": "continue", "pid": pid}))
+print(json.dumps({"continue": True, "pid": pid}))
 """
             )
             mock_python.chmod(0o755)
@@ -479,7 +479,7 @@ print(json.dumps({"action": "continue", "pid": pid}))
             # All should complete successfully
             self.assertEqual(len(results), 3)
             for result in results:
-                self.assertIn('"action": "continue"', result)
+                self.assertIn('"continue": true', result)
 
     def test_script_signal_handling(self):
         """Test that the script handles signals properly."""
@@ -500,7 +500,7 @@ if [ -f "$(pwd)/venv/bin/python" ]; then
 fi
 
 if ! exec "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@"; then
-    echo '{"action": "continue"}'
+    echo '{"continue": true}'
     exit 0
 fi
 """
@@ -513,7 +513,7 @@ fi
         success_python = venv_dir / "python"
         success_python.write_text(
             """#!/bin/bash
-echo '{"action": "continue"}'
+echo '{"continue": true}'
 exit 0
 """
         )
@@ -542,7 +542,7 @@ exit 1
         )
         # Should still exit 0 and output continue
         self.assertEqual(result.returncode, 0)
-        self.assertIn('{"action": "continue"}', result.stdout)
+        self.assertIn('{"continue": true}', result.stdout)
 
 
 if __name__ == "__main__":

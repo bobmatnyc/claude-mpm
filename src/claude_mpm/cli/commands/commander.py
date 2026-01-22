@@ -43,12 +43,12 @@ def display_commander_banner():
 
     # Commander ASCII art banner
     banner = f"""
-{CYAN}╭{'─' * (width - 2)}╮{RESET}
-{CYAN}│{RESET}{BOLD}  ⚡ MPM Commander {RESET}{DIM}v{version}{RESET}{' ' * (width - 24 - len(version))}│
-{CYAN}│{RESET}{DIM}  Multi-Project AI Orchestration{RESET}{' ' * (width - 36)}│
-{CYAN}├{'─' * (width - 2)}┤{RESET}
-{CYAN}│{RESET}  {YELLOW}ALPHA{RESET} - APIs may change                                {' ' * (width - 55)}│
-{CYAN}╰{'─' * (width - 2)}╯{RESET}
+{CYAN}╭{"─" * (width - 2)}╮{RESET}
+{CYAN}│{RESET}{BOLD}  ⚡ MPM Commander {RESET}{DIM}v{version}{RESET}{" " * (width - 24 - len(version))}│
+{CYAN}│{RESET}{DIM}  Multi-Project AI Orchestration{RESET}{" " * (width - 36)}│
+{CYAN}├{"─" * (width - 2)}┤{RESET}
+{CYAN}│{RESET}  {YELLOW}ALPHA{RESET} - APIs may change                                {" " * (width - 55)}│
+{CYAN}╰{"─" * (width - 2)}╯{RESET}
 """
     print(banner)
 
@@ -142,7 +142,7 @@ def handle_commander_command(args) -> int:
         print()  # Blank line after loading
 
         # Get arguments
-        port = getattr(args, "port", 8765)
+        port = getattr(args, "port", 8766)  # NetworkPorts.COMMANDER_DEFAULT
         host = getattr(args, "host", "127.0.0.1")
         state_dir = getattr(args, "state_dir", None)
         no_chat = getattr(args, "no_chat", False) or getattr(args, "daemon_only", False)

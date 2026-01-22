@@ -576,8 +576,13 @@ class UnifiedMonitorServer:
                     event = data.get("event", "claude_event")
                     event_data = data.get("data", {})
 
+                    # Extract actual event name from subtype or type within data
+                    actual_event = (
+                        event_data.get("subtype") or event_data.get("type") or event
+                    )
+
                     # Categorize event and wrap in expected format
-                    event_type = self._categorize_event(event)
+                    event_type = self._categorize_event(actual_event)
                     wrapped_event = {
                         "type": event_type,
                         "subtype": event,

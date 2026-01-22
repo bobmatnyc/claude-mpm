@@ -137,14 +137,14 @@ def update_version_files(project_root: Path, new_version: str) -> None:
             f'version = "{new_version}"',
             content,
             flags=re.MULTILINE,
-            count=1
+            count=1,
         )
         # Update [tool.commitizen] version
         content = re.sub(
             r'\[tool\.commitizen\]\s+name = "[^"]*"\s+version = "[^"]*"',
             f'[tool.commitizen]\nname = "cz_conventional_commits"\nversion = "{new_version}"',
             content,
-            flags=re.DOTALL
+            flags=re.DOTALL,
         )
         pyproject_path.write_text(content)
         print(f"Updated {pyproject_path} to {new_version}")
@@ -153,20 +153,21 @@ def update_version_files(project_root: Path, new_version: str) -> None:
     changelog_path = project_root / "CHANGELOG.md"
     if changelog_path.exists():
         from datetime import date
+
         changelog_content = changelog_path.read_text()
         version_header = f"## [{new_version}]"
 
         if version_header not in changelog_content:
             # Find the Unreleased section and add new version after it
-            unreleased_pattern = r'(## \[Unreleased\].*?)(\n## \[)'
+            unreleased_pattern = r"(## \[Unreleased\].*?)(\n## \[)"
             today = date.today().strftime("%Y-%m-%d")
             new_entry = f"\n\n{version_header} - {today}\n\n### Fixed\n- Automated release improvements\n"
 
             updated_content = re.sub(
                 unreleased_pattern,
-                r'\1' + new_entry + r'\2',
+                r"\1" + new_entry + r"\2",
                 changelog_content,
-                flags=re.DOTALL
+                flags=re.DOTALL,
             )
 
             if updated_content != changelog_content:
@@ -276,7 +277,9 @@ def sync_agent_repositories(
     print("\n🔄 Syncing agent repositories...")
     print("=" * 50)
 
-    agents_repo = Path.home() / ".claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents"
+    agents_repo = (
+        Path.home() / ".claude-mpm/cache/remote-agents/bobmatnyc/claude-mpm-agents"
+    )
     skills_repo = Path.home() / ".claude-mpm/cache/skills/system"
 
     repos_to_sync = [
@@ -306,7 +309,8 @@ def sync_agent_repositories(
 
         # Filter out .etag_cache.json files
         changes = [
-            line for line in stdout.strip().split("\n")
+            line
+            for line in stdout.strip().split("\n")
             if line and ".etag_cache.json" not in line
         ]
 
