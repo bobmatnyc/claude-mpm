@@ -241,13 +241,14 @@ class InstanceManager:
 
         # Emit starting event and start background ready detection
         if self._event_manager:
-            self._event_manager.create(
+            event = self._event_manager.create(
                 project_id=name,
                 event_type=EventType.INSTANCE_STARTING,
                 title=f"Starting instance '{name}'",
                 content=f"Instance {name} is starting at {project_path}",
                 context={"instance_name": name, "working_dir": str(project_path)},
             )
+            await self._event_manager.emit(event)
             # Start background ready detection
             asyncio.create_task(self._detect_ready(name, instance))
 
@@ -290,13 +291,14 @@ class InstanceManager:
                         if re.search(pattern, output, re.MULTILINE):
                             # Emit ready event
                             if self._event_manager:
-                                self._event_manager.create(
+                                event = self._event_manager.create(
                                     project_id=name,
                                     event_type=EventType.INSTANCE_READY,
                                     title=f"Instance '{name}' ready",
                                     content=f"Instance {name} is ready for commands",
                                     context={"instance_name": name},
                                 )
+                                await self._event_manager.emit(event)
                             logger.info(f"Instance '{name}' is ready")
                             return
             except Exception as e:
@@ -304,13 +306,14 @@ class InstanceManager:
 
         # Timeout - emit ready event anyway since instance might still work
         if self._event_manager:
-            self._event_manager.create(
+            event = self._event_manager.create(
                 project_id=name,
                 event_type=EventType.INSTANCE_READY,
                 title=f"Instance '{name}' started",
                 content=f"Instance {name} startup timeout, may be ready",
                 context={"instance_name": name, "timeout": True},
             )
+            await self._event_manager.emit(event)
         logger.warning(f"Instance '{name}' ready detection timed out after {timeout}s")
 
     async def stop_instance(self, name: str) -> bool:
