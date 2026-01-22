@@ -50,9 +50,12 @@ class RegisteredInstance:
 
     Attributes:
         name: Instance identifier
-        path: Project directory path (stored as string for JSON)
+        path: Original project directory path (stored as string for JSON)
         framework: Framework identifier ("cc" or "mpm")
         registered_at: ISO timestamp when instance was registered
+        worktree_path: Path to git worktree (if using worktree isolation)
+        worktree_branch: Branch name in the worktree
+        use_worktree: Whether worktree isolation is enabled
 
     Example:
         >>> instance = RegisteredInstance(
@@ -62,13 +65,32 @@ class RegisteredInstance:
         ...     registered_at="2024-01-15T10:30:00"
         ... )
         >>> instance.to_dict()
-        {'name': 'myapp', 'path': '/Users/user/myapp', 'framework': 'cc', 'registered_at': '2024-01-15T10:30:00'}
+        {'name': 'myapp', 'path': '/Users/user/myapp', 'framework': 'cc', ...}
+        >>> instance.working_path
+        '/Users/user/myapp'
+
+        >>> # With worktree enabled
+        >>> instance = RegisteredInstance(
+        ...     name="myapp",
+        ...     path="/Users/user/myapp",
+        ...     framework="cc",
+        ...     registered_at="2024-01-15T10:30:00",
+        ...     worktree_path="/Users/user/.mpm/worktrees/myapp",
+        ...     worktree_branch="feature/new-feature",
+        ...     use_worktree=True
+        ... )
+        >>> instance.working_path
+        '/Users/user/.mpm/worktrees/myapp'
     """
 
     name: str
-    path: str
+    path: str  # Original project path
     framework: str
     registered_at: str
+    # Worktree fields
+    worktree_path: Optional[str] = None  # Path to worktree (if using)
+    worktree_branch: Optional[str] = None  # Branch in worktree
+    use_worktree: bool = False  # Whether worktree is enabled
 
     def to_dict(self) -> dict:
         """Serialize for JSON storage."""
@@ -77,6 +99,9 @@ class RegisteredInstance:
             "path": self.path,
             "framework": self.framework,
             "registered_at": self.registered_at,
+            "worktree_path": self.worktree_path,
+            "worktree_branch": self.worktree_branch,
+            "use_worktree": self.use_worktree,
         }
 
     @classmethod
@@ -87,7 +112,22 @@ class RegisteredInstance:
             path=data["path"],
             framework=data["framework"],
             registered_at=data.get("registered_at", ""),
+            worktree_path=data.get("worktree_path"),
+            worktree_branch=data.get("worktree_branch"),
+            use_worktree=data.get("use_worktree", False),
         )
+
+    @property
+    def working_path(self) -> str:
+        """Get the actual working path (worktree or original).
+
+        Returns:
+            The worktree path if worktree is enabled and configured,
+            otherwise the original project path.
+        """
+        if self.use_worktree and self.worktree_path:
+            return self.worktree_path
+        return self.path
 
 
 class BaseFramework(ABC):
