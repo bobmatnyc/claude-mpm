@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.50] - 2026-01-22
+
+### Fixed
+- fix: `/start <path>` now creates worktrees like `/register`
+  - Previously `/start <path>` bypassed worktree creation
+  - Now uses `register_instance()` which creates proper git worktrees
+  - Updated help text to document worktree behavior
+  - Shows worktree info when starting instances
+
 ## [5.6.49] - 2026-01-22
 
 ### Added

@@ -166,8 +166,9 @@ MPM Commander Capabilities:
 
 INSTANCE MANAGEMENT (use / prefix):
 - /list, /ls: Show all running Claude Code instances with their status
-- /register <path> <framework> <name>: Register, start, and auto-connect
+- /register <path> <framework> <name>: Register, start, and auto-connect (creates worktree)
 - /start <name>: Start a registered instance by name
+- /start <path> [--framework cc|mpm] [--name name]: Start new instance (creates worktree)
 - /stop <name>: Stop a running instance (keeps worktree)
 - /close <name> [--no-merge]: Close instance, merge worktree to main, and cleanup
 - /connect <name>: Connect to a specific instance for interactive chat
@@ -565,13 +566,26 @@ Return ONLY valid JSON."""
             self._print(f"Error: Path is not a directory: {project_path}")
             return
 
-        # Start instance
+        # Register and start instance (creates worktree for git repos)
         try:
-            instance = await self.instances.start_instance(
-                name, project_path, framework
+            instance = await self.instances.register_instance(
+                str(project_path), framework, name
             )
             self._print(f"Started instance '{name}' ({framework}) at {project_path}")
-            self._print(f"Tmux: {instance.tmux_session}:{instance.pane_target}")
+            self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
+
+            # Check if worktree was created
+            if self.instances._state_store:
+                registered = self.instances._state_store.get_instance(name)
+                if registered and registered.use_worktree and registered.worktree_path:
+                    self._print(f"  Worktree: {registered.worktree_path}")
+                    self._print(f"  Branch: {registered.worktree_branch}")
+
+            # Wait for instance to be ready with animated spinner
+            ready = await self._wait_for_ready_with_spinner(name, timeout=30)
+            if ready:
+                self.session.connect_to(name)
+                self._print(f"Connected to '{name}'")
         except Exception as e:
             self._print(f"Error starting instance: {e}")
 
@@ -704,8 +718,9 @@ Return ONLY valid JSON."""
         help_text = """
 Commander Commands (use / prefix):
   /register <path> <framework> <name>
-                        Register, start, and auto-connect to instance
+                        Register, start, and auto-connect (creates worktree)
   /start <name>         Start a registered instance by name
+  /start <path>         Start new instance (creates worktree for git repos)
   /stop <name>          Stop an instance (keeps worktree)
   /close <name> [--no-merge]
                         Close instance: merge worktree to main and cleanup
@@ -724,8 +739,13 @@ Direct Messaging (both syntaxes work the same):
 Natural Language:
   Any input without / prefix is sent to the connected instance.
 
+Git Worktree Isolation:
+  When starting instances in git repos, a worktree is created on a
+  session-specific branch. Use /close to merge changes back to main.
+
 Examples:
   /register ~/myproject cc myapp  # Register, start, and connect
+  /start ~/myproject              # Start with auto-detected name
   /start myapp                    # Start registered instance
   /close myapp                    # Merge worktree to main and cleanup
   /close myapp --no-merge         # Cleanup without merging
