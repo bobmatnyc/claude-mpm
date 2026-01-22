@@ -10,6 +10,19 @@
 
 ### Tests
 
+## [5.6.47] - 2026-01-21
+
+### Fixed
+- fix: Remove invalid --dangerously-skip-permissions flag from mpm framework
+  - The --dangerously-skip-permissions flag is only valid for 'claude' CLI, not 'claude-mpm'
+  - This was causing startup issues in certain configurations
+- fix: Add wait_for_ready() method and instance ready tracking
+  - Prevents messages being sent before instance is fully initialized
+  - Improves reliability of inter-agent communication
+- fix: Add more ready detection patterns for Claude CLI startup
+  - Better detection of when Claude CLI is ready to accept input
+  - Reduces race conditions during instance initialization
+
 ## [5.6.46] - 2026-01-21
 
 ### Added
