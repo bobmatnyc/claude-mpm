@@ -850,14 +850,14 @@ Examples:
             else:
                 print(f"\n[Ready] {event.title}")
 
-            # Show ready notification if this is the current instance
+            # Show ready notification based on whether this is the connected instance
             if (
                 instance_name
                 and instance_name == self.session.context.connected_instance
             ):
-                print(f"\n({instance_name}) is ready for commands")
+                print(f"\n({instance_name}) ready")
             elif instance_name:
-                print(f"   Use '/connect {instance_name}' to start chatting")
+                print(f"   Use @{instance_name} or /connect {instance_name}")
         elif event.type == EventType.INSTANCE_ERROR:
             print(f"\n[Error] {event.title}: {event.content}")
 
@@ -865,8 +865,11 @@ Examples:
         """Get prompt string.
 
         Returns:
-            Prompt string for input.
+            Prompt string for input, showing instance name when ready.
         """
+        connected = self.session.context.connected_instance
+        if connected and self._instance_ready.get(connected):
+            return f"Commander ({connected})> "
         return "Commander> "
 
     def _print(self, msg: str) -> None:

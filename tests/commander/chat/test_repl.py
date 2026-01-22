@@ -459,17 +459,17 @@ async def test_send_to_instance_success(
 
 
 def test_get_prompt_connected(repl, session_manager):
-    """Test prompt is always Commander> even when connected.
+    """Test prompt shows instance name when connected and ready.
 
-    With @mention support, users can message any instance without connecting,
-    so the prompt no longer shows connection state.
+    After /register auto-connects and the instance becomes ready,
+    the prompt should show the instance name to indicate readiness.
     """
     session_manager.connect_to("myapp")
     repl._instance_ready["myapp"] = True  # Mark instance as ready
 
     prompt = repl._get_prompt()
 
-    assert prompt == "Commander> "
+    assert prompt == "Commander (myapp)> "
 
 
 def test_get_prompt_connected_not_ready(repl, session_manager):
