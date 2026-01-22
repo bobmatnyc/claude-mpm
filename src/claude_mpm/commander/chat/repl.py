@@ -60,6 +60,37 @@ class PendingRequest:
         return msg
 
 
+@dataclass
+class SavedRegistration:
+    """A saved instance registration for persistence."""
+
+    name: str
+    path: str
+    framework: str  # "cc" or "mpm"
+    registered_at: str  # ISO timestamp
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "path": self.path,
+            "framework": self.framework,
+            "registered_at": self.registered_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "SavedRegistration":
+        """Create from dictionary."""
+        return cls(
+            name=data["name"],
+            path=data["path"],
+            framework=data["framework"],
+            registered_at=data.get(
+                "registered_at", datetime.now(timezone.utc).isoformat()
+            ),
+        )
+
+
 from claude_mpm.commander.instance_manager import InstanceManager
 from claude_mpm.commander.llm.openrouter_client import OpenRouterClient
 from claude_mpm.commander.models.events import EventType
@@ -81,11 +112,13 @@ class CommandCompleter(Completer):
         ("start", "Start a registered instance"),
         ("stop", "Stop a running instance"),
         ("close", "Close instance and merge worktree"),
-        ("connect", "Connect to an instance"),
+        ("connect", "Connect to instance (starts from saved if needed)"),
         ("disconnect", "Disconnect from current instance"),
         ("switch", "Switch to another instance"),
         ("list", "List all instances"),
         ("ls", "List all instances (alias)"),
+        ("saved", "List saved registrations"),
+        ("forget", "Remove a saved registration"),
         ("status", "Show connection status"),
         ("help", "Show help"),
         ("exit", "Exit commander"),
@@ -242,6 +275,12 @@ FEATURES:
         self._startup_tasks: dict[str, asyncio.Task] = {}  # Background startup tasks
         self._stdout_context = None  # For patch_stdout
 
+        # Persistent registration config
+        self._config_dir = Path.cwd() / ".claude-mpm" / "commander"
+        self._config_file = self._config_dir / "registrations.json"
+        self._saved_registrations: dict[str, SavedRegistration] = {}
+        self._load_registrations()
+
     async def run(self) -> None:
         """Start the REPL loop."""
         self._running = True
@@ -301,6 +340,50 @@ FEATURES:
                 pass
 
         self._print("\nGoodbye!")
+
+    def _load_registrations(self) -> None:
+        """Load saved registrations from config file."""
+        if not self._config_file.exists():
+            return
+        try:
+            with self._config_file.open() as f:
+                data = json.load(f)
+            for reg_data in data.get("registrations", []):
+                reg = SavedRegistration.from_dict(reg_data)
+                self._saved_registrations[reg.name] = reg
+        except (json.JSONDecodeError, KeyError, OSError):
+            # Ignore corrupt/unreadable config
+            pass
+
+    def _save_registrations(self) -> None:
+        """Save registrations to config file."""
+        self._config_dir.mkdir(parents=True, exist_ok=True)
+        data = {
+            "registrations": [
+                reg.to_dict() for reg in self._saved_registrations.values()
+            ]
+        }
+        with self._config_file.open("w") as f:
+            json.dump(data, f, indent=2)
+
+    def _save_registration(self, name: str, path: str, framework: str) -> None:
+        """Save a single registration."""
+        reg = SavedRegistration(
+            name=name,
+            path=path,
+            framework=framework,
+            registered_at=datetime.now(timezone.utc).isoformat(),
+        )
+        self._saved_registrations[name] = reg
+        self._save_registrations()
+
+    def _forget_registration(self, name: str) -> bool:
+        """Remove a saved registration. Returns True if removed."""
+        if name in self._saved_registrations:
+            del self._saved_registrations[name]
+            self._save_registrations()
+            return True
+        return False
 
     async def _handle_input(self, input_text: str) -> None:
         """Handle user input - command or natural language.
@@ -378,6 +461,8 @@ FEATURES:
             CommandType.REGISTER: self._cmd_register,
             CommandType.CONNECT: self._cmd_connect,
             CommandType.DISCONNECT: self._cmd_disconnect,
+            CommandType.SAVED: self._cmd_saved,
+            CommandType.FORGET: self._cmd_forget,
             CommandType.STATUS: self._cmd_status,
             CommandType.HELP: self._cmd_help,
             CommandType.EXIT: self._cmd_exit,
@@ -669,6 +754,9 @@ Return ONLY valid JSON."""
             self._print(f"Registered and started '{name}' ({framework}) at {path}")
             self._print(f"  Tmux: {instance.tmux_session}:{instance.pane_target}")
 
+            # Save registration for persistence
+            self._save_registration(name, str(path), framework)
+
             # Spawn background task to wait for ready and auto-connect
             # Control returns immediately to the prompt
             self._spawn_startup_task(name, auto_connect=True, timeout=30)
@@ -676,16 +764,40 @@ Return ONLY valid JSON."""
             self._print(f"Failed to register: {e}")
 
     async def _cmd_connect(self, args: list[str]) -> None:
-        """Connect to an instance: connect <name>."""
+        """Connect to an instance: connect <name>.
+
+        If instance is not running but has saved registration, start it first.
+        """
         if not args:
             self._print("Usage: connect <instance-name>")
             return
 
         name = args[0]
         inst = self.instances.get_instance(name)
+
         if not inst:
-            self._print(f"Instance '{name}' not found")
-            return
+            # Check if we have a saved registration
+            saved = self._saved_registrations.get(name)
+            if saved:
+                self._print(f"Starting '{name}' from saved config...")
+                try:
+                    instance = await self.instances.register_instance(
+                        saved.path, saved.framework, name
+                    )
+                    self._print(f"Started '{name}' ({saved.framework}) at {saved.path}")
+                    self._print(
+                        f"  Tmux: {instance.tmux_session}:{instance.pane_target}"
+                    )
+                    # Spawn background task to wait for ready and auto-connect
+                    self._spawn_startup_task(name, auto_connect=True, timeout=30)
+                    return
+                except Exception as e:
+                    self._print(f"Failed to start from saved config: {e}")
+                    return
+            else:
+                self._print(f"Instance '{name}' not found")
+                self._print("  Use /saved to see saved registrations")
+                return
 
         self.session.connect_to(name)
         self._print(f"Connected to {name}")
@@ -719,21 +831,48 @@ Return ONLY valid JSON."""
 
         self._print(f"Messages in history: {len(self.session.context.messages)}")
 
+    async def _cmd_saved(self, args: list[str]) -> None:
+        """List saved registrations."""
+        if not self._saved_registrations:
+            self._print("No saved registrations")
+            self._print("  Use /register to create one")
+            return
+
+        self._print("Saved registrations:")
+        for reg in self._saved_registrations.values():
+            running = self.instances.get_instance(reg.name) is not None
+            status = " (running)" if running else ""
+            self._print(f"  {reg.name}: {reg.path} [{reg.framework}]{status}")
+
+    async def _cmd_forget(self, args: list[str]) -> None:
+        """Remove a saved registration: forget <name>."""
+        if not args:
+            self._print("Usage: forget <name>")
+            return
+
+        name = args[0]
+        if self._forget_registration(name):
+            self._print(f"Removed saved registration '{name}'")
+        else:
+            self._print(f"No saved registration named '{name}'")
+
     async def _cmd_help(self, args: list[str]) -> None:
         """Show help message."""
         help_text = """
 Commander Commands (use / prefix):
   /register <path> <framework> <name>
                         Register, start, and auto-connect (creates worktree)
+  /connect <name>       Connect to instance (starts from saved config if needed)
+  /switch <name>        Alias for /connect
+  /disconnect           Disconnect from current instance
   /start <name>         Start a registered instance by name
   /start <path>         Start new instance (creates worktree for git repos)
   /stop <name>          Stop an instance (keeps worktree)
   /close <name> [--no-merge]
                         Close instance: merge worktree to main and cleanup
-  /connect <name>       Connect to an instance
-  /switch <name>        Alias for /connect
-  /disconnect           Disconnect from current instance
   /list, /ls            List active instances
+  /saved                List saved registrations
+  /forget <name>        Remove a saved registration
   /status               Show current session status
   /help                 Show this help message
   /exit, /quit, /q      Exit Commander

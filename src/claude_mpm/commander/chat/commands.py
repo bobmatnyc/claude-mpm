@@ -15,6 +15,8 @@ class CommandType(Enum):
     REGISTER = "register"
     CONNECT = "connect"
     DISCONNECT = "disconnect"
+    SAVED = "saved"
+    FORGET = "forget"
     STATUS = "status"
     HELP = "help"
     EXIT = "exit"
@@ -44,6 +46,8 @@ class CommandParser:
         "switch": CommandType.CONNECT,  # alias for connect
         "list": CommandType.LIST,
         "ls": CommandType.LIST,
+        "saved": CommandType.SAVED,
+        "forget": CommandType.FORGET,
         "status": CommandType.STATUS,
         "help": CommandType.HELP,
         "exit": CommandType.EXIT,
