@@ -19,6 +19,7 @@ from claude_mpm.commander.frameworks.base import (
 )
 from claude_mpm.commander.frameworks.claude_code import ClaudeCodeFramework
 from claude_mpm.commander.frameworks.mpm import MPMFramework
+from claude_mpm.commander.git.worktree_manager import WorktreeManager
 from claude_mpm.commander.models.events import EventType
 from claude_mpm.commander.tmux_orchestrator import TmuxOrchestrator
 
@@ -560,7 +561,12 @@ class InstanceManager:
         return True
 
     async def register_instance(
-        self, path: str, framework: str, name: str
+        self,
+        path: str,
+        framework: str,
+        name: str,
+        use_worktree: bool = True,
+        branch: Optional[str] = None,
     ) -> InstanceInfo:
         """Register an instance and start it.
 
@@ -570,7 +576,9 @@ class InstanceManager:
         Args:
             path: Project directory path
             framework: Framework to use ("cc" or "mpm")
-            name: Instance name
+            name: Instance name (also worktree name if enabled)
+            use_worktree: Create isolated git worktree (default True)
+            branch: Branch for worktree (default: session-{name})
 
         Returns:
             InstanceInfo with tmux session details
@@ -588,26 +596,50 @@ class InstanceManager:
             >>> print(instance.name, instance.framework)
             myapp cc
         """
-        # Create registered instance
+        project_path = Path(path).expanduser().resolve()
+
+        worktree_path = None
+        worktree_branch = None
+        working_path = project_path
+
+        # Create worktree if enabled and it's a git repo
+        if use_worktree and (project_path / ".git").exists():
+            try:
+                wt_manager = WorktreeManager(project_path)
+                wt_info = wt_manager.create(name, branch)
+                worktree_path = str(wt_info.path)
+                worktree_branch = wt_info.branch
+                working_path = wt_info.path
+                logger.info(
+                    f"Created worktree for '{name}' at {worktree_path} "
+                    f"on branch {worktree_branch}"
+                )
+            except Exception as e:
+                logger.warning(f"Could not create worktree: {e}. Using original path.")
+
+        # Create registered instance with worktree info
         registered = RegisteredInstance(
             name=name,
-            path=str(path),
+            path=str(project_path),
             framework=framework,
             registered_at=datetime.now(timezone.utc).isoformat(),
+            worktree_path=worktree_path,
+            worktree_branch=worktree_branch,
+            use_worktree=use_worktree and worktree_path is not None,
         )
 
         # Save to persistent storage
         if self._state_store:
             self._state_store.register_instance(registered)
 
-        # Start the instance
-        return await self.start_instance(name, Path(path), framework)
+        # Start the instance in worktree path
+        return await self.start_instance(name, working_path, framework)
 
     async def start_by_name(self, name: str) -> Optional[InstanceInfo]:
         """Start a previously registered instance by name.
 
         Looks up the instance registration and starts it with the
-        stored path and framework.
+        stored path and framework. Uses the worktree path if configured.
 
         Args:
             name: Instance name (must have been previously registered)
@@ -631,9 +663,10 @@ class InstanceManager:
         if not registered:
             return None
 
+        # Use working_path which respects worktree setting
         return await self.start_instance(
             registered.name,
-            Path(registered.path),
+            Path(registered.working_path),
             registered.framework,
         )
 
@@ -677,3 +710,25 @@ class InstanceManager:
         if not self._state_store:
             return False
         return self._state_store.unregister_instance(name)
+
+    def list_worktrees(self, path: str) -> list:
+        """List worktrees for a project.
+
+        Args:
+            path: Project directory path
+
+        Returns:
+            List of WorktreeInfo for all worktrees associated with the project
+
+        Example:
+            >>> manager = InstanceManager(orchestrator)
+            >>> worktrees = manager.list_worktrees("/Users/user/myapp")
+            >>> for wt in worktrees:
+            ...     print(f"{wt.name}: {wt.path} ({wt.branch})")
+            myapp: /Users/user/.worktrees-myapp/myapp (session-myapp)
+        """
+        try:
+            wt_manager = WorktreeManager(Path(path))
+            return wt_manager.list()
+        except Exception:
+            return []
