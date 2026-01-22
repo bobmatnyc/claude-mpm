@@ -1236,14 +1236,24 @@ Examples:
         spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         frame_idx = 0
         last_print = 0.0
-        print_interval = 0.5  # Update spinner every 500ms
+        print_interval = 0.2  # Update spinner every 200ms
+        spinner_started = False
+
+        # ANSI escape codes for in-place updates
+        CURSOR_UP = "\033[A"
+        CLEAR_LINE = "\033[2K"
 
         try:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Print success above prompt
-                    print(f"'{name}' ready ({int(elapsed)}s)")
+                    # Clear spinner line and print success
+                    if spinner_started:
+                        print(
+                            f"{CURSOR_UP}{CLEAR_LINE}'{name}' ready ({int(elapsed)}s)"
+                        )
+                    else:
+                        print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
@@ -1256,15 +1266,28 @@ Examples:
                 # Print spinner update periodically
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
+                    if spinner_started:
+                        # Move up and overwrite previous spinner line
+                        print(
+                            f"{CURSOR_UP}{CLEAR_LINE}{frame} Waiting for '{name}'... ({int(elapsed)}s)"
+                        )
+                    else:
+                        # First spinner print
+                        print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
+                        spinner_started = True
                     frame_idx += 1
                     last_print = elapsed
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
-            # Timeout
-            print(f"'{name}' startup timeout ({timeout}s) - may still work")
+            # Timeout - clear spinner and show message
+            if spinner_started:
+                print(
+                    f"{CURSOR_UP}{CLEAR_LINE}'{name}' startup timeout ({timeout}s) - may still work"
+                )
+            else:
+                print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
