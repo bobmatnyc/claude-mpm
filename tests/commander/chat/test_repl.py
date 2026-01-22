@@ -6,8 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 import pytest
 
 from claude_mpm.commander.chat.repl import CommanderREPL
+from claude_mpm.commander.events.manager import EventManager
 from claude_mpm.commander.frameworks.base import InstanceInfo
 from claude_mpm.commander.instance_manager import InstanceManager
+from claude_mpm.commander.models.events import Event, EventPriority, EventType
 from claude_mpm.commander.session.manager import SessionManager
 
 
@@ -373,3 +375,114 @@ async def test_cmd_stop_no_args(repl, capsys):
 
     captured = capsys.readouterr()
     assert "Usage:" in captured.out
+
+
+class TestEventNotifications:
+    """Tests for event-driven instance notifications."""
+
+    def test_repl_accepts_event_manager(self, mock_instance_manager, session_manager):
+        """Test REPL can be initialized with EventManager."""
+        event_manager = EventManager()
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+            event_manager=event_manager,
+        )
+        assert repl.event_manager == event_manager
+
+    def test_on_instance_event_starting(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test handling of INSTANCE_STARTING event."""
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        event = Event(
+            id="evt_123",
+            project_id="myapp",
+            type=EventType.INSTANCE_STARTING,
+            priority=EventPriority.INFO,
+            title="Starting instance 'myapp'",
+        )
+
+        repl._on_instance_event(event)
+
+        captured = capsys.readouterr()
+        assert "[Starting]" in captured.out
+        assert "myapp" in captured.out
+
+    def test_on_instance_event_ready(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test handling of INSTANCE_READY event."""
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        event = Event(
+            id="evt_123",
+            project_id="myapp",
+            type=EventType.INSTANCE_READY,
+            priority=EventPriority.INFO,
+            title="Instance 'myapp' ready",
+            context={"instance_name": "myapp"},
+        )
+
+        repl._on_instance_event(event)
+
+        captured = capsys.readouterr()
+        assert "[Ready]" in captured.out
+        assert "connect myapp" in captured.out
+
+    def test_on_instance_event_ready_with_timeout(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test handling of INSTANCE_READY event with timeout flag."""
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        event = Event(
+            id="evt_123",
+            project_id="myapp",
+            type=EventType.INSTANCE_READY,
+            priority=EventPriority.INFO,
+            title="Instance 'myapp' started",
+            context={"instance_name": "myapp", "timeout": True},
+        )
+
+        repl._on_instance_event(event)
+
+        captured = capsys.readouterr()
+        assert "[Warning]" in captured.out
+        assert "timeout" in captured.out
+        assert "connect myapp" in captured.out
+
+    def test_on_instance_event_error(
+        self, mock_instance_manager, session_manager, capsys
+    ):
+        """Test handling of INSTANCE_ERROR event."""
+        repl = CommanderREPL(
+            instance_manager=mock_instance_manager,
+            session_manager=session_manager,
+        )
+
+        event = Event(
+            id="evt_123",
+            project_id="myapp",
+            type=EventType.INSTANCE_ERROR,
+            priority=EventPriority.HIGH,
+            title="Instance 'myapp' failed",
+            content="Failed to start Claude Code process",
+        )
+
+        repl._on_instance_event(event)
+
+        captured = capsys.readouterr()
+        assert "[Error]" in captured.out
+        assert "failed" in captured.out
+        assert "Failed to start" in captured.out

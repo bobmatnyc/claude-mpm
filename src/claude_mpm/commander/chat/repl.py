@@ -2,17 +2,22 @@
 
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 
 from claude_mpm.commander.instance_manager import InstanceManager
 from claude_mpm.commander.llm.openrouter_client import OpenRouterClient
+from claude_mpm.commander.models.events import EventType
 from claude_mpm.commander.proxy.relay import OutputRelay
 from claude_mpm.commander.session.manager import SessionManager
 
 from .commands import Command, CommandParser, CommandType
+
+if TYPE_CHECKING:
+    from claude_mpm.commander.events.manager import EventManager
+    from claude_mpm.commander.models.events import Event
 
 
 class CommanderREPL:
@@ -52,6 +57,7 @@ FEATURES:
         session_manager: SessionManager,
         output_relay: Optional[OutputRelay] = None,
         llm_client: Optional[OpenRouterClient] = None,
+        event_manager: Optional["EventManager"] = None,
     ):
         """Initialize REPL.
 
@@ -60,11 +66,13 @@ FEATURES:
             session_manager: Manages chat session state.
             output_relay: Optional relay for instance output.
             llm_client: Optional OpenRouter client for chat.
+            event_manager: Optional event manager for notifications.
         """
         self.instances = instance_manager
         self.session = session_manager
         self.relay = output_relay
         self.llm = llm_client
+        self.event_manager = event_manager
         self.parser = CommandParser()
         self._running = False
 
@@ -72,6 +80,22 @@ FEATURES:
         """Start the REPL loop."""
         self._running = True
         self._print_welcome()
+
+        # Wire up EventManager to InstanceManager
+        if self.event_manager and self.instances:
+            self.instances.set_event_manager(self.event_manager)
+
+        # Subscribe to instance lifecycle events
+        if self.event_manager:
+            self.event_manager.subscribe(
+                EventType.INSTANCE_STARTING, self._on_instance_event
+            )
+            self.event_manager.subscribe(
+                EventType.INSTANCE_READY, self._on_instance_event
+            )
+            self.event_manager.subscribe(
+                EventType.INSTANCE_ERROR, self._on_instance_event
+            )
 
         # Setup history file
         history_path = Path.home() / ".claude-mpm" / "commander_history"
@@ -367,6 +391,27 @@ Examples:
                 self.session.add_assistant_message(output)
             except Exception as e:
                 self._print(f"\n[Error getting response: {e}]")
+
+    def _on_instance_event(self, event: "Event") -> None:
+        """Handle instance lifecycle events with interrupt display.
+
+        Args:
+            event: The event to handle.
+        """
+        if event.type == EventType.INSTANCE_STARTING:
+            print(f"\n[Starting] {event.title}")
+        elif event.type == EventType.INSTANCE_READY:
+            metadata = event.context or {}
+            if metadata.get("timeout"):
+                print(f"\n[Warning] {event.title} (startup timeout, may still work)")
+            else:
+                print(f"\n[Ready] {event.title}")
+            # Show prompt hint
+            instance_name = metadata.get("instance_name", "")
+            if instance_name:
+                print(f"   Use 'connect {instance_name}' to start chatting")
+        elif event.type == EventType.INSTANCE_ERROR:
+            print(f"\n[Error] {event.title}: {event.content}")
 
     def _get_prompt(self) -> str:
         """Get prompt string based on connection state.
