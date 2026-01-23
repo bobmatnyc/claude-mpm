@@ -53,7 +53,7 @@
 
 ### Added
 - `/oauth` command for browser-based OAuth authentication in REPL
-- Integrated Google Workspace MCP server (`google-workspace-mpm`)
+- Integrated Google Workspace MCP server (`google-workspace-mcp`)
   - Gmail search and message content retrieval
   - Google Calendar event listing
   - Google Drive file search and content access

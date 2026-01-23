@@ -166,7 +166,7 @@ claude-mpm oauth revoke workspace-mcp -y
 
 ## Google Workspace MCP Server
 
-Once OAuth is set up, the integrated Google Workspace MCP server (`google-workspace-mpm`) provides tools for interacting with Google APIs.
+Once OAuth is set up, the integrated Google Workspace MCP server (`google-workspace-mcp`) provides tools for interacting with Google APIs.
 
 ### Available Tools
 
@@ -196,7 +196,7 @@ Claude: [Uses search_drive_files with query "name contains 'Q4 report'"]
 
 ### MCP Server Configuration
 
-The server is automatically configured when using Claude MPM. It's registered as `google-workspace-mpm` and uses tokens from:
+The server is automatically configured when using Claude MPM. It's registered as `google-workspace-mcp` and uses tokens from:
 
 ```
 ~/.claude-mpm/credentials/workspace-mcp.enc

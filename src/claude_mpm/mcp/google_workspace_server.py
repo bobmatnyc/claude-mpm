@@ -47,7 +47,7 @@ class GoogleWorkspaceServer:
 
     def __init__(self) -> None:
         """Initialize the Google Workspace MCP server."""
-        self.server = Server("google-workspace-mpm")
+        self.server = Server("google-workspace-mcp")
         self.storage = TokenStorage()
         self.manager = OAuthManager(storage=self.storage)
         self._setup_handlers()

@@ -26,6 +26,63 @@ from ..shared import BaseCommand, CommandResult
 console = Console()
 
 
+def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
+    """Ensure MCP server is configured in .mcp.json after OAuth setup.
+
+    Args:
+        service_name: The service name (e.g., "workspace-mcp")
+        project_dir: Directory where .mcp.json should be created/updated
+
+    Returns:
+        True if configuration was added/updated, False if already configured or not applicable
+    """
+    if service_name != "workspace-mcp":
+        return False  # Only handle workspace-mcp for now
+
+    mcp_config_path = project_dir / ".mcp.json"
+
+    # Default config for google-workspace-mcp
+    server_config = {"command": "google-workspace-mcp", "args": []}
+
+    if mcp_config_path.exists():
+        # Load existing config
+        try:
+            with open(mcp_config_path) as f:
+                config = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            console.print(f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]")
+            config = {"mcpServers": {}}
+    else:
+        config = {"mcpServers": {}}
+
+    # Ensure mcpServers key exists
+    if "mcpServers" not in config:
+        config["mcpServers"] = {}
+
+    # Check if already configured correctly
+    if "google-workspace-mcp" in config["mcpServers"]:
+        existing = config["mcpServers"]["google-workspace-mcp"]
+        if existing.get("command") == "google-workspace-mcp":
+            console.print("[dim]MCP server already configured in .mcp.json[/dim]")
+            return False
+
+    # Add/update google-workspace-mcp entry
+    config["mcpServers"]["google-workspace-mcp"] = server_config
+
+    # Write back
+    try:
+        with open(mcp_config_path, "w") as f:
+            json.dump(config, f, indent=2)
+            f.write("\n")  # Add trailing newline
+
+        if mcp_config_path.exists():
+            console.print("[green]✓ Added google-workspace-mcp to .mcp.json[/green]")
+        return True
+    except OSError as e:
+        console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
+        return False
+
+
 def _load_oauth_credentials_from_env_files() -> tuple[str | None, str | None]:
     """Load OAuth credentials from .env files.
 
@@ -301,6 +358,10 @@ class OAuthCommand(BaseCommand):
             console.print(f"\n[green]OAuth setup complete for '{service_name}'[/green]")
             if token.expires_at:
                 console.print(f"  Token expires: {token.expires_at}")
+
+            # Ensure MCP server is configured in .mcp.json
+            _ensure_mcp_configured(service_name, Path.cwd())
+
             return CommandResult.success_result(
                 f"OAuth setup complete for '{service_name}'"
             )

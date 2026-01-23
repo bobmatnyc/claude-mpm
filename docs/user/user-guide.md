@@ -125,7 +125,7 @@ claude-mpm oauth refresh <service> # Force token refresh
 
 ### Google Workspace Tools
 
-Once authenticated, the `google-workspace-mpm` MCP server provides:
+Once authenticated, the `google-workspace-mcp` MCP server provides:
 
 - **Calendar**: `list_calendars`, `get_events`
 - **Gmail**: `search_gmail_messages`, `get_gmail_message_content`
