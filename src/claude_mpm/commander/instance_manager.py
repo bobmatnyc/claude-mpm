@@ -249,8 +249,9 @@ class InstanceManager:
                 context={"instance_name": name, "working_dir": str(project_path)},
             )
             await self._event_manager.emit(event)
-            # Start background ready detection
-            asyncio.create_task(self._detect_ready(name, instance))
+
+        # Start background ready detection (always, not just with event_manager)
+        asyncio.create_task(self._detect_ready(name, instance))
 
         return instance
 

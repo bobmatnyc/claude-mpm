@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.66] - 2026-01-22
+
+### Fixed
+- ensure background ready detection always runs
+
 ## [5.6.65] - 2026-01-22
 
 ### Changed
