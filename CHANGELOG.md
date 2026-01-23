@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.81] - 2026-01-23
+
+### Fixed
+- Fixed duplicate hook configuration causing "0/2 done" issue in agent execution
+- Fixed nested data structures in monitor event handler - tool data now properly extracted
+
 ## [5.6.80] - 2026-01-23
 
 ### Fixed
