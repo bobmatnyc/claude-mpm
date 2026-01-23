@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.76] - 2026-01-23
+
+### Added
+- `/send` command to send literal text directly to connected tmux session
+  - Allows sending slash commands and shell commands bypassing interpretation
+  - Usage: `/send /help`, `/send /mpm-status`, `/send ls -la`
+
 ## [5.6.75] - 2026-01-23
 
 ### Changed

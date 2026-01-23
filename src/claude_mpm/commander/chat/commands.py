@@ -23,6 +23,7 @@ class CommandType(Enum):
     INSTANCES = "instances"  # alias for list
     MPM_OAUTH = "mpm-oauth"
     CLEANUP = "cleanup"
+    SEND = "send"
 
 
 @dataclass
@@ -57,6 +58,7 @@ class CommandParser:
         "q": CommandType.EXIT,
         "mpm-oauth": CommandType.MPM_OAUTH,
         "cleanup": CommandType.CLEANUP,
+        "send": CommandType.SEND,
     }
 
     def parse(self, input_text: str) -> Optional[Command]:

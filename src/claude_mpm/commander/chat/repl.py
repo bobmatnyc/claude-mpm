@@ -121,6 +121,7 @@ class CommandCompleter(Completer):
         ("saved", "List saved registrations"),
         ("forget", "Remove a saved registration"),
         ("status", "Show connection status"),
+        ("send", "Send literal text to tmux session"),
         ("cleanup", "Clean up orphan tmux panes"),
         ("help", "Show help"),
         ("exit", "Exit commander"),
@@ -493,6 +494,7 @@ FEATURES:
             CommandType.EXIT: self._cmd_exit,
             CommandType.MPM_OAUTH: self._cmd_oauth,
             CommandType.CLEANUP: self._cmd_cleanup,
+            CommandType.SEND: self._cmd_send,
         }
         handler = handlers.get(cmd.type)
         if handler:
@@ -893,6 +895,44 @@ Return ONLY valid JSON."""
 
         self._print(f"Messages in history: {len(self.session.context.messages)}")
 
+    async def _cmd_send(self, args: list[str]) -> None:
+        """Send literal text directly to the connected tmux session.
+
+        Usage:
+            /send /help
+            /send /mpm-status
+            /send ls -la
+
+        The text (including slash commands) is sent verbatim to the pane.
+        """
+        if not args:
+            self._print("Usage: /send <text>")
+            self._print("Send literal text to the connected tmux session")
+            return
+
+        if not self.session.context.is_connected:
+            self._print("Not connected to any instance")
+            return
+
+        instance_name = self.session.context.connected_instance
+        inst = self.instances.get_instance(instance_name)
+        if not inst:
+            self._print(f"Instance '{instance_name}' no longer exists")
+            return
+
+        # Reconstruct the full text from args
+        text = " ".join(args)
+        pane_target = f"{inst.tmux_session}:{inst.pane_target}"
+
+        try:
+            success = self.instances.orchestrator.send_keys(pane_target, text)
+            if success:
+                self._print(f"Sent to {instance_name}: {text}")
+            else:
+                self._print(f"Failed to send to {instance_name}")
+        except Exception as e:
+            self._print(f"Error sending to {instance_name}: {e}")
+
     async def _cmd_saved(self, args: list[str]) -> None:
         """List saved registrations."""
         if not self._saved_registrations:
@@ -936,6 +976,7 @@ Commander Commands (use / prefix):
   /saved                List saved registrations
   /forget <name>        Remove a saved registration
   /status               Show current session status
+  /send <text>          Send literal text directly to connected tmux session
   /cleanup [--force]    Clean up orphan tmux panes (--force to kill them)
   /help                 Show this help message
   /exit, /quit, /q      Exit Commander
