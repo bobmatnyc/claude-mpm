@@ -338,6 +338,117 @@ def _clean_user_level_hooks() -> bool:
 
 
 # =============================================================================
+# Migration: v5.6.83-remove-hook-handler-sh
+# =============================================================================
+
+
+def _check_hook_handler_sh_exists() -> bool:
+    """Check if any hooks contain claude-hook-handler.sh.
+
+    Returns:
+        True if claude-hook-handler.sh is found in any hook configuration.
+    """
+    # Check both user-level and project-level settings
+    settings_files = [
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                content = f.read()
+                if "claude-hook-handler.sh" in content:
+                    return True
+        except Exception as e:
+            logger.debug(f"Failed to check {settings_file}: {e}")
+            continue
+
+    return False
+
+
+def _remove_hook_handler_sh() -> bool:
+    """Remove claude-hook-handler.sh from hook configurations.
+
+    This migration:
+    1. Finds all settings files with claude-hook-handler.sh
+    2. Removes those hook entries
+    3. Optionally updates matchers to be more selective
+
+    Returns:
+        True if migration succeeded.
+    """
+    settings_files = [
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    total_removed = 0
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            if not hooks:
+                continue
+
+            file_removed = 0
+
+            # Clean each hook type
+            for hook_type, hook_list in hooks.items():
+                if not isinstance(hook_list, list):
+                    continue
+
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+
+                    # Filter out claude-hook-handler.sh commands
+                    original_len = len(hook_commands)
+                    hook_entry["hooks"] = [
+                        cmd
+                        for cmd in hook_commands
+                        if not (
+                            isinstance(cmd, dict)
+                            and "claude-hook-handler.sh" in cmd.get("command", "")
+                        )
+                    ]
+                    file_removed += original_len - len(hook_entry["hooks"])
+
+            if file_removed > 0:
+                with open(settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                total_removed += file_removed
+                logger.info(
+                    f"Removed {file_removed} hook-handler.sh entries from {settings_file}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to clean {settings_file}: {e}")
+            continue
+
+    if total_removed > 0:
+        print(f"   Removed {total_removed} claude-hook-handler.sh entries")
+    else:
+        print("   No claude-hook-handler.sh entries found")
+
+    print("   ✓ Migration complete")
+    return True
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -353,6 +464,12 @@ MIGRATIONS: list[Migration] = [
         description="Clean duplicate user-level hooks",
         check=_check_user_hooks_cleanup_needed,
         migrate=_clean_user_level_hooks,
+    ),
+    Migration(
+        id="v5.6.83-remove-hook-handler-sh",
+        description="Remove deprecated claude-hook-handler.sh",
+        check=_check_hook_handler_sh_exists,
+        migrate=_remove_hook_handler_sh,
     ),
 ]
 
