@@ -36,11 +36,9 @@ def load_env() -> None:
         >>> load_env()
         # Loads .env.local and .env if they exist
     """
-    # Find project root (parent of src/claude_mpm)
-    # Current file: src/claude_mpm/commander/env_loader.py
-    # Project root: ../../../ (3 levels up)
-    current_file = Path(__file__)
-    project_root = current_file.parent.parent.parent.parent
+    # Use current working directory as project root
+    # This makes the loader work regardless of where the module is installed
+    project_root = Path.cwd()
 
     # Try loading .env.local first (higher priority)
     env_local = project_root / ".env.local"

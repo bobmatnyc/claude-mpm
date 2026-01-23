@@ -585,7 +585,7 @@ class UnifiedMonitorServer:
                     event_type = self._categorize_event(actual_event)
                     wrapped_event = {
                         "type": event_type,
-                        "subtype": event,
+                        "subtype": actual_event,
                         "data": event_data,
                         "timestamp": event_data.get("timestamp")
                         or datetime.now(timezone.utc).isoformat() + "Z",

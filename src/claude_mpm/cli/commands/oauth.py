@@ -36,8 +36,8 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     Returns:
         True if configuration was added/updated, False if already configured or not applicable
     """
-    if service_name != "workspace-mcp":
-        return False  # Only handle workspace-mcp for now
+    if service_name != "google-workspace-mcp":
+        return False  # Only handle google-workspace-mcp for now
 
     mcp_config_path = project_dir / ".mcp.json"
 
