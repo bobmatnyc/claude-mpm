@@ -315,11 +315,11 @@ def should_skip_background_services(args, processed_argv):
     WHY: Some commands (help, version, configure, doctor) don't need
     background services and should start faster.
 
-    NOTE: Headless mode DOES need background services (hooks, agents, skills).
-    Since headless mode uses os.execvpe() to replace the process with claude,
-    initialization happens only ONCE - just like normal interactive mode.
-    The key difference is stdout must be kept clean for JSON streaming,
-    which is handled by quiet_startup_context() in run_background_services().
+    NOTE: Headless mode with --resume skips background services because:
+    - Each claude-mpm call is a NEW process (orchestrators like Vibe Kanban)
+    - First message (no --resume): Run full init (hooks, agents, skills)
+    - Follow-up messages (with --resume): Skip init to avoid latency
+    - Hooks/agents/skills are already deployed from the first message
 
     Args:
         args: Parsed arguments
@@ -328,8 +328,14 @@ def should_skip_background_services(args, processed_argv):
     Returns:
         bool: True if background services should be skipped
     """
-    # Headless mode runs services once, then exec replaces process with claude
-    # This matches normal interactive mode behavior
+    # Headless mode with --resume: skip init for follow-up messages
+    # Each orchestrator call is a new process, so we need to skip init
+    # on follow-ups to avoid re-running hooks/agents/skills sync every time
+    is_headless = getattr(args, "headless", False)
+    has_resume = getattr(args, "resume", False) or "--resume" in (processed_argv or [])
+
+    if is_headless and has_resume:
+        return True
 
     skip_commands = ["--version", "-v", "--help", "-h"]
     return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands) or (
