@@ -277,11 +277,23 @@ FEATURES:
         self._startup_tasks: dict[str, asyncio.Task] = {}  # Background startup tasks
         self._stdout_context = None  # For patch_stdout
 
+        # Bottom toolbar status for spinners
+        self._toolbar_status = ""
+        self.prompt_session: Optional[PromptSession] = None
+
         # Persistent registration config
         self._config_dir = Path.cwd() / ".claude-mpm" / "commander"
         self._config_file = self._config_dir / "registrations.json"
         self._saved_registrations: dict[str, SavedRegistration] = {}
         self._load_registrations()
+
+    def _get_bottom_toolbar(self) -> str:
+        """Get bottom toolbar status for prompt_toolkit.
+
+        Returns:
+            Status string for display in toolbar, or empty string if no status.
+        """
+        return self._toolbar_status
 
     async def run(self) -> None:
         """Start the REPL loop."""
@@ -311,10 +323,11 @@ FEATURES:
         # Create completer for slash commands and instance names
         completer = CommandCompleter(self._get_instance_names)
 
-        prompt = PromptSession(
+        self.prompt_session = PromptSession(
             history=FileHistory(str(history_path)),
             completer=completer,
             complete_while_typing=False,  # Only complete on Tab
+            bottom_toolbar=self._get_bottom_toolbar,
         )
 
         # Start background response processor
@@ -326,7 +339,9 @@ FEATURES:
                 try:
                     # Show pending requests status above prompt
                     self._render_pending_status()
-                    user_input = await prompt.prompt_async(self._get_prompt())
+                    user_input = await self.prompt_session.prompt_async(
+                        self._get_prompt()
+                    )
                     await self._handle_input(user_input.strip())
                 except KeyboardInterrupt:
                     continue
@@ -1660,7 +1675,7 @@ Examples:
     ) -> None:
         """Background task that waits for instance ready.
 
-        Prints periodic status updates above prompt, then result when done.
+        Updates bottom toolbar with spinner animation, then prints result when done.
 
         Args:
             name: Instance name to wait for
@@ -1668,16 +1683,18 @@ Examples:
             timeout: Maximum seconds to wait
         """
         elapsed = 0.0
-        interval = 0.5  # Check every 500ms
+        interval = 0.1  # Update spinner every 100ms
         spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         frame_idx = 0
-        last_print = -5.0  # Start with -5 so first print happens at 0
-        print_interval = 5.0  # Update every 5 seconds (less intrusive)
 
         try:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
+                    # Clear toolbar and print success
+                    self._toolbar_status = ""
+                    if self.prompt_session:
+                        self.prompt_session.app.invalidate()
                     print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
@@ -1688,17 +1705,22 @@ Examples:
                     self._startup_tasks.pop(name, None)
                     return
 
-                # Print spinner update periodically (every 5 seconds)
-                if elapsed - last_print >= print_interval:
-                    frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
-                    frame_idx += 1
-                    last_print = elapsed
+                # Update toolbar with spinner frame
+                frame = spinner_frames[frame_idx % len(spinner_frames)]
+                self._toolbar_status = (
+                    f"{frame} Waiting for '{name}'... ({int(elapsed)}s)"
+                )
+                if self.prompt_session:
+                    self.prompt_session.app.invalidate()
+                frame_idx += 1
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
-            # Timeout - show warning on new line
+            # Timeout - clear toolbar and show warning
+            self._toolbar_status = ""
+            if self.prompt_session:
+                self.prompt_session.app.invalidate()
             print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
@@ -1710,8 +1732,10 @@ Examples:
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
+            self._toolbar_status = ""
             self._startup_tasks.pop(name, None)
         except Exception as e:
+            self._toolbar_status = ""
             print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 

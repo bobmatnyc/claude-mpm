@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.70] - 2026-01-23
+
+### Added
+- bottom_toolbar spinner for Commander REPL using prompt_toolkit's native features
+  - Replaces print-based spinner with cleaner UI
+  - Spinner updates in toolbar below prompt
+  - 100ms frame rate for smooth animation
+  - No intrusive terminal output during startup wait
+
 ## [5.6.69] - 2026-01-22
 
 ### Fixed
