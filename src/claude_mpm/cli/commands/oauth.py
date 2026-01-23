@@ -191,6 +191,24 @@ class OAuthCommand(BaseCommand):
         """Set up OAuth for a service."""
         service_name = args.service_name
 
+        # Get service info from registry to get provider and scopes
+        try:
+            from claude_mpm.services.mcp_service_registry import MCPServiceRegistry
+
+            service = MCPServiceRegistry.get(service_name)
+            if not service:
+                return CommandResult.error_result(f"Service '{service_name}' not found")
+
+            provider_name = service.oauth_provider
+            if not provider_name:
+                return CommandResult.error_result(
+                    f"Service '{service_name}' does not use OAuth"
+                )
+
+            scopes = service.oauth_scopes or None
+        except ImportError:
+            return CommandResult.error_result("MCP Service Registry not available")
+
         # Priority: 1) .env files, 2) environment variables, 3) interactive prompt
         client_id, client_secret = _load_oauth_credentials_from_env_files()
 
@@ -242,10 +260,13 @@ class OAuthCommand(BaseCommand):
         # Run OAuth flow
         try:
             from claude_mpm.auth import OAuthManager
+            from claude_mpm.auth.callback_server import DEFAULT_PORT
+            from claude_mpm.auth.providers.google import OAuthError
 
             manager = OAuthManager()
 
-            callback_port = getattr(args, "port", 8085)
+            # Get the actual callback port from the server
+            callback_port = DEFAULT_PORT
             no_browser = getattr(args, "no_browser", False)
 
             console.print(f"\n[cyan]Setting up OAuth for '{service_name}'...[/cyan]")
@@ -260,20 +281,27 @@ class OAuthCommand(BaseCommand):
                     "[yellow]Browser auto-open disabled. Please open the URL manually.[/yellow]"
                 )
 
-            # Run async OAuth flow
-            result = asyncio.run(manager.authenticate(service_name))
-
-            if result.success:
-                console.print(
-                    f"\n[green]OAuth setup complete for '{service_name}'[/green]"
+            # Run async OAuth flow - authenticate returns OAuthToken directly
+            # and raises OAuthError on failure
+            token = asyncio.run(
+                manager.authenticate(
+                    service_name=service_name,
+                    provider_name=provider_name,
+                    scopes=scopes,
+                    open_browser=not no_browser,
                 )
-                if result.expires_at:
-                    console.print(f"  Token expires: {result.expires_at}")
-                return CommandResult.success_result(
-                    f"OAuth setup complete for '{service_name}'"
-                )
-            return CommandResult.error_result(f"OAuth setup failed: {result.error}")
+            )
 
+            # Success - token was returned
+            console.print(f"\n[green]OAuth setup complete for '{service_name}'[/green]")
+            if token.expires_at:
+                console.print(f"  Token expires: {token.expires_at}")
+            return CommandResult.success_result(
+                f"OAuth setup complete for '{service_name}'"
+            )
+
+        except OAuthError as e:
+            return CommandResult.error_result(f"OAuth setup failed: {e}")
         except ImportError as e:
             return CommandResult.error_result(f"OAuth module not available: {e}")
         except Exception as e:
@@ -285,11 +313,13 @@ class OAuthCommand(BaseCommand):
 
         try:
             from claude_mpm.auth import OAuthManager
+            from claude_mpm.auth.models import TokenStatus
 
             manager = OAuthManager()
-            status = asyncio.run(manager.get_status(service_name))
+            # get_status is synchronous and returns (TokenStatus, StoredToken | None)
+            token_status, stored_token = manager.get_status(service_name)
 
-            if status is None:
+            if token_status == TokenStatus.MISSING or stored_token is None:
                 console.print(
                     f"[yellow]No OAuth tokens found for '{service_name}'[/yellow]"
                 )
@@ -297,15 +327,26 @@ class OAuthCommand(BaseCommand):
                     f"No tokens found for '{service_name}'"
                 )
 
+            # Build status dict for display
+            is_valid = token_status == TokenStatus.VALID
+            status_data = {
+                "valid": is_valid,
+                "status": token_status.name,
+                "expires_at": stored_token.token.expires_at,
+                "scopes": stored_token.token.scopes,
+            }
+
             # Check output format
             output_format = getattr(args, "format", "table")
 
             if output_format == "json":
-                console.print(json.dumps(status, indent=2, default=str))
-                return CommandResult.success_result("Status displayed", data=status)
+                console.print(json.dumps(status_data, indent=2, default=str))
+                return CommandResult.success_result(
+                    "Status displayed", data=status_data
+                )
 
             # Table format
-            self._print_token_status(service_name, status)
+            self._print_token_status(service_name, status_data)
             return CommandResult.success_result("Status displayed")
 
         except ImportError:
@@ -365,16 +406,19 @@ class OAuthCommand(BaseCommand):
             manager = OAuthManager()
 
             console.print(f"[cyan]Revoking OAuth tokens for '{service_name}'...[/cyan]")
-            result = asyncio.run(manager.revoke(service_name))
+            # revoke() returns bool directly
+            revoked = asyncio.run(manager.revoke(service_name))
 
-            if result.success:
+            if revoked:
                 console.print(
                     f"[green]OAuth tokens revoked for '{service_name}'[/green]"
                 )
                 return CommandResult.success_result(
                     f"Tokens revoked for '{service_name}'"
                 )
-            return CommandResult.error_result(f"Failed to revoke: {result.error}")
+            return CommandResult.error_result(
+                f"Failed to revoke tokens for '{service_name}'"
+            )
 
         except ImportError:
             return CommandResult.error_result("OAuth module not available")
@@ -387,25 +431,31 @@ class OAuthCommand(BaseCommand):
 
         try:
             from claude_mpm.auth import OAuthManager
+            from claude_mpm.auth.providers.google import OAuthError
 
             manager = OAuthManager()
 
             console.print(
                 f"[cyan]Refreshing OAuth tokens for '{service_name}'...[/cyan]"
             )
-            result = asyncio.run(manager.refresh(service_name))
+            # refresh_if_needed() returns Optional[OAuthToken]
+            token = asyncio.run(manager.refresh_if_needed(service_name))
 
-            if result.success:
+            if token is not None:
                 console.print(
                     f"[green]OAuth tokens refreshed for '{service_name}'[/green]"
                 )
-                if result.expires_at:
-                    console.print(f"  New expiry: {result.expires_at}")
+                if token.expires_at:
+                    console.print(f"  New expiry: {token.expires_at}")
                 return CommandResult.success_result(
                     f"Tokens refreshed for '{service_name}'"
                 )
-            return CommandResult.error_result(f"Failed to refresh: {result.error}")
+            return CommandResult.error_result(
+                f"Failed to refresh tokens for '{service_name}' - no token found or no refresh token available"
+            )
 
+        except OAuthError as e:
+            return CommandResult.error_result(f"Failed to refresh: {e}")
         except ImportError:
             return CommandResult.error_result("OAuth module not available")
         except Exception as e:
