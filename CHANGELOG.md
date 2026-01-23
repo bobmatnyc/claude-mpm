@@ -7,11 +7,19 @@
 ### Fixed
 
 ### Documentation
+
+### Tests
+
+## [5.6.77] - 2026-01-23
+
+### Changed
+- Enhanced migration visibility with startup banner integration
+- Added verbose before/after output during migration execution
+
+### Documentation
 - Added comprehensive startup migrations guide (`docs/features/startup-migrations.md`)
 - Updated README with Automatic Migrations section under Key Features
 - Documented migration system visibility: users only see messages when migrations actually apply
-
-### Tests
 
 ## [5.6.76] - 2026-01-23
 
