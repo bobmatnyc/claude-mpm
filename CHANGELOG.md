@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.74] - 2026-01-23
+
+### Added
+- Added mpm-session-pause to RECOMMENDED_PM_SKILLS for proper deployment
+
+### Fixed
+- Skip background services in headless mode with --resume flag (ported from the-original-body/claude-mpm#9)
+
 ## [5.6.73] - 2026-01-23
 
 ### Changed
