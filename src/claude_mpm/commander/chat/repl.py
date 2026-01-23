@@ -902,7 +902,15 @@ Examples:
         self._print(help_text)
 
     async def _cmd_exit(self, args: list[str]) -> None:
-        """Exit the REPL."""
+        """Exit the REPL and stop all running instances."""
+        # Stop all running instances before exiting
+        instances_to_stop = self.instances.list_instances()
+        for instance in instances_to_stop:
+            try:
+                await self.instances.stop_instance(instance.name)
+            except Exception as e:
+                self._print(f"Warning: Failed to stop '{instance.name}': {e}")
+
         self._running = False
 
     async def _cmd_oauth(self, args: list[str]) -> None:

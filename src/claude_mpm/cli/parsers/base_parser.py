@@ -515,6 +515,13 @@ def create_parser(
     except ImportError:
         pass
 
+    try:
+        from .oauth_parser import add_oauth_subparser
+
+        add_oauth_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Add uninstall command parser
     try:
         from ..commands.uninstall import add_uninstall_parser

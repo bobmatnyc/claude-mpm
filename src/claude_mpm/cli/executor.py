@@ -159,6 +159,14 @@ def execute_command(command: str, args) -> int:
         result = summarize_command(args)
         return result if result is not None else 0
 
+    # Handle oauth command with lazy import
+    if command == "oauth":
+        # Lazy import to avoid loading unless needed
+        from .commands.oauth import manage_oauth
+
+        result = manage_oauth(args)
+        return result if result is not None else 0
+
     # Handle profile command with lazy import
     if command == "profile":
         # Lazy import to avoid loading unless needed
@@ -390,6 +398,7 @@ def execute_command(command: str, args) -> int:
         "agent-source",
         "hook-errors",
         "autotodos",
+        "oauth",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

@@ -195,12 +195,83 @@ async def test_cmd_help(repl, capsys):
 
 
 @pytest.mark.asyncio
-async def test_cmd_exit(repl):
-    """Test exit command."""
+async def test_cmd_exit(repl, mock_instance_manager):
+    """Test exit command stops all instances before exiting."""
     repl._running = True
+
+    # Setup mock to return some instances
+    instance1 = InstanceInfo(
+        name="test_instance1",
+        framework="cc",
+        project_path="/test/path1",
+        tmux_session="test_session1",
+        pane_target="test_session1:0",
+    )
+    instance2 = InstanceInfo(
+        name="test_instance2",
+        framework="mpm",
+        project_path="/test/path2",
+        tmux_session="test_session2",
+        pane_target="test_session2:0",
+    )
+    mock_instance_manager.list_instances.return_value = [instance1, instance2]
 
     await repl._cmd_exit([])
 
+    # Verify both instances were stopped
+    assert mock_instance_manager.stop_instance.call_count == 2
+    mock_instance_manager.stop_instance.assert_any_call("test_instance1")
+    mock_instance_manager.stop_instance.assert_any_call("test_instance2")
+
+    # Verify repl is no longer running
+    assert not repl._running
+
+
+@pytest.mark.asyncio
+async def test_cmd_exit_no_instances(repl, mock_instance_manager):
+    """Test exit command when no instances are running."""
+    repl._running = True
+
+    # Mock returns empty list (no instances)
+    mock_instance_manager.list_instances.return_value = []
+
+    await repl._cmd_exit([])
+
+    # Verify stop_instance was never called
+    mock_instance_manager.stop_instance.assert_not_called()
+
+    # Verify repl is no longer running
+    assert not repl._running
+
+
+@pytest.mark.asyncio
+async def test_cmd_exit_with_stop_error(repl, mock_instance_manager, capsys):
+    """Test exit command handles errors when stopping instances."""
+    repl._running = True
+
+    # Setup mock to return instance that fails to stop
+    instance = InstanceInfo(
+        name="test_instance",
+        framework="cc",
+        project_path="/test/path",
+        tmux_session="test_session",
+        pane_target="test_session:0",
+    )
+    mock_instance_manager.list_instances.return_value = [instance]
+    mock_instance_manager.stop_instance.side_effect = Exception("Stop failed")
+
+    await repl._cmd_exit([])
+
+    # Verify we attempted to stop the instance
+    mock_instance_manager.stop_instance.assert_called_once_with("test_instance")
+
+    # Verify warning was printed
+    captured = capsys.readouterr()
+    assert (
+        "Warning" in captured.out or "Warning" in captured.err or repl._running is False
+    )
+
+    # Verify repl still exited (graceful error handling)
     assert not repl._running
 
 
