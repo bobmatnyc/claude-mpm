@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.82] - 2026-01-23
+
+### Added
+- Added startup migration to clean duplicate user-level hooks
+
 ## [5.6.81] - 2026-01-23
 
 ### Fixed
