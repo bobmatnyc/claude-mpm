@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.71] - 2026-01-23
+
+### Fixed
+- pass _get_prompt function to prompt_async instead of calling it
+  - Allows prompt to update when display is invalidated after connecting
+  - Prompt now shows connected instance name (e.g., "Commander (duetto)>")
+
 ## [5.6.70] - 2026-01-23
 
 ### Added

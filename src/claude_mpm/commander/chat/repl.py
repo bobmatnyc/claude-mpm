@@ -340,7 +340,7 @@ FEATURES:
                     # Show pending requests status above prompt
                     self._render_pending_status()
                     user_input = await self.prompt_session.prompt_async(
-                        self._get_prompt()
+                        self._get_prompt
                     )
                     await self._handle_input(user_input.strip())
                 except KeyboardInterrupt:
