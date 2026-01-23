@@ -1584,6 +1584,9 @@ Examples:
                 request.status = RequestStatus.WAITING
                 self._render_pending_status()
 
+                # Give tmux time to process the message and produce output
+                await asyncio.sleep(0.2)
+
                 # Wait for response
                 if self.relay:
                     try:
@@ -1600,6 +1603,10 @@ Examples:
                         request.status = RequestStatus.ERROR
                         request.error = str(e)
                         print(f"\n[{request.target}] Error: {e}")
+                else:
+                    # No relay available, simple send without response capture
+                    request.status = RequestStatus.COMPLETED
+                    print(f"\n[{request.target}] Message sent (no relay for response)")
 
                 # Remove from pending after a short delay
                 await asyncio.sleep(0.5)
@@ -1636,7 +1643,7 @@ Examples:
 
         # Print above prompt (patch_stdout handles cursor positioning)
         for part in status_parts:
-            print(f"\r\033[K{part}")
+            print(part)
 
     def _on_instance_event(self, event: "Event") -> None:
         """Handle instance lifecycle events with interrupt display.

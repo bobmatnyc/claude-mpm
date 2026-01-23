@@ -536,8 +536,11 @@ class InstanceManager:
             return None
 
         # Fallback to direct tmux if no adapter
-        self.orchestrator.send_keys(instance.pane_target, message)
-        logger.info(f"Sent message to instance '{name}': {message[:50]}...")
+        success = self.orchestrator.send_keys(instance.pane_target, message)
+        if success:
+            logger.info(f"Sent message to instance '{name}': {message[:50]}...")
+        else:
+            logger.error(f"Failed to send message to instance '{name}'")
         return None
 
     def get_adapter(self, name: str) -> Optional[ClaudeCodeCommunicationAdapter]:

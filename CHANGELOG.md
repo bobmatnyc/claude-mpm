@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.77] - 2026-01-23
+
+### Fixed
+- Commander REPL message handling improvements
+  - Fixed ANSI escape code artifacts in pending status display (removed `\033[K`)
+  - Added 0.2s delay after sending messages to allow tmux output generation
+  - Improved error logging when message send fails (check send_keys return value)
+  - Added fallback message when relay is unavailable for response capture
+
 ## [5.6.76] - 2026-01-23
 
 ### Added
