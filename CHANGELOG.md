@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.80] - 2026-01-23
+
+### Fixed
+- Monitor dashboard event parsing now correctly uses `subtype` field for actual events
+- Updated OAuth command parser to use `google-workspace-mcp` naming convention
+- env_loader.py now uses `Path.cwd()` for .env.local file resolution
+
 ## [5.6.79] - 2026-01-23
 
 ### Added
