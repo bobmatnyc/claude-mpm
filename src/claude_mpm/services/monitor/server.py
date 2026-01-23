@@ -576,9 +576,14 @@ class UnifiedMonitorServer:
                     event = data.get("event", "claude_event")
                     event_data = data.get("data", {})
 
+                    # Unwrap nested data structures
+                    actual_data = event_data
+                    while isinstance(actual_data.get("data"), dict):
+                        actual_data = actual_data["data"]
+
                     # Extract actual event name from subtype or type within data
                     actual_event = (
-                        event_data.get("subtype") or event_data.get("type") or event
+                        actual_data.get("subtype") or actual_data.get("type") or event
                     )
 
                     # Categorize event and wrap in expected format
@@ -586,10 +591,10 @@ class UnifiedMonitorServer:
                     wrapped_event = {
                         "type": event_type,
                         "subtype": actual_event,
-                        "data": event_data,
-                        "timestamp": event_data.get("timestamp")
+                        "data": actual_data,
+                        "timestamp": actual_data.get("timestamp")
                         or datetime.now(timezone.utc).isoformat() + "Z",
-                        "session_id": event_data.get("session_id"),
+                        "session_id": actual_data.get("session_id"),
                     }
 
                     # Emit to Socket.IO clients via the categorized event type
