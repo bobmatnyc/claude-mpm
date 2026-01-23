@@ -531,7 +531,7 @@ def should_show_banner(args) -> bool:
     """
     Determine if startup banner should be displayed.
 
-    Skip banner for: --help, --version, info, doctor, config, configure commands
+    Skip banner for: --help, --version, info, doctor, config, configure, oauth commands
     """
     # Check for help/version flags
     if hasattr(args, "help") and args.help:
@@ -541,7 +541,8 @@ def should_show_banner(args) -> bool:
 
     # Check for commands that should skip banner
     # Commander has its own banner, so skip the main MPM banner
-    skip_commands = {"info", "doctor", "config", "configure", "commander"}
+    # OAuth commands are lightweight utilities that should run immediately
+    skip_commands = {"info", "doctor", "config", "configure", "commander", "oauth"}
     if hasattr(args, "command") and args.command in skip_commands:
         return False
 

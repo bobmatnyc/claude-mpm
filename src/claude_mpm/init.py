@@ -147,9 +147,14 @@ class ProjectInitializer:
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
+            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor)
             is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
+            is_lightweight_command = any(
+                cmd in sys.argv
+                for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor"]
+            )
 
-            if not is_mcp_mode:
+            if not is_mcp_mode and not is_lightweight_command:
                 if directory_existed:
                     print(f"✓ Found existing .claude-mpm/ directory in {project_root}")
                 else:
@@ -164,13 +169,15 @@ class ProjectInitializer:
                     )
 
             # Verify and deploy PM skills (non-blocking)
-            self._verify_and_deploy_pm_skills(project_root, is_mcp_mode)
+            # Skip for lightweight commands that should run immediately
+            suppress_output = is_mcp_mode or is_lightweight_command
+            self._verify_and_deploy_pm_skills(project_root, suppress_output)
 
             # Setup security hooks (auto-install pre-commit, detect-secrets)
-            self._setup_security_hooks(project_root, is_mcp_mode)
+            self._setup_security_hooks(project_root, suppress_output)
 
             # Perform security checks (non-blocking)
-            self._check_security_risks(project_root, is_mcp_mode)
+            self._check_security_risks(project_root, suppress_output)
 
             return True
 
@@ -406,7 +413,7 @@ class ProjectInitializer:
             is_mcp_mode: Whether running in MCP mode (suppress console output)
         """
         try:
-            import subprocess
+            import subprocess  # nosec B404 - required for git/pre-commit operations
 
             # Only set up hooks if this is a git repository
             if not (project_root / ".git").exists():
@@ -415,7 +422,7 @@ class ProjectInitializer:
 
             # Check/install pre-commit
             try:
-                subprocess.run(
+                subprocess.run(  # nosec B603 B607 - trusted pre-commit command
                     ["pre-commit", "--version"],
                     capture_output=True,
                     text=True,
@@ -429,7 +436,7 @@ class ProjectInitializer:
             ):
                 self.logger.info("Installing pre-commit...")
                 try:
-                    subprocess.run(
+                    subprocess.run(  # nosec B603 B607 - trusted pip install command
                         [sys.executable, "-m", "pip", "install", "pre-commit"],
                         capture_output=True,
                         text=True,
@@ -443,7 +450,7 @@ class ProjectInitializer:
 
             # Check/install detect-secrets
             try:
-                subprocess.run(
+                subprocess.run(  # nosec B603 B607 - trusted detect-secrets command
                     ["detect-secrets", "--version"],
                     capture_output=True,
                     text=True,
@@ -457,7 +464,7 @@ class ProjectInitializer:
             ):
                 self.logger.info("Installing detect-secrets...")
                 try:
-                    subprocess.run(
+                    subprocess.run(  # nosec B603 B607 - trusted pip install command
                         [sys.executable, "-m", "pip", "install", "detect-secrets"],
                         capture_output=True,
                         text=True,
@@ -486,7 +493,7 @@ class ProjectInitializer:
             secrets_baseline = project_root / ".secrets.baseline"
             if not secrets_baseline.exists():
                 try:
-                    subprocess.run(
+                    subprocess.run(  # nosec B603 B607 - trusted detect-secrets command
                         ["detect-secrets", "scan", "--baseline", ".secrets.baseline"],
                         cwd=str(project_root),
                         capture_output=True,
@@ -500,7 +507,7 @@ class ProjectInitializer:
 
             # Install git hooks
             try:
-                subprocess.run(
+                subprocess.run(  # nosec B603 B607 - trusted pre-commit command
                     ["pre-commit", "install"],
                     cwd=str(project_root),
                     capture_output=True,
@@ -532,7 +539,7 @@ class ProjectInitializer:
             is_mcp_mode: Whether running in MCP mode (suppress console output)
         """
         try:
-            import subprocess
+            import subprocess  # nosec B404 - required for git operations
 
             security_issues = []
 
@@ -552,7 +559,7 @@ class ProjectInitializer:
                 if file_path.exists():
                     # Check if file is tracked by git
                     try:
-                        result = subprocess.run(
+                        result = subprocess.run(  # nosec B603 B607 - trusted git command
                             ["git", "ls-files", str(file_path)],
                             check=False,
                             cwd=str(project_root),
@@ -569,7 +576,7 @@ class ProjectInitializer:
 
                     # Check if file is ignored by .gitignore
                     try:
-                        result = subprocess.run(
+                        result = subprocess.run(  # nosec B603 B607 - trusted git command
                             ["git", "check-ignore", str(file_path)],
                             check=False,
                             cwd=str(project_root),

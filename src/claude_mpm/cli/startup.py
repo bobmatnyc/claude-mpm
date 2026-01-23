@@ -285,7 +285,7 @@ def should_skip_background_services(args, processed_argv):
     """
     Determine if background services should be skipped for this command.
 
-    WHY: Some commands (help, version, configure, doctor) don't need
+    WHY: Some commands (help, version, configure, doctor, oauth) don't need
     background services and should start faster.
 
     Args:
@@ -308,6 +308,7 @@ def should_skip_background_services(args, processed_argv):
             "hook-errors",
             "autotodos",
             "commander",
+            "oauth",
         ]
     )
 
