@@ -17,6 +17,7 @@ Task-oriented guides and FAQs for Claude MPM.
 - **Agent System**: [single-tier-agent-system.md](single-tier-agent-system.md), [agent-synchronization.md](agent-synchronization.md)
 - **Skills**: [skills-deployment-guide.md](skills-deployment-guide.md), [skills-management.md](skills-management.md), [skills-system.md](skills-system.md)
 - **Monitoring**: [monitoring.md](monitoring.md)
+- **OAuth & Integrations**: [oauth-setup.md](oauth-setup.md) - Set up OAuth for Google Workspace and other services
 - **Ticketing**: [ticketing-workflows.md](ticketing-workflows.md), [ticketing-delegation.md](ticketing-delegation.md)
 - **Structured Questions**: [structured-questions.md](structured-questions.md)
 - **FAQ**: [FAQ.md](FAQ.md)

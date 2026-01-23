@@ -7,6 +7,10 @@
 ### Fixed
 
 ### Documentation
+- Added OAuth Setup Guide (docs/guides/oauth-setup.md)
+- Updated README.md with OAuth & Google Workspace section
+- Updated User Guide with OAuth commands and Google Workspace tools
+- Updated docs/README.md and docs/guides/README.md with OAuth guide links
 
 ### Tests
 

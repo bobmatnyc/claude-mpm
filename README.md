@@ -147,6 +147,25 @@ ls ~/.claude/agents/    # Should show 47+ agents
 
 [→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md)
 
+### 🔐 OAuth & Google Workspace Integration
+- **Browser-Based OAuth** for secure authentication with MCP services
+- **Google Workspace MCP** built-in server for Gmail, Calendar, and Drive
+- **Encrypted Token Storage** using Fernet encryption with system keychain
+- **Automatic Token Refresh** handles expiration seamlessly
+
+```bash
+# Set up Google Workspace OAuth
+claude-mpm oauth setup workspace-mcp
+
+# Check token status
+claude-mpm oauth status workspace-mcp
+
+# List OAuth-capable services
+claude-mpm oauth list
+```
+
+[→ Learn more: OAuth Setup Guide](docs/guides/oauth-setup.md)
+
 ### ⚡ Performance & Security
 - **Simplified Architecture** with ~3,700 lines removed for better performance
 - **Enhanced Security** with comprehensive input validation

@@ -1,7 +1,7 @@
 ---
 title: User Guide
-version: 4.21.1
-last_updated: 2025-11-09
+version: 5.6.72
+last_updated: 2026-01-23
 status: current
 ---
 
@@ -17,6 +17,7 @@ A concise guide to Claude MPM features and daily workflows.
 - [Ticketing Workflows](#ticketing-workflows)
 - [Skills System](#skills-system)
 - [Memory System](#memory-system)
+- [OAuth & Google Workspace](#oauth--google-workspace)
 - [Local Process Management](#local-process-management)
 - [Session Management](#session-management)
 - [Real-Time Monitoring](#real-time-monitoring)
@@ -96,6 +97,41 @@ Claude MPM provides resume logs and structured memory for continuity:
 - Optional memory providers (e.g., kuzu-memory)
 
 See [Resume Logs](resume-logs.md) and [Memory System](../reference/MEMORY.md).
+
+## OAuth & Google Workspace
+
+Claude MPM provides OAuth authentication for MCP services like Google Workspace.
+
+### Quick Setup
+
+```bash
+# 1. Set credentials in .env.local
+GOOGLE_OAUTH_CLIENT_ID="your-id.apps.googleusercontent.com"
+GOOGLE_OAUTH_CLIENT_SECRET="your-secret"  # pragma: allowlist secret
+
+# 2. Run OAuth setup
+claude-mpm oauth setup workspace-mcp
+```
+
+### OAuth Commands
+
+```bash
+claude-mpm oauth list              # List OAuth-capable services
+claude-mpm oauth setup <service>   # Authenticate with a service
+claude-mpm oauth status <service>  # Check token status
+claude-mpm oauth revoke <service>  # Revoke tokens
+claude-mpm oauth refresh <service> # Force token refresh
+```
+
+### Google Workspace Tools
+
+Once authenticated, the `google-workspace-mpm` MCP server provides:
+
+- **Calendar**: `list_calendars`, `get_events`
+- **Gmail**: `search_gmail_messages`, `get_gmail_message_content`
+- **Drive**: `search_drive_files`, `get_drive_file_content`
+
+See [OAuth Setup Guide](../guides/oauth-setup.md) for detailed instructions.
 
 ## Local Process Management
 
