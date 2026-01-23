@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.75] - 2026-01-23
+
+### Changed
+- Moved mpm-session-pause and mpm-session-resume from RECOMMENDED to REQUIRED_PM_SKILLS tier
+
 ## [5.6.74] - 2026-01-23
 
 ### Added
