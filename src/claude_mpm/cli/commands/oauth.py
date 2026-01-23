@@ -83,21 +83,80 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
         return False
 
 
-def _load_oauth_credentials_from_env_files() -> tuple[str | None, str | None]:
-    """Load OAuth credentials from .env files.
+def _save_credentials_to_env_file(client_id: str, client_secret: str) -> str | None:
+    """Save credentials to existing .env file.
 
-    Checks .env.local first (user overrides), then .env.
-    Returns tuple of (client_id, client_secret), either may be None.
+    Prefers .env.local, falls back to .env.
+    Only saves if file already exists (doesn't create new files).
+
+    Returns:
+        Filename where saved, or None if no file exists.
     """
-    client_id = None
-    client_secret = None
-
-    # Priority order: .env.local first (user overrides), then .env
-    env_files = [".env.local", ".env"]
-
-    for env_file in env_files:
+    for env_file in [".env.local", ".env"]:
         env_path = Path.cwd() / env_file
         if env_path.exists():
+            # Read existing content
+            content = env_path.read_text()
+            lines = content.splitlines()
+
+            # Track if we updated existing keys
+            updated_id = False
+            updated_secret = False
+            new_lines = []
+
+            for line in lines:
+                if line.strip().startswith("GOOGLE_OAUTH_CLIENT_ID="):
+                    new_lines.append(f'GOOGLE_OAUTH_CLIENT_ID="{client_id}"')
+                    updated_id = True
+                elif line.strip().startswith("GOOGLE_OAUTH_CLIENT_SECRET="):
+                    new_lines.append(
+                        f'GOOGLE_OAUTH_CLIENT_SECRET="{client_secret}"  # pragma: allowlist secret'
+                    )
+                    updated_secret = True
+                else:
+                    new_lines.append(line)
+
+            # Add keys if not updated
+            if not updated_id:
+                new_lines.append(f'GOOGLE_OAUTH_CLIENT_ID="{client_id}"')
+            if not updated_secret:
+                new_lines.append(
+                    f'GOOGLE_OAUTH_CLIENT_SECRET="{client_secret}"  # pragma: allowlist secret'
+                )
+
+            # Write back
+            env_path.write_text("\n".join(new_lines) + "\n")
+            return env_file
+
+    return None
+
+
+def _detect_google_credentials() -> tuple[str | None, str | None, str | None]:
+    """Detect Google OAuth credentials from environment or .env files.
+
+    Checks in order:
+    1. Environment variables
+    2. .env.local
+    3. .env
+
+    Returns:
+        Tuple of (client_id, client_secret, source) where source indicates
+        where credentials were found ("environment", ".env.local", ".env")
+        or (None, None, None) if not found.
+    """
+    # Check environment variables first
+    client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+    client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+
+    if client_id and client_secret:
+        return client_id, client_secret, "environment"
+
+    # Check .env files in priority order
+    for env_file in [".env.local", ".env"]:
+        env_path = Path.cwd() / env_file
+        if env_path.exists():
+            file_client_id = None
+            file_client_secret = None
             try:
                 with open(env_path) as f:
                     for line in f:
@@ -110,21 +169,17 @@ def _load_oauth_credentials_from_env_files() -> tuple[str | None, str | None]:
                             key = key.strip()
                             value = value.strip().strip('"').strip("'")
 
-                            if key == "GOOGLE_OAUTH_CLIENT_ID" and not client_id:
-                                client_id = value
-                            elif (
-                                key == "GOOGLE_OAUTH_CLIENT_SECRET"
-                                and not client_secret
-                            ):
-                                client_secret = value
+                            if key == "GOOGLE_OAUTH_CLIENT_ID":
+                                file_client_id = value
+                            elif key == "GOOGLE_OAUTH_CLIENT_SECRET":
+                                file_client_secret = value
 
-                    # If we found both, no need to check more files
-                    if client_id and client_secret:
-                        break
+                if file_client_id and file_client_secret:
+                    return file_client_id, file_client_secret, env_file
             except Exception:  # nosec B110 - intentionally ignore .env file read errors
                 pass
 
-    return client_id, client_secret
+    return None, None, None
 
 
 class OAuthCommand(BaseCommand):
@@ -247,6 +302,7 @@ class OAuthCommand(BaseCommand):
     def _setup_oauth(self, args) -> CommandResult:
         """Set up OAuth for a service."""
         service_name = args.service_name
+        force_prompt = getattr(args, "force", False)
 
         # Get service info from registry to get provider and scopes
         try:
@@ -266,21 +322,25 @@ class OAuthCommand(BaseCommand):
         except ImportError:
             return CommandResult.error_result("MCP Service Registry not available")
 
-        # Priority: 1) .env files, 2) environment variables, 3) interactive prompt
-        client_id, client_secret = _load_oauth_credentials_from_env_files()
+        client_id = None
+        client_secret = None
+        source = None
+        credentials_were_prompted = False
 
-        # Fall back to environment variables if not found in .env files
-        if not client_id:
-            client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
-        if not client_secret:
-            client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+        # Auto-detect credentials unless --force is specified
+        if not force_prompt:
+            client_id, client_secret, source = _detect_google_credentials()
 
-        # Set credentials in environment so OAuth provider can access them
-        if client_id and client_secret:
-            os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id
-            os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
+            if client_id and client_secret:
+                # Display where credentials were found
+                console.print(f"[green]Using credentials from {source}[/green]")
+                # Set credentials in environment so OAuth provider can access them
+                os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id
+                os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
+        else:
+            console.print("[dim]--force specified, skipping auto-detection[/dim]")
 
-        # If credentials missing, prompt for them interactively
+        # If credentials missing (or --force), prompt for them interactively
         if not client_id or not client_secret:
             console.print("\n[yellow]Google OAuth credentials not found.[/yellow]")
             console.print("Checked: .env.local, .env, and environment variables.\n")
@@ -307,8 +367,11 @@ class OAuthCommand(BaseCommand):
                     return CommandResult.error_result("Client Secret is required")
 
                 # Set in environment for this session
-                os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id.strip()
-                os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret.strip()
+                client_id = client_id.strip()
+                client_secret = client_secret.strip()
+                os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id
+                os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
+                credentials_were_prompted = True
                 console.print("\n[green]Credentials set for this session.[/green]")
 
             except (EOFError, KeyboardInterrupt):
@@ -361,6 +424,12 @@ class OAuthCommand(BaseCommand):
 
             # Ensure MCP server is configured in .mcp.json
             _ensure_mcp_configured(service_name, Path.cwd())
+
+            # Save credentials to .env file if they were manually entered
+            if credentials_were_prompted:
+                saved_to = _save_credentials_to_env_file(client_id, client_secret)
+                if saved_to:
+                    console.print(f"[green]✓ Saved credentials to {saved_to}[/green]")
 
             return CommandResult.success_result(
                 f"OAuth setup complete for '{service_name}'"

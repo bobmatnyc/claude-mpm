@@ -103,6 +103,12 @@ Get credentials from: https://console.cloud.google.com/apis/credentials
         help="Name of the MCP service to authenticate (e.g., workspace-mcp)",
     )
     setup_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Force credential prompt even if found in environment or .env files",
+    )
+    setup_parser.add_argument(
         "--no-browser",
         action="store_true",
         help="Don't open browser automatically, just print the URL",
