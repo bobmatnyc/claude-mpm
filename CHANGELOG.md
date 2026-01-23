@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.79] - 2026-01-23
+
+### Added
+- OAuth auto-detection of credentials and automatic MCP configuration on setup
+- `@instance` prefix support for slash commands
+
+### Fixed
+- Resolved Commander REPL message handling issues
+
 ## [5.6.78] - 2026-01-23
 
 ### Changed
