@@ -306,7 +306,11 @@ def _format_two_column_line(
     return f"│{left_formatted}│ {right_formatted}│"
 
 
-def display_startup_banner(version: str, logging_level: str) -> None:
+def display_startup_banner(
+    version: str,
+    logging_level: str,
+    applied_migrations: List[str] | None = None,
+) -> None:
     """
     Display startup banner with welcome message and info.
 
@@ -316,6 +320,8 @@ def display_startup_banner(version: str, logging_level: str) -> None:
     Args:
         version: Claude MPM version string
         logging_level: Current logging level (OFF/INFO/DEBUG)
+        applied_migrations: List of migration descriptions applied this session.
+            If None or empty, migration section is not shown.
     """
     # Note: Banner is shown BEFORE "Launching Claude..." progress bar (in cli/__init__.py)
     # This ensures users see welcome message before background services start
@@ -339,6 +345,32 @@ def display_startup_banner(version: str, logging_level: str) -> None:
 
     # Build content lines (plain text, no color)
     lines = []
+
+    # Migration section (only if migrations were applied this session)
+    if applied_migrations:
+        migration_count = len(applied_migrations)
+        migration_header = f"Migrations applied: {migration_count}"
+        lines.append(
+            _format_two_column_line(
+                "", migration_header, left_panel_width, right_panel_width
+            )
+        )
+        # Show each migration as a bullet point
+        for migration_desc in applied_migrations:
+            # Truncate if needed
+            max_width = right_panel_width - 4  # Leave room for bullet
+            if len(migration_desc) > max_width:
+                migration_desc = migration_desc[: max_width - 3] + "..."
+            lines.append(
+                _format_two_column_line(
+                    "", f"  - {migration_desc}", left_panel_width, right_panel_width
+                )
+            )
+        # Add separator after migrations section
+        separator = "-" * right_panel_width
+        lines.append(
+            _format_two_column_line("", separator, left_panel_width, right_panel_width)
+        )
 
     # Line 1: Empty left | "Recent activity" right
     lines.append(

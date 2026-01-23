@@ -74,10 +74,19 @@ def main(argv: Optional[list] = None):
 
     ensure_directories()
 
-    # Display startup banner FIRST (unless help/version/utility commands)
+    # Run migrations BEFORE banner (so we can show results in banner)
+    # Migrations are quick and non-blocking, safe to run early
+    applied_migrations: list[str] = []
+    if not should_skip_background_services(args, processed_argv):
+        from .startup_migrations import run_migrations
+
+        applied_migrations = run_migrations()
+
+    # Display startup banner (unless help/version/utility commands)
+    # Pass migration results so they appear in banner only when applicable
     if should_show_banner(args):
         logging_level = getattr(args, "logging", "OFF")
-        display_startup_banner(__version__, logging_level)
+        display_startup_banner(__version__, logging_level, applied_migrations)
 
     if not should_skip_background_services(args, processed_argv):
         # Show "Launching Claude..." progress bar during background services startup

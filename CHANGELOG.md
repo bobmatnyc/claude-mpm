@@ -7,6 +7,9 @@
 ### Fixed
 
 ### Documentation
+- Added comprehensive startup migrations guide (`docs/features/startup-migrations.md`)
+- Updated README with Automatic Migrations section under Key Features
+- Documented migration system visibility: users only see messages when migrations actually apply
 
 ### Tests
 

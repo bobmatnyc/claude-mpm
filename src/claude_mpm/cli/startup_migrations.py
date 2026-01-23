@@ -111,6 +111,23 @@ def _check_cache_dir_rename_needed() -> bool:
     return old_cache_dir.exists()
 
 
+def _count_files_in_dir(path: Path) -> int:
+    """Count files recursively in a directory.
+
+    Args:
+        path: Directory path to count files in.
+
+    Returns:
+        Number of files (not directories) in the path.
+    """
+    if not path.exists():
+        return 0
+    try:
+        return sum(1 for _ in path.rglob("*") if _.is_file())
+    except Exception:
+        return 0
+
+
 def _migrate_cache_dir_rename() -> bool:
     """Rename remote-agents cache directory to agents.
 
@@ -126,6 +143,10 @@ def _migrate_cache_dir_rename() -> bool:
     new_cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
 
     try:
+        # Count files before migration for verbose output
+        file_count = _count_files_in_dir(old_cache_dir)
+        print(f"   Before: ~/.claude-mpm/cache/remote-agents/ ({file_count} files)")
+
         # Step 1: Move directory contents
         if old_cache_dir.exists():
             # Ensure parent directory exists
@@ -150,10 +171,14 @@ def _migrate_cache_dir_rename() -> bool:
         # Step 2: Update configuration.yaml if needed
         _update_configuration_cache_path()
 
+        print("   After:  ~/.claude-mpm/cache/agents/")
+        print("   ✓ Migration complete")
+
         return True
 
     except Exception as e:
         logger.warning(f"Cache directory migration failed: {e}")
+        print(f"   ✗ Migration failed: {e}")
         return False
 
 
@@ -194,7 +219,7 @@ MIGRATIONS: list[Migration] = [
 ]
 
 
-def run_migrations() -> None:
+def run_migrations() -> list[str]:
     """Run all pending startup migrations.
 
     This function:
@@ -205,7 +230,13 @@ def run_migrations() -> None:
     5. Tracks completed migrations
 
     Errors are logged but do not stop startup.
+
+    Returns:
+        List of migration descriptions that were successfully applied.
+        Empty list if no migrations were needed or all failed.
     """
+    applied_migrations: list[str] = []
+
     for migration in MIGRATIONS:
         try:
             # Skip if already completed
@@ -227,6 +258,7 @@ def run_migrations() -> None:
             if success:
                 _save_completed_migration(migration.id)
                 logger.info(f"Migration {migration.id} completed successfully")
+                applied_migrations.append(migration.description)
             else:
                 logger.warning(f"Migration {migration.id} failed")
 
@@ -234,3 +266,5 @@ def run_migrations() -> None:
             # Non-blocking: log and continue
             logger.warning(f"Migration {migration.id} error: {e}")
             continue
+
+    return applied_migrations

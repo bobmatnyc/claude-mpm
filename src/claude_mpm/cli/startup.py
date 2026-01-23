@@ -1528,11 +1528,9 @@ def run_background_services(force_sync: bool = False):
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
     """
-    # Run startup migrations FIRST (before any sync operations)
-    # These fix configuration issues from previous versions
-    from .startup_migrations import run_migrations
-
-    run_migrations()
+    # NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
+    # This allows migration results to be displayed in the startup banner
+    # See: cli/__init__.py lines 77-83
 
     # Consolidated deployment block: hooks + agents
     # RATIONALE: Hooks and agents are deployed together before other services

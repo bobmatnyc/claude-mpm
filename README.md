@@ -174,6 +174,14 @@ claude-mpm oauth list
 
 [→ Learn more: Architecture](docs/developer/ARCHITECTURE.md)
 
+### ⚙️ Automatic Migrations
+- **Seamless Updates** with automatic configuration migration on first startup after update
+- **One-Time Fixes** for cache restructuring and configuration changes
+- **Non-Blocking** failures log warnings but do not stop startup
+- **Tracked** in `~/.claude-mpm/migrations.yaml`
+
+[→ Learn more: Startup Migrations](docs/features/startup-migrations.md)
+
 ---
 
 ## Quick Usage
