@@ -1678,8 +1678,10 @@ Examples:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Print success on new line (patch_stdout handles cursor)
-                    print(f"\r\033[K'{name}' ready ({int(elapsed)}s)")
+                    # Clear spinner line and print success on new line
+                    sys.stdout.write("\r\033[K")
+                    sys.stdout.flush()
+                    print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
@@ -1704,7 +1706,9 @@ Examples:
                 elapsed += interval
 
             # Timeout - clear spinner and show warning on new line
-            print(f"\r\033[K'{name}' startup timeout ({timeout}s) - may still work")
+            sys.stdout.write("\r\033[K")
+            sys.stdout.flush()
+            print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
@@ -1715,9 +1719,15 @@ Examples:
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
+            # Clear spinner before exiting
+            sys.stdout.write("\r\033[K")
+            sys.stdout.flush()
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            print(f"\r\033[K'{name}' startup error: {e}")
+            # Clear spinner before showing error
+            sys.stdout.write("\r\033[K")
+            sys.stdout.flush()
+            print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:

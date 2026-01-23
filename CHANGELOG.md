@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.68] - 2026-01-22
+
+### Fixed
+- clear spinner line before printing prompt in REPL startup
+
 ## [5.6.67] - 2026-01-22
 
 ### Fixed
