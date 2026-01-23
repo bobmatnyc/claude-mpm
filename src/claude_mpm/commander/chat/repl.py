@@ -121,6 +121,7 @@ class CommandCompleter(Completer):
         ("saved", "List saved registrations"),
         ("forget", "Remove a saved registration"),
         ("status", "Show connection status"),
+        ("cleanup", "Clean up orphan tmux panes"),
         ("help", "Show help"),
         ("exit", "Exit commander"),
         ("quit", "Exit commander (alias)"),
@@ -476,6 +477,7 @@ FEATURES:
             CommandType.HELP: self._cmd_help,
             CommandType.EXIT: self._cmd_exit,
             CommandType.MPM_OAUTH: self._cmd_oauth,
+            CommandType.CLEANUP: self._cmd_cleanup,
         }
         handler = handlers.get(cmd.type)
         if handler:
@@ -882,6 +884,7 @@ Commander Commands (use / prefix):
   /saved                List saved registrations
   /forget <name>        Remove a saved registration
   /status               Show current session status
+  /cleanup [--force]    Clean up orphan tmux panes (--force to kill them)
   /help                 Show this help message
   /exit, /quit, /q      Exit Commander
 
@@ -902,6 +905,8 @@ Examples:
   /start myapp                    # Start registered instance
   /close myapp                    # Merge worktree to main and cleanup
   /close myapp --no-merge         # Cleanup without merging
+  /cleanup                        # Show orphan panes
+  /cleanup --force                # Kill orphan panes
   @myapp show me the code         # Direct message to myapp
   (izzie) what's the status       # Same as @izzie
   Fix the authentication bug      # Send to connected instance
@@ -1211,6 +1216,67 @@ Examples:
             self._print("OAuth module not available.")
         except Exception as e:
             self._print(f"Error refreshing tokens: {e}")
+
+    async def _cmd_cleanup(self, args: list[str]) -> None:
+        """Clean up orphan tmux panes not in tracked instances.
+
+        Identifies all tmux panes in the commander session and removes those
+        that are not associated with any tracked instance.
+
+        Usage:
+            /cleanup              - Show orphan panes without killing
+            /cleanup --force      - Kill orphan panes
+        """
+        force_kill = "--force" in args
+
+        # Get all panes in the commander session
+        try:
+            all_panes = self.instances.orchestrator.list_panes()
+        except Exception as e:
+            self._print(f"Error listing panes: {e}")
+            return
+
+        # Get tracked instance pane targets
+        tracked_instances = self.instances.list_instances()
+        tracked_panes = {inst.pane_target for inst in tracked_instances}
+
+        # Find orphan panes (panes not in any tracked instance)
+        orphan_panes = []
+        for pane in all_panes:
+            pane_id = pane["id"]
+            session_pane_target = (
+                f"{self.instances.orchestrator.session_name}:{pane_id}"
+            )
+
+            # Skip if this pane is tracked
+            if session_pane_target in tracked_panes:
+                continue
+
+            orphan_panes.append((session_pane_target, pane["path"]))
+
+        if not orphan_panes:
+            self._print("No orphan panes found.")
+            return
+
+        # Display orphan panes
+        self._print(f"Found {len(orphan_panes)} orphan pane(s):")
+        for target, path in orphan_panes:
+            self._print(f"  - {target} ({path})")
+
+        if force_kill:
+            # Kill orphan panes
+            killed_count = 0
+            for target, path in orphan_panes:
+                try:
+                    self.instances.orchestrator.kill_pane(target)
+                    killed_count += 1
+                    self._print(f"  Killed: {target}")
+                except Exception as e:
+                    self._print(f"  Error killing {target}: {e}")
+
+            self._print(f"\nCleaned up {killed_count} orphan pane(s).")
+        else:
+            self._print("\nUse '/cleanup --force' to remove these panes.")
 
     def _print_token_status(
         self, name: str, status: dict, stored: bool = False
