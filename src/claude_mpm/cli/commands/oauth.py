@@ -30,7 +30,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     """Ensure MCP server is configured in .mcp.json after OAuth setup.
 
     Args:
-        service_name: The service name (e.g., "workspace-mcp")
+        service_name: The service name (e.g., "google-workspace-mcp")
         project_dir: Directory where .mcp.json should be created/updated
 
     Returns:
@@ -240,8 +240,8 @@ class OAuthCommand(BaseCommand):
 
 [bold]Examples:[/bold]
   claude-mpm oauth list
-  claude-mpm oauth setup workspace-mcp
-  claude-mpm oauth status workspace-mcp
+  claude-mpm oauth setup google-workspace-mcp
+  claude-mpm oauth status google-workspace-mcp
 """
         console.print(help_text)
 

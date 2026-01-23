@@ -24,8 +24,8 @@ from claude_mpm.auth import OAuthManager, TokenStatus, TokenStorage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Service name for token storage - matches workspace-mcp convention
-SERVICE_NAME = "workspace-mcp"
+# Service name for token storage - matches google-workspace-mcp convention
+SERVICE_NAME = "google-workspace-mcp"
 
 # Google API base URLs
 CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
