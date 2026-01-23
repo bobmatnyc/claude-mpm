@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.83] - 2026-01-23
+
+### Changed
+- Version bump for PyPI release
+
 ## [5.6.82] - 2026-01-23
 
 ### Added
