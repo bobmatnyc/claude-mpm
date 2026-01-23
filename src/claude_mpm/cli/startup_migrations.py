@@ -12,6 +12,7 @@ Design Principles:
 - Early: Runs before agent sync in startup sequence
 """
 
+import json
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -206,6 +207,137 @@ def _update_configuration_cache_path() -> None:
 
 
 # =============================================================================
+# Migration: v5.6.80-clean-user-hooks
+# =============================================================================
+
+
+def _check_user_hooks_cleanup_needed() -> bool:
+    """Check if user-level hooks contain duplicates.
+
+    Returns:
+        True if ~/.claude/settings.local.json has duplicate hook entries.
+    """
+    settings_file = Path.home() / ".claude" / "settings.local.json"
+    if not settings_file.exists():
+        return False
+
+    try:
+        with open(settings_file) as f:
+            data = json.load(f)
+
+        hooks = data.get("hooks", {})
+        if not hooks:
+            return False
+
+        # Check each hook type for duplicates
+        for hook_type, hook_list in hooks.items():
+            if not isinstance(hook_list, list):
+                continue
+
+            # Collect all commands seen in this hook type
+            seen_commands = set()
+            for hook_entry in hook_list:
+                if not isinstance(hook_entry, dict):
+                    continue
+
+                hook_commands = hook_entry.get("hooks", [])
+                if not isinstance(hook_commands, list):
+                    continue
+
+                for cmd_entry in hook_commands:
+                    if isinstance(cmd_entry, dict):
+                        cmd = cmd_entry.get("command")
+                        if cmd and cmd in seen_commands:
+                            return True  # Found duplicate
+                        if cmd:
+                            seen_commands.add(cmd)
+
+        return False
+
+    except Exception as e:
+        logger.debug(f"Failed to check user hooks: {e}")
+        return False
+
+
+def _clean_user_level_hooks() -> bool:
+    """Clean duplicate hooks from ~/.claude/settings.local.json.
+
+    This migration:
+    1. Loads the user-level settings file
+    2. Removes duplicate hook entries (keeping only first occurrence)
+    3. Keeps the 'claude-hook' command intact
+    4. Saves the cleaned configuration
+
+    Returns:
+        True if migration succeeded.
+    """
+    settings_file = Path.home() / ".claude" / "settings.local.json"
+
+    if not settings_file.exists():
+        print("   Cleaning user-level hooks... (none found)")
+        return True
+
+    try:
+        with open(settings_file) as f:
+            data = json.load(f)
+
+        hooks = data.get("hooks", {})
+        if not hooks:
+            print("   Cleaning user-level hooks... (none found)")
+            return True
+
+        removed_count = 0
+
+        # Clean each hook type
+        for hook_type, hook_list in hooks.items():
+            if not isinstance(hook_list, list):
+                continue
+
+            seen_commands = {}  # Track seen commands and their indices
+            indices_to_remove = []
+
+            for idx, hook_entry in enumerate(hook_list):
+                if not isinstance(hook_entry, dict):
+                    continue
+
+                hook_commands = hook_entry.get("hooks", [])
+                if not isinstance(hook_commands, list):
+                    continue
+
+                # Check for duplicate commands within this matcher
+                for cmd_entry in hook_commands:
+                    if isinstance(cmd_entry, dict):
+                        cmd = cmd_entry.get("command")
+                        if cmd:
+                            if cmd in seen_commands:
+                                # Mark this hook entry for removal
+                                if idx not in indices_to_remove:
+                                    indices_to_remove.append(idx)
+                                    removed_count += 1
+                            else:
+                                seen_commands[cmd] = idx
+
+            # Remove duplicate hook entries (in reverse order to maintain indices)
+            for idx in sorted(indices_to_remove, reverse=True):
+                hook_list.pop(idx)
+
+        if removed_count > 0:
+            with open(settings_file, "w") as f:
+                json.dump(data, f, indent=4)
+            print(f"   Cleaning user-level hooks... ({removed_count} removed)")
+            logger.info(f"Cleaned {removed_count} duplicate hook entries")
+        else:
+            print("   Cleaning user-level hooks... (none found)")
+
+        return True
+
+    except Exception as e:
+        logger.warning(f"Failed to clean user-level hooks: {e}")
+        print(f"   ✗ Cleaning failed: {e}")
+        return False
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -215,6 +347,12 @@ MIGRATIONS: list[Migration] = [
         description="Rename remote-agents cache dir to agents",
         check=_check_cache_dir_rename_needed,
         migrate=_migrate_cache_dir_rename,
+    ),
+    Migration(
+        id="v5.6.80-clean-user-hooks",
+        description="Clean duplicate user-level hooks",
+        check=_check_user_hooks_cleanup_needed,
+        migrate=_clean_user_level_hooks,
     ),
 ]
 
