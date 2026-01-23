@@ -606,20 +606,57 @@ Return ONLY valid JSON."""
         self._print(self.CAPABILITIES_CONTEXT)
 
     async def _cmd_list(self, args: list[str]) -> None:
-        """List active instances."""
-        instances = self.instances.list_instances()
-        if not instances:
-            self._print("No active instances.")
-        else:
-            self._print("Active instances:")
-            for inst in instances:
-                status = (
-                    "→" if inst.name == self.session.context.connected_instance else " "
-                )
+        """List instances: both running and saved registrations.
+
+        Shows:
+        - Running instances with status (connected, ready, or connecting)
+        - Saved registrations that are not currently running
+        """
+        running_instances = self.instances.list_instances()
+        running_names = {inst.name for inst in running_instances}
+        saved_registrations = self._saved_registrations
+
+        # Collect all unique names
+        all_names = set(running_names) | set(saved_registrations.keys())
+
+        if not all_names:
+            self._print("No instances (running or saved).")
+            self._print("Use '/register <path> <framework> <name>' to create one.")
+            return
+
+        # Build output
+        self._print("Sessions:")
+
+        # Display in order: running first, then saved
+        for name in sorted(all_names):
+            inst = next((i for i in running_instances if i.name == name), None)
+            is_connected = inst and name == self.session.context.connected_instance
+
+            if inst:
+                # Running instance
                 git_info = f" [{inst.git_branch}]" if inst.git_branch else ""
-                self._print(
-                    f"  {status} {inst.name} ({inst.framework}){git_info} - {inst.project_path}"
-                )
+
+                # Determine status
+                if is_connected:
+                    instance_status = "connected"
+                elif inst.ready:
+                    instance_status = "ready"
+                else:
+                    instance_status = "starting"
+
+                # Format with right-aligned path
+                line = f"  {name} (running, {instance_status})"
+                path_display = f"{inst.project_path}{git_info}"
+                # Pad to align paths
+                padding = max(1, 40 - len(line))
+                self._print(f"{line}{' ' * padding}{path_display}")
+            else:
+                # Saved registration (not running)
+                reg = saved_registrations[name]
+                line = f"  {name} (saved)"
+                # Pad to align paths
+                padding = max(1, 40 - len(line))
+                self._print(f"{line}{' ' * padding}{reg.path}")
 
     async def _cmd_start(self, args: list[str]) -> None:
         """Start instance: start <name> OR start <path> [--framework cc|mpm] [--name name]."""

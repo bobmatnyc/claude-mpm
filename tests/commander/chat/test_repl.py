@@ -52,10 +52,12 @@ def test_repl_initialization(repl, mock_instance_manager, session_manager):
 @pytest.mark.asyncio
 async def test_cmd_list_empty(repl, capsys):
     """Test 'list' command with no instances."""
+    # Clear saved registrations to test empty state
+    repl._saved_registrations = {}
     await repl._cmd_list([])
 
     captured = capsys.readouterr()
-    assert "No active instances" in captured.out
+    assert "No instances" in captured.out
 
 
 @pytest.mark.asyncio
@@ -79,13 +81,55 @@ async def test_cmd_list_with_instances(repl, mock_instance_manager, capsys):
         ),
     ]
     mock_instance_manager.list_instances.return_value = instances
+    # Clear saved registrations to test running instances only
+    repl._saved_registrations = {}
 
     await repl._cmd_list([])
 
     captured = capsys.readouterr()
-    assert "Active instances" in captured.out
+    assert "Sessions:" in captured.out
     assert "app1" in captured.out
     assert "app2" in captured.out
+    assert "[main]" in captured.out
+
+
+@pytest.mark.asyncio
+async def test_cmd_list_with_running_and_saved(repl, mock_instance_manager, capsys):
+    """Test 'list' command shows both running instances and saved registrations."""
+    # Setup running instance
+    instances = [
+        InstanceInfo(
+            name="app1",
+            project_path=Path("/path/to/app1"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+            git_branch="main",
+            ready=True,
+        ),
+    ]
+    mock_instance_manager.list_instances.return_value = instances
+
+    # Add saved registration
+    from claude_mpm.commander.chat.repl import SavedRegistration
+
+    saved_reg = SavedRegistration(
+        name="app2",
+        path="/path/to/app2",
+        framework="mpm",
+        registered_at="2024-01-01T00:00:00",
+    )
+    repl._saved_registrations["app2"] = saved_reg
+
+    await repl._cmd_list([])
+
+    captured = capsys.readouterr()
+    assert "Sessions:" in captured.out
+    assert "app1" in captured.out
+    assert "running" in captured.out
+    assert "ready" in captured.out
+    assert "app2" in captured.out
+    assert "saved" in captured.out
     assert "[main]" in captured.out
 
 
@@ -452,13 +496,15 @@ class TestLLMIntentClassification:
             instance_manager=mock_instance_manager,
             session_manager=session_manager,
         )
+        # Clear saved registrations to test empty state
+        repl._saved_registrations = {}
         repl.llm = AsyncMock()
         repl.llm.chat = AsyncMock(return_value='{"intent": "list", "args": {}}')
 
         await repl._handle_input("show me all running instances")
 
         captured = capsys.readouterr()
-        assert "No active instances" in captured.out
+        assert "No instances" in captured.out
 
     @pytest.mark.asyncio
     async def test_handle_input_llm_start_with_arg_inference(
