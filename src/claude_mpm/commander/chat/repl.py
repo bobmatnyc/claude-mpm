@@ -1678,8 +1678,8 @@ Examples:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Print success (patch_stdout handles cursor)
-                    print(f"'{name}' ready ({int(elapsed)}s)")
+                    # Print success on new line (patch_stdout handles cursor)
+                    print(f"\r\033[K'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
                         self.session.connect_to(name)
@@ -1690,17 +1690,21 @@ Examples:
                     return
 
                 # Print spinner update periodically (every 5 seconds)
+                # Use carriage return to update same line in-place
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
+                    sys.stdout.write(
+                        f"\r{frame} Waiting for '{name}'... ({int(elapsed)}s)"
+                    )
+                    sys.stdout.flush()
                     frame_idx += 1
                     last_print = elapsed
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
-            # Timeout
-            print(f"'{name}' startup timeout ({timeout}s) - may still work")
+            # Timeout - clear spinner and show warning on new line
+            print(f"\r\033[K'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
             if auto_connect:
@@ -1713,7 +1717,7 @@ Examples:
         except asyncio.CancelledError:
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            print(f"'{name}' startup error: {e}")
+            print(f"\r\033[K'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 
     async def _wait_for_ready_with_spinner(self, name: str, timeout: int = 30) -> bool:

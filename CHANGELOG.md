@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.67] - 2026-01-22
+
+### Fixed
+- update spinner to use carriage return for in-place updates instead of printing new lines
+- clarify prompt shows connected session name (already implemented)
+
 ## [5.6.66] - 2026-01-22
 
 ### Fixed
