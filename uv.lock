@@ -686,7 +686,7 @@ wheels = [
 
 [[package]]
 name = "claude-mpm"
-version = "5.6.68"
+version = "5.6.69"
 source = { editable = "." }
 dependencies = [
     { name = "ai-trackdown-pytools" },
@@ -701,6 +701,7 @@ dependencies = [
     { name = "httpx" },
     { name = "ijson" },
     { name = "keyring" },
+    { name = "mcp" },
     { name = "mistune" },
     { name = "packaging" },
     { name = "pathspec" },
@@ -825,6 +826,7 @@ requires-dist = [
     { name = "keyring", specifier = ">=24.0.0" },
     { name = "kuzu-memory", marker = "extra == 'memory'", specifier = ">=1.1.5" },
     { name = "lxml", marker = "extra == 'data-processing'", specifier = ">=4.9.0" },
+    { name = "mcp", specifier = ">=1.0.0" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=0.1.0" },
     { name = "mcp-browser", marker = "extra == 'mcp'", specifier = ">=0.1.0" },
     { name = "mcp-ticketer", marker = "extra == 'mcp'", specifier = ">=0.1.0" },
