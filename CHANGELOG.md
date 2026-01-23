@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.6.72] - 2026-01-23
+
+### Added
+- `/oauth` command for browser-based OAuth authentication in REPL
+- Integrated Google Workspace MCP server (`google-workspace-mpm`)
+  - Gmail search and message content retrieval
+  - Google Calendar event listing
+  - Google Drive file search and content access
+- Encrypted token storage with system keychain integration
+
 ## [5.6.71] - 2026-01-23
 
 ### Fixed
