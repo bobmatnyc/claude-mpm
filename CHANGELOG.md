@@ -10,21 +10,15 @@
 
 ### Tests
 
-## [5.6.77] - 2026-01-23
-
-### Fixed
-- Commander REPL message handling improvements
-  - Fixed ANSI escape code artifacts in pending status display (removed `\033[K`)
-  - Added 0.2s delay after sending messages to allow tmux output generation
-  - Improved error logging when message send fails (check send_keys return value)
-  - Added fallback message when relay is unavailable for response capture
-
 ## [5.6.76] - 2026-01-23
 
 ### Added
-- `/send` command to send literal text directly to connected tmux session
-  - Allows sending slash commands and shell commands bypassing interpretation
-  - Usage: `/send /help`, `/send /mpm-status`, `/send ls -la`
+- Startup migrations system for automatic config fixes on first run after update
+  - Migration registry pattern with version tracking in ~/.claude-mpm/migrations.yaml
+  - Non-blocking on failure (logs warning, continues startup)
+- First migration: v5.6.76-cache-dir-rename
+  - Renames remote-agents/ to agents/ in cache directory
+  - Updates configuration.yaml if needed
 
 ## [5.6.75] - 2026-01-23
 
