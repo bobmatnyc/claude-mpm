@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.78] - 2026-01-23
+
+### Changed
+- `oauth setup workspace-mcp` now auto-configures .mcp.json
+- Renamed google-workspace-mpm to google-workspace-mcp
+
 ## [5.6.77] - 2026-01-23
 
 ### Changed
