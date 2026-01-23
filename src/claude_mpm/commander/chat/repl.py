@@ -1678,9 +1678,6 @@ Examples:
             while elapsed < timeout:
                 inst = self.instances.get_instance(name)
                 if inst and inst.ready:
-                    # Clear spinner line and print success on new line
-                    sys.stdout.write("\r\033[K")
-                    sys.stdout.flush()
                     print(f"'{name}' ready ({int(elapsed)}s)")
 
                     if auto_connect:
@@ -1692,22 +1689,16 @@ Examples:
                     return
 
                 # Print spinner update periodically (every 5 seconds)
-                # Use carriage return to update same line in-place
                 if elapsed - last_print >= print_interval:
                     frame = spinner_frames[frame_idx % len(spinner_frames)]
-                    sys.stdout.write(
-                        f"\r{frame} Waiting for '{name}'... ({int(elapsed)}s)"
-                    )
-                    sys.stdout.flush()
+                    print(f"{frame} Waiting for '{name}'... ({int(elapsed)}s)")
                     frame_idx += 1
                     last_print = elapsed
 
                 await asyncio.sleep(interval)
                 elapsed += interval
 
-            # Timeout - clear spinner and show warning on new line
-            sys.stdout.write("\r\033[K")
-            sys.stdout.flush()
+            # Timeout - show warning on new line
             print(f"'{name}' startup timeout ({timeout}s) - may still work")
 
             # Still auto-connect on timeout (instance may become ready later)
@@ -1719,14 +1710,8 @@ Examples:
             self._startup_tasks.pop(name, None)
 
         except asyncio.CancelledError:
-            # Clear spinner before exiting
-            sys.stdout.write("\r\033[K")
-            sys.stdout.flush()
             self._startup_tasks.pop(name, None)
         except Exception as e:
-            # Clear spinner before showing error
-            sys.stdout.write("\r\033[K")
-            sys.stdout.flush()
             print(f"'{name}' startup error: {e}")
             self._startup_tasks.pop(name, None)
 

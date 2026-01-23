@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.69] - 2026-01-22
+
+### Fixed
+- replace sys.stdout.write with print in spinner to work with patch_stdout
+
 ## [5.6.68] - 2026-01-22
 
 ### Fixed
