@@ -78,6 +78,7 @@ REQUIRED_PM_SKILLS = [
 RECOMMENDED_PM_SKILLS = [
     "mpm-config",
     "mpm-ticket-view",
+    "mpm-session-pause",
     "mpm-session-resume",
     "mpm-postmortem",
 ]
