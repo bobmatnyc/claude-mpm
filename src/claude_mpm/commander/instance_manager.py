@@ -271,78 +271,127 @@ class InstanceManager:
             >>> # Called internally by start_instance
             >>> asyncio.create_task(self._detect_ready(name, instance))
         """
-        ready_patterns = [
-            # Claude CLI prompt patterns
-            r"^>\s*$",  # Claude CLI prompt line (just >)
-            r">\s*$",  # Claude CLI prompt at end of line
-            r"What would you like",
-            r"How can I help",
-            r"Ready for input",
-            r"Tips for getting",  # Claude CLI tips message
-            r"Use /help",  # Claude CLI help hint
-            # Claude Code UI box drawing (indicates interactive mode)
-            r"╭─",  # Top of Claude Code message box
-            r"│\s+",  # Side of Claude Code message box
-            # Hook completion patterns (various formats)
-            r"hook success",  # Generic hook success
-            r"hook.*Success",  # Hook with Success (case-sensitive)
-            r"SessionStart.*success",  # Session start hook completed
-            r"Success$",  # Line ending with Success
-            # CLAUDE.md loaded (various formats)
-            r"claudeMd",  # CLAUDE.md context
-            r"CLAUDE\.md",  # Literal file reference
-            r"project instructions",  # From CLAUDE.md loading
-            # MPM-specific patterns
-            r"UserPromptSubmit",  # MPM hook
-            r"PM_INSTRUCTIONS",  # MPM instructions loaded
-            r"Agent Memory",  # Agent memory loaded
-            r"Available Agent",  # Agent list shown
-            # Generic ready indicators
-            r"Human:",  # Anthropic prompt format (waiting for input)
+        # TIER 1: Startup markers (most reliable, appear at T+0-2s)
+        startup_patterns = [
+            r"Claude Code v[\d.]+",  # Version marker
+            r"Claude Code",  # Product identification
+            r"Opus 4\.5",  # Model identifier
+            r"Claude Max|Claude Pro",  # Tier indicator
         ]
 
+        # TIER 2: Ready state indicators (appear at T+5-10s)
+        ready_patterns = [
+            r">\s*$",  # CLI prompt (end of line)
+            r"^>\s*",  # CLI prompt (start of line)
+            r"What can I.*help",  # Specific greeting
+            r"How can I.*assist",  # Specific greeting
+            r"(Human|User):\s*$",  # Anthropic format
+        ]
+
+        # TIER 3: Secondary indicators (confirmation)
+        secondary_patterns = [
+            r"Ready for input",  # Explicit ready
+            r"Tips for getting",  # Claude CLI tips
+            r"Use /help",  # Help hint
+            r"claudeMd",  # CLAUDE.md loaded
+            r"Agent Memory",  # Agent initialized
+            r"PM_INSTRUCTIONS",  # MPM initialized
+        ]
+
+        # Combine all patterns (TIER 1 most reliable)
+        all_patterns = startup_patterns + ready_patterns + secondary_patterns
+
         start_time = asyncio.get_event_loop().time()
+        check_count = 0
+
         while asyncio.get_event_loop().time() - start_time < timeout:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            check_count += 1
+
+            # Progress logging at key milestones
+            if elapsed > 10 and check_count == 11:
+                logger.info(
+                    f"Ready detection for '{name}' still waiting after 10s... "
+                    f"(Claude Code startup may be slow)"
+                )
+            elif elapsed > 20 and check_count == 21:
+                logger.info(
+                    f"Ready detection for '{name}' still waiting after 20s... "
+                    f"(system may be overloaded)"
+                )
+
             await asyncio.sleep(1)
             try:
-                # Get pane output using capture_output
+                # IMPROVED: Increased buffer from 50 to 100 lines
                 output = self.orchestrator.capture_output(
-                    instance_info.pane_target, lines=50
+                    instance_info.pane_target, lines=100
                 )
+
                 if output:
-                    for pattern in ready_patterns:
-                        if re.search(pattern, output, re.MULTILINE):
-                            # Emit ready event
-                            # Mark instance as ready
+                    # Check all patterns (added re.IGNORECASE flag)
+                    # IMPROVED: Use MULTILINE | IGNORECASE flags
+                    for pattern in all_patterns:
+                        if re.search(pattern, output, re.MULTILINE | re.IGNORECASE):
+                            # Instance is ready!
                             if name in self._instances:
                                 self._instances[name].ready = True
+
+                            # Emit ready event
                             if self._event_manager:
                                 event = self._event_manager.create(
                                     project_id=name,
                                     event_type=EventType.INSTANCE_READY,
                                     title=f"Instance '{name}' ready",
-                                    content=f"Instance {name} is ready for commands",
-                                    context={"instance_name": name},
+                                    content=(
+                                        f"Instance {name} is ready for commands "
+                                        f"(detected in {elapsed:.1f}s)"
+                                    ),
+                                    context={
+                                        "instance_name": name,
+                                        "detection_time": elapsed,
+                                        "pattern_matched": pattern,
+                                    },
                                 )
                                 await self._event_manager.emit(event)
-                            logger.info(f"Instance '{name}' is ready")
+
+                            logger.info(
+                                f"Instance '{name}' is ready "
+                                f"(detected in {elapsed:.1f}s via pattern: {pattern})"
+                            )
                             return
+
             except Exception as e:
-                logger.debug(f"Error checking ready state for '{name}': {e}")
+                logger.debug(
+                    f"Error checking ready state for '{name}': {e}. "
+                    f"Elapsed: {elapsed:.1f}s"
+                )
 
         # Timeout - mark as ready anyway since instance might still work
+        logger.warning(
+            f"Instance '{name}' ready detection timed out after {timeout}s. "
+            f"Instance may still be functional. Check logs for issues."
+        )
+
         if name in self._instances:
             self._instances[name].ready = True
+
         if self._event_manager:
             event = self._event_manager.create(
                 project_id=name,
                 event_type=EventType.INSTANCE_READY,
                 title=f"Instance '{name}' started",
-                content=f"Instance {name} startup timeout, may be ready",
-                context={"instance_name": name, "timeout": True},
+                content=(
+                    f"Instance {name} startup timeout. "
+                    f"May be ready, or startup may be slow/blocked. "
+                    f"Check instance manually if issues occur."
+                ),
+                context={
+                    "instance_name": name,
+                    "timeout": True,
+                    "timeout_seconds": timeout,
+                },
             )
             await self._event_manager.emit(event)
-        logger.warning(f"Instance '{name}' ready detection timed out after {timeout}s")
 
     async def wait_for_ready(self, name: str, timeout: int = 30) -> bool:
         """Wait for an instance to be ready.
