@@ -420,17 +420,39 @@ FEATURES:
         if not input_text:
             return
 
-        # Check for direct @mention first (before any other parsing)
-        mention = self._parse_mention(input_text)
-        if mention:
-            target, message = mention
-            await self._cmd_message_instance(target, message)
+        # Parse @instance prefix for slash commands
+        target_instance = None
+        remaining_text = input_text
+        if input_text.startswith("@"):
+            parts = input_text.split(None, 1)
+            if len(parts) >= 1:
+                target_instance = parts[0][1:]  # Remove @ prefix
+                remaining_text = parts[1] if len(parts) > 1 else ""
+
+        # Check for direct @mention message (if no slash command follows)
+        if target_instance and not remaining_text.startswith("/"):
+            mention = self._parse_mention(input_text)
+            if mention:
+                target, message = mention
+                await self._cmd_message_instance(target, message)
+                return
+
+        # Check if it's a built-in slash command (parse the remaining text)
+        command_text = remaining_text if target_instance else input_text
+        command = self.parser.parse(command_text)
+        if command:
+            await self._execute_command(command, target_instance=target_instance)
             return
 
-        # Check if it's a built-in slash command first
-        command = self.parser.parse(input_text)
-        if command:
-            await self._execute_command(command)
+        # If we had @instance prefix but no command, it was a message
+        if target_instance:
+            message = remaining_text
+            if message:
+                await self._cmd_message_instance(target_instance, message)
+            else:
+                self._print(
+                    f"Instance '{target_instance}' prefix requires a message or command"
+                )
             return
 
         # Use LLM to classify natural language input
@@ -473,11 +495,14 @@ FEATURES:
             # Default to chat - send to connected instance
             await self._send_to_instance(input_text)
 
-    async def _execute_command(self, cmd: Command) -> None:
+    async def _execute_command(
+        self, cmd: Command, target_instance: Optional[str] = None
+    ) -> None:
         """Execute a built-in command.
 
         Args:
             cmd: Parsed command.
+            target_instance: Optional target instance name for @instance prefix.
         """
         handlers = {
             CommandType.LIST: self._cmd_list,
@@ -498,7 +523,11 @@ FEATURES:
         }
         handler = handlers.get(cmd.type)
         if handler:
-            await handler(cmd.args)
+            # For target-specific commands, pass target_instance if provided
+            if cmd.type in {CommandType.STATUS, CommandType.SEND, CommandType.STOP}:
+                await handler(cmd.args, target_instance=target_instance)
+            else:
+                await handler(cmd.args)
 
     def _classify_intent(self, text: str) -> str:
         """Classify user input intent.
@@ -747,13 +776,27 @@ Return ONLY valid JSON."""
         except Exception as e:
             self._print(f"Error starting instance: {e}")
 
-    async def _cmd_stop(self, args: list[str]) -> None:
-        """Stop an instance: stop <name>."""
-        if not args:
-            self._print("Usage: stop <instance-name>")
-            return
+    async def _cmd_stop(
+        self, args: list[str], target_instance: Optional[str] = None
+    ) -> None:
+        """Stop an instance.
 
-        name = args[0]
+        Usage:
+            /stop <name>      # Stop by name
+            @instance /stop   # Stop specific instance via @instance prefix
+
+        Args:
+            args: Command arguments (instance name, if not using @instance prefix).
+            target_instance: Optional target instance name from @instance prefix.
+        """
+        # Use target instance if provided via @instance prefix
+        if target_instance:
+            name = target_instance
+        else:
+            if not args:
+                self._print("Usage: stop <instance-name>")
+                return
+            name = args[0]
 
         try:
             await self.instances.stop_instance(name)
@@ -876,8 +919,31 @@ Return ONLY valid JSON."""
         self.session.disconnect()
         self._print(f"Disconnected from {name}")
 
-    async def _cmd_status(self, args: list[str]) -> None:
-        """Show status of current session."""
+    async def _cmd_status(
+        self, args: list[str], target_instance: Optional[str] = None
+    ) -> None:
+        """Show status of current session or a specific instance.
+
+        Args:
+            args: Command arguments (unused if target_instance is provided).
+            target_instance: Optional target instance name from @instance prefix.
+        """
+        # Use target instance if provided via @instance prefix
+        if target_instance:
+            inst = self.instances.get_instance(target_instance)
+            if not inst:
+                self._print(f"Instance '{target_instance}' not found")
+                return
+            self._print(f"Status of {target_instance}:")
+            self._print(f"  Framework: {inst.framework}")
+            self._print(f"  Project: {inst.project_path}")
+            if inst.git_branch:
+                self._print(f"  Git: {inst.git_branch} ({inst.git_status})")
+            self._print(f"  Tmux: {inst.tmux_session}:{inst.pane_target}")
+            self._print(f"  Ready: {'Yes' if inst.ready else 'No'}")
+            return
+
+        # Default behavior - show connected instance status
         if self.session.context.is_connected:
             name = self.session.context.connected_instance
             inst = self.instances.get_instance(name)
@@ -895,30 +961,44 @@ Return ONLY valid JSON."""
 
         self._print(f"Messages in history: {len(self.session.context.messages)}")
 
-    async def _cmd_send(self, args: list[str]) -> None:
-        """Send literal text directly to the connected tmux session.
+    async def _cmd_send(
+        self, args: list[str], target_instance: Optional[str] = None
+    ) -> None:
+        """Send literal text directly to a tmux session.
 
         Usage:
-            /send /help
+            /send /help                    # Send to connected instance
             /send /mpm-status
             /send ls -la
+            @instance /send /help          # Send to specific instance
 
         The text (including slash commands) is sent verbatim to the pane.
+
+        Args:
+            args: Command arguments (the text to send).
+            target_instance: Optional target instance name from @instance prefix.
         """
         if not args:
             self._print("Usage: /send <text>")
-            self._print("Send literal text to the connected tmux session")
+            self._print("Send literal text to the tmux session")
             return
 
-        if not self.session.context.is_connected:
-            self._print("Not connected to any instance")
-            return
-
-        instance_name = self.session.context.connected_instance
-        inst = self.instances.get_instance(instance_name)
-        if not inst:
-            self._print(f"Instance '{instance_name}' no longer exists")
-            return
+        # Determine target instance
+        if target_instance:
+            instance_name = target_instance
+            inst = self.instances.get_instance(instance_name)
+            if not inst:
+                self._print(f"Instance '{instance_name}' not found")
+                return
+        else:
+            if not self.session.context.is_connected:
+                self._print("Not connected to any instance")
+                return
+            instance_name = self.session.context.connected_instance
+            inst = self.instances.get_instance(instance_name)
+            if not inst:
+                self._print(f"Instance '{instance_name}' no longer exists")
+                return
 
         # Reconstruct the full text from args
         text = " ".join(args)
@@ -985,6 +1065,11 @@ Direct Messaging (both syntaxes work the same):
   @<name> <message>     Send message to specific instance
   (<name>) <message>    Same as @name (parentheses syntax)
 
+Instance-Targeted Commands (@ prefix):
+  @<name> /status       Show status of specific instance
+  @<name> /send <text>  Send text to specific instance (no connection needed)
+  @<name> /stop         Stop specific instance
+
 Natural Language:
   Any input without / prefix is sent to the connected instance.
 
@@ -1002,6 +1087,9 @@ Examples:
   /cleanup --force                # Kill orphan panes
   @myapp show me the code         # Direct message to myapp
   (izzie) what's the status       # Same as @izzie
+  @duetto /status                 # Check status of duetto instance
+  @mpm /send /help                # Send /help to mpm instance
+  @duetto /stop                   # Stop duetto without connecting
   Fix the authentication bug      # Send to connected instance
   /exit
 """
