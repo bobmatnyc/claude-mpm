@@ -218,6 +218,11 @@ class OAuthCommand(BaseCommand):
         if not client_secret:
             client_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
+        # Set credentials in environment so OAuth provider can access them
+        if client_id and client_secret:
+            os.environ["GOOGLE_OAUTH_CLIENT_ID"] = client_id
+            os.environ["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
+
         # If credentials missing, prompt for them interactively
         if not client_id or not client_secret:
             console.print("\n[yellow]Google OAuth credentials not found.[/yellow]")
