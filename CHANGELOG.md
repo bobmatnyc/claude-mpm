@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.87] - 2026-01-23
+
+### Added
+- Startup migration to automatically upgrade hooks to fast bash hook on upgrade
+
 ## [5.6.86] - 2026-01-23
 
 ### Fixed
