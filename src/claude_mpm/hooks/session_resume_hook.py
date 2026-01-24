@@ -13,7 +13,7 @@ DESIGN DECISIONS:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.cli.session_resume_helper import SessionResumeHelper
@@ -43,6 +43,51 @@ class SessionResumeStartupHook:
         self.resume_helper = SessionResumeHelper(self.project_path)
         self._session_displayed = False
         self.sessions_dir = self.project_path / ".claude-mpm" / "sessions"
+
+    def _format_task_list_summary(self, task_list: Dict[str, Any]) -> str:
+        """Format task list state for display.
+
+        Args:
+            task_list: Task list dict from session data with keys:
+                - pending_tasks: List of task dicts with 'id' and 'title'
+                - in_progress_tasks: List of task dicts with 'id' and 'title'
+                - completed_count: Integer count of completed tasks
+
+        Returns:
+            Formatted string showing pending and in_progress tasks.
+            Returns empty string if no tasks to display.
+        """
+        if not task_list:
+            return ""
+
+        lines: List[str] = []
+        pending_tasks = task_list.get("pending_tasks", [])
+        in_progress_tasks = task_list.get("in_progress_tasks", [])
+
+        # Format pending tasks
+        if pending_tasks:
+            lines.append("📋 Pending Tasks:")
+            for task in pending_tasks[:5]:  # Limit to first 5
+                task_id = task.get("id", "?")
+                title = task.get("title", "Untitled")
+                lines.append(f"  • [{task_id}] {title}")
+            if len(pending_tasks) > 5:
+                lines.append(f"  ... and {len(pending_tasks) - 5} more")
+
+        # Format in-progress tasks
+        if in_progress_tasks:
+            lines.append("🔄 In Progress:")
+            for task in in_progress_tasks[:5]:  # Limit to first 5
+                task_id = task.get("id", "?")
+                title = task.get("title", "Untitled")
+                lines.append(f"  • [{task_id}] {title}")
+            if len(in_progress_tasks) > 5:
+                lines.append(f"  ... and {len(in_progress_tasks) - 5} more")
+
+        if not lines:
+            return ""
+
+        return "\n".join(lines)
 
     def check_for_active_pause(self) -> Optional[Dict[str, Any]]:
         """Check for an active incremental pause session.
@@ -82,6 +127,7 @@ class SessionResumeStartupHook:
                 "current_context": last_action.get("context_percentage", 0),
                 "action_count": len(lines),
                 "file_path": str(active_pause_path),
+                "task_list": last_action.get("data", {}).get("task_list", {}),
             }
 
         except (json.JSONDecodeError, OSError, KeyError) as e:
@@ -101,6 +147,14 @@ class SessionResumeStartupHook:
         _log(f"Started at: {pause_info['started_at']}")
         _log(f"Context at pause: {pause_info['context_at_start']:.1%}")
         _log(f"Actions recorded: {pause_info['action_count']}")
+
+        # Display task list summary if available
+        task_list = pause_info.get("task_list", {})
+        task_summary = self._format_task_list_summary(task_list)
+        if task_summary:
+            _log("")
+            _log(task_summary)
+
         _log("\nThis session was auto-paused due to high context usage.")
         _log("Options:")
         _log("  1. Continue (actions will be appended)")

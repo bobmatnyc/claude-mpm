@@ -11,6 +11,7 @@ Supports Dependency Injection:
 """
 
 import asyncio
+import json
 import os
 import re
 import subprocess  # nosec B404 - subprocess used for safe claude CLI version checking only
@@ -571,6 +572,63 @@ class EventHandlers:
             self.hook_handler._git_branch_cache_time[cache_key] = current_time
             return "Unknown"
 
+    def _check_paused_session_tasks(self, working_dir: str) -> dict:
+        """Check for paused sessions with pending tasks.
+
+        Looks for ACTIVE-PAUSE.jsonl or LATEST-SESSION.txt and extracts
+        task list information to include in session start data.
+
+        Returns:
+            Dict with has_pending_tasks and pending_task_count
+        """
+        result = {"has_pending_tasks": False, "pending_task_count": 0}
+
+        try:
+            sessions_dir = Path(working_dir) / ".claude-mpm" / "sessions"
+            if not sessions_dir.exists():
+                return result
+
+            # Check for active pause first
+            active_pause = sessions_dir / "ACTIVE-PAUSE.jsonl"
+            if active_pause.exists():
+                try:
+                    with open(active_pause) as f:
+                        lines = f.readlines()
+                        if lines:
+                            last_action = json.loads(lines[-1])
+                            task_list = last_action.get("data", {}).get("task_list", {})
+                            pending = len(task_list.get("pending_tasks", []))
+                            in_progress = len(task_list.get("in_progress_tasks", []))
+                            if pending + in_progress > 0:
+                                result["has_pending_tasks"] = True
+                                result["pending_task_count"] = pending + in_progress
+                                return result
+                except (json.JSONDecodeError, KeyError):
+                    pass  # nosec B110 - continue to check regular sessions
+
+            # Check for latest session
+            latest_ptr = sessions_dir / "LATEST-SESSION.txt"
+            if latest_ptr.exists():
+                try:
+                    session_name = latest_ptr.read_text().strip()
+                    session_file = sessions_dir / f"{session_name}.json"
+                    if session_file.exists():
+                        with open(session_file) as f:
+                            session_data = json.load(f)
+                            task_list = session_data.get("task_list", {})
+                            pending = len(task_list.get("pending_tasks", []))
+                            in_progress = len(task_list.get("in_progress_tasks", []))
+                            if pending + in_progress > 0:
+                                result["has_pending_tasks"] = True
+                                result["pending_task_count"] = pending + in_progress
+                except (json.JSONDecodeError, KeyError, FileNotFoundError):
+                    pass  # nosec B110 - return default result
+
+        except Exception:
+            pass  # nosec B110 - lightweight check, don't fail session start
+
+        return result
+
     def handle_post_tool_fast(self, event):
         """Handle post-tool use with comprehensive data capture.
 
@@ -1099,10 +1157,18 @@ class EventHandlers:
             "git_branch": git_branch,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "hook_event_name": "SessionStart",
+            "has_pending_tasks": False,
+            "pending_task_count": 0,
         }
 
+        # Check for paused sessions with pending tasks
+        if working_dir:
+            session_start_data.update(self._check_paused_session_tasks(working_dir))
+
         # Debug logging
-        _log(f"Hook handler: Processing SessionStart - session: '{session_id}'")
+        _log(
+            f"Hook handler: Processing SessionStart - session: '{session_id}', pending_tasks: {session_start_data.get('pending_task_count', 0)}"
+        )
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event("", "session_start", session_start_data)

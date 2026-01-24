@@ -11,7 +11,8 @@ DESIGN DECISIONS:
 - LATEST-SESSION.txt pointer for quick access
 """
 
-import subprocess
+import json
+import subprocess  # nosec B404 - required for git operations
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -114,6 +115,9 @@ class SessionPauseManager:
         # Get git context
         git_context = self._get_git_context()
 
+        # Get task list state
+        task_list = self._capture_task_list_state()
+
         # Build state dictionary
         return {
             "session_id": session_id,
@@ -151,10 +155,76 @@ class SessionPauseManager:
             "open_questions": [],
             "performance_metrics": {},
             "todos": {"active": [], "completed": []},
+            "task_list": task_list,
             "version": self._get_project_version(),
             "build": "current",
             "project_path": str(self.project_path),
         }
+
+    def _capture_task_list_state(self) -> Dict[str, Any]:
+        """Capture task list state from ~/.claude/tasks/ directory.
+
+        Reads task files and categorizes them by status.
+
+        Returns:
+            Dict with pending_tasks, in_progress_tasks, completed_count
+        """
+        tasks_dir = Path.home() / ".claude" / "tasks"
+
+        result: Dict[str, Any] = {
+            "pending_tasks": [],
+            "in_progress_tasks": [],
+            "completed_count": 0,
+        }
+
+        # Handle missing directory gracefully
+        if not tasks_dir.exists():
+            logger.debug(f"Tasks directory does not exist: {tasks_dir}")
+            return result
+
+        if not tasks_dir.is_dir():
+            logger.warning(f"Tasks path is not a directory: {tasks_dir}")
+            return result
+
+        try:
+            # Read all JSON task files
+            task_files = list(tasks_dir.glob("*.json"))
+            logger.debug(f"Found {len(task_files)} task files in {tasks_dir}")
+
+            for task_file in task_files:
+                try:
+                    task_data = json.loads(task_file.read_text())
+
+                    # Extract task info
+                    task_info = {
+                        "id": task_data.get("id", task_file.stem),
+                        "title": task_data.get("title", "Untitled"),
+                        "description": task_data.get("description", ""),
+                        "priority": task_data.get("priority", "medium"),
+                        "created_at": task_data.get("created_at"),
+                        "file": str(task_file),
+                    }
+
+                    # Categorize by status
+                    status = task_data.get("status", "pending").lower()
+
+                    if status in {"completed", "done"}:
+                        result["completed_count"] += 1
+                    elif status in {"in_progress", "in-progress"}:
+                        result["in_progress_tasks"].append(task_info)
+                    else:
+                        # pending, todo, or any other status
+                        result["pending_tasks"].append(task_info)
+
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse task file {task_file}: {e}")
+                except Exception as e:
+                    logger.warning(f"Error reading task file {task_file}: {e}")
+
+        except Exception as e:
+            logger.error(f"Error scanning tasks directory: {e}")
+
+        return result
 
     def _get_git_context(self) -> Dict[str, Any]:
         """Get git repository context.
@@ -176,7 +246,7 @@ class SessionPauseManager:
 
         try:
             # Get current branch
-            branch = subprocess.check_output(
+            branch = subprocess.check_output(  # nosec B603, B607 - safe git command
                 ["git", "branch", "--show-current"],
                 cwd=self.project_path,
                 text=True,
@@ -184,7 +254,7 @@ class SessionPauseManager:
             ).strip()
 
             # Get recent commits (last 5)
-            commit_log = subprocess.check_output(
+            commit_log = subprocess.check_output(  # nosec B603, B607 - safe git command
                 ["git", "log", "-5", "--pretty=format:%h|%an|%ai|%s"],
                 cwd=self.project_path,
                 text=True,
@@ -206,7 +276,7 @@ class SessionPauseManager:
                         )
 
             # Get status
-            status_output = subprocess.check_output(
+            status_output = subprocess.check_output(  # nosec B603, B607 - safe git command
                 ["git", "status", "--porcelain"],
                 cwd=self.project_path,
                 text=True,
@@ -451,7 +521,7 @@ Validation:
         """
         try:
             # Add session files
-            subprocess.run(
+            subprocess.run(  # nosec B603, B607 - safe git command
                 ["git", "add", ".claude-mpm/sessions/"],
                 cwd=self.project_path,
                 check=True,
@@ -464,7 +534,7 @@ Validation:
                 commit_msg += f"\nContext: {message}"
 
             # Create commit
-            subprocess.run(
+            subprocess.run(  # nosec B603, B607 - safe git command
                 ["git", "commit", "-m", commit_msg],
                 cwd=self.project_path,
                 check=True,
@@ -499,6 +569,6 @@ Validation:
                 return claude_mpm.__version__
 
         except Exception:
-            pass
+            pass  # nosec B110 - fallback to "unknown" is intentional
 
         return "unknown"
