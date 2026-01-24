@@ -10,6 +10,19 @@
 
 ### Tests
 
+## [5.6.85] - 2026-01-23
+
+### Fixed
+- Dashboard ToolsView now properly displays tool executions
+- Dashboard FilesView stream filtering for "All Streams" option
+- FileViewer content fetch with home directory security check
+- Event correlation ID extraction for normalized events
+- Svelte 5 reactivity with store subscriptions
+
+### Added
+- Fast bash hook script (52x speedup: 415ms → 8ms)
+- Event categorization in broadcaster for proper routing
+
 ## [5.6.84] - 2026-01-23
 
 ### Changed
