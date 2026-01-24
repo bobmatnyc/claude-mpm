@@ -723,9 +723,10 @@ main "$@"
             if cmd.get("type") != "command":
                 return False
             command = cmd.get("command", "")
-            # Match claude-hook entry point or bash script fallback
+            # Match claude-hook entry point or any claude-mpm bash script
             return (
                 command == "claude-hook"
+                or "claude-hook-fast.sh" in command
                 or "claude-hook-handler.sh" in command
                 or command.endswith("claude-mpm-hook.sh")
             )
