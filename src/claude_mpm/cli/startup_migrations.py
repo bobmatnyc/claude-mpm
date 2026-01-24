@@ -449,6 +449,133 @@ def _remove_hook_handler_sh() -> bool:
 
 
 # =============================================================================
+# Migration: v5.6.86-upgrade-to-fast-hook
+# =============================================================================
+
+
+def _check_needs_fast_hook_upgrade() -> bool:
+    """Check if hooks need upgrading to the fast bash hook.
+
+    Returns:
+        True if any hook uses claude-hook entry point or slow handler,
+        but not the fast hook.
+    """
+    settings_files = [
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                content = f.read()
+                # Check if using old hooks but not fast hook
+                has_old_hooks = (
+                    '"claude-hook"' in content or "claude-hook-handler.sh" in content
+                )
+                has_fast_hook = "claude-hook-fast.sh" in content
+
+                if has_old_hooks and not has_fast_hook:
+                    return True
+        except Exception as e:
+            logger.debug(f"Failed to check {settings_file}: {e}")
+            continue
+
+    return False
+
+
+def _upgrade_to_fast_hook() -> bool:
+    """Upgrade hooks to use the fast bash hook.
+
+    This migration:
+    1. Finds all settings files with old hook commands
+    2. Replaces them with the fast hook path
+    3. Preserves other hook settings
+
+    Returns:
+        True if migration succeeded.
+    """
+    # Get the fast hook path
+    try:
+        from ..hooks.claude_hooks.installer import HookInstaller
+
+        installer = HookInstaller()
+        fast_hook_path = str(installer._get_fast_hook_script_path().absolute())
+    except Exception as e:
+        logger.warning(f"Could not get fast hook path: {e}")
+        return False
+
+    settings_files = [
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    total_upgraded = 0
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            if not hooks:
+                continue
+
+            file_upgraded = 0
+
+            # Upgrade each hook type
+            for hook_type, hook_list in hooks.items():
+                if not isinstance(hook_list, list):
+                    continue
+
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+
+                    # Upgrade old hook commands to fast hook
+                    for cmd in hook_commands:
+                        if not isinstance(cmd, dict):
+                            continue
+                        command = cmd.get("command", "")
+                        if (
+                            command == "claude-hook"
+                            or "claude-hook-handler.sh" in command
+                        ):
+                            cmd["command"] = fast_hook_path
+                            file_upgraded += 1
+
+            if file_upgraded > 0:
+                with open(settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                total_upgraded += file_upgraded
+                logger.info(
+                    f"Upgraded {file_upgraded} hooks to fast hook in {settings_file}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to upgrade hooks in {settings_file}: {e}")
+            continue
+
+    if total_upgraded > 0:
+        print(f"   Upgraded {total_upgraded} hooks to fast bash hook (~52x faster)")
+    else:
+        print("   No hooks needed upgrading")
+
+    print("   ✓ Migration complete")
+    return True
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -470,6 +597,12 @@ MIGRATIONS: list[Migration] = [
         description="Remove deprecated claude-hook-handler.sh",
         check=_check_hook_handler_sh_exists,
         migrate=_remove_hook_handler_sh,
+    ),
+    Migration(
+        id="v5.6.86-upgrade-to-fast-hook",
+        description="Upgrade hooks to fast bash hook (52x faster)",
+        check=_check_needs_fast_hook_upgrade,
+        migrate=_upgrade_to_fast_hook,
     ),
 ]
 
