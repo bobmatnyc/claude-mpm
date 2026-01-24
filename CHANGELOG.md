@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.88] - 2026-01-23
+
+### Added
+- Slack MPM client scaffold for team collaboration
+- Slack app setup script and documentation
+
 ## [5.6.87] - 2026-01-23
 
 ### Added
