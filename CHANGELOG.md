@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.86] - 2026-01-23
+
+### Fixed
+- Hook installer now recognizes fast hook during upgrades (prevents duplicate entries)
+
 ## [5.6.85] - 2026-01-23
 
 ### Fixed
