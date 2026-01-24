@@ -22,7 +22,8 @@
 
 	// Filter tools by selected stream
 	let filteredTools = $derived.by(() => {
-		const result = selectedStream === ''
+		// Show all tools if no stream selected or 'all-streams' is selected
+		const result = (selectedStream === '' || selectedStream === 'all-streams')
 			? tools
 			: tools.filter(tool => {
 				const preEvent = tool.preToolEvent;

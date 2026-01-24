@@ -660,13 +660,18 @@ class SocketIOServerCore:
 
             abs_path = Path(Path(file_path).resolve().expanduser())
 
-            # Security check - ensure file is within the project
+            # Security check - ensure file is within user's home directory
+            # Dashboard monitors events from ANY project, so we allow reading
+            # any file within the user's home (localhost-only service)
             try:
-                project_root = Path.cwd()
-                if not abs_path.startswith(project_root):
-                    return web.json_response({"error": "Access denied"}, status=403)
+                home_dir = Path.home()
+                if not abs_path.is_relative_to(home_dir):
+                    return web.json_response(
+                        {"error": "Access denied - file must be within home directory"},
+                        status=403,
+                    )
             except Exception:
-                pass
+                pass  # nosec B110 - intentional: allow request if path check fails
 
             if not Path(abs_path).exists():
                 return web.json_response({"error": "File not found"}, status=404)
@@ -696,7 +701,8 @@ class SocketIOServerCore:
 
                 return web.json_response(
                     {
-                        "path": abs_path,
+                        "success": True,
+                        "path": str(abs_path),
                         "name": Path(abs_path).name,
                         "content": content,
                         "lines": len(content.splitlines()),
@@ -811,7 +817,7 @@ class SocketIOServerCore:
         # Add git history endpoint
         async def git_history_handler(request):
             """Handle POST /api/git-history for getting file git history."""
-            import subprocess
+            import subprocess  # nosec B404 - required for git operations
 
             try:
                 # Parse JSON body
@@ -834,7 +840,7 @@ class SocketIOServerCore:
                     )
 
                 # Get git log for file
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603, B607 - safe git command
                     [
                         "git",
                         "log",

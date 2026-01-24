@@ -5,7 +5,7 @@ This project uses KuzuMemory for intelligent context management.
 ## Project Information
 - **Path**: /Users/masa/Projects/claude-mpm
 - **Language**: Python
-- **Framework**: Flask
+- **Framework**: FastAPI
 
 ## Memory Integration
 
@@ -32,6 +32,7 @@ Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation an
 - Python
 - Flask
 - Flask
+- FastAPI
 
 ## Development Guidelines
 - Use kuzu-memory enhance for all AI interactions

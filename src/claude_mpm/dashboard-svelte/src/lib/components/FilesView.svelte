@@ -60,8 +60,8 @@
   let filteredFiles = $derived.by(() => {
     let files = uniqueFiles;
 
-    // Filter by stream (empty string means show all)
-    if (selectedStream !== '') {
+    // Filter by stream (empty string or 'all-streams' means show all)
+    if (selectedStream !== '' && selectedStream !== 'all-streams') {
       files = files.filter(file => file.sessionId === selectedStream);
     }
 
@@ -80,6 +80,9 @@
   // Subscribe to socket events
   let unsubscribeEvents: (() => void) | null = null;
 
+  // Track processed event IDs to avoid reprocessing
+  const processedEventIds = new Set<string>();
+
   onMount(async () => {
     console.log('[FilesView] Mounted, subscribing to socket events');
 
@@ -97,8 +100,15 @@
 
     // Subscribe to events store
     unsubscribeEvents = socketStore.events.subscribe((events) => {
-      // Find new tool events (pre_tool with file operations)
+      console.log('[FilesView] Events subscription triggered, total events:', events.length);
+
+      // Process each event that hasn't been processed yet
       events.forEach(async (event) => {
+        // Skip if already processed (use Set for O(1) lookup)
+        if (processedEventIds.has(event.id)) {
+          return;
+        }
+
         try {
           await processToolEvent(event);
         } catch (error) {
@@ -125,13 +135,24 @@
           : undefined;
       const eventSubtype = event.subtype || dataSubtype;
 
+      // Debug: Log event structure for troubleshooting
+      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
+        ? data as Record<string, unknown>
+        : null;
+      const toolName = dataRecord?.tool_name as string | undefined;
+
+      console.log('[FilesView] Processing event:', {
+        id: event.id,
+        type: event.type,
+        subtype: event.subtype,
+        eventSubtype,
+        toolName,
+        hasToolParams: !!dataRecord?.tool_parameters,
+        toolParams: dataRecord?.tool_parameters,
+      });
+
       // Handle post_tool events (for caching read results)
       if (eventSubtype === 'post_tool') {
-        const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
-          ? data as Record<string, unknown>
-          : null;
-
-        const toolName = dataRecord?.tool_name as string | undefined;
         const operation = toolName ? getOperationType(toolName) : null;
 
         // For Read operations, cache the content from the tool result
@@ -144,39 +165,50 @@
             console.log('[FilesView] Cached read content:', filePath);
           }
         }
+        // Mark as processed even for post_tool
+        processedEventIds.add(event.id);
         return; // Don't create TouchedFile entries for post_tool
       }
 
       // Only process pre_tool events for creating TouchedFile entries
       if (eventSubtype !== 'pre_tool') {
+        // Mark as processed to avoid reprocessing non-tool events
+        processedEventIds.add(event.id);
         return;
       }
 
-      // Extract tool name
-      const dataRecord = data && typeof data === 'object' && !Array.isArray(data)
-        ? data as Record<string, unknown>
-        : null;
-
-      const toolName = dataRecord?.tool_name as string | undefined;
+      // Validate tool name (already extracted above)
       if (!toolName) {
+        console.log('[FilesView] Skipping event - no tool name');
+        processedEventIds.add(event.id);
         return;
       }
 
       // Check if this is a file operation tool
       const operation = getOperationType(toolName);
       if (!operation) {
+        console.log('[FilesView] Skipping event - not a file operation tool:', toolName);
+        processedEventIds.add(event.id);
         return;
       }
 
       // Extract file path
       const filePath = extractFilePath(data);
       if (!filePath) {
+        console.log('[FilesView] Skipping event - no file path found:', {
+          toolName,
+          dataKeys: dataRecord ? Object.keys(dataRecord) : [],
+          toolParams: dataRecord?.tool_parameters
+        });
+        processedEventIds.add(event.id);
         return;
       }
 
       // Check if we already have this file (by event ID to avoid duplicates)
       const alreadyExists = touchedFiles.some(f => f.eventId === event.id);
       if (alreadyExists) {
+        console.log('[FilesView] Skipping event - already exists in touchedFiles:', event.id);
+        processedEventIds.add(event.id);
         return;
       }
 
@@ -228,6 +260,9 @@
       console.log('[FilesView] File touched:', touchedFile);
       touchedFiles = [...touchedFiles, touchedFile];
 
+      // Mark as processed AFTER successfully adding to touchedFiles
+      processedEventIds.add(event.id);
+
       // Update cache with new content for write/edit operations
       if ((operation === 'write' || operation === 'edit') && newContent) {
         fileContentCache.set(filePath, newContent);
@@ -235,6 +270,8 @@
     } catch (error) {
       // Defense-in-depth: catch any unhandled errors to prevent UI freeze
       console.error('[FilesView] Error in processToolEvent:', error);
+      // Mark as processed even on error to avoid infinite retry
+      processedEventIds.add(event.id);
       // Don't re-throw to prevent cascade failures
     }
   }

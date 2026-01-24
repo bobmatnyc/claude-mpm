@@ -308,6 +308,63 @@ class SocketIOEventBroadcaster:
             )
             return False
 
+    def _categorize_event(self, event_subtype: str) -> str:
+        """Categorize event by subtype to determine Socket.IO event type.
+
+        Maps specific event subtypes to their category for frontend filtering.
+        Matches the logic in core.py's _categorize_event for consistency.
+
+        Args:
+            event_subtype: The event subtype (e.g., "pre_tool", "subagent_start")
+
+        Returns:
+            Socket.IO event name (e.g., "tool_event", "hook_event", "claude_event")
+        """
+        # Tool events - pre/post tool operations
+        if event_subtype in (
+            "pre_tool",
+            "post_tool",
+            "tool.start",
+            "tool.end",
+            "tool_use",
+            "tool_result",
+        ):
+            return "tool_event"
+
+        # Hook events - agent lifecycle and todo updates
+        if event_subtype in ("subagent_start", "subagent_stop", "todo_updated"):
+            return "hook_event"
+
+        # Session events
+        if event_subtype in (
+            "session.started",
+            "session.ended",
+            "session_start",
+            "session_end",
+        ):
+            return "session_event"
+
+        # Response events
+        if event_subtype in (
+            "response.start",
+            "response.end",
+            "response_started",
+            "response_ended",
+        ):
+            return "response_event"
+
+        # Agent events
+        if event_subtype in (
+            "agent.delegated",
+            "agent.returned",
+            "agent_start",
+            "agent_end",
+        ):
+            return "agent_event"
+
+        # Default to claude_event for backward compatibility
+        return "claude_event"
+
     def broadcast_event(
         self, event_type: str, data: Dict[str, Any], skip_sid: Optional[str] = None
     ):
@@ -361,11 +418,14 @@ class SocketIOEventBroadcaster:
         try:
             # Use run_coroutine_threadsafe to safely call from any thread
             if hasattr(self, "loop") and self.loop and not self.loop.is_closed():
+                # Categorize event for proper client-side routing
+                socket_event_type = self._categorize_event(event.get("subtype", ""))
+
                 # Create broadcast coroutine
                 if skip_sid:
-                    coro = self.sio.emit("claude_event", event, skip_sid=skip_sid)
+                    coro = self.sio.emit(socket_event_type, event, skip_sid=skip_sid)
                 else:
-                    coro = self.sio.emit("claude_event", event)
+                    coro = self.sio.emit(socket_event_type, event)
 
                 future = asyncio.run_coroutine_threadsafe(coro, self.loop)
 
@@ -389,12 +449,11 @@ class SocketIOEventBroadcaster:
                                 update_activities(), self.loop
                             )
                         except Exception:
-                            pass  # Non-critical
+                            pass  # nosec B110 - non-critical activity update
 
                     self.logger.debug(f"Broadcasted event: {event_type}")
                 except Exception:
-                    # Will be added to retry queue below
-                    pass
+                    pass  # nosec B110 - will be added to retry queue below
             else:
                 self.logger.warning(
                     f"Cannot broadcast {event_type}: server loop not available"

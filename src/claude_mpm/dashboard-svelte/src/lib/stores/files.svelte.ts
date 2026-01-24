@@ -53,6 +53,11 @@ export async function fetchFileContent(filePath: string): Promise<string> {
 
 /**
  * Extract file path from tool event data
+ *
+ * Handles multiple event structures:
+ * - Direct field: data.file_path
+ * - Tool parameters: data.tool_parameters.file_path
+ * - Notebook path: data.tool_parameters.notebook_path
  */
 export function extractFilePath(data: unknown): string | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
@@ -61,17 +66,32 @@ export function extractFilePath(data: unknown): string | null {
 
   const dataRecord = data as Record<string, unknown>;
 
-  // Check direct fields
+  // Check direct fields (file_path and notebook_path)
   if (dataRecord.file_path && typeof dataRecord.file_path === 'string') {
     return dataRecord.file_path;
+  }
+  if (dataRecord.notebook_path && typeof dataRecord.notebook_path === 'string') {
+    return dataRecord.notebook_path;
   }
 
   // Check tool_parameters (standard hook event structure)
   const toolParams = dataRecord.tool_parameters;
   if (toolParams && typeof toolParams === 'object' && !Array.isArray(toolParams)) {
     const params = toolParams as Record<string, unknown>;
+
+    // Check file_path
     if (params.file_path && typeof params.file_path === 'string') {
       return params.file_path;
+    }
+
+    // Check notebook_path (for NotebookEdit, NotebookRead)
+    if (params.notebook_path && typeof params.notebook_path === 'string') {
+      return params.notebook_path;
+    }
+
+    // Check path (for Grep, Glob)
+    if (params.path && typeof params.path === 'string') {
+      return params.path;
     }
   }
 
