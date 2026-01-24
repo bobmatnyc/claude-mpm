@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.6.89] - 2026-01-24
+
+### Added
+- TaskList session integration (pause captures tasks, resume displays them)
+- SessionStart hook now reports pending task count
+- npm publish script added
+
+### Documentation
+- Skills documentation updated
+
 ## [5.6.88] - 2026-01-23
 
 ### Added
