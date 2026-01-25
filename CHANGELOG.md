@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.90] - 2026-01-25
+
+### Added
+- `--slack` CLI flag to start Slack MPM bot (similar to `--monitor`)
+
+### Fixed
+- Slack client lazy imports for config validation
+
 ## [5.6.89] - 2026-01-24
 
 ### Added
