@@ -308,6 +308,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Disable Claude in Chrome integration (passed to Claude Code)",
     )
     run_group.add_argument(
+        "--slack",
+        action="store_true",
+        help="Start the Slack MPM bot (requires SLACK_BOT_TOKEN and SLACK_APP_TOKEN)",
+    )
+    run_group.add_argument(
         "--mcp",
         type=str,
         metavar="SERVICES",

@@ -2,118 +2,121 @@
 
 import logging
 
-from slack_bolt import Ack, Respond
-
-from ..app import app
-from ..services.mpm_client import MPMClient
-from ..utils.blocks import format_error_block
+from slack_bolt import App
 
 logger = logging.getLogger(__name__)
-mpm_client = MPMClient()
 
 
-@app.command("/mpm-create")
-def handle_create_ticket(ack: Ack, respond: Respond, command: dict) -> None:
-    """Create a new ticket.
+def register_commands(app: App) -> None:
+    """Register all slash command handlers with the Slack app.
 
-    Usage: /mpm-create <title> | <description>
+    Args:
+        app: The Slack Bolt App instance
     """
-    ack()
-    logger.info(f"Create ticket command received: {command}")
 
-    text = command.get("text", "").strip()
-    if not text:
-        respond(blocks=format_error_block("Please provide a ticket title."))
-        return
+    @app.command("/mpm-status")
+    def handle_status(ack, respond, command):
+        """Check MPM system and agent status."""
+        ack()
+        logger.info("Status command received")
+        respond("✅ Claude MPM Bot is online and ready!")
 
-    # Parse title and optional description
-    parts = text.split("|", 1)
-    title = parts[0].strip()
-    _description = parts[1].strip() if len(parts) > 1 else ""
+    @app.command("/mpm-create")
+    def handle_create(ack, respond, command):
+        """Create a new ticket.
 
-    # TODO: Implement ticket creation via MPM client
-    respond(f"Creating ticket: {title} (description: {len(_description)} chars)")
+        Usage: /mpm-create <title> | <description>
+        """
+        ack()
+        logger.info(f"Create ticket command received: {command}")
 
+        text = command.get("text", "").strip()
+        if not text:
+            respond(
+                "❌ Please provide a ticket title.\nUsage: `/mpm-create <title> | <description>`"
+            )
+            return
 
-@app.command("/mpm-list")
-def handle_list_tickets(ack: Ack, respond: Respond, command: dict) -> None:
-    """List tickets with optional filters.
+        # Parse title and optional description
+        parts = text.split("|", 1)
+        title = parts[0].strip()
+        description = parts[1].strip() if len(parts) > 1 else ""
 
-    Usage: /mpm-list [status=open|closed] [assignee=@user]
-    """
-    ack()
-    logger.info(f"List tickets command received: {command}")
+        # TODO: Implement ticket creation via MPM client
+        respond(
+            f"📝 Creating ticket: *{title}*"
+            + (f"\n_{description}_" if description else "")
+        )
 
-    # TODO: Parse filters and fetch tickets
-    respond("Fetching tickets...")
+    @app.command("/mpm-list")
+    def handle_list(ack, respond, command):
+        """List tickets with optional filters.
 
+        Usage: /mpm-list [status=open|closed] [assignee=@user]
+        """
+        ack()
+        logger.info(f"List tickets command received: {command}")
 
-@app.command("/mpm-view")
-def handle_view_ticket(ack: Ack, respond: Respond, command: dict) -> None:
-    """View a specific ticket.
+        # TODO: Parse filters and fetch tickets
+        respond("📋 Fetching tickets...")
 
-    Usage: /mpm-view <ticket_id>
-    """
-    ack()
-    logger.info(f"View ticket command received: {command}")
+    @app.command("/mpm-view")
+    def handle_view(ack, respond, command):
+        """View a specific ticket.
 
-    ticket_id = command.get("text", "").strip()
-    if not ticket_id:
-        respond(blocks=format_error_block("Please provide a ticket ID."))
-        return
+        Usage: /mpm-view <ticket_id>
+        """
+        ack()
+        logger.info(f"View ticket command received: {command}")
 
-    # TODO: Fetch and display ticket
-    respond(f"Fetching ticket: {ticket_id}")
+        ticket_id = command.get("text", "").strip()
+        if not ticket_id:
+            respond("❌ Please provide a ticket ID.\nUsage: `/mpm-view <ticket-id>`")
+            return
 
+        # TODO: Fetch and display ticket
+        respond(f"🔍 Fetching ticket: `{ticket_id}`")
 
-@app.command("/mpm-update")
-def handle_update_ticket(ack: Ack, respond: Respond, command: dict) -> None:
-    """Update a ticket.
+    @app.command("/mpm-update")
+    def handle_update(ack, respond, command):
+        """Update a ticket.
 
-    Usage: /mpm-update <ticket_id> status=<status> | assignee=@user | priority=<priority>
-    """
-    ack()
-    logger.info(f"Update ticket command received: {command}")
+        Usage: /mpm-update <ticket_id> status=<status> | assignee=@user
+        """
+        ack()
+        logger.info(f"Update ticket command received: {command}")
 
-    text = command.get("text", "").strip()
-    if not text:
-        respond(blocks=format_error_block("Please provide ticket ID and updates."))
-        return
+        text = command.get("text", "").strip()
+        if not text:
+            respond(
+                "❌ Please provide ticket ID and updates.\nUsage: `/mpm-update <id> status=open`"
+            )
+            return
 
-    # TODO: Parse updates and apply to ticket
-    respond(f"Updating ticket: {text}")
+        # TODO: Parse updates and apply to ticket
+        respond(f"✏️ Updating ticket: `{text}`")
 
+    @app.command("/mpm-delegate")
+    def handle_delegate(ack, respond, command):
+        """Delegate a task to a Claude agent.
 
-@app.command("/mpm-delegate")
-def handle_delegate_task(ack: Ack, respond: Respond, command: dict) -> None:
-    """Delegate a task to a Claude agent.
+        Usage: /mpm-delegate <ticket_id> [agent_type]
+        """
+        ack()
+        logger.info(f"Delegate task command received: {command}")
 
-    Usage: /mpm-delegate <ticket_id> [agent_type]
-    """
-    ack()
-    logger.info(f"Delegate task command received: {command}")
+        text = command.get("text", "").strip()
+        if not text:
+            respond(
+                "❌ Please provide a ticket ID.\nUsage: `/mpm-delegate <id> [engineer|research|qa]`"
+            )
+            return
 
-    text = command.get("text", "").strip()
-    if not text:
-        respond(blocks=format_error_block("Please provide a ticket ID."))
-        return
+        parts = text.split()
+        ticket_id = parts[0]
+        agent_type = parts[1] if len(parts) > 1 else "engineer"
 
-    parts = text.split()
-    ticket_id = parts[0]
-    agent_type = parts[1] if len(parts) > 1 else "default"
+        # TODO: Delegate to MPM agent
+        respond(f"🤖 Delegating `{ticket_id}` to *{agent_type}* agent...")
 
-    # TODO: Delegate to MPM agent
-    respond(f"Delegating ticket {ticket_id} to {agent_type} agent...")
-
-
-@app.command("/mpm-status")
-def handle_agent_status(ack: Ack, respond: Respond, command: dict) -> None:
-    """Check MPM system and agent status.
-
-    Usage: /mpm-status
-    """
-    ack()
-    logger.info("Status command received")
-
-    # TODO: Fetch system status
-    respond("Checking MPM system status...")
+    logger.info("Registered 6 Slack command handlers")
