@@ -125,7 +125,7 @@ PORT="${CLAUDE_MPM_SOCKETIO_PORT:-8765}"
             \"data\": {
                 \"type\": \"hook\",
                 \"subtype\": \"$SUBTYPE\",
-                \"hook_event_type\": \"$EVENT\",
+                \"hook_event_name\": \"$EVENT\",
                 \"tool_name\": \"$TOOL_NAME\",
                 \"session_id\": \"$SESSION_ID\",
                 \"correlation_id\": \"$CORRELATION_ID\",
