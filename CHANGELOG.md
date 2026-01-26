@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.94] - 2026-01-26
+
+### Fixed
+- Change Edit operation color from amber to yellow to distinguish from "Recent"
+
 ## [5.6.93] - 2026-01-26
 
 ### Fixed
