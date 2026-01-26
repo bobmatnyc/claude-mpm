@@ -112,10 +112,15 @@ echo ""
 
 log_info "=== Adding TOB Skills Source ==="
 
-if claude-mpm skill-source add "https://github.com/$TOB_ORG/tob-skills" 2>/dev/null; then
+# Use SSH URL for private repo (requires SSH key configured with GitHub)
+TOB_SKILLS_URL="git@github.com:$TOB_ORG/tob-skills.git"
+
+if claude-mpm skill-source add "$TOB_SKILLS_URL" 2>/dev/null; then
     log_success "TOB skills source added"
 else
-    log_warn "Could not add TOB skills source - may already exist"
+    log_warn "Could not add TOB skills source"
+    log_warn "If tob-skills is private, ensure SSH keys are configured with GitHub"
+    log_warn "Manual: claude-mpm skill-source add $TOB_SKILLS_URL"
 fi
 
 echo ""
@@ -163,7 +168,7 @@ log_success "Claude MPM installed from TOB fork"
 log_success "Skill sources configured:"
 echo "         - bobmatnyc/claude-mpm-skills (default)"
 echo "         - anthropics/skills (default)"
-echo "         - $TOB_ORG/tob-skills (TOB custom)"
+echo "         - $TOB_ORG/tob-skills (private, requires SSH)"
 log_success "MCP services enabled:"
 echo "         - kuzu-memory"
 echo "         - mcp-vector-search"
