@@ -204,8 +204,31 @@ def migrate_file(path: Path, dry_run: bool = False) -> bool:
     return True
 
 
+def migrate_all_settings() -> bool:
+    """Run migration on all detected settings files.
+
+    This is the callable used by the migration runner for automatic
+    migrations on version upgrade. Returns True if all migrations succeed.
+
+    Returns:
+        True if migration was successful for all files
+    """
+    paths = get_settings_paths()
+
+    if not paths:
+        # No settings files found - that's OK, nothing to migrate
+        return True
+
+    success = 0
+    for path in paths:
+        if migrate_file(path, dry_run=False):
+            success += 1
+
+    return success == len(paths)
+
+
 def main() -> int:
-    """Main entry point for migration."""
+    """Main entry point for CLI migration."""
     parser = argparse.ArgumentParser(
         description="Migrate Claude Code hooks to async configuration"
     )

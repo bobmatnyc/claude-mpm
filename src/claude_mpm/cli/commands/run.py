@@ -691,6 +691,18 @@ def run_session_legacy(args):
         logger.info("Starting Claude MPM session")
         # Log file already announced in startup_logging.py when created
 
+    # Run pending migrations on version upgrade
+    # This is fast for already-migrated installs (just a file check)
+    try:
+        from ..migrations.runner import run_pending_migrations
+
+        migrations_run = run_pending_migrations()
+        if migrations_run > 0:
+            logger.info(f"Completed {migrations_run} migration(s)")
+    except Exception as e:
+        # Don't block startup on migration errors
+        logger.warning(f"Migration check failed: {e}")
+
     # Handle --slack flag: start Slack bot instead of Claude session
     if getattr(args, "slack", False):
         _start_slack_bot(logger)
