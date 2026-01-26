@@ -10,6 +10,302 @@
 
 ### Tests
 
+## [5.6.92] - 2026-01-25
+
+### Added
+- Version-based migration system for automatic upgrades
+- Migrations run automatically on first startup of new version
+- Migration state tracked in ~/.claude-mpm/migrations.json
+
+## [5.6.91] - 2026-01-25
+
+### Added
+- Async hook execution mode for non-blocking hook processing
+- Migration script: `python -m claude_mpm.migrations.migrate_async_hooks`
+
+### Changed
+- Hooks now return `{"async": true}` for non-blocking execution
+
+## [5.6.90] - 2026-01-25
+
+### Added
+- `--slack` CLI flag to start Slack MPM bot (similar to `--monitor`)
+
+### Fixed
+- Slack client lazy imports for config validation
+
+## [5.6.89] - 2026-01-24
+
+### Added
+- TaskList session integration (pause captures tasks, resume displays them)
+- SessionStart hook now reports pending task count
+- npm publish script added
+
+### Documentation
+- Skills documentation updated
+
+## [5.6.88] - 2026-01-23
+
+### Added
+- Slack MPM client scaffold for team collaboration
+- Slack app setup script and documentation
+
+## [5.6.87] - 2026-01-23
+
+### Added
+- Startup migration to automatically upgrade hooks to fast bash hook on upgrade
+
+## [5.6.86] - 2026-01-23
+
+### Fixed
+- Hook installer now recognizes fast hook during upgrades (prevents duplicate entries)
+
+## [5.6.85] - 2026-01-23
+
+### Fixed
+- Dashboard ToolsView now properly displays tool executions
+- Dashboard FilesView stream filtering for "All Streams" option
+- FileViewer content fetch with home directory security check
+- Event correlation ID extraction for normalized events
+- Svelte 5 reactivity with store subscriptions
+
+### Added
+- Fast bash hook script (52x speedup: 415ms → 8ms)
+- Event categorization in broadcaster for proper routing
+
+## [5.6.84] - 2026-01-23
+
+### Changed
+- Version bump for PyPI release
+
+## [5.6.83] - 2026-01-23
+
+### Changed
+- Version bump for PyPI release
+
+## [5.6.82] - 2026-01-23
+
+### Added
+- Added startup migration to clean duplicate user-level hooks
+
+## [5.6.81] - 2026-01-23
+
+### Fixed
+- Fixed duplicate hook configuration causing "0/2 done" issue in agent execution
+- Fixed nested data structures in monitor event handler - tool data now properly extracted
+
+## [5.6.80] - 2026-01-23
+
+### Fixed
+- Monitor dashboard event parsing now correctly uses `subtype` field for actual events
+- Updated OAuth command parser to use `google-workspace-mcp` naming convention
+- env_loader.py now uses `Path.cwd()` for .env.local file resolution
+
+## [5.6.79] - 2026-01-23
+
+### Added
+- OAuth auto-detection of credentials and automatic MCP configuration on setup
+- `@instance` prefix support for slash commands
+
+### Fixed
+- Resolved Commander REPL message handling issues
+
+## [5.6.78] - 2026-01-23
+
+### Changed
+- `oauth setup workspace-mcp` now auto-configures .mcp.json
+- Renamed google-workspace-mpm to google-workspace-mcp
+
+## [5.6.77] - 2026-01-23
+
+### Changed
+- Enhanced migration visibility with startup banner integration
+- Added verbose before/after output during migration execution
+
+### Documentation
+- Added comprehensive startup migrations guide (`docs/features/startup-migrations.md`)
+- Updated README with Automatic Migrations section under Key Features
+- Documented migration system visibility: users only see messages when migrations actually apply
+
+## [5.6.76] - 2026-01-23
+
+### Added
+- Startup migrations system for automatic config fixes on first run after update
+  - Migration registry pattern with version tracking in ~/.claude-mpm/migrations.yaml
+  - Non-blocking on failure (logs warning, continues startup)
+- First migration: v5.6.76-cache-dir-rename
+  - Renames remote-agents/ to agents/ in cache directory
+  - Updates configuration.yaml if needed
+
+## [5.6.75] - 2026-01-23
+
+### Changed
+- Moved mpm-session-pause and mpm-session-resume from RECOMMENDED to REQUIRED_PM_SKILLS tier
+
+## [5.6.74] - 2026-01-23
+
+### Added
+- Added mpm-session-pause to RECOMMENDED_PM_SKILLS for proper deployment
+
+### Fixed
+- Skip background services in headless mode with --resume flag (ported from the-original-body/claude-mpm#9)
+
+## [5.6.73] - 2026-01-23
+
+### Changed
+- Research agent updated with Google Workspace MCP integration
+
+## [5.6.72] - 2026-01-23
+
+### Added
+- `/oauth` command for browser-based OAuth authentication in REPL
+- Integrated Google Workspace MCP server (`google-workspace-mcp`)
+  - Gmail search and message content retrieval
+  - Google Calendar event listing
+  - Google Drive file search and content access
+- Encrypted token storage with system keychain integration
+
+## [5.6.71] - 2026-01-23
+
+### Fixed
+- pass _get_prompt function to prompt_async instead of calling it
+  - Allows prompt to update when display is invalidated after connecting
+  - Prompt now shows connected instance name (e.g., "Commander (duetto)>")
+
+## [5.6.70] - 2026-01-23
+
+### Added
+- bottom_toolbar spinner for Commander REPL using prompt_toolkit's native features
+  - Replaces print-based spinner with cleaner UI
+  - Spinner updates in toolbar below prompt
+  - 100ms frame rate for smooth animation
+  - No intrusive terminal output during startup wait
+
+## [5.6.69] - 2026-01-22
+
+### Fixed
+- replace sys.stdout.write with print in spinner to work with patch_stdout
+
+## [5.6.68] - 2026-01-22
+
+### Fixed
+- clear spinner line before printing prompt in REPL startup
+
+## [5.6.67] - 2026-01-22
+
+### Fixed
+- update spinner to use carriage return for in-place updates instead of printing new lines
+- clarify prompt shows connected session name (already implemented)
+
+## [5.6.66] - 2026-01-22
+
+### Fixed
+- ensure background ready detection always runs
+
+## [5.6.65] - 2026-01-22
+
+### Changed
+- bump: version 5.6.65
+
+## [5.6.64] - 2026-01-22
+
+### Changed
+- bump: version 5.6.64
+
+## [5.6.63] - 2026-01-22
+
+### Changed
+- bump: version 5.6.63
+
+## [5.6.62] - 2026-01-22
+
+### Changed
+- bump: version 5.6.62
+
+## [5.6.61] - 2026-01-22
+
+### Changed
+- bump: version 5.6.61
+
+## [5.6.60] - 2026-01-22
+
+### Changed
+- bump: version 5.6.60
+
+## [5.6.59] - 2026-01-22
+
+### Changed
+- bump: version 5.6.59
+
+## [5.6.58] - 2026-01-22
+
+### Changed
+- bump: version 5.6.58
+
+## [5.6.57] - 2026-01-22
+
+### Changed
+- bump: version 5.6.57
+
+## [5.6.56] - 2026-01-22
+
+### Changed
+- bump: version 5.6.56
+
+## [5.6.55] - 2026-01-22
+
+### Changed
+- bump: version 5.6.55
+
+## [5.6.54] - 2026-01-22
+
+### Changed
+- bump: version 5.6.54
+
+## [5.6.53] - 2026-01-22
+
+### Changed
+- bump: version 5.6.53
+
+## [5.6.52] - 2026-01-22
+
+### Fixed
+- fix: Commander startup wait no longer spams console
+  - Simplified to print once at start and once when ready
+  - No more ANSI escape code issues or duplicated output
+- fix: Suppress httpx INFO logging in Commander CLI
+  - Added httpx/httpcore log level suppression
+- fix: Add claude-mpm ready detection patterns
+  - MPM now detected as ready via MPM-specific output patterns
+  - Detects: "MPM initialized", "SessionStart hook success", etc.
+
+## [5.6.51] - 2026-01-22
+
+### Fixed
+- fix: Commander REPL now returns control immediately during instance startup
+  - `/register` and `/start` no longer block waiting for instance ready
+  - Background task tracks startup progress and auto-connects when ready
+  - Status shows above prompt with 🚀 icon (e.g., `🚀 [myapp] Starting up... (5s)`)
+  - Truly async event-driven model - can issue other commands while waiting
+
+## [5.6.50] - 2026-01-22
+
+### Fixed
+- fix: `/start <path>` now creates worktrees like `/register`
+  - Previously `/start <path>` bypassed worktree creation
+  - Now uses `register_instance()` which creates proper git worktrees
+  - Updated help text to document worktree behavior
+  - Shows worktree info when starting instances
+
+## [5.6.49] - 2026-01-22
+
+### Added
+- feat: Async event-driven command model with pending request tracking
+  - Non-blocking command dispatch (cursor returns immediately)
+  - Pending requests shown above cursor with status icons
+  - Responses appear above cursor when ready
+  - Can continue issuing commands while waiting
+
 ## [5.6.48] - 2026-01-21
 
 ### Added

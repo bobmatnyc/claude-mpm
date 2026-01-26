@@ -100,13 +100,19 @@ class ConnectionManagerService:
         - Completes in 20-50ms, which is acceptable for hook handlers
         """
         # Create event data for normalization
+        # WHY check both session_id and sessionId: Hook handlers use session_id
+        # (underscore) but some legacy code might use sessionId (camelCase)
         raw_event = {
             "type": "hook",
             "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "data": data,
             "source": "claude_hooks",  # Identify the source
-            "session_id": data.get("sessionId"),  # Include session if available
+            "session_id": data.get("session_id") or data.get("sessionId"),
+            "correlation_id": data.get(
+                "correlation_id"
+            ),  # For pre_tool/post_tool pairing
+            "cwd": data.get("cwd") or data.get("working_directory"),  # Project path
         }
 
         # Normalize the event using EventNormalizer for consistent schema

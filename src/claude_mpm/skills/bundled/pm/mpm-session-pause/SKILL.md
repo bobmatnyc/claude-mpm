@@ -80,6 +80,7 @@ print(f"  cat .claude-mpm/sessions/{session_id}.md")
 - Git branch, recent commits, and file status
 - Primary task and current phase
 - Context message (if provided)
+- **TaskList state** (pending/in-progress tasks from Claude Code)
 
 **Resume Instructions:**
 - Quick-start commands

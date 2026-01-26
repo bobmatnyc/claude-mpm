@@ -71,6 +71,8 @@ REQUIRED_PM_SKILLS = [
     "mpm-circuit-breaker-enforcement",
     "mpm-tool-usage-guide",
     "mpm-session-management",
+    "mpm-session-pause",
+    "mpm-session-resume",
 ]
 
 # Tier 2: Recommended skills (deployed with standard install)
@@ -78,7 +80,6 @@ REQUIRED_PM_SKILLS = [
 RECOMMENDED_PM_SKILLS = [
     "mpm-config",
     "mpm-ticket-view",
-    "mpm-session-resume",
     "mpm-postmortem",
 ]
 

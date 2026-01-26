@@ -6,6 +6,12 @@ import shutil
 import threading
 import time
 from pathlib import Path
+from typing import Optional
+
+from claude_mpm.commander.port_manager import (
+    CommanderPortManager,
+    check_and_handle_port_conflict,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,16 +114,19 @@ def handle_commander_command(args) -> int:
 
     Args:
         args: Parsed command line arguments with:
-            - port: Port for daemon (default: 8765)
+            - port: Port for daemon (default: 8766)
             - host: Host for daemon (default: 127.0.0.1)
             - state_dir: Optional state directory path
             - debug: Enable debug logging
             - no_chat: Start daemon only without interactive chat
             - daemon_only: Alias for no_chat
+            - force: Force kill any process on the port
 
     Returns:
         Exit code (0 for success, 1 for error)
     """
+    port_manager: Optional[CommanderPortManager] = None
+
     try:
         # Import here to avoid circular dependencies
         import requests
@@ -146,19 +155,29 @@ def handle_commander_command(args) -> int:
         host = getattr(args, "host", "127.0.0.1")
         state_dir = getattr(args, "state_dir", None)
         no_chat = getattr(args, "no_chat", False) or getattr(args, "daemon_only", False)
+        force = getattr(args, "force", False)
 
-        # Check if daemon already running
-        daemon_running = False
-        try:
-            resp = requests.get(f"http://{host}:{port}/api/health", timeout=1)
-            if resp.status_code == 200:
-                print(f"{GREEN}✓{RESET} Daemon already running on {host}:{port}")
-                daemon_running = True
-        except (requests.RequestException, requests.ConnectionError):
+        # Pre-startup port conflict check
+        print(f"{DIM}Checking port {port}...{RESET}", end=" ", flush=True)
+        can_proceed, message, existing_pid = check_and_handle_port_conflict(
+            port=port, host=host, force=force
+        )
+        print()  # Newline after checking message
+        print(message)
+
+        if not can_proceed:
+            return 1
+
+        # Initialize port manager for PID file management
+        port_manager = CommanderPortManager(port=port, host=host)
+
+        # If there's a healthy existing daemon, use it
+        daemon_running = existing_pid is not None
+        if daemon_running:
+            # Existing healthy daemon found, no need to start new one
             pass
-
-        # Start daemon if not running
-        if not daemon_running:
+        else:
+            # Start daemon since no healthy existing daemon
             print(
                 f"{DIM}Starting daemon on {host}:{port}...{RESET}", end=" ", flush=True
             )
@@ -183,6 +202,11 @@ def handle_commander_command(args) -> int:
                     if resp.status_code == 200:
                         print(f"{GREEN}✓{RESET}")
                         daemon_running = True
+                        # Write PID file for the new daemon
+                        # Note: We get the actual daemon PID from the process on port
+                        process_info = port_manager.get_process_on_port()
+                        if process_info:
+                            port_manager.write_pid_file(process_info.pid)
                         break
                 except (requests.RequestException, requests.ConnectionError):
                     pass
@@ -199,6 +223,9 @@ def handle_commander_command(args) -> int:
                     time.sleep(1)
             except KeyboardInterrupt:
                 print(f"\n{DIM}Shutting down...{RESET}")
+                # Cleanup PID file on shutdown
+                if port_manager:
+                    port_manager.cleanup_pid_file()
                 return 0
 
         # Launch interactive chat
@@ -209,6 +236,9 @@ def handle_commander_command(args) -> int:
 
     except KeyboardInterrupt:
         logger.info("Commander interrupted by user")
+        # Cleanup PID file on interrupt
+        if port_manager:
+            port_manager.cleanup_pid_file()
         return 0
     except Exception as e:
         logger.error(f"Commander error: {e}", exc_info=True)

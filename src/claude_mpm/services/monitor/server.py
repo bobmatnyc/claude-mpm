@@ -567,7 +567,19 @@ class UnifiedMonitorServer:
 
             # Event ingestion endpoint for hook handlers
             async def api_events_handler(request):
-                """Handle HTTP POST events from hook handlers."""
+                """Handle HTTP POST events from hook handlers.
+
+                WHY this extraction logic:
+                Dashboard expects these fields at top-level of wrapped_event:
+                - session_id: For stream filtering (EventStream.getEventSource)
+                - source: For source display (EventStream.getEventSource fallback)
+                - correlation_id: For pre_tool/post_tool duration calculation
+                - cwd: For project path extraction (socket.svelte.ts)
+
+                The event_data arrives with nested structure:
+                  event_data.data.data.field (sometimes 2-3 levels deep)
+                We unwrap to get actual_data, then extract fields from it.
+                """
                 try:
                     data = await request.json()
 
@@ -576,21 +588,70 @@ class UnifiedMonitorServer:
                     event = data.get("event", "claude_event")
                     event_data = data.get("data", {})
 
-                    # Extract actual event name from subtype or type within data
+                    # Unwrap nested data structures
+                    # Hook events can be nested: data.data.data...
+                    actual_data = event_data
+                    while isinstance(actual_data.get("data"), dict):
+                        actual_data = actual_data["data"]
+
+                    # Extract actual event name from subtype or type
+                    # WHY check event_data first: The normalized event has subtype
+                    # at the outer level (event_data), while the unwrapped actual_data
+                    # is the inner payload that may not have subtype
                     actual_event = (
-                        event_data.get("subtype") or event_data.get("type") or event
+                        event_data.get("subtype")
+                        or actual_data.get("subtype")
+                        or event_data.get("type")
+                        or actual_data.get("type")
+                        or event
+                    )
+
+                    # Extract session_id (check both naming conventions)
+                    session_id = (
+                        actual_data.get("session_id")
+                        or actual_data.get("sessionId")
+                        or event_data.get("session_id")
+                        or event_data.get("sessionId")
+                    )
+
+                    # Extract source (default to "hook" for hook events)
+                    source = (
+                        actual_data.get("source") or event_data.get("source") or "hook"
+                    )
+
+                    # Extract correlation_id for pre_tool/post_tool pairing
+                    correlation_id = actual_data.get(
+                        "correlation_id"
+                    ) or event_data.get("correlation_id")
+
+                    # Extract working directory (check multiple field names)
+                    cwd = (
+                        actual_data.get("cwd")
+                        or actual_data.get("working_directory")
+                        or event_data.get("cwd")
+                        or event_data.get("working_directory")
                     )
 
                     # Categorize event and wrap in expected format
+                    # WHY promote fields to top-level: Dashboard components
+                    # (EventStream.svelte) check top-level fields first before
+                    # falling back to nested data fields
                     event_type = self._categorize_event(actual_event)
                     wrapped_event = {
                         "type": event_type,
-                        "subtype": event,
-                        "data": event_data,
-                        "timestamp": event_data.get("timestamp")
+                        "subtype": actual_event,
+                        "data": actual_data,
+                        "timestamp": actual_data.get("timestamp")
                         or datetime.now(timezone.utc).isoformat() + "Z",
-                        "session_id": event_data.get("session_id"),
+                        "session_id": session_id,
+                        "source": source,
                     }
+
+                    # Add optional fields if present
+                    if correlation_id:
+                        wrapped_event["correlation_id"] = correlation_id
+                    if cwd:
+                        wrapped_event["cwd"] = cwd
 
                     # Emit to Socket.IO clients via the categorized event type
                     if self.sio:

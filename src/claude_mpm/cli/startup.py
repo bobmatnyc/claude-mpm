@@ -312,7 +312,7 @@ def should_skip_background_services(args, processed_argv):
     """
     Determine if background services should be skipped for this command.
 
-    WHY: Some commands (help, version, configure, doctor) don't need
+    WHY: Some commands (help, version, configure, doctor, oauth) don't need
     background services and should start faster.
 
     NOTE: Headless mode with --resume skips background services because:
@@ -350,6 +350,7 @@ def should_skip_background_services(args, processed_argv):
             "hook-errors",
             "autotodos",
             "commander",
+            "oauth",
         ]
     )
 
@@ -1559,6 +1560,10 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         headless: If True, redirect stdout to stderr during startup.
                   This keeps stdout clean for JSON streaming in headless mode.
     """
+    # NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
+    # This allows migration results to be displayed in the startup banner
+    # See: cli/__init__.py lines 77-83
+
     # Wrap all startup operations in quiet_startup_context for headless mode
     # This redirects stdout to stderr, keeping stdout clean for JSON output
     with quiet_startup_context(headless=headless):

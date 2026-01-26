@@ -192,4 +192,83 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         "--force", action="store_true", help="Force overwrite existing configuration"
     )
 
+    # =========================================================================
+    # Service Management Commands (enable/disable/list)
+    # =========================================================================
+
+    # Enable MCP service
+    enable_parser = mcp_subparsers.add_parser(
+        MCPCommands.ENABLE.value,
+        help="Enable an MCP service in configuration",
+    )
+    enable_parser.add_argument(
+        "service_name",
+        help="Name of the MCP service to enable (e.g., kuzu-memory, mcp-github)",
+    )
+    enable_parser.add_argument(
+        "--interactive",
+        "-i",
+        action="store_true",
+        help="Prompt for required credentials interactively",
+    )
+    enable_parser.add_argument(
+        "--env",
+        "-e",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Set environment variable (can be used multiple times)",
+    )
+    enable_parser.add_argument(
+        "--global",
+        dest="use_global",
+        action="store_true",
+        help="Enable in global ~/.claude.json instead of project .mcp.json",
+    )
+
+    # Disable MCP service
+    disable_parser = mcp_subparsers.add_parser(
+        MCPCommands.DISABLE.value,
+        help="Disable an MCP service from configuration",
+    )
+    disable_parser.add_argument(
+        "service_name",
+        help="Name of the MCP service to disable",
+    )
+    disable_parser.add_argument(
+        "--global",
+        dest="use_global",
+        action="store_true",
+        help="Disable in global ~/.claude.json instead of project .mcp.json",
+    )
+
+    # List MCP services
+    list_parser = mcp_subparsers.add_parser(
+        MCPCommands.LIST.value,
+        help="List MCP services (available and enabled)",
+    )
+    list_parser.add_argument(
+        "--available",
+        "-a",
+        action="store_true",
+        help="Show all available services from registry",
+    )
+    list_parser.add_argument(
+        "--enabled",
+        "-e",
+        action="store_true",
+        help="Show only enabled services",
+    )
+    list_parser.add_argument(
+        "--global",
+        dest="use_global",
+        action="store_true",
+        help="Check global ~/.claude.json instead of project .mcp.json",
+    )
+    list_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed service information",
+    )
+
     return mcp_parser

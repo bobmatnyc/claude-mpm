@@ -80,15 +80,19 @@
 	// Create agents store from filtered events
 	const agentsStore = createAgentsStore(filteredEventsStore);
 
-	// Subscribe to tools store
-	let tools = $state<Tool[]>([]);
+	// Subscribe to tools store - use object wrapper to ensure Svelte 5 reactivity
+	let toolsWrapper = $state<{ value: Tool[] }>({ value: [] });
 
 	$effect(() => {
 		const unsubscribe = toolsStore.subscribe(value => {
-			tools = value;
+			console.log('[+page] Tools store updated:', value.length);
+			toolsWrapper = { value };  // Create new object reference to trigger reactivity
 		});
 		return unsubscribe;
 	});
+
+	// Derive tools from wrapper for use in template
+	let tools = $derived(toolsWrapper.value);
 
 	// Subscribe to agents store
 	let rootAgent = $state<AgentNode | null>(null);

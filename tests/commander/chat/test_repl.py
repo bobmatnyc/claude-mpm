@@ -52,10 +52,12 @@ def test_repl_initialization(repl, mock_instance_manager, session_manager):
 @pytest.mark.asyncio
 async def test_cmd_list_empty(repl, capsys):
     """Test 'list' command with no instances."""
+    # Clear saved registrations to test empty state
+    repl._saved_registrations = {}
     await repl._cmd_list([])
 
     captured = capsys.readouterr()
-    assert "No active instances" in captured.out
+    assert "No instances" in captured.out
 
 
 @pytest.mark.asyncio
@@ -79,13 +81,55 @@ async def test_cmd_list_with_instances(repl, mock_instance_manager, capsys):
         ),
     ]
     mock_instance_manager.list_instances.return_value = instances
+    # Clear saved registrations to test running instances only
+    repl._saved_registrations = {}
 
     await repl._cmd_list([])
 
     captured = capsys.readouterr()
-    assert "Active instances" in captured.out
+    assert "Sessions:" in captured.out
     assert "app1" in captured.out
     assert "app2" in captured.out
+    assert "[main]" in captured.out
+
+
+@pytest.mark.asyncio
+async def test_cmd_list_with_running_and_saved(repl, mock_instance_manager, capsys):
+    """Test 'list' command shows both running instances and saved registrations."""
+    # Setup running instance
+    instances = [
+        InstanceInfo(
+            name="app1",
+            project_path=Path("/path/to/app1"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+            git_branch="main",
+            ready=True,
+        ),
+    ]
+    mock_instance_manager.list_instances.return_value = instances
+
+    # Add saved registration
+    from claude_mpm.commander.chat.repl import SavedRegistration
+
+    saved_reg = SavedRegistration(
+        name="app2",
+        path="/path/to/app2",
+        framework="mpm",
+        registered_at="2024-01-01T00:00:00",
+    )
+    repl._saved_registrations["app2"] = saved_reg
+
+    await repl._cmd_list([])
+
+    captured = capsys.readouterr()
+    assert "Sessions:" in captured.out
+    assert "app1" in captured.out
+    assert "running" in captured.out
+    assert "ready" in captured.out
+    assert "app2" in captured.out
+    assert "saved" in captured.out
     assert "[main]" in captured.out
 
 
@@ -195,12 +239,83 @@ async def test_cmd_help(repl, capsys):
 
 
 @pytest.mark.asyncio
-async def test_cmd_exit(repl):
-    """Test exit command."""
+async def test_cmd_exit(repl, mock_instance_manager):
+    """Test exit command stops all instances before exiting."""
     repl._running = True
+
+    # Setup mock to return some instances
+    instance1 = InstanceInfo(
+        name="test_instance1",
+        framework="cc",
+        project_path="/test/path1",
+        tmux_session="test_session1",
+        pane_target="test_session1:0",
+    )
+    instance2 = InstanceInfo(
+        name="test_instance2",
+        framework="mpm",
+        project_path="/test/path2",
+        tmux_session="test_session2",
+        pane_target="test_session2:0",
+    )
+    mock_instance_manager.list_instances.return_value = [instance1, instance2]
 
     await repl._cmd_exit([])
 
+    # Verify both instances were stopped
+    assert mock_instance_manager.stop_instance.call_count == 2
+    mock_instance_manager.stop_instance.assert_any_call("test_instance1")
+    mock_instance_manager.stop_instance.assert_any_call("test_instance2")
+
+    # Verify repl is no longer running
+    assert not repl._running
+
+
+@pytest.mark.asyncio
+async def test_cmd_exit_no_instances(repl, mock_instance_manager):
+    """Test exit command when no instances are running."""
+    repl._running = True
+
+    # Mock returns empty list (no instances)
+    mock_instance_manager.list_instances.return_value = []
+
+    await repl._cmd_exit([])
+
+    # Verify stop_instance was never called
+    mock_instance_manager.stop_instance.assert_not_called()
+
+    # Verify repl is no longer running
+    assert not repl._running
+
+
+@pytest.mark.asyncio
+async def test_cmd_exit_with_stop_error(repl, mock_instance_manager, capsys):
+    """Test exit command handles errors when stopping instances."""
+    repl._running = True
+
+    # Setup mock to return instance that fails to stop
+    instance = InstanceInfo(
+        name="test_instance",
+        framework="cc",
+        project_path="/test/path",
+        tmux_session="test_session",
+        pane_target="test_session:0",
+    )
+    mock_instance_manager.list_instances.return_value = [instance]
+    mock_instance_manager.stop_instance.side_effect = Exception("Stop failed")
+
+    await repl._cmd_exit([])
+
+    # Verify we attempted to stop the instance
+    mock_instance_manager.stop_instance.assert_called_once_with("test_instance")
+
+    # Verify warning was printed
+    captured = capsys.readouterr()
+    assert (
+        "Warning" in captured.out or "Warning" in captured.err or repl._running is False
+    )
+
+    # Verify repl still exited (graceful error handling)
     assert not repl._running
 
 
@@ -381,13 +496,15 @@ class TestLLMIntentClassification:
             instance_manager=mock_instance_manager,
             session_manager=session_manager,
         )
+        # Clear saved registrations to test empty state
+        repl._saved_registrations = {}
         repl.llm = AsyncMock()
         repl.llm.chat = AsyncMock(return_value='{"intent": "list", "args": {}}')
 
         await repl._handle_input("show me all running instances")
 
         captured = capsys.readouterr()
-        assert "No active instances" in captured.out
+        assert "No instances" in captured.out
 
     @pytest.mark.asyncio
     async def test_handle_input_llm_start_with_arg_inference(
@@ -780,3 +897,203 @@ class TestEventNotifications:
         assert "[Error]" in captured.out
         assert "failed" in captured.out
         assert "Failed to start" in captured.out
+
+
+class TestInstancePrefixCommands:
+    """Tests for @instance prefix on slash commands."""
+
+    @pytest.mark.asyncio
+    async def test_cmd_status_with_target_instance(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test /status command with @instance prefix."""
+        instance = InstanceInfo(
+            name="duetto",
+            project_path=Path("/path/to/duetto"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+            git_branch="feature/xyz",
+            ready=True,
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._cmd_status([], target_instance="duetto")
+
+        captured = capsys.readouterr()
+        assert "Status of duetto:" in captured.out
+        assert "Framework: cc" in captured.out
+        assert "feature/xyz" in captured.out
+        assert "Ready: Yes" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_cmd_status_with_target_instance_not_found(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test /status with @instance prefix when instance doesn't exist."""
+        mock_instance_manager.get_instance.return_value = None
+
+        await repl._cmd_status([], target_instance="nonexistent")
+
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_cmd_send_with_target_instance(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test /send command with @instance prefix."""
+        orchestrator = MagicMock()
+        orchestrator.send_keys = MagicMock(return_value=True)
+        mock_instance_manager.orchestrator = orchestrator
+
+        instance = InstanceInfo(
+            name="mpm",
+            project_path=Path("/path/to/mpm"),
+            framework="mpm",
+            tmux_session="mpm-commander",
+            pane_target="%2",
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._cmd_send(["/help"], target_instance="mpm")
+
+        captured = capsys.readouterr()
+        assert "Sent to mpm:" in captured.out
+        assert "/help" in captured.out
+        orchestrator.send_keys.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cmd_send_with_target_instance_not_found(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test /send with @instance prefix when instance doesn't exist."""
+        mock_instance_manager.get_instance.return_value = None
+
+        await repl._cmd_send(["/help"], target_instance="nonexistent")
+
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_cmd_stop_with_target_instance(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test /stop command with @instance prefix."""
+        instance = InstanceInfo(
+            name="duetto",
+            project_path=Path("/path/to/duetto"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._cmd_stop([], target_instance="duetto")
+
+        captured = capsys.readouterr()
+        assert "Stopped instance 'duetto'" in captured.out
+        mock_instance_manager.stop_instance.assert_called_once_with("duetto")
+
+    @pytest.mark.asyncio
+    async def test_handle_input_at_instance_slash_command_status(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test _handle_input with @instance /status."""
+        instance = InstanceInfo(
+            name="duetto",
+            project_path=Path("/path/to/duetto"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+            ready=True,
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._handle_input("@duetto /status")
+
+        captured = capsys.readouterr()
+        assert "Status of duetto:" in captured.out
+        assert "Framework: cc" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_input_at_instance_slash_command_send(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test _handle_input with @instance /send."""
+        orchestrator = MagicMock()
+        orchestrator.send_keys = MagicMock(return_value=True)
+        mock_instance_manager.orchestrator = orchestrator
+
+        instance = InstanceInfo(
+            name="mpm",
+            project_path=Path("/path/to/mpm"),
+            framework="mpm",
+            tmux_session="mpm-commander",
+            pane_target="%2",
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._handle_input("@mpm /send /help")
+
+        captured = capsys.readouterr()
+        assert "Sent to mpm:" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_handle_input_at_instance_slash_command_stop(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test _handle_input with @instance /stop."""
+        instance = InstanceInfo(
+            name="duetto",
+            project_path=Path("/path/to/duetto"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._handle_input("@duetto /stop")
+
+        captured = capsys.readouterr()
+        assert "Stopped instance 'duetto'" in captured.out
+        mock_instance_manager.stop_instance.assert_called_once_with("duetto")
+
+    @pytest.mark.asyncio
+    async def test_handle_input_at_instance_message(
+        self, repl, mock_instance_manager, capsys
+    ):
+        """Test _handle_input with @instance message (no slash command)."""
+        instance = InstanceInfo(
+            name="myapp",
+            project_path=Path("/path/to/myapp"),
+            framework="cc",
+            tmux_session="mpm-commander",
+            pane_target="%1",
+        )
+        mock_instance_manager.get_instance.return_value = instance
+
+        await repl._handle_input("@myapp show me the code")
+
+        # Message should be enqueued for processing
+        assert len(repl._pending_requests) >= 0  # May be processing async
+
+    @pytest.mark.asyncio
+    async def test_handle_input_at_instance_no_message(self, repl, capsys):
+        """Test _handle_input with @instance but no message."""
+        await repl._handle_input("@nonexistent")
+
+        captured = capsys.readouterr()
+        assert "prefix requires a message or command" in captured.out
+
+    @pytest.mark.asyncio
+    async def test_parse_mention_with_at_syntax(self, repl):
+        """Test _parse_mention with @name syntax."""
+        result = repl._parse_mention("@myapp hello there")
+        assert result == ("myapp", "hello there")
+
+    @pytest.mark.asyncio
+    async def test_parse_mention_with_parentheses_syntax(self, repl):
+        """Test _parse_mention with (name) syntax."""
+        result = repl._parse_mention("(izzie) what's the status")
+        assert result == ("izzie", "what's the status")

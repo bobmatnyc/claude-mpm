@@ -15,10 +15,15 @@ class CommandType(Enum):
     REGISTER = "register"
     CONNECT = "connect"
     DISCONNECT = "disconnect"
+    SAVED = "saved"
+    FORGET = "forget"
     STATUS = "status"
     HELP = "help"
     EXIT = "exit"
     INSTANCES = "instances"  # alias for list
+    MPM_OAUTH = "mpm-oauth"
+    CLEANUP = "cleanup"
+    SEND = "send"
 
 
 @dataclass
@@ -44,11 +49,16 @@ class CommandParser:
         "switch": CommandType.CONNECT,  # alias for connect
         "list": CommandType.LIST,
         "ls": CommandType.LIST,
+        "saved": CommandType.SAVED,
+        "forget": CommandType.FORGET,
         "status": CommandType.STATUS,
         "help": CommandType.HELP,
         "exit": CommandType.EXIT,
         "quit": CommandType.EXIT,
         "q": CommandType.EXIT,
+        "mpm-oauth": CommandType.MPM_OAUTH,
+        "cleanup": CommandType.CLEANUP,
+        "send": CommandType.SEND,
     }
 
     def parse(self, input_text: str) -> Optional[Command]:

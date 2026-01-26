@@ -10,7 +10,7 @@ MCP service installations.
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404 - Required for MCP service management
 import sys
 from enum import Enum
 from pathlib import Path
@@ -150,6 +150,86 @@ class MCPConfigManager:
 
         return is_enabled
 
+    def get_registry_service_config(
+        self, service_name: str, env_overrides: Optional[Dict[str, str]] = None
+    ) -> Optional[Dict]:
+        """
+        Get configuration for a service from the MCP Service Registry.
+
+        Args:
+            service_name: Name of the service
+            env_overrides: Optional environment variable overrides
+
+        Returns:
+            Service configuration dict or None if service not in registry
+        """
+        try:
+            from .mcp_service_registry import MCPServiceRegistry
+
+            service = MCPServiceRegistry.get(service_name)
+            if not service:
+                return None
+
+            return MCPServiceRegistry.generate_config(service, env_overrides)
+        except ImportError:
+            self.logger.debug("MCP Service Registry not available")
+            return None
+
+    def filter_services_by_mcp_flag(
+        self, mcp_flag: Optional[str], all_services: Dict[str, Dict]
+    ) -> Dict[str, Dict]:
+        """
+        Filter MCP services based on the --mcp command line flag.
+
+        Args:
+            mcp_flag: Comma-separated list of service names, or None for all
+            all_services: Dict of all available service configurations
+
+        Returns:
+            Filtered dict of service configurations
+        """
+        if not mcp_flag:
+            return all_services
+
+        # Parse comma-separated service names
+        requested_services = {s.strip() for s in mcp_flag.split(",") if s.strip()}
+
+        # Filter services
+        filtered = {}
+        for name, config in all_services.items():
+            if name in requested_services:
+                filtered[name] = config
+            else:
+                self.logger.debug(f"MCP service '{name}' excluded by --mcp flag")
+
+        # Warn about requested services that don't exist
+        available = set(all_services.keys())
+        missing = requested_services - available
+        if missing:
+            self.logger.warning(
+                f"Requested MCP services not available: {', '.join(missing)}"
+            )
+
+        return filtered
+
+    def list_available_services(self) -> list[str]:
+        """
+        List all available MCP services from registry and static configs.
+
+        Returns:
+            List of service names
+        """
+        services = set(self.STATIC_MCP_CONFIGS.keys())
+
+        try:
+            from .mcp_service_registry import MCPServiceRegistry
+
+            services.update(MCPServiceRegistry.list_names())
+        except ImportError:
+            pass
+
+        return sorted(services)
+
     def detect_service_path(self, service_name: str) -> Optional[str]:
         """
         Detect the best path for an MCP service.
@@ -185,7 +265,7 @@ class MCPConfigManager:
             # Choose the best candidate (prefer v1.1.0+ with MCP support)
             for path in candidates:
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 B607 - Controlled service help check
                         [path, "--help"],
                         capture_output=True,
                         text=True,
@@ -258,7 +338,7 @@ class MCPConfigManager:
     def _check_system_path(self, service_name: str) -> Optional[str]:
         """Check if service is available in system PATH."""
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - Controlled which command
                 ["which", service_name],
                 capture_output=True,
                 text=True,
@@ -356,7 +436,7 @@ class MCPConfigManager:
                 cmd.append("--help")
 
             # Run test command with timeout
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - Controlled service test command
                 cmd,
                 capture_output=True,
                 text=True,
@@ -560,7 +640,7 @@ class MCPConfigManager:
         # Try pipx run test
         if shutil.which("pipx"):
             try:
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Controlled pipx run command
                     ["pipx", "run", service_name, "--version"],
                     capture_output=True,
                     text=True,
@@ -576,7 +656,7 @@ class MCPConfigManager:
         # Try uvx if pipx run not available
         if not use_pipx_run and shutil.which("uvx"):
             try:
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Controlled uvx command
                     ["uvx", service_name, "--version"],
                     capture_output=True,
                     text=True,
@@ -876,7 +956,7 @@ class MCPConfigManager:
                             command_path = service_config.get("command", "")
                             results[service_name] = Path(command_path).exists()
                         return results
-                except Exception:
+                except Exception:  # nosec B110 - Graceful fallback to empty dict
                     pass
             return {}
 
@@ -946,7 +1026,7 @@ class MCPConfigManager:
         if shutil.which("pipx"):
             try:
                 self.logger.debug(f"Attempting to install {service_name} via pipx...")
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Controlled pipx install
                     ["pipx", "install", service_name],
                     capture_output=True,
                     text=True,
@@ -980,7 +1060,7 @@ class MCPConfigManager:
         if shutil.which("uvx"):
             try:
                 self.logger.debug(f"Attempting to install {service_name} via uvx...")
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Controlled uvx install
                     ["uvx", "install", service_name],
                     capture_output=True,
                     text=True,
@@ -997,7 +1077,7 @@ class MCPConfigManager:
         # Method 3: Try pip install --user
         try:
             self.logger.debug(f"Attempting to install {service_name} via pip --user...")
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - Controlled pip install
                 [sys.executable, "-m", "pip", "install", "--user", service_name],
                 capture_output=True,
                 text=True,
@@ -1093,7 +1173,7 @@ class MCPConfigManager:
                 self.logger.debug(
                     f"    Testing {service_name} from installed pipx venv: {pipx_venv_bin}"
                 )
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 - Controlled service help check
                     [str(pipx_venv_bin), "--help"],
                     capture_output=True,
                     text=True,
@@ -1145,7 +1225,7 @@ class MCPConfigManager:
             self.logger.debug(
                 f"    Testing {service_name} via pipx run (not installed in venv)"
             )
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607 - Controlled pipx run command
                 ["pipx", "run", service_name, "--help"],
                 capture_output=True,
                 text=True,
@@ -1216,7 +1296,7 @@ class MCPConfigManager:
             self.logger.debug(f"Uninstalling {service_name}...")
 
             # First uninstall the corrupted version
-            uninstall_result = subprocess.run(
+            uninstall_result = subprocess.run(  # nosec B603 B607 - Controlled pipx uninstall
                 ["pipx", "uninstall", service_name],
                 capture_output=True,
                 text=True,
@@ -1229,7 +1309,7 @@ class MCPConfigManager:
 
             # Now reinstall
             self.logger.debug(f"Installing fresh {service_name}...")
-            install_result = subprocess.run(
+            install_result = subprocess.run(  # nosec B603 B607 - Controlled pipx install
                 ["pipx", "install", service_name],
                 capture_output=True,
                 text=True,
@@ -1294,7 +1374,7 @@ class MCPConfigManager:
         for dep in missing_deps:
             try:
                 self.logger.debug(f"    Injecting {dep} into {service_name}...")
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 B607 - Controlled pipx inject
                     ["pipx", "inject", service_name, dep],
                     capture_output=True,
                     text=True,
@@ -1348,7 +1428,7 @@ class MCPConfigManager:
                 return False
 
             self.logger.info(f"  → Uninstalling {service_name}...")
-            uninstall_result = subprocess.run(
+            uninstall_result = subprocess.run(  # nosec B603 B607 - Controlled pipx uninstall
                 ["pipx", "uninstall", service_name],
                 capture_output=True,
                 text=True,
@@ -1363,7 +1443,7 @@ class MCPConfigManager:
                 )
 
             self.logger.info(f"  → Installing fresh {service_name}...")
-            install_result = subprocess.run(
+            install_result = subprocess.run(  # nosec B603 B607 - Controlled pipx install
                 ["pipx", "install", service_name],
                 capture_output=True,
                 text=True,
@@ -1439,7 +1519,7 @@ class MCPConfigManager:
             # Try pipx run as fallback for pipx installations
             if method == "pipx":
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 B607 - Controlled pipx command
                         ["pipx", "run", service_name, "--version"],
                         capture_output=True,
                         text=True,
@@ -1462,7 +1542,7 @@ class MCPConfigManager:
             ]
 
             for cmd in test_commands:
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603 - Controlled service verification
                     cmd,
                     capture_output=True,
                     text=True,

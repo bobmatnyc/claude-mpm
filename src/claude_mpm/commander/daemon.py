@@ -22,6 +22,7 @@ from .inbox import Inbox
 from .models.events import EventStatus
 from .parsing.output_parser import OutputParser
 from .persistence import EventStore, StateStore
+from .port_manager import CommanderPortManager
 from .project_session import ProjectSession, SessionState
 from .registry import ProjectRegistry
 from .runtime.monitor import RuntimeMonitor
@@ -89,6 +90,9 @@ class CommanderDaemon:
         self._running = False
         self._server_task: Optional[asyncio.Task] = None
         self._main_loop_task: Optional[asyncio.Task] = None
+
+        # Initialize port manager for PID file management
+        self._port_manager = CommanderPortManager(port=config.port, host=config.host)
 
         # Initialize persistence stores
         self.state_store = StateStore(config.state_dir)
@@ -195,6 +199,12 @@ class CommanderDaemon:
         logger.info("Starting main daemon loop")
         self._main_loop_task = asyncio.create_task(self.run())
 
+        # Write PID file for daemon tracking
+        import os
+
+        self._port_manager.write_pid_file(os.getpid())
+        logger.debug(f"Wrote PID file: {self._port_manager.pid_file}")
+
         logger.info("Commander daemon started successfully")
 
     async def stop(self) -> None:
@@ -245,6 +255,10 @@ class CommanderDaemon:
                 await self._server_task
             except asyncio.CancelledError:
                 pass
+
+        # Cleanup PID file
+        self._port_manager.cleanup_pid_file()
+        logger.debug(f"Cleaned up PID file: {self._port_manager.pid_file}")
 
         logger.info("Commander daemon stopped")
 

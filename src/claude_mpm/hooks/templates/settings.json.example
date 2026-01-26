@@ -1,9 +1,19 @@
 {
-  "// NOTE": "This is an example configuration for Claude Code PreToolUse hooks",
+  "// NOTE": "This is an example configuration for Claude Code hooks with async support",
   "// FILE": "Copy relevant sections to ~/.claude/settings.json",
-  "// VERSION": "Requires Claude Code 2.0.30+ for input modification",
+  "// VERSION": "Requires Claude Code 2.0.30+ for input modification, async hooks",
 
   "hooks": {
+    "// Async Hooks (Recommended)": {
+      "description": "Hooks that run in background without blocking Claude Code",
+      "output": "Hook script should output: {\"async\": true, \"asyncTimeout\": 60000}",
+      "benefits": [
+        "Non-blocking execution",
+        "Better performance for logging/monitoring",
+        "Parallel execution of multiple hooks"
+      ]
+    },
+
     "// PreToolUse with input modification (v2.0.30+)": {
       "description": "Hooks that can modify tool inputs before execution",
       "examples": [
@@ -24,7 +34,9 @@
             "// IMPORTANT": "Replace YOUR_USERNAME with your actual username",
             "command": "/Users/YOUR_USERNAME/.claude-mpm/hooks/my_hook.py",
             "// modifyInput": "Set to true to enable input modification (v2.0.30+)",
-            "modifyInput": true
+            "modifyInput": true,
+            "// timeout": "Max seconds to wait for hook response (default: 60)",
+            "timeout": 60
           }
         ]
       }
