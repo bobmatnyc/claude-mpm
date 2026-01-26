@@ -7,6 +7,8 @@ function createToolsStore(eventsStore: any) {
 		const events = $events as ClaudeEvent[];
 		const toolMap = new Map<string, Tool>();
 
+		console.log('[ToolsStore] Processing events:', events.length);
+
 		// Filter to tool events only
 		const toolEvents = events.filter((event: ClaudeEvent) => {
 			// Add type guards to prevent runtime errors when event.data is array/string
@@ -16,8 +18,14 @@ function createToolsStore(eventsStore: any) {
 					? (data as Record<string, unknown>).subtype as string | undefined
 					: undefined;
 			const eventSubtype = event.subtype || dataSubtype;
-			return eventSubtype === 'pre_tool' || eventSubtype === 'post_tool';
+			const isToolEvent = eventSubtype === 'pre_tool' || eventSubtype === 'post_tool';
+			if (isToolEvent) {
+				console.log('[ToolsStore] Found tool event:', { id: event.id, subtype: eventSubtype, type: event.type });
+			}
+			return isToolEvent;
 		});
+
+		console.log('[ToolsStore] Filtered tool events:', toolEvents.length);
 
 		// Correlate pre/post events using utility
 		const correlations = correlateToolEvents(
@@ -25,9 +33,12 @@ function createToolsStore(eventsStore: any) {
 				event: e.subtype === 'pre_tool' ? 'pre-tool' : 'post-tool',
 				timestamp: e.timestamp,
 				session_id: e.session_id,
-				data: e.data
+				data: e.data,
+				correlation_id: e.correlation_id  // Include top-level correlation_id
 			}))
 		);
+
+		console.log('[ToolsStore] Correlations found:', correlations.size);
 
 		// Build tool map from correlations
 		correlations.forEach((pair, correlationId) => {
@@ -86,7 +97,7 @@ function createToolsStore(eventsStore: any) {
 		});
 
 		// Convert to sorted array (newest first)
-		return Array.from(toolMap.values()).sort((a, b) => {
+		const toolsArray = Array.from(toolMap.values()).sort((a, b) => {
 			const aTime = typeof a.timestamp === 'string'
 				? new Date(a.timestamp).getTime()
 				: a.timestamp;
@@ -95,6 +106,9 @@ function createToolsStore(eventsStore: any) {
 				: b.timestamp;
 			return bTime - aTime;
 		});
+
+		console.log('[ToolsStore] Final tools count:', toolsArray.length);
+		return toolsArray;
 	});
 
 	return tools;

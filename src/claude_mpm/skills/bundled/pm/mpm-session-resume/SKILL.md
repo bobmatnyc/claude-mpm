@@ -20,6 +20,7 @@ Load and display context from most recent paused session.
 - Session summary and time elapsed
 - Completed work and current tasks
 - Git context and recent commits
+- **Pending TaskList items** (from Claude Code TaskCreate/TaskList)
 - Next recommended actions
 
 **Session location:** `.claude-mpm/sessions/session-*.md`

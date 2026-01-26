@@ -387,29 +387,100 @@ main "$@"
             return False
         return self._version_meets_minimum(version, self.MIN_SKILLS_VERSION)
 
-    def get_hook_command(self) -> str:
+    def get_hook_command(self, use_fast_hook: bool = True) -> str:
         """Get the hook command based on installation method.
 
-        Priority order:
+        Priority order (when use_fast_hook=True, the default):
+        1. Fast bash hook script (~15ms) - claude-hook-fast.sh
+        2. claude-hook entry point (if fast hook not available)
+        3. Full Python bash script fallback
+
+        Priority order (when use_fast_hook=False):
         1. claude-hook entry point (uv tool install, pipx install, pip install)
-        2. Fallback to bash script (development installs)
+        2. Full Python bash script (claude-hook-handler.sh)
+
+        Args:
+            use_fast_hook: If True (default), prefer the fast bash hook for better performance.
+                          The fast hook is ~30x faster (~15ms vs ~450ms) but only supports
+                          event forwarding to the dashboard. Set to False if you need
+                          full Python processing (memory integration, auto-pause, etc.)
 
         Returns:
-            Command string for the hook handler (either 'claude-hook' or path to bash script)
+            Command string for the hook handler
 
         Raises:
             FileNotFoundError: If no hook handler can be found
         """
+        # Try fast hook first (default for performance)
+        if use_fast_hook:
+            try:
+                fast_script_path = self._get_fast_hook_script_path()
+                self.logger.info(f"Using fast bash hook (~15ms): {fast_script_path}")
+                return str(fast_script_path.absolute())
+            except FileNotFoundError:
+                self.logger.debug("Fast hook not found, falling back to standard hook")
+
         # Check if claude-hook entry point is available in PATH
         claude_hook_path = shutil.which("claude-hook")
         if claude_hook_path:
             self.logger.info(f"Using claude-hook entry point: {claude_hook_path}")
             return "claude-hook"
 
-        # Fallback to bash script for development installs
+        # Fallback to full Python bash script for development installs
         script_path = self._get_hook_script_path()
-        self.logger.info(f"Using fallback bash script: {script_path}")
+        self.logger.info(f"Using full Python bash script (~450ms): {script_path}")
         return str(script_path.absolute())
+
+    def _get_fast_hook_script_path(self) -> Path:
+        """Get the path to the fast bash hook handler script.
+
+        The fast hook (~15ms) is a pure bash script that:
+        - Extracts event data using string manipulation (no Python)
+        - Sends events to dashboard via fire-and-forget HTTP POST
+        - Returns immediately to not block Claude Code
+
+        Returns:
+            Path to the claude-hook-fast.sh script
+
+        Raises:
+            FileNotFoundError: If the script cannot be found
+        """
+        import claude_mpm
+
+        # Get the claude_mpm package directory
+        package_dir = Path(claude_mpm.__file__).parent
+
+        # Check if we're in a development environment (src structure)
+        if "src/claude_mpm" in str(package_dir):
+            # Development install - script is in src/claude_mpm/scripts
+            script_path = package_dir / "scripts" / "claude-hook-fast.sh"
+        else:
+            # Pip install - script should be in package/scripts
+            script_path = package_dir / "scripts" / "claude-hook-fast.sh"
+
+        # Verify the script exists
+        if not script_path.exists():
+            # Try alternative location for editable installs
+            project_root = package_dir.parent.parent
+            alt_path = (
+                project_root / "src" / "claude_mpm" / "scripts" / "claude-hook-fast.sh"
+            )
+            if alt_path.exists():
+                script_path = alt_path
+            else:
+                raise FileNotFoundError(
+                    f"Fast hook script not found. Searched:\n"
+                    f"  - {script_path}\n"
+                    f"  - {alt_path}"
+                )
+
+        # Make sure it's executable
+        if script_path.exists():
+            st = Path(script_path).stat()
+            Path(script_path).chmod(st.st_mode | stat.S_IEXEC)
+            return script_path
+
+        raise FileNotFoundError(f"Fast hook script not found at {script_path}")
 
     def _get_hook_script_path(self) -> Path:
         """Get the path to the fallback bash hook handler script.
@@ -652,9 +723,10 @@ main "$@"
             if cmd.get("type") != "command":
                 return False
             command = cmd.get("command", "")
-            # Match claude-hook entry point or bash script fallback
+            # Match claude-hook entry point or any claude-mpm bash script
             return (
                 command == "claude-hook"
+                or "claude-hook-fast.sh" in command
                 or "claude-hook-handler.sh" in command
                 or command.endswith("claude-mpm-hook.sh")
             )
@@ -962,11 +1034,23 @@ main "$@"
         # Try to get hook command (entry point or fallback script)
         hook_command = None
         using_entry_point = False
+        using_fast_hook = False
         try:
             hook_command = self.get_hook_command()
             using_entry_point = hook_command == "claude-hook"
+            using_fast_hook = "claude-hook-fast.sh" in (hook_command or "")
         except FileNotFoundError:
             hook_command = None
+
+        # Check if fast hook is available
+        fast_hook_available = False
+        fast_hook_path = None
+        try:
+            fast_script_path = self._get_fast_hook_script_path()
+            fast_hook_available = fast_script_path.exists()
+            fast_hook_path = str(fast_script_path)
+        except FileNotFoundError:
+            pass
 
         # For backward compatibility, also try to get the script path
         hook_script_str = None
@@ -986,15 +1070,23 @@ main "$@"
             "hook_command": hook_command,
             "hook_script": hook_script_str,  # Kept for backward compatibility
             "using_entry_point": using_entry_point,
+            "using_fast_hook": using_fast_hook,
+            "fast_hook_available": fast_hook_available,
+            "fast_hook_path": fast_hook_path,
             "settings_file": (
                 str(self.settings_file) if self.settings_file.exists() else None
             ),
             "claude_version": claude_version,
             "version_compatible": is_compatible,
             "version_message": version_message,
-            "deployment_type": "entry-point"
-            if using_entry_point
-            else "deployment-root",
+            "deployment_type": "fast-hook"
+            if using_fast_hook
+            else ("entry-point" if using_entry_point else "deployment-root"),
+            "performance_info": (
+                "Fast hook (~15ms) - event forwarding only"
+                if using_fast_hook
+                else "Full Python hook (~450ms) - complete processing"
+            ),
             "pretool_modify_supported": pretool_modify_supported,  # v2.0.30+ feature
             "pretool_modify_message": (
                 f"PreToolUse input modification supported (v{claude_version})"

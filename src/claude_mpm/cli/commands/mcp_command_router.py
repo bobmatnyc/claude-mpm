@@ -48,6 +48,15 @@ class MCPCommandRouter:
         if args.mcp_command == MCPCommands.EXTERNAL.value:
             return self._manage_external(args)
 
+        if args.mcp_command == MCPCommands.ENABLE.value:
+            return self._enable_service(args)
+
+        if args.mcp_command == MCPCommands.DISABLE.value:
+            return self._disable_service(args)
+
+        if args.mcp_command == MCPCommands.LIST.value:
+            return self._list_services(args)
+
         if args.mcp_command == "cleanup":
             return self._cleanup_locks(args)
 
@@ -134,6 +143,27 @@ class MCPCommandRouter:
         handler = MCPExternalCommands(self.logger)
         return handler.manage_external(args)
 
+    def _enable_service(self, args) -> int:
+        """Enable MCP service command handler."""
+        from .mcp_service_commands import MCPServiceCommands
+
+        handler = MCPServiceCommands(self.logger)
+        return handler.enable_service(args)
+
+    def _disable_service(self, args) -> int:
+        """Disable MCP service command handler."""
+        from .mcp_service_commands import MCPServiceCommands
+
+        handler = MCPServiceCommands(self.logger)
+        return handler.disable_service(args)
+
+    def _list_services(self, args) -> int:
+        """List MCP services command handler."""
+        from .mcp_service_commands import MCPServiceCommands
+
+        handler = MCPServiceCommands(self.logger)
+        return handler.list_services(args)
+
     def _show_help(self):
         """Show available MCP commands."""
         print("\nAvailable MCP commands:")
@@ -148,6 +178,10 @@ class MCPCommandRouter:
         print("  config   - View and manage configuration")
         print("  external - Manage external MCP services")
         print("  cleanup  - Clean up legacy files")
+        print("\nService management:")
+        print("  enable   - Enable an MCP service in configuration")
+        print("  disable  - Disable an MCP service from configuration")
+        print("  list     - List available and enabled MCP services")
         print("\nFor help with a specific command:")
         print("  claude-mpm mcp <command> --help")
         print("\nExamples:")
@@ -159,3 +193,8 @@ class MCPCommandRouter:
         print("  claude-mpm mcp tools")
         print("  claude-mpm mcp register my-tool")
         print("  claude-mpm mcp test my-tool")
+        print("\nService management examples:")
+        print("  claude-mpm mcp list --available       # List all available services")
+        print("  claude-mpm mcp enable kuzu-memory     # Enable a service")
+        print("  claude-mpm mcp enable mcp-github --interactive  # Enable with prompts")
+        print("  claude-mpm mcp disable mcp-github     # Disable a service")

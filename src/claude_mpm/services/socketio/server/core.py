@@ -87,6 +87,82 @@ class SocketIOServerCore:
         self.heartbeat_interval = 60  # seconds
         self.main_server = None  # Reference to main server for session data
 
+    def _categorize_event(self, event_name: str) -> str:
+        """Categorize event by name to determine Socket.IO event type.
+
+        Maps specific event names to their category for frontend filtering.
+        This ensures events like tool_event, hook_event reach the correct
+        client-side listeners.
+
+        Args:
+            event_name: The raw event name (e.g., "subagent_start", "pre_tool")
+
+        Returns:
+            Category name (e.g., "hook_event", "tool_event", "claude_event")
+        """
+        # Hook events - agent lifecycle and todo updates
+        if event_name in ("subagent_start", "subagent_stop", "todo_updated"):
+            return "hook_event"
+
+        # Tool events - both hook-style and direct tool events
+        if event_name in (
+            "pre_tool",
+            "post_tool",
+            "tool.start",
+            "tool.end",
+            "tool_use",
+            "tool_result",
+        ):
+            return "tool_event"
+
+        # Session events - session lifecycle
+        if event_name in (
+            "session.started",
+            "session.ended",
+            "session_start",
+            "session_end",
+        ):
+            return "session_event"
+
+        # Response events - API response lifecycle
+        if event_name in (
+            "response.start",
+            "response.end",
+            "response_started",
+            "response_ended",
+        ):
+            return "response_event"
+
+        # Agent events - agent delegation and returns
+        if event_name in (
+            "agent.delegated",
+            "agent.returned",
+            "agent_start",
+            "agent_end",
+        ):
+            return "agent_event"
+
+        # File events - file operations
+        if event_name in (
+            "file.read",
+            "file.write",
+            "file.edit",
+            "file_read",
+            "file_write",
+        ):
+            return "file_event"
+
+        # Claude API events
+        if event_name in ("user_prompt", "assistant_message"):
+            return "claude_event"
+
+        # System events
+        if event_name in ("system_ready", "system_shutdown"):
+            return "system_event"
+
+        # Default to claude_event for unknown events
+        return "claude_event"
+
     def start_sync(self):
         """Start the Socket.IO server in a background thread (synchronous version)."""
         if not SOCKETIO_AVAILABLE:
@@ -435,7 +511,11 @@ class SocketIOServerCore:
 
                         # Use the broadcaster's sio to emit (it's the same as self.sio)
                         # This ensures the event goes through the proper channels
-                        await self.sio.emit("claude_event", event_data)
+                        # Categorize event so client receives correct event type
+                        event_type = self._categorize_event(
+                            event_data.get("subtype", "unknown")
+                        )
+                        await self.sio.emit(event_type, event_data)
 
                         # Update broadcaster stats
                         if hasattr(self.main_server.broadcaster, "stats"):
@@ -455,7 +535,10 @@ class SocketIOServerCore:
                         self.logger.warning(
                             "Broadcaster not available, using direct emit"
                         )
-                        await self.sio.emit("claude_event", event_data)
+                        event_type = self._categorize_event(
+                            event_data.get("subtype", "unknown")
+                        )
+                        await self.sio.emit(event_type, event_data)
 
                         # Update stats manually if using fallback
                         self.stats["events_sent"] = self.stats.get("events_sent", 0) + 1
@@ -577,13 +660,18 @@ class SocketIOServerCore:
 
             abs_path = Path(Path(file_path).resolve().expanduser())
 
-            # Security check - ensure file is within the project
+            # Security check - ensure file is within user's home directory
+            # Dashboard monitors events from ANY project, so we allow reading
+            # any file within the user's home (localhost-only service)
             try:
-                project_root = Path.cwd()
-                if not abs_path.startswith(project_root):
-                    return web.json_response({"error": "Access denied"}, status=403)
+                home_dir = Path.home()
+                if not abs_path.is_relative_to(home_dir):
+                    return web.json_response(
+                        {"error": "Access denied - file must be within home directory"},
+                        status=403,
+                    )
             except Exception:
-                pass
+                pass  # nosec B110 - intentional: allow request if path check fails
 
             if not Path(abs_path).exists():
                 return web.json_response({"error": "File not found"}, status=404)
@@ -613,7 +701,8 @@ class SocketIOServerCore:
 
                 return web.json_response(
                     {
-                        "path": abs_path,
+                        "success": True,
+                        "path": str(abs_path),
                         "name": Path(abs_path).name,
                         "content": content,
                         "lines": len(content.splitlines()),
@@ -728,7 +817,7 @@ class SocketIOServerCore:
         # Add git history endpoint
         async def git_history_handler(request):
             """Handle POST /api/git-history for getting file git history."""
-            import subprocess
+            import subprocess  # nosec B404 - required for git operations
 
             try:
                 # Parse JSON body
@@ -751,7 +840,7 @@ class SocketIOServerCore:
                     )
 
                 # Get git log for file
-                result = subprocess.run(
+                result = subprocess.run(  # nosec B603, B607 - safe git command
                     [
                         "git",
                         "log",

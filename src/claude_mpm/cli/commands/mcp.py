@@ -33,7 +33,27 @@ def manage_mcp(args):
     """
     logger = get_logger("cli.mcp")
 
-    # First check if MCP package is installed for any command
+    # Commands that don't require full MCP Gateway or mcp package
+    # These only need mcp_service_registry which doesn't require the mcp package
+    service_mgmt_commands = {
+        MCPCommands.ENABLE.value,
+        MCPCommands.DISABLE.value,
+        MCPCommands.LIST.value,
+    }
+
+    # Route service management commands directly without any MCP dependencies
+    if args.mcp_command in service_mgmt_commands:
+        try:
+            from .mcp_command_router import MCPCommandRouter
+
+            router = MCPCommandRouter(logger)
+            return router.route_command(args)
+        except Exception as e:
+            logger.error(f"Error running service command: {e}", exc_info=True)
+            print(f"Error: {e}")
+            return 1
+
+    # Now check for mcp package for other commands
     import importlib.util
 
     mcp_spec = importlib.util.find_spec("mcp")
@@ -58,22 +78,14 @@ def manage_mcp(args):
         except ImportError as e:
             # Provide minimal fallbacks for basic commands
             logger.warning(f"Some MCP Gateway services not available: {e}")
-
-            # Allow install command to proceed
-            if args.mcp_command == MCPCommands.INSTALL.value:
-                MCPConfiguration = None
-                MCPServiceRegistry = None
-                ToolRegistry = None
-                MCPGateway = None
-            else:
-                print(
-                    "\nError: MCP Gateway services not fully available",
-                    file=sys.stderr,
-                )
-                print(f"Details: {e}", file=sys.stderr)
-                print("\nTry running:", file=sys.stderr)
-                print("  claude-mpm mcp install", file=sys.stderr)
-                return 1
+            print(
+                "\nError: MCP Gateway services not fully available",
+                file=sys.stderr,
+            )
+            print(f"Details: {e}", file=sys.stderr)
+            print("\nTry running:", file=sys.stderr)
+            print("  claude-mpm mcp install", file=sys.stderr)
+            return 1
 
         if not args.mcp_command:
             # No subcommand - show status by default

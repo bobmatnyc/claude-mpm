@@ -20,10 +20,9 @@ export function correlateToolEvents(events: StreamEvent[]): Map<
   const correlations = new Map<string, { pre: StreamEvent; post?: StreamEvent }>();
 
   for (const event of events) {
-    if (!event.data || typeof event.data !== 'object') continue;
-
-    const data = event.data as Record<string, unknown>;
-    const correlationId = data.correlation_id as string | undefined;
+    // Check for correlation_id at top level first (normalized events), then in data
+    const data = event.data && typeof event.data === 'object' ? event.data as Record<string, unknown> : null;
+    const correlationId = (event as any).correlation_id || data?.correlation_id as string | undefined;
 
     if (!correlationId) continue;
 
@@ -64,9 +63,14 @@ export function getToolName(event: StreamEvent): string {
 }
 
 /**
- * Extracts correlation ID from event data
+ * Extracts correlation ID from event (checks top-level first, then data)
  */
 export function getCorrelationId(event: StreamEvent): string | undefined {
+  // Check top-level first (normalized events have correlation_id at root)
+  if ((event as any).correlation_id) {
+    return (event as any).correlation_id as string;
+  }
+  // Fall back to checking in data
   if (!event.data || typeof event.data !== 'object') return undefined;
   const data = event.data as Record<string, unknown>;
   return data.correlation_id as string | undefined;

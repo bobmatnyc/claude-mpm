@@ -114,3 +114,9 @@ Examples:
         action="store_true",
         help="Alias for --no-chat (start daemon only)",
     )
+
+    commander_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force kill any process using the port (use with caution)",
+    )

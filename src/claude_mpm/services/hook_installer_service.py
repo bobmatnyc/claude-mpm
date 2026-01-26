@@ -303,8 +303,14 @@ class HookInstallerService:
                 settings = {}
                 self.logger.debug("Creating new Claude settings")
 
-            # Configure hooks
-            new_hook_command = {"type": "command", "command": hook_script_path}
+            # Configure hooks with async timeout
+            # The hook script returns {"async": true} for non-blocking execution
+            # timeout: 60 seconds max wait for initial response (async returns immediately)
+            new_hook_command = {
+                "type": "command",
+                "command": hook_script_path,
+                "timeout": 60,
+            }
 
             # Update settings
             if "hooks" not in settings:

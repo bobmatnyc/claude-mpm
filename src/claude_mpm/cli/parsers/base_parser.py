@@ -310,6 +310,17 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Disable Claude in Chrome integration (passed to Claude Code)",
     )
+    run_group.add_argument(
+        "--slack",
+        action="store_true",
+        help="Start the Slack MPM bot (requires SLACK_BOT_TOKEN and SLACK_APP_TOKEN)",
+    )
+    run_group.add_argument(
+        "--mcp",
+        type=str,
+        metavar="SERVICES",
+        help="Comma-separated list of MCP services to enable for this session (e.g., --mcp kuzu-memory,mcp-ticketer)",
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(
@@ -514,6 +525,13 @@ def create_parser(
         from .commander_parser import add_commander_subparser
 
         add_commander_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
+        from .oauth_parser import add_oauth_subparser
+
+        add_oauth_subparser(subparsers)
     except ImportError:
         pass
 

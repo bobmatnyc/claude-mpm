@@ -69,6 +69,7 @@ def filter_claude_mpm_args(claude_args):
         "--launch-method",
         "--mpm-resume",
         "--reload-agents",  # New flag to force rebuild system agents
+        "--slack",  # Start Slack bot instead of Claude session
         # Dependency checking flags (MPM-specific)
         "--no-check-dependencies",
         "--force-check-dependencies",
@@ -786,6 +787,23 @@ def run_session_legacy(args):
         logger.info("Starting Claude MPM session")
         # Log file already announced in startup_logging.py when created
 
+    # Run pending migrations on version upgrade
+    # This is fast for already-migrated installs (just a file check)
+    try:
+        from ..migrations.runner import run_pending_migrations
+
+        migrations_run = run_pending_migrations()
+        if migrations_run > 0:
+            logger.info(f"Completed {migrations_run} migration(s)")
+    except Exception as e:
+        # Don't block startup on migration errors
+        logger.warning(f"Migration check failed: {e}")
+
+    # Handle --slack flag: start Slack bot instead of Claude session
+    if getattr(args, "slack", False):
+        _start_slack_bot(logger)
+        return  # Exit after Slack bot stops
+
     # Clean up old startup logs (using configured retention count)
     if args.logging != LogLevel.OFF.value:
         try:
@@ -1236,6 +1254,67 @@ def _check_claude_json_memory(args, logger):
     warning = checker.check_memory(resume_enabled)
     if warning:
         checker.display_warnings([warning])
+
+
+def _start_slack_bot(logger):
+    """Start the Slack MPM bot.
+
+    WHY: Provides a separate mode to run the Slack bot instead of a Claude session.
+    This allows `claude-mpm --slack` to start the bot directly.
+
+    Args:
+        logger: Logger instance for output
+    """
+    import os
+
+    # Check for required environment variables
+    bot_token = os.environ.get("SLACK_BOT_TOKEN")
+    app_token = os.environ.get("SLACK_APP_TOKEN")
+
+    if not bot_token:
+        logger.error("SLACK_BOT_TOKEN not set. Run: source .env.local")
+        print("\n❌ Missing SLACK_BOT_TOKEN environment variable")
+        print("Set it with: export SLACK_BOT_TOKEN=xoxb-...")
+        print("Or source your .env.local: source .env.local")
+        return
+
+    if not app_token:
+        logger.error("SLACK_APP_TOKEN not set. Run: source .env.local")
+        print("\n❌ Missing SLACK_APP_TOKEN environment variable")
+        print("Set it with: export SLACK_APP_TOKEN=xapp-...")
+        print("Or source your .env.local: source .env.local")
+        return
+
+    try:
+        from slack_bolt import App
+        from slack_bolt.adapter.socket_mode import SocketModeHandler
+
+        from ...slack_client.handlers.commands import register_commands
+
+        print("\n🚀 Starting Claude MPM Slack Bot...")
+        logger.info("Starting Slack MPM bot in Socket Mode")
+
+        # Initialize the app
+        app = App(token=bot_token)
+
+        # Register command handlers
+        register_commands(app)
+
+        # Start Socket Mode
+        handler = SocketModeHandler(app, app_token)
+        print("✅ Bot connected! Listening for commands...")
+        print("   Press Ctrl+C to stop\n")
+        handler.start()
+
+    except ImportError as e:
+        logger.error(f"Missing Slack dependencies: {e}")
+        print("\n❌ Missing Slack dependencies")
+        print("Install with: pip install slack-bolt slack-sdk")
+        print("Or: pip install claude-mpm[slack]")
+
+    except Exception as e:
+        logger.error(f"Slack bot error: {e}")
+        print(f"\n❌ Error starting Slack bot: {e}")
 
 
 def _check_configuration_health(logger):

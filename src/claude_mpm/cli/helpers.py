@@ -30,7 +30,7 @@ def is_interactive_session() -> bool:
 
 def should_skip_config_check(command: str | None) -> bool:
     """Check if command should skip configuration check."""
-    skip_commands = ["configure", "doctor", "info", "mcp", "config"]
+    skip_commands = ["configure", "doctor", "info", "mcp", "config", "oauth"]
     return command in skip_commands if command else False
 
 

@@ -68,11 +68,14 @@ async def run_commander(
     if config is None:
         config = CommanderCLIConfig(port=port, state_dir=state_dir)
 
-    # Setup logging
+    # Setup logging - suppress noisy libraries
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
+    # Suppress httpx request logging (very verbose)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     # Initialize components
     logger.info("Initializing Commander...")
