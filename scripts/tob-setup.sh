@@ -126,17 +126,31 @@ fi
 echo ""
 
 # =============================================================================
-# 3. Enable MCP Services
+# 3. Install and Enable MCP Services
 # =============================================================================
+
+log_info "=== Installing MCP Services ==="
+
+UPSTREAM_ORG="bobmatnyc"
+MCP_SERVICES=(kuzu-memory mcp-vector-search mcp-ticketer mcp-skillset)
+
+for service in "${MCP_SERVICES[@]}"; do
+    log_info "Installing $service..."
+    if pipx install "git+https://github.com/$UPSTREAM_ORG/$service.git" --force 2>/dev/null; then
+        log_success "$service installed"
+    else
+        log_warn "$service installation failed - may need manual setup"
+    fi
+done
 
 log_info "=== Enabling MCP Services ==="
 
-for service in kuzu-memory mcp-vector-search mcp-ticketer mcp-skillset; do
+for service in "${MCP_SERVICES[@]}"; do
     log_info "Enabling $service..."
     if claude-mpm mcp enable "$service" --global 2>/dev/null; then
         log_success "$service enabled"
     else
-        log_warn "$service could not be enabled - may need manual setup"
+        log_warn "$service could not be enabled - configure manually in ~/.claude/settings.json"
     fi
 done
 
