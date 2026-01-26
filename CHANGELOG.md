@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.6.92] - 2026-01-25
+
+### Added
+- Version-based migration system for automatic upgrades
+- Migrations run automatically on first startup of new version
+- Migration state tracked in ~/.claude-mpm/migrations.json
+
 ## [5.6.91] - 2026-01-25
 
 ### Added
