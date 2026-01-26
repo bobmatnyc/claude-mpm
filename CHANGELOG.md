@@ -10,6 +10,12 @@
 
 ### Tests
 
+## [5.6.93] - 2026-01-26
+
+### Fixed
+- Monitor dashboard timestamp display issues ("Invalid Date" and "NaNm NaNs")
+- Event history not loading on dashboard connect
+
 ## [5.6.92] - 2026-01-25
 
 ### Added
