@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.6.91] - 2026-01-25
+
+### Added
+- Async hook execution mode for non-blocking hook processing
+- Migration script: `python -m claude_mpm.migrations.migrate_async_hooks`
+
+### Changed
+- Hooks now return `{"async": true}` for non-blocking execution
+
 ## [5.6.90] - 2026-01-25
 
 ### Added
