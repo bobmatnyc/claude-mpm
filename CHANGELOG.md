@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.95] - 2026-01-26
+
+### Changed
+- Patch version bump
+
 ## [5.6.94] - 2026-01-26
 
 ### Fixed
