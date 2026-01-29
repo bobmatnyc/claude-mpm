@@ -162,6 +162,30 @@ class GoogleWorkspaceServer:
                         "required": ["file_id"],
                     },
                 ),
+                Tool(
+                    name="list_document_comments",
+                    description="List all comments on a Google Docs, Sheets, or Slides file. Returns comment content, author, timestamps, resolved status, and replies.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_id": {
+                                "type": "string",
+                                "description": "Google Drive file ID (from the document URL)",
+                            },
+                            "include_deleted": {
+                                "type": "boolean",
+                                "default": False,
+                                "description": "Include deleted comments",
+                            },
+                            "max_results": {
+                                "type": "integer",
+                                "default": 100,
+                                "description": "Maximum number of comments to return",
+                            },
+                        },
+                        "required": ["file_id"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -281,6 +305,7 @@ class GoogleWorkspaceServer:
             "get_gmail_message_content": self._get_gmail_message_content,
             "search_drive_files": self._search_drive_files,
             "get_drive_file_content": self._get_drive_file_content,
+            "list_document_comments": self._list_document_comments,
         }
 
         handler = handlers.get(name)
@@ -589,6 +614,88 @@ class GoogleWorkspaceServer:
             "mimeType": mime_type,
             "content": content,
         }
+
+    async def _list_document_comments(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """List comments on a Google Drive file (Docs, Sheets, Slides).
+
+        Args:
+            arguments: Tool arguments with file_id, include_deleted, max_results.
+
+        Returns:
+            List of comments with content, author, timestamps, resolved status, and replies.
+        """
+        file_id = arguments["file_id"]
+        include_deleted = arguments.get("include_deleted", False)
+        max_results = arguments.get("max_results", 100)
+
+        # Build request URL with required fields parameter
+        url = f"{DRIVE_API_BASE}/files/{file_id}/comments"
+        params = {
+            "fields": "comments(id,content,author(displayName,emailAddress),createdTime,modifiedTime,resolved,deleted,quotedFileContent,replies(id,content,author(displayName,emailAddress),createdTime,modifiedTime,deleted))",
+            "pageSize": min(max_results, 100),
+            "includeDeleted": str(include_deleted).lower(),
+        }
+
+        response = await self._make_request("GET", url, params=params)
+
+        comments = response.get("comments", [])
+        if not comments:
+            return {
+                "comments": [],
+                "count": 0,
+                "message": "No comments found on this document.",
+            }
+
+        # Format comments for readable output
+        formatted_comments = []
+        for comment in comments:
+            author = comment.get("author", {})
+            quoted = comment.get("quotedFileContent", {})
+
+            formatted_comment: dict[str, Any] = {
+                "id": comment.get("id"),
+                "author_name": author.get("displayName", "Unknown"),
+                "author_email": author.get("emailAddress", ""),
+                "created_time": comment.get("createdTime", ""),
+                "modified_time": comment.get("modifiedTime", ""),
+                "resolved": comment.get("resolved", False),
+                "deleted": comment.get("deleted", False),
+                "content": comment.get("content", ""),
+            }
+
+            # Add quoted text if present
+            if quoted.get("value"):
+                quoted_text = quoted.get("value", "")
+                # Truncate long quoted text
+                if len(quoted_text) > 200:
+                    quoted_text = quoted_text[:200] + "..."
+                formatted_comment["quoted_text"] = quoted_text
+
+            # Include replies if present
+            replies = comment.get("replies", [])
+            if replies:
+                formatted_replies = []
+                for reply in replies:
+                    reply_author = reply.get("author", {})
+                    formatted_replies.append(
+                        {
+                            "id": reply.get("id"),
+                            "author_name": reply_author.get("displayName", "Unknown"),
+                            "author_email": reply_author.get("emailAddress", ""),
+                            "created_time": reply.get("createdTime", ""),
+                            "modified_time": reply.get("modifiedTime", ""),
+                            "deleted": reply.get("deleted", False),
+                            "content": reply.get("content", ""),
+                        }
+                    )
+                formatted_comment["replies"] = formatted_replies
+                formatted_comment["reply_count"] = len(formatted_replies)
+
+            formatted_comments.append(formatted_comment)
+
+        return {"comments": formatted_comments, "count": len(formatted_comments)}
 
     async def run(self) -> None:
         """Run the MCP server using stdio transport."""
