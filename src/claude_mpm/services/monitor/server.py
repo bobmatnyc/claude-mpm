@@ -637,12 +637,23 @@ class UnifiedMonitorServer:
                     # (EventStream.svelte) check top-level fields first before
                     # falling back to nested data fields
                     event_type = self._categorize_event(actual_event)
+
+                    # Extract timestamp from event_data FIRST (where hook script puts it),
+                    # then fall back to actual_data (unwrapped inner payload),
+                    # then finally to current time.
+                    # BUG FIX: Previously only checked actual_data, but hook script
+                    # places timestamp at event_data level, not inside the inner data.
+                    event_timestamp = (
+                        event_data.get("timestamp")
+                        or actual_data.get("timestamp")
+                        or datetime.now(timezone.utc).isoformat() + "Z"
+                    )
+
                     wrapped_event = {
                         "type": event_type,
                         "subtype": actual_event,
                         "data": actual_data,
-                        "timestamp": actual_data.get("timestamp")
-                        or datetime.now(timezone.utc).isoformat() + "Z",
+                        "timestamp": event_timestamp,
                         "session_id": session_id,
                         "source": source,
                     }

@@ -216,7 +216,8 @@ function createSocketStore() {
 		});
 
 		// Listen for historical events sent on connection
-		newSocket.on('history', (data: { events: ClaudeEvent[], count: number, total_available: number }) => {
+		// Server emits 'event_history' on client connect
+		newSocket.on('event_history', (data: { events: ClaudeEvent[], count: number, total_available: number }) => {
 			console.log('Received event history:', data.count, 'events');
 			if (data.events && Array.isArray(data.events)) {
 				data.events.forEach(event => handleEvent(event));

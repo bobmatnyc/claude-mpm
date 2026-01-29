@@ -466,7 +466,7 @@
           <span class="px-2 py-0.5 rounded text-[10px] font-medium uppercase
             {diffCardData.operation === 'read' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : ''}
             {diffCardData.operation === 'write' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : ''}
-            {diffCardData.operation === 'edit' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : ''}">
+            {diffCardData.operation === 'edit' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' : ''}">
             {diffCardData.operation}
           </span>
         </div>

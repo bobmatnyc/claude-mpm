@@ -25,6 +25,13 @@ def _run_async_hooks_migration() -> bool:
     return migrate_all_settings()
 
 
+def _run_coauthor_email_migration() -> bool:
+    """Run the co-author email migration."""
+    from .migrate_coauthor_email import migrate_coauthor_email
+
+    return migrate_coauthor_email()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -32,6 +39,12 @@ MIGRATIONS: list[Migration] = [
         version="5.6.91",
         description="Migrate hooks to async execution mode",
         run=_run_async_hooks_migration,
+    ),
+    Migration(
+        id="5.6.95_coauthor_email",
+        version="5.6.95",
+        description="Update Co-Authored-By to Claude MPM <claude-mpm@matsuoka.com>",
+        run=_run_coauthor_email_migration,
     ),
 ]
 
