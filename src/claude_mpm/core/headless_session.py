@@ -386,28 +386,3 @@ class HeadlessSession:
         env["CI"] = "true"
 
         return env
-
-
-def run_headless(
-    prompt: Optional[str] = None,
-    resume_session: Optional[str] = None,
-    claude_args: Optional[list] = None,
-) -> int:
-    """Convenience function to run Claude in headless mode.
-
-    Args:
-        prompt: The prompt to send to Claude. If None, reads from stdin.
-        resume_session: Optional session ID to resume
-        claude_args: Additional arguments for Claude CLI
-
-    Returns:
-        Exit code from Claude Code process
-    """
-    # Create a minimal runner-like object for HeadlessSession
-    class MinimalRunner:
-        def __init__(self, args):
-            self.claude_args = args or []
-
-    runner = MinimalRunner(claude_args)
-    session = HeadlessSession(runner)
-    return session.run(prompt=prompt, resume_session=resume_session)

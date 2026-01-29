@@ -24,7 +24,7 @@ import pytest
 
 from claude_mpm.cli.commands.run import filter_claude_mpm_args, _run_headless_session
 from claude_mpm.cli.parsers.run_parser import add_run_arguments
-from claude_mpm.core.headless_session import HeadlessSession, run_headless
+from claude_mpm.core.headless_session import HeadlessSession
 
 
 # =============================================================================
@@ -553,55 +553,7 @@ class TestPromptHandling:
 
 
 # =============================================================================
-# 6. Run Headless Helper Function Tests
-# =============================================================================
-
-
-class TestRunHeadlessFunction:
-    """Test the run_headless convenience function."""
-
-    def test_run_headless_basic(self):
-        """run_headless should work with basic arguments."""
-        mock_process = Mock()
-        mock_process.communicate.return_value = ('{"type": "result"}\n', "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdout.write"):
-                with patch("sys.stdout.flush"):
-                    exit_code = run_headless(prompt="test prompt")
-
-        assert exit_code == 0
-
-    def test_run_headless_with_resume(self):
-        """run_headless should handle resume_session."""
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            run_headless(prompt="test", resume_session="abc123")
-
-        cmd = mock_popen.call_args[0][0]
-        assert "--resume" in cmd
-        assert "abc123" in cmd
-
-    def test_run_headless_with_custom_args(self):
-        """run_headless should pass through custom claude_args."""
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            run_headless(prompt="test", claude_args=["--model", "opus"])
-
-        cmd = mock_popen.call_args[0][0]
-        assert "--model" in cmd
-        assert "opus" in cmd
-
-
-# =============================================================================
-# 7. _run_headless_session Function Tests
+# 6. _run_headless_session Function Tests
 # =============================================================================
 
 
