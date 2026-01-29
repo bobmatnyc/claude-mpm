@@ -81,9 +81,9 @@ class TestResumeFlagVerification(unittest.TestCase):
         """Verify --resume is added at the beginning of claude_args."""
         # Import here to avoid circular imports
 
-        # Create mock args
+        # Create mock args - testing resume with session_id
         args = Mock()
-        args.resume = True
+        args.resume = "session123"  # Now takes a session_id string instead of True
         args.claude_args = ["--continue", "--max-tokens", "4000"]
         args.no_tickets = False
         args.monitor = False
@@ -122,22 +122,30 @@ class TestResumeFlagVerification(unittest.TestCase):
                                 MockRunner.assert_called_once()
                                 call_args = MockRunner.call_args
 
-                                # Check that claude_args includes --resume
+                                # Check that claude_args includes --resume and --fork-session
                                 claude_args = call_args[1]["claude_args"]
                                 self.assertIn("--resume", claude_args)
+                                self.assertIn("session123", claude_args)
+                                self.assertIn("--fork-session", claude_args)
 
                                 # Verify --resume is at the beginning
                                 self.assertEqual(claude_args[0], "--resume")
+                                self.assertEqual(claude_args[1], "session123")
+                                self.assertEqual(claude_args[2], "--fork-session")
 
     def test_end_to_end_resume_command():
         """Test the complete command building pipeline with --resume."""
-        # Simulate the entire flow
+        # Simulate the entire flow with a session_id
         raw_args = ["--continue", "--max-tokens", "4000"]
+        resume_value = "session123"  # Simulating args.resume = "session123"
 
-        # Step 1: Add --resume if flag is set
-        if True:  # Simulating args.resume = True
+        # Step 1: Add --resume <id> --fork-session if session_id is provided
+        if resume_value is not None:
             if "--resume" not in raw_args:
-                raw_args = ["--resume", *raw_args]
+                if resume_value:  # Non-empty session_id
+                    raw_args = ["--resume", resume_value, "--fork-session", *raw_args]
+                else:  # Empty string means resume last
+                    raw_args = ["--resume", *raw_args]
 
         # Step 2: Filter MPM args
         filtered = filter_claude_mpm_args(raw_args)
@@ -148,7 +156,11 @@ class TestResumeFlagVerification(unittest.TestCase):
 
         # Verify
         self.assertIn("--resume", cmd)
+        self.assertIn("session123", cmd)
+        self.assertIn("--fork-session", cmd)
         self.assertEqual(cmd[4], "--resume")  # After the base 4 elements
+        self.assertEqual(cmd[5], "session123")  # session_id follows --resume
+        self.assertEqual(cmd[6], "--fork-session")  # --fork-session follows session_id
 
         print(f"✅ Final command: {' '.join(cmd)}")
 

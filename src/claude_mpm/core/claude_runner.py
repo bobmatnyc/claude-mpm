@@ -939,6 +939,80 @@ Use these agents to delegate specialized work via the Task tool.
                     component="output_style",
                 )
 
+    def build_claude_command(
+        self,
+        headless: bool = False,
+        resume_session: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> list:
+        """Build the Claude CLI command with appropriate flags for the execution mode.
+
+        This method centralizes command building logic for all execution modes:
+        - Interactive mode (default): Uses --dangerously-skip-permissions
+        - Headless mode: Uses -p, --output-format stream-json, --dangerously-skip-permissions
+
+        Args:
+            headless: If True, build command for headless/non-interactive execution
+                     with streaming JSON output for programmatic consumption.
+            resume_session: Optional session ID to resume. When provided, adds
+                           --resume and --fork-session flags for session continuation.
+            model: Optional model override (e.g., 'opus', 'sonnet'). If not provided,
+                  uses the runner's configured model.
+
+        Returns:
+            List of command arguments ready for subprocess execution.
+
+        Example:
+            # Interactive mode
+            cmd = runner.build_claude_command()
+            # ['claude', '--dangerously-skip-permissions', '--append-system-prompt', '...']
+
+            # Headless mode
+            cmd = runner.build_claude_command(headless=True)
+            # ['claude', '-p', '--output-format', 'stream-json', '--dangerously-skip-permissions', ...]
+
+            # Headless with resume
+            cmd = runner.build_claude_command(headless=True, resume_session='abc123')
+            # ['claude', '-p', '--output-format', 'stream-json', '--dangerously-skip-permissions',
+            #  '--resume', 'abc123', '--fork-session', ...]
+        """
+        cmd = ["claude"]
+
+        if headless:
+            # Headless mode: non-interactive with streaming JSON output
+            # -p: Print mode (non-interactive, outputs result and exits)
+            cmd.append("-p")
+
+            # --output-format stream-json: NDJSON output for programmatic parsing
+            cmd.extend(["--output-format", "stream-json"])
+
+            # --dangerously-skip-permissions: Auto-approve all tool use
+            cmd.append("--dangerously-skip-permissions")
+
+            # Handle session resume for headless mode
+            if resume_session:
+                cmd.extend(["--resume", resume_session, "--fork-session"])
+        else:
+            # Interactive mode: existing behavior
+            cmd.append("--dangerously-skip-permissions")
+
+            # Add custom arguments from runner configuration
+            if self.claude_args:
+                cmd.extend(self.claude_args)
+
+        # Model selection (works in both modes)
+        effective_model = model or getattr(self, "model", None)
+        if effective_model:
+            cmd.extend(["--model", effective_model])
+
+        # Add system prompt if available (works in both modes)
+        # System prompt provides PM orchestration instructions
+        system_prompt = self._create_system_prompt()
+        if system_prompt:
+            cmd.extend(["--append-system-prompt", system_prompt])
+
+        return cmd
+
     def _launch_subprocess_interactive(self, cmd: list, env: dict):
         """Launch Claude as a subprocess with PTY for interactive mode.
 
