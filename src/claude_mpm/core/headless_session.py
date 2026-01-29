@@ -106,6 +106,113 @@ class HeadlessSession:
         except ValueError:
             return False
 
+    def _is_resume_mode(self, resume_session: Optional[str] = None) -> bool:
+        """Check if we're in resume mode (either via argument or claude_args).
+
+        Args:
+            resume_session: Optional session ID passed directly
+
+        Returns:
+            True if resuming an existing session
+        """
+        if resume_session:
+            return True
+        claude_args = self.runner.claude_args or []
+        return "--resume" in claude_args
+
+    def _inject_system_prompt(self, cmd: list) -> list:
+        """Inject system prompt into command if runner supports it.
+
+        Uses file-based caching to avoid ARG_MAX limits on Linux/Windows.
+        Falls back to inline --append-system-prompt if caching fails.
+
+        Args:
+            cmd: The command list to extend
+
+        Returns:
+            The command list with system prompt arguments added
+        """
+        # Check if runner has _create_system_prompt method
+        if not hasattr(self.runner, "_create_system_prompt"):
+            self.logger.debug(
+                "Runner does not support _create_system_prompt, skipping system prompt injection"
+            )
+            return cmd
+
+        try:
+            system_prompt = self.runner._create_system_prompt()
+        except Exception as e:
+            self.logger.warning(f"Failed to create system prompt: {e}")
+            return cmd
+
+        if not system_prompt:
+            self.logger.debug("No system prompt generated")
+            return cmd
+
+        # Check if it's just the simple context (no real instructions)
+        try:
+            from claude_mpm.core.system_context import create_simple_context
+
+            if system_prompt == create_simple_context():
+                self.logger.debug("System prompt is just simple context, skipping")
+                return cmd
+        except ImportError:
+            pass  # Module not available, proceed with injection
+
+        # Try to use cached instruction file for better performance
+        try:
+            from claude_mpm.services.instructions.instruction_cache_service import (
+                InstructionCacheService,
+            )
+
+            # Get project root
+            if "CLAUDE_MPM_USER_PWD" in os.environ:
+                project_root = Path(os.environ["CLAUDE_MPM_USER_PWD"])
+            else:
+                project_root = self.working_dir
+
+            # Instruction Caching to avoid ARG_MAX limits:
+            # - Linux: 128 KB limit
+            # - Windows: 32 KB limit
+            # Cache updates only when content hash changes.
+            cache_service = InstructionCacheService(project_root=project_root)
+
+            # Update cache with assembled instruction content
+            cache_result = cache_service.update_cache(instruction_content=system_prompt)
+
+            # Use cache file if available
+            if cache_result.get("updated") or cache_service.get_cache_path().exists():
+                cache_file = cache_service.get_cache_path()
+
+                if cache_result.get("updated"):
+                    self.logger.debug(
+                        f"Instruction cache updated: {cache_result.get('reason', 'unknown')}"
+                    )
+                else:
+                    self.logger.debug("Using cached instructions")
+
+                cmd.extend(["--system-prompt-file", str(cache_file)])
+                self.logger.debug(f"Using file-based instruction loading: {cache_file}")
+            else:
+                # Fallback to inline if cache file doesn't exist
+                self.logger.debug(
+                    "Cache file not available, falling back to inline instruction"
+                )
+                cmd.extend(["--append-system-prompt", system_prompt])
+
+        except ImportError:
+            # InstructionCacheService not available, use inline
+            self.logger.debug(
+                "InstructionCacheService not available, using inline system prompt"
+            )
+            cmd.extend(["--append-system-prompt", system_prompt])
+        except Exception as e:
+            # Graceful fallback - cache failures don't break execution
+            self.logger.warning(f"Failed to cache instructions, using inline: {e}")
+            cmd.extend(["--append-system-prompt", system_prompt])
+
+        return cmd
+
     def build_claude_command(
         self, resume_session: Optional[str] = None
     ) -> list:
@@ -117,6 +224,9 @@ class HeadlessSession:
         Returns:
             List of command arguments
         """
+        # Check if we're in resume mode
+        is_resume = self._is_resume_mode(resume_session)
+
         # Check if --output-format is already in claude_args (from passthrough flags)
         has_output_format = any(
             arg == "--output-format" for arg in (self.runner.claude_args or [])
@@ -158,6 +268,16 @@ class HeadlessSession:
                     continue
                 filtered_args.append(arg)
             cmd.extend(filtered_args)
+
+        # Inject system prompt ONLY for initial sessions (not resume)
+        # This matches interactive_session.py behavior where resume uses minimal command
+        if not is_resume:
+            self.logger.debug("Initial session - injecting system prompt")
+            cmd = self._inject_system_prompt(cmd)
+        else:
+            self.logger.debug(
+                "Resume mode - skipping system prompt injection to preserve conversation context"
+            )
 
         return cmd
 
