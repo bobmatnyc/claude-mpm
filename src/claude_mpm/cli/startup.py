@@ -8,9 +8,36 @@ including project registry, MCP configuration, and update checks.
 Part of cli/__init__.py refactoring to reduce file size and improve modularity.
 """
 
+import contextlib
 import os
 import sys
 from pathlib import Path
+
+
+@contextlib.contextmanager
+def quiet_startup_context(headless: bool = False):
+    """Redirect stdout to stderr for headless mode.
+
+    WHY: Headless mode outputs JSON to stdout. Status messages must go to stderr
+    to keep stdout clean for JSON streaming. This context manager temporarily
+    redirects all stdout writes to stderr during startup initialization.
+
+    DESIGN DECISION: Redirect to stderr rather than suppress entirely - users
+    still need startup diagnostics in logs for debugging.
+
+    Args:
+        headless: If True, redirect stdout to stderr. If False, yield without changes.
+    """
+    if not headless:
+        yield
+        return
+
+    old_stdout = sys.stdout
+    try:
+        sys.stdout = sys.stderr
+        yield
+    finally:
+        sys.stdout = old_stdout
 
 
 def cleanup_user_level_hooks() -> bool:
@@ -821,22 +848,24 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
                     logger.warning(
                         f"Agent deployment completed with {len(agent_result.errors)} errors"
                     )
-                    print("\n⚠️  Agent Deployment Errors:")
-                    max_errors_to_show = 10
-                    errors_to_display = agent_result.errors[:max_errors_to_show]
+                    # Only show error details to TTY (avoid polluting stdout in headless mode)
+                    if sys.stdout.isatty():
+                        print("\n⚠️  Agent Deployment Errors:")
+                        max_errors_to_show = 10
+                        errors_to_display = agent_result.errors[:max_errors_to_show]
 
-                    for error in errors_to_display:
-                        print(f"   - {error}")
+                        for error in errors_to_display:
+                            print(f"   - {error}")
 
-                    if len(agent_result.errors) > max_errors_to_show:
-                        remaining = len(agent_result.errors) - max_errors_to_show
-                        print(f"   ... and {remaining} more error(s)")
+                        if len(agent_result.errors) > max_errors_to_show:
+                            remaining = len(agent_result.errors) - max_errors_to_show
+                            print(f"   ... and {remaining} more error(s)")
 
-                    print(
-                        f"\n❌ Failed to deploy {len(agent_result.errors)} agent(s). "
-                        "Please check the error messages above."
-                    )
-                    print("   Run with --verbose for detailed error information.\n")
+                        print(
+                            f"\n❌ Failed to deploy {len(agent_result.errors)} agent(s). "
+                            "Please check the error messages above."
+                        )
+                        print("   Run with --verbose for detailed error information.\n")
 
                 # Save deployment state to prevent duplicate deployment in ClaudeRunner
                 # This ensures setup_agents() skips deployment since we already reconciled
@@ -1269,20 +1298,20 @@ def show_agent_summary():
                 f
                 for f in all_md_files
                 if (
-                    "agents" in f.relative_to(cache_dir).parts
+                    "/agents/" in str(f)
                     and f.name.lower() not in pm_templates
                     and f.name.lower() not in doc_files
                     and f.name.lower() != "base-agent.md"
                     and not any(
-                        part in f.relative_to(cache_dir).parts
+                        part in str(f).split("/")
                         for part in ["dist", "build", ".cache"]
                     )
                 )
             ]
             available_count = len(agent_files)
 
-        # Display summary if we have agents
-        if installed_count > 0 or available_count > 0:
+        # Display summary if we have agents (only to TTY to avoid stdout pollution)
+        if (installed_count > 0 or available_count > 0) and sys.stdout.isatty():
             print(
                 f"✓ Agents: {installed_count} deployed / {max(0, available_count - installed_count)} cached",
                 flush=True,
@@ -1355,8 +1384,9 @@ def show_skill_summary():
 
         # Display summary using agent summary format: "X deployed / Y cached"
         # Only show non-deployed cached skills (subtract deployed from cached)
+        # Only to TTY to avoid stdout pollution in headless mode
         non_deployed_cached = max(0, cached_count - deployed_count)
-        if deployed_count > 0 or non_deployed_cached > 0:
+        if (deployed_count > 0 or non_deployed_cached > 0) and sys.stdout.isatty():
             print(
                 f"✓ Skills: {deployed_count} deployed / {non_deployed_cached} cached",
                 flush=True,
@@ -1513,7 +1543,7 @@ def sync_deployment_on_startup(force_sync: bool = False) -> None:
     show_agent_summary()  # Display agent counts after deployment
 
 
-def run_background_services(force_sync: bool = False):
+def run_background_services(force_sync: bool = False, headless: bool = False):
     """
     Initialize all background services on startup.
 
@@ -1527,38 +1557,43 @@ def run_background_services(force_sync: bool = False):
 
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
+        headless: If True, redirect stdout to stderr during startup.
+                  This keeps stdout clean for JSON streaming in headless mode.
     """
     # NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
     # This allows migration results to be displayed in the startup banner
     # See: cli/__init__.py lines 77-83
 
-    # Consolidated deployment block: hooks + agents
-    # RATIONALE: Hooks and agents are deployed together before other services
-    # This ensures the deployment phase is complete before configuration checks
-    sync_deployment_on_startup(force_sync=force_sync)
+    # Wrap all startup operations in quiet_startup_context for headless mode
+    # This redirects stdout to stderr, keeping stdout clean for JSON output
+    with quiet_startup_context(headless=headless):
+        # Consolidated deployment block: hooks + agents
+        # RATIONALE: Hooks and agents are deployed together before other services
+        # This ensures the deployment phase is complete before configuration checks
+        sync_deployment_on_startup(force_sync=force_sync)
 
-    initialize_project_registry()
-    check_mcp_auto_configuration()
-    verify_mcp_gateway_startup()
-    check_for_updates_async()
+        initialize_project_registry()
+        check_mcp_auto_configuration()
+        verify_mcp_gateway_startup()
+        check_for_updates_async()
 
-    # Skills deployment order (precedence: remote > bundled)
-    # 1. Deploy bundled skills first (base layer from package)
-    # 2. Sync and deploy remote skills (Git sources, can override bundled)
-    # 3. Discover and link runtime skills (user-added skills)
-    # This ensures remote skills take precedence over bundled skills when names conflict
-    deploy_bundled_skills()  # Base layer: package-bundled skills
-    sync_remote_skills_on_startup(
-        force_sync=force_sync
-    )  # Override layer: Git-based skills (takes precedence)
-    discover_and_link_runtime_skills()  # Discovery: user-added skills
-    show_skill_summary()  # Display skill counts after deployment
-    verify_and_show_pm_skills()  # PM skills verification and status
+        # Skills deployment order (precedence: remote > bundled)
+        # 1. Deploy bundled skills first (base layer from package)
+        # 2. Sync and deploy remote skills (Git sources, can override bundled)
+        # 3. Discover and link runtime skills (user-added skills)
+        # This ensures remote skills take precedence over bundled skills when names conflict
+        deploy_bundled_skills()  # Base layer: package-bundled skills
+        sync_remote_skills_on_startup(
+            force_sync=force_sync
+        )  # Override layer: Git-based skills (takes precedence)
+        discover_and_link_runtime_skills()  # Discovery: user-added skills
+        show_skill_summary()  # Display skill counts after deployment
+        verify_and_show_pm_skills()  # PM skills verification and status
 
-    deploy_output_style_on_startup()
+        deploy_output_style_on_startup()
 
-    # Auto-install chrome-devtools-mcp for browser automation
-    auto_install_chrome_devtools_on_startup()
+        # Auto-install chrome-devtools-mcp for browser automation
+        auto_install_chrome_devtools_on_startup()
 
 
 def setup_mcp_server_logging(args):
