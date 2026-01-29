@@ -119,6 +119,11 @@ Get credentials from: https://console.cloud.google.com/apis/credentials
         default=8789,
         help="Port for the OAuth callback server (default: 8789). This must match the redirect URI configured in your OAuth provider (e.g., http://127.0.0.1:8789/callback for Google Cloud Console).",
     )
+    setup_parser.add_argument(
+        "--no-launch",
+        action="store_true",
+        help="Don't launch claude-mpm after successful OAuth setup",
+    )
 
     # Status subcommand
     status_parser = oauth_subparsers.add_parser(

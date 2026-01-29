@@ -14,6 +14,7 @@ DESIGN DECISIONS:
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -430,6 +431,20 @@ class OAuthCommand(BaseCommand):
                 saved_to = _save_credentials_to_env_file(client_id, client_secret)
                 if saved_to:
                     console.print(f"[green]✓ Saved credentials to {saved_to}[/green]")
+
+            # Launch claude-mpm unless --no-launch was specified
+            no_launch = getattr(args, "no_launch", False)
+            if not no_launch:
+                console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
+                try:
+                    # Replace current process with claude-mpm
+                    os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
+                except OSError:
+                    # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
+                    import subprocess  # nosec B404
+
+                    subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
+                    sys.exit(0)
 
             return CommandResult.success_result(
                 f"OAuth setup complete for '{service_name}'"
