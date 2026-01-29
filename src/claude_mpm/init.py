@@ -147,14 +147,15 @@ class ProjectInitializer:
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
-            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor)
+            # ALSO: Skip output for headless mode and lightweight commands (oauth, version, help, doctor)
             is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
+            is_headless_mode = "--headless" in sys.argv
             is_lightweight_command = any(
                 cmd in sys.argv
                 for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor"]
             )
 
-            if not is_mcp_mode and not is_lightweight_command:
+            if not is_mcp_mode and not is_headless_mode and not is_lightweight_command:
                 if directory_existed:
                     print(f"✓ Found existing .claude-mpm/ directory in {project_root}")
                 else:

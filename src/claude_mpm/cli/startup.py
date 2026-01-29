@@ -1310,12 +1310,12 @@ def show_agent_summary():
                 f
                 for f in all_md_files
                 if (
-                    "agents" in f.relative_to(cache_dir).parts
+                    "/agents/" in str(f)
                     and f.name.lower() not in pm_templates
                     and f.name.lower() not in doc_files
                     and f.name.lower() != "base-agent.md"
                     and not any(
-                        part in f.relative_to(cache_dir).parts
+                        part in str(f).split("/")
                         for part in ["dist", "build", ".cache"]
                     )
                 )
@@ -1585,6 +1585,7 @@ def generate_dynamic_domain_authority_skills():
         )
 
 
+
 def run_background_services(force_sync: bool = False, headless: bool = False):
     """
     Initialize all background services on startup.
@@ -1637,6 +1638,7 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         verify_and_show_pm_skills()  # PM skills verification and status
 
         deploy_output_style_on_startup()
+
 
         # Auto-install chrome-devtools-mcp for browser automation
         auto_install_chrome_devtools_on_startup()
