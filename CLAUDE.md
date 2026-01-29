@@ -30,6 +30,113 @@ When interacting with Claude Desktop, the following MCP tools are available:
 
 Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking
 
+---
+
+## StGit Patch Management
+
+This fork uses [StGit](https://stacked-git.github.io/) for managing local changes as a stack of patches on top of upstream. This enables clean rebasing when upstream releases new versions.
+
+### Branch Structure
+- `main` - Production branch (updated from stgit-migration after rebasing)
+- `stgit-migration` - StGit-managed branch with patches on upstream/main
+- `upstream` - Remote tracking upstream repository (bobmatnyc/claude-mpm)
+
+### Current Patch Stack
+```
+01-headless-mode-cli-flags       # --headless CLI flag
+02-headless-mode-session         # HeadlessSession class
+03-headless-mode-integration     # CLI integration + tests
+04-headless-mode-docs            # Headless documentation
+05-tob-setup-script              # TOB installation script
+06-documentation-updates         # README/CLAUDE.md updates
+```
+
+Note: Commander Pro UI patches were removed in sync with upstream v5.6.108,
+which extracted the commander module to [ai-commander](https://github.com/bobmatnyc/ai-commander).
+
+### Syncing with Upstream
+
+Use `stg pull` for a single-command update, or the staged approach for more control:
+
+```bash
+# Switch to stgit branch
+git checkout stgit-migration
+
+# Option A: Single command (fetch + rebase)
+stg pull
+
+# Option B: Staged approach (more control)
+git fetch upstream
+stg pop -a                    # Pop all patches
+stg rebase upstream/main      # Rebase stack base
+stg push -a                   # Reapply patches
+
+# If conflicts occur during push:
+# 1. Resolve conflicts in files
+# 2. git add <resolved-files>
+# 3. stg refresh
+# 4. stg push -a              # Continue pushing remaining patches
+
+# Update main branch
+git checkout main
+git merge stgit-migration
+git push origin main
+```
+
+### When Patches Are Accepted Upstream
+
+Use `--merged` flag to detect merged patches:
+
+```bash
+stg pull --merged
+# or
+stg rebase --merged upstream/main
+
+# Merged patches become empty. To clean up:
+stg series --empty            # Shows empty patches with '0' prefix
+stg clean                     # Removes empty patches
+```
+
+### Modifying an Existing Patch
+
+```bash
+git checkout stgit-migration
+stg goto <patch-name>         # Navigate to patch
+# Make changes to files
+stg refresh                   # Update patch with changes
+stg refresh -e                # Update patch + edit commit message
+stg push -a                   # Reapply remaining patches
+```
+
+### Creating a New Patch
+
+```bash
+git checkout stgit-migration
+stg new <patch-name> -m "Short description"
+# Make changes to files
+stg refresh
+```
+
+### Useful Commands
+
+```bash
+stg series -d                 # List patches with descriptions
+stg show <patch>              # Show patch diff
+stg pop / stg push            # Navigate stack
+stg goto <patch>              # Jump to specific patch
+stg clean                     # Remove empty patches
+stg commit <patch>            # Permanently commit patch to history
+```
+
+### Best Practices
+
+1. **Rebase frequently** - Smaller conflict sets are easier to resolve
+2. **Logical patch organization** - One feature/fix per patch
+3. **Clear commit messages** - Follow conventional commits format
+4. **Test after rebase** - Run `uv run pytest` after pushing patches
+
+References: [StGit Tutorial](https://stacked-git.github.io/guides/tutorial/), [Xen StGit Guide](https://wiki.xenproject.org/wiki/Managing_Xen_Patches_with_StGit)
+
 ## Key Technologies
 - Python
 - Flask
