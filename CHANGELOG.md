@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.100] - 2026-01-29
+
+### Changed
+- Removed commander module (extracted to standalone ai-commander package)
+
 ## [5.6.99] - 2026-01-29
 
 ### Changed
