@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.core.workflow_loader import load_workflow
 
 from .file_loader import FileLoader
 from .packaged_loader import PackagedLoader
@@ -198,12 +199,13 @@ class InstructionLoader:
     def load_workflow_instructions(self, content: Dict[str, Any]) -> None:
         """Load WORKFLOW.md from appropriate location.
 
+        Uses the dedicated workflow_loader module for consistent priority handling
+        across the codebase.
+
         Args:
             content: Dictionary to update with workflow instructions
         """
-        workflow, level = self.file_loader.load_workflow_file(
-            self.current_dir, self.framework_path
-        )
+        workflow, level = load_workflow(self.current_dir, self.framework_path)
         if workflow:
             content["workflow_instructions"] = workflow
             content["workflow_instructions_level"] = level
