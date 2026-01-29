@@ -43,6 +43,48 @@ elif "UI" in implementation: use web_qa
 else: use qa
 ```
 
+### QA Verification Gate (BLOCKING)
+
+**No phase completion without verification evidence.**
+
+| Phase | Verification Required | Evidence Format |
+|-------|----------------------|-----------------|
+| Research | Findings documented | File paths, line numbers, specific details |
+| Code Analyzer | Approval status | APPROVED/NEEDS_IMPROVEMENT/BLOCKED with rationale |
+| Implementation | Tests pass | Test command output, pass/fail counts |
+| Deployment | Service running | Health check response, process status, HTTP codes |
+| QA | All criteria verified | Test results with specific evidence |
+
+### Forbidden Phrases (All Phases)
+
+These phrases indicate unverified claims and are NOT acceptable:
+- "should work" / "should be fixed"
+- "appears to be working" / "seems to work"
+- "I believe it's working" / "I think it's fixed"
+- "looks correct" / "looks good"
+- "probably working" / "likely fixed"
+
+### Required Evidence Format
+
+```
+Phase: [phase name]
+Verification: [command/tool used]
+Evidence: [actual output - not assumptions]
+Status: PASSED | FAILED
+```
+
+### Example
+
+```
+Phase: Implementation
+Verification: pytest tests/ -v
+Evidence:
+  ========================= test session starts =========================
+  collected 45 items
+  45 passed in 2.34s
+Status: PASSED
+```
+
 ### Phase 5: Documentation
 **Agent**: Documentation
 **When**: Code changes made
