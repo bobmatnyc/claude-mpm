@@ -934,5 +934,150 @@ class TestClaudeRunnerUtilityMethods:
         )
 
 
+class TestClaudeRunnerBuildCommand:
+    """Test build_claude_command method for different execution modes."""
+
+    @pytest.fixture
+    def runner(self):
+        """Create a ClaudeRunner instance for testing."""
+        with patch("claude_mpm.core.claude_runner.get_container") as mock_get_container:
+            # Setup mocks
+            mock_container = Mock()
+            mock_get_container.return_value = mock_container
+            mock_container.is_registered.return_value = False
+
+            # Mock configuration service
+            mock_config_service = Mock()
+            mock_config_service.initialize_configuration.return_value = {
+                "enable_tickets": False,
+                "log_level": "OFF",
+                "claude_args": ["--verbose"],
+                "launch_method": "exec",
+                "enable_websocket": False,
+                "websocket_port": 8765,
+                "config": Mock(),
+            }
+            mock_config_service.initialize_project_logger.return_value = None
+            mock_config_service.get_user_working_directory.return_value = None
+            mock_config_service.register_core_services.return_value = None
+            mock_config_service.initialize_response_logger.return_value = None
+            mock_config_service.register_hook_service.return_value = None
+            mock_config_service.register_agent_capabilities_service.return_value = None
+            mock_config_service.register_system_instructions_service.return_value = None
+            mock_config_service.register_subprocess_launcher_service.return_value = None
+            mock_config_service.register_version_service.return_value = None
+            mock_config_service.register_command_handler_service.return_value = Mock()
+            mock_config_service.register_memory_hook_service.return_value = None
+            mock_config_service.register_session_management_service.return_value = None
+            mock_config_service.register_utility_service.return_value = Mock()
+            mock_config_service.create_session_log_file.return_value = None
+
+            mock_container.get.side_effect = [
+                mock_config_service,  # configuration service
+                Mock(),  # deployment service
+            ]
+
+            runner = ClaudeRunner(claude_args=["--verbose"])
+            # Mock system instructions service to return a simple prompt
+            runner.system_instructions_service = Mock()
+            runner.system_instructions_service.create_system_prompt.return_value = (
+                "Test system prompt"
+            )
+            return runner
+
+    def test_build_command_interactive_mode(self, runner):
+        """Test command building for interactive mode (default)."""
+        cmd = runner.build_claude_command()
+
+        assert cmd[0] == "claude"
+        assert "--dangerously-skip-permissions" in cmd
+        assert "--verbose" in cmd  # Custom args should be included
+        assert "-p" not in cmd  # Print mode flag should NOT be present
+        assert "--output-format" not in cmd  # Output format should NOT be present
+
+    def test_build_command_headless_mode(self, runner):
+        """Test command building for headless mode."""
+        cmd = runner.build_claude_command(headless=True)
+
+        assert cmd[0] == "claude"
+        assert "-p" in cmd  # Print mode flag
+        assert "--output-format" in cmd
+        assert cmd[cmd.index("--output-format") + 1] == "stream-json"
+        assert "--dangerously-skip-permissions" in cmd
+
+    def test_build_command_headless_with_resume(self, runner):
+        """Test command building for headless mode with session resume."""
+        session_id = "test-session-123"
+        cmd = runner.build_claude_command(headless=True, resume_session=session_id)
+
+        assert cmd[0] == "claude"
+        assert "-p" in cmd
+        assert "--output-format" in cmd
+        assert "--resume" in cmd
+        assert cmd[cmd.index("--resume") + 1] == session_id
+        assert "--fork-session" in cmd
+
+    def test_build_command_with_model_override(self, runner):
+        """Test command building with model override."""
+        cmd = runner.build_claude_command(model="opus")
+
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "opus"
+
+    def test_build_command_headless_with_model(self, runner):
+        """Test command building for headless mode with model selection."""
+        cmd = runner.build_claude_command(headless=True, model="sonnet")
+
+        assert "-p" in cmd
+        assert "--output-format" in cmd
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "sonnet"
+
+    def test_build_command_system_prompt_appended(self, runner):
+        """Test that system prompt is appended in both modes."""
+        # Test interactive mode
+        cmd_interactive = runner.build_claude_command()
+        assert "--append-system-prompt" in cmd_interactive
+
+        # Test headless mode
+        cmd_headless = runner.build_claude_command(headless=True)
+        assert "--append-system-prompt" in cmd_headless
+
+    def test_build_command_no_system_prompt(self, runner):
+        """Test command building when no system prompt is available."""
+        runner.system_instructions_service.create_system_prompt.return_value = None
+
+        cmd = runner.build_claude_command()
+
+        assert "--append-system-prompt" not in cmd
+
+    def test_build_command_headless_no_custom_args(self, runner):
+        """Test that custom claude_args are NOT included in headless mode."""
+        # In headless mode, we want a clean command without user's custom args
+        cmd = runner.build_claude_command(headless=True)
+
+        # The --verbose flag from runner.claude_args should NOT be present
+        # in headless mode (headless mode builds a clean command)
+        assert "--verbose" not in cmd
+
+    def test_build_command_uses_runner_model(self, runner):
+        """Test command building uses runner's configured model if no override."""
+        runner.model = "haiku"
+
+        cmd = runner.build_claude_command()
+
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "haiku"
+
+    def test_build_command_model_override_takes_precedence(self, runner):
+        """Test that explicit model override takes precedence over runner model."""
+        runner.model = "haiku"
+
+        cmd = runner.build_claude_command(model="opus")
+
+        assert "--model" in cmd
+        assert cmd[cmd.index("--model") + 1] == "opus"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
