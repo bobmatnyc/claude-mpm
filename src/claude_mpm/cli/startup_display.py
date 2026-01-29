@@ -572,9 +572,8 @@ def should_show_banner(args) -> bool:
         return False
 
     # Check for commands that should skip banner
-    # Commander has its own banner, so skip the main MPM banner
     # OAuth commands are lightweight utilities that should run immediately
-    skip_commands = {"info", "doctor", "config", "configure", "commander", "oauth"}
+    skip_commands = {"info", "doctor", "config", "configure", "oauth"}
     if hasattr(args, "command") and args.command in skip_commands:
         return False
 

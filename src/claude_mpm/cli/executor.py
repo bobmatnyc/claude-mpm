@@ -127,14 +127,6 @@ def execute_command(command: str, args) -> int:
         result = handle_verify(args)
         return result if result is not None else 0
 
-    # Handle commander command with lazy import
-    if command == "commander":
-        # Lazy import to avoid loading unless needed
-        from .commands.commander import handle_commander_command
-
-        result = handle_commander_command(args)
-        return result if result is not None else 0
-
     # Handle skill-source command with lazy import
     if command == "skill-source":
         # Lazy import to avoid loading unless needed
@@ -368,7 +360,6 @@ def execute_command(command: str, args) -> int:
         CLICommands.SKILLS.value: manage_skills,
         "debug": manage_debug,  # Add debug command
         "mpm-init": None,  # Will be handled separately with lazy import
-        "commander": None,  # Will be handled separately with lazy import
     }
 
     # Execute command if found

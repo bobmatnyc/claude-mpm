@@ -6,7 +6,6 @@ that require OAuth2 flows (e.g., Google Workspace) directly from the terminal.
 
 DESIGN DECISIONS:
 - Use BaseCommand for consistent CLI patterns
-- Reuse OAuth logic from commander/chat/repl.py
 - Support multiple credential sources: .env.local, .env, environment variables
 - Provide clear feedback during OAuth flow
 """

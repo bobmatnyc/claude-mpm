@@ -514,13 +514,6 @@ def create_parser(
         pass
 
     try:
-        from .commander_parser import add_commander_subparser
-
-        add_commander_subparser(subparsers)
-    except ImportError:
-        pass
-
-    try:
         from .oauth_parser import add_oauth_subparser
 
         add_oauth_subparser(subparsers)

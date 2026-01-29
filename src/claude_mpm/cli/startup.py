@@ -322,7 +322,6 @@ def should_skip_background_services(args, processed_argv):
             "configure",
             "hook-errors",
             "autotodos",
-            "commander",
             "oauth",
         ]
     )
