@@ -75,12 +75,19 @@ def get_workflow_path(
         logger.info(f"Found user-level workflow: {user_path}")
         return user_path, "user"
 
-    # Priority 3: System default
+    # Priority 3: System default (from framework_path if provided)
     if framework_path and framework_path != Path("__PACKAGED__"):
         system_path = framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
         if system_path.exists():
             logger.info(f"Found system-level workflow: {system_path}")
             return system_path, "system"
+
+    # Priority 4: Package default (relative to this module)
+    # This handles the case when framework_path is None or __PACKAGED__
+    package_default = Path(__file__).parent.parent / "agents" / "WORKFLOW.md"
+    if package_default.exists():
+        logger.info(f"Found default workflow: {package_default}")
+        return package_default, "default"
 
     logger.warning("No workflow file found")
     return None, "none"
