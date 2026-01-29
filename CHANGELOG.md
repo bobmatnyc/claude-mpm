@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.6.101] - 2026-01-29
+
+### Added
+- Customizable workflow system via /mpm-workflow command
+- Workflow loader with project > user > default priority
+
+### Documentation
+- Self-action imperative added to BASE_AGENT.md
+- Verification requirements added to WORKFLOW.md
+
 ## [5.6.100] - 2026-01-29
 
 ### Changed
