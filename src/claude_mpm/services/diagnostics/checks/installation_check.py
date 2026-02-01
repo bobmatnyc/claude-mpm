@@ -140,7 +140,7 @@ class InstallationCheck(BaseDiagnosticCheck):
 
             service = VersionService()
             version = service.get_version()
-            semantic_version = service.get_semantic_version()
+            semantic_version = service.get_base_version()
             build_number = service.get_build_number()
 
             return DiagnosticResult(
