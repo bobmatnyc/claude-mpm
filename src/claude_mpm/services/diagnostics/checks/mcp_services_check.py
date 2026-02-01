@@ -962,8 +962,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 config = json.load(f)
 
             # Get the current project configuration
-            from pathlib import Path
-
             current_project = str(Path.cwd())
 
             # Check if current project has MCP servers configured
