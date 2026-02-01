@@ -255,6 +255,11 @@ class MCPConfigManager:
             if pipx_path:
                 candidates.append(pipx_path)
 
+            # Check uv tool installation
+            uv_path = self._check_uv_tool_installation(service_name)
+            if uv_path and uv_path not in candidates:
+                candidates.append(uv_path)
+
             # Check system PATH (including homebrew)
             import shutil
 
@@ -296,6 +301,12 @@ class MCPConfigManager:
             self.logger.debug(f"Found {service_name} via pipx: {pipx_path}")
             return pipx_path
 
+        # Check uv tool installation
+        uv_path = self._check_uv_tool_installation(service_name)
+        if uv_path:
+            self.logger.debug(f"Found {service_name} via uv tool: {uv_path}")
+            return uv_path
+
         # Check system PATH
         system_path = self._check_system_path(service_name)
         if system_path:
@@ -330,6 +341,34 @@ class MCPConfigManager:
         else:
             # Other services use direct binary
             service_bin = pipx_venv / "bin" / service_name
+            if service_bin.exists() and service_bin.is_file():
+                return str(service_bin)
+
+        return None
+
+    def _check_uv_tool_installation(self, service_name: str) -> Optional[str]:
+        """Check if service is installed via uv tool.
+
+        Args:
+            service_name: Name of the service (e.g., "mcp-vector-search")
+
+        Returns:
+            Path to the executable if found, None otherwise
+        """
+        uv_tool_base = Path.home() / ".local" / "share" / "uv" / "tools"
+        uv_venv = uv_tool_base / service_name
+
+        if not uv_venv.exists():
+            return None
+
+        # Special handling for mcp-vector-search (needs Python interpreter)
+        if service_name == "mcp-vector-search":
+            python_bin = uv_venv / "bin" / "python"
+            if python_bin.exists() and python_bin.is_file():
+                return str(python_bin)
+        else:
+            # Other services use direct binary
+            service_bin = uv_venv / "bin" / service_name
             if service_bin.exists() and service_bin.is_file():
                 return str(service_bin)
 

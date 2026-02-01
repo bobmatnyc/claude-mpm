@@ -8,6 +8,7 @@ are properly installed and accessible for enhanced Claude Code capabilities.
 import asyncio
 import json
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -40,7 +41,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             "health_command": ["mcp-vector-search", "--version"],
             "pipx_run_command": ["pipx", "run", "mcp-vector-search", "--version"],
             "mcp_command": [
-                "python",
+                sys.executable,
                 "-m",
                 "mcp_vector_search.mcp.server",
             ],  # Command to run as MCP server
