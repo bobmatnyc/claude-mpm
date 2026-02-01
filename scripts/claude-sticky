@@ -6,6 +6,12 @@
 #   claude-sticky "@other do something"   # Uses explicit @alias, updates state
 #   claude-sticky --clear                 # Clears sticky state
 #   claude-sticky --show                  # Shows current sticky alias
+#   claude-sticky --confirm "prompt"      # Confirm before using sticky alias
+#
+# Guardrails:
+#   - Always shows "→ @alias" when sticky context is used
+#   - Warns if sticky context is stale (>30 min)
+#   - Use --confirm to require explicit confirmation
 #
 # State file: ~/.claude-mpm/state/last_project.json
 # Format: {"alias": "myproject", "timestamp": "..."}
@@ -13,6 +19,8 @@
 set -e
 
 STATE_FILE="$HOME/.claude-mpm/state/last_project.json"
+STALE_MINUTES=30  # Warn if sticky context older than this
+CONFIRM_MODE=false
 
 # Handle special commands
 case "${1:-}" in
@@ -44,13 +52,22 @@ case "${1:-}" in
         echo "claude-sticky: Wrapper that uses sticky @project context"
         echo ""
         echo "Usage:"
-        echo "  claude-sticky \"do something\"        # Uses last @alias if available"
-        echo "  claude-sticky \"@other do something\" # Uses explicit @alias"
-        echo "  claude-sticky --clear                # Clears sticky state"
-        echo "  claude-sticky --show                 # Shows current sticky alias"
+        echo "  claude-sticky \"do something\"          # Uses last @alias if available"
+        echo "  claude-sticky \"@other do something\"   # Uses explicit @alias"
+        echo "  claude-sticky --confirm \"prompt\"      # Confirm before using sticky alias"
+        echo "  claude-sticky --clear                  # Clears sticky state"
+        echo "  claude-sticky --show                   # Shows current sticky alias"
+        echo ""
+        echo "Guardrails:"
+        echo "  - Always shows which @alias is being used"
+        echo "  - Warns if context is stale (>${STALE_MINUTES}min)"
         echo ""
         echo "State file: $STATE_FILE"
         exit 0
+        ;;
+    --confirm)
+        CONFIRM_MODE=true
+        shift
         ;;
 esac
 
@@ -68,16 +85,55 @@ if [[ "$PROMPT" =~ ^@ ]]; then
     exec claude "$PROMPT"
 fi
 
-# Try to get sticky alias from state file
+# Try to get sticky alias and timestamp from state file
 ALIAS=""
+TIMESTAMP=""
 if [ -f "$STATE_FILE" ]; then
     ALIAS=$(jq -r '.alias // empty' "$STATE_FILE" 2>/dev/null)
+    TIMESTAMP=$(jq -r '.timestamp // empty' "$STATE_FILE" 2>/dev/null)
 fi
 
 if [ -n "$ALIAS" ]; then
+    # Check if context is stale (older than STALE_MINUTES)
+    IS_STALE=false
+    if [ -n "$TIMESTAMP" ]; then
+        # Convert ISO timestamp to epoch (macOS compatible)
+        if command -v gdate &> /dev/null; then
+            STATE_EPOCH=$(gdate -d "$TIMESTAMP" +%s 2>/dev/null || echo 0)
+        else
+            # macOS date fallback
+            STATE_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${TIMESTAMP%.*}" +%s 2>/dev/null || echo 0)
+        fi
+        NOW_EPOCH=$(date +%s)
+        AGE_MINUTES=$(( (NOW_EPOCH - STATE_EPOCH) / 60 ))
+        if [ "$AGE_MINUTES" -gt "$STALE_MINUTES" ]; then
+            IS_STALE=true
+        fi
+    fi
+
+    # GUARDRAIL 1: Always show which alias is being used
+    echo "→ Using sticky context: @$ALIAS" >&2
+
+    # GUARDRAIL 2: Warn if stale
+    if [ "$IS_STALE" = true ]; then
+        echo "⚠️  Context is stale (${AGE_MINUTES}min old). Consider using explicit @alias" >&2
+    fi
+
+    # GUARDRAIL 3: Confirm mode - require explicit confirmation
+    if [ "$CONFIRM_MODE" = true ]; then
+        read -p "Send to @$ALIAS? [Y/n] " -n 1 -r REPLY </dev/tty
+        echo >&2
+        if [[ ! $REPLY =~ ^[Yy]?$ ]]; then
+            echo "Cancelled. Use explicit @alias or --clear to reset." >&2
+            exit 1
+        fi
+    fi
+
     # Prepend @alias to prompt
     exec claude "@$ALIAS $PROMPT"
 else
-    # No sticky alias, pass through as-is
+    # No sticky alias - warn user
+    echo "⚠️  No sticky @alias set. Command sent without project context." >&2
+    echo "   Use '@project command' to set context, or 'claude-sticky --show' to check." >&2
     exec claude "$PROMPT"
 fi
