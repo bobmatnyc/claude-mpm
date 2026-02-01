@@ -8,6 +8,7 @@ are properly installed and accessible for enhanced Claude Code capabilities.
 import asyncio
 import json
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -40,7 +41,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             "health_command": ["mcp-vector-search", "--version"],
             "pipx_run_command": ["pipx", "run", "mcp-vector-search", "--version"],
             "mcp_command": [
-                "python",
+                sys.executable,
                 "-m",
                 "mcp_vector_search.mcp.server",
             ],  # Command to run as MCP server
@@ -82,8 +83,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             "mcp_command": [
                 "kuzu-memory",
                 "mcp",
-                "serve",
-            ],  # v1.1.0+ uses 'mcp serve' args
+            ],  # v1.6.33+ uses 'mcp' subcommand (no 'serve')
         },
     }
 
@@ -376,6 +376,8 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                         )
                     else:
                         result["error"] = "Invalid JSON-RPC response format"
+                else:
+                    result["error"] = "Server exited without producing any output"
 
             except asyncio.TimeoutError:
                 # Try to get any error output from stderr
@@ -813,8 +815,8 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             args = kuzu_config.get("args", [])
             needs_fix = False
             fix_reason = ""
-            # The correct args for kuzu-memory v1.1.0+ are ["mcp", "serve"]
-            correct_args = ["mcp", "serve"]
+            # The correct args for kuzu-memory v1.6.33+ are ["mcp"]
+            correct_args = ["mcp"]
 
             # Check for any configuration that is NOT the correct one
             if args != correct_args:
@@ -962,8 +964,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 config = json.load(f)
 
             # Get the current project configuration
-            from pathlib import Path
-
             current_project = str(Path.cwd())
 
             # Check if current project has MCP servers configured
