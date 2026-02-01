@@ -231,6 +231,18 @@ class EventHandlers:
         # Detect and save @alias for sticky project context
         self._save_project_alias_if_present(prompt)
 
+        # Emit immediate acknowledgment for long-running command feedback
+        project_name = (
+            event.get("cwd", "").split("/")[-1] if event.get("cwd") else "unknown"
+        )
+        ack_data = {
+            "prompt_preview": prompt[:80] + "..." if len(prompt) > 80 else prompt,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "received",
+            "project": project_name,
+        }
+        self.hook_handler._emit_socketio_event("", "command_acknowledged", ack_data)
+
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
