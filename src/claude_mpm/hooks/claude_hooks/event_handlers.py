@@ -243,6 +243,9 @@ class EventHandlers:
         }
         self.hook_handler._emit_socketio_event("", "command_acknowledged", ack_data)
 
+        # Capture PM-level directive to persistent memory (non-blocking)
+        self._capture_pm_directive(prompt, project_name)
+
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
@@ -571,6 +574,39 @@ class EventHandlers:
             if DEBUG:
                 _log(f"Failed to save project alias: {e}")
             # Non-fatal: sticky context is a convenience feature
+
+    def _capture_pm_directive(self, prompt: str, project: Optional[str] = None) -> None:
+        """Capture PM-level directive to persistent memory.
+
+        Stores user orchestration commands for context enrichment:
+        - Preferences ("always use PR model")
+        - Workflows ("when deploying, run tests first")
+        - Directives ("implement feature X")
+
+        Args:
+            prompt: User prompt to capture
+            project: Project context (from @alias or cwd)
+        """
+        # Skip internal commands and very short prompts
+        if prompt.startswith("/") or len(prompt) < 10:
+            return
+
+        try:
+            from claude_mpm.memory import get_pm_memory
+
+            pm_memory = get_pm_memory(enabled=True)
+            pm_memory.capture_directive(prompt, project=project)
+
+            if DEBUG:
+                _log(f"Captured PM directive for project '{project}'")
+
+        except ImportError:
+            # kuzu-memory not installed - silently skip
+            pass
+        except Exception as e:
+            if DEBUG:
+                _log(f"Failed to capture PM directive: {e}")
+            # Non-fatal: memory capture is optional
 
     def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
