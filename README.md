@@ -35,10 +35,13 @@ Claude MPM transforms Claude Code into a **multi-agent orchestration platform** 
 
 ### Prerequisites
 
-1. **Python 3.11+** (required - older versions will install outdated claude-mpm)
+1. **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT yet supported)
 2. **Claude Code CLI v2.1.3+** (required!)
 
-> ⚠️ **Python Version Note**: Claude MPM requires Python 3.11 or higher. If you have Python 3.9 or 3.10, you'll get an old version (4.x) that lacks current features. Check with `python3 --version` before installing.
+> **Python Version Warning**:
+> - macOS default Python 3.9 is **too old** - use `--python 3.13` flag
+> - Python 3.13 is **recommended** and fully tested
+> - Python 3.14 is **NOT yet supported** - installation will fail
 
 ```bash
 # Verify Claude Code is installed
@@ -50,48 +53,74 @@ claude --version
 
 ### Install Claude MPM
 
+**IMPORTANT**: Install from your **home directory**, NOT from within a cloned git repository.
+
+**uv (recommended):**
+```bash
+# From home directory (IMPORTANT!)
+cd ~
+
+# Install with Python 3.13 (not 3.9 or 3.14)
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+```
+
 **Homebrew (macOS):**
 ```bash
-brew install claude-mpm --with-monitor
+brew tap bobmatnyc/tools
+brew install claude-mpm
 ```
 
-**pipx/uv (recommended):**
+**pipx:**
 ```bash
-# With pipx
+cd ~
 pipx install "claude-mpm[monitor]"
-
-# Or with uv
-uv tool install "claude-mpm[monitor]"
 ```
 
-**pip:**
+### Post-Installation Setup (Required)
+
+These steps must be completed **before** running `claude-mpm doctor`:
+
 ```bash
-pip install "claude-mpm[monitor]"
+# Create required directories
+mkdir -p ~/.claude/{responses,memory,logs}
+
+# Deploy agents
+claude-mpm agents deploy
+
+# Add skill source (recommended)
+claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills
 ```
 
 ### Verify Installation
 
 ```bash
+# Run diagnostics (after completing setup above)
+claude-mpm doctor --verbose
+
 # Check versions
 claude-mpm --version
 claude --version
 
-# Run diagnostics
-claude-mpm doctor
-
-# Verify agents deployed
-ls ~/.claude/agents/    # Should show 47+ agents
+# Auto-configure your project
+cd ~/your-project
+claude-mpm auto-configure
 ```
 
 **What You Should See:**
-- ✅ 47+ agents deployed to `~/.claude/agents/`
-- ✅ 17 bundled skills (in Python package)
-- ✅ Agent sources configured
-- ✅ Progress bars showing sync and deployment
+- 47+ agents deployed to `~/.claude/agents/`
+- 17 bundled skills (in Python package)
+- Agent sources configured
+- All doctor checks passing
 
-**💡 Recommended Partners**: Install [kuzu-memory](https://github.com/bobmatnyc/kuzu-memory) (persistent context) and [mcp-vector-search](https://github.com/bobmatnyc/mcp-vector-search) (semantic search) for enhanced capabilities.
+**Recommended Partners**: Install these companion tools for enhanced capabilities:
+```bash
+uv tool install kuzu-memory --python 3.13
+uv tool install mcp-vector-search --python 3.13
+uv tool install mcp-ticketer --python 3.13
+uv tool install mcp-browser --python 3.13
+```
 
-**💡 Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
+**Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
 
 ---
 
