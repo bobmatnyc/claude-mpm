@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# claude-sticky: Wrapper that prepends @alias from state file if prompt lacks @symbol
+#
+# Usage:
+#   claude-sticky "do something"          # Prepends last @alias if available
+#   claude-sticky "@other do something"   # Uses explicit @alias, updates state
+#   claude-sticky --clear                 # Clears sticky state
+#   claude-sticky --show                  # Shows current sticky alias
+#
+# State file: ~/.claude-mpm/state/last_project.json
+# Format: {"alias": "myproject", "timestamp": "..."}
+
+set -e
+
+STATE_FILE="$HOME/.claude-mpm/state/last_project.json"
+
+# Handle special commands
+case "${1:-}" in
+    --clear)
+        if [ -f "$STATE_FILE" ]; then
+            rm "$STATE_FILE"
+            echo "Cleared sticky project context"
+        else
+            echo "No sticky context to clear"
+        fi
+        exit 0
+        ;;
+    --show)
+        if [ -f "$STATE_FILE" ]; then
+            alias=$(jq -r '.alias // empty' "$STATE_FILE" 2>/dev/null)
+            timestamp=$(jq -r '.timestamp // empty' "$STATE_FILE" 2>/dev/null)
+            if [ -n "$alias" ]; then
+                echo "Sticky project: @$alias"
+                echo "Set at: $timestamp"
+            else
+                echo "No sticky project set"
+            fi
+        else
+            echo "No sticky project set"
+        fi
+        exit 0
+        ;;
+    --help|-h)
+        echo "claude-sticky: Wrapper that uses sticky @project context"
+        echo ""
+        echo "Usage:"
+        echo "  claude-sticky \"do something\"        # Uses last @alias if available"
+        echo "  claude-sticky \"@other do something\" # Uses explicit @alias"
+        echo "  claude-sticky --clear                # Clears sticky state"
+        echo "  claude-sticky --show                 # Shows current sticky alias"
+        echo ""
+        echo "State file: $STATE_FILE"
+        exit 0
+        ;;
+esac
+
+# No arguments - pass through to claude
+if [ $# -eq 0 ]; then
+    exec claude
+fi
+
+# Combine all arguments into the prompt
+PROMPT="$*"
+
+# Check if prompt already has @ at the beginning
+if [[ "$PROMPT" =~ ^@ ]]; then
+    # Already has @alias, pass through directly
+    exec claude "$PROMPT"
+fi
+
+# Try to get sticky alias from state file
+ALIAS=""
+if [ -f "$STATE_FILE" ]; then
+    ALIAS=$(jq -r '.alias // empty' "$STATE_FILE" 2>/dev/null)
+fi
+
+if [ -n "$ALIAS" ]; then
+    # Prepend @alias to prompt
+    exec claude "@$ALIAS $PROMPT"
+else
+    # No sticky alias, pass through as-is
+    exec claude "$PROMPT"
+fi

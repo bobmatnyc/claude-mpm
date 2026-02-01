@@ -228,6 +228,9 @@ class EventHandlers:
         if prompt.startswith("/mpm") and not DEBUG:
             return
 
+        # Detect and save @alias for sticky project context
+        self._save_project_alias_if_present(prompt)
+
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
@@ -512,6 +515,50 @@ class EventHandlers:
             except Exception as e:
                 if DEBUG:
                     _log(f"  - Could not log agent prompt: {e}")
+
+    def _save_project_alias_if_present(self, prompt: str) -> None:
+        """Detect @alias in prompt and save to state file for sticky context.
+
+        WHY this feature:
+        - Enables 'sticky' project context for subsequent prompts
+        - User types '@myproject do something' once, then future prompts
+          without @ automatically use the same project context
+        - State file: ~/.claude-mpm/state/last_project.json
+
+        Format: {"alias": "myproject", "timestamp": "..."}
+        """
+        if not prompt:
+            return
+
+        # Pattern: @alias at start of prompt (project context reference)
+        # Matches @word but not @@ or email-like patterns
+        match = re.match(r"^@([a-zA-Z][a-zA-Z0-9_-]*)\s", prompt)
+        if not match:
+            return
+
+        alias = match.group(1)
+
+        # Save to state file
+        try:
+            state_dir = Path.home() / ".claude-mpm" / "state"
+            state_dir.mkdir(parents=True, exist_ok=True)
+
+            state_file = state_dir / "last_project.json"
+            state_data = {
+                "alias": alias,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+            with open(state_file, "w") as f:
+                json.dump(state_data, f, indent=2)
+
+            if DEBUG:
+                _log(f"Saved project alias '{alias}' to {state_file}")
+
+        except Exception as e:
+            if DEBUG:
+                _log(f"Failed to save project alias: {e}")
+            # Non-fatal: sticky context is a convenience feature
 
     def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
