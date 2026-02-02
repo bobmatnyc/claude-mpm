@@ -221,14 +221,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     "MCP services provide enhanced capabilities like vector search, browser automation, "
                     "and ticket management. Critical errors prevent these services from functioning."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/mcp-services.md"
             elif status == ValidationSeverity.WARNING:
                 severity = "low"
                 explanation = (
                     "MCP services are optional but provide powerful features. "
                     "Some services may not be installed or configured properly."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/mcp-services.md"
 
             return DiagnosticResult(
                 category=self.category,
