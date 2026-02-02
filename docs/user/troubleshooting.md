@@ -28,6 +28,8 @@ Common issues and solutions for Claude MPM.
     - [Agent Not Found from Source](#agent-not-found-from-source)
     - [Priority Conflicts](#priority-conflicts)
     - [Common Error Messages](#common-error-messages)
+- [Skill Source Issues](#skill-source-issues)
+  - [GitHub API Rate Limit (HTTP 403)](#github-api-rate-limit-http-403)
 - [Monitoring Issues](#monitoring-issues)
 - [Local Deployment Issues](#local-deployment-issues)
 - [Memory Issues](#memory-issues)
@@ -539,6 +541,93 @@ claude-mpm agent-source add <url> --subdirectory correct/path
 
 # Force update
 claude-mpm agent-source update --force
+```
+
+## Skill Source Issues
+
+### GitHub API Rate Limit (HTTP 403)
+
+**Problem**: `skill-source add` or `skill-source update` fails with HTTP 403 error or rate limit message.
+
+**Cause**: GitHub's API has rate limits:
+- **Without authentication**: 60 requests/hour (shared by IP)
+- **With authentication**: 5,000 requests/hour
+
+**Symptoms:**
+```
+Error: HTTP 403 Forbidden
+Error: rate limit exceeded
+Error: API rate limit exceeded for IP address
+```
+
+**Solution**: Set a GitHub token in your environment:
+
+```bash
+# Option 1: Set GITHUB_TOKEN
+export GITHUB_TOKEN=your_github_token
+
+# Option 2: Set GH_TOKEN (also supported)
+export GH_TOKEN=your_github_token
+
+# Add to shell profile for persistence
+echo 'export GITHUB_TOKEN=your_github_token' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc  # or ~/.zshrc
+
+# Retry the operation
+claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills
+```
+
+**Creating a GitHub Token:**
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Give it a descriptive name (e.g., "claude-mpm")
+4. **No scopes needed** for public repositories
+5. Click "Generate token"
+6. Copy the token and set it as shown above
+
+**Token Requirements:**
+- Only public repository read access is needed
+- No special scopes required
+- Classic tokens with no scopes selected work fine
+- Fine-grained tokens with "Public Repositories (read-only)" also work
+
+**Verify Token is Set:**
+
+```bash
+# Check if token is available
+echo $GITHUB_TOKEN
+# or
+echo $GH_TOKEN
+
+# Test GitHub API access
+curl -H "Authorization: token $GITHUB_TOKEN" \
+  https://api.github.com/rate_limit
+```
+
+**Expected output shows higher limits:**
+```json
+{
+  "rate": {
+    "limit": 5000,
+    "remaining": 4999,
+    ...
+  }
+}
+```
+
+**If Still Failing:**
+
+```bash
+# Check current rate limit status
+curl https://api.github.com/rate_limit
+
+# Wait for rate limit reset (shown in response)
+# Or use a different network/IP
+
+# Clear any cached failures
+rm -rf ~/.claude-mpm/cache/skill-sources/
+claude-mpm skill-source update --force
 ```
 
 ## Monitoring Issues

@@ -6,6 +6,7 @@ Install Claude MPM and verify Claude Code CLI is available.
 
 - **Claude Code CLI v1.0.92+**: https://docs.anthropic.com/en/docs/claude-code
 - **Python 3.11 - 3.13** (Python 3.13 recommended)
+- **GitHub Token** (recommended): For skill sources from GitHub repositories
 
 > **Python Version Warning**:
 > - macOS default Python 3.9 is **too old** - installation will fail or get outdated version
@@ -13,6 +14,35 @@ Install Claude MPM and verify Claude Code CLI is available.
 > - Python 3.14 is **NOT yet supported** - installation will fail
 
 **Tip**: Use [ASDF version manager](../guides/asdf-tool-versions.md) to manage Python and uv versions consistently across projects.
+
+### GitHub Token (Recommended)
+
+A GitHub token is recommended when using skill sources from GitHub repositories. Without a token, GitHub's API rate limits may cause failures:
+
+- **Without token**: 60 requests/hour (rate limited by IP)
+- **With token**: 5,000 requests/hour
+
+Set up a token before adding skill sources:
+
+```bash
+# Option 1: Set GITHUB_TOKEN
+export GITHUB_TOKEN=your_github_token
+
+# Option 2: Set GH_TOKEN (also supported)
+export GH_TOKEN=your_github_token
+
+# Add to your shell profile for persistence
+echo 'export GITHUB_TOKEN=your_github_token' >> ~/.bashrc  # or ~/.zshrc
+```
+
+**Token requirements**: Only public repository read access is needed. No special scopes required - a classic token with no scopes selected works fine.
+
+To create a token:
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Give it a descriptive name (e.g., "claude-mpm")
+4. No scopes needed for public repos
+5. Click "Generate token" and copy it
 
 ## Critical: Installation Location
 

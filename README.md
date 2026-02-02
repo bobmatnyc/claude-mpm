@@ -37,6 +37,7 @@ Claude MPM transforms Claude Code into a **multi-agent orchestration platform** 
 
 1. **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT yet supported)
 2. **Claude Code CLI v2.1.3+** (required!)
+3. **GitHub Token** (recommended for skill sources)
 
 > **Python Version Warning**:
 > - macOS default Python 3.9 is **too old** - use `--python 3.13` flag
@@ -49,6 +50,9 @@ claude --version
 
 # If not installed, get it from:
 # https://docs.anthropic.com/en/docs/claude-code
+
+# Set GitHub token (recommended - avoids rate limits)
+export GITHUB_TOKEN=your_github_token
 ```
 
 ### Install Claude MPM
