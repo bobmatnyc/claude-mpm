@@ -130,6 +130,31 @@ if uv publish "$WHEEL_FILE" "$TAR_FILE"; then
     print_message "$BLUE" "  pip install --upgrade claude-mpm"
     print_message "$BLUE" "  pip install claude-mpm==$VERSION"
     echo ""
+
+    # 9. Update Homebrew tap
+    echo ""
+    print_message "$YELLOW" "Updating Homebrew tap..."
+
+    # Check if homebrew update script exists
+    HOMEBREW_SCRIPT="./scripts/update_homebrew_tap.sh"
+    if [ -f "$HOMEBREW_SCRIPT" ]; then
+        # Wait a moment for PyPI to propagate
+        print_message "$BLUE" "Waiting 10 seconds for PyPI propagation..."
+        sleep 10
+
+        # Run homebrew update with auto-push
+        if $HOMEBREW_SCRIPT "$VERSION" --auto-push --skip-tests 2>&1; then
+            print_message "$GREEN" "✓ Homebrew tap updated to v$VERSION"
+            print_message "$BLUE" "  Users can now run: brew upgrade claude-mpm"
+        else
+            print_message "$YELLOW" "⚠ Homebrew tap update failed (non-blocking)"
+            print_message "$YELLOW" "  Run manually: $HOMEBREW_SCRIPT $VERSION"
+        fi
+    else
+        print_message "$YELLOW" "Homebrew update script not found, skipping"
+        print_message "$BLUE" "  To update manually: ./scripts/update_homebrew_tap.sh $VERSION"
+    fi
+
 else
     echo ""
     print_message "$RED" "========================================"

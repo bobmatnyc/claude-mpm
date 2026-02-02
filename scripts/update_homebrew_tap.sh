@@ -32,8 +32,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-TAP_REPO="https://github.com/bobmatnyc/homebrew-tools.git"
-TAP_DIR="/tmp/homebrew-tools-update"
+TAP_REPO="https://github.com/bobmatnyc/homebrew-claude-mpm.git"
+TAP_DIR="/tmp/homebrew-claude-mpm-update"
 PYPI_PACKAGE="claude-mpm"
 FORMULA_FILE="Formula/claude-mpm.rb"
 LOG_FILE="/tmp/homebrew-tap-update.log"
