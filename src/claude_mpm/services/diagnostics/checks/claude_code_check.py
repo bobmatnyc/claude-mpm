@@ -182,8 +182,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 status=ValidationSeverity.WARNING,
                 message="Output style not deployed",
                 details={"deployed": False, "path": str(style_path)},
-                fix_command="claude-mpm deploy-style",
-                fix_description="Deploy claude-mpm output style for better formatting",
+                fix_description="Output style will be deployed automatically on next claude-mpm startup",
             )
 
         # Check if it's up to date
@@ -206,8 +205,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                         "outdated": True,
                         "path": str(style_path),
                     },
-                    fix_command="claude-mpm deploy-style --force",
-                    fix_description="Update output style to latest version",
+                    fix_description="Output style will be updated automatically on next claude-mpm startup",
                 )
         except Exception as e:
             return DiagnosticResult(
@@ -237,7 +235,7 @@ class ClaudeCodeCheck(BaseDiagnosticCheck):
                 config = json.load(f)
 
                 mcp_servers = config.get("mcpServers", {})
-                if "claude-mpm-gateway" in mcp_servers or "claude-mpm" in mcp_servers:
+                if "claude-mpm" in mcp_servers:
                     return DiagnosticResult(
                         category="MCP Integration",
                         status=OperationResult.SUCCESS,

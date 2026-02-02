@@ -163,9 +163,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     "connection_error": connection_test.get("error"),
                 }
 
-            # Check MCP gateway configuration for services
-            gateway_result = self._check_gateway_configuration()
-            sub_results.append(gateway_result)
 
             # Count service statuses
             installed_count = sum(1 for s in services_status.values() if s["installed"])
@@ -186,9 +183,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
             details["connected_count"] = connected_count
             details["total_services"] = total_services
             details["total_tools_discovered"] = total_tools
-            details["gateway_configured"] = (
-                gateway_result.status == OperationResult.SUCCESS
-            )
 
             # Determine overall status
             errors = [r for r in sub_results if r.status == ValidationSeverity.ERROR]
@@ -198,8 +192,8 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                 status = ValidationSeverity.ERROR
                 message = f"Critical issues with {len(errors)} MCP service(s)"
             elif installed_count == 0:
-                status = ValidationSeverity.WARNING
-                message = "No MCP services installed"
+                status = ValidationSeverity.INFO
+                message = "No MCP services installed (optional)"
             elif connected_count == total_services:
                 status = OperationResult.SUCCESS
                 message = f"All {total_services} MCP services connected ({total_tools} tools available)"
@@ -227,14 +221,14 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     "MCP services provide enhanced capabilities like vector search, browser automation, "
                     "and ticket management. Critical errors prevent these services from functioning."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/mcp-services.md"
             elif status == ValidationSeverity.WARNING:
                 severity = "low"
                 explanation = (
                     "MCP services are optional but provide powerful features. "
                     "Some services may not be installed or configured properly."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/mcp-services.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/mcp-services.md"
 
             return DiagnosticResult(
                 category=self.category,
@@ -565,7 +559,7 @@ class MCPServicesCheck(BaseDiagnosticCheck):
         if not (pipx_installed or accessible):
             return DiagnosticResult(
                 category=f"MCP Service: {service_name}",
-                status=ValidationSeverity.WARNING,
+                status=ValidationSeverity.INFO,
                 message=f"Not installed: {config['description']}",
                 details=details,
                 fix_command=f"pipx install {config['package']}",
@@ -943,101 +937,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
         except Exception as e:
             self.logger.error(f"Failed to fix kuzu-memory configuration: {e}")
             return False
-
-    def _check_gateway_configuration(self) -> DiagnosticResult:
-        """Check if MCP services are configured in the gateway."""
-        try:
-            # Check Claude config file (the correct location for Claude Code)
-            config_file = Path.home() / ".claude.json"
-
-            if not config_file.exists():
-                return DiagnosticResult(
-                    category="MCP Gateway Configuration",
-                    status=ValidationSeverity.WARNING,
-                    message="Claude configuration file not found",
-                    details={"config_path": str(config_file), "exists": False},
-                    fix_command="claude-mpm configure --mcp",
-                    fix_description="Initialize Claude configuration",
-                )
-
-            with config_file.open() as f:
-                config = json.load(f)
-
-            # Get the current project configuration
-            current_project = str(Path.cwd())
-
-            # Check if current project has MCP servers configured
-            projects = config.get("projects", {})
-            if current_project not in projects:
-                return DiagnosticResult(
-                    category="MCP Gateway Configuration",
-                    status=ValidationSeverity.WARNING,
-                    message="Current project not configured in Claude",
-                    details={
-                        "config_path": str(config_file),
-                        "project": current_project,
-                    },
-                    fix_command="claude-mpm configure --mcp",
-                    fix_description="Configure MCP services for current project",
-                )
-
-            project_config = projects[current_project]
-            mcp_servers = project_config.get("mcpServers", {})
-
-            configured_services = []
-            missing_services = []
-
-            for service_name in self.MCP_SERVICES:
-                if service_name in mcp_servers:
-                    configured_services.append(service_name)
-                else:
-                    missing_services.append(service_name)
-
-            details = {
-                "config_path": str(config_file),
-                "configured_services": configured_services,
-                "missing_services": missing_services,
-            }
-
-            if not configured_services:
-                return DiagnosticResult(
-                    category="MCP Gateway Configuration",
-                    status=ValidationSeverity.WARNING,
-                    message="No MCP services configured in gateway",
-                    details=details,
-                    fix_command="claude-mpm configure --mcp --add-services",
-                    fix_description="Add MCP services to gateway configuration",
-                )
-
-            if missing_services:
-                return DiagnosticResult(
-                    category="MCP Gateway Configuration",
-                    status=ValidationSeverity.WARNING,
-                    message=f"{len(configured_services)} services configured, {len(missing_services)} missing",
-                    details=details,
-                )
-
-            return DiagnosticResult(
-                category="MCP Gateway Configuration",
-                status=OperationResult.SUCCESS,
-                message=f"All {len(configured_services)} services configured",
-                details=details,
-            )
-
-        except json.JSONDecodeError as e:
-            return DiagnosticResult(
-                category="MCP Gateway Configuration",
-                status=ValidationSeverity.ERROR,
-                message="Invalid JSON in MCP configuration",
-                details={"error": str(e)},
-            )
-        except Exception as e:
-            return DiagnosticResult(
-                category="MCP Gateway Configuration",
-                status=ValidationSeverity.WARNING,
-                message=f"Could not check configuration: {e!s}",
-                details={"error": str(e)},
-            )
 
     def _ensure_mcp_ticketer_gql_dependency(self) -> bool:
         """Ensure mcp-ticketer has the gql dependency injected."""

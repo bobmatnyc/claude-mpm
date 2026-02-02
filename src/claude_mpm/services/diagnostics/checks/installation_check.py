@@ -76,7 +76,7 @@ class InstallationCheck(BaseDiagnosticCheck):
                     "Claude MPM installation verification failed. Critical components are missing "
                     "or misconfigured, which will prevent the system from functioning properly."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/installation.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/getting-started/installation.md"
             elif status == ValidationSeverity.WARNING:
                 severity = "medium"
                 explanation = (

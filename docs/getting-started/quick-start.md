@@ -7,6 +7,10 @@ Get Claude MPM running in under 5 minutes.
 - **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT supported yet)
 - **Claude Code CLI v1.0.92+**: `claude --version`
   - Install: https://docs.anthropic.com/en/docs/claude-code
+- **GitHub Token** (recommended): Avoid rate limits when using skill sources
+  ```bash
+  export GITHUB_TOKEN=your_github_token  # or GH_TOKEN
+  ```
 
 > **macOS Users**: The default Python 3.9 is too old. Use Python 3.13 with the `--python 3.13` flag.
 
@@ -82,6 +86,7 @@ In the Claude session, ask for a task such as:
 | Python 3.14 not supported | Downgrade to Python 3.13 |
 | Installation conflicts | Install from `~` not from git repo |
 | Doctor shows errors | Run post-install setup (Steps 4-6) |
+| GitHub rate limit (HTTP 403) | Set `GITHUB_TOKEN` environment variable |
 
 ## Next Steps
 
