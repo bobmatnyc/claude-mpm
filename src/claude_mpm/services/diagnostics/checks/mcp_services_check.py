@@ -163,7 +163,6 @@ class MCPServicesCheck(BaseDiagnosticCheck):
                     "connection_error": connection_test.get("error"),
                 }
 
-
             # Count service statuses
             installed_count = sum(1 for s in services_status.values() if s["installed"])
             accessible_count = sum(

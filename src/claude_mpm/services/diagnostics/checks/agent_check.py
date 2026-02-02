@@ -289,9 +289,13 @@ class AgentCheck(BaseDiagnosticCheck):
                         content = f.read()
 
                         # Check for required sections (accept both current and legacy formats)
-                        has_identity = "## Identity" in content or "## Core Identity" in content
+                        has_identity = (
+                            "## Identity" in content or "## Core Identity" in content
+                        )
                         if not has_identity:
-                            invalid.append(f"{agent_file.stem}: missing Identity section")
+                            invalid.append(
+                                f"{agent_file.stem}: missing Identity section"
+                            )
                         elif len(content) < 100:
                             invalid.append(f"{agent_file.stem}: file too small")
 
