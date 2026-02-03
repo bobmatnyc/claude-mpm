@@ -84,6 +84,7 @@ class SkillsDeployerService(LoggerMixin):
         force: bool = False,
         selective: bool = True,
         project_root: Optional[Path] = None,
+        skill_names: Optional[List[str]] = None,
     ) -> Dict:
         """Deploy skills from GitHub repository.
 
@@ -91,9 +92,10 @@ class SkillsDeployerService(LoggerMixin):
         1. Downloads skills from GitHub collection
         2. Parses manifest for metadata
         3. Filters by toolchain and categories
-        4. (If selective=True) Filters to only agent-referenced skills
-        5. Deploys to ~/.claude/skills/
-        6. Warns about Claude Code restart
+        4. (If skill_names provided) Filters to only specified skills
+        5. (If selective=True) Filters to only agent-referenced skills
+        6. Deploys to ~/.claude/skills/
+        7. Warns about Claude Code restart
 
         Args:
             collection: Collection name to deploy from (default: uses default collection)
@@ -102,6 +104,7 @@ class SkillsDeployerService(LoggerMixin):
             force: Overwrite existing skills
             selective: If True, only deploy skills referenced by agents (default)
             project_root: Project root directory (for finding agents, auto-detected if None)
+            skill_names: Specific skill names to deploy (overrides selective filtering)
 
         Returns:
             Dict containing:
@@ -169,9 +172,22 @@ class SkillsDeployerService(LoggerMixin):
             f" (toolchain={toolchain}, categories={categories})"
         )
 
-        # Step 3.5: Apply selective filtering (only agent-referenced skills)
+        # Step 3.5a: Filter by specific skill names if provided
+        if skill_names:
+            skill_names_set = set(skill_names)
+            filtered_skills = [
+                skill
+                for skill in filtered_skills
+                if skill.get("name") in skill_names_set
+                or skill.get("skill_id") in skill_names_set
+            ]
+            self.logger.info(
+                f"After skill_names filtering: {len(filtered_skills)} skills to deploy"
+            )
+
+        # Step 3.5b: Apply selective filtering (only agent-referenced skills)
         total_available = len(filtered_skills)
-        if selective:
+        if selective and not skill_names:
             # Auto-detect project root if not provided
             if project_root is None:
                 # Try to find project root by looking for .claude-mpm directory
