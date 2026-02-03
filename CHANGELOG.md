@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.105] - 2026-02-03
+
+### Added
+- Google Tasks API support with 13 new MCP tools (now 34 total tools in Workspace MCP)
+
 ## [5.6.104] - 2026-02-03
 
 ### Added
