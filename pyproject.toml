@@ -5,11 +5,64 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "claude-mpm"
 version = "5.6.106"
-description = "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking"
+description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = [ "claude", "orchestration", "multi-agent", "ticket-management",]
-classifiers = [ "Development Status :: 3 - Alpha", "Intended Audience :: Developers", "License :: Other/Proprietary License", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13",]
+keywords = [
+    # Core identity
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai-agents",
+    "multi-agent",
+    # Framework type
+    "workflow-automation",
+    "agent-orchestration",
+    "developer-tools",
+    "cli-tools",
+    # Key features
+    "mcp",
+    "model-context-protocol",
+    "skills-system",
+    "session-management",
+    "semantic-search",
+    "code-search",
+    # Integrations
+    "google-workspace",
+    "gmail-api",
+    "google-calendar",
+    "google-drive",
+    "google-tasks",
+    "github-integration",
+    "ticket-management",
+    # Development
+    "ai-development",
+    "code-generation",
+    "devops",
+    "automation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: Other/Proprietary License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Software Distribution",
+    "Typing :: Typed",
+]
 dependencies = [ "ai-trackdown-pytools>=1.4.0", "pyyaml>=6.0", "python-dotenv>=1.0.0", "click>=8.0.0", "pexpect>=4.8.0", "psutil>=5.9.0", "requests>=2.25.0", "flask>=3.0.0", "flask-cors>=4.0.0", "watchdog>=3.0.0", "python-socketio>=5.14.0", "aiohttp>=3.9.0", "aiohttp-cors>=0.7.0,<0.8.0", "python-engineio>=4.8.0", "aiofiles>=23.0.0", "websockets>=12.0", "python-frontmatter>=1.0.0", "mistune>=3.0.0", "tree-sitter>=0.21.0", "ijson>=3.2.0", "toml>=0.10.2", "packaging>=21.0", "pydantic>=2.0.0", "pydantic-settings>=2.0.0", "rich>=13.0.0", "questionary>=2.0.0", "pyee>=13.0.0", "pathspec>=0.11.0", "fastapi>=0.100.0", "uvicorn>=0.20.0", "httpx>=0.24.0", "keyring>=24.0.0", "cryptography>=41.0.0", "mcp>=1.0.0",]
 [[project.authors]]
 name = "Bob Matsuoka"
