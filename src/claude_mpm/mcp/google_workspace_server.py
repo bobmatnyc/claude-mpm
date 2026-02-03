@@ -32,6 +32,7 @@ CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
 GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1"
 DRIVE_API_BASE = "https://www.googleapis.com/drive/v3"
 DOCS_API_BASE = "https://docs.googleapis.com/v1"
+TASKS_API_BASE = "https://tasks.googleapis.com/tasks/v1"
 
 
 class GoogleWorkspaceServer:
@@ -527,6 +528,291 @@ class GoogleWorkspaceServer:
                         "required": ["name", "markdown_content"],
                     },
                 ),
+                # Google Tasks API - Task Lists Operations
+                Tool(
+                    name="list_task_lists",
+                    description="List all task lists for the authenticated user",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "max_results": {
+                                "type": "integer",
+                                "description": "Maximum number of task lists to return (default: 100)",
+                                "default": 100,
+                            },
+                        },
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="get_task_list",
+                    description="Get a specific task list by ID",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID",
+                            },
+                        },
+                        "required": ["tasklist_id"],
+                    },
+                ),
+                Tool(
+                    name="create_task_list",
+                    description="Create a new task list",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "description": "Title of the new task list",
+                            },
+                        },
+                        "required": ["title"],
+                    },
+                ),
+                Tool(
+                    name="update_task_list",
+                    description="Update an existing task list",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID to update",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "New title for the task list",
+                            },
+                        },
+                        "required": ["tasklist_id", "title"],
+                    },
+                ),
+                Tool(
+                    name="delete_task_list",
+                    description="Delete a task list",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID to delete",
+                            },
+                        },
+                        "required": ["tasklist_id"],
+                    },
+                ),
+                # Google Tasks API - Tasks Operations
+                Tool(
+                    name="list_tasks",
+                    description="List all tasks in a task list",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default' for the default list)",
+                                "default": "@default",
+                            },
+                            "show_completed": {
+                                "type": "boolean",
+                                "description": "Include completed tasks (default: true)",
+                                "default": True,
+                            },
+                            "show_hidden": {
+                                "type": "boolean",
+                                "description": "Include hidden tasks (default: false)",
+                                "default": False,
+                            },
+                            "due_min": {
+                                "type": "string",
+                                "description": "Lower bound for due date (RFC3339 format)",
+                            },
+                            "due_max": {
+                                "type": "string",
+                                "description": "Upper bound for due date (RFC3339 format)",
+                            },
+                            "max_results": {
+                                "type": "integer",
+                                "description": "Maximum number of tasks to return (default: 100)",
+                                "default": 100,
+                            },
+                        },
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="get_task",
+                    description="Get a specific task by ID",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "task_id": {
+                                "type": "string",
+                                "description": "Task ID",
+                            },
+                        },
+                        "required": ["task_id"],
+                    },
+                ),
+                Tool(
+                    name="search_tasks",
+                    description="Search tasks across all task lists by title or notes content",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query to match against task titles and notes",
+                            },
+                            "show_completed": {
+                                "type": "boolean",
+                                "description": "Include completed tasks in search (default: true)",
+                                "default": True,
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                ),
+                Tool(
+                    name="create_task",
+                    description="Create a new task in a task list",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Task title",
+                            },
+                            "notes": {
+                                "type": "string",
+                                "description": "Task notes/description",
+                            },
+                            "due": {
+                                "type": "string",
+                                "description": "Due date in RFC3339 format (e.g., '2024-01-15T00:00:00Z')",
+                            },
+                            "parent": {
+                                "type": "string",
+                                "description": "Parent task ID for creating subtasks",
+                            },
+                        },
+                        "required": ["title"],
+                    },
+                ),
+                Tool(
+                    name="update_task",
+                    description="Update an existing task",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "task_id": {
+                                "type": "string",
+                                "description": "Task ID to update",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "New task title",
+                            },
+                            "notes": {
+                                "type": "string",
+                                "description": "New task notes/description",
+                            },
+                            "due": {
+                                "type": "string",
+                                "description": "New due date in RFC3339 format",
+                            },
+                            "status": {
+                                "type": "string",
+                                "description": "Task status: 'needsAction' or 'completed'",
+                                "enum": ["needsAction", "completed"],
+                            },
+                        },
+                        "required": ["task_id"],
+                    },
+                ),
+                Tool(
+                    name="complete_task",
+                    description="Mark a task as completed",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "task_id": {
+                                "type": "string",
+                                "description": "Task ID to complete",
+                            },
+                        },
+                        "required": ["task_id"],
+                    },
+                ),
+                Tool(
+                    name="delete_task",
+                    description="Delete a task",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "task_id": {
+                                "type": "string",
+                                "description": "Task ID to delete",
+                            },
+                        },
+                        "required": ["task_id"],
+                    },
+                ),
+                Tool(
+                    name="move_task",
+                    description="Move a task to a different position or make it a subtask",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "tasklist_id": {
+                                "type": "string",
+                                "description": "Task list ID (default: '@default')",
+                                "default": "@default",
+                            },
+                            "task_id": {
+                                "type": "string",
+                                "description": "Task ID to move",
+                            },
+                            "parent": {
+                                "type": "string",
+                                "description": "New parent task ID (to make this task a subtask)",
+                            },
+                            "previous": {
+                                "type": "string",
+                                "description": "Task ID to position this task after",
+                            },
+                        },
+                        "required": ["task_id"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -667,6 +953,21 @@ class GoogleWorkspaceServer:
             "get_document": self._get_document,
             # Markdown conversion
             "upload_markdown_as_doc": self._upload_markdown_as_doc,
+            # Tasks - Task Lists operations
+            "list_task_lists": self._list_task_lists,
+            "get_task_list": self._get_task_list,
+            "create_task_list": self._create_task_list,
+            "update_task_list": self._update_task_list,
+            "delete_task_list": self._delete_task_list,
+            # Tasks - Task operations
+            "list_tasks": self._list_tasks,
+            "get_task": self._get_task,
+            "search_tasks": self._search_tasks,
+            "create_task": self._create_task,
+            "update_task": self._update_task,
+            "complete_task": self._complete_task,
+            "delete_task": self._delete_task,
+            "move_task": self._move_task,
         }
 
         handler = handlers.get(name)
@@ -1804,6 +2105,399 @@ class GoogleWorkspaceServer:
             "name": result.get("name"),
             "mimeType": result.get("mimeType"),
         }
+
+    # =========================================================================
+    # Google Tasks API - Task Lists Operations
+    # =========================================================================
+
+    async def _list_task_lists(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all task lists for the user.
+
+        Args:
+            arguments: Tool arguments with optional max_results.
+
+        Returns:
+            List of task lists with id, title, and updated timestamp.
+        """
+        max_results = arguments.get("max_results", 100)
+
+        url = f"{TASKS_API_BASE}/users/@me/lists"
+        params = {"maxResults": max_results}
+
+        response = await self._make_request("GET", url, params=params)
+
+        task_lists = []
+        for item in response.get("items", []):
+            task_lists.append(
+                {
+                    "id": item.get("id"),
+                    "title": item.get("title"),
+                    "updated": item.get("updated"),
+                    "self_link": item.get("selfLink"),
+                }
+            )
+
+        return {"task_lists": task_lists, "count": len(task_lists)}
+
+    async def _get_task_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Get a specific task list by ID.
+
+        Args:
+            arguments: Tool arguments with tasklist_id.
+
+        Returns:
+            Task list details.
+        """
+        tasklist_id = arguments["tasklist_id"]
+
+        url = f"{TASKS_API_BASE}/users/@me/lists/{tasklist_id}"
+        response = await self._make_request("GET", url)
+
+        return {
+            "id": response.get("id"),
+            "title": response.get("title"),
+            "updated": response.get("updated"),
+            "self_link": response.get("selfLink"),
+        }
+
+    async def _create_task_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new task list.
+
+        Args:
+            arguments: Tool arguments with title.
+
+        Returns:
+            Created task list details.
+        """
+        title = arguments["title"]
+
+        url = f"{TASKS_API_BASE}/users/@me/lists"
+        response = await self._make_request("POST", url, json_data={"title": title})
+
+        return {
+            "status": "created",
+            "id": response.get("id"),
+            "title": response.get("title"),
+            "updated": response.get("updated"),
+        }
+
+    async def _update_task_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing task list.
+
+        Args:
+            arguments: Tool arguments with tasklist_id and title.
+
+        Returns:
+            Updated task list details.
+        """
+        tasklist_id = arguments["tasklist_id"]
+        title = arguments["title"]
+
+        url = f"{TASKS_API_BASE}/users/@me/lists/{tasklist_id}"
+        response = await self._make_request("PATCH", url, json_data={"title": title})
+
+        return {
+            "status": "updated",
+            "id": response.get("id"),
+            "title": response.get("title"),
+            "updated": response.get("updated"),
+        }
+
+    async def _delete_task_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a task list.
+
+        Args:
+            arguments: Tool arguments with tasklist_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        tasklist_id = arguments["tasklist_id"]
+
+        url = f"{TASKS_API_BASE}/users/@me/lists/{tasklist_id}"
+
+        access_token = await self._get_access_token()
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        return {"status": "deleted", "tasklist_id": tasklist_id}
+
+    # =========================================================================
+    # Google Tasks API - Tasks Operations
+    # =========================================================================
+
+    async def _list_tasks(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all tasks in a task list.
+
+        Args:
+            arguments: Tool arguments with tasklist_id and filter options.
+
+        Returns:
+            List of tasks with details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        show_completed = arguments.get("show_completed", True)
+        show_hidden = arguments.get("show_hidden", False)
+        due_min = arguments.get("due_min")
+        due_max = arguments.get("due_max")
+        max_results = arguments.get("max_results", 100)
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks"
+        params: dict[str, Any] = {
+            "maxResults": max_results,
+            "showCompleted": str(show_completed).lower(),
+            "showHidden": str(show_hidden).lower(),
+        }
+
+        if due_min:
+            params["dueMin"] = due_min
+        if due_max:
+            params["dueMax"] = due_max
+
+        response = await self._make_request("GET", url, params=params)
+
+        tasks = []
+        for item in response.get("items", []):
+            tasks.append(self._format_task(item))
+
+        return {"tasks": tasks, "count": len(tasks)}
+
+    def _format_task(self, item: dict[str, Any]) -> dict[str, Any]:
+        """Format a task item for consistent output.
+
+        Args:
+            item: Raw task data from API.
+
+        Returns:
+            Formatted task dictionary.
+        """
+        return {
+            "id": item.get("id"),
+            "title": item.get("title"),
+            "notes": item.get("notes"),
+            "status": item.get("status"),
+            "due": item.get("due"),
+            "completed": item.get("completed"),
+            "parent": item.get("parent"),
+            "position": item.get("position"),
+            "updated": item.get("updated"),
+            "deleted": item.get("deleted", False),
+            "hidden": item.get("hidden", False),
+        }
+
+    async def _get_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Get a specific task by ID.
+
+        Args:
+            arguments: Tool arguments with tasklist_id and task_id.
+
+        Returns:
+            Task details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        task_id = arguments["task_id"]
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks/{task_id}"
+        response = await self._make_request("GET", url)
+
+        return self._format_task(response)
+
+    async def _search_tasks(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Search tasks across all task lists by title or notes.
+
+        Note: Google Tasks API doesn't have native search, so we fetch all
+        tasks and filter locally.
+
+        Args:
+            arguments: Tool arguments with query and show_completed.
+
+        Returns:
+            List of matching tasks with their task list info.
+        """
+        query = arguments["query"].lower()
+        show_completed = arguments.get("show_completed", True)
+
+        # First get all task lists
+        lists_url = f"{TASKS_API_BASE}/users/@me/lists"
+        lists_response = await self._make_request("GET", lists_url)
+
+        matching_tasks = []
+
+        # Search in each task list
+        for task_list in lists_response.get("items", []):
+            tasklist_id = task_list.get("id")
+            tasklist_title = task_list.get("title")
+
+            tasks_url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks"
+            params = {
+                "showCompleted": str(show_completed).lower(),
+                "maxResults": 100,
+            }
+
+            tasks_response = await self._make_request("GET", tasks_url, params=params)
+
+            for task in tasks_response.get("items", []):
+                title = task.get("title", "").lower()
+                notes = task.get("notes", "").lower()
+
+                if query in title or query in notes:
+                    formatted = self._format_task(task)
+                    formatted["tasklist_id"] = tasklist_id
+                    formatted["tasklist_title"] = tasklist_title
+                    matching_tasks.append(formatted)
+
+        return {"tasks": matching_tasks, "count": len(matching_tasks), "query": query}
+
+    async def _create_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new task in a task list.
+
+        Args:
+            arguments: Tool arguments with tasklist_id, title, notes, due, parent.
+
+        Returns:
+            Created task details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        title = arguments["title"]
+        notes = arguments.get("notes")
+        due = arguments.get("due")
+        parent = arguments.get("parent")
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks"
+
+        task_body: dict[str, Any] = {"title": title}
+
+        if notes:
+            task_body["notes"] = notes
+        if due:
+            task_body["due"] = due
+
+        # If parent is specified, add it as a query parameter
+        params = {}
+        if parent:
+            params["parent"] = parent
+
+        response = await self._make_request(
+            "POST", url, params=params if params else None, json_data=task_body
+        )
+
+        result = self._format_task(response)
+        result["status"] = "created"
+        return result
+
+    async def _update_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing task.
+
+        Args:
+            arguments: Tool arguments with tasklist_id, task_id, and fields to update.
+
+        Returns:
+            Updated task details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        task_id = arguments["task_id"]
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks/{task_id}"
+
+        # Build update body with only provided fields
+        update_body: dict[str, Any] = {}
+
+        if "title" in arguments:
+            update_body["title"] = arguments["title"]
+        if "notes" in arguments:
+            update_body["notes"] = arguments["notes"]
+        if "due" in arguments:
+            update_body["due"] = arguments["due"]
+        if "status" in arguments:
+            update_body["status"] = arguments["status"]
+
+        response = await self._make_request("PATCH", url, json_data=update_body)
+
+        result = self._format_task(response)
+        result["update_status"] = "updated"
+        return result
+
+    async def _complete_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Mark a task as completed.
+
+        Args:
+            arguments: Tool arguments with tasklist_id and task_id.
+
+        Returns:
+            Completed task details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        task_id = arguments["task_id"]
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks/{task_id}"
+
+        response = await self._make_request(
+            "PATCH", url, json_data={"status": "completed"}
+        )
+
+        result = self._format_task(response)
+        result["update_status"] = "completed"
+        return result
+
+    async def _delete_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a task.
+
+        Args:
+            arguments: Tool arguments with tasklist_id and task_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        task_id = arguments["task_id"]
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks/{task_id}"
+
+        access_token = await self._get_access_token()
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        return {"status": "deleted", "task_id": task_id, "tasklist_id": tasklist_id}
+
+    async def _move_task(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Move a task to a different position or make it a subtask.
+
+        Args:
+            arguments: Tool arguments with tasklist_id, task_id, parent, previous.
+
+        Returns:
+            Moved task details.
+        """
+        tasklist_id = arguments.get("tasklist_id", "@default")
+        task_id = arguments["task_id"]
+        parent = arguments.get("parent")
+        previous = arguments.get("previous")
+
+        url = f"{TASKS_API_BASE}/lists/{tasklist_id}/tasks/{task_id}/move"
+
+        params: dict[str, Any] = {}
+        if parent:
+            params["parent"] = parent
+        if previous:
+            params["previous"] = previous
+
+        response = await self._make_request(
+            "POST", url, params=params if params else None
+        )
+
+        result = self._format_task(response)
+        result["move_status"] = "moved"
+        return result
 
     async def run(self) -> None:
         """Run the MCP server using stdio transport."""
