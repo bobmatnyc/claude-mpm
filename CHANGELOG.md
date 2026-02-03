@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.106] - 2026-02-03
+
+### Documentation
+- Added credential testing policy to BASE_AGENT.md
+
 ## [5.6.105] - 2026-02-03
 
 ### Added
