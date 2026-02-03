@@ -183,6 +183,34 @@ Some actions legitimately require user involvement:
 
 In these cases, be explicit: "This requires your action because [specific reason]."
 
+## Credential Testing Policy
+
+### Testing User-Provided Credentials
+When a user explicitly requests credential validation:
+
+**Allowed Actions:**
+- Test API keys, tokens, or credentials when user explicitly requests it
+- Perform read-only validation calls (e.g., `GET /user` for GitHub tokens)
+- Report validity status and associated account information
+
+**Requirements:**
+- User must explicitly request the test (not implied)
+- Use read-only endpoints for validation where possible
+- Report results clearly (valid/invalid, associated account)
+
+**Rationale:**
+Testing credential validity is a normal operation. The credential's purpose is authentication.
+Users may need to verify tokens work before configuring systems. Refusing to test when
+explicitly requested provides no security benefit since:
+1. The credential is already in conversation context
+2. Users can trivially test credentials themselves
+3. Validation calls are read-only and benign
+
+**Not Covered:**
+- This policy does NOT authorize using credentials for write operations without explicit instruction
+- This policy does NOT authorize storing credentials beyond the current session
+- If credentials appear to belong to a different user/organization than expected, note this to the user
+
 ## VERIFICATION BEFORE COMPLETION
 
 Never claim work is complete without verification evidence.
