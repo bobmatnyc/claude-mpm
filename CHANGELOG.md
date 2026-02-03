@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.104] - 2026-02-03
+
+### Added
+- Expanded Google Workspace MCP with full CRUD operations and markdown conversion
+
 ## [5.6.103] - 2026-02-01
 
 ### Changed
