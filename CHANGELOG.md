@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.107] - 2026-02-03
+
+### Documentation
+- Enhanced project description and metadata in pyproject.toml and README
+
 ## [5.6.106] - 2026-02-03
 
 ### Documentation
