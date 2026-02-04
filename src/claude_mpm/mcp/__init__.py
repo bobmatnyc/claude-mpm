@@ -11,7 +11,7 @@ from claude_mpm.mcp.errors import (
     SessionError,
     parse_error,
 )
-from claude_mpm.mcp.google_workspace_server import main
+from claude_mpm.mcp.google_workspace_server import main as google_workspace_main
 from claude_mpm.mcp.models import SessionInfo, SessionResult, SessionStatus
 from claude_mpm.mcp.ndjson_parser import (
     NDJSONStreamParser,
@@ -19,6 +19,7 @@ from claude_mpm.mcp.ndjson_parser import (
     extract_session_id_from_stream,
 )
 from claude_mpm.mcp.session_manager import SessionManager
+from claude_mpm.mcp.session_server import SessionServer, main as session_server_main
 from claude_mpm.mcp.subprocess_wrapper import ClaudeMPMSubprocess
 
 __all__ = [
@@ -31,9 +32,11 @@ __all__ = [
     "SessionInfo",
     "SessionManager",
     "SessionResult",
+    "SessionServer",
     "SessionStatus",
     "extract_session_id",
     "extract_session_id_from_stream",
-    "main",
+    "google_workspace_main",
     "parse_error",
+    "session_server_main",
 ]
