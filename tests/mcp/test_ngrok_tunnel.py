@@ -1,23 +1,75 @@
 """Tests for NgrokTunnel module.
 
-Tests ngrok tunnel lifecycle management with all ngrok calls mocked.
+Tests ngrok tunnel lifecycle management with all pyngrok calls mocked.
 These tests verify the logic and configuration without actually connecting to ngrok.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Skip entire module if ngrok is not available
-ngrok = pytest.importorskip("ngrok")
+# Skip entire module if pyngrok is not available
+pyngrok = pytest.importorskip("pyngrok")
 
 from claude_mpm.mcp.ngrok_tunnel import NgrokTunnel, TunnelInfo
 
 
-# Create a mock NgrokError class for testing error handling
-# The actual ngrok package may not export this class directly in all versions
-class MockNgrokError(Exception):
-    """Mock NgrokError for testing."""
+# Create mock exception classes for testing error handling
+class MockPyngrokError(Exception):
+    """Mock PyngrokError for testing."""
+
+
+class MockPyngrokNgrokError(Exception):
+    """Mock PyngrokNgrokError for testing."""
+
+
+@pytest.fixture
+def mock_pyngrok():
+    """Fixture that provides mocked pyngrok modules for testing.
+
+    This fixture patches the pyngrok module imports that happen inside
+    the NgrokTunnel.start() and stop() methods.
+    """
+    # Create mock modules
+    mock_ngrok_module = MagicMock()
+    mock_conf_module = MagicMock()
+    mock_exception_module = MagicMock()
+    mock_exception_module.PyngrokError = MockPyngrokError
+    mock_exception_module.PyngrokNgrokError = MockPyngrokNgrokError
+
+    # Create the parent pyngrok module mock
+    mock_pyngrok_parent = MagicMock()
+    mock_pyngrok_parent.ngrok = mock_ngrok_module
+
+    # Store original modules
+    original_modules = {}
+    modules_to_patch = [
+        "pyngrok",
+        "pyngrok.ngrok",
+        "pyngrok.conf",
+        "pyngrok.exception",
+    ]
+    for mod_name in modules_to_patch:
+        if mod_name in sys.modules:
+            original_modules[mod_name] = sys.modules[mod_name]
+            # Remove from cache so the import happens fresh
+            del sys.modules[mod_name]
+
+    # Install mock modules
+    sys.modules["pyngrok"] = mock_pyngrok_parent
+    sys.modules["pyngrok.ngrok"] = mock_ngrok_module
+    sys.modules["pyngrok.conf"] = mock_conf_module
+    sys.modules["pyngrok.exception"] = mock_exception_module
+
+    yield mock_ngrok_module
+
+    # Restore original modules
+    for mod_name in modules_to_patch:
+        if mod_name in sys.modules:
+            del sys.modules[mod_name]
+    for mod_name, original in original_modules.items():
+        sys.modules[mod_name] = original
 
 
 class TestTunnelInfo:
@@ -71,10 +123,10 @@ class TestNgrokTunnelInit:
     """Tests for NgrokTunnel initialization."""
 
     def test_default_initialization(self):
-        """Should initialize with None listener and tunnel_info."""
+        """Should initialize with None tunnel and tunnel_info."""
         tunnel = NgrokTunnel()
 
-        assert tunnel.listener is None
+        assert tunnel.tunnel is None
         assert tunnel.tunnel_info is None
         assert tunnel._tunnel_counter == 0
 
@@ -89,238 +141,212 @@ class TestNgrokTunnelStart:
     """Tests for NgrokTunnel.start() method."""
 
     @pytest.mark.asyncio
-    async def test_start_with_authtoken_from_env(self):
+    async def test_start_with_authtoken_from_env(self, mock_pyngrok):
         """Should start tunnel using authtoken from environment."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://envtoken.ngrok.io"
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://envtoken.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
-
+        with patch.dict("os.environ", {"NGROK_AUTHTOKEN": "env-token-123"}):
             tunnel = NgrokTunnel()
             info = await tunnel.start(port=8080)
 
-            mock_forward.assert_called_once_with(
-                8080,
-                authtoken_from_env=True,
-                domain=None,
-            )
+            mock_pyngrok.set_auth_token.assert_called_once_with("env-token-123")
+            mock_pyngrok.connect.assert_called_once_with(addr=8080)
             assert info.url == "https://envtoken.ngrok.io"
             assert info.local_port == 8080
             assert tunnel.is_active is True
 
     @pytest.mark.asyncio
-    async def test_start_with_provided_authtoken(self):
+    async def test_start_with_provided_authtoken(self, mock_pyngrok):
         """Should start tunnel using provided authtoken."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://provided.ngrok.io"
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://provided.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        info = await tunnel.start(port=8080, authtoken="my-token-123")
 
-            tunnel = NgrokTunnel()
-            info = await tunnel.start(port=8080, authtoken="my-token-123")
-
-            mock_forward.assert_called_once_with(
-                8080,
-                authtoken="my-token-123",
-                domain=None,
-            )
-            assert info.url == "https://provided.ngrok.io"
+        mock_pyngrok.set_auth_token.assert_called_once_with("my-token-123")
+        mock_pyngrok.connect.assert_called_once_with(addr=8080)
+        assert info.url == "https://provided.ngrok.io"
 
     @pytest.mark.asyncio
-    async def test_start_with_custom_domain(self):
-        """Should pass custom domain to ngrok.forward."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://custom.mydomain.com"
+    async def test_start_with_custom_domain(self, mock_pyngrok):
+        """Should pass custom domain to ngrok.connect."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://custom.mydomain.com"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        info = await tunnel.start(
+            port=8080,
+            authtoken="token",
+            domain="custom.mydomain.com",
+        )
 
-            tunnel = NgrokTunnel()
-            info = await tunnel.start(
-                port=8080,
-                authtoken="token",
-                domain="custom.mydomain.com",
-            )
-
-            mock_forward.assert_called_once_with(
-                8080,
-                authtoken="token",
-                domain="custom.mydomain.com",
-            )
-            assert info.url == "https://custom.mydomain.com"
+        mock_pyngrok.set_auth_token.assert_called_once_with("token")
+        mock_pyngrok.connect.assert_called_once_with(
+            addr=8080,
+            hostname="custom.mydomain.com",
+        )
+        assert info.url == "https://custom.mydomain.com"
 
     @pytest.mark.asyncio
-    async def test_start_sets_tunnel_info(self):
+    async def test_start_sets_tunnel_info(self, mock_pyngrok):
         """Should set tunnel_info with correct values."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://info.ngrok.io"
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://info.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        info = await tunnel.start(port=9000, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            info = await tunnel.start(port=9000)
-
-            assert tunnel.tunnel_info is not None
-            assert tunnel.tunnel_info.url == "https://info.ngrok.io"
-            assert tunnel.tunnel_info.local_port == 9000
-            assert tunnel.tunnel_info.tunnel_id == "tunnel-1-9000"
+        assert tunnel.tunnel_info is not None
+        assert tunnel.tunnel_info.url == "https://info.ngrok.io"
+        assert tunnel.tunnel_info.local_port == 9000
+        assert tunnel.tunnel_info.tunnel_id == "tunnel-1-9000"
 
     @pytest.mark.asyncio
-    async def test_start_increments_tunnel_counter(self):
+    async def test_start_converts_http_to_https(self, mock_pyngrok):
+        """Should convert http:// URLs to https://."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "http://http-test.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
+
+        tunnel = NgrokTunnel()
+        info = await tunnel.start(port=8080, authtoken="token")
+
+        assert info.url == "https://http-test.ngrok.io"
+
+    @pytest.mark.asyncio
+    async def test_start_increments_tunnel_counter(self, mock_pyngrok):
         """Should increment tunnel counter on each start."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://counter.ngrok.io"
-        mock_listener.close = AsyncMock()
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://counter.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
 
-            tunnel = NgrokTunnel()
+        info1 = await tunnel.start(port=8080, authtoken="token")
+        assert info1.tunnel_id == "tunnel-1-8080"
 
-            info1 = await tunnel.start(port=8080)
-            assert info1.tunnel_id == "tunnel-1-8080"
+        await tunnel.stop()
 
-            await tunnel.stop()
-
-            info2 = await tunnel.start(port=8080)
-            assert info2.tunnel_id == "tunnel-2-8080"
+        info2 = await tunnel.start(port=8080, authtoken="token")
+        assert info2.tunnel_id == "tunnel-2-8080"
 
     @pytest.mark.asyncio
-    async def test_start_raises_when_already_active(self):
+    async def test_start_raises_when_already_active(self, mock_pyngrok):
         """Should raise RuntimeError if tunnel is already active."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://active.ngrok.io"
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://active.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
+        with pytest.raises(RuntimeError) as exc_info:
+            await tunnel.start(port=8080, authtoken="token")
 
-            with pytest.raises(RuntimeError) as exc_info:
-                await tunnel.start(port=8080)
-
-            assert "Tunnel already active" in str(exc_info.value)
+        assert "Tunnel already active" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_start_raises_friendly_message_on_auth_error(self):
+    async def test_start_raises_without_authtoken(self):
+        """Should raise RuntimeError when no authtoken is provided."""
+        with patch.dict("os.environ", {}, clear=True):
+            # Clear NGROK_AUTHTOKEN from environment
+            with patch.object(__import__("os"), "environ", {"HOME": "/home/test"}):
+                tunnel = NgrokTunnel()
+
+                with pytest.raises(RuntimeError) as exc_info:
+                    await tunnel.start(port=8080)
+
+                error_msg = str(exc_info.value)
+                assert "NGROK_AUTHTOKEN" in error_msg
+                assert "https://dashboard.ngrok.com" in error_msg
+
+    @pytest.mark.asyncio
+    async def test_start_raises_friendly_message_on_auth_error(self, mock_pyngrok):
         """Should raise RuntimeError with helpful message on auth failure."""
-        # Mock NgrokError class on the module being tested with create=True
-        # since the attribute may not exist in all ngrok package versions
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.NgrokError", MockNgrokError, create=True
-        ), patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_ngrok_error = MockNgrokError("authentication failed: invalid token")
-            mock_forward.side_effect = mock_ngrok_error
+        mock_pyngrok.connect.side_effect = MockPyngrokError(
+            "authentication failed: invalid token"
+        )
 
-            tunnel = NgrokTunnel()
+        tunnel = NgrokTunnel()
 
-            with pytest.raises(RuntimeError) as exc_info:
-                await tunnel.start(port=8080)
+        with pytest.raises(RuntimeError) as exc_info:
+            await tunnel.start(port=8080, authtoken="bad-token")
 
-            error_msg = str(exc_info.value)
-            assert "authentication failed" in error_msg.lower()
-            assert "NGROK_AUTHTOKEN" in error_msg
-            assert "https://dashboard.ngrok.com" in error_msg
+        error_msg = str(exc_info.value)
+        assert "authentication failed" in error_msg.lower()
+        assert "NGROK_AUTHTOKEN" in error_msg
+        assert "https://dashboard.ngrok.com" in error_msg
 
     @pytest.mark.asyncio
-    async def test_start_raises_friendly_message_on_token_error(self):
+    async def test_start_raises_friendly_message_on_token_error(self, mock_pyngrok):
         """Should handle token-related errors with helpful message."""
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.NgrokError", MockNgrokError, create=True
-        ), patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_ngrok_error = MockNgrokError("token expired or invalid")
-            mock_forward.side_effect = mock_ngrok_error
+        mock_pyngrok.connect.side_effect = MockPyngrokNgrokError(
+            "token expired or invalid"
+        )
 
-            tunnel = NgrokTunnel()
+        tunnel = NgrokTunnel()
 
-            with pytest.raises(RuntimeError) as exc_info:
-                await tunnel.start(port=8080)
+        with pytest.raises(RuntimeError) as exc_info:
+            await tunnel.start(port=8080, authtoken="expired-token")
 
-            error_msg = str(exc_info.value)
-            assert "NGROK_AUTHTOKEN" in error_msg
+        error_msg = str(exc_info.value)
+        assert "NGROK_AUTHTOKEN" in error_msg
 
     @pytest.mark.asyncio
-    async def test_start_propagates_non_auth_ngrok_errors(self):
-        """Should propagate non-auth NgrokError unchanged."""
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.NgrokError", MockNgrokError, create=True
-        ), patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_ngrok_error = MockNgrokError("connection refused")
-            mock_forward.side_effect = mock_ngrok_error
+    async def test_start_wraps_non_auth_pyngrok_errors(self, mock_pyngrok):
+        """Should wrap non-auth PyngrokError in RuntimeError."""
+        mock_pyngrok.connect.side_effect = MockPyngrokError("connection refused")
 
-            tunnel = NgrokTunnel()
+        tunnel = NgrokTunnel()
 
-            with pytest.raises(MockNgrokError):
-                await tunnel.start(port=8080)
+        with pytest.raises(RuntimeError) as exc_info:
+            await tunnel.start(port=8080, authtoken="token")
+
+        assert "Failed to start ngrok tunnel" in str(exc_info.value)
+        assert "connection refused" in str(exc_info.value)
 
 
 class TestNgrokTunnelStop:
     """Tests for NgrokTunnel.stop() method."""
 
     @pytest.mark.asyncio
-    async def test_stop_closes_listener(self):
-        """Should call close() on listener when stopping."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://close.ngrok.io"
-        mock_listener.close = AsyncMock()
+    async def test_stop_disconnects_tunnel(self, mock_pyngrok):
+        """Should call ngrok.disconnect() when stopping."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://close.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
+        result = await tunnel.stop()
 
-            result = await tunnel.stop()
-
-            assert result is True
-            mock_listener.close.assert_called_once()
+        assert result is True
+        mock_pyngrok.disconnect.assert_called_once_with("https://close.ngrok.io")
 
     @pytest.mark.asyncio
-    async def test_stop_clears_listener_and_info(self):
-        """Should clear listener and tunnel_info after stop."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://clear.ngrok.io"
-        mock_listener.close = AsyncMock()
+    async def test_stop_clears_tunnel_and_info(self, mock_pyngrok):
+        """Should clear tunnel and tunnel_info after stop."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://clear.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
+        assert tunnel.tunnel is not None
+        assert tunnel.tunnel_info is not None
 
-            assert tunnel.listener is not None
-            assert tunnel.tunnel_info is not None
+        await tunnel.stop()
 
-            await tunnel.stop()
-
-            assert tunnel.listener is None
-            assert tunnel.tunnel_info is None
+        assert tunnel.tunnel is None
+        assert tunnel.tunnel_info is None
 
     @pytest.mark.asyncio
     async def test_stop_returns_false_when_not_active(self):
@@ -332,52 +358,44 @@ class TestNgrokTunnelStop:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_stop_handles_close_exception_gracefully(self):
-        """Should handle exception during close and still cleanup."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://error.ngrok.io"
-        mock_listener.close = AsyncMock(side_effect=Exception("Close failed"))
+    async def test_stop_handles_disconnect_exception_gracefully(self, mock_pyngrok):
+        """Should handle exception during disconnect and still cleanup."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://error.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
+        mock_pyngrok.disconnect.side_effect = Exception("Disconnect failed")
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
+        # Should not raise, should still cleanup
+        result = await tunnel.stop()
 
-            # Should not raise, should still cleanup
-            result = await tunnel.stop()
-
-            assert result is True
-            assert tunnel.listener is None
-            assert tunnel.tunnel_info is None
+        assert result is True
+        assert tunnel.tunnel is None
+        assert tunnel.tunnel_info is None
 
 
 class TestNgrokTunnelIsActive:
     """Tests for NgrokTunnel.is_active property."""
 
-    def test_is_active_false_when_listener_none(self):
-        """Should return False when listener is None."""
+    def test_is_active_false_when_tunnel_none(self):
+        """Should return False when tunnel is None."""
         tunnel = NgrokTunnel()
 
         assert tunnel.is_active is False
 
     @pytest.mark.asyncio
-    async def test_is_active_true_when_listener_set(self):
-        """Should return True when listener is set."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://active.ngrok.io"
+    async def test_is_active_true_when_tunnel_set(self, mock_pyngrok):
+        """Should return True when tunnel is set."""
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://active.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
-
-            assert tunnel.is_active is True
+        assert tunnel.is_active is True
 
 
 class TestNgrokTunnelGetUrl:
@@ -390,20 +408,16 @@ class TestNgrokTunnelGetUrl:
         assert tunnel.get_url() is None
 
     @pytest.mark.asyncio
-    async def test_get_url_returns_url_when_active(self):
+    async def test_get_url_returns_url_when_active(self, mock_pyngrok):
         """Should return tunnel URL when active."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://geturl.ngrok.io"
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://geturl.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
+        await tunnel.start(port=8080, authtoken="token")
 
-            tunnel = NgrokTunnel()
-            await tunnel.start(port=8080)
-
-            assert tunnel.get_url() == "https://geturl.ngrok.io"
+        assert tunnel.get_url() == "https://geturl.ngrok.io"
 
 
 class TestNgrokTunnelContextManager:
@@ -418,26 +432,21 @@ class TestNgrokTunnelContextManager:
             assert ctx is tunnel
 
     @pytest.mark.asyncio
-    async def test_context_manager_exit_calls_stop(self):
+    async def test_context_manager_exit_calls_stop(self, mock_pyngrok):
         """Async context manager should call stop on exit."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://ctx.ngrok.io"
-        mock_listener.close = AsyncMock()
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://ctx.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
 
-            tunnel = NgrokTunnel()
+        async with tunnel:
+            await tunnel.start(port=8080, authtoken="token")
+            assert tunnel.is_active is True
 
-            async with tunnel:
-                await tunnel.start(port=8080)
-                assert tunnel.is_active is True
-
-            # After exiting context, tunnel should be stopped
-            assert tunnel.is_active is False
-            mock_listener.close.assert_called_once()
+        # After exiting context, tunnel should be stopped
+        assert tunnel.is_active is False
+        mock_pyngrok.disconnect.assert_called_once_with("https://ctx.ngrok.io")
 
     @pytest.mark.asyncio
     async def test_context_manager_exit_handles_no_active_tunnel(self):
@@ -451,94 +460,80 @@ class TestNgrokTunnelContextManager:
         assert tunnel.is_active is False
 
     @pytest.mark.asyncio
-    async def test_context_manager_exit_on_exception(self):
+    async def test_context_manager_exit_on_exception(self, mock_pyngrok):
         """Context manager should stop tunnel even on exception."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://except.ngrok.io"
-        mock_listener.close = AsyncMock()
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://except.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
 
-            tunnel = NgrokTunnel()
+        with pytest.raises(ValueError):
+            async with tunnel:
+                await tunnel.start(port=8080, authtoken="token")
+                raise ValueError("Test exception")
 
-            with pytest.raises(ValueError):
-                async with tunnel:
-                    await tunnel.start(port=8080)
-                    raise ValueError("Test exception")
-
-            # Tunnel should still be stopped
-            assert tunnel.is_active is False
-            mock_listener.close.assert_called_once()
+        # Tunnel should still be stopped
+        assert tunnel.is_active is False
+        mock_pyngrok.disconnect.assert_called_once_with("https://except.ngrok.io")
 
 
 class TestNgrokTunnelIntegration:
     """Integration-style tests for NgrokTunnel lifecycle."""
 
     @pytest.mark.asyncio
-    async def test_full_lifecycle_start_stop(self):
+    async def test_full_lifecycle_start_stop(self, mock_pyngrok):
         """Test complete tunnel lifecycle: start -> verify -> stop."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://lifecycle.ngrok.io"
-        mock_listener.close = AsyncMock()
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://lifecycle.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
 
-            tunnel = NgrokTunnel()
+        # Verify initial state
+        assert tunnel.is_active is False
+        assert tunnel.get_url() is None
 
-            # Verify initial state
-            assert tunnel.is_active is False
-            assert tunnel.get_url() is None
+        # Start tunnel
+        info = await tunnel.start(port=8080, authtoken="token")
 
-            # Start tunnel
-            info = await tunnel.start(port=8080)
+        # Verify active state
+        assert tunnel.is_active is True
+        assert tunnel.get_url() == "https://lifecycle.ngrok.io"
+        assert info.url == "https://lifecycle.ngrok.io"
+        assert info.local_port == 8080
 
-            # Verify active state
-            assert tunnel.is_active is True
-            assert tunnel.get_url() == "https://lifecycle.ngrok.io"
-            assert info.url == "https://lifecycle.ngrok.io"
-            assert info.local_port == 8080
+        # Stop tunnel
+        result = await tunnel.stop()
 
-            # Stop tunnel
-            result = await tunnel.stop()
-
-            # Verify stopped state
-            assert result is True
-            assert tunnel.is_active is False
-            assert tunnel.get_url() is None
+        # Verify stopped state
+        assert result is True
+        assert tunnel.is_active is False
+        assert tunnel.get_url() is None
+        mock_pyngrok.disconnect.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_multiple_start_stop_cycles(self):
+    async def test_multiple_start_stop_cycles(self, mock_pyngrok):
         """Test multiple start/stop cycles work correctly."""
-        mock_listener = MagicMock()
-        mock_listener.url.return_value = "https://multi.ngrok.io"
-        mock_listener.close = AsyncMock()
+        mock_tunnel = MagicMock()
+        mock_tunnel.public_url = "https://multi.ngrok.io"
+        mock_pyngrok.connect.return_value = mock_tunnel
 
-        with patch(
-            "claude_mpm.mcp.ngrok_tunnel.ngrok.forward", new_callable=AsyncMock
-        ) as mock_forward:
-            mock_forward.return_value = mock_listener
+        tunnel = NgrokTunnel()
 
-            tunnel = NgrokTunnel()
+        # First cycle
+        info1 = await tunnel.start(port=8080, authtoken="token")
+        assert tunnel.is_active is True
+        await tunnel.stop()
+        assert tunnel.is_active is False
 
-            # First cycle
-            info1 = await tunnel.start(port=8080)
-            assert tunnel.is_active is True
-            await tunnel.stop()
-            assert tunnel.is_active is False
+        # Second cycle
+        info2 = await tunnel.start(port=9090, authtoken="token")
+        assert tunnel.is_active is True
+        assert info2.local_port == 9090
+        await tunnel.stop()
+        assert tunnel.is_active is False
 
-            # Second cycle
-            info2 = await tunnel.start(port=9090)
-            assert tunnel.is_active is True
-            assert info2.local_port == 9090
-            await tunnel.stop()
-            assert tunnel.is_active is False
-
-            # Verify tunnel IDs increment
-            assert info1.tunnel_id == "tunnel-1-8080"
-            assert info2.tunnel_id == "tunnel-2-9090"
+        # Verify tunnel IDs increment
+        assert info1.tunnel_id == "tunnel-1-8080"
+        assert info2.tunnel_id == "tunnel-2-9090"

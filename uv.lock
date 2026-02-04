@@ -772,6 +772,11 @@ eval = [
     { name = "pytest-asyncio" },
     { name = "pytest-timeout" },
 ]
+http = [
+    { name = "pyngrok" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+]
 mcp = [
     { name = "mcp" },
     { name = "mcp-browser" },
@@ -853,6 +858,7 @@ requires-dist = [
     { name = "pyee", specifier = ">=13.0.0" },
     { name = "pylint", marker = "extra == 'dev'", specifier = ">=3.0.0" },
     { name = "pymongo", marker = "extra == 'data-processing'", specifier = ">=4.5.0" },
+    { name = "pyngrok", marker = "extra == 'http'", specifier = ">=7.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest", marker = "extra == 'eval'", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },
@@ -878,6 +884,8 @@ requires-dist = [
     { name = "sphinx-autobuild", marker = "extra == 'docs'", specifier = ">=2021.3.14" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=1.3.0" },
     { name = "sqlalchemy", marker = "extra == 'data-processing'", specifier = ">=2.0.0" },
+    { name = "sse-starlette", marker = "extra == 'http'", specifier = ">=2.0.0" },
+    { name = "starlette", marker = "extra == 'http'", specifier = ">=0.38.0" },
     { name = "tabulate", marker = "extra == 'data-processing'", specifier = ">=0.9.0" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "tree-sitter", specifier = ">=0.21.0" },
@@ -891,7 +899,7 @@ requires-dist = [
     { name = "xlsxwriter", marker = "extra == 'data-processing'", specifier = ">=3.1.0" },
     { name = "xlwt", marker = "extra == 'data-processing'", specifier = ">=1.3.0" },
 ]
-provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack"]
+provides-extras = ["mcp", "dev", "eval", "docs", "monitor", "data-processing", "memory", "slack", "http"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -4410,6 +4418,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/af/78c13179961e418396ec6ef53c0f1c855f1e9f1176d10909e8345d65366a/pymongo-4.15.5-cp314-cp314t-win32.whl", hash = "sha256:7c285614a3e8570b03174a25db642e449b0e7f77a6c9e487b73b05c9bf228ee6", size = 1044015, upload-time = "2025-12-02T18:44:05.318Z" },
     { url = "https://files.pythonhosted.org/packages/b0/d5/49012f03418dce976124da339f3a6afbe6959cb0468ca6302596fe272926/pymongo-4.15.5-cp314-cp314t-win_amd64.whl", hash = "sha256:aae7d96f7b2b1a2753349130797543e61e93ee2ace8faa7fbe0565e2eb5d815f", size = 1078481, upload-time = "2025-12-02T18:44:07.215Z" },
     { url = "https://files.pythonhosted.org/packages/5e/fc/f352a070d8ff6f388ce344c5ddb82348a38e0d1c99346fa6bfdef07134fe/pymongo-4.15.5-cp314-cp314t-win_arm64.whl", hash = "sha256:576a7d4b99465d38112c72f7f3d345f9d16aeeff0f923a3b298c13e15ab4f0ad", size = 1051166, upload-time = "2025-12-02T18:44:09.048Z" },
+]
+
+[[package]]
+name = "pyngrok"
+version = "7.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/7c/788a44567ffbad7c2d838e79a388ae5045520410f953c5097ad664d4763d/pyngrok-7.5.0.tar.gz", hash = "sha256:2fe91cba2c2531ecfb124b5071f377808b61a68a14ca3c99fcb7f3fdae05278f", size = 43149, upload-time = "2025-11-17T17:36:50.463Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/60/ab93dfb5721ba65f36bb6c2e07adfa21a8ac6525760b60f2ad6d31f7d098/pyngrok-7.5.0-py3-none-any.whl", hash = "sha256:1e50e71a59f1086f59e12e3d186f07ae2cbdccaf6f523678ef7ce3a180aba5c4", size = 24785, upload-time = "2025-11-17T17:36:49.372Z" },
 ]
 
 [[package]]

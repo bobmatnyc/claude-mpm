@@ -94,7 +94,7 @@ memory = [ "kuzu-memory>=1.1.5",]
 # Slack MPM client for team collaboration
 slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
 # HTTP transport with SSE and ngrok for remote MCP access
-http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "ngrok>=1.7.0",]
+http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "pyngrok>=7.0.0",]
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"

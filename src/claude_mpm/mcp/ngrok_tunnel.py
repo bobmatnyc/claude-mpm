@@ -2,13 +2,14 @@
 
 This module provides ngrok tunnel lifecycle management for exposing
 local MCP servers to the internet for remote access.
+
+Uses pyngrok which supports Python 3.11+.
 """
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any
-
-import ngrok
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class TunnelInfo:
     """Information about an active ngrok tunnel.
 
     Attributes:
-        url: The public ngrok URL (https://xxx.ngrok.io).
+        url: The public ngrok URL (https://xxx.ngrok-free.app).
         local_port: The local port being tunneled.
         tunnel_id: Unique identifier for this tunnel instance.
     """
@@ -35,7 +36,7 @@ class NgrokTunnel:
     to expose local MCP servers to the internet.
 
     Attributes:
-        listener: The active ngrok listener, or None if not connected.
+        tunnel: The active pyngrok tunnel, or None if not connected.
         tunnel_info: Information about the active tunnel, or None.
 
     Example:
@@ -47,7 +48,7 @@ class NgrokTunnel:
 
     def __init__(self) -> None:
         """Initialize NgrokTunnel manager."""
-        self.listener: Any | None = None
+        self.tunnel: Any | None = None
         self.tunnel_info: TunnelInfo | None = None
         self._tunnel_counter = 0
 
@@ -70,29 +71,45 @@ class NgrokTunnel:
 
         Raises:
             RuntimeError: If tunnel is already active or ngrok auth fails.
-            ngrok.NgrokError: If ngrok connection fails.
+            PyngrokError: If ngrok connection fails.
         """
-        if self.listener is not None:
+        if self.tunnel is not None:
             raise RuntimeError("Tunnel already active. Stop it first.")
 
         try:
-            # Build forward options
-            if authtoken:
-                # Use provided authtoken
-                self.listener = await ngrok.forward(
-                    port,
-                    authtoken=authtoken,
-                    domain=domain,
-                )
-            else:
-                # Use authtoken from environment (NGROK_AUTHTOKEN)
-                self.listener = await ngrok.forward(
-                    port,
-                    authtoken_from_env=True,
-                    domain=domain,
+            from pyngrok import ngrok
+            from pyngrok.exception import PyngrokError, PyngrokNgrokError
+        except ImportError as e:
+            raise RuntimeError(
+                "pyngrok not installed. Install with: pip install claude-mpm[http]"
+            ) from e
+
+        try:
+            # Configure pyngrok
+            token = authtoken or os.environ.get("NGROK_AUTHTOKEN")
+            if not token:
+                raise RuntimeError(
+                    "Ngrok authentication required. Please set NGROK_AUTHTOKEN "
+                    "environment variable or provide authtoken parameter. "
+                    "Get your token at: https://dashboard.ngrok.com/get-started/your-authtoken"
                 )
 
-            url = self.listener.url()
+            # Set authtoken
+            ngrok.set_auth_token(token)
+
+            # Build options
+            options: dict[str, Any] = {"addr": port}
+            if domain:
+                options["hostname"] = domain
+
+            # Start tunnel (pyngrok uses sync API, but we wrap it)
+            self.tunnel = ngrok.connect(**options)
+            url = self.tunnel.public_url
+
+            # Ensure HTTPS
+            if url.startswith("http://"):
+                url = url.replace("http://", "https://")
+
             self._tunnel_counter += 1
             tunnel_id = f"tunnel-{self._tunnel_counter}-{port}"
 
@@ -111,7 +128,7 @@ class NgrokTunnel:
 
             return self.tunnel_info
 
-        except ngrok.NgrokError as e:
+        except (PyngrokError, PyngrokNgrokError) as e:
             error_msg = str(e).lower()
             if "auth" in error_msg or "token" in error_msg:
                 raise RuntimeError(
@@ -119,7 +136,7 @@ class NgrokTunnel:
                     "environment variable or provide authtoken parameter. "
                     "Get your token at: https://dashboard.ngrok.com/get-started/your-authtoken"
                 ) from e
-            raise
+            raise RuntimeError(f"Failed to start ngrok tunnel: {e}") from e
 
     async def stop(self) -> bool:
         """Stop the active ngrok tunnel.
@@ -127,12 +144,14 @@ class NgrokTunnel:
         Returns:
             True if tunnel was stopped, False if no tunnel was active.
         """
-        if self.listener is None:
+        if self.tunnel is None:
             logger.warning("No active tunnel to stop")
             return False
 
         try:
-            await self.listener.close()
+            from pyngrok import ngrok
+
+            ngrok.disconnect(self.tunnel.public_url)
             logger.info(
                 "Ngrok tunnel stopped: %s",
                 self.tunnel_info.url if self.tunnel_info else "unknown",
@@ -140,7 +159,7 @@ class NgrokTunnel:
         except Exception as e:
             logger.warning("Error closing ngrok tunnel: %s", e)
         finally:
-            self.listener = None
+            self.tunnel = None
             self.tunnel_info = None
 
         return True
@@ -152,7 +171,7 @@ class NgrokTunnel:
         Returns:
             True if tunnel is active, False otherwise.
         """
-        return self.listener is not None
+        return self.tunnel is not None
 
     def get_url(self) -> str | None:
         """Get the public URL of the active tunnel.
