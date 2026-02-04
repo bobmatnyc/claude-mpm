@@ -368,3 +368,6 @@ src/claude_mpm/dashboard/static/svelte-build/_app/immutable/chunks/DPSjPKH7.js:1
 chunk-graph.json
 .playwright-mcp/
 .env.local
+
+# Generated Homebrew Formula (managed separately in homebrew-tap)
+Formula/

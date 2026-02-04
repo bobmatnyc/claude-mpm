@@ -42,10 +42,10 @@ Available commands:
 
 Examples:
   claude-mpm oauth list
-  claude-mpm oauth setup workspace-mcp
-  claude-mpm oauth status workspace-mcp
-  claude-mpm oauth revoke workspace-mcp
-  claude-mpm oauth refresh workspace-mcp
+  claude-mpm oauth setup google-workspace-mcp
+  claude-mpm oauth status google-workspace-mcp
+  claude-mpm oauth revoke google-workspace-mcp
+  claude-mpm oauth refresh google-workspace-mcp
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -100,7 +100,7 @@ Get credentials from: https://console.cloud.google.com/apis/credentials
     add_common_arguments(setup_parser)
     setup_parser.add_argument(
         "service_name",
-        help="Name of the MCP service to authenticate (e.g., workspace-mcp)",
+        help="Name of the MCP service to authenticate (e.g., google-workspace-mcp)",
     )
     setup_parser.add_argument(
         "--force",
@@ -116,8 +116,13 @@ Get credentials from: https://console.cloud.google.com/apis/credentials
     setup_parser.add_argument(
         "--port",
         type=int,
-        default=8085,
-        help="Port for the OAuth callback server (default: 8085)",
+        default=8789,
+        help="Port for the OAuth callback server (default: 8789). This must match the redirect URI configured in your OAuth provider (e.g., http://127.0.0.1:8789/callback for Google Cloud Console).",
+    )
+    setup_parser.add_argument(
+        "--no-launch",
+        action="store_true",
+        help="Don't launch claude-mpm after successful OAuth setup",
     )
 
     # Status subcommand

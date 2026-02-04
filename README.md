@@ -1,6 +1,11 @@
 # Claude MPM - Multi-Agent Project Manager
 
-A powerful orchestration framework for **Claude Code (CLI)** that enables multi-agent workflows, session management, and real-time monitoring through a streamlined Rich-based interface.
+[![PyPI version](https://badge.fury.io/py/claude-mpm.svg)](https://badge.fury.io/py/claude-mpm)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic_2.0-blue.svg)](LICENSE)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+
+**A comprehensive workflow and agent management framework for Claude Code** that transforms your AI coding assistant into a full-featured development platform with multi-agent orchestration, skills system, MCP integration, session management, and semantic code search.
 
 > **⚠️ Important**: Claude MPM **requires Claude Code CLI** (v2.1.3+), not Claude Desktop (app). All MCP integrations work with Claude Code's CLI interface only.
 >
@@ -20,14 +25,35 @@ A powerful orchestration framework for **Claude Code (CLI)** that enables multi-
 
 ## What is Claude MPM?
 
-Claude MPM transforms Claude Code into a **multi-agent orchestration platform** with:
+Claude MPM transforms Claude Code into a **comprehensive AI development platform** with:
 
-- **47+ Specialized Agents** - From Git repositories (Python, Rust, QA, Security, Ops, etc.)
-- **Intelligent Task Routing** - PM agent delegates work to specialist agents
-- **Session Management** - Resume previous sessions with full context preservation
-- **Semantic Code Search** - AI-powered discovery of existing code and patterns
-- **Real-Time Monitoring** - Live dashboard showing agent activity and performance
-- **Git Repository Integration** - Always up-to-date agents and skills from curated repositories
+### 🤖 Multi-Agent System
+- **47+ Specialized Agents** - Python, TypeScript, Rust, Go, Java, Ruby, PHP, QA, Security, DevOps, and more
+- **Intelligent PM Orchestration** - Automatic task routing to specialist agents
+- **Agent Sources** - Deploy agents from Git repositories with ETag-based caching
+
+### 🎯 Skills Framework
+- **44+ Bundled Skills** - TDD, debugging, Docker, API design, security scanning, Git workflows
+- **Progressive Disclosure** - Skills load on-demand to optimize context usage
+- **Three-Tier Organization** - Bundled → User → Project priority resolution
+
+### 🔌 MCP Integration (Model Context Protocol)
+- **Google Workspace MCP** - 34 tools for Gmail, Calendar, Drive, Docs, Tasks
+- **Semantic Code Search** - AI-powered code discovery via mcp-vector-search
+- **Ticket Management** - GitHub, Linear, Jira integration via mcp-ticketer
+- **Graph Memory** - Persistent project knowledge via kuzu-memory
+
+### 📊 Session & Workflow Management
+- **Session Resume** - Continue work with full context preservation
+- **Auto-Pause** - Automatic context summaries at 70%/85%/95% thresholds
+- **Real-Time Dashboard** - Live monitoring of agent activity
+- **Hooks System** - 15+ event hooks for custom workflows
+
+### 🔐 Enterprise Features
+- **OAuth 2.0 Integration** - Secure Google Workspace authentication
+- **Encrypted Token Storage** - Fernet encryption with system keychain
+- **100+ CLI Commands** - Comprehensive management interface
+- **60+ Services** - Service-oriented architecture with event bus
 
 ---
 
@@ -35,10 +61,14 @@ Claude MPM transforms Claude Code into a **multi-agent orchestration platform** 
 
 ### Prerequisites
 
-1. **Python 3.11+** (required - older versions will install outdated claude-mpm)
+1. **Python 3.11-3.13** (Python 3.13 recommended; 3.14 NOT yet supported)
 2. **Claude Code CLI v2.1.3+** (required!)
+3. **GitHub Token** (recommended for skill sources)
 
-> ⚠️ **Python Version Note**: Claude MPM requires Python 3.11 or higher. If you have Python 3.9 or 3.10, you'll get an old version (4.x) that lacks current features. Check with `python3 --version` before installing.
+> **Python Version Warning**:
+> - macOS default Python 3.9 is **too old** - use `--python 3.13` flag
+> - Python 3.13 is **recommended** and fully tested
+> - Python 3.14 is **NOT yet supported** - installation will fail
 
 ```bash
 # Verify Claude Code is installed
@@ -46,52 +76,81 @@ claude --version
 
 # If not installed, get it from:
 # https://docs.anthropic.com/en/docs/claude-code
+
+# Set GitHub token (recommended - avoids rate limits)
+export GITHUB_TOKEN=your_github_token
 ```
 
 ### Install Claude MPM
 
+**IMPORTANT**: Install from your **home directory**, NOT from within a cloned git repository.
+
+**uv (recommended):**
+```bash
+# From home directory (IMPORTANT!)
+cd ~
+
+# Install with Python 3.13 (not 3.9 or 3.14)
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+```
+
 **Homebrew (macOS):**
 ```bash
-brew install claude-mpm --with-monitor
+brew tap bobmatnyc/tools
+brew install claude-mpm
 ```
 
-**pipx/uv (recommended):**
+**pipx:**
 ```bash
-# With pipx
+cd ~
 pipx install "claude-mpm[monitor]"
-
-# Or with uv
-uv tool install "claude-mpm[monitor]"
 ```
 
-**pip:**
+### Post-Installation Setup (Required)
+
+These steps must be completed **before** running `claude-mpm doctor`:
+
 ```bash
-pip install "claude-mpm[monitor]"
+# Create required directories
+mkdir -p ~/.claude/{responses,memory,logs}
+
+# Deploy agents
+claude-mpm agents deploy
+
+# Add skill source (recommended)
+claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills
 ```
 
 ### Verify Installation
 
 ```bash
+# Run diagnostics (after completing setup above)
+claude-mpm doctor --verbose
+
 # Check versions
 claude-mpm --version
 claude --version
 
-# Run diagnostics
-claude-mpm doctor
-
-# Verify agents deployed
-ls ~/.claude/agents/    # Should show 47+ agents
+# Auto-configure your project
+cd ~/your-project
+claude-mpm auto-configure
 ```
 
 **What You Should See:**
-- ✅ 47+ agents deployed to `~/.claude/agents/`
-- ✅ 17 bundled skills (in Python package)
-- ✅ Agent sources configured
-- ✅ Progress bars showing sync and deployment
+- 47+ agents deployed to `~/.claude/agents/`
+- 44+ bundled skills (in Python package)
+- Agent sources configured
+- All doctor checks passing
 
-**💡 Recommended Partners**: Install [kuzu-memory](https://github.com/bobmatnyc/kuzu-memory) (persistent context) and [mcp-vector-search](https://github.com/bobmatnyc/mcp-vector-search) (semantic search) for enhanced capabilities.
+**Recommended Partners**: Install these companion tools for enhanced capabilities:
+```bash
+uv tool install kuzu-memory --python 3.13
+uv tool install mcp-vector-search --python 3.13
+uv tool install mcp-ticketer --python 3.13
+uv tool install mcp-browser --python 3.13
+```
 
-**💡 Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
+**Tool Version Management**: Use [ASDF version manager](docs/guides/asdf-tool-versions.md) to avoid Python/uv version conflicts across projects.
 
 ---
 
@@ -114,9 +173,10 @@ ls ~/.claude/agents/    # Should show 47+ agents
 [→ Learn more: Agent Sources](docs/user/agent-sources.md)
 
 ### 🎯 Skills System
-- **17 Bundled Skills** covering Git, TDD, Docker, API docs, testing, and more
+- **44+ Bundled Skills** covering Git, TDD, Docker, API design, security, debugging, and more
 - **Three-Tier Organization**: Bundled/user/project with priority resolution
 - **Auto-Linking** to relevant agents based on roles
+- **Progressive Disclosure** - Skills load on-demand to optimize context
 - **Custom Skills** via `.claude/skills/` or skill repositories
 
 [→ Learn more: Skills Guide](docs/user/skills-guide.md)
@@ -149,7 +209,12 @@ ls ~/.claude/agents/    # Should show 47+ agents
 
 ### 🔐 OAuth & Google Workspace Integration
 - **Browser-Based OAuth** for secure authentication with MCP services
-- **Google Workspace MCP** built-in server for Gmail, Calendar, and Drive
+- **Google Workspace MCP** built-in server with **34 tools** for:
+  - **Gmail** (5 tools): Search, read, send, draft, reply
+  - **Calendar** (6 tools): List, get, create, update, delete events
+  - **Drive** (7 tools): Search, read, create folders, upload, delete, move files
+  - **Docs** (4 tools): Create, read, append, markdown-to-doc conversion
+  - **Tasks** (12 tools): Full task and task list management
 - **Encrypted Token Storage** using Fernet encryption with system keychain
 - **Automatic Token Refresh** handles expiration seamlessly
 

@@ -228,6 +228,24 @@ class EventHandlers:
         if prompt.startswith("/mpm") and not DEBUG:
             return
 
+        # Detect and save @alias for sticky project context
+        self._save_project_alias_if_present(prompt)
+
+        # Emit immediate acknowledgment for long-running command feedback
+        project_name = (
+            event.get("cwd", "").split("/")[-1] if event.get("cwd") else "unknown"
+        )
+        ack_data = {
+            "prompt_preview": prompt[:80] + "..." if len(prompt) > 80 else prompt,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "received",
+            "project": project_name,
+        }
+        self.hook_handler._emit_socketio_event("", "command_acknowledged", ack_data)
+
+        # Capture PM-level directive to persistent memory (non-blocking)
+        self._capture_pm_directive(prompt, project_name)
+
         # Get working directory and git branch
         working_dir = event.get("cwd", "")
         git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
@@ -512,6 +530,83 @@ class EventHandlers:
             except Exception as e:
                 if DEBUG:
                     _log(f"  - Could not log agent prompt: {e}")
+
+    def _save_project_alias_if_present(self, prompt: str) -> None:
+        """Detect @alias in prompt and save to state file for sticky context.
+
+        WHY this feature:
+        - Enables 'sticky' project context for subsequent prompts
+        - User types '@myproject do something' once, then future prompts
+          without @ automatically use the same project context
+        - State file: ~/.claude-mpm/state/last_project.json
+
+        Format: {"alias": "myproject", "timestamp": "..."}
+        """
+        if not prompt:
+            return
+
+        # Pattern: @alias at start of prompt (project context reference)
+        # Matches @word but not @@ or email-like patterns
+        match = re.match(r"^@([a-zA-Z][a-zA-Z0-9_-]*)\s", prompt)
+        if not match:
+            return
+
+        alias = match.group(1)
+
+        # Save to state file
+        try:
+            state_dir = Path.home() / ".claude-mpm" / "state"
+            state_dir.mkdir(parents=True, exist_ok=True)
+
+            state_file = state_dir / "last_project.json"
+            state_data = {
+                "alias": alias,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+            with open(state_file, "w") as f:
+                json.dump(state_data, f, indent=2)
+
+            if DEBUG:
+                _log(f"Saved project alias '{alias}' to {state_file}")
+
+        except Exception as e:
+            if DEBUG:
+                _log(f"Failed to save project alias: {e}")
+            # Non-fatal: sticky context is a convenience feature
+
+    def _capture_pm_directive(self, prompt: str, project: Optional[str] = None) -> None:
+        """Capture PM-level directive to persistent memory.
+
+        Stores user orchestration commands for context enrichment:
+        - Preferences ("always use PR model")
+        - Workflows ("when deploying, run tests first")
+        - Directives ("implement feature X")
+
+        Args:
+            prompt: User prompt to capture
+            project: Project context (from @alias or cwd)
+        """
+        # Skip internal commands and very short prompts
+        if prompt.startswith("/") or len(prompt) < 10:
+            return
+
+        try:
+            from claude_mpm.memory import get_pm_memory
+
+            pm_memory = get_pm_memory(enabled=True)
+            pm_memory.capture_directive(prompt, project=project)
+
+            if DEBUG:
+                _log(f"Captured PM directive for project '{project}'")
+
+        except ImportError:
+            # kuzu-memory not installed - silently skip
+            pass
+        except Exception as e:
+            if DEBUG:
+                _log(f"Failed to capture PM directive: {e}")
+            # Non-fatal: memory capture is optional
 
     def _get_git_branch(self, working_dir: Optional[str] = None) -> str:
         """Get git branch for the given directory with caching."""
