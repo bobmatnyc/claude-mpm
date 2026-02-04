@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.110] - 2026-02-04
+
+### Added
+- Google Docs comment tools with style guidelines for workspace MCP
+
+### Fixed
+- Sync full skill directories including scripts and references (#282)
+
 ## [5.6.109] - 2026-02-04
 
 ### Added
