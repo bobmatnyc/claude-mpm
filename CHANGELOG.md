@@ -10,6 +10,24 @@
 
 ### Tests
 
+## [5.7.0] - 2026-02-04
+
+### Added
+- **MCP Session Server**: New `mpm-session-server` command exposing claude-mpm headless mode via MCP protocol
+  - 5 session management tools: `mpm_session_start`, `mpm_session_continue`, `mpm_session_status`, `mpm_session_list`, `mpm_session_stop`
+  - Full async subprocess management with configurable concurrency limits
+  - Session forking support for exploring different approaches
+  - Context preservation using Claude Code's native `--resume` functionality
+  - Comprehensive error handling with rate limit and context window error detection
+
+### Documentation
+- Complete MCP Session Server documentation at `docs/mcp-session-server.md`
+- Configuration examples for Claude Desktop integration
+- Architecture diagrams and usage examples
+
+### Tests
+- Comprehensive test suite for MCP Session Server (189 tests)
+
 ## [5.6.111] - 2026-02-04
 
 ### Changed
