@@ -188,6 +188,50 @@ class GoogleWorkspaceServer:
                         "required": ["file_id"],
                     },
                 ),
+                Tool(
+                    name="add_document_comment",
+                    description="Add a new comment to a Google Docs, Sheets, or Slides file. Comments appear in the document's comment sidebar. Write concise, actionable comments.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_id": {
+                                "type": "string",
+                                "description": "Google Drive file ID (from the document URL)",
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "The comment text. Style guidelines: Be brief and direct (1-2 sentences). Focus on specific, actionable feedback. Avoid filler phrases like 'I think' or 'Maybe consider'. Use imperative mood for suggestions (e.g., 'Add error handling' not 'You might want to add error handling').",
+                            },
+                            "anchor": {
+                                "type": "string",
+                                "description": "Optional JSON string specifying the anchor location in the document (for anchored comments)",
+                            },
+                        },
+                        "required": ["file_id", "content"],
+                    },
+                ),
+                Tool(
+                    name="reply_to_comment",
+                    description="Reply to an existing comment on a Google Docs, Sheets, or Slides file. Write concise replies that directly address the comment.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_id": {
+                                "type": "string",
+                                "description": "Google Drive file ID (from the document URL)",
+                            },
+                            "comment_id": {
+                                "type": "string",
+                                "description": "The ID of the comment to reply to (from list_document_comments)",
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "The reply text. Style guidelines: Be brief (1-2 sentences max). Directly address the original comment. State resolution clearly ('Done', 'Fixed', 'Won't fix because X'). No pleasantries or filler.",
+                            },
+                        },
+                        "required": ["file_id", "comment_id", "content"],
+                    },
+                ),
                 # Calendar Write Operations
                 Tool(
                     name="create_event",
@@ -934,6 +978,8 @@ class GoogleWorkspaceServer:
             "search_drive_files": self._search_drive_files,
             "get_drive_file_content": self._get_drive_file_content,
             "list_document_comments": self._list_document_comments,
+            "add_document_comment": self._add_document_comment,
+            "reply_to_comment": self._reply_to_comment,
             # Calendar write operations
             "create_event": self._create_event,
             "update_event": self._update_event,
@@ -1358,6 +1404,89 @@ class GoogleWorkspaceServer:
             formatted_comments.append(formatted_comment)
 
         return {"comments": formatted_comments, "count": len(formatted_comments)}
+
+    async def _add_document_comment(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add a comment to a Google Drive file (Docs, Sheets, Slides).
+
+        Args:
+            arguments: Tool arguments with file_id, content, and optional anchor.
+
+        Returns:
+            Created comment details with id, author, and timestamps.
+        """
+        file_id = arguments["file_id"]
+        content = arguments["content"]
+        anchor = arguments.get("anchor")
+
+        # Build request URL
+        url = f"{DRIVE_API_BASE}/files/{file_id}/comments"
+        params = {
+            "fields": "id,content,author(displayName,emailAddress),createdTime,modifiedTime,resolved",
+        }
+
+        # Build request body
+        body: dict[str, Any] = {"content": content}
+        if anchor:
+            # Parse anchor if provided as JSON string
+            try:
+                body["anchor"] = (
+                    json.loads(anchor) if isinstance(anchor, str) else anchor
+                )
+            except json.JSONDecodeError:
+                # If not valid JSON, treat as raw anchor string
+                body["anchor"] = anchor
+
+        response = await self._make_request("POST", url, params=params, json_data=body)
+
+        # Format the response
+        author = response.get("author", {})
+        return {
+            "id": response.get("id"),
+            "content": response.get("content", ""),
+            "author_name": author.get("displayName", "Unknown"),
+            "author_email": author.get("emailAddress", ""),
+            "created_time": response.get("createdTime", ""),
+            "modified_time": response.get("modifiedTime", ""),
+            "resolved": response.get("resolved", False),
+            "message": "Comment added successfully.",
+        }
+
+    async def _reply_to_comment(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Reply to an existing comment on a Google Drive file.
+
+        Args:
+            arguments: Tool arguments with file_id, comment_id, and content.
+
+        Returns:
+            Created reply details with id, author, and timestamps.
+        """
+        file_id = arguments["file_id"]
+        comment_id = arguments["comment_id"]
+        content = arguments["content"]
+
+        # Build request URL
+        url = f"{DRIVE_API_BASE}/files/{file_id}/comments/{comment_id}/replies"
+        params = {
+            "fields": "id,content,author(displayName,emailAddress),createdTime,modifiedTime",
+        }
+
+        # Build request body
+        body = {"content": content}
+
+        response = await self._make_request("POST", url, params=params, json_data=body)
+
+        # Format the response
+        author = response.get("author", {})
+        return {
+            "id": response.get("id"),
+            "content": response.get("content", ""),
+            "author_name": author.get("displayName", "Unknown"),
+            "author_email": author.get("emailAddress", ""),
+            "created_time": response.get("createdTime", ""),
+            "modified_time": response.get("modifiedTime", ""),
+            "comment_id": comment_id,
+            "message": "Reply added successfully.",
+        }
 
     # =========================================================================
     # Calendar Write Operations
