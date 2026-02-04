@@ -78,6 +78,7 @@ def filter_claude_mpm_args(claude_args):
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         "--input",
         "--non-interactive",
+        "--headless",  # Headless mode (stream-json output, no Rich formatting)
         # Common logging flags (these are MPM-specific, not Claude CLI flags)
         "--debug",
         "--logging",
@@ -491,8 +492,18 @@ class RunCommand(BaseCommand):
             claude_args.extend(args.claude_args)
 
         # Add --resume if flag is set
-        if getattr(args, "resume", False) and "--resume" not in claude_args:
-            claude_args.insert(0, "--resume")
+        # args.resume can be:
+        #   None - flag not used
+        #   "" (empty string) - flag used without argument (resume last session)
+        #   "<session_id>" - flag used with specific session ID
+        resume_value = getattr(args, "resume", None)
+        if resume_value is not None and "--resume" not in claude_args:
+            if resume_value:
+                # Specific session ID provided - use --resume <id> --fork-session
+                claude_args = ["--resume", resume_value, "--fork-session", *claude_args]
+            else:
+                # No session ID - just pass --resume (resume last session)
+                claude_args.insert(0, "--resume")
 
         # Add --chrome if flag is set
         if getattr(args, "chrome", False) and "--chrome" not in claude_args:
@@ -653,6 +664,92 @@ def _handle_reload_agents(logger):
         print("⚠️  Continuing with existing agents...")
 
 
+def _run_headless_session(args) -> int:
+    """
+    Run Claude in headless mode with stream-json output.
+
+    WHY: Headless mode bypasses all Rich console formatting and provides
+    clean NDJSON output suitable for programmatic consumption. This is
+    essential for CI/CD pipelines, automation, and piping to other tools.
+
+    DESIGN DECISION: Uses a separate HeadlessSession class to keep the
+    implementation clean and focused. The session handles:
+    - Reading prompt from stdin (for piping: echo "prompt" | claude-mpm run --headless)
+    - Or from -i flag
+    - Passing raw stream-json output to stdout without Rich formatting
+    - Passing stderr to stderr
+    - Returning appropriate exit code
+
+    Args:
+        args: Parsed command line arguments
+
+    Returns:
+        Exit code from Claude Code process
+    """
+    from ...core.headless_session import HeadlessSession
+
+    # Get prompt from -i flag or stdin
+    prompt = None
+    if hasattr(args, "input") and args.input:
+        prompt = get_user_input(args.input, get_logger("cli"))
+
+    # Get resume session if specified
+    resume_session = None
+    if hasattr(args, "mpm_resume") and args.mpm_resume:
+        resume_session = args.mpm_resume if args.mpm_resume != "last" else None
+
+    # Filter claude args
+    raw_claude_args = getattr(args, "claude_args", []) or []
+    claude_args = filter_claude_mpm_args(raw_claude_args)
+
+    # Add --resume if flag is set
+    # args.resume can be:
+    #   None - flag not used
+    #   "" (empty string) - flag used without argument (resume last session)
+    #   "<session_id>" - flag used with specific session ID
+    resume_value = getattr(args, "resume", None)
+    if resume_value is not None and "--resume" not in claude_args:
+        if resume_value:
+            # Specific session ID provided - use --resume <id> --fork-session
+            claude_args = ["--resume", resume_value, "--fork-session", *claude_args]
+        else:
+            # No session ID - just pass --resume (resume last session)
+            claude_args.insert(0, "--resume")
+
+    # Add Claude Code passthrough flags (for Vibe Kanban compatibility)
+    # These flags are parsed by claude-mpm but need to be forwarded to Claude Code
+    if getattr(args, "passthrough_print", False):
+        claude_args.append("-p")
+    if getattr(args, "dangerously_skip_permissions", False):
+        claude_args.append("--dangerously-skip-permissions")
+    if getattr(args, "output_format", None):
+        claude_args.extend(["--output-format", args.output_format])
+    if getattr(args, "input_format", None):
+        claude_args.extend(["--input-format", args.input_format])
+    if getattr(args, "include_partial_messages", False):
+        claude_args.append("--include-partial-messages")
+    if getattr(args, "disallowedTools", None):
+        claude_args.extend(["--disallowedTools", args.disallowedTools])
+    if getattr(args, "fork_session", False):
+        claude_args.append("--fork-session")
+
+    # Use ClaudeRunner (not MinimalRunner) to ensure _create_system_prompt is available
+    # This is required for PM system prompt injection in headless mode
+    try:
+        from ...core.claude_runner import ClaudeRunner
+    except ImportError:
+        from claude_mpm.core.claude_runner import ClaudeRunner
+
+    runner = ClaudeRunner(
+        enable_tickets=not getattr(args, "no_tickets", False),
+        log_level=getattr(args, "logging", "OFF"),
+        claude_args=claude_args,
+    )
+    session = HeadlessSession(runner)
+
+    return session.run(prompt=prompt, resume_session=resume_session)
+
+
 def run_session(args):
     """
     Main entry point for run command.
@@ -681,6 +778,11 @@ def run_session_legacy(args):
     Args:
         args: Parsed command line arguments
     """
+    # Handle headless mode early - bypass all Rich console output
+    if getattr(args, "headless", False):
+        exit_code = _run_headless_session(args)
+        sys.exit(exit_code)
+
     # Only setup startup logging if user wants logging
     if args.logging != LogLevel.OFF.value:
         # Set up startup logging to file early in the process
@@ -928,14 +1030,24 @@ def run_session_legacy(args):
     raw_claude_args = getattr(args, "claude_args", []) or []
 
     # Add --resume to claude_args if the flag is set
-    resume_flag_present = getattr(args, "resume", False)
-    if resume_flag_present:
-        logger.info("📌 --resume flag detected in args")
+    # args.resume can be:
+    #   None - flag not used
+    #   "" (empty string) - flag used without argument (resume last session)
+    #   "<session_id>" - flag used with specific session ID
+    resume_value = getattr(args, "resume", None)
+    if resume_value is not None:  # Flag was used (could be empty string or session_id)
+        logger.info(f"📌 --resume flag detected in args with value: '{resume_value}'")
         if "--resume" not in raw_claude_args:
-            raw_claude_args = ["--resume", *raw_claude_args]
-            logger.info("✅ Added --resume to claude_args")
+            if resume_value:
+                # Specific session ID provided - use --resume <id> --fork-session
+                raw_claude_args = ["--resume", resume_value, "--fork-session", *raw_claude_args]
+                logger.info(f"✅ Added --resume {resume_value} --fork-session to claude_args")
+            else:
+                # No session ID - just pass --resume (resume last session)
+                raw_claude_args = ["--resume", *raw_claude_args]
+                logger.info("✅ Added --resume to claude_args (resume last session)")
         else:
-            logger.info("[INFO]️ --resume already in claude_args")
+            logger.info("ℹ️ --resume already in claude_args")
 
     # Add --chrome to claude_args if the flag is set
     chrome_flag_present = getattr(args, "chrome", False)
@@ -970,9 +1082,11 @@ def run_session_legacy(args):
     logger.info(f"Final claude_args being passed: {claude_args}")
 
     # Explicit verification of --resume flag
-    if resume_flag_present:
+    if resume_value is not None:
         if "--resume" in claude_args:
             logger.info("✅ CONFIRMED: --resume flag will be passed to Claude CLI")
+            if resume_value and "--fork-session" in claude_args:
+                logger.info("✅ CONFIRMED: --fork-session flag will be passed to Claude CLI")
         else:
             logger.error("❌ WARNING: --resume flag was filtered out! This is a bug!")
             logger.error(f"   Original args: {raw_claude_args}")

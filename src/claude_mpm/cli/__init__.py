@@ -89,34 +89,43 @@ def main(argv: Optional[list] = None):
         display_startup_banner(__version__, logging_level, applied_migrations)
 
     if not should_skip_background_services(args, processed_argv):
-        # Show "Launching Claude..." progress bar during background services startup
-        # This matches the visual style of agent/skill sync progress bars
-        launch_progress = ProgressBar(
-            total=100,
-            prefix="Launching Claude",
-            show_percentage=False,
-            show_counter=False,
-            bar_width=25,
-        )
+        # Check for --force-sync flag or environment variable
+        force_sync = getattr(args, "force_sync", False) or os.environ.get(
+            "CLAUDE_MPM_FORCE_SYNC", "0"
+        ) in ("1", "true", "True", "yes")
 
-        try:
-            # Check for --force-sync flag or environment variable
-            force_sync = getattr(args, "force_sync", False) or os.environ.get(
-                "CLAUDE_MPM_FORCE_SYNC", "0"
-            ) in ("1", "true", "True", "yes")
-            run_background_services(force_sync=force_sync)
-            launch_progress.finish(message="Ready")
+        # Check if running in headless mode
+        is_headless = getattr(args, "headless", False)
 
-            # Inform user about Claude Code initialization delay (3-5 seconds)
-            # This message appears before os.execvpe() replaces our process
-            # See: docs/research/claude-startup-delay-analysis-2025-12-01.md
-            print(
-                "⏳ Starting Claude Code... (this may take a few seconds)",
-                flush=True,
+        if is_headless:
+            # Headless mode: Run services quietly (stdout -> stderr)
+            # No progress bar - stdout must stay clean for JSON streaming
+            run_background_services(force_sync=force_sync, headless=True)
+        else:
+            # Normal mode: Show "Launching Claude..." progress bar
+            # This matches the visual style of agent/skill sync progress bars
+            launch_progress = ProgressBar(
+                total=100,
+                prefix="Launching Claude",
+                show_percentage=False,
+                show_counter=False,
+                bar_width=25,
             )
-        except Exception:
-            launch_progress.finish(message="Failed")
-            raise
+
+            try:
+                run_background_services(force_sync=force_sync, headless=False)
+                launch_progress.finish(message="Ready")
+
+                # Inform user about Claude Code initialization delay (3-5 seconds)
+                # This message appears before os.execvpe() replaces our process
+                # See: docs/research/claude-startup-delay-analysis-2025-12-01.md
+                print(
+                    "⏳ Starting Claude Code... (this may take a few seconds)",
+                    flush=True,
+                )
+            except Exception:
+                launch_progress.finish(message="Failed")
+                raise
 
     if hasattr(args, "debug") and args.debug:
         logger.debug(f"Command: {args.command}")
