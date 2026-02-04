@@ -188,12 +188,24 @@ class ClaudeMPMSubprocess:
             ) from err
 
     def _format_assistant_output(self) -> str:
+        """Format assistant messages into a single output string.
+
+        Handles both string content and Claude's content block format
+        (list of {type: "text", text: "..."} objects).
+        """
         assistant_msgs = self.parser.get_assistant_messages()
-        outputs = []
+        outputs: list[str] = []
         for msg in assistant_msgs:
             content = msg.get("message", {}).get("content", "")
-            if content:
-                outputs.append(content)
+            if isinstance(content, list):
+                # Handle Claude's content block format
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        text = block.get("text", "")
+                        if text:
+                            outputs.append(text)
+            elif content:
+                outputs.append(str(content))
         return "\n".join(outputs)
 
     async def terminate(self, force: bool = False) -> None:

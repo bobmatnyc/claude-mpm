@@ -557,3 +557,87 @@ class TestStreamOutput:
         assert len(messages) == 2
         assert messages[0]["content"] == "first"
         assert messages[1]["content"] == "second"
+
+
+class TestFormatAssistantOutput:
+    """Tests for _format_assistant_output() method."""
+
+    def test_handles_string_content(self):
+        """_format_assistant_output should handle string content."""
+        wrapper = ClaudeMPMSubprocess()
+        wrapper.parser.messages = [
+            {"type": "assistant", "message": {"content": "Hello world"}},
+            {"type": "assistant", "message": {"content": "Second message"}},
+        ]
+
+        result = wrapper._format_assistant_output()
+
+        assert "Hello world" in result
+        assert "Second message" in result
+
+    def test_handles_content_block_format(self):
+        """_format_assistant_output should handle Claude's content block format."""
+        wrapper = ClaudeMPMSubprocess()
+        wrapper.parser.messages = [
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "First block"},
+                        {"type": "text", "text": "Second block"},
+                    ]
+                },
+            },
+        ]
+
+        result = wrapper._format_assistant_output()
+
+        assert "First block" in result
+        assert "Second block" in result
+
+    def test_handles_mixed_content_types(self):
+        """_format_assistant_output should handle mixed content types."""
+        wrapper = ClaudeMPMSubprocess()
+        wrapper.parser.messages = [
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Text content"},
+                        {"type": "tool_use", "name": "some_tool"},  # Non-text block
+                    ]
+                },
+            },
+        ]
+
+        result = wrapper._format_assistant_output()
+
+        assert "Text content" in result
+        assert "some_tool" not in result
+
+    def test_handles_empty_content(self):
+        """_format_assistant_output should handle empty content."""
+        wrapper = ClaudeMPMSubprocess()
+        wrapper.parser.messages = [
+            {"type": "assistant", "message": {"content": ""}},
+            {"type": "assistant", "message": {"content": []}},
+        ]
+
+        result = wrapper._format_assistant_output()
+
+        assert result == ""
+
+    def test_ignores_non_assistant_messages(self):
+        """_format_assistant_output should only process assistant messages."""
+        wrapper = ClaudeMPMSubprocess()
+        wrapper.parser.messages = [
+            {"type": "user", "message": {"content": "User message"}},
+            {"type": "assistant", "message": {"content": "Assistant message"}},
+            {"type": "tool", "message": {"content": "Tool output"}},
+        ]
+
+        result = wrapper._format_assistant_output()
+
+        assert "Assistant message" in result
+        assert "User message" not in result
+        assert "Tool output" not in result
