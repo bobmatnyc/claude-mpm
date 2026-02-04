@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.6.109] - 2026-02-04
+
+### Added
+- Headless mode with exec-based execution (#238)
+
+### Fixed
+- Include config/*.yaml in package data (#281)
+
 ## [5.6.108] - 2026-02-03
 
 ### Fixed
