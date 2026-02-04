@@ -25,10 +25,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.run import filter_claude_mpm_args, _run_headless_session
+from claude_mpm.cli.commands.run import _run_headless_session, filter_claude_mpm_args
 from claude_mpm.cli.parsers.run_parser import add_run_arguments
 from claude_mpm.core.headless_session import HeadlessSession
-
 
 # =============================================================================
 # Fixtures
@@ -46,7 +45,9 @@ def mock_runner():
 @pytest.fixture
 def headless_session(mock_runner):
     """Create a HeadlessSession instance for testing."""
-    with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+    with patch.object(
+        HeadlessSession, "_get_working_directory", return_value=Path("/test")
+    ):
         return HeadlessSession(mock_runner)
 
 
@@ -91,6 +92,7 @@ class TestCLIFlagParsing:
     def test_headless_flag_recognized(self):
         """--headless flag should be parsed without error."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -100,6 +102,7 @@ class TestCLIFlagParsing:
     def test_headless_flag_default_false(self):
         """--headless flag should default to False."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -109,6 +112,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_recognized(self):
         """--resume <session_id> should be parsed correctly."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -118,6 +122,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_without_argument(self):
         """--resume without argument should use empty string (resume last)."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -127,6 +132,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_default_none(self):
         """--resume flag should default to None when not used."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -136,6 +142,7 @@ class TestCLIFlagParsing:
     def test_headless_with_resume_combined(self):
         """--headless --resume can be combined."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -146,6 +153,7 @@ class TestCLIFlagParsing:
     def test_headless_with_input_flag(self):
         """--headless with -i flag should work."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -156,6 +164,7 @@ class TestCLIFlagParsing:
     def test_mpm_resume_flag_recognized(self):
         """--mpm-resume flag should be parsed correctly."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -165,6 +174,7 @@ class TestCLIFlagParsing:
     def test_mpm_resume_without_argument(self):
         """--mpm-resume without argument should use 'last'."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -193,7 +203,9 @@ class TestCommandBuilding:
 
     def test_command_with_resume_session(self, mock_runner):
         """Resume command should include --resume with session ID."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command(resume_session="abc123")
@@ -207,7 +219,9 @@ class TestCommandBuilding:
         """Custom claude_args should be included in command."""
         mock_runner.claude_args = ["--model", "opus", "--verbose"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command()
@@ -219,7 +233,9 @@ class TestCommandBuilding:
         """Command should not duplicate --resume flag."""
         mock_runner.claude_args = ["--resume", "old_session"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command(resume_session="new_session")
@@ -233,18 +249,24 @@ class TestCommandBuilding:
         """Should not add stream-json if output-format already specified."""
         mock_runner.claude_args = ["--output-format", "json"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command()
 
         # Should preserve the passthrough format
-        output_format_indices = [i for i, arg in enumerate(cmd) if arg == "--output-format"]
+        output_format_indices = [
+            i for i, arg in enumerate(cmd) if arg == "--output-format"
+        ]
         assert len(output_format_indices) == 1
 
     def test_command_includes_verbose(self, mock_runner):
         """Headless command should include --verbose for stream-json."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command()
@@ -282,8 +304,12 @@ class TestArgumentFiltering:
     def test_filter_removes_mpm_specific_flags(self):
         """filter_claude_mpm_args should remove all MPM-specific flags."""
         args = [
-            "--no-hooks", "--no-tickets", "--launch-method", "vscode",
-            "--model", "sonnet"
+            "--no-hooks",
+            "--no-tickets",
+            "--launch-method",
+            "vscode",
+            "--model",
+            "sonnet",
         ]
         filtered = filter_claude_mpm_args(args)
 
@@ -305,9 +331,14 @@ class TestArgumentFiltering:
     def test_multiple_mpm_flags(self):
         """Multiple MPM flags should all be filtered."""
         args = [
-            "--monitor", "--websocket-port", "8765",
-            "--no-hooks", "--no-tickets", "--headless",
-            "--model", "sonnet"
+            "--monitor",
+            "--websocket-port",
+            "8765",
+            "--no-hooks",
+            "--no-tickets",
+            "--headless",
+            "--model",
+            "sonnet",
         ]
         filtered = filter_claude_mpm_args(args)
 
@@ -332,7 +363,9 @@ class TestHeadlessIntegration:
         """Headless run should call os.execvpe with properly built command."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir"):
@@ -364,7 +397,9 @@ class TestHeadlessIntegration:
         """Headless run with resume should include --resume in command."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir"):
@@ -384,7 +419,11 @@ class TestHeadlessIntegration:
         """Headless run should chdir to working directory before exec."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test/project")):
+        with patch.object(
+            HeadlessSession,
+            "_get_working_directory",
+            return_value=Path("/test/project"),
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir") as mock_chdir:
@@ -402,7 +441,9 @@ class TestHeadlessIntegration:
         """Headless run should handle Claude CLI not found."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir"):
@@ -420,7 +461,9 @@ class TestHeadlessIntegration:
         """Headless run should handle permission denied."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir"):
@@ -437,7 +480,9 @@ class TestHeadlessIntegration:
         """Headless run should set DISABLE_TELEMETRY=1."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         env = session._prepare_environment()
@@ -448,7 +493,9 @@ class TestHeadlessIntegration:
         """Headless run should set CI=true."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         env = session._prepare_environment()
@@ -459,7 +506,9 @@ class TestHeadlessIntegration:
         """Custom claude_args should be passed to os.execvpe."""
         mock_runner.claude_args = ["--model", "opus"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("os.chdir"):
@@ -488,7 +537,9 @@ class TestPromptHandling:
         """Empty prompt should return error exit code."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("sys.stderr.write"):
@@ -501,7 +552,9 @@ class TestPromptHandling:
         """None prompt with TTY stdin should return error (no piped input)."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("sys.stdin.isatty", return_value=True):
@@ -515,13 +568,17 @@ class TestPromptHandling:
         """Should read prompt from stdin when not TTY."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("sys.stdin.isatty", return_value=False):
             with patch("sys.stdin.read", return_value="piped prompt\n"):
                 with patch("os.chdir"):
-                    with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                    with patch(
+                        "claude_mpm.core.headless_session.os.execvpe"
+                    ) as mock_exec:
                         mock_exec.side_effect = SystemExit(0)
 
                         try:
@@ -611,7 +668,9 @@ class TestStreamJsonInput:
         """Should detect --input-format stream-json."""
         mock_runner.claude_args = ["--input-format", "stream-json"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         # The session should detect stream-json input mode
@@ -626,7 +685,9 @@ class TestStreamJsonInput:
         """Should detect --input-format=stream-json (equals format)."""
         mock_runner.claude_args = ["--input-format=stream-json"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         claude_args = session.runner.claude_args or []
@@ -646,7 +707,9 @@ class TestResumeModeDetection:
         """_is_resume_mode should return True when resume_session is provided."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         # Test with resume_session argument
@@ -656,7 +719,9 @@ class TestResumeModeDetection:
         """_is_resume_mode should return True when --resume in claude_args."""
         mock_runner.claude_args = ["--resume", "session123"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         assert session._is_resume_mode() is True
@@ -665,7 +730,9 @@ class TestResumeModeDetection:
         """_is_resume_mode should return False for new sessions."""
         mock_runner.claude_args = ["--model", "opus"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         assert session._is_resume_mode() is False
@@ -683,14 +750,23 @@ class TestHookVerification:
         """Should warn to stderr when hook issues are detected."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         mock_installer = Mock()
         mock_installer.verify_hooks.return_value = (False, ["Hook not installed"])
 
         # Patch at the import location within the method
-        with patch.dict("sys.modules", {"claude_mpm.hooks.claude_hooks.installer": Mock(HookInstaller=Mock(return_value=mock_installer))}):
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
             with patch("sys.stderr.write") as mock_stderr:
                 with patch("sys.stderr.flush"):
                     session._verify_hooks_deployed()
@@ -704,13 +780,22 @@ class TestHookVerification:
         """Should not write to stderr when hooks are valid."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         mock_installer = Mock()
         mock_installer.verify_hooks.return_value = (True, [])
 
-        with patch.dict("sys.modules", {"claude_mpm.hooks.claude_hooks.installer": Mock(HookInstaller=Mock(return_value=mock_installer))}):
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
             with patch("sys.stderr.write") as mock_stderr:
                 session._verify_hooks_deployed()
 
@@ -720,13 +805,22 @@ class TestHookVerification:
         """Should handle exceptions gracefully without crashing."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         # Make the import succeed but the verification fail with exception
         mock_installer = Mock()
         mock_installer.verify_hooks.side_effect = Exception("Unexpected error")
 
-        with patch.dict("sys.modules", {"claude_mpm.hooks.claude_hooks.installer": Mock(HookInstaller=Mock(return_value=mock_installer))}):
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
             # Should not raise - exceptions are caught and logged
             session._verify_hooks_deployed()
