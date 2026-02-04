@@ -254,7 +254,7 @@ update_changelog_on_bump = true
 changelog_incremental = true
 
 [tool.setuptools.package-data]
-claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/**/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml",]
+claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "config/*.yaml", "skills/bundled/**/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml",]
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]

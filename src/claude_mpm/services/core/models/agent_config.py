@@ -15,9 +15,12 @@ Part of TSK-0054: Auto-Configuration Feature - Phase 1
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ....core.enums import OperationResult, ValidationSeverity
+
+if TYPE_CHECKING:
+    from .toolchain import ToolchainAnalysis
 
 # Backward compatibility alias (consolidated in Phase 3A Batch 25)
 ConfigurationStatus = OperationResult
@@ -145,6 +148,16 @@ class AgentRecommendation:
     def has_concerns(self) -> bool:
         """Check if recommendation has any concerns."""
         return len(self.concerns) > 0
+
+    @property
+    def confidence(self) -> float:
+        """Alias for confidence_score for CLI compatibility."""
+        return self.confidence_score
+
+    @property
+    def reasoning(self) -> str:
+        """Get formatted reasoning string from match_reasons for CLI compatibility."""
+        return "; ".join(self.match_reasons) if self.match_reasons else "No specific reasons"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert recommendation to dictionary."""
@@ -342,6 +355,7 @@ class ConfigurationPreview:
 
     recommendations: List[AgentRecommendation] = field(default_factory=list)
     validation_result: Optional[ValidationResult] = None
+    detected_toolchain: Optional["ToolchainAnalysis"] = None
     estimated_deployment_time: float = 0.0  # seconds
     would_deploy: List[str] = field(default_factory=list)
     would_skip: List[str] = field(default_factory=list)

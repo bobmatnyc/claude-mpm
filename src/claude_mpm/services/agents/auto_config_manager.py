@@ -572,6 +572,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             preview = ConfigurationPreview(
                 recommendations=recommendations,
                 validation_result=validation_result,
+                detected_toolchain=toolchain,
                 estimated_deployment_time=estimated_time,
                 would_deploy=would_deploy,
                 would_skip=would_skip,

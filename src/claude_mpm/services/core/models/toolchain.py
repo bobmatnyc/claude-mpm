@@ -33,6 +33,29 @@ class ConfidenceLevel(str, Enum):
     LOW = "low"  # 20-50% confidence, weak indicators
     VERY_LOW = "very_low"  # <20% confidence, speculative
 
+    def to_float(self) -> float:
+        """Convert confidence level to numeric value (0.0-1.0)."""
+        mapping = {
+            ConfidenceLevel.HIGH: 0.9,
+            ConfidenceLevel.MEDIUM: 0.65,
+            ConfidenceLevel.LOW: 0.35,
+            ConfidenceLevel.VERY_LOW: 0.1,
+        }
+        return mapping.get(self, 0.5)
+
+
+@dataclass(frozen=True)
+class ComponentView:
+    """Unified view of a toolchain component for display purposes.
+
+    WHY: Different component types (frameworks, tools, etc.) need to be
+    displayed uniformly in the CLI. This provides a common interface.
+    """
+
+    type: str
+    version: Optional[str]
+    confidence: float  # 0.0-1.0 for percentage calculations
+
 
 @dataclass(frozen=True)
 class ToolchainComponent:
@@ -266,6 +289,66 @@ class ToolchainAnalysis:
             tool.name.lower() in {"docker", "kubernetes", "terraform"}
             for tool in self.development_tools
         )
+
+    @property
+    def components(self) -> List[ComponentView]:
+        """Get unified view of all detected components.
+
+        WHY: CLI and other consumers need a flat list of components
+        with consistent attributes for display purposes.
+        """
+        result: List[ComponentView] = []
+
+        # Add primary language
+        result.append(
+            ComponentView(
+                type=f"Language: {self.language_detection.primary_language}",
+                version=self.language_detection.primary_version,
+                confidence=self.language_detection.primary_confidence.to_float(),
+            )
+        )
+
+        # Add frameworks
+        for fw in self.frameworks:
+            result.append(
+                ComponentView(
+                    type=f"Framework: {fw.name}",
+                    version=fw.version,
+                    confidence=fw.confidence.to_float(),
+                )
+            )
+
+        # Add build tools
+        for tool in self.build_tools:
+            result.append(
+                ComponentView(
+                    type=f"Build Tool: {tool.name}",
+                    version=tool.version,
+                    confidence=tool.confidence.to_float(),
+                )
+            )
+
+        # Add package managers
+        for pm in self.package_managers:
+            result.append(
+                ComponentView(
+                    type=f"Package Manager: {pm.name}",
+                    version=pm.version,
+                    confidence=pm.confidence.to_float(),
+                )
+            )
+
+        # Add development tools
+        for dt in self.development_tools:
+            result.append(
+                ComponentView(
+                    type=f"Dev Tool: {dt.name}",
+                    version=dt.version,
+                    confidence=dt.confidence.to_float(),
+                )
+            )
+
+        return result
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert analysis to dictionary for serialization."""
