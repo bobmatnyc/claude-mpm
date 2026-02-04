@@ -10,6 +10,19 @@
 
 ### Tests
 
+## [5.7.2] - 2026-02-04
+
+### Added
+- **Rclone-based Google Drive sync tools**: New MCP tools for bulk file operations using rclone
+  - `list_drive_contents`: List Drive folder contents with structured JSON metadata
+  - `download_drive_folder`: Download folders from Drive to local filesystem
+  - `upload_to_drive`: Upload local folders to Drive
+  - `sync_drive_folder`: Bidirectional sync between Drive and local
+- **RcloneManager utility class**: Generates temporary rclone config from OAuth tokens in TokenStorage
+  - Secure credential handling with automatic cleanup
+  - Support for Google Docs export format configuration
+  - Requires rclone CLI binary installed separately
+
 ## [5.7.1] - 2026-02-04
 
 ### Fixed
