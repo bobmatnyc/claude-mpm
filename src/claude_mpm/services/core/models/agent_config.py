@@ -157,7 +157,11 @@ class AgentRecommendation:
     @property
     def reasoning(self) -> str:
         """Get formatted reasoning string from match_reasons for CLI compatibility."""
-        return "; ".join(self.match_reasons) if self.match_reasons else "No specific reasons"
+        return (
+            "; ".join(self.match_reasons)
+            if self.match_reasons
+            else "No specific reasons"
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert recommendation to dictionary."""

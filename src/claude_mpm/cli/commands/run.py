@@ -1040,8 +1040,15 @@ def run_session_legacy(args):
         if "--resume" not in raw_claude_args:
             if resume_value:
                 # Specific session ID provided - use --resume <id> --fork-session
-                raw_claude_args = ["--resume", resume_value, "--fork-session", *raw_claude_args]
-                logger.info(f"✅ Added --resume {resume_value} --fork-session to claude_args")
+                raw_claude_args = [
+                    "--resume",
+                    resume_value,
+                    "--fork-session",
+                    *raw_claude_args,
+                ]
+                logger.info(
+                    f"✅ Added --resume {resume_value} --fork-session to claude_args"
+                )
             else:
                 # No session ID - just pass --resume (resume last session)
                 raw_claude_args = ["--resume", *raw_claude_args]
@@ -1086,7 +1093,9 @@ def run_session_legacy(args):
         if "--resume" in claude_args:
             logger.info("✅ CONFIRMED: --resume flag will be passed to Claude CLI")
             if resume_value and "--fork-session" in claude_args:
-                logger.info("✅ CONFIRMED: --fork-session flag will be passed to Claude CLI")
+                logger.info(
+                    "✅ CONFIRMED: --fork-session flag will be passed to Claude CLI"
+                )
         else:
             logger.error("❌ WARNING: --resume flag was filtered out! This is a bug!")
             logger.error(f"   Original args: {raw_claude_args}")

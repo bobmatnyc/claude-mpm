@@ -542,11 +542,25 @@ class GitSkillSourceManager:
         #   - Config: .gitignore, .env.example
         relevant_extensions = (
             # Documentation
-            ".md", ".json", ".yaml", ".yml", ".txt",
+            ".md",
+            ".json",
+            ".yaml",
+            ".yml",
+            ".txt",
             # Scripts
-            ".sh", ".py", ".js", ".ts", ".mjs", ".cjs",
+            ".sh",
+            ".py",
+            ".js",
+            ".ts",
+            ".mjs",
+            ".cjs",
             # Assets
-            ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".svg",
+            ".webp",
         )
         relevant_files = [
             f
