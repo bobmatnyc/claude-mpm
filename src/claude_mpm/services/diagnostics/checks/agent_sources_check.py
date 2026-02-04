@@ -75,7 +75,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                         "This is a critical component for multi-agent workflows."
                     ),
                     severity="critical",
-                    doc_link="https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md",
+                    doc_link="https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/agent-sources.md",
                 )
 
             # Check 2: Configuration is valid YAML
@@ -160,7 +160,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     "Critical errors prevent agent discovery and deployment, blocking "
                     "multi-agent workflows entirely."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/agent-sources.md"
             elif warning_results:
                 status = ValidationSeverity.WARNING
                 message = f"Agent sources have {len(warning_results)} minor issue(s)"
@@ -171,7 +171,7 @@ class AgentSourcesCheck(BaseDiagnosticCheck):
                     "Some agent sources have issues but the system can still function. "
                     "You may have limited agent availability or outdated cache."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/guides/agent-sources.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/agent-sources.md"
             else:
                 status = OperationResult.SUCCESS
                 enabled_count = details["enabled_sources"]

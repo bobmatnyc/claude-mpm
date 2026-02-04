@@ -10,6 +10,66 @@
 
 ### Tests
 
+## [5.6.108] - 2026-02-03
+
+### Fixed
+- Add timeout to keyring operations to prevent indefinite hangs on macOS
+
+## [5.6.107] - 2026-02-03
+
+### Documentation
+- Enhanced project description and metadata in pyproject.toml and README
+
+## [5.6.106] - 2026-02-03
+
+### Documentation
+- Added credential testing policy to BASE_AGENT.md
+
+## [5.6.105] - 2026-02-03
+
+### Added
+- Google Tasks API support with 13 new MCP tools (now 34 total tools in Workspace MCP)
+
+## [5.6.104] - 2026-02-03
+
+### Added
+- Expanded Google Workspace MCP with full CRUD operations and markdown conversion
+
+## [5.6.103] - 2026-02-01
+
+### Changed
+- Patch version bump
+
+## [5.6.102] - 2026-02-01
+
+### Changed
+- Patch version bump
+
+## [5.6.101] - 2026-01-29
+
+### Added
+- Customizable workflow system via /mpm-workflow command
+- Workflow loader with project > user > default priority
+
+### Documentation
+- Self-action imperative added to BASE_AGENT.md
+- Verification requirements added to WORKFLOW.md
+
+## [5.6.100] - 2026-01-29
+
+### Changed
+- Removed commander module (extracted to standalone ai-commander package)
+
+## [5.6.99] - 2026-01-29
+
+### Changed
+- Patch version bump
+
+## [5.6.98] - 2026-01-28
+
+### Changed
+- Patch version bump
+
 ## [5.6.97] - 2026-01-28
 
 ### Changed

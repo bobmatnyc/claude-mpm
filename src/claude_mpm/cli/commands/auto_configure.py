@@ -200,9 +200,7 @@ class AutoConfigureCommand(BaseCommand):
                 if hasattr(args, "min_confidence") and args.min_confidence
                 else 0.8
             )
-            dry_run = (
-                args.preview or args.dry_run if hasattr(args, "preview") else False
-            )
+            dry_run = getattr(args, "preview", False)
             skip_confirmation = args.yes if hasattr(args, "yes") and args.yes else False
             json_output = args.json if hasattr(args, "json") and args.json else False
 
@@ -211,7 +209,7 @@ class AutoConfigureCommand(BaseCommand):
             configure_skills = not getattr(args, "agents_only", False)
 
             # Run preview or full configuration
-            if dry_run or args.preview if hasattr(args, "preview") else False:
+            if dry_run:
                 return self._run_preview(
                     project_path,
                     min_confidence,

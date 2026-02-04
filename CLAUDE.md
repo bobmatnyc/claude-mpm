@@ -41,15 +41,16 @@ This fork uses [StGit](https://stacked-git.github.io/) for managing local change
 
 ### Current Patch Stack
 ```
-01-commander-pro-ui-v2-core      # Pro UI v2 with activity tracker
-02-commander-pro-ui-v2-browser-term  # Browser terminal support
-03-headless-mode-cli-flags       # --headless CLI flag
-04-headless-mode-session         # HeadlessSession class
-05-headless-mode-integration     # CLI integration + tests
-06-headless-mode-docs            # Headless documentation
-07-tob-setup-script              # TOB installation script
-08-documentation-updates         # README/CLAUDE.md updates
+01-headless-mode-cli-flags       # --headless CLI flag
+02-headless-mode-session         # HeadlessSession class
+03-headless-mode-integration     # CLI integration + tests
+04-headless-mode-docs            # Headless documentation
+05-tob-setup-script              # TOB installation script
+06-documentation-updates         # README/CLAUDE.md updates
 ```
+
+Note: Commander Pro UI patches were removed in sync with upstream v5.6.108,
+which extracted the commander module to [ai-commander](https://github.com/bobmatnyc/ai-commander).
 
 ### Syncing with Upstream
 
@@ -152,58 +153,6 @@ References: [StGit Tutorial](https://stacked-git.github.io/guides/tutorial/), [X
 - Record technical specifications and API details
 - Capture user preferences and patterns
 - Document error solutions and workarounds
-
----
-
-## Development Changelog (Commander Pro UI)
-
-### 2026-01-17: Initial Commander Pro UI
-
-**Branch:** `feature/commander-pro-ui`
-
-**Commit `55049f7e`:** feat(commander): Add Pro UI with ANSI color support and tree view
-- Added ansi_up library for terminal color rendering
-- Implemented lazy initialization of AnsiUp to prevent load errors
-- Made output container full height (100vh - 180px)
-- Created new Pro UI at `/v2` with:
-  - Compact tree view layout (Projects → Sessions)
-  - Full-height output panel with ANSI color support
-  - Live polling (1 second intervals)
-  - Debug panel (Ctrl+D to toggle)
-  - Session interaction toolbar
-
-**Files changed:**
-- `src/claude_mpm/commander/api/app.py` - Added /v2 routes
-- `src/claude_mpm/commander/web/static/v2/` - New Pro UI (3 files)
-- `src/claude_mpm/commander/web/static/app.js` - ANSI support
-- `src/claude_mpm/commander/web/static/index.html` - ansi_up library
-- `src/claude_mpm/commander/web/static/styles.css` - Terminal colors
-
----
-
-### 2026-01-17: Tmux Windows statt Panes + Sync
-
-**Commit:** feat(commander): Use tmux windows instead of panes, add sync endpoint
-
-**Problem:**
-- Sessions wurden als Panes erstellt → wurden zu klein bei vielen Sessions
-- Keine Synchronisation zwischen tmux und Registry
-
-**Lösung:**
-1. **Windows statt Panes**: Jede Session bekommt eigenes tmux Window
-   - `create_pane()` → deprecated, ruft `create_window()` auf
-   - `list_panes()` → deprecated, ruft `list_windows()` auf
-   - `kill_pane()` → deprecated, ruft `kill_window()` auf
-
-2. **Sync Endpoint**: `POST /api/sessions/sync`
-   - Prüft welche tmux Windows existieren
-   - Aktualisiert Session-Status (running/stopped)
-   - Wird bei Refresh-Button aufgerufen
-
-**Files changed:**
-- `src/claude_mpm/commander/tmux_orchestrator.py` - New window methods + sync
-- `src/claude_mpm/commander/api/routes/sessions.py` - Sync endpoint
-- `src/claude_mpm/commander/web/static/v2/app.js` - Refresh calls sync
 
 ---
 

@@ -122,7 +122,7 @@ class InstructionsCheck(BaseDiagnosticCheck):
             for pattern, file_type in self.INSTRUCTION_FILES.items():
                 # Use rglob for recursive search
                 for file_path in base_path.rglob(pattern):
-                    # Skip node_modules and virtual environments
+                    # Skip node_modules, virtual environments, and other non-user directories
                     if any(
                         part in file_path.parts
                         for part in [
@@ -131,6 +131,10 @@ class InstructionsCheck(BaseDiagnosticCheck):
                             ".venv",
                             "__pycache__",
                             ".git",
+                            "skills",
+                            ".claude",
+                            ".claude-mpm",
+                            "cache",
                         ]
                     ):
                         continue
@@ -355,17 +359,17 @@ class InstructionsCheck(BaseDiagnosticCheck):
         for path in claude_files:
             try:
                 content = path.read_text(encoding="utf-8")
-                # Check for MPM-specific patterns
+                # Check for MPM-specific patterns (pattern, description)
                 mpm_patterns = [
-                    r"(?i)multi-agent",
-                    r"(?i)delegation",
-                    r"(?i)agent\s+selection",
-                    r"(?i)PM\s+role",
+                    (r"(?i)multi-agent", "multi-agent coordination"),
+                    (r"(?i)delegation", "delegation rules"),
+                    (r"(?i)agent\s+selection", "agent selection logic"),
+                    (r"(?i)PM\s+role", "PM role definition"),
                 ]
-                for pattern in mpm_patterns:
+                for pattern, description in mpm_patterns:
                     if re.search(pattern, content):
                         issues.append(
-                            f"CLAUDE.md contains MPM-specific content (pattern: {pattern})\n"
+                            f"CLAUDE.md contains MPM-specific content ({description})\n"
                             f"  → Move to INSTRUCTIONS.md"
                         )
                         break
@@ -377,16 +381,16 @@ class InstructionsCheck(BaseDiagnosticCheck):
         for path in instructions_files:
             try:
                 content = path.read_text(encoding="utf-8")
-                # Check for Claude Code specific patterns
+                # Check for Claude Code specific patterns (pattern, description)
                 claude_patterns = [
-                    r"(?i)claude\s+code",
-                    r"(?i)development\s+guidelines",
-                    r"(?i)project\s+structure",
+                    (r"(?i)claude\s+code", "Claude Code references"),
+                    (r"(?i)development\s+guidelines", "development guidelines"),
+                    (r"(?i)project\s+structure", "project structure definitions"),
                 ]
-                for pattern in claude_patterns:
+                for pattern, description in claude_patterns:
                     if re.search(pattern, content):
                         issues.append(
-                            f"INSTRUCTIONS.md contains Claude Code content (pattern: {pattern})\n"
+                            f"INSTRUCTIONS.md contains Claude Code content ({description})\n"
                             f"  → Should focus on MPM customization only"
                         )
                         break

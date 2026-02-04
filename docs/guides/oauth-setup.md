@@ -112,7 +112,7 @@ Shows all MCP services that support OAuth authentication with their providers an
 ### Set Up OAuth for a Service
 
 ```bash
-claude-mpm oauth setup workspace-mcp
+claude-mpm oauth setup google-workspace-mcp
 ```
 
 This command:
@@ -129,7 +129,7 @@ This command:
 ### Check Token Status
 
 ```bash
-claude-mpm oauth status workspace-mcp
+claude-mpm oauth status google-workspace-mcp
 ```
 
 Shows:
@@ -145,7 +145,7 @@ Shows:
 ### Refresh Tokens
 
 ```bash
-claude-mpm oauth refresh workspace-mcp
+claude-mpm oauth refresh google-workspace-mcp
 ```
 
 Manually refresh tokens using the stored refresh token. Useful if you suspect token issues.
@@ -153,13 +153,13 @@ Manually refresh tokens using the stored refresh token. Useful if you suspect to
 ### Revoke Tokens
 
 ```bash
-claude-mpm oauth revoke workspace-mcp
+claude-mpm oauth revoke google-workspace-mcp
 ```
 
 Revokes and deletes stored tokens. Use `-y` to skip confirmation:
 
 ```bash
-claude-mpm oauth revoke workspace-mcp -y
+claude-mpm oauth revoke google-workspace-mcp -y
 ```
 
 ---
@@ -272,10 +272,10 @@ http://127.0.0.1:8789/callback
 **Solution**:
 ```bash
 # Revoke existing tokens
-claude-mpm oauth revoke workspace-mcp -y
+claude-mpm oauth revoke google-workspace-mcp -y
 
 # Re-authenticate
-claude-mpm oauth setup workspace-mcp
+claude-mpm oauth setup google-workspace-mcp
 ```
 
 ### "Port already in use" Error
@@ -284,7 +284,7 @@ claude-mpm oauth setup workspace-mcp
 
 **Solution**: Use a different port:
 ```bash
-claude-mpm oauth setup workspace-mcp --port 8790
+claude-mpm oauth setup google-workspace-mcp --port 8790
 ```
 
 ### Keychain Access Denied (macOS)
@@ -310,14 +310,14 @@ claude-mpm oauth setup workspace-mcp --port 8790
 claude-mpm oauth list
 
 # Set up Google Workspace
-claude-mpm oauth setup workspace-mcp
+claude-mpm oauth setup google-workspace-mcp
 
 # Check token status
-claude-mpm oauth status workspace-mcp
+claude-mpm oauth status google-workspace-mcp
 
 # Refresh tokens
-claude-mpm oauth refresh workspace-mcp
+claude-mpm oauth refresh google-workspace-mcp
 
 # Revoke tokens
-claude-mpm oauth revoke workspace-mcp
+claude-mpm oauth revoke google-workspace-mcp
 ```

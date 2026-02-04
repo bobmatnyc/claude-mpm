@@ -75,14 +75,14 @@ class ConfigurationCheck(BaseDiagnosticCheck):
                     "in configuration may prevent features from working correctly or cause "
                     "unexpected behavior."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/configuration.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/configuration.md"
             elif status == ValidationSeverity.WARNING:
                 severity = "low"
                 explanation = (
                     "Configuration has minor issues that may affect optional features. "
                     "Core functionality should still work."
                 )
-                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/configuration.md"
+                doc_link = "https://github.com/bobmatnyc/claude-mpm/blob/main/docs/user/configuration.md"
 
             return DiagnosticResult(
                 category=self.category,

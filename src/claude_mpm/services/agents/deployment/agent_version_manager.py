@@ -320,3 +320,76 @@ class AgentVersionManager:
                 errors.append(f"Old version format detected: {version_str}")
 
         return len(errors) == 0, errors
+
+    def needs_update(self, agent_name: str) -> bool:
+        """
+        Check if a deployed agent needs to be updated.
+
+        This is a simplified check that compares the deployed agent's version
+        against the template version. Returns False on any error (fail-safe).
+
+        Args:
+            agent_name: Name of the agent to check (without .md extension)
+
+        Returns:
+            True if the agent needs updating, False otherwise (including on errors)
+        """
+        try:
+            # Find deployed agent file (check project-level first, then user-level)
+            project_agents_dir = Path.cwd() / ".claude" / "agents"
+            user_agents_dir = Path.home() / ".claude" / "agents"
+
+            deployed_file = None
+            if (project_agents_dir / f"{agent_name}.md").exists():
+                deployed_file = project_agents_dir / f"{agent_name}.md"
+            elif (user_agents_dir / f"{agent_name}.md").exists():
+                deployed_file = user_agents_dir / f"{agent_name}.md"
+
+            if not deployed_file:
+                self.logger.debug(f"Deployed agent not found: {agent_name}")
+                return False
+
+            # Find template file in package
+            # Templates are in claude_mpm/agents/templates/
+            package_dir = Path(__file__).parents[3]  # Go up to claude_mpm
+            templates_dir = package_dir / "agents" / "templates"
+            template_file = templates_dir / f"{agent_name}.md"
+
+            if not template_file.exists():
+                self.logger.debug(f"Template not found for agent: {agent_name}")
+                return False
+
+            # Read and compare versions
+            deployed_content = deployed_file.read_text()
+            template_content = template_file.read_text()
+
+            # Extract versions from both files
+            deployed_version, deployed_is_old, _ = (
+                self.extract_version_from_frontmatter(deployed_content)
+            )
+            template_version, _, _ = self.extract_version_from_frontmatter(
+                template_content
+            )
+
+            # If deployed version uses old format, it needs update
+            if deployed_is_old:
+                self.logger.debug(
+                    f"Agent {agent_name} uses old version format, needs update"
+                )
+                return True
+
+            # Compare versions - needs update if template is newer
+            if self.compare_versions(template_version, deployed_version) > 0:
+                self.logger.debug(
+                    f"Agent {agent_name} outdated: "
+                    f"{self.format_version_display(deployed_version)} -> "
+                    f"{self.format_version_display(template_version)}"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            self.logger.debug(f"Error checking if {agent_name} needs update: {e}")
+            # Fail-safe: return False on errors (don't report as outdated if we can't check)
+            return False

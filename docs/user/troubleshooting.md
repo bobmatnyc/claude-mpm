@@ -28,6 +28,8 @@ Common issues and solutions for Claude MPM.
     - [Agent Not Found from Source](#agent-not-found-from-source)
     - [Priority Conflicts](#priority-conflicts)
     - [Common Error Messages](#common-error-messages)
+- [Skill Source Issues](#skill-source-issues)
+  - [GitHub API Rate Limit (HTTP 403)](#github-api-rate-limit-http-403)
 - [Monitoring Issues](#monitoring-issues)
 - [Local Deployment Issues](#local-deployment-issues)
 - [Memory Issues](#memory-issues)
@@ -145,7 +147,13 @@ claude-mpm doctor --checks monitor
 
 ### Python Version Mismatch
 
-**Problem**: Python 3.7 or lower.
+**Problem**: Python version is incompatible (too old or too new).
+
+**Version Requirements:**
+- **Minimum**: Python 3.11
+- **Recommended**: Python 3.13
+- **NOT Supported**: Python 3.14 (not yet compatible)
+- **Too Old**: Python 3.9, 3.10 (macOS default 3.9 is too old)
 
 **Solution:**
 
@@ -153,13 +161,96 @@ claude-mpm doctor --checks monitor
 # Check version
 python --version
 
-# Install Python 3.11+
+# Install Python 3.13 (recommended)
 # On macOS with Homebrew:
-brew install python@3.11
+brew install python@3.13
 
 # On Ubuntu:
-sudo apt install python3.11
+sudo apt install python3.13
+
+# Use explicit Python version with uv:
+cd ~
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
 ```
+
+**macOS Users**: The default system Python is 3.9, which is too old. Always use the `--python 3.13` flag when installing with uv:
+
+```bash
+cd ~
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+```
+
+**Python 3.14 Users**: Python 3.14 is not yet supported. Downgrade to Python 3.13:
+
+```bash
+# Install Python 3.13
+brew install python@3.13
+
+# Reinstall claude-mpm with Python 3.13
+uv tool uninstall claude-mpm
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+```
+
+### Installation Location Issues
+
+**Problem**: Installation conflicts or unexpected behavior when installing from within a git repository.
+
+**Cause**: Installing claude-mpm while inside the cloned git repository causes path conflicts.
+
+**Solution**: Always install from your home directory:
+
+```bash
+# CORRECT - Install from home directory
+cd ~
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+
+# WRONG - Do NOT install from within the git repo
+cd ~/Projects/claude-mpm  # <-- This causes problems!
+uv tool install claude-mpm  # <-- Will fail or behave unexpectedly
+```
+
+**If you already installed from the git repo:**
+
+```bash
+# Uninstall
+cd ~
+uv tool uninstall claude-mpm
+
+# Reinstall correctly
+uv tool install claude-mpm[monitor,data-processing] --python 3.13
+```
+
+### Pre-Doctor Setup Missing
+
+**Problem**: `claude-mpm doctor` fails with errors about missing directories, agents, or skills.
+
+**Cause**: Post-installation setup steps were not completed.
+
+**Solution**: Run these commands before `claude-mpm doctor`:
+
+```bash
+# 1. Create required directories
+mkdir -p ~/.claude/{responses,memory,logs}
+
+# 2. Deploy agents
+claude-mpm agents deploy
+
+# 3. Add skill source (recommended)
+claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills
+
+# 4. Now run doctor
+claude-mpm doctor --verbose
+```
+
+**Complete Post-Installation Checklist:**
+
+| Step | Command | Purpose |
+|------|---------|---------|
+| 1 | `mkdir -p ~/.claude/{responses,memory,logs}` | Create required directories |
+| 2 | `claude-mpm agents deploy` | Deploy agent definitions |
+| 3 | `claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills` | Add skill repository |
+| 4 | `claude-mpm doctor --verbose` | Verify installation |
+| 5 | `claude-mpm auto-configure` | Configure for your project |
 
 ### Dependency Conflicts
 
@@ -450,6 +541,93 @@ claude-mpm agent-source add <url> --subdirectory correct/path
 
 # Force update
 claude-mpm agent-source update --force
+```
+
+## Skill Source Issues
+
+### GitHub API Rate Limit (HTTP 403)
+
+**Problem**: `skill-source add` or `skill-source update` fails with HTTP 403 error or rate limit message.
+
+**Cause**: GitHub's API has rate limits:
+- **Without authentication**: 60 requests/hour (shared by IP)
+- **With authentication**: 5,000 requests/hour
+
+**Symptoms:**
+```
+Error: HTTP 403 Forbidden
+Error: rate limit exceeded
+Error: API rate limit exceeded for IP address
+```
+
+**Solution**: Set a GitHub token in your environment:
+
+```bash
+# Option 1: Set GITHUB_TOKEN
+export GITHUB_TOKEN=your_github_token
+
+# Option 2: Set GH_TOKEN (also supported)
+export GH_TOKEN=your_github_token
+
+# Add to shell profile for persistence
+echo 'export GITHUB_TOKEN=your_github_token' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc  # or ~/.zshrc
+
+# Retry the operation
+claude-mpm skill-source add https://github.com/bobmatnyc/claude-mpm-skills
+```
+
+**Creating a GitHub Token:**
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token (classic)"
+3. Give it a descriptive name (e.g., "claude-mpm")
+4. **No scopes needed** for public repositories
+5. Click "Generate token"
+6. Copy the token and set it as shown above
+
+**Token Requirements:**
+- Only public repository read access is needed
+- No special scopes required
+- Classic tokens with no scopes selected work fine
+- Fine-grained tokens with "Public Repositories (read-only)" also work
+
+**Verify Token is Set:**
+
+```bash
+# Check if token is available
+echo $GITHUB_TOKEN
+# or
+echo $GH_TOKEN
+
+# Test GitHub API access
+curl -H "Authorization: token $GITHUB_TOKEN" \
+  https://api.github.com/rate_limit
+```
+
+**Expected output shows higher limits:**
+```json
+{
+  "rate": {
+    "limit": 5000,
+    "remaining": 4999,
+    ...
+  }
+}
+```
+
+**If Still Failing:**
+
+```bash
+# Check current rate limit status
+curl https://api.github.com/rate_limit
+
+# Wait for rate limit reset (shown in response)
+# Or use a different network/IP
+
+# Clear any cached failures
+rm -rf ~/.claude-mpm/cache/skill-sources/
+claude-mpm skill-source update --force
 ```
 
 ## Monitoring Issues
