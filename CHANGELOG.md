@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.111] - 2026-02-04
+
+### Changed
+- Remove unused root-level config files (.flake8, .readthedocs.yaml)
+
 ## [5.6.110] - 2026-02-04
 
 ### Added
