@@ -18,6 +18,7 @@ from claude_mpm.mcp.ndjson_parser import (
     extract_session_id,
     extract_session_id_from_stream,
 )
+from claude_mpm.mcp.session_manager import SessionManager
 from claude_mpm.mcp.subprocess_wrapper import ClaudeMPMSubprocess
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "RateLimitError",
     "SessionError",
     "SessionInfo",
+    "SessionManager",
     "SessionResult",
     "SessionStatus",
     "extract_session_id",
