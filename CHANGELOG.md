@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.7.1] - 2026-02-04
+
+### Fixed
+- Fix `_format_assistant_output` to handle Claude's content block format (list of `{type: "text", text: "..."}` objects)
+- Fix process cleanup to handle already-exited processes (avoid ProcessLookupError)
+
+### Tests
+- Added 5 new tests for content block parsing edge cases
+- Total MCP tests: 194
+
 ## [5.7.0] - 2026-02-04
 
 ### Added
