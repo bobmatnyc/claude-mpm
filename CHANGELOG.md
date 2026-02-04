@@ -10,6 +10,32 @@
 
 ### Tests
 
+## [5.6.97] - 2026-01-28
+
+### Changed
+- Patch version bump
+
+## [5.6.96] - 2026-01-27
+
+### Changed
+- Patch version bump
+
+## [5.6.95] - 2026-01-26
+
+### Changed
+- Patch version bump
+
+## [5.6.94] - 2026-01-26
+
+### Fixed
+- Change Edit operation color from amber to yellow to distinguish from "Recent"
+
+## [5.6.93] - 2026-01-26
+
+### Fixed
+- Monitor dashboard timestamp display issues ("Invalid Date" and "NaNm NaNs")
+- Event history not loading on dashboard connect
+
 ## [5.6.92] - 2026-01-25
 
 ### Added

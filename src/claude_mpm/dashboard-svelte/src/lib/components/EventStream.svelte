@@ -99,8 +99,10 @@
 		Array.from(new Set(streamFilteredEvents.map(e => e.subtype).filter(Boolean))).sort()
 	);
 
-	function formatTimestamp(timestamp: string | number): string {
-		return new Date(timestamp).toLocaleTimeString();
+	function formatTimestamp(timestamp: string | number | undefined): string {
+		if (!timestamp) return '-';
+		const date = new Date(timestamp);
+		return isNaN(date.getTime()) ? '-' : date.toLocaleTimeString();
 	}
 
 	function getEventTypeColor(type: ClaudeEvent['type']): string {
@@ -286,15 +288,25 @@
 			return null;
 		}
 
-		// Calculate duration in milliseconds
+		// Calculate duration in milliseconds with defensive handling
 		const eventTime = typeof event.timestamp === 'string'
 			? new Date(event.timestamp).getTime()
-			: event.timestamp;
+			: typeof event.timestamp === 'number' ? event.timestamp : NaN;
 		const preEventTime = typeof preEvent.timestamp === 'string'
 			? new Date(preEvent.timestamp).getTime()
-			: preEvent.timestamp;
+			: typeof preEvent.timestamp === 'number' ? preEvent.timestamp : NaN;
+
+		// Return null if timestamps are invalid
+		if (isNaN(eventTime) || isNaN(preEventTime)) {
+			return null;
+		}
 
 		const ms = eventTime - preEventTime;
+
+		// Handle negative or unreasonable durations
+		if (ms < 0 || ms > 3600000) { // More than 1 hour is suspicious
+			return null;
+		}
 
 		// Format duration based on magnitude
 		if (ms < 1000) {

@@ -138,7 +138,7 @@ export function getOperationColor(operation?: 'read' | 'write' | 'edit'): string
     case 'write':
       return '#22c55e'; // green
     case 'edit':
-      return '#f59e0b'; // amber
+      return '#eab308'; // yellow (distinct from amber "Recent")
     default:
       return '#6b7280'; // gray (directories)
   }
@@ -154,7 +154,7 @@ export function getLighterColor(operation?: 'read' | 'write' | 'edit'): string {
     case 'write':
       return '#86efac'; // green-300
     case 'edit':
-      return '#fcd34d'; // amber-300
+      return '#fef08a'; // yellow-200 (distinct from amber "Recent")
     default:
       return '#9ca3af'; // gray-400
   }

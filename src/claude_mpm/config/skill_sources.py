@@ -551,7 +551,7 @@ class SkillSourceConfiguration:
         return warnings
 
     def _get_default_sources(self) -> List[SkillSource]:
-        """Get default skill sources (system + official Anthropic).
+        """Get default skill sources (system + official + community).
 
         Returns:
             List of default SkillSource instances
@@ -560,11 +560,14 @@ class SkillSourceConfiguration:
 
         Rationale: Provide users with both curated system skills and official
         Anthropic skills out-of-the-box. System repo maintains highest priority
-        for custom/override capabilities.
+        for custom/override capabilities. Community sources provide additional
+        framework-specific skills.
 
         Default Sources:
             1. System repo (priority 0): bobmatnyc/claude-mpm-skills
             2. Anthropic repo (priority 1): anthropics/skills
+            3. Vercel Labs (priority 2): vercel-labs/agent-skills
+            4. TOB Skills (priority 3): the-original-body/tob-skills
         """
         return [
             SkillSource(
@@ -581,6 +584,22 @@ class SkillSourceConfiguration:
                 url="https://github.com/anthropics/skills",
                 branch="main",
                 priority=1,
+                enabled=True,
+            ),
+            SkillSource(
+                id="vercel-labs",
+                type="git",
+                url="https://github.com/vercel-labs/agent-skills",
+                branch="main",
+                priority=2,
+                enabled=True,
+            ),
+            SkillSource(
+                id="tob-skills",
+                type="git",
+                url="https://github.com/the-original-body/tob-skills",
+                branch="main",
+                priority=3,
                 enabled=True,
             ),
         ]

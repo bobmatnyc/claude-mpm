@@ -167,6 +167,8 @@ echo ""
 
 log_info "=== Installing MCP Services ==="
 
+UPSTREAM_ORG="bobmatnyc"
+MCP_SERVICES=(kuzu-memory mcp-vector-search mcp-ticketer mcp-skillset)
 MCP_INSTALLED=0
 MCP_ENABLED=0
 
@@ -176,7 +178,7 @@ for service in "${MCP_SERVICES[@]}"; do
         log_success "$service installed"
         ((MCP_INSTALLED++))
     else
-        log_warn "$service installation failed"
+        log_warn "$service installation failed - may need manual setup"
     fi
 done
 
@@ -188,7 +190,7 @@ for service in "${MCP_SERVICES[@]}"; do
         log_success "$service enabled"
         ((MCP_ENABLED++))
     else
-        log_warn "$service could not be enabled"
+        log_warn "$service could not be enabled - configure manually in ~/.claude/settings.json"
     fi
 done
 

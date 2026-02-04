@@ -533,15 +533,29 @@ class GitSkillSourceManager:
             f"Discovered {len(all_files)} files in {owner_repo}/{source.branch} via Tree API"
         )
 
-        # Step 2: Filter to only download relevant files (markdown, JSON metadata)
+        # Step 2: Filter to download relevant files
+        # Include full skill directory structure: SKILL.md, scripts/, references/
+        # Supported extensions:
+        #   - Documentation: .md, .json, .yaml, .yml, .txt
+        #   - Scripts: .sh, .py, .js, .ts, .mjs, .cjs
+        #   - Assets: .png, .jpg, .jpeg, .gif, .svg, .webp
+        #   - Config: .gitignore, .env.example
+        relevant_extensions = (
+            # Documentation
+            ".md", ".json", ".yaml", ".yml", ".txt",
+            # Scripts
+            ".sh", ".py", ".js", ".ts", ".mjs", ".cjs",
+            # Assets
+            ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
+        )
         relevant_files = [
             f
             for f in all_files
-            if f.endswith(".md") or f.endswith(".json") or f == ".gitignore"
+            if f.endswith(relevant_extensions) or f in (".gitignore", ".env.example")
         ]
 
         self.logger.info(
-            f"Filtered to {len(relevant_files)} relevant files (.md, .json, .gitignore)"
+            f"Filtered to {len(relevant_files)} relevant files (docs, scripts, assets)"
         )
 
         # Step 3: Download files to cache with ETag caching (parallel)

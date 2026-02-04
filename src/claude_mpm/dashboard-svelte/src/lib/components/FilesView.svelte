@@ -314,7 +314,7 @@
       case 'write':
         return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
       case 'edit':
-        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300';
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
       default:
         return 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300';
     }
