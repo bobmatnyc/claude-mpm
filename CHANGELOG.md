@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.6.108] - 2026-02-03
+
+### Fixed
+- Add timeout to keyring operations to prevent indefinite hangs on macOS
+
 ## [5.6.107] - 2026-02-03
 
 ### Documentation
