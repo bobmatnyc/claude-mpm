@@ -732,12 +732,18 @@ def _run_headless_session(args) -> int:
     if getattr(args, "fork_session", False):
         claude_args.append("--fork-session")
 
-    # Create minimal runner-like object for HeadlessSession
-    class MinimalRunner:
-        def __init__(self, args_list):
-            self.claude_args = args_list
+    # Use ClaudeRunner (not MinimalRunner) to ensure _create_system_prompt is available
+    # This is required for PM system prompt injection in headless mode
+    try:
+        from ...core.claude_runner import ClaudeRunner
+    except ImportError:
+        from claude_mpm.core.claude_runner import ClaudeRunner
 
-    runner = MinimalRunner(claude_args)
+    runner = ClaudeRunner(
+        enable_tickets=not getattr(args, "no_tickets", False),
+        log_level=getattr(args, "logging", "OFF"),
+        claude_args=claude_args,
+    )
     session = HeadlessSession(runner)
 
     return session.run(prompt=prompt, resume_session=resume_session)
