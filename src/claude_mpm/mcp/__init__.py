@@ -18,9 +18,11 @@ from claude_mpm.mcp.ndjson_parser import (
     extract_session_id,
     extract_session_id_from_stream,
 )
+from claude_mpm.mcp.subprocess_wrapper import ClaudeMPMSubprocess
 
 __all__ = [
     "APIError",
+    "ClaudeMPMSubprocess",
     "ContextWindowError",
     "NDJSONStreamParser",
     "RateLimitError",
