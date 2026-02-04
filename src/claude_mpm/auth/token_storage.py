@@ -13,8 +13,9 @@ Security Features:
 
 import json
 import stat
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional, TypeVar
 
 import keyring
 from cryptography.fernet import Fernet, InvalidToken
@@ -24,8 +25,74 @@ from claude_mpm.auth.models import OAuthToken, StoredToken, TokenMetadata, Token
 # Keyring service identifier for encryption keys
 KEYRING_SERVICE = "claude-mpm-oauth"
 
+# Timeout for keyring operations (seconds)
+KEYRING_TIMEOUT = 10.0
+
+# TypeVar for generic return types in timeout wrapper
+T = TypeVar("T")
+
 # Default credentials directory
 CREDENTIALS_DIR = Path.home() / ".claude-mpm" / "credentials"
+
+
+class KeyringTimeoutError(Exception):
+    """Raised when a keyring operation times out.
+
+    This typically indicates the system keychain is locked or requires
+    user authentication that isn't being provided.
+    """
+
+    def __init__(self, operation: str, timeout: float) -> None:
+        """Initialize the timeout error.
+
+        Args:
+            operation: Description of the keyring operation that timed out.
+            timeout: The timeout value in seconds.
+        """
+        message = (
+            f"Keyring operation '{operation}' timed out after {timeout} seconds.\n"
+            "This may indicate:\n"
+            "  - The system keychain is locked\n"
+            "  - Keychain authentication is required but not provided\n"
+            "  - The keychain service is unresponsive\n\n"
+            "To unlock your keychain, try running:\n"
+            "  security unlock-keychain ~/Library/Keychains/login.keychain-db"
+        )
+        super().__init__(message)
+        self.operation = operation
+        self.timeout = timeout
+
+
+def _keyring_with_timeout(
+    func: Callable[..., T],
+    args: tuple[Any, ...],
+    operation: str,
+    timeout: float = KEYRING_TIMEOUT,
+) -> T:
+    """Execute a keyring operation with a timeout.
+
+    Keyring operations can hang indefinitely on macOS when the Keychain
+    requires authentication or is unresponsive. This wrapper ensures
+    operations either complete or fail within the specified timeout.
+
+    Args:
+        func: The keyring function to call.
+        args: Arguments to pass to the function.
+        operation: Description of the operation for error messages.
+        timeout: Maximum time to wait in seconds.
+
+    Returns:
+        The result of the keyring function.
+
+    Raises:
+        KeyringTimeoutError: If the operation doesn't complete within timeout.
+    """
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args)
+        try:
+            return future.result(timeout=timeout)
+        except FuturesTimeoutError as err:
+            raise KeyringTimeoutError(operation, timeout) from err
 
 
 class TokenStorage:
@@ -86,16 +153,27 @@ class TokenStorage:
 
         Returns:
             Fernet encryption key as bytes.
+
+        Raises:
+            KeyringTimeoutError: If keyring operations time out.
         """
         key_name = f"{service_name}-key"
-        existing_key = keyring.get_password(KEYRING_SERVICE, key_name)
+        existing_key = _keyring_with_timeout(
+            keyring.get_password,
+            (KEYRING_SERVICE, key_name),
+            f"get_password for {service_name}",
+        )
 
         if existing_key:
             return existing_key.encode()
 
         # Generate new key and store in keyring
         new_key = Fernet.generate_key()
-        keyring.set_password(KEYRING_SERVICE, key_name, new_key.decode())
+        _keyring_with_timeout(
+            keyring.set_password,
+            (KEYRING_SERVICE, key_name, new_key.decode()),
+            f"set_password for {service_name}",
+        )
         return new_key
 
     def _delete_encryption_key(self, service_name: str) -> None:
@@ -103,10 +181,17 @@ class TokenStorage:
 
         Args:
             service_name: Name of the service to delete key for.
+
+        Raises:
+            KeyringTimeoutError: If the keyring operation times out.
         """
         key_name = f"{service_name}-key"
         try:
-            keyring.delete_password(KEYRING_SERVICE, key_name)
+            _keyring_with_timeout(
+                keyring.delete_password,
+                (KEYRING_SERVICE, key_name),
+                f"delete_password for {service_name}",
+            )
         except keyring.errors.PasswordDeleteError:
             pass  # Key doesn't exist, nothing to delete
 
