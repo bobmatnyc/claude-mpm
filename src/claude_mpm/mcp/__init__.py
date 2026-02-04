@@ -19,6 +19,13 @@ from claude_mpm.mcp.ndjson_parser import (
     extract_session_id_from_stream,
 )
 from claude_mpm.mcp.ngrok_tunnel import NgrokTunnel, TunnelInfo
+from claude_mpm.mcp.rclone_manager import (
+    RcloneConfig,
+    RcloneManager,
+    RcloneNotInstalledError,
+    RcloneOperationError,
+    check_rclone_available,
+)
 from claude_mpm.mcp.session_manager import SessionManager
 from claude_mpm.mcp.session_server import SessionServer, main as session_server_main
 from claude_mpm.mcp.session_server_http import (
@@ -34,6 +41,10 @@ __all__ = [
     "NDJSONStreamParser",
     "NgrokTunnel",
     "RateLimitError",
+    "RcloneConfig",
+    "RcloneManager",
+    "RcloneNotInstalledError",
+    "RcloneOperationError",
     "SessionError",
     "SessionInfo",
     "SessionManager",
@@ -42,6 +53,7 @@ __all__ = [
     "SessionServerHTTP",
     "SessionStatus",
     "TunnelInfo",
+    "check_rclone_available",
     "extract_session_id",
     "extract_session_id_from_stream",
     "google_workspace_main",

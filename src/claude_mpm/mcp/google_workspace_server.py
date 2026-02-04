@@ -11,9 +11,12 @@ using the OAuthManager for seamless re-authentication.
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
+
+if TYPE_CHECKING:
+    from claude_mpm.mcp.rclone_manager import RcloneManager
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
@@ -857,6 +860,155 @@ class GoogleWorkspaceServer:
                         "required": ["task_id"],
                     },
                 ),
+                # Rclone-based Drive file sync operations
+                Tool(
+                    name="list_drive_contents",
+                    description="List contents of a Google Drive folder using rclone. Returns structured JSON with file metadata including size, modification time, and file IDs. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "Drive path to list (e.g., 'Documents' or 'Shared drives/TeamDrive/Projects')",
+                                "default": "",
+                            },
+                            "recursive": {
+                                "type": "boolean",
+                                "description": "Recursively list all subdirectories",
+                                "default": False,
+                            },
+                            "files_only": {
+                                "type": "boolean",
+                                "description": "Show only files, not directories",
+                                "default": False,
+                            },
+                            "include_hash": {
+                                "type": "boolean",
+                                "description": "Include MD5 hash for each file",
+                                "default": False,
+                            },
+                            "max_depth": {
+                                "type": "integer",
+                                "description": "Maximum recursion depth (requires recursive=true, -1 for unlimited)",
+                                "default": -1,
+                            },
+                        },
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="download_drive_folder",
+                    description="Download a folder from Google Drive to local filesystem using rclone. Does not delete local files. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drive_path": {
+                                "type": "string",
+                                "description": "Path in Google Drive to download (e.g., 'Documents/Reports')",
+                            },
+                            "local_path": {
+                                "type": "string",
+                                "description": "Local destination directory",
+                            },
+                            "google_docs_format": {
+                                "type": "string",
+                                "description": "Export format for Google Docs/Sheets/Slides",
+                                "enum": [
+                                    "docx",
+                                    "pdf",
+                                    "odt",
+                                    "txt",
+                                    "xlsx",
+                                    "csv",
+                                    "pptx",
+                                ],
+                                "default": "docx",
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['*.tmp', '.git/**'])",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without downloading",
+                                "default": False,
+                            },
+                        },
+                        "required": ["drive_path", "local_path"],
+                    },
+                ),
+                Tool(
+                    name="upload_to_drive",
+                    description="Upload a local folder to Google Drive using rclone. Does not delete files in Drive. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "local_path": {
+                                "type": "string",
+                                "description": "Local folder path to upload",
+                            },
+                            "drive_path": {
+                                "type": "string",
+                                "description": "Destination path in Google Drive",
+                            },
+                            "convert_to_google_docs": {
+                                "type": "boolean",
+                                "description": "Convert Office files to Google Docs format",
+                                "default": False,
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['node_modules/**', '.git/**'])",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without uploading",
+                                "default": False,
+                            },
+                        },
+                        "required": ["local_path", "drive_path"],
+                    },
+                ),
+                Tool(
+                    name="sync_drive_folder",
+                    description="Sync files between local filesystem and Google Drive using rclone. Use dry_run=true to preview changes before syncing. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "source": {
+                                "type": "string",
+                                "description": "Source path. Use 'drive:path' for Drive or '/local/path' for local",
+                            },
+                            "destination": {
+                                "type": "string",
+                                "description": "Destination path. Use 'drive:path' for Drive or '/local/path' for local",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without making them (RECOMMENDED: start with true)",
+                                "default": True,
+                            },
+                            "delete_extra": {
+                                "type": "boolean",
+                                "description": "Delete files in destination that don't exist in source (CAUTION: destructive)",
+                                "default": False,
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['*.tmp', '.git/**'])",
+                            },
+                            "include": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to include (if set, only matching files are synced)",
+                            },
+                        },
+                        "required": ["source", "destination"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -1014,6 +1166,11 @@ class GoogleWorkspaceServer:
             "complete_task": self._complete_task,
             "delete_task": self._delete_task,
             "move_task": self._move_task,
+            # Rclone Drive sync operations
+            "list_drive_contents": self._list_drive_contents,
+            "download_drive_folder": self._download_drive_folder,
+            "upload_to_drive": self._upload_to_drive,
+            "sync_drive_folder": self._sync_drive_folder,
         }
 
         handler = handlers.get(name)
@@ -2627,6 +2784,153 @@ class GoogleWorkspaceServer:
         result = self._format_task(response)
         result["move_status"] = "moved"
         return result
+
+    # -------------------- Rclone Drive Sync Operations --------------------
+
+    def _get_rclone_manager(self) -> "RcloneManager":
+        """Get or create an RcloneManager instance.
+
+        Lazily creates an RcloneManager using the current OAuth tokens
+        from TokenStorage.
+
+        Returns:
+            Configured RcloneManager instance.
+
+        Raises:
+            RuntimeError: If rclone is not installed or tokens unavailable.
+        """
+        # Import here to avoid circular imports and make rclone optional
+        from claude_mpm.mcp.rclone_manager import RcloneManager, RcloneNotInstalledError
+
+        try:
+            return RcloneManager(
+                storage=self.storage,
+                service_name=SERVICE_NAME,
+            )
+        except RcloneNotInstalledError as e:
+            raise RuntimeError(
+                "rclone is not installed. Install it from https://rclone.org/downloads/ "
+                "to use Drive sync features."
+            ) from e
+
+    async def _list_drive_contents(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List Drive folder contents using rclone lsjson.
+
+        Args:
+            arguments: Tool arguments with path, recursive, files_only,
+                include_hash, max_depth.
+
+        Returns:
+            Dictionary with items list, count, and path.
+        """
+        path = arguments.get("path", "")
+        recursive = arguments.get("recursive", False)
+        files_only = arguments.get("files_only", False)
+        include_hash = arguments.get("include_hash", False)
+        max_depth = arguments.get("max_depth", -1)
+
+        manager = self._get_rclone_manager()
+        try:
+            items = manager.list_json(
+                path=path,
+                recursive=recursive,
+                files_only=files_only,
+                include_hash=include_hash,
+                max_depth=max_depth,
+            )
+            return {
+                "items": items,
+                "count": len(items),
+                "path": path or "(root)",
+            }
+        finally:
+            manager.cleanup()
+
+    async def _download_drive_folder(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Download Drive folder to local filesystem.
+
+        Args:
+            arguments: Tool arguments with drive_path, local_path,
+                google_docs_format, exclude, dry_run.
+
+        Returns:
+            Operation result with status and details.
+        """
+        drive_path = arguments["drive_path"]
+        local_path = arguments["local_path"]
+        google_docs_format = arguments.get("google_docs_format", "docx")
+        exclude = arguments.get("exclude")
+        dry_run = arguments.get("dry_run", False)
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.download(
+                drive_path=drive_path,
+                local_path=local_path,
+                google_docs_format=google_docs_format,
+                exclude=exclude,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
+
+    async def _upload_to_drive(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Upload local folder to Google Drive.
+
+        Args:
+            arguments: Tool arguments with local_path, drive_path,
+                convert_to_google_docs, exclude, dry_run.
+
+        Returns:
+            Operation result with status and details.
+        """
+        local_path = arguments["local_path"]
+        drive_path = arguments["drive_path"]
+        convert_to_google_docs = arguments.get("convert_to_google_docs", False)
+        exclude = arguments.get("exclude")
+        dry_run = arguments.get("dry_run", False)
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.upload(
+                local_path=local_path,
+                drive_path=drive_path,
+                convert_to_google_docs=convert_to_google_docs,
+                exclude=exclude,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
+
+    async def _sync_drive_folder(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Sync files between local and Drive.
+
+        Args:
+            arguments: Tool arguments with source, destination,
+                dry_run, delete_extra, exclude, include.
+
+        Returns:
+            Operation result with status and details.
+        """
+        source = arguments["source"]
+        destination = arguments["destination"]
+        dry_run = arguments.get("dry_run", True)  # Safe default
+        delete_extra = arguments.get("delete_extra", False)
+        exclude = arguments.get("exclude")
+        include = arguments.get("include")
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.sync(
+                source=source,
+                destination=destination,
+                delete_extra=delete_extra,
+                exclude=exclude,
+                include=include,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
 
     async def run(self) -> None:
         """Run the MCP server using stdio transport."""

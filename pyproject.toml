@@ -95,6 +95,10 @@ memory = [ "kuzu-memory>=1.1.5",]
 slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
 # HTTP transport with SSE and ngrok for remote MCP access
 http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "pyngrok>=7.0.0",]
+# Google Workspace extended features (rclone for Drive sync)
+# NOTE: Requires rclone CLI binary installed separately (https://rclone.org/downloads/)
+# The implementation uses rclone via subprocess, not a Python package.
+google = []
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
