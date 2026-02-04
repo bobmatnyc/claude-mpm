@@ -446,6 +446,7 @@ class TestWaitForCompletion:
         mock_process.stderr = AsyncMock()
         mock_process.wait = AsyncMock(side_effect=asyncio.TimeoutError())
         mock_process.terminate = MagicMock()
+        mock_process.returncode = None  # Simulate running process
         wrapper.process = mock_process
 
         with pytest.raises(SessionError) as exc_info:
@@ -498,6 +499,7 @@ class TestTerminate:
         mock_process = MagicMock()
         mock_process.terminate = MagicMock()
         mock_process.wait = AsyncMock(return_value=0)
+        mock_process.returncode = None  # Simulate running process
         wrapper.process = mock_process
 
         await wrapper.terminate()
@@ -513,6 +515,7 @@ class TestTerminate:
         mock_process.terminate = MagicMock()
         mock_process.kill = MagicMock()
         mock_process.wait = AsyncMock(side_effect=[asyncio.TimeoutError(), None])
+        mock_process.returncode = None  # Simulate running process
         wrapper.process = mock_process
 
         await wrapper.terminate(force=True)

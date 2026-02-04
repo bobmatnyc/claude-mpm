@@ -209,13 +209,29 @@ class ClaudeMPMSubprocess:
         return "\n".join(outputs)
 
     async def terminate(self, force: bool = False) -> None:
+        """Terminate the subprocess.
+
+        Args:
+            force: If True, force kill the process if it doesn't terminate gracefully.
+        """
         if not self.process:
+            return
+
+        # Check if process already exited
+        if self.process.returncode is not None:
             return
 
         try:
             self.process.terminate()
             await asyncio.wait_for(self.process.wait(), timeout=5.0)
+        except ProcessLookupError:
+            # Process already exited
+            pass
         except asyncio.TimeoutError:
             if force:
-                self.process.kill()
-                await self.process.wait()
+                try:
+                    self.process.kill()
+                    await self.process.wait()
+                except ProcessLookupError:
+                    # Process exited between terminate and kill
+                    pass
