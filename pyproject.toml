@@ -93,6 +93,8 @@ data-processing = [ "pandas>=2.1.0", "openpyxl>=3.1.0", "xlsxwriter>=3.1.0", "nu
 memory = [ "kuzu-memory>=1.1.5",]
 # Slack MPM client for team collaboration
 slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
+# HTTP transport with SSE and ngrok for remote MCP access
+http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "ngrok>=1.7.0",]
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
@@ -102,6 +104,7 @@ claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
 google-workspace-mcp = "claude_mpm.mcp.google_workspace_server:main"
 mpm-session-server = "claude_mpm.mcp.session_server:main"
+mpm-session-server-http = "claude_mpm.mcp.session_server_http:main"
 slack-mpm = "claude_mpm.slack_client:start_socket_mode"
 # DEPRECATED: MCP gateway archived 2025-12-11
 # claude-mpm-mcp = "claude_mpm.services.mcp_gateway.server.stdio_server:main_sync"

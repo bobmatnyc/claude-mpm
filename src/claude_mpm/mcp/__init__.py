@@ -18,8 +18,13 @@ from claude_mpm.mcp.ndjson_parser import (
     extract_session_id,
     extract_session_id_from_stream,
 )
+from claude_mpm.mcp.ngrok_tunnel import NgrokTunnel, TunnelInfo
 from claude_mpm.mcp.session_manager import SessionManager
 from claude_mpm.mcp.session_server import SessionServer, main as session_server_main
+from claude_mpm.mcp.session_server_http import (
+    SessionServerHTTP,
+    main as session_server_http_main,
+)
 from claude_mpm.mcp.subprocess_wrapper import ClaudeMPMSubprocess
 
 __all__ = [
@@ -27,16 +32,20 @@ __all__ = [
     "ClaudeMPMSubprocess",
     "ContextWindowError",
     "NDJSONStreamParser",
+    "NgrokTunnel",
     "RateLimitError",
     "SessionError",
     "SessionInfo",
     "SessionManager",
     "SessionResult",
     "SessionServer",
+    "SessionServerHTTP",
     "SessionStatus",
+    "TunnelInfo",
     "extract_session_id",
     "extract_session_id_from_stream",
     "google_workspace_main",
     "parse_error",
+    "session_server_http_main",
     "session_server_main",
 ]
