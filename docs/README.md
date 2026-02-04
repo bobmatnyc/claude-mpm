@@ -23,6 +23,7 @@ claude-mpm run --monitor
 - **Configuration & Deployment**: [Configuration Reference](configuration/reference.md), [Deployment Overview](deployment/overview.md)
 - **Agents**: [Agent System](agents/README.md), [Creating Agents](agents/creating-agents.md)
 - **Reference**: [API Overview](reference/api-overview.md), [CLI Reference](reference/cli-agents.md)
+- **MCP Servers**: [MCP Session Server](mcp-session-server.md) - Programmatic session management
 - **Developers**: [Developer Docs](developer/README.md), [Architecture](architecture/overview.md), [Design](design/README.md)
 
 ## Getting Help

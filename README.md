@@ -201,11 +201,12 @@ uv tool install mcp-browser --python 3.13
 
 ### 🔌 Advanced Integration
 - **MCP Integration** with full Model Context Protocol support
+- **MCP Session Server** (`mpm-session-server`) for programmatic session management
 - **Real-Time Monitoring** via `--monitor` flag and web dashboard
 - **Multi-Project Support** with per-session working directories
 - **Git Integration** with diff viewing and change tracking
 
-[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md)
+[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md) | [→ MCP Session Server](docs/mcp-session-server.md)
 
 ### 🔐 OAuth & Google Workspace Integration
 - **Browser-Based OAuth** for secure authentication with MCP services
