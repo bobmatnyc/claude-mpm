@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.7.3] - 2026-02-05
+
+### Added
+- **Gmail email management tools**: 16 new MCP tools for comprehensive Gmail message handling
+  - Label management: `list_gmail_labels`, `create_gmail_label`, `delete_gmail_label`
+  - Single message operations: `modify_gmail_message`, `archive_gmail_message`, `trash_gmail_message`, `untrash_gmail_message`, `mark_gmail_message_read`, `mark_gmail_message_unread`, `star_gmail_message`, `unstar_gmail_message`
+  - Batch processing: `batch_modify_gmail_messages`, `batch_archive_gmail_messages`, `batch_trash_gmail_messages`, `batch_mark_gmail_messages_read`, `batch_delete_gmail_messages`
+
 ## [5.7.2] - 2026-02-04
 
 ### Added

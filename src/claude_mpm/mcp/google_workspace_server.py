@@ -422,6 +422,263 @@ class GoogleWorkspaceServer:
                         "required": ["message_id", "body"],
                     },
                 ),
+                # Gmail Label Management
+                Tool(
+                    name="list_gmail_labels",
+                    description="List all Gmail labels (system and custom)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="create_gmail_label",
+                    description="Create a custom Gmail label. Use '/' for nesting (e.g., 'Work/Projects')",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Label name (use '/' for nesting, e.g., 'Work/Projects')",
+                            },
+                            "label_list_visibility": {
+                                "type": "string",
+                                "enum": ["labelShow", "labelShowIfUnread", "labelHide"],
+                                "description": "Visibility in label list (default: labelShow)",
+                            },
+                            "message_list_visibility": {
+                                "type": "string",
+                                "enum": ["show", "hide"],
+                                "description": "Visibility in message list (default: show)",
+                            },
+                        },
+                        "required": ["name"],
+                    },
+                ),
+                Tool(
+                    name="delete_gmail_label",
+                    description="Delete a custom Gmail label (cannot delete system labels)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "label_id": {
+                                "type": "string",
+                                "description": "Label ID to delete",
+                            },
+                        },
+                        "required": ["label_id"],
+                    },
+                ),
+                # Gmail Message Management
+                Tool(
+                    name="modify_gmail_message",
+                    description="Add or remove labels from a Gmail message (core label operation)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to modify",
+                            },
+                            "add_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to add (e.g., ['STARRED', 'IMPORTANT'])",
+                            },
+                            "remove_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to remove (e.g., ['UNREAD', 'INBOX'])",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="archive_gmail_message",
+                    description="Archive a Gmail message (removes from INBOX, keeps in All Mail)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to archive",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="trash_gmail_message",
+                    description="Move a Gmail message to trash",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to trash",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="untrash_gmail_message",
+                    description="Restore a Gmail message from trash",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to restore from trash",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="mark_gmail_as_read",
+                    description="Mark a Gmail message as read",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to mark as read",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="mark_gmail_as_unread",
+                    description="Mark a Gmail message as unread",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to mark as unread",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="star_gmail_message",
+                    description="Add star to a Gmail message",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to star",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="unstar_gmail_message",
+                    description="Remove star from a Gmail message",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to unstar",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                # Gmail Batch Operations
+                Tool(
+                    name="batch_modify_gmail_messages",
+                    description="Add or remove labels from multiple Gmail messages at once. Uses Gmail's efficient batch API.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to modify",
+                            },
+                            "add_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to add (e.g., ['STARRED', 'IMPORTANT', or custom label IDs])",
+                            },
+                            "remove_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to remove (e.g., ['UNREAD', 'INBOX'])",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_archive_gmail_messages",
+                    description="Archive multiple Gmail messages at once (removes INBOX label, keeps in All Mail)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to archive",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_trash_gmail_messages",
+                    description="Move multiple Gmail messages to trash at once",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to trash",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_mark_gmail_as_read",
+                    description="Mark multiple Gmail messages as read at once",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to mark as read",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_delete_gmail_messages",
+                    description="Permanently delete multiple Gmail messages at once (CAUTION: cannot be undone)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to permanently delete",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
                 # Drive Write Operations
                 Tool(
                     name="create_drive_folder",
@@ -1140,6 +1397,25 @@ class GoogleWorkspaceServer:
             "send_email": self._send_email,
             "create_draft": self._create_draft,
             "reply_to_email": self._reply_to_email,
+            # Gmail label management
+            "list_gmail_labels": self._list_gmail_labels,
+            "create_gmail_label": self._create_gmail_label,
+            "delete_gmail_label": self._delete_gmail_label,
+            # Gmail message management
+            "modify_gmail_message": self._modify_gmail_message,
+            "archive_gmail_message": self._archive_gmail_message,
+            "trash_gmail_message": self._trash_gmail_message,
+            "untrash_gmail_message": self._untrash_gmail_message,
+            "mark_gmail_as_read": self._mark_gmail_as_read,
+            "mark_gmail_as_unread": self._mark_gmail_as_unread,
+            "star_gmail_message": self._star_gmail_message,
+            "unstar_gmail_message": self._unstar_gmail_message,
+            # Gmail batch operations
+            "batch_modify_gmail_messages": self._batch_modify_gmail_messages,
+            "batch_archive_gmail_messages": self._batch_archive_gmail_messages,
+            "batch_trash_gmail_messages": self._batch_trash_gmail_messages,
+            "batch_mark_gmail_as_read": self._batch_mark_gmail_as_read,
+            "batch_delete_gmail_messages": self._batch_delete_gmail_messages,
             # Drive write operations
             "create_drive_folder": self._create_drive_folder,
             "upload_drive_file": self._upload_drive_file,
@@ -1930,6 +2206,498 @@ class GoogleWorkspaceServer:
             "id": response.get("id"),
             "thread_id": response.get("threadId"),
             "in_reply_to": message_id,
+        }
+
+    # =========================================================================
+    # Gmail Label Management
+    # =========================================================================
+
+    async def _list_gmail_labels(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all Gmail labels (system and custom).
+
+        Args:
+            arguments: Tool arguments (none required).
+
+        Returns:
+            List of all labels with their properties.
+        """
+        url = f"{GMAIL_API_BASE}/users/me/labels"
+        response = await self._make_request("GET", url)
+
+        labels = []
+        for label in response.get("labels", []):
+            labels.append(
+                {
+                    "id": label.get("id"),
+                    "name": label.get("name"),
+                    "type": label.get("type"),  # system or user
+                    "message_list_visibility": label.get("messageListVisibility"),
+                    "label_list_visibility": label.get("labelListVisibility"),
+                }
+            )
+
+        # Sort labels: system labels first, then user labels alphabetically
+        system_labels = sorted(
+            [l for l in labels if l["type"] == "system"], key=lambda x: x["name"]
+        )
+        user_labels = sorted(
+            [l for l in labels if l["type"] == "user"], key=lambda x: x["name"]
+        )
+
+        return {
+            "total": len(labels),
+            "system_labels": system_labels,
+            "user_labels": user_labels,
+        }
+
+    async def _create_gmail_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a custom Gmail label.
+
+        Args:
+            arguments: Tool arguments with name and optional visibility settings.
+
+        Returns:
+            Created label details.
+        """
+        name = arguments["name"]
+        label_list_visibility = arguments.get("label_list_visibility", "labelShow")
+        message_list_visibility = arguments.get("message_list_visibility", "show")
+
+        url = f"{GMAIL_API_BASE}/users/me/labels"
+        label_body = {
+            "name": name,
+            "labelListVisibility": label_list_visibility,
+            "messageListVisibility": message_list_visibility,
+        }
+
+        response = await self._make_request("POST", url, json_data=label_body)
+
+        return {
+            "status": "label_created",
+            "id": response.get("id"),
+            "name": response.get("name"),
+            "type": response.get("type"),
+            "label_list_visibility": response.get("labelListVisibility"),
+            "message_list_visibility": response.get("messageListVisibility"),
+        }
+
+    async def _delete_gmail_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a custom Gmail label.
+
+        Args:
+            arguments: Tool arguments with label_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        label_id = arguments["label_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/labels/{label_id}"
+        access_token = await self._get_access_token()
+
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        return {
+            "status": "label_deleted",
+            "label_id": label_id,
+        }
+
+    # =========================================================================
+    # Gmail Message Management
+    # =========================================================================
+
+    async def _modify_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add or remove labels from a Gmail message.
+
+        This is the core label modification operation. Other convenience methods
+        (archive, star, mark_as_read, etc.) use this internally.
+
+        Args:
+            arguments: Tool arguments with message_id and optional add_label_ids/remove_label_ids.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+        add_label_ids = arguments.get("add_label_ids", [])
+        remove_label_ids = arguments.get("remove_label_ids", [])
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/modify"
+        modify_body: dict[str, Any] = {}
+
+        if add_label_ids:
+            modify_body["addLabelIds"] = add_label_ids
+        if remove_label_ids:
+            modify_body["removeLabelIds"] = remove_label_ids
+
+        response = await self._make_request("POST", url, json_data=modify_body)
+
+        return {
+            "status": "message_modified",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _archive_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Archive a Gmail message (removes from INBOX).
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Archived message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["INBOX"],
+            }
+        )
+
+        return {
+            "status": "message_archived",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _trash_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Move a Gmail message to trash.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Trashed message details.
+        """
+        message_id = arguments["message_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/trash"
+        response = await self._make_request("POST", url)
+
+        return {
+            "status": "message_trashed",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _untrash_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Restore a Gmail message from trash.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Restored message details.
+        """
+        message_id = arguments["message_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/untrash"
+        response = await self._make_request("POST", url)
+
+        return {
+            "status": "message_restored",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _mark_gmail_as_read(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Mark a Gmail message as read.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "message_marked_as_read",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _mark_gmail_as_unread(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Mark a Gmail message as unread.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "add_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "message_marked_as_unread",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _star_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add star to a Gmail message.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "add_label_ids": ["STARRED"],
+            }
+        )
+
+        return {
+            "status": "message_starred",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _unstar_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Remove star from a Gmail message.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["STARRED"],
+            }
+        )
+
+        return {
+            "status": "message_unstarred",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    # =========================================================================
+    # Gmail Batch Operations
+    # =========================================================================
+
+    async def _batch_modify_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Add or remove labels from multiple Gmail messages using batch API.
+
+        Args:
+            arguments: Tool arguments with message_ids and optional
+                add_label_ids/remove_label_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+        add_label_ids = arguments.get("add_label_ids", [])
+        remove_label_ids = arguments.get("remove_label_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "modified_count": 0,
+            }
+
+        # Use Gmail's batchModify endpoint for efficiency
+        url = f"{GMAIL_API_BASE}/users/me/messages/batchModify"
+        batch_body: dict[str, Any] = {"ids": message_ids}
+
+        if add_label_ids:
+            batch_body["addLabelIds"] = add_label_ids
+        if remove_label_ids:
+            batch_body["removeLabelIds"] = remove_label_ids
+
+        await self._make_request("POST", url, json_data=batch_body)
+
+        return {
+            "status": "messages_modified",
+            "modified_count": len(message_ids),
+            "add_label_ids": add_label_ids,
+            "remove_label_ids": remove_label_ids,
+        }
+
+    async def _batch_archive_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Archive multiple Gmail messages at once.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "archived_count": 0,
+            }
+
+        result = await self._batch_modify_gmail_messages(
+            {
+                "message_ids": message_ids,
+                "remove_label_ids": ["INBOX"],
+            }
+        )
+
+        return {
+            "status": "messages_archived",
+            "archived_count": result.get("modified_count", 0),
+        }
+
+    async def _batch_trash_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Move multiple Gmail messages to trash at once.
+
+        Note: Gmail doesn't have a batch trash endpoint, so we process
+        messages concurrently for efficiency.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success/failure counts.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "trashed_count": 0,
+                "failed_count": 0,
+            }
+
+        # Process concurrently since there's no batch trash endpoint
+        async def trash_single(msg_id: str) -> tuple[str, bool]:
+            try:
+                url = f"{GMAIL_API_BASE}/users/me/messages/{msg_id}/trash"
+                await self._make_request("POST", url)
+                return msg_id, True
+            except Exception:
+                return msg_id, False
+
+        results = await asyncio.gather(
+            *[trash_single(msg_id) for msg_id in message_ids], return_exceptions=True
+        )
+
+        success_count = sum(1 for r in results if isinstance(r, tuple) and r[1])
+        failed_count = len(message_ids) - success_count
+
+        return {
+            "status": "messages_trashed",
+            "trashed_count": success_count,
+            "failed_count": failed_count,
+        }
+
+    async def _batch_mark_gmail_as_read(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Mark multiple Gmail messages as read at once.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "marked_count": 0,
+            }
+
+        result = await self._batch_modify_gmail_messages(
+            {
+                "message_ids": message_ids,
+                "remove_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "messages_marked_as_read",
+            "marked_count": result.get("modified_count", 0),
+        }
+
+    async def _batch_delete_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Permanently delete multiple Gmail messages at once.
+
+        WARNING: This action cannot be undone. Messages are permanently deleted,
+        not moved to trash.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with deleted count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "deleted_count": 0,
+            }
+
+        # Use Gmail's batchDelete endpoint
+        url = f"{GMAIL_API_BASE}/users/me/messages/batchDelete"
+        await self._make_request("POST", url, json_data={"ids": message_ids})
+
+        return {
+            "status": "messages_deleted",
+            "deleted_count": len(message_ids),
+            "warning": "Messages permanently deleted (cannot be undone)",
         }
 
     # =========================================================================
