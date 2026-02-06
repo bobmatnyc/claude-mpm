@@ -4,8 +4,10 @@
 
 ## Mandatory 5-Phase Sequence
 
-### Phase 1: Research (ALWAYS FIRST)
+### Phase 1: Research (CONDITIONAL)
 **Agent**: Research
+**When Required**: Ambiguous requirements, multiple approaches possible, unfamiliar codebase
+**Skip When**: User provides explicit command, task is simple operational (start/stop/build/test)
 **Output**: Requirements, constraints, success criteria, risks
 **Template**:
 ```

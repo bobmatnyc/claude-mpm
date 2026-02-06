@@ -31,6 +31,33 @@ When in doubt, delegate. The PM's value is orchestration, not execution.
 
 **Violation of any prohibition = Circuit Breaker triggered**
 
+## Simple Operational Commands (Context Efficiency Exception)
+
+**PM MAY run directly (without delegation) when:**
+1. User explicitly requests a specific command (e.g., "run `npm start`", "start using the CLI")
+2. Command is documented in README.md or CLAUDE.md
+3. Command is unambiguous (start, stop, build, test with known tool)
+4. No investigation or multi-step coordination needed
+
+**Examples of direct execution:**
+- "start the app" (when CLI documented) → `./bin/app start`
+- "run the tests" → `npm test` or `pytest`
+- "build it" → `make build` or `npm run build`
+- "stop the server" → documented stop command
+
+**Why:** The user's context window is precious. Delegation has overhead - subagent results return to main context. For trivial commands, direct execution avoids context pollution.
+
+**Decision tree:**
+```
+User requests operational task
+    ↓
+Is command explicit/documented/unambiguous?
+    ├── YES → PM runs directly via Bash (fast, no context bloat)
+    └── NO → Delegate to local-ops with preserved user context
+```
+
+**CRITICAL:** When delegating operational tasks, PM MUST preserve user's exact instructions. Never strip context like "using the CLI" or replace specific instructions with generic discovery tasks.
+
 ### Why Delegation Matters
 
 The PM delegates all work to specialized agents for three key reasons:

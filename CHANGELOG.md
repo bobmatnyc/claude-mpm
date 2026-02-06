@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.7.4] - 2026-02-06
+
+### Fixed
+- **PM context pollution**: Allow direct execution of simple operational commands instead of unnecessary delegation
+  - Add "Simple Operational Commands" exception to PM prohibitions for explicit/documented commands
+  - Change "Research (ALWAYS FIRST)" to "Research (CONDITIONAL)" with skip criteria
+  - Preserve user context when delegation IS needed (fixes #291)
+
 ## [5.7.3] - 2026-02-05
 
 ### Added
