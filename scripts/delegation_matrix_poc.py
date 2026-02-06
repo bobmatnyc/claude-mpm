@@ -1,56 +1,16 @@
 #!/usr/bin/env python3
 """
-Proof of concept: Generate delegation matrix from agent descriptions using Claude API.
+Proof of concept: Generate delegation matrix from agent descriptions using headless claude.
 """
 
-import asyncio
 import json
-import os
+import subprocess  # nosec B404 - intentional subprocess for CLI execution
 import sys
+import tempfile
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from anthropic import Anthropic
-
-
-def get_api_key() -> str:
-    """Get API key from multiple sources."""
-    # 1. Environment variable (highest priority)
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return os.environ["ANTHROPIC_API_KEY"]
-
-    # 2. Try ModelConfigManager
-    try:
-        from claude_mpm.config.model_config import ModelConfigManager
-
-        config = ModelConfigManager.load_config()
-        if config.claude.api_key:
-            return config.claude.api_key
-    except Exception as e:
-        print(f"   Config load failed: {e}")
-
-    # 3. Try keyring
-    try:
-        import keyring
-
-        key = keyring.get_password("anthropic", "api_key")
-        if key:
-            return key
-    except Exception:  # nosec B110 - keyring may not be installed
-        pass
-
-    # 4. Check common config file locations
-    config_paths = [
-        Path.home() / ".anthropic" / "api_key",
-        Path.home() / ".config" / "anthropic" / "api_key",
-    ]
-    for path in config_paths:
-        if path.exists():
-            return path.read_text().strip()
-
-    return ""
 
 
 def load_agent_descriptions() -> list[dict]:
@@ -109,9 +69,7 @@ def load_agent_descriptions() -> list[dict]:
 
 
 def generate_delegation_matrix(agents: list[dict]) -> str:
-    """Call Claude to generate delegation matrix from agent descriptions."""
-    client = Anthropic()
-
+    """Call headless claude-mpm to generate delegation matrix."""
     # Build the prompt
     agent_summary = json.dumps(agents, indent=2)
 
@@ -128,16 +86,38 @@ Generate a concise delegation matrix that the PM can use to route tasks. Format 
 3. **Handoff Chains**: Common sequences (e.g., Research -> Engineer -> QA)
 4. **Model Tier Guidance**: When to use opus vs sonnet vs haiku agents
 
-Keep it concise and actionable. The PM will use this to make instant delegation decisions."""
+Keep it concise and actionable. The PM will use this to make instant delegation decisions.
 
-    print("Calling Claude API...")
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-    )
+IMPORTANT: Output ONLY the markdown. No preamble, no explanation. Just the delegation matrix."""
 
-    return response.content[0].text
+    print("Calling claude-mpm headless mode...")
+
+    # Write prompt to temp file for piping
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write(prompt)
+        prompt_file = f.name
+
+    try:
+        # Run headless claude-mpm
+        result = subprocess.run(  # nosec B603 B607 - trusted claude CLI call
+            ["claude", "--print", "-p", prompt],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            print(f"Error: {result.stderr}")
+            return f"Error generating matrix: {result.stderr}"
+
+        return result.stdout
+    except subprocess.TimeoutExpired:
+        return "Error: Timeout waiting for Claude response"
+    except FileNotFoundError:
+        return "Error: claude CLI not found. Make sure Claude Code is installed."
+    finally:
+        Path(prompt_file).unlink(missing_ok=True)
 
 
 def main():
@@ -145,24 +125,8 @@ def main():
     print("Delegation Matrix Generator - Proof of Concept")
     print("=" * 60)
 
-    # Get API key
-    print("\n1. Looking for API key...")
-    api_key = get_api_key()
-    if not api_key:
-        print("   ERROR: No API key found. Checked:")
-        print("   - ANTHROPIC_API_KEY environment variable")
-        print("   - ~/.claude-mpm/configuration.yaml")
-        print("   - keyring storage")
-        print("   - ~/.anthropic/api_key")
-        print("\n   Set ANTHROPIC_API_KEY or add to configuration.yaml")
-        sys.exit(1)
-    print(f"   Found API key: {api_key[:10]}...")
-
-    # Set for Anthropic client
-    os.environ["ANTHROPIC_API_KEY"] = api_key
-
     # Load agents
-    print("\n2. Loading agent descriptions...")
+    print("\n1. Loading agent descriptions...")
     agents = load_agent_descriptions()
     print(f"   Found {len(agents)} agents")
 
@@ -176,12 +140,12 @@ def main():
     if len(agents) > 5:
         print(f"   ... and {len(agents) - 5} more")
 
-    # Generate matrix
-    print("\n3. Generating delegation matrix via Claude API...")
+    # Generate matrix using headless claude
+    print("\n2. Generating delegation matrix via headless claude...")
     matrix = generate_delegation_matrix(agents)
 
     # Output
-    print("\n4. Generated Delegation Matrix:")
+    print("\n3. Generated Delegation Matrix:")
     print("=" * 60)
     print(matrix)
     print("=" * 60)
