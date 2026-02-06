@@ -19,6 +19,7 @@ class InstallMethod(str, Enum):
     PIPX = "pipx"
     NPX = "npx"
     PIP = "pip"
+    INTERNAL = "internal"  # Internal server, installed via console script
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,7 @@ class MCPServiceDefinition:
     """
 
     name: str
-    package: str
+    package: str | None  # None for internal servers
     install_method: InstallMethod
     command: str
     args: list[str] = field(default_factory=list)
@@ -232,6 +233,35 @@ GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
     ],
 )
 
+# Slack User Proxy - Internal MCP server for Slack user token operations
+SLACK_USER_PROXY = MCPServiceDefinition(
+    name="slack-user-proxy",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="slack-user-proxy",
+    args=[],
+    required_env=["SLACK_OAUTH_CLIENT_ID", "SLACK_OAUTH_CLIENT_SECRET"],
+    optional_env=[],
+    description="Slack user proxy for channels, messages, DMs, and search",
+    enabled_by_default=False,
+    oauth_provider="slack",
+    oauth_scopes=[
+        "channels:read",
+        "channels:history",
+        "groups:read",
+        "groups:history",
+        "im:read",
+        "im:history",
+        "mpim:read",
+        "mpim:history",
+        "chat:write",
+        "users:read",
+        "users:read.email",
+        "team:read",
+        "search:read",
+    ],
+)
+
 # MCP GitHub - GitHub repository integration (future)
 MCP_GITHUB = MCPServiceDefinition(
     name="mcp-github",
@@ -283,6 +313,7 @@ def _register_builtin_services() -> None:
         MCP_TICKETER,
         MCP_VECTOR_SEARCH,
         GOOGLE_WORKSPACE_MCP,
+        SLACK_USER_PROXY,
         MCP_GITHUB,
         MCP_FILESYSTEM,
         MCP_SKILLSET,

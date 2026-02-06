@@ -32,6 +32,7 @@ from claude_mpm.mcp.session_server_http import (
     SessionServerHTTP,
     main as session_server_http_main,
 )
+from claude_mpm.mcp.slack_user_proxy_server import main as slack_user_proxy_main
 from claude_mpm.mcp.subprocess_wrapper import ClaudeMPMSubprocess
 
 __all__ = [
@@ -60,4 +61,5 @@ __all__ = [
     "parse_error",
     "session_server_http_main",
     "session_server_main",
+    "slack_user_proxy_main",
 ]
