@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.6] - 2026-02-06
+
+### Fixed
+- **Google Tasks OAuth scope**: Add `https://www.googleapis.com/auth/tasks` scope to OAuth configuration for full Google Tasks API access
+
 ## [5.7.5] - 2026-02-06
 
 ### Added
