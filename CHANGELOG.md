@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.5] - 2026-02-06
+
+### Added
+- **Delegation matrix generator PoC**: Initial proof of concept for generating agent delegation matrices (#292)
+
 ## [5.7.4] - 2026-02-06
 
 ### Fixed
