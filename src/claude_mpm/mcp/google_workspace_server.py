@@ -136,13 +136,13 @@ class GoogleWorkspaceServer:
                 ),
                 Tool(
                     name="search_drive_files",
-                    description="Search Google Drive files using a query string",
+                    description="Search Google Drive files using a query string. Bare search terms like 'MSA' are automatically wrapped in 'fullText contains' syntax. You can also use Drive API query syntax directly (e.g., 'name contains \"report\"', 'mimeType = \"application/pdf\"').",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "Drive search query (e.g., 'name contains \"report\"')",
+                                "description": "Search query - can be simple terms (auto-wrapped) or Drive API syntax (e.g., 'name contains \"report\"')",
                             },
                             "max_results": {
                                 "type": "integer",
@@ -1652,6 +1652,30 @@ class GoogleWorkspaceServer:
 
         return ""
 
+    def _normalize_drive_query(self, query: str) -> str:
+        """Normalize a search query for Google Drive API.
+
+        If the query doesn't contain Drive API operators, wrap it in fullText contains.
+
+        Args:
+            query: Raw search query from user
+
+        Returns:
+            Properly formatted Drive API query
+        """
+        # List of Drive API query operators
+        operators = ["contains", "=", "!=", "<", ">", " in ", " has ", " not "]
+
+        # Check if query already uses API syntax
+        query_lower = query.lower()
+        if any(op in query_lower for op in operators):
+            return query
+
+        # Wrap bare terms in fullText contains
+        # Escape single quotes in the query
+        escaped_query = query.replace("'", "\\'")
+        return f"fullText contains '{escaped_query}'"
+
     async def _search_drive_files(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Search Google Drive files.
 
@@ -1664,9 +1688,12 @@ class GoogleWorkspaceServer:
         query = arguments.get("query", "")
         max_results = arguments.get("max_results", 10)
 
+        # Normalize the query to handle bare search terms
+        normalized_query = self._normalize_drive_query(query)
+
         url = f"{DRIVE_API_BASE}/files"
         params = {
-            "q": query,
+            "q": normalized_query,
             "pageSize": max_results,
             "fields": "files(id,name,mimeType,modifiedTime,size,webViewLink,owners)",
         }
