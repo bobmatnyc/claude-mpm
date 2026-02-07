@@ -304,6 +304,20 @@ MCP_SKILLSET = MCPServiceDefinition(
     enabled_by_default=True,
 )
 
+# Notion MCP - Official Notion integration
+# Package: https://www.npmjs.com/package/@notionhq/notion-mcp-server
+NOTION_MCP = MCPServiceDefinition(
+    name="notion-mcp",
+    package="@notionhq/notion-mcp-server",
+    install_method=InstallMethod.NPX,
+    command="npx",
+    args=["-y", "@notionhq/notion-mcp-server"],
+    required_env=["NOTION_TOKEN"],
+    optional_env=[],
+    description="Official Notion integration for pages, databases, and blocks",
+    enabled_by_default=False,
+)
+
 
 # Register all services
 def _register_builtin_services() -> None:
@@ -317,6 +331,7 @@ def _register_builtin_services() -> None:
         MCP_GITHUB,
         MCP_FILESYSTEM,
         MCP_SKILLSET,
+        NOTION_MCP,
     ]
     for service in services:
         MCPServiceRegistry.register(service)
