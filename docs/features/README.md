@@ -4,10 +4,6 @@ Documentation for Claude MPM features and capabilities.
 
 ## Feature Categories
 
-### Commander
-The orchestration layer for autonomous agent coordination.
-- **[Commander Documentation](commander/README.md)** - Complete Commander docs
-
 ### Delegation
 Automatic task delegation between agents.
 - **[Delegation Documentation](delegation/README.md)** - Complete Delegation docs

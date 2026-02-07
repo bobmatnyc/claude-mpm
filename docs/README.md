@@ -32,19 +32,6 @@ claude-mpm run --monitor
 
 ### Features
 
-#### Commander
-- **[Commander Vision](features/commander/COMMANDER_VISION.md)** - Vision and roadmap for Commander
-- **[Commander API](features/commander/commander-api.md)** - API reference
-- **[Commander Auto-Start](features/commander/commander-auto-start.md)** - Auto-start configuration
-- **[Commander Memory Design](features/commander/commander-memory-design.md)** - Memory system design
-- **[Commander Memory Summary](features/commander/commander-memory-summary.md)** - Memory summary
-- **[Commander Phase 1 Implementation](features/commander/commander-phase1-implementation.md)** - Phase 1 details
-- **[Chat Interface Guide](features/commander/chat-interface-guide.md)** - Chat interface usage
-- **[Inbox System](features/commander/inbox-system.md)** - Inbox management
-- **[Output Parser](features/commander/output-parser.md)** - Output parsing
-- **[Phase 2 Scope](features/commander/phase2-scope.md)** - Phase 2 planning
-- **[Usage Guide](features/commander/usage-guide.md)** - Commander usage guide
-
 #### Delegation
 - **[Delegation Detector](features/delegation/delegation-detector.md)** - Delegation detection system
 - **[Delegation Detector Hook](features/delegation/delegation-detector-hook.md)** - Hook implementation
