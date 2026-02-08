@@ -154,6 +154,32 @@ validate_app_token() {
     return 0
 }
 
+check_env_file_for_tokens() {
+    # Check for tokens in .env.local first
+    local env_local=".env.local"
+
+    if [[ -f "$env_local" ]]; then
+        log_info "Checking $env_local for existing tokens..."
+
+        # Try to load tokens from file
+        local bot_token=$(grep "^SLACK_BOT_TOKEN=" "$env_local" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        local app_token=$(grep "^SLACK_APP_TOKEN=" "$env_local" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+
+        if [[ -n "$bot_token" ]] && [[ -n "$app_token" ]]; then
+            if validate_bot_token "$bot_token" && validate_app_token "$app_token"; then
+                SLACK_BOT_TOKEN="$bot_token"
+                SLACK_APP_TOKEN="$app_token"
+                log_success "Found valid tokens in $env_local"
+                return 0
+            else
+                log_warn "Tokens in $env_local are invalid format"
+            fi
+        fi
+    fi
+
+    return 1
+}
+
 prompt_for_tokens() {
     echo ""
     echo -e "${BLUE}=== Slack Token Configuration ===${NC}"
@@ -341,14 +367,21 @@ main() {
     # Check dependencies
     check_dependencies
 
-    # Prompt for tokens
-    prompt_for_tokens
+    # Check for existing tokens in .env.local, prompt only if not found
+    local tokens_from_file=false
+    if check_env_file_for_tokens; then
+        tokens_from_file=true
+    else
+        prompt_for_tokens
+    fi
 
-    # Save or export
+    # Save or export (skip save if tokens came from file)
     if [[ "$EXPORT_MODE" == "true" ]]; then
         export_to_shell
-    else
+    elif [[ "$tokens_from_file" == "false" ]]; then
         save_to_env_file
+    else
+        log_info "Using existing tokens from .env.local (not saving)"
     fi
 
     # Test connection
