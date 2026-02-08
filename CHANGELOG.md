@@ -10,6 +10,18 @@
 
 ### Tests
 
+## [5.7.10] - 2026-02-08
+
+### Fixed
+- **Script distribution**: setup-slack-app.sh now properly distributed with package
+
+### Documentation
+- Moved DISTRIBUTED_SCRIPTS.md to developer docs
+- Multiple investigation documents created
+
+### Changed
+- Hidden Tokens tab until data source resolved
+
 ## [5.7.9] - 2026-02-07
 
 ### Added
