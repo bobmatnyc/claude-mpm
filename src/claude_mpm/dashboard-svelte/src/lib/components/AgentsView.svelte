@@ -127,8 +127,9 @@
 		const activeAgents = allNodes.filter(n => n.agent.status === 'active').length;
 		const totalTools = allNodes.reduce((sum, n) => sum + n.agent.toolCalls.length, 0);
 		const totalTodos = allNodes.reduce((sum, n) => sum + n.agent.todos.length, 0);
+		const totalTokens = allNodes.reduce((sum, n) => sum + n.agent.tokenUsage.totalTokens, 0);
 
-		return { totalAgents, activeAgents, totalTools, totalTodos };
+		return { totalAgents, activeAgents, totalTools, totalTodos, totalTokens };
 	});
 </script>
 
@@ -147,6 +148,9 @@
 			</span>
 			<span class="text-sm text-slate-700 dark:text-slate-300">
 				{stats.totalTodos} todos
+			</span>
+			<span class="text-sm text-slate-700 dark:text-slate-300 font-mono font-semibold">
+				{stats.totalTokens.toLocaleString()} tokens
 			</span>
 		</div>
 	</div>
