@@ -10,6 +10,20 @@
 
 ### Tests
 
+## [5.7.16] - 2026-02-08
+
+### Fixed
+- **CRITICAL: Setup timing issue**: Setup commands now run BEFORE Claude Code launches
+  - Previously: Setup ran after full initialization (agents, skills, Claude launch)
+  - Now: Setup commands bypass initialization and run immediately
+  - Fixes: Setup failures due to running too late in startup sequence
+- **slack-bolt installation**: Changed from `pip` to `uv pip` for tool environments
+  - Fixes: "pip: command not found" error when installing dependencies
+
+### Changed
+- Setup commands (`setup`, `slack`, `oauth`) now skip background services for faster startup
+- Updated documentation to clarify setup must run before launch
+
 ## [5.7.15] - 2026-02-08
 
 ### Changed
