@@ -11,13 +11,22 @@ Scripts that are included in the PyPI package and available to users after insta
 **Purpose:** Interactive setup wizard for configuring Slack MPM integration
 
 **Usage:**
+
+One-line command:
+```bash
+python3 -c "import claude_mpm, os, subprocess; subprocess.run(['bash', os.path.join(os.path.dirname(claude_mpm.__file__), 'scripts/setup/setup-slack-app.sh')])"
+```
+
+Or step-by-step:
 ```bash
 # Find the script location
 python3 -c "import claude_mpm, os; print(os.path.join(os.path.dirname(claude_mpm.__file__), 'scripts/setup/setup-slack-app.sh'))"
 
-# Run the setup
-bash $(python3 -c "import claude_mpm, os; print(os.path.join(os.path.dirname(claude_mpm.__file__), 'scripts/setup/setup-slack-app.sh'))")
+# Run the setup (use path from above)
+bash /path/to/setup-slack-app.sh
 ```
+
+See [docs/slack-setup.md](/docs/slack-setup.md) for detailed instructions.
 
 **What it does:**
 - Guides through Slack app configuration
