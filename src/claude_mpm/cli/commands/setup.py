@@ -343,4 +343,9 @@ def manage_setup(args) -> int:
     """
     command = SetupCommand()
     result = command.execute(args)
+
+    # Print error message if command failed
+    if not result.success and result.message:
+        console.print(f"\n[red]Error:[/red] {result.message}\n", style="bold")
+
     return result.exit_code

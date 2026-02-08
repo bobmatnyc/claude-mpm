@@ -563,7 +563,7 @@ def should_show_banner(args) -> bool:
     """
     Determine if startup banner should be displayed.
 
-    Skip banner for: --help, --version, info, doctor, config, configure, oauth commands
+    Skip banner for: --help, --version, info, doctor, config, configure, oauth, setup, slack commands
     """
     # Check for help/version flags
     if hasattr(args, "help") and args.help:
@@ -572,8 +572,8 @@ def should_show_banner(args) -> bool:
         return False
 
     # Check for commands that should skip banner
-    # OAuth commands are lightweight utilities that should run immediately
-    skip_commands = {"info", "doctor", "config", "configure", "oauth"}
+    # Setup/OAuth/Slack commands are lightweight utilities that should run immediately
+    skip_commands = {"info", "doctor", "config", "configure", "oauth", "setup", "slack"}
     if hasattr(args, "command") and args.command in skip_commands:
         return False
 
