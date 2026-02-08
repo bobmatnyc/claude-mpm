@@ -79,12 +79,12 @@ OAuth scopes define what your app can do in Slack.
 
 If you plan to use App Home or advanced features:
 
-| Scope | Description |
-|-------|-------------|
-| `app_mentions:read` | Receive @mentions of the bot |
-| `im:read` | View basic DM info |
-| `channels:history` | View messages in public channels |
-| `groups:history` | View messages in private channels |
+| Scope               | Description                       |
+| ------------------- | --------------------------------- |
+| `app_mentions:read` | Receive @mentions of the bot      |
+| `im:read`           | View basic DM info                |
+| `channels:history`  | View messages in public channels  |
+| `groups:history`    | View messages in private channels |
 
 ---
 
