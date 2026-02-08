@@ -10,6 +10,21 @@
 
 ### Tests
 
+## [5.7.19] - 2026-02-08
+
+### Added
+- **Auto-launch after Slack setup**: Slack setup now automatically launches claude-mpm after successful configuration
+  - Matches OAuth setup behavior for consistent user experience
+  - Can be disabled with `--no-launch` flag
+
+### Fixed
+- **Incorrect setup instructions**: Removed incorrect "python -m claude_mpm.slack_bot" instruction
+  - Slack bot is integrated as MCP server, not a standalone command
+  - Updated "Next steps" to clarify Slack MCP server is configured and ready
+
+### Changed
+- Setup help text now clarifies `--no-launch` works for all services
+
 ## [5.7.18] - 2026-02-08
 
 ### Added
