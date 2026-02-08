@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.7.9] - 2026-02-07
+
+### Added
+- **Dashboard token tracking UI**: New TokensView component for monitoring token usage
+
+### Changed
+- **Event handler token usage**: Add dedicated token_usage_updated event emission for real-time token tracking
+- Dashboard Svelte build artifacts updated
+
 ## [5.7.8] - 2026-02-07
 
 ### Changed
