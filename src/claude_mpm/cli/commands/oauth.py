@@ -216,6 +216,17 @@ class OAuthCommand(BaseCommand):
         if args.oauth_command == "list":
             return self._list_services(args)
         if args.oauth_command == "setup":
+            # Show deprecation warning for setup subcommand
+            console.print(
+                "\n[yellow]⚠️  DEPRECATION WARNING[/yellow]",
+                style="bold",
+            )
+            console.print(
+                "[yellow]The 'claude-mpm oauth setup <service>' command is deprecated.[/yellow]"
+            )
+            console.print(
+                "[yellow]Please use: [bold cyan]claude-mpm setup oauth <service>[/bold cyan][/yellow]\n"
+            )
             return self._setup_oauth(args)
         if args.oauth_command == "status":
             return self._show_status(args)
@@ -233,15 +244,16 @@ class OAuthCommand(BaseCommand):
         help_text = """
 [bold]OAuth Commands:[/bold]
   oauth list              List OAuth-capable MCP services
-  oauth setup <service>   Set up OAuth authentication for a service
+  oauth setup <service>   [yellow](deprecated)[/yellow] Set up OAuth authentication for a service
   oauth status <service>  Show OAuth token status for a service
   oauth revoke <service>  Revoke OAuth tokens for a service
   oauth refresh <service> Refresh OAuth tokens for a service
 
 [bold]Examples:[/bold]
   claude-mpm oauth list
-  claude-mpm oauth setup google-workspace-mcp
   claude-mpm oauth status google-workspace-mcp
+
+[yellow]⚠️  For setup, use:[/yellow] [bold cyan]claude-mpm setup oauth <service>[/bold cyan]
 """
         console.print(help_text)
 

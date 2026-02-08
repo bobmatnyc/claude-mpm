@@ -5,7 +5,8 @@ WHY: Users need a consistent way to set up various services and integrations.
 
 DESIGN DECISIONS:
 - Use BaseCommand for consistent CLI patterns
-- Unified command structure: claude-mpm setup [service]
+- Unified command structure: claude-mpm setup [services...]
+- Support multiple services in one command
 - Delegate to service-specific handlers
 - Support multiple services: slack, google-workspace-mcp, oauth
 """
@@ -29,45 +30,87 @@ class SetupCommand(BaseCommand):
 
     def validate_args(self, args) -> str | None:
         """Validate command arguments."""
-        # If no service specified, show help
-        if not hasattr(args, "service") or not args.service:
-            args.service = None
+        # If no services specified, show help
+        if not hasattr(args, "services") or not args.services:
             return None
 
-        valid_services = ["slack", "google-workspace-mcp", "oauth"]
-        if args.service not in valid_services:
-            return f"Unknown service: {args.service}. Valid services: {', '.join(valid_services)}"
+        # Validate OAuth setup requirements
+        if "oauth" in args.services:
+            if not hasattr(args, "oauth_service") or not args.oauth_service:
+                return (
+                    "OAuth setup requires --oauth-service flag. "
+                    "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
+                )
 
         return None
 
     def run(self, args) -> CommandResult:
         """Execute the setup command."""
-        # If no service, show help
-        if not hasattr(args, "service") or not args.service:
+        # If no services, show help
+        if not hasattr(args, "services") or not args.services:
             self._show_help()
             return CommandResult.success_result("Help displayed")
 
-        if args.service == "slack":
-            return self._setup_slack(args)
-        if args.service == "google-workspace-mcp":
-            return self._setup_google_workspace(args)
-        if args.service == "oauth":
-            return self._setup_oauth(args)
+        # Process multiple services in sequence
+        results = []
+        for service in args.services:
+            console.print(f"\n[bold cyan]Setting up {service}...[/bold cyan]")
 
-        return CommandResult.error_result(f"Unknown service: {args.service}")
+            if service == "slack":
+                result = self._setup_slack(args)
+            elif service == "google-workspace-mcp":
+                result = self._setup_google_workspace(args)
+            elif service == "oauth":
+                result = self._setup_oauth(args)
+            else:
+                result = CommandResult.error_result(f"Unknown service: {service}")
+
+            results.append((service, result))
+
+            # Stop on first failure
+            if not result.success:
+                console.print(
+                    f"\n[red]✗ Setup failed for {service}[/red]",
+                    style="bold",
+                )
+                return result
+
+            console.print(
+                f"[green]✓ {service} setup complete![/green]",
+                style="bold",
+            )
+
+        # All setups succeeded
+        console.print(
+            f"\n[green]✓ All {len(results)} service(s) set up successfully![/green]",
+            style="bold",
+        )
+        return CommandResult.success_result(
+            f"Set up {len(results)} service(s) successfully"
+        )
 
     def _show_help(self) -> None:
         """Display setup command help."""
         help_text = """
 [bold]Setup Commands:[/bold]
-  setup slack                  Set up Slack MPM integration
-  setup google-workspace-mcp   Set up Google Workspace MCP integration
-  setup oauth <service>        Set up OAuth authentication for a service
+  setup SERVICE [SERVICE...]   Set up one or more services
+
+[bold]Available Services:[/bold]
+  slack                  Set up Slack MPM integration
+  google-workspace-mcp   Set up Google Workspace MCP integration
+  oauth                  Set up OAuth authentication (requires --oauth-service)
 
 [bold]Examples:[/bold]
   claude-mpm setup slack
   claude-mpm setup google-workspace-mcp
-  claude-mpm setup oauth google-workspace-mcp
+  claude-mpm setup slack google-workspace-mcp  [dim]# Multiple services[/dim]
+  claude-mpm setup oauth --oauth-service google-workspace-mcp
+
+[bold]OAuth Options:[/bold]
+  --oauth-service NAME   Service name for OAuth setup
+  --no-browser           Don't auto-open browser
+  --no-launch            Don't auto-launch claude-mpm after setup
+  --force                Force credential re-entry
 """
         console.print(help_text)
 
@@ -100,7 +143,6 @@ class SetupCommand(BaseCommand):
             )  # nosec B603 B607
 
             if result.returncode == 0:
-                console.print("\n[green]✓ Slack setup complete![/green]")
                 return CommandResult.success_result("Slack setup completed")
 
             return CommandResult.error_result(
@@ -115,7 +157,6 @@ class SetupCommand(BaseCommand):
 
     def _setup_google_workspace(self, args) -> CommandResult:
         """Set up Google Workspace MCP (delegates to OAuth setup)."""
-        console.print("[cyan]Setting up Google Workspace MCP integration...[/cyan]\n")
         console.print(
             "This will configure OAuth authentication for Google Workspace.\n"
         )
@@ -139,21 +180,22 @@ class SetupCommand(BaseCommand):
         from .oauth import manage_oauth
 
         # Get service name from arguments
-        service_name = getattr(args, "service_name", None)
+        service_name = getattr(args, "oauth_service", None)
         if not service_name:
             return CommandResult.error_result(
-                "oauth setup requires a service name. "
-                "Example: claude-mpm setup oauth google-workspace-mcp"
+                "OAuth setup requires --oauth-service flag. "
+                "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
             )
 
         # Create args for oauth setup
         args.oauth_command = "setup"
         args.service_name = service_name
 
+        exit_code = manage_oauth(args)
         return CommandResult(
-            success=True,
-            exit_code=manage_oauth(args),
-            message=f"OAuth setup delegated for {service_name}",
+            success=exit_code == 0,
+            exit_code=exit_code,
+            message=f"OAuth setup for {service_name}",
         )
 
 

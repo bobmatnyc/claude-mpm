@@ -41,6 +41,18 @@ class SlackCommand(BaseCommand):
 
     def run(self, args) -> CommandResult:
         """Execute the Slack command."""
+        # Show deprecation warning
+        console.print(
+            "\n[yellow]⚠️  DEPRECATION WARNING[/yellow]",
+            style="bold",
+        )
+        console.print(
+            "[yellow]The 'claude-mpm slack setup' command is deprecated.[/yellow]"
+        )
+        console.print(
+            "[yellow]Please use: [bold cyan]claude-mpm setup slack[/bold cyan][/yellow]\n"
+        )
+
         # If no subcommand, show help
         if not hasattr(args, "slack_command") or not args.slack_command:
             self._show_help()
@@ -56,11 +68,16 @@ class SlackCommand(BaseCommand):
     def _show_help(self) -> None:
         """Display Slack command help."""
         help_text = """
+[bold yellow]⚠️  DEPRECATED: Use 'claude-mpm setup slack' instead[/bold yellow]
+
 [bold]Slack Commands:[/bold]
   slack setup    Set up Slack MPM integration
 
-[bold]Example:[/bold]
+[bold]Example (deprecated):[/bold]
   claude-mpm slack setup
+
+[bold]Recommended:[/bold]
+  [bold cyan]claude-mpm setup slack[/bold cyan]
 """
         console.print(help_text)
 

@@ -22,7 +22,7 @@ def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
     setup_parser = subparsers.add_parser(
         "setup",
         help="Set up various services and integrations",
-        description="Set up Slack, Google Workspace, or other service integrations.",
+        description="Set up Slack, Google Workspace, or other service integrations. Multiple services can be set up in sequence.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available services:
@@ -30,45 +30,39 @@ Available services:
   google-workspace-mcp   Set up Google Workspace MCP integration
   oauth                  Set up OAuth authentication for a service
 
-Example:
+Examples:
   claude-mpm setup slack
   claude-mpm setup google-workspace-mcp
+  claude-mpm setup slack google-workspace-mcp  # Multiple services
   claude-mpm setup oauth google-workspace-mcp
         """,
     )
 
-    # Create subparsers for each service
-    service_subparsers = setup_parser.add_subparsers(
-        dest="service", help="Service to set up"
+    # Accept multiple services as positional arguments
+    setup_parser.add_argument(
+        "services",
+        nargs="+",
+        choices=["slack", "google-workspace-mcp", "oauth"],
+        help="One or more services to set up",
+        metavar="SERVICE",
     )
 
-    # Slack setup
-    service_subparsers.add_parser("slack", help="Set up Slack MPM integration")
-
-    # Google Workspace setup
-    service_subparsers.add_parser(
-        "google-workspace-mcp", help="Set up Google Workspace MCP integration"
+    # OAuth-specific options
+    setup_parser.add_argument(
+        "--oauth-service",
+        help="Service name for OAuth setup (e.g., google-workspace-mcp)",
+        metavar="NAME",
     )
-
-    # OAuth setup (requires service name)
-    oauth_parser = service_subparsers.add_parser(
-        "oauth",
-        help="Set up OAuth authentication for a service",
-        description="Set up OAuth authentication for a service like google-workspace-mcp.",
-    )
-    oauth_parser.add_argument(
-        "service_name", help="Service name (e.g., google-workspace-mcp)"
-    )
-    oauth_parser.add_argument(
+    setup_parser.add_argument(
         "--no-browser",
         action="store_true",
-        help="Don't auto-open browser for authentication",
+        help="Don't auto-open browser for OAuth authentication",
     )
-    oauth_parser.add_argument(
+    setup_parser.add_argument(
         "--no-launch",
         action="store_true",
-        help="Don't auto-launch claude-mpm after setup",
+        help="Don't auto-launch claude-mpm after OAuth setup",
     )
-    oauth_parser.add_argument(
-        "--force", action="store_true", help="Force credential re-entry"
+    setup_parser.add_argument(
+        "--force", action="store_true", help="Force OAuth credential re-entry"
     )
