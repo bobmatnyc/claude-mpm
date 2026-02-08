@@ -10,6 +10,18 @@
 
 ### Tests
 
+## [5.7.11] - 2026-02-08
+
+### Added
+- **Slack setup command**: New 'claude-mpm slack setup' CLI command for easier Slack app configuration
+
+### Changed
+- **Slack setup workflow**: Simplified setup process, no more messy Python one-liners
+- **Command patterns**: Slack setup follows oauth command pattern for consistency
+
+### Documentation
+- Updated Slack setup documentation for cleaner workflow
+
 ## [5.7.10] - 2026-02-08
 
 ### Fixed
