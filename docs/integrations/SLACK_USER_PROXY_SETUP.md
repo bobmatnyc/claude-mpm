@@ -165,12 +165,18 @@ You should see:
 [INFO] Ready to accept connections
 ```
 
-### With Claude Desktop
+### With Claude Code
 
-Add to your Claude Desktop configuration file:
+Add using the `claude mcp add` command:
 
-**macOS**: `~/.config/claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+```bash
+claude mcp add \
+  -e SLACK_OAUTH_CLIENT_ID=your-client-id \
+  -e SLACK_OAUTH_CLIENT_SECRET=your-client-secret \
+  slack-user-proxy -- slack-user-proxy
+```
+
+Or add to `.mcp.json` in your project:
 
 ```json
 {
@@ -186,7 +192,11 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-Restart Claude Desktop to load the server.
+Verify configuration:
+
+```bash
+claude mcp list
+```
 
 ---
 
@@ -286,8 +296,8 @@ ls -la ~/.claude-mpm/tokens/slack-user-proxy/
    echo $SLACK_OAUTH_CLIENT_ID
    echo $SLACK_OAUTH_CLIENT_SECRET
    ```
-2. If using Claude Desktop, ensure the `env` block in the config is correct
-3. Restart Claude Desktop after configuration changes
+2. Check MCP configuration: `claude mcp get slack-user-proxy`
+3. Re-add the server if env vars are incorrect
 
 ---
 

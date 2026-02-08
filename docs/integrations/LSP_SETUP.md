@@ -81,9 +81,15 @@ Add to `.env.local` (or export):
 LSP_FILE_PATH=/path/to/lsp.json
 ```
 
-## Step 4: Add to Claude Desktop
+## Step 4: Add to Claude Code
 
-Add to `~/.config/claude/claude_desktop_config.json`:
+Use the `claude mcp add` command:
+
+```bash
+claude mcp add -e LSP_FILE_PATH=/path/to/lsp.json mcp-lsp -- npx -y @axivo/mcp-lsp
+```
+
+Or for project-specific configuration, add to `.mcp.json` in your project root:
 
 ```json
 {
@@ -99,7 +105,11 @@ Add to `~/.config/claude/claude_desktop_config.json`:
 }
 ```
 
-Restart Claude Desktop.
+Verify it's configured:
+
+```bash
+claude mcp list
+```
 
 ## Available Tools
 
