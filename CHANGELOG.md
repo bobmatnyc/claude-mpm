@@ -10,6 +10,18 @@
 
 ### Tests
 
+## [5.7.18] - 2026-02-08
+
+### Added
+- **Auto-load Slack tokens**: Setup now checks `.env.local` for tokens before prompting
+  - Loads `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` if present
+  - Only prompts if tokens not found or invalid
+  - Skips saving if tokens already in file
+
+### Changed
+- Slack setup now matches OAuth setup UX pattern
+- Better user experience: no re-entering tokens if already configured
+
 ## [5.7.17] - 2026-02-08
 
 ### Changed
