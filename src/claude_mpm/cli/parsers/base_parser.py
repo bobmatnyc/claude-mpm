@@ -528,6 +528,13 @@ def create_parser(
     except ImportError:
         pass
 
+    try:
+        from .slack_parser import add_slack_subparser
+
+        add_slack_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Add uninstall command parser
     try:
         from ..commands.uninstall import add_uninstall_parser

@@ -159,6 +159,14 @@ def execute_command(command: str, args) -> int:
         result = manage_oauth(args)
         return result if result is not None else 0
 
+    # Handle slack command with lazy import
+    if command == "slack":
+        # Lazy import to avoid loading unless needed
+        from .commands.slack import manage_slack
+
+        result = manage_slack(args)
+        return result if result is not None else 0
+
     # Handle profile command with lazy import
     if command == "profile":
         # Lazy import to avoid loading unless needed

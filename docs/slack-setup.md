@@ -2,47 +2,13 @@
 
 ## Quick Start
 
-After installing claude-mpm from PyPI, run the Slack setup script:
+After installing claude-mpm from PyPI (v5.7.10+), run the Slack setup:
 
 ```bash
-# One-line command to find and run the script
-python3 -c "import claude_mpm, os, subprocess; subprocess.run(['bash', os.path.join(os.path.dirname(claude_mpm.__file__), 'scripts/setup/setup-slack-app.sh')])"
+claude-mpm slack setup
 ```
 
-## Step-by-Step Method
-
-### 1. Find the Script Location
-
-```bash
-# Get the path to the setup script
-python3 -c "import claude_mpm, os; print(os.path.join(os.path.dirname(claude_mpm.__file__), 'scripts/setup/setup-slack-app.sh'))"
-```
-
-This will output something like:
-```
-/Users/username/.local/share/uv/tools/claude-mpm/lib/python3.12/site-packages/claude_mpm/scripts/setup/setup-slack-app.sh
-```
-
-### 2. Run the Script
-
-```bash
-# Copy the path from above and run it
-bash /path/from/previous/command
-```
-
-## Convenience Alias (Optional)
-
-Add this to your `~/.bashrc` or `~/.zshrc`:
-
-```bash
-# Alias for Slack setup
-alias claude-mpm-setup-slack='python3 -c "import claude_mpm, os, subprocess; subprocess.run([\"bash\", os.path.join(os.path.dirname(claude_mpm.__file__), \"scripts/setup/setup-slack-app.sh\")])"'
-```
-
-Then simply run:
-```bash
-claude-mpm-setup-slack
-```
+That's it! The interactive setup wizard will guide you through the rest.
 
 ## What the Script Does
 
