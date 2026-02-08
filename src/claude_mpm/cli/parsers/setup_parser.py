@@ -1,12 +1,12 @@
 """
 Setup command parser for claude-mpm CLI.
 
-WHY: Unified setup command needs argument parsing for multiple services.
+WHY: Unified setup command needs argument parsing for multiple services with service-specific options.
 
 DESIGN DECISIONS:
-- Support subcommands for different services (slack, google-workspace-mcp, oauth)
-- Follow BaseCommand pattern for consistency
-- Keep simple - service name as positional argument
+- Services as positional arguments (slack, google-workspace-mcp, oauth)
+- Flags after a service name apply to that service
+- Follows Unix convention: "command arg1 --flag1 arg2 --flag2"
 """
 
 import argparse
@@ -22,47 +22,41 @@ def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
     setup_parser = subparsers.add_parser(
         "setup",
         help="Set up various services and integrations",
-        description="Set up Slack, Google Workspace, or other service integrations. Multiple services can be set up in sequence.",
+        description="Set up one or more services. Flags after a service name apply to that service.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available services:
   slack                  Set up Slack MPM integration
-  google-workspace-mcp   Set up Google Workspace MCP integration
-  oauth                  Set up OAuth authentication for a service
+  google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
+  oauth                  Set up OAuth authentication (requires --oauth-service)
+
+OAuth options (apply to oauth or google-workspace-mcp):
+  --oauth-service NAME   Service name for OAuth setup
+  --no-browser           Don't auto-open browser for authentication
+  --no-launch            Don't auto-launch claude-mpm after OAuth setup
+  --force                Force credential re-entry
 
 Examples:
+  # Single service
   claude-mpm setup slack
-  claude-mpm setup google-workspace-mcp
-  claude-mpm setup slack google-workspace-mcp  # Multiple services
-  claude-mpm setup oauth google-workspace-mcp
+
+  # Multiple services
+  claude-mpm setup slack google-workspace-mcp
+
+  # Service with options (flags after service apply to it)
+  claude-mpm setup oauth --oauth-service google-workspace-mcp --no-browser
+
+  # Multiple services with mixed options
+  claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-launch
+
+Note: Flags are associated with the service that precedes them.
         """,
     )
 
-    # Accept multiple services as positional arguments
+    # Services as positional remainder arguments
+    # We'll parse this manually to associate flags with services
     setup_parser.add_argument(
-        "services",
-        nargs="+",
-        choices=["slack", "google-workspace-mcp", "oauth"],
-        help="One or more services to set up",
-        metavar="SERVICE",
-    )
-
-    # OAuth-specific options
-    setup_parser.add_argument(
-        "--oauth-service",
-        help="Service name for OAuth setup (e.g., google-workspace-mcp)",
-        metavar="NAME",
-    )
-    setup_parser.add_argument(
-        "--no-browser",
-        action="store_true",
-        help="Don't auto-open browser for OAuth authentication",
-    )
-    setup_parser.add_argument(
-        "--no-launch",
-        action="store_true",
-        help="Don't auto-launch claude-mpm after OAuth setup",
-    )
-    setup_parser.add_argument(
-        "--force", action="store_true", help="Force OAuth credential re-entry"
+        "service_args",
+        nargs="*",
+        help="Services and their options (e.g., slack oauth --oauth-service google-workspace-mcp)",
     )
