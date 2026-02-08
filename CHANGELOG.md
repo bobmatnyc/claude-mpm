@@ -10,6 +10,23 @@
 
 ### Tests
 
+## [5.7.13] - 2026-02-08
+
+### Added
+- **Multi-service setup**: Run `claude-mpm setup slack google-workspace-mcp` to set up multiple services sequentially
+- **Deprecation warnings**: Old command patterns now show migration guidance with clear messaging
+
+### Changed
+- **Deprecated commands** (still functional with warnings):
+  - `claude-mpm slack setup` → Use `claude-mpm setup slack`
+  - `claude-mpm oauth setup <service>` → Use `claude-mpm setup oauth --oauth-service <service>`
+- OAuth setup now requires explicit `--oauth-service` flag for clarity
+- Setup command stops on first failure with clear error messages
+
+### Documentation
+- Updated command examples to show new patterns
+- Added migration guidance for deprecated commands
+
 ## [5.7.12] - 2026-02-08
 
 ### Added
