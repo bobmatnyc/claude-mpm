@@ -11,7 +11,6 @@ DESIGN DECISIONS:
 
 import os
 import subprocess  # nosec B404
-import sys
 from pathlib import Path
 
 from rich.console import Console
@@ -96,10 +95,10 @@ class SlackCommand(BaseCommand):
             if result.returncode == 0:
                 console.print("\n[green]✓ Slack setup complete![/green]")
                 return CommandResult.success_result("Slack setup completed")
-            else:
-                return CommandResult.error_result(
-                    f"Setup script exited with code {result.returncode}"
-                )
+
+            return CommandResult.error_result(
+                f"Setup script exited with code {result.returncode}"
+            )
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Setup cancelled by user[/yellow]")
