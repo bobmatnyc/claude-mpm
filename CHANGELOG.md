@@ -10,6 +10,21 @@
 
 ### Tests
 
+## [5.7.20] - 2026-02-08
+
+### Fixed
+- **Setup command UI**: Setup commands no longer show banner and "Launching Claude..." messages
+  - Previously: Setup commands showed startup UI before validation, confusing users
+  - Now: Clean output with immediate error messages when validation fails
+- **Error message visibility**: Validation errors now print to console instead of being silent
+  - Example: `Error: OAuth setup requires --oauth-service flag`
+- **VERSION file sync**: Fixed `src/claude_mpm/VERSION` not being updated (was 5.7.11)
+  - All VERSION files now stay in sync during release process
+
+### Changed
+- `should_show_banner()` now skips banner for setup and slack commands
+- `manage_setup()` prints error messages when validation fails
+
 ## [5.7.19] - 2026-02-08
 
 ### Added
