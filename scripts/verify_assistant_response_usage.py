@@ -12,8 +12,8 @@ Usage:
 
 import json
 import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 
 def find_hook_logs():
@@ -57,7 +57,7 @@ def analyze_assistant_response_events(log_file):
         return
 
     # Search for AssistantResponse events
-    lines = content.split('\n')
+    lines = content.split("\n")
     assistant_response_count = 0
     has_usage_field = False
 
@@ -68,18 +68,18 @@ def analyze_assistant_response_events(log_file):
     for i, line in enumerate(lines):
         if "AssistantResponse" in line:
             assistant_response_count += 1
-            print(f"\n[Event {assistant_response_count}] Line {i+1}:")
+            print(f"\n[Event {assistant_response_count}] Line {i + 1}:")
             print(f"  {line[:200]}")
 
             # Check next 20 lines for usage field
-            context = '\n'.join(lines[i:i+20])
+            context = "\n".join(lines[i : i + 20])
             if '"usage"' in context or "'usage'" in context:
                 has_usage_field = True
                 print("  ✅ USAGE FIELD FOUND!")
 
                 # Extract usage data
-                for j in range(i, min(i+20, len(lines))):
-                    if 'usage' in lines[j].lower():
+                for j in range(i, min(i + 20, len(lines))):
+                    if "usage" in lines[j].lower():
                         print(f"    {lines[j].strip()}")
 
     print("\n" + "=" * 60)
