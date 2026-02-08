@@ -125,4 +125,4 @@ unzip -l claude_mpm-X.Y.Z-py3-none-any.whl | grep scripts/setup
 ---
 
 **Last Updated:** 2026-02-08
-**Package Version:** 5.7.9
+**Package Version:** 5.7.12
