@@ -10,6 +10,19 @@
 
 ### Tests
 
+## [5.7.12] - 2026-02-08
+
+### Added
+- **Unified setup command**: New 'claude-mpm setup [service]' architecture for consistent service setup
+- Support for multiple setup targets: slack, google-workspace-mcp, oauth
+
+### Changed
+- **CLI structure**: Refactored from 'claude-mpm slack setup' to 'claude-mpm setup slack'
+- **Backward compatibility**: Old command structure still works for existing workflows
+
+### Documentation
+- Updated setup documentation to reflect new command structure
+
 ## [5.7.11] - 2026-02-08
 
 ### Added
