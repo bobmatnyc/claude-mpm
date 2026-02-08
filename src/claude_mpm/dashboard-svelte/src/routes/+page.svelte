@@ -225,6 +225,7 @@
 					>
 						Agents
 					</button>
+					<!-- Temporarily hidden - token tracking data source investigation
 					<button
 						onclick={() => viewMode = 'tokens'}
 						class="tab"
@@ -232,6 +233,7 @@
 					>
 						Tokens
 					</button>
+					-->
 				</div>
 			</div>
 
