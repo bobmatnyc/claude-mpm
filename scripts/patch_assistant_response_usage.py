@@ -19,7 +19,9 @@ def generate_patch():
     print("Add after line 1193 (after response_text extraction):")
     print()
     print("```python")
-    print("        # EXPERIMENTAL: Check if usage data is available in AssistantResponse")
+    print(
+        "        # EXPERIMENTAL: Check if usage data is available in AssistantResponse"
+    )
     print('        if "usage" in event:')
     print("            usage_data = event['usage']")
     print("            assistant_response_data['usage'] = {")

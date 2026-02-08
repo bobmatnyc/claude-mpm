@@ -7,6 +7,7 @@ and verifies the dashboard receives it correctly.
 """
 
 import json
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -35,7 +36,7 @@ token_usage_event = {
         },
         "source": "claude_hooks",
         "session_id": SESSION_ID,
-    }
+    },
 }
 
 print("=" * 80)
@@ -53,7 +54,7 @@ try:
         MONITOR_URL,
         json=token_usage_event,
         timeout=5.0,
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json"},
     )
 
     if response.status_code in [200, 204]:
@@ -61,23 +62,23 @@ try:
     else:
         print(f"❌ Event send failed with status {response.status_code}")
         print(f"   Response: {response.text}")
-        exit(1)
+        sys.exit(1)
 
 except requests.exceptions.ConnectionError:
     print("❌ Connection failed - is the monitoring server running?")
     print("   Run: python3 -m claude_mpm.cli monitor start --background")
-    exit(1)
+    sys.exit(1)
 except Exception as e:
     print(f"❌ Unexpected error: {e}")
-    exit(1)
+    sys.exit(1)
 
 print()
 
 # Step 2: Verify categorization
 print("Step 2: Verifying event categorization...")
-print(f"   Expected category: session_event")
-print(f"   Event subtype: token_usage_updated")
-print(f"   ✅ Event should now be categorized correctly")
+print("   Expected category: session_event")
+print("   Event subtype: token_usage_updated")
+print("   ✅ Event should now be categorized correctly")
 print()
 
 # Step 3: Provide verification steps
@@ -86,7 +87,7 @@ print()
 print("1. Open dashboard at http://localhost:8765")
 print()
 print("2. Open browser console (F12) and look for this log:")
-print(f"   [AgentsStore] Captured token_usage_updated event:")
+print("   [AgentsStore] Captured token_usage_updated event:")
 print(f"   {{ sessionId: '{SESSION_ID[:12]}', totalTokens: 7000, ... }}")
 print()
 print("3. Check if TokensView shows the token data:")
@@ -110,7 +111,9 @@ print()
 print("Data Flow:")
 print("  1. event_handlers.py emits token_usage_updated event")
 print("  2. HTTP POST to /api/events")
-print("  3. Server categorizes as 'session_event' ✅ (was falling through to 'claude_event')")
+print(
+    "  3. Server categorizes as 'session_event' ✅ (was falling through to 'claude_event')"
+)
 print("  4. Socket.IO emits event to dashboard")
 print("  5. agents.svelte.ts captures event and updates tokenUsageMap")
 print("  6. TokensView displays the data")

@@ -49,10 +49,10 @@ def analyze_hook_handlers():
 
     # Print analysis
     print("Handler: handle_stop_fast")
-    print(f"  ✅ Checks for 'usage' field: {handlers['handle_stop_fast']['checks_usage']}")
     print(
-        f"  ✅ Extracts usage data: {handlers['handle_stop_fast']['extracts_usage']}"
+        f"  ✅ Checks for 'usage' field: {handlers['handle_stop_fast']['checks_usage']}"
     )
+    print(f"  ✅ Extracts usage data: {handlers['handle_stop_fast']['extracts_usage']}")
     print(
         f"  ✅ Emits token_usage_updated: {handlers['handle_stop_fast']['emits_token_event']}"
     )
