@@ -30,15 +30,18 @@ Available services:
   google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
   oauth                  Set up OAuth authentication (requires --oauth-service)
 
-OAuth options (apply to oauth or google-workspace-mcp):
-  --oauth-service NAME   Service name for OAuth setup
-  --no-browser           Don't auto-open browser for authentication
-  --no-launch            Don't auto-launch claude-mpm after OAuth setup
-  --force                Force credential re-entry
+Service options:
+  --oauth-service NAME   Service name for OAuth setup (required for oauth)
+  --no-browser           Don't auto-open browser for authentication (oauth only)
+  --no-launch            Don't auto-launch claude-mpm after setup (all services)
+  --force                Force credential re-entry (oauth only)
 
 Examples:
   # Single service
   claude-mpm setup slack
+
+  # Slack without auto-launch
+  claude-mpm setup slack --no-launch
 
   # Multiple services
   claude-mpm setup slack google-workspace-mcp

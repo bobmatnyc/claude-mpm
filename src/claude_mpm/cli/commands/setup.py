@@ -191,15 +191,18 @@ class SetupCommand(BaseCommand):
   google-workspace-mcp   Set up Google Workspace MCP (includes OAuth)
   oauth                  Set up OAuth authentication
 
-[bold]OAuth Options:[/bold]
+[bold]Service Options:[/bold]
   --oauth-service NAME   Service name for OAuth (required for 'oauth')
-  --no-browser           Don't auto-open browser
-  --no-launch            Don't auto-launch claude-mpm after setup
-  --force                Force credential re-entry
+  --no-browser           Don't auto-open browser (oauth only)
+  --no-launch            Don't auto-launch claude-mpm after setup (all services)
+  --force                Force credential re-entry (oauth only)
 
 [bold]Examples:[/bold]
   # Single service
   claude-mpm setup slack
+
+  # Slack without auto-launch
+  claude-mpm setup slack --no-launch
 
   # Multiple services
   claude-mpm setup slack google-workspace-mcp
@@ -243,6 +246,22 @@ class SetupCommand(BaseCommand):
             )  # nosec B603 B607
 
             if result.returncode == 0:
+                console.print("\n[green]✓ Slack setup complete![/green]")
+
+                # Launch claude-mpm unless --no-launch was specified
+                no_launch = getattr(args, "no_launch", False)
+                if not no_launch:
+                    console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
+                    try:
+                        # Replace current process with claude-mpm
+                        os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
+                    except OSError:
+                        # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
+                        import sys
+
+                        subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
+                        sys.exit(0)
+
                 return CommandResult.success_result("Slack setup completed")
 
             return CommandResult.error_result(
