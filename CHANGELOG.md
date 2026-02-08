@@ -10,6 +10,22 @@
 
 ### Tests
 
+## [5.7.14] - 2026-02-08
+
+### Added
+- **Service-specific options**: Flags after a service name apply to that service
+  - Example: `claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-browser`
+  - Follows Unix CLI conventions (flags apply to preceding item)
+  - Enables true one-command multi-service setup with different options per service
+
+### Changed
+- **Improved setup command parsing**: Custom parser associates flags with their services
+- **Better error messages**: Clear guidance when flags are misplaced or missing required values
+
+### Documentation
+- Updated examples to show service-specific options patterns
+- Added note about flag association rules (flags apply to preceding service)
+
 ## [5.7.13] - 2026-02-08
 
 ### Added
