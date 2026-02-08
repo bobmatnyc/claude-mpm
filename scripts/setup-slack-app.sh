@@ -64,7 +64,7 @@ EXAMPLES:
 
 PREREQUISITES:
     - Python 3.8+
-    - slack-bolt package (pip install slack-bolt)
+    - slack-bolt package (uv pip install slack-bolt)
     - Slack app created at api.slack.com with Socket Mode enabled
 
 For detailed setup instructions, see: docs/SLACK_SETUP.md
@@ -113,10 +113,10 @@ check_dependencies() {
         echo ""
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             log_info "Installing slack-bolt..."
-            pip install slack-bolt
+            uv pip install slack-bolt
             log_success "slack-bolt installed successfully"
         else
-            log_error "slack-bolt is required. Install with: pip install slack-bolt"
+            log_error "slack-bolt is required. Install with: uv pip install slack-bolt"
             exit 1
         fi
     fi

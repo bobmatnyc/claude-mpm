@@ -312,8 +312,12 @@ def should_skip_background_services(args, processed_argv):
     """
     Determine if background services should be skipped for this command.
 
-    WHY: Some commands (help, version, configure, doctor, oauth) don't need
+    WHY: Some commands (help, version, configure, doctor, oauth, setup, slack) don't need
     background services and should start faster.
+
+    IMPORTANT: Setup commands (setup, slack, oauth) MUST run before Claude Code launches.
+    These commands configure services and dependencies needed by Claude Code itself.
+    Running them after launch is too late and causes setup to fail.
 
     NOTE: Headless mode with --resume skips background services because:
     - Each claude-mpm call is a NEW process (orchestrators like Vibe Kanban)
@@ -350,6 +354,8 @@ def should_skip_background_services(args, processed_argv):
             "hook-errors",
             "autotodos",
             "oauth",
+            "setup",
+            "slack",
         ]
     )
 
