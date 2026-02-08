@@ -13,13 +13,14 @@ Scripts that are included in the PyPI package and available to users after insta
 **Usage:**
 
 ```bash
-claude-mpm slack setup
+claude-mpm setup slack
 ```
 
 See [docs/slack-setup.md](/docs/slack-setup.md) for detailed instructions.
 
 **Technical Details:**
-- CLI command added in v5.7.10+
+- Unified setup command added in v5.7.12+
+- Legacy command `claude-mpm slack setup` still works for backward compatibility
 - Script path resolved automatically via claude_mpm package location
 - Subprocess calls the distributed setup-slack-app.sh script
 

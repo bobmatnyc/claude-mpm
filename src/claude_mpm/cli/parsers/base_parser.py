@@ -529,6 +529,13 @@ def create_parser(
         pass
 
     try:
+        from .setup_parser import add_setup_subparser
+
+        add_setup_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .slack_parser import add_slack_subparser
 
         add_slack_subparser(subparsers)

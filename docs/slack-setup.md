@@ -2,13 +2,15 @@
 
 ## Quick Start
 
-After installing claude-mpm from PyPI (v5.7.10+), run the Slack setup:
+After installing claude-mpm from PyPI (v5.7.11+), run the Slack setup:
 
 ```bash
-claude-mpm slack setup
+claude-mpm setup slack
 ```
 
 That's it! The interactive setup wizard will guide you through the rest.
+
+**Note:** For backward compatibility, the old command also works: `claude-mpm slack setup`
 
 ## What the Script Does
 
