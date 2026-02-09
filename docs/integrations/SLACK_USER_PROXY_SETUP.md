@@ -129,7 +129,24 @@ SLACK_OAUTH_CLIENT_SECRET=your-client-secret-here
 
 ## Step 5: Authenticate
 
-Run the OAuth login flow:
+### Automated Setup (Recommended)
+
+Use the unified setup command that handles OAuth authentication **and** MCP configuration:
+
+```bash
+claude-mpm setup slack
+```
+
+This will:
+1. Guide you through OAuth authentication
+2. Start a local callback server on port 8085
+3. Open your browser to Slack's authorization page
+4. Store tokens securely in `~/.claude-mpm/tokens/`
+5. **Automatically configure** the MCP server in your `.mcp.json`
+
+### Manual OAuth (Alternative)
+
+If you prefer to handle MCP configuration separately:
 
 ```bash
 claude-mpm oauth login slack-user-proxy --provider slack
@@ -151,6 +168,8 @@ You should see output indicating successful authentication:
 ---
 
 ## Step 6: Run the MCP Server
+
+> **Quick Setup:** If you used `claude-mpm setup slack` (which handles OAuth authentication), the MCP server was automatically configured in your `.mcp.json` file. You can skip the manual configuration below and verify with `claude mcp list`.
 
 ### Standalone (for testing)
 
