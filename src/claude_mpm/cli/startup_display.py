@@ -572,8 +572,17 @@ def should_show_banner(args) -> bool:
         return False
 
     # Check for commands that should skip banner
-    # Setup/OAuth/Slack commands are lightweight utilities that should run immediately
-    skip_commands = {"info", "doctor", "config", "configure", "oauth", "setup", "slack"}
+    # Setup/OAuth/Slack/Tools commands are lightweight utilities that should run immediately
+    skip_commands = {
+        "info",
+        "doctor",
+        "config",
+        "configure",
+        "oauth",
+        "setup",
+        "slack",
+        "tools",
+    }
     if hasattr(args, "command") and args.command in skip_commands:
         return False
 

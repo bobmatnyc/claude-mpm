@@ -175,6 +175,14 @@ def execute_command(command: str, args) -> int:
         result = manage_setup(args)
         return result if result is not None else 0
 
+    # Handle tools command with lazy import
+    if command == "tools":
+        # Lazy import to avoid loading unless needed
+        from .commands.tools import manage_tools
+
+        result = manage_tools(args)
+        return result if result is not None else 0
+
     # Handle profile command with lazy import
     if command == "profile":
         # Lazy import to avoid loading unless needed

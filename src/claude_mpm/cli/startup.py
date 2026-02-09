@@ -356,6 +356,7 @@ def should_skip_background_services(args, processed_argv):
             "oauth",
             "setup",
             "slack",
+            "tools",
         ]
     )
 
