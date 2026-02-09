@@ -82,10 +82,37 @@ Common options:
         help="Show detailed progress",
     )
 
-    # Service-specific arguments will be added dynamically
+    # Gmail-specific arguments
+    tools_parser.add_argument(
+        "--query",
+        type=str,
+        help="Gmail search query (for gmail-export)",
+    )
+
+    tools_parser.add_argument(
+        "--max-results",
+        "--max_results",
+        type=int,
+        dest="max_results",
+        help="Maximum number of results (for gmail-export)",
+    )
+
+    tools_parser.add_argument(
+        "--file",
+        type=str,
+        help="Input/output file path (for gmail-import)",
+    )
+
+    tools_parser.add_argument(
+        "--label",
+        type=str,
+        help="Gmail label to apply (for gmail-import)",
+    )
+
+    # Service-specific arguments will be added dynamically as needed
     # For now, allow arbitrary arguments to pass through
     tools_parser.add_argument(
         "tool_args",
         nargs=argparse.REMAINDER,
-        help="Service and action-specific arguments",
+        help="Additional service and action-specific arguments",
     )
