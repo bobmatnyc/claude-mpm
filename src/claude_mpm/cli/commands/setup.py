@@ -151,6 +151,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_slack(service_args)
             elif service_name == "google-workspace-mcp":
                 result = self._setup_google_workspace(service_args)
+            elif service_name == "notion":
+                result = self._setup_notion(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             else:
@@ -189,6 +191,7 @@ class SetupCommand(BaseCommand):
 [bold]Available Services:[/bold]
   slack                  Set up Slack MPM integration
   google-workspace-mcp   Set up Google Workspace MCP (includes OAuth)
+  notion                 Set up Notion integration
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -355,6 +358,134 @@ class SetupCommand(BaseCommand):
             return CommandResult.error_result("Setup cancelled")
         except Exception as e:
             return CommandResult.error_result(f"Error running setup: {e}")
+
+    def _configure_notion_mcp_server(self) -> None:
+        """Configure notion-mcp MCP server in .mcp.json after credentials setup."""
+        try:
+            import json
+
+            mcp_config_path = Path.cwd() / ".mcp.json"
+
+            # Generate config using console script entry point
+            server_config = {
+                "type": "stdio",
+                "command": "notion-mcp",
+                "args": [],
+                "env": {},
+            }
+
+            # Load or create .mcp.json
+            if mcp_config_path.exists():
+                try:
+                    with open(mcp_config_path) as f:
+                        config = json.load(f)
+                except (json.JSONDecodeError, OSError) as e:
+                    console.print(
+                        f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]"
+                    )
+                    config = {"mcpServers": {}}
+            else:
+                config = {"mcpServers": {}}
+
+            # Ensure mcpServers key exists
+            if "mcpServers" not in config:
+                config["mcpServers"] = {}
+
+            # Check if already configured
+            if "notion-mcp" in config["mcpServers"]:
+                console.print("[dim]notion-mcp already configured in .mcp.json[/dim]")
+                return
+
+            # Add notion-mcp entry
+            config["mcpServers"]["notion-mcp"] = server_config
+
+            # Write back
+            try:
+                with open(mcp_config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+                    f.write("\n")  # Add trailing newline
+
+                console.print("[green]✓ Added notion-mcp to .mcp.json[/green]")
+            except OSError as e:
+                console.print(
+                    f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]"
+                )
+
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
+            )
+
+    def _setup_notion(self, args) -> CommandResult:
+        """Set up Notion integration with credential collection."""
+        try:
+            console.print(
+                "\n[bold]Notion Integration Setup[/bold]\n"
+                "To use Notion, you need an Integration Token from Notion.\n"
+                "Visit: https://www.notion.so/my-integrations\n"
+            )
+
+            # Check for existing credentials
+            env_local = Path.cwd() / ".env.local"
+            api_key_exists = False
+
+            if env_local.exists():
+                with open(env_local) as f:
+                    if "NOTION_API_KEY" in f.read():
+                        api_key_exists = True
+
+            if api_key_exists:
+                console.print(
+                    "[dim]NOTION_API_KEY already configured in .env.local[/dim]\n"
+                )
+            else:
+                # Prompt for API key
+                from rich.prompt import Prompt
+
+                api_key = Prompt.ask(
+                    "[cyan]Notion Integration Token (secret_...)[/cyan]",
+                    password=True,
+                )
+
+                if not api_key.startswith("secret_"):
+                    console.print(
+                        "[yellow]Warning: Notion tokens usually start with 'secret_'[/yellow]"
+                    )
+
+                # Optionally ask for default database ID
+                database_id = Prompt.ask(
+                    "[cyan]Default Database ID (optional, press Enter to skip)[/cyan]",
+                    default="",
+                )
+
+                # Save to .env.local
+                with open(env_local, "a") as f:
+                    f.write(
+                        f'\nNOTION_API_KEY="{api_key}"  # pragma: allowlist secret\n'
+                    )
+                    if database_id:
+                        f.write(f'NOTION_DATABASE_ID="{database_id}"\n')
+
+                console.print(f"[green]✓ Credentials saved to {env_local}[/green]")
+
+            # Configure MCP server
+            self._configure_notion_mcp_server()
+
+            console.print("\n[green]✓ Notion setup complete![/green]")
+            console.print(
+                "\n[dim]Next steps:[/dim]\n"
+                "  1. Share your database with the Notion integration\n"
+                "  2. Use 'claude-mpm tools notion' for bulk operations\n"
+                "  3. MCP tools are available in Claude Code\n"
+            )
+
+            return CommandResult.success_result("Notion setup completed")
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Setup cancelled by user[/yellow]")
+            return CommandResult.error_result("Setup cancelled")
+        except Exception as e:
+            return CommandResult.error_result(f"Error during setup: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
         """Set up Google Workspace MCP (delegates to OAuth setup)."""
