@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.22] - 2026-02-09
+
+### Changed
+- Patch release: Package distribution update
+
 ## [5.7.21] - 2026-02-09
 
 ### Added
