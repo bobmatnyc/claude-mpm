@@ -24,6 +24,7 @@ def add_tools_subparser(subparsers: argparse._SubParsersAction) -> None:
 Available services:
   google    Google Workspace bulk operations (gmail, calendar, drive)
   slack     Slack bulk operations (messages, channels)
+  notion    Notion bulk operations (databases, pages, markdown)
 
 Examples:
   # Gmail export
@@ -34,6 +35,12 @@ Examples:
 
   # Slack message export
   claude-mpm tools slack messages-export --channel general --days 30
+
+  # Notion database query
+  claude-mpm tools notion database-query --database-id YOUR_DB_ID --max-results 50
+
+  # Notion markdown import
+  claude-mpm tools notion md-import --files "doc1.md,doc2.md" --database-id YOUR_DB_ID
 
   # List available actions for a service
   claude-mpm tools google --help
@@ -203,4 +210,21 @@ Common options:
         "--limit",
         type=int,
         help="Maximum number of items to return (for channels-list, messages-export)",
+    )
+
+    # Notion-specific arguments
+    tools_parser.add_argument(
+        "--database-id",
+        "--database_id",
+        type=str,
+        dest="database_id",
+        help="Notion database ID (for database-query, md-import)",
+    )
+
+    tools_parser.add_argument(
+        "--page-ids",
+        "--page_ids",
+        type=str,
+        dest="page_ids",
+        help="Comma-separated page IDs (for pages-export)",
     )

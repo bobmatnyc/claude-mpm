@@ -359,13 +359,13 @@ MCP_SKILLSET = MCPServiceDefinition(
 # Package: https://www.npmjs.com/package/@notionhq/notion-mcp-server
 NOTION_MCP = MCPServiceDefinition(
     name="notion-mcp",
-    package="@notionhq/notion-mcp-server",
-    install_method=InstallMethod.NPX,
-    command="npx",
-    args=["-y", "@notionhq/notion-mcp-server"],
-    required_env=["NOTION_TOKEN"],
-    optional_env=[],
-    description="Official Notion integration for pages, databases, and blocks",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="notion-mcp",
+    args=[],
+    required_env=["NOTION_API_KEY"],
+    optional_env=["NOTION_DATABASE_ID"],
+    description="Notion integration for databases, pages, and content with markdown import",
     enabled_by_default=False,
 )
 
