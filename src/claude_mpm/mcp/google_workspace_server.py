@@ -74,6 +74,68 @@ class GoogleWorkspaceServer:
                     },
                 ),
                 Tool(
+                    name="create_calendar",
+                    description="Create a new calendar",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "summary": {
+                                "type": "string",
+                                "description": "Calendar title/name",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Calendar description (optional)",
+                            },
+                            "timezone": {
+                                "type": "string",
+                                "description": "Calendar timezone (e.g., 'America/New_York', optional)",
+                            },
+                        },
+                        "required": ["summary"],
+                    },
+                ),
+                Tool(
+                    name="update_calendar",
+                    description="Update an existing calendar's properties",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "calendar_id": {
+                                "type": "string",
+                                "description": "Calendar ID to update",
+                            },
+                            "summary": {
+                                "type": "string",
+                                "description": "New calendar title/name (optional)",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "New calendar description (optional)",
+                            },
+                            "timezone": {
+                                "type": "string",
+                                "description": "New calendar timezone (optional)",
+                            },
+                        },
+                        "required": ["calendar_id"],
+                    },
+                ),
+                Tool(
+                    name="delete_calendar",
+                    description="Delete a calendar (cannot delete primary calendar)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "calendar_id": {
+                                "type": "string",
+                                "description": "Calendar ID to delete",
+                            },
+                        },
+                        "required": ["calendar_id"],
+                    },
+                ),
+                Tool(
                     name="get_events",
                     description="Get events from a calendar within a time range",
                     inputSchema={
@@ -1381,6 +1443,9 @@ class GoogleWorkspaceServer:
         handlers = {
             # Read operations
             "list_calendars": self._list_calendars,
+            "create_calendar": self._create_calendar,
+            "update_calendar": self._update_calendar,
+            "delete_calendar": self._delete_calendar,
             "get_events": self._get_events,
             "search_gmail_messages": self._search_gmail_messages,
             "get_gmail_message_content": self._get_gmail_message_content,
@@ -1480,6 +1545,102 @@ class GoogleWorkspaceServer:
             )
 
         return {"calendars": calendars, "count": len(calendars)}
+
+    async def _create_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new calendar.
+
+        Args:
+            arguments: Tool arguments with summary, description, and timezone.
+
+        Returns:
+            Created calendar details.
+        """
+        summary = arguments["summary"]
+        description = arguments.get("description")
+        timezone = arguments.get("timezone")
+
+        url = f"{CALENDAR_API_BASE}/calendars"
+
+        calendar_body: dict[str, Any] = {
+            "summary": summary,
+        }
+
+        if description:
+            calendar_body["description"] = description
+        if timezone:
+            calendar_body["timeZone"] = timezone
+
+        response = await self._make_request("POST", url, json_data=calendar_body)
+
+        return {
+            "status": "created",
+            "id": response.get("id"),
+            "summary": response.get("summary"),
+            "description": response.get("description"),
+            "timezone": response.get("timeZone"),
+        }
+
+    async def _update_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing calendar's properties.
+
+        Args:
+            arguments: Tool arguments with calendar_id and optional summary, description, timezone.
+
+        Returns:
+            Updated calendar details.
+        """
+        calendar_id = arguments["calendar_id"]
+        summary = arguments.get("summary")
+        description = arguments.get("description")
+        timezone = arguments.get("timezone")
+
+        # Build update body with only provided fields
+        update_body: dict[str, Any] = {}
+        if summary:
+            update_body["summary"] = summary
+        if description:
+            update_body["description"] = description
+        if timezone:
+            update_body["timeZone"] = timezone
+
+        if not update_body:
+            raise ValueError(
+                "At least one field (summary, description, or timezone) must be provided for update"
+            )
+
+        url = f"{CALENDAR_API_BASE}/calendars/{calendar_id}"
+        response = await self._make_request("PATCH", url, json_data=update_body)
+
+        return {
+            "status": "updated",
+            "id": response.get("id"),
+            "summary": response.get("summary"),
+            "description": response.get("description"),
+            "timezone": response.get("timeZone"),
+        }
+
+    async def _delete_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a calendar.
+
+        Args:
+            arguments: Tool arguments with calendar_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        calendar_id = arguments["calendar_id"]
+
+        # Prevent deletion of primary calendar
+        if calendar_id == "primary":
+            raise ValueError("Cannot delete the primary calendar")
+
+        url = f"{CALENDAR_API_BASE}/calendars/{calendar_id}"
+        await self._make_request("DELETE", url)
+
+        return {
+            "status": "deleted",
+            "calendar_id": calendar_id,
+        }
 
     async def _get_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Get events from a calendar.
