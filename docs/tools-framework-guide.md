@@ -18,6 +18,8 @@ The `claude-mpm tools` framework provides high-performance bulk operations for M
 |---------|---------|-------------|
 | **google** | gmail-export, gmail-import, calendar-export, calendar-bulk-create, drive-batch-upload, drive-batch-download | Google Workspace bulk operations |
 | **slack** | channels-list, messages-export | Slack workspace operations |
+| **notion** | database-query, pages-batch-update, pages-export, md-import | Notion databases and pages |
+| **confluence** | pages-search, pages-batch-export, spaces-list, md-import | Confluence pages and spaces |
 
 ---
 
