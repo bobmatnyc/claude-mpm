@@ -22,9 +22,8 @@ def add_tools_subparser(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available services:
-  google    Google Workspace bulk operations (gmail, calendar, drive, docs)
+  google    Google Workspace bulk operations (gmail, calendar, drive)
   slack     Slack bulk operations (messages, channels)
-  notion    Notion bulk operations (pages, databases) [future]
 
 Examples:
   # Gmail export
@@ -171,4 +170,37 @@ Common options:
         type=str,
         dest="mime_type",
         help="MIME type override (for drive-batch-upload)",
+    )
+
+    # Slack-specific arguments
+    tools_parser.add_argument(
+        "--channel",
+        type=str,
+        help="Channel ID (for messages-export)",
+    )
+
+    tools_parser.add_argument(
+        "--include-private",
+        "--include_private",
+        action="store_true",
+        dest="include_private",
+        help="Include private channels (for channels-list, default: True)",
+    )
+
+    tools_parser.add_argument(
+        "--oldest",
+        type=str,
+        help="Oldest message timestamp - UNIX timestamp (for messages-export)",
+    )
+
+    tools_parser.add_argument(
+        "--latest",
+        type=str,
+        help="Latest message timestamp - UNIX timestamp (for messages-export)",
+    )
+
+    tools_parser.add_argument(
+        "--limit",
+        type=int,
+        help="Maximum number of items to return (for channels-list, messages-export)",
     )
