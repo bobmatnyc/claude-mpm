@@ -10,6 +10,24 @@
 
 ### Tests
 
+## [5.7.21] - 2026-02-09
+
+### Added
+- **Google Workspace bulk operations tools (EP-0002)**: 8 new bulk operation tools for 10x faster batch processing
+  - Gmail: export_messages, import_messages (batch email operations)
+  - Calendar: export_events, bulk_create_events (batch calendar management)
+  - Drive: batch_upload_files, batch_download_files (efficient file sync)
+  - Slack: list_all_channels, export_messages (team data access)
+- **MCP calendar management**: New calendar CRUD operations in google-workspace-mcp
+  - create_calendar, update_calendar, delete_calendar (calendar lifecycle management)
+  - Completes calendar management capabilities
+
+### Documentation
+- **Comprehensive tools guide**: 450+ line documentation for bulk operations framework
+  - Usage patterns, API reference, error handling
+  - Performance optimization and rate limiting guidelines
+  - Integration examples for common workflows
+
 ## [5.7.20] - 2026-02-08
 
 ### Fixed
