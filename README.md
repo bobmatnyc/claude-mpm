@@ -39,6 +39,9 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 
 ### 🔌 MCP Integration (Model Context Protocol)
 - **Google Workspace MCP** - 34 tools for Gmail, Calendar, Drive, Docs, Tasks
+- **Notion** - 7 tools + bulk operations for databases, pages, markdown import
+- **Confluence** - 7 tools + bulk operations for pages, spaces, CQL search
+- **Slack** - User proxy for channels, messages, DMs, search
 - **Semantic Code Search** - AI-powered code discovery via mcp-vector-search
 - **Ticket Management** - GitHub, Linear, Jira integration via mcp-ticketer
 - **Graph Memory** - Persistent project knowledge via kuzu-memory
@@ -208,7 +211,7 @@ uv tool install mcp-browser --python 3.13
 
 [→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md) | [→ MCP Session Server](docs/mcp-session-server.md)
 
-### 🔐 OAuth & Google Workspace Integration
+### 🔐 External Integrations
 - **Browser-Based OAuth** for secure authentication with MCP services
 - **Google Workspace MCP** built-in server with **34 tools** for:
   - **Gmail** (5 tools): Search, read, send, draft, reply
@@ -216,12 +219,30 @@ uv tool install mcp-browser --python 3.13
   - **Drive** (7 tools): Search, read, create folders, upload, delete, move files
   - **Docs** (4 tools): Create, read, append, markdown-to-doc conversion
   - **Tasks** (12 tools): Full task and task list management
+- **Notion MCP** built-in server with **7 tools** + bulk operations:
+  - Query databases, get/create/update pages, search, markdown import
+  - Setup: `claude-mpm setup notion`
+- **Confluence MCP** built-in server with **7 tools** + bulk operations:
+  - Get/create/update pages, search with CQL, list spaces, markdown import
+  - Setup: `claude-mpm setup confluence`
+- **Slack MCP** user proxy with **12 tools**:
+  - Channels, messages, DMs, search - acts as authenticated user
+  - Setup: `claude-mpm setup slack`
 - **Encrypted Token Storage** using Fernet encryption with system keychain
 - **Automatic Token Refresh** handles expiration seamlessly
 
 ```bash
 # Set up Google Workspace OAuth
 claude-mpm oauth setup workspace-mcp
+
+# Set up Notion (API token)
+claude-mpm setup notion
+
+# Set up Confluence (URL + API token)
+claude-mpm setup confluence
+
+# Set up Slack (OAuth user token)
+claude-mpm setup slack
 
 # Check token status
 claude-mpm oauth status workspace-mcp
@@ -230,7 +251,7 @@ claude-mpm oauth status workspace-mcp
 claude-mpm oauth list
 ```
 
-[→ Learn more: OAuth Setup Guide](docs/guides/oauth-setup.md)
+[→ Google Workspace Setup](docs/guides/oauth-setup.md) | [→ Notion Setup](docs/integrations/NOTION_SETUP.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md)
 
 ### ⚡ Performance & Security
 - **Simplified Architecture** with ~3,700 lines removed for better performance
