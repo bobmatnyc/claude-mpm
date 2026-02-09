@@ -124,6 +124,7 @@ class ToolsCommand(BaseCommand):
             "no_hooks",
             "no_tickets",
             "func",
+            "tool_args",
         }
 
         kwargs = {}

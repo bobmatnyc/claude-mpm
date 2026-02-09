@@ -109,10 +109,27 @@ Common options:
         help="Gmail label to apply (for gmail-import)",
     )
 
-    # Service-specific arguments will be added dynamically as needed
-    # For now, allow arbitrary arguments to pass through
+    # Calendar-specific arguments
     tools_parser.add_argument(
-        "tool_args",
-        nargs=argparse.REMAINDER,
-        help="Additional service and action-specific arguments",
+        "--calendar-id",
+        "--calendar_id",
+        type=str,
+        dest="calendar_id",
+        help="Calendar ID (default: primary)",
+    )
+
+    tools_parser.add_argument(
+        "--time-min",
+        "--time_min",
+        type=str,
+        dest="time_min",
+        help="Minimum time for events (ISO 8601 format, for calendar-export)",
+    )
+
+    tools_parser.add_argument(
+        "--time-max",
+        "--time_max",
+        type=str,
+        dest="time_max",
+        help="Maximum time for events (ISO 8601 format, for calendar-export)",
     )

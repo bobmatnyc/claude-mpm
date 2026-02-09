@@ -330,24 +330,229 @@ class GoogleTools(BaseToolModule):
             )
 
     def _calendar_bulk_create(self, **kwargs) -> ToolResult:
-        """Create multiple calendar events (placeholder)."""
-        # TODO: Implement in TSK-0003
-        return ToolResult(
-            success=True,
-            action="calendar-bulk-create",
-            data={"message": "Calendar bulk create not yet implemented (TSK-0003)"},
-            metadata={"count": 0},
-        )
+        """Create multiple calendar events from file.
+
+        Args:
+            file: Path to JSON file with events array
+            calendar_id: Calendar ID (default: "primary")
+
+        Returns:
+            ToolResult with creation results
+        """
+        file_path = kwargs.get("file")
+        calendar_id = kwargs.get("calendar_id", "primary")
+
+        if not file_path:
+            return ToolResult(
+                success=False,
+                action="calendar-bulk-create",
+                error="Required parameter 'file' not provided",
+            )
+
+        try:
+            # Load events from file
+            with open(file_path) as f:
+                data = json.load(f)
+
+            events = data.get("events", [])
+            if not events:
+                return ToolResult(
+                    success=False,
+                    action="calendar-bulk-create",
+                    error="No events found in file",
+                )
+
+            # Create events
+            created = []
+            failed = []
+            base_url = (
+                f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
+            )
+
+            for event in events:
+                try:
+                    # Validate required fields
+                    if not all(
+                        k in event for k in ["summary", "start_time", "end_time"]
+                    ):
+                        failed.append(
+                            {
+                                "event": event.get("summary", "unknown"),
+                                "error": "Missing required fields (summary, start_time, end_time)",
+                            }
+                        )
+                        continue
+
+                    # Build event body
+                    event_body = {
+                        "summary": event["summary"],
+                        "start": {"dateTime": event["start_time"]},
+                        "end": {"dateTime": event["end_time"]},
+                    }
+
+                    # Optional fields
+                    if "timezone" in event:
+                        event_body["start"]["timeZone"] = event["timezone"]
+                        event_body["end"]["timeZone"] = event["timezone"]
+
+                    if "description" in event:
+                        event_body["description"] = event["description"]
+
+                    if "attendees" in event:
+                        event_body["attendees"] = [
+                            {"email": email} for email in event["attendees"]
+                        ]
+
+                    if "location" in event:
+                        event_body["location"] = event["location"]
+
+                    # Create event
+                    result = self._make_request("POST", base_url, json_data=event_body)
+                    created.append(
+                        {
+                            "id": result.get("id"),
+                            "summary": result.get("summary"),
+                            "start": result.get("start", {}).get("dateTime"),
+                            "html_link": result.get("htmlLink"),
+                        }
+                    )
+
+                except Exception as e:
+                    failed.append(
+                        {"event": event.get("summary", "unknown"), "error": str(e)}
+                    )
+
+            return ToolResult(
+                success=len(created) > 0,
+                action="calendar-bulk-create",
+                data={
+                    "created": created,
+                    "failed": failed,
+                },
+                metadata={
+                    "total": len(events),
+                    "created_count": len(created),
+                    "failed_count": len(failed),
+                },
+            )
+
+        except FileNotFoundError:
+            return ToolResult(
+                success=False,
+                action="calendar-bulk-create",
+                error=f"File not found: {file_path}",
+            )
+        except json.JSONDecodeError as e:
+            return ToolResult(
+                success=False,
+                action="calendar-bulk-create",
+                error=f"Invalid JSON in file: {e}",
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                action="calendar-bulk-create",
+                error=f"Unexpected error: {e}",
+            )
 
     def _calendar_export(self, **kwargs) -> ToolResult:
-        """Export calendar events (placeholder)."""
-        # TODO: Implement in TSK-0003
-        return ToolResult(
-            success=True,
-            action="calendar-export",
-            data={"message": "Calendar export not yet implemented (TSK-0003)"},
-            metadata={"count": 0},
-        )
+        """Export calendar events.
+
+        Args:
+            calendar_id: Calendar ID (default: "primary")
+            time_min: Minimum time for events (ISO 8601 format)
+            time_max: Maximum time for events (ISO 8601 format)
+            max_results: Maximum number of events to export (default: 250)
+
+        Returns:
+            ToolResult with exported events
+        """
+        calendar_id = kwargs.get("calendar_id", "primary")
+        time_min = kwargs.get("time_min")
+        time_max = kwargs.get("time_max")
+        max_results = int(kwargs.get("max_results", 250))
+
+        try:
+            events = []
+            page_token = None
+            base_url = (
+                f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
+            )
+
+            while len(events) < max_results:
+                # Build request params
+                params: dict[str, Any] = {
+                    "maxResults": min(max_results - len(events), 250),
+                    "singleEvents": True,
+                    "orderBy": "startTime",
+                }
+
+                if time_min:
+                    params["timeMin"] = time_min
+                if time_max:
+                    params["timeMax"] = time_max
+                if page_token:
+                    params["pageToken"] = page_token
+
+                # Get events
+                response = self._make_request("GET", base_url, params=params)
+                items = response.get("items", [])
+
+                if not items:
+                    break
+
+                # Extract event details
+                for item in items:
+                    start = item.get("start", {})
+                    end = item.get("end", {})
+                    events.append(
+                        {
+                            "id": item.get("id"),
+                            "summary": item.get("summary"),
+                            "description": item.get("description"),
+                            "start": start.get("dateTime") or start.get("date"),
+                            "end": end.get("dateTime") or end.get("date"),
+                            "location": item.get("location"),
+                            "attendees": [
+                                a.get("email") for a in item.get("attendees", [])
+                            ],
+                            "html_link": item.get("htmlLink"),
+                            "status": item.get("status"),
+                        }
+                    )
+
+                # Check for next page
+                page_token = response.get("nextPageToken")
+                if not page_token:
+                    break
+
+            return ToolResult(
+                success=True,
+                action="calendar-export",
+                data={
+                    "events": events,
+                    "calendar_id": calendar_id,
+                    "time_min": time_min,
+                    "time_max": time_max,
+                },
+                metadata={
+                    "count": len(events),
+                    "max_results": max_results,
+                },
+            )
+
+        except ValueError as e:
+            return ToolResult(
+                success=False,
+                action="calendar-export",
+                error=str(e),
+            )
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                action="calendar-export",
+                error=f"Unexpected error: {e}",
+            )
 
     def _drive_batch_upload(self, **kwargs) -> ToolResult:
         """Batch upload files to Drive (placeholder)."""
