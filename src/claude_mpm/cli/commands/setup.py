@@ -217,6 +217,85 @@ class SetupCommand(BaseCommand):
 """
         console.print(help_text)
 
+    def _configure_slack_mcp_server(self) -> None:
+        """Configure slack-user-proxy MCP server in .mcp.json after OAuth setup."""
+        try:
+            import json
+
+            mcp_config_path = Path.cwd() / ".mcp.json"
+
+            # Get the slack-user-proxy configuration from service registry
+            try:
+                from ...services.mcp_service_registry import MCPServiceRegistry
+
+                service = MCPServiceRegistry.get("slack-user-proxy")
+                if not service:
+                    console.print(
+                        "[yellow]Warning: slack-user-proxy not found in service registry[/yellow]"
+                    )
+                    return
+
+                # Generate config using console script entry point
+                # slack-user-proxy is available once claude-mpm is installed
+                server_config = {
+                    "type": "stdio",
+                    "command": "slack-user-proxy",
+                    "args": [],
+                    "env": {},
+                }
+            except ImportError:
+                # Fallback if registry not available
+                server_config = {
+                    "type": "stdio",
+                    "command": "slack-user-proxy",
+                    "args": [],
+                    "env": {},
+                }
+
+            # Load or create .mcp.json
+            if mcp_config_path.exists():
+                try:
+                    with open(mcp_config_path) as f:
+                        config = json.load(f)
+                except (json.JSONDecodeError, OSError) as e:
+                    console.print(
+                        f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]"
+                    )
+                    config = {"mcpServers": {}}
+            else:
+                config = {"mcpServers": {}}
+
+            # Ensure mcpServers key exists
+            if "mcpServers" not in config:
+                config["mcpServers"] = {}
+
+            # Check if already configured
+            if "slack-user-proxy" in config["mcpServers"]:
+                console.print(
+                    "[dim]slack-user-proxy already configured in .mcp.json[/dim]"
+                )
+                return
+
+            # Add slack-user-proxy entry
+            config["mcpServers"]["slack-user-proxy"] = server_config
+
+            # Write back
+            try:
+                with open(mcp_config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+                    f.write("\n")  # Add trailing newline
+
+                console.print("[green]✓ Added slack-user-proxy to .mcp.json[/green]")
+            except OSError as e:
+                console.print(
+                    f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]"
+                )
+
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not configure MCP server: {e}[/yellow]"
+            )
+
     def _setup_slack(self, args) -> CommandResult:
         """Run the Slack setup script."""
         try:
@@ -247,6 +326,9 @@ class SetupCommand(BaseCommand):
 
             if result.returncode == 0:
                 console.print("\n[green]✓ Slack setup complete![/green]")
+
+                # Configure slack-user-proxy MCP server
+                self._configure_slack_mcp_server()
 
                 # Launch claude-mpm unless --no-launch was specified
                 no_launch = getattr(args, "no_launch", False)
