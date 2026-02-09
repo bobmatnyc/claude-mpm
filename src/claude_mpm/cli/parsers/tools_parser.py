@@ -22,9 +22,10 @@ def add_tools_subparser(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available services:
-  google    Google Workspace bulk operations (gmail, calendar, drive)
-  slack     Slack bulk operations (messages, channels)
-  notion    Notion bulk operations (databases, pages, markdown)
+  google      Google Workspace bulk operations (gmail, calendar, drive)
+  slack       Slack bulk operations (messages, channels)
+  notion      Notion bulk operations (databases, pages, markdown)
+  confluence  Confluence bulk operations (pages, spaces, markdown)
 
 Examples:
   # Gmail export
@@ -227,4 +228,19 @@ Common options:
         type=str,
         dest="page_ids",
         help="Comma-separated page IDs (for pages-export)",
+    )
+
+    # Confluence-specific arguments
+    tools_parser.add_argument(
+        "--space-key",
+        "--space_key",
+        type=str,
+        dest="space_key",
+        help="Confluence space key (for md-import)",
+    )
+
+    tools_parser.add_argument(
+        "--cql",
+        type=str,
+        help="CQL query string (for pages-search)",
     )

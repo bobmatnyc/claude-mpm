@@ -369,6 +369,19 @@ NOTION_MCP = MCPServiceDefinition(
     enabled_by_default=False,
 )
 
+# Confluence - Internal MCP server for Confluence operations
+CONFLUENCE_MCP = MCPServiceDefinition(
+    name="confluence-mcp",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="confluence-mcp",
+    args=[],
+    required_env=["CONFLUENCE_URL", "CONFLUENCE_EMAIL", "CONFLUENCE_API_TOKEN"],
+    optional_env=[],
+    description="Confluence integration for pages, spaces, and content with markdown import",
+    enabled_by_default=False,
+)
+
 # MCP LSP - Language Server Protocol integration for code intelligence
 # Package: https://www.npmjs.com/package/@axivo/mcp-lsp
 MCP_LSP = MCPServiceDefinition(
@@ -397,6 +410,7 @@ def _register_builtin_services() -> None:
         MCP_FILESYSTEM,
         MCP_SKILLSET,
         NOTION_MCP,
+        CONFLUENCE_MCP,
         MCP_LSP,
     ]
     for service in services:
