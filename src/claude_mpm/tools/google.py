@@ -127,6 +127,54 @@ class GoogleTools(BaseToolModule):
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Request error: {e}") from e
 
+    def _make_request_raw(
+        self,
+        method: str,
+        url: str,
+        data: Optional[bytes] = None,
+        headers: Optional[dict[str, str]] = None,
+        service: str = "google-workspace-mpm",
+    ) -> dict[str, Any]:
+        """Make authenticated API request with raw body.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            url: Full URL to request
+            data: Raw bytes body
+            headers: Additional headers
+            service: Service name for token
+
+        Returns:
+            Response JSON
+
+        Raises:
+            ValueError: If request fails
+        """
+        token = self._get_valid_token(service)
+        request_headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        }
+        if headers:
+            request_headers.update(headers)
+
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=request_headers,
+                data=data,
+                timeout=60,
+            )
+            response.raise_for_status()
+            return response.json() if response.text else {}
+        except requests.exceptions.HTTPError as e:
+            raise ValueError(
+                f"API request failed: {e.response.status_code} {e.response.text}"
+            ) from e
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Request error: {e}") from e
+
     def execute(self, action: str, **kwargs) -> ToolResult:
         """Execute Google Workspace action.
 
@@ -555,24 +603,271 @@ class GoogleTools(BaseToolModule):
             )
 
     def _drive_batch_upload(self, **kwargs) -> ToolResult:
-        """Batch upload files to Drive (placeholder)."""
-        # TODO: Implement in TSK-0004
-        return ToolResult(
-            success=True,
-            action="drive-batch-upload",
-            data={"message": "Drive batch upload not yet implemented (TSK-0004)"},
-            metadata={"count": 0},
-        )
+        """Batch upload files to Google Drive.
+
+        Args:
+            files: Comma-separated list of file paths to upload
+            parent_id: Parent folder ID (optional)
+            mime_type: MIME type override (optional, auto-detected if not provided)
+
+        Returns:
+            ToolResult with upload results
+        """
+        files_str = kwargs.get("files")
+        parent_id = kwargs.get("parent_id")
+        mime_type_override = kwargs.get("mime_type")
+
+        if not files_str:
+            return ToolResult(
+                success=False,
+                action="drive-batch-upload",
+                error="Required parameter 'files' not provided (comma-separated paths)",
+            )
+
+        try:
+            # Parse file paths
+            from pathlib import Path
+
+            file_paths = [p.strip() for p in files_str.split(",")]
+
+            # Upload files
+            uploaded = []
+            failed = []
+            base_url = (
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+            )
+
+            for file_path in file_paths:
+                try:
+                    path = Path(file_path)
+                    if not path.exists():
+                        failed.append({"file": file_path, "error": "File not found"})
+                        continue
+
+                    # Read file content
+                    content = path.read_text(encoding="utf-8")
+
+                    # Determine MIME type
+                    mime_type = mime_type_override
+                    if not mime_type:
+                        # Simple MIME type detection
+                        ext = path.suffix.lower()
+                        mime_types_map = {
+                            ".txt": "text/plain",
+                            ".json": "application/json",
+                            ".html": "text/html",
+                            ".md": "text/markdown",
+                            ".py": "text/x-python",
+                            ".js": "text/javascript",
+                            ".css": "text/css",
+                        }
+                        mime_type = mime_types_map.get(ext, "text/plain")
+
+                    # Build metadata
+                    metadata_obj = {"name": path.name, "mimeType": mime_type}
+                    if parent_id:
+                        metadata_obj["parents"] = [parent_id]
+
+                    # Build multipart body
+                    boundary = "foo_bar_baz"
+                    body_parts = [
+                        f"--{boundary}",
+                        "Content-Type: application/json; charset=UTF-8",
+                        "",
+                        json.dumps(metadata_obj),
+                        f"--{boundary}",
+                        f"Content-Type: {mime_type}",
+                        "",
+                        content,
+                        f"--{boundary}--",
+                    ]
+                    body = "\r\n".join(body_parts)
+
+                    # Upload
+                    result = self._make_request_raw(
+                        "POST",
+                        base_url,
+                        data=body.encode("utf-8"),
+                        headers={
+                            "Content-Type": f"multipart/related; boundary={boundary}"
+                        },
+                    )
+
+                    uploaded.append(
+                        {
+                            "id": result.get("id"),
+                            "name": result.get("name"),
+                            "mimeType": result.get("mimeType"),
+                            "webViewLink": result.get("webViewLink"),
+                        }
+                    )
+
+                except UnicodeDecodeError:
+                    failed.append(
+                        {"file": file_path, "error": "File is binary (text files only)"}
+                    )
+                except Exception as e:
+                    failed.append({"file": file_path, "error": str(e)})
+
+            return ToolResult(
+                success=len(uploaded) > 0,
+                action="drive-batch-upload",
+                data={
+                    "uploaded": uploaded,
+                    "failed": failed,
+                },
+                metadata={
+                    "total": len(file_paths),
+                    "uploaded_count": len(uploaded),
+                    "failed_count": len(failed),
+                },
+            )
+
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                action="drive-batch-upload",
+                error=f"Unexpected error: {e}",
+            )
 
     def _drive_batch_download(self, **kwargs) -> ToolResult:
-        """Batch download files from Drive (placeholder)."""
-        # TODO: Implement in TSK-0004
-        return ToolResult(
-            success=True,
-            action="drive-batch-download",
-            data={"message": "Drive batch download not yet implemented (TSK-0004)"},
-            metadata={"count": 0},
-        )
+        """Batch download files from Google Drive.
+
+        Args:
+            file_ids: Comma-separated list of file IDs to download
+            output_dir: Output directory path (optional, defaults to current directory)
+
+        Returns:
+            ToolResult with download results
+        """
+        file_ids_str = kwargs.get("file_ids")
+        output_dir = kwargs.get("output_dir", ".")
+
+        if not file_ids_str:
+            return ToolResult(
+                success=False,
+                action="drive-batch-download",
+                error="Required parameter 'file_ids' not provided (comma-separated IDs)",
+            )
+
+        try:
+            from pathlib import Path
+
+            output_path = Path(output_dir)
+            output_path.mkdir(parents=True, exist_ok=True)
+
+            # Parse file IDs
+            file_ids = [fid.strip() for fid in file_ids_str.split(",")]
+
+            # Download files
+            downloaded = []
+            failed = []
+            base_url = "https://www.googleapis.com/drive/v3/files"
+
+            for file_id in file_ids:
+                try:
+                    # Get file metadata
+                    meta_url = f"{base_url}/{file_id}"
+                    metadata = self._make_request(
+                        "GET", meta_url, params={"fields": "id,name,mimeType,size"}
+                    )
+
+                    file_name = metadata.get("name", f"file_{file_id}")
+                    mime_type = metadata.get("mimeType", "")
+
+                    # Check if it's a Google Workspace file (needs export)
+                    export_map = {
+                        "application/vnd.google-apps.document": ("text/plain", ".txt"),
+                        "application/vnd.google-apps.spreadsheet": ("text/csv", ".csv"),
+                        "application/vnd.google-apps.presentation": (
+                            "text/plain",
+                            ".txt",
+                        ),
+                    }
+
+                    token = self._get_valid_token()
+
+                    if mime_type in export_map:
+                        # Export Google Workspace files
+                        export_mime, ext = export_map[mime_type]
+                        export_url = f"{base_url}/{file_id}/export"
+                        response = requests.get(
+                            export_url,
+                            params={"mimeType": export_mime},
+                            headers={"Authorization": f"Bearer {token}"},
+                            timeout=60,
+                        )
+                        response.raise_for_status()
+                        content = response.text
+
+                        # Ensure file has proper extension
+                        if not file_name.endswith(ext):
+                            file_name = f"{file_name}{ext}"
+                    else:
+                        # Download regular files
+                        download_url = f"{base_url}/{file_id}"
+                        response = requests.get(
+                            download_url,
+                            params={"alt": "media"},
+                            headers={"Authorization": f"Bearer {token}"},
+                            timeout=60,
+                        )
+                        response.raise_for_status()
+
+                        # Save as text if possible, otherwise binary
+                        try:
+                            content = response.text
+                        except UnicodeDecodeError:
+                            # Binary file - save as bytes
+                            file_path = output_path / file_name
+                            file_path.write_bytes(response.content)
+                            downloaded.append(
+                                {
+                                    "id": file_id,
+                                    "name": file_name,
+                                    "path": str(file_path),
+                                    "size": len(response.content),
+                                }
+                            )
+                            continue
+
+                    # Save text content
+                    file_path = output_path / file_name
+                    file_path.write_text(content, encoding="utf-8")
+
+                    downloaded.append(
+                        {
+                            "id": file_id,
+                            "name": file_name,
+                            "path": str(file_path),
+                            "size": len(content),
+                        }
+                    )
+
+                except Exception as e:
+                    failed.append({"file_id": file_id, "error": str(e)})
+
+            return ToolResult(
+                success=len(downloaded) > 0,
+                action="drive-batch-download",
+                data={
+                    "downloaded": downloaded,
+                    "failed": failed,
+                    "output_dir": str(output_path),
+                },
+                metadata={
+                    "total": len(file_ids),
+                    "downloaded_count": len(downloaded),
+                    "failed_count": len(failed),
+                },
+            )
+
+        except Exception as e:
+            return ToolResult(
+                success=False,
+                action="drive-batch-download",
+                error=f"Unexpected error: {e}",
+            )
 
 
 # Register this service

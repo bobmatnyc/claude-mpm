@@ -133,3 +133,42 @@ Common options:
         dest="time_max",
         help="Maximum time for events (ISO 8601 format, for calendar-export)",
     )
+
+    # Drive-specific arguments
+    tools_parser.add_argument(
+        "--files",
+        type=str,
+        help="Comma-separated list of file paths (for drive-batch-upload)",
+    )
+
+    tools_parser.add_argument(
+        "--file-ids",
+        "--file_ids",
+        type=str,
+        dest="file_ids",
+        help="Comma-separated list of file IDs (for drive-batch-download)",
+    )
+
+    tools_parser.add_argument(
+        "--parent-id",
+        "--parent_id",
+        type=str,
+        dest="parent_id",
+        help="Parent folder ID (for drive-batch-upload)",
+    )
+
+    tools_parser.add_argument(
+        "--output-dir",
+        "--output_dir",
+        type=str,
+        dest="output_dir",
+        help="Output directory (for drive-batch-download, defaults to current directory)",
+    )
+
+    tools_parser.add_argument(
+        "--mime-type",
+        "--mime_type",
+        type=str,
+        dest="mime_type",
+        help="MIME type override (for drive-batch-upload)",
+    )
