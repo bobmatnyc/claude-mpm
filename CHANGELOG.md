@@ -10,6 +10,35 @@
 
 ### Tests
 
+## [5.7.23] - 2026-02-10
+
+### Added
+- **Notion MCP integration**: Full Notion API support for page and database operations
+  - Workspace search, page CRUD, database queries
+  - Block-level content manipulation
+  - User and comment management
+- **Confluence MCP integration**: Enterprise wiki management capabilities
+  - Space and page operations
+  - Content search and retrieval
+  - Attachment handling
+- **Bulk operations framework**: High-performance batch processing tools
+  - Parallel execution for large-scale operations
+  - Rate limiting and error handling
+  - Progress tracking and reporting
+- **Kuzu-memory v1.6.33 subservient mode**: Graph-based memory with enhanced context
+  - Automatic prompt enhancement with project context
+  - Asynchronous learning from conversations
+  - Memory recall and statistics
+- **Memory backend abstraction**: Pluggable memory system architecture
+  - Support for multiple memory backends
+  - Configuration schema for memory providers
+  - Setup command for kuzu-memory installation
+
+### Documentation
+- Added Notion and Confluence MCP setup guides
+- Documented bulk operations API and usage patterns
+- Updated memory system configuration examples
+
 ## [5.7.22] - 2026-02-09
 
 ### Changed
