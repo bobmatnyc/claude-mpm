@@ -654,49 +654,94 @@ class SetupCommand(BaseCommand):
             # Check if kuzu-memory is installed
             console.print("[cyan]Checking kuzu-memory installation...[/cyan]")
             try:
-                result = subprocess.run(
-                    ["kuzu-memory", "--version"],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )  # nosec B603 B607
+                import importlib.util
 
-                if result.returncode != 0:
-                    console.print(
-                        "[yellow]kuzu-memory not found. Installing v1.6.33+...[/yellow]"
-                    )
-                    # Install kuzu-memory with subservient mode support (v1.6.33+)
-                    install_result = subprocess.run(
-                        [
-                            "uv",
-                            "tool",
-                            "install",
-                            "kuzu-memory>=1.6.33",
-                            "--python",
-                            "3.13",
-                        ],
-                        check=False,
-                    )  # nosec B603 B607
+                spec = importlib.util.find_spec("kuzu_memory")
+                is_installed = spec is not None
+            except (ImportError, ModuleNotFoundError):
+                is_installed = False
 
-                    if install_result.returncode != 0:
-                        return CommandResult.error_result(
-                            "Failed to install kuzu-memory. "
-                            "Try manually: uv tool install 'kuzu-memory>=1.6.33' --python 3.13"
-                        )
+            # Detect how claude-mpm was installed
+            if not is_installed:
+                console.print("[cyan]Detecting installation method...[/cyan]")
 
-                    console.print("[green]✓ kuzu-memory v1.6.33+ installed[/green]")
-                else:
-                    # Check version is 1.6.33+
-                    version_line = result.stdout.strip()
-                    console.print(
-                        f"[green]✓ kuzu-memory already installed ({version_line})[/green]"
-                    )
-
-            except FileNotFoundError:
-                return CommandResult.error_result(
-                    "uv not found. Please install uv first:\n"
-                    "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+                # Use existing detection utility
+                from ...services.diagnostics.checks.installation_check import (
+                    InstallationCheck,
                 )
+
+                checker = InstallationCheck()
+                methods = checker._check_installation_method()
+
+                # Determine primary method (priority: pipx > uv > pip)
+                install_method = None
+                detected_methods = methods.details.get("methods_detected", [])
+
+                if "pipx" in detected_methods:
+                    install_method = "pipx"
+                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
+                    install_method = "uv"
+                else:
+                    # If in venv or development, use pip within that environment
+                    # Otherwise use pip as default fallback
+                    install_method = "pip"
+
+                console.print(f"[dim]Detected: {install_method} installation[/dim]")
+
+                console.print(
+                    f"[yellow]Installing kuzu-memory>=1.6.33 via {install_method}...[/yellow]"
+                )
+
+                try:
+                    if install_method == "pipx":
+                        subprocess.run(
+                            ["pipx", "install", "kuzu-memory>=1.6.33"],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "uv":
+                        subprocess.run(
+                            [
+                                "uv",
+                                "tool",
+                                "install",
+                                "kuzu-memory>=1.6.33",
+                                "--python",
+                                "3.13",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "pip":
+                        subprocess.run(
+                            [
+                                sys.executable,
+                                "-m",
+                                "pip",
+                                "install",
+                                "--user",
+                                "kuzu-memory>=1.6.33",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    console.print(
+                        f"[green]✓ kuzu-memory installed via {install_method}[/green]"
+                    )
+
+                except subprocess.CalledProcessError:
+                    return CommandResult.error_result(
+                        f"Failed to install kuzu-memory via {install_method}. "
+                        f"Try manually: {install_method} install kuzu-memory>=1.6.33"
+                    )
+            else:
+                console.print("[green]✓ kuzu-memory already installed[/green]")
 
             # Migrate existing static memory files if present
             console.print("\n[cyan]Checking for existing memory files...[/cyan]")
@@ -867,8 +912,6 @@ class SetupCommand(BaseCommand):
                     os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
                 except OSError:
                     # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
-                    import sys
-
                     subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
                     sys.exit(0)
 
