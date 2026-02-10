@@ -10,6 +10,24 @@
 
 ### Tests
 
+## [5.7.24] - 2026-02-10
+
+### Fixed
+- **Kuzu-memory setup**: Fixed migration command to use correct `kuzu-memory memory learn` syntax
+- **Kuzu-memory setup**: Added auto-launch of claude-mpm after setup (consistent with slack setup)
+- **Kuzu-memory setup**: Added `--no-start` flag to exit before launching
+
+### Documentation
+- **STARTUP-PROCEDURES.md**: Complete documentation of 7-phase initialization sequence
+  - Agent discovery and deployment process
+  - Instructions compilation and BASE_AGENT inheritance
+  - Dynamic delegation authority building
+  - Configuration files and setup commands
+- **Documentation organization**: Moved files to appropriate subdirectories
+  - Developer reference docs consolidated in `docs/developer/`
+  - Integration guides in `docs/integrations/`
+- **Agent format correction**: Updated docs to reflect markdown+YAML frontmatter (not JSON)
+
 ## [5.7.23] - 2026-02-10
 
 ### Added
