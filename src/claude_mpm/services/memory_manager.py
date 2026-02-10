@@ -191,24 +191,31 @@ class KuzuMemoryBackend(BaseMemoryBackend):
         self._client = None
 
     def _get_client(self):
-        """Lazy-load kuzu-memory client."""
+        """Lazy-load kuzu-memory client.
+
+        Uses kuzu-memory v1.6.33+ client API in subservient mode.
+        MPM manages hooks and calls kuzu as a backend service.
+        """
         if self._client is None:
             try:
-                # Import kuzu-memory client
-                # This will be available if kuzu-memory is installed
+                # Import kuzu-memory client API (v1.6.33+)
+                # In subservient mode, kuzu-memory provides a clean Python API
+                # without installing its own hooks
                 from kuzu_memory.client import KuzuMemoryClient  # type: ignore
 
                 self._client = KuzuMemoryClient(
                     project_root=self.project_root,
                     db_path=self.db_path,
                 )
+
+                logger.info("✅ Kuzu-memory client initialized (subservient mode)")
             except ImportError:
                 logger.error(
                     "kuzu-memory not installed. Run: claude-mpm setup kuzu-memory"
                 )
                 raise RuntimeError(
                     "kuzu-memory not available. "
-                    "Install with: uv tool install kuzu-memory"
+                    "Install with: claude-mpm setup kuzu-memory"
                 ) from None
 
         return self._client

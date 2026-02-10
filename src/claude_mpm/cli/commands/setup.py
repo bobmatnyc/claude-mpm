@@ -647,22 +647,34 @@ class SetupCommand(BaseCommand):
 
                 if result.returncode != 0:
                     console.print(
-                        "[yellow]kuzu-memory not found. Installing...[/yellow]"
+                        "[yellow]kuzu-memory not found. Installing v1.6.33+...[/yellow]"
                     )
+                    # Install kuzu-memory with subservient mode support (v1.6.33+)
                     install_result = subprocess.run(
-                        ["uv", "tool", "install", "kuzu-memory", "--python", "3.13"],
+                        [
+                            "uv",
+                            "tool",
+                            "install",
+                            "kuzu-memory>=1.6.33",
+                            "--python",
+                            "3.13",
+                        ],
                         check=False,
                     )  # nosec B603 B607
 
                     if install_result.returncode != 0:
                         return CommandResult.error_result(
                             "Failed to install kuzu-memory. "
-                            "Try manually: uv tool install kuzu-memory --python 3.13"
+                            "Try manually: uv tool install 'kuzu-memory>=1.6.33' --python 3.13"
                         )
 
-                    console.print("[green]✓ kuzu-memory installed[/green]")
+                    console.print("[green]✓ kuzu-memory v1.6.33+ installed[/green]")
                 else:
-                    console.print("[green]✓ kuzu-memory already installed[/green]")
+                    # Check version is 1.6.33+
+                    version_line = result.stdout.strip()
+                    console.print(
+                        f"[green]✓ kuzu-memory already installed ({version_line})[/green]"
+                    )
 
             except FileNotFoundError:
                 return CommandResult.error_result(
@@ -709,16 +721,38 @@ class SetupCommand(BaseCommand):
             db_path.mkdir(parents=True, exist_ok=True)
             console.print(f"[green]✓ Created database directory: {db_path}[/green]")
 
+            # Create .kuzu-memory-config for subservient mode (v1.6.33+)
+            kuzu_config_path = Path.cwd() / ".kuzu-memory-config"
+            kuzu_config = {
+                "mode": "subservient",
+                "managed_by": "claude-mpm",
+                "version": "1.0",
+            }
+
+            try:
+                with open(kuzu_config_path, "w") as f:
+                    yaml.dump(kuzu_config, f, default_flow_style=False)
+                console.print(
+                    f"[green]✓ Created subservient mode config: {kuzu_config_path}[/green]"
+                )
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning: Could not create .kuzu-memory-config: {e}[/yellow]"
+                )
+
             console.print("\n[green]✓ Kuzu Memory setup complete![/green]")
             console.print(
                 "\n[dim]What changed:[/dim]\n"
-                "  1. kuzu-memory installed as uv tool\n"
+                "  1. kuzu-memory v1.6.33+ installed with subservient mode support\n"
                 "  2. Memory backend set to 'kuzu' in configuration\n"
                 "  3. Database directory created\n"
+                "  4. Subservient mode enabled (MPM controls hooks)\n"
                 "\n[dim]Next steps:[/dim]\n"
                 "  1. Start Claude MPM to use graph-based memory\n"
                 "  2. Your memories will be stored in the graph database\n"
                 "  3. Use semantic search for better context retrieval\n"
+                "\n[dim]Note:[/dim] kuzu-memory will not install its own hooks.\n"
+                "Claude MPM manages the hook system and calls kuzu as a backend.\n"
             )
 
             return CommandResult.success_result("Kuzu Memory setup completed")
