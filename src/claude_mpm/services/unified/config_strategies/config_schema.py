@@ -714,6 +714,67 @@ def create_logging_schema() -> ConfigSchema:
     )
 
 
+def create_memory_schema() -> ConfigSchema:
+    """Create memory backend configuration schema"""
+    # Static backend config
+    static_properties = {
+        "directory": SchemaProperty(
+            type=SchemaType.STRING,
+            description="Directory for memory files",
+            default=".claude-mpm/memories",
+            format=SchemaFormat.PATH,
+        ),
+        "max_size": SchemaProperty(
+            type=SchemaType.INTEGER,
+            description="Maximum size of memory files in bytes",
+            default=81920,
+            minimum=1024,  # 1KB minimum
+            maximum=1048576,  # 1MB maximum
+        ),
+    }
+
+    # Kuzu backend config
+    kuzu_properties = {
+        "project_root": SchemaProperty(
+            type=SchemaType.STRING,
+            description="Project root directory for kuzu",
+            format=SchemaFormat.PATH,
+        ),
+        "db_path": SchemaProperty(
+            type=SchemaType.STRING,
+            description="Database path for kuzu storage",
+            format=SchemaFormat.PATH,
+        ),
+    }
+
+    return (
+        SchemaBuilder("Memory Configuration")
+        .description("Configuration for memory backend system")
+        .enum(
+            "backend",
+            ["static", "kuzu"],
+            default="static",
+            description="Memory backend type",
+            required=True,
+        )
+        .object(
+            "static",
+            properties=static_properties,
+            description="Static file-based memory backend configuration",
+            additional_properties=False,
+        )
+        .object(
+            "kuzu",
+            properties=kuzu_properties,
+            description="Kuzu graph-based memory backend configuration",
+            additional_properties=False,
+        )
+        .default("backend", "static")
+        .default("static", {"directory": ".claude-mpm/memories", "max_size": 81920})
+        .build()
+    )
+
+
 # Export main components
 __all__ = [
     "ConfigMigration",
@@ -728,4 +789,5 @@ __all__ = [
     "create_api_schema",
     "create_database_schema",
     "create_logging_schema",
+    "create_memory_schema",
 ]

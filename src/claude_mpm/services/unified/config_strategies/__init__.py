@@ -24,6 +24,7 @@ from .config_schema import (
     create_api_schema,
     create_database_schema,
     create_logging_schema,
+    create_memory_schema,
 )
 from .context_strategy import (
     CachingContextManager,
@@ -145,6 +146,11 @@ __all__ = [
     "ValidationRule",
     "ValidationStrategy",
     "ValidationType",
+    # Schema creation functions
+    "create_api_schema",
+    "create_database_schema",
+    "create_logging_schema",
+    "create_memory_schema",
     "unified_config",
 ]
 
