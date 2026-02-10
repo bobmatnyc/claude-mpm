@@ -45,6 +45,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     valid_services = {
         "slack",
         "google-workspace-mcp",
+        "gworkspace-mcp",  # Alias for google-workspace-mcp
         "oauth",
         "notion",
         "confluence",
@@ -96,7 +97,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, oauth, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -159,6 +160,9 @@ class SetupCommand(BaseCommand):
 
             if service_name == "slack":
                 result = self._setup_slack(service_args)
+            elif service_name == "gworkspace-mcp":
+                # Alias for google-workspace-mcp
+                result = self._setup_google_workspace(service_args)
             elif service_name == "google-workspace-mcp":
                 result = self._setup_google_workspace(service_args)
             elif service_name == "notion":

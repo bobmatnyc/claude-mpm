@@ -4,7 +4,7 @@ Setup command parser for claude-mpm CLI.
 WHY: Unified setup command needs argument parsing for multiple services with service-specific options.
 
 DESIGN DECISIONS:
-- Services as positional arguments (slack, google-workspace-mcp, oauth)
+- Services as positional arguments (slack, google-workspace-mcp, gworkspace-mcp, oauth)
 - Flags after a service name apply to that service
 - Follows Unix convention: "command arg1 --flag1 arg2 --flag2"
 """
@@ -28,6 +28,7 @@ def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
 Available services:
   slack                  Set up Slack MPM integration
   google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
+  gworkspace-mcp         Alias for google-workspace-mcp
   oauth                  Set up OAuth authentication (requires --oauth-service)
   kuzu-memory            Set up kuzu-memory integration
   mcp-vector-search      Set up mcp-vector-search semantic code search

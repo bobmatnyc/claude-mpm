@@ -107,7 +107,7 @@ def example_auto_pause_workflow():
         final_path = pause_manager.finalize_pause(create_full_snapshot=True)
 
         print(f"   ✓ Session finalized: {final_path}")
-        print(f"   ✓ Files created:")
+        print("   ✓ Files created:")
         print(f"     - {final_path.stem}.json (machine-readable)")
         print(f"     - {final_path.stem}.yaml (human-readable)")
         print(f"     - {final_path.stem}.md (documentation)")

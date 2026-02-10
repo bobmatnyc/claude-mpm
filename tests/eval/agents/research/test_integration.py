@@ -461,7 +461,7 @@ async def get_or_set(key: str, factory, ttl: int = 300):
     cached = await redis.get(key)
     if cached:
         return json.loads(cached)
-    
+
     value = await factory()
     await redis.setex(key, ttl, json.dumps(value))
     return value

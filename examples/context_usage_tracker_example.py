@@ -32,7 +32,7 @@ def main():
     # Hook 1: Initial code analysis
     print("\n[Hook 1] Code analysis request")
     state = tracker.update_usage(input_tokens=15000, output_tokens=3000)
-    print(f"  Input: 15,000 | Output: 3,000")
+    print("  Input: 15,000 | Output: 3,000")
     print(
         f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
     )
@@ -47,7 +47,7 @@ def main():
         cache_creation=5000,
         cache_read=3000,
     )
-    print(f"  Input: 25,000 | Output: 8,000 | Cache Read: 3,000")
+    print("  Input: 25,000 | Output: 8,000 | Cache Read: 3,000")
     print(
         f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
     )
@@ -57,7 +57,7 @@ def main():
     # Hook 3: Large refactoring task
     print("\n[Hook 3] Large refactoring request")
     state = tracker.update_usage(input_tokens=40000, output_tokens=12000)
-    print(f"  Input: 40,000 | Output: 12,000")
+    print("  Input: 40,000 | Output: 12,000")
     print(
         f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
     )
@@ -67,7 +67,7 @@ def main():
     # Hook 4: Documentation generation
     print("\n[Hook 4] Documentation generation")
     state = tracker.update_usage(input_tokens=30000, output_tokens=10000)
-    print(f"  Input: 30,000 | Output: 10,000")
+    print("  Input: 30,000 | Output: 10,000")
     print(
         f"  Cumulative: {state.cumulative_input_tokens + state.cumulative_output_tokens:,} tokens"
     )
