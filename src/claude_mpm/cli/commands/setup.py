@@ -94,7 +94,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, oauth) or a flag (--oauth-service, --no-browser, --no-launch, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, oauth, kuzu-memory) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -707,6 +707,7 @@ class SetupCommand(BaseCommand):
                         import_result = subprocess.run(
                             [
                                 "kuzu-memory",
+                                "memory",
                                 "learn",
                                 content,
                                 "--metadata",
@@ -841,6 +842,20 @@ class SetupCommand(BaseCommand):
                 "  • kuzu-memory operates in subservient mode\n"
                 "  • Each project can have its own memory backend configuration\n"
             )
+
+            # Launch claude-mpm unless --no-start was specified
+            no_start = getattr(args, "no_start", False)
+            if not no_start:
+                console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
+                try:
+                    # Replace current process with claude-mpm
+                    os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
+                except OSError:
+                    # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
+                    import sys
+
+                    subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
+                    sys.exit(0)
 
             return CommandResult.success_result("Kuzu Memory setup completed")
 

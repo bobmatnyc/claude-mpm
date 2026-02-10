@@ -29,11 +29,13 @@ Available services:
   slack                  Set up Slack MPM integration
   google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
   oauth                  Set up OAuth authentication (requires --oauth-service)
+  kuzu-memory            Set up kuzu-memory integration
 
 Service options:
   --oauth-service NAME   Service name for OAuth setup (required for oauth)
   --no-browser           Don't auto-open browser for authentication (oauth only)
-  --no-launch            Don't auto-launch claude-mpm after setup (all services)
+  --no-launch            Don't auto-launch claude-mpm after setup (slack, google-workspace-mcp, oauth)
+  --no-start             Exit before launching claude-mpm (kuzu-memory only)
   --force                Force credential re-entry (oauth only)
 
 Examples:
