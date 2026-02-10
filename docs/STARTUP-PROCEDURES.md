@@ -237,7 +237,7 @@ Each agent receives:
 - **Kuzu**: Graph-based (`kuzu-memories/` directory)
 
 **Memory Routing**:
-- Defined in agent JSON templates: `memory_routing_rules`
+- Defined in agent markdown YAML frontmatter (custom fields per agent)
 - Examples:
   - Engineer: implementation patterns, architecture decisions
   - Research: analysis findings, domain knowledge
@@ -265,32 +265,49 @@ Each agent receives:
 
 ### Agent Capability Detection
 
-**Source**: Agent JSON templates (`src/claude_mpm/agents/templates/*.json`)
+**Source**: Agent markdown files with YAML frontmatter (`.md` files in cache/deployed directories)
 
-**Extracted metadata**:
-- `agent_id`: Unique identifier
-- `description`: Agent capabilities summary
-- `authority_keywords`: Trigger words for delegation
-- `memory_routing_rules`: Knowledge categories to remember
+**Extracted frontmatter fields**:
+- `name`: Agent identifier (e.g., "python-engineer", "local-ops")
+- `description`: Agent capabilities summary with examples
+- `type`: Agent category (engineer, ops, qa, documentation)
+- `version`: Agent version
+- `skills`: Array of required skill names
+- `model`: Optional model override (e.g., "sonnet")
 
 ### Delegation Matrix Construction
 
 **Runtime process**:
-1. Scan `.claude/agents/` for deployed agents
-2. Parse frontmatter metadata from each agent file
-3. Extract `agent_id`, `description`, `authority_keywords`
-4. Build routing table: `{keywords} → {agent_id}`
-5. Inject into PM instructions as "Available Agent Capabilities"
+1. Scan `.claude/agents/` for deployed agent markdown files
+2. Parse YAML frontmatter from each agent file
+3. Extract `name`, `description`, `type`, `skills` array
+4. Build agent registry: `{name} → {description + capabilities}`
+5. Inject into PM instructions as "Available Agent Capabilities" section
 
-**Result**: PM knows which agents are available and when to delegate to each
+**Example frontmatter**:
+```yaml
+---
+name: python-engineer
+description: "Use this agent when you need to implement new features..."
+type: engineer
+version: "1.2.0"
+skills:
+  - pytest
+  - pydantic
+  - fastapi
+---
+```
+
+**Result**: PM knows which agents are available and their specializations for delegation decisions
 
 ### Context-Aware Selection
 
-**Triggers**:
-- **Keyword matching**: User request contains agent's authority keywords
+**PM delegation decisions based on**:
+- **Description matching**: User request keywords match agent's description examples
 - **Task type**: Implementation → engineer, Testing → qa, Deployment → ops
 - **Platform-specific**: "vercel" → vercel-ops, "localhost" → local-ops
 - **Language-specific**: "python" → python-engineer, "typescript" → typescript-engineer
+- **Tool/framework**: "fastapi" → python-engineer, "nextjs" → nextjs-engineer
 
 ---
 
