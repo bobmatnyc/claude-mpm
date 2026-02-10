@@ -15,13 +15,16 @@ DESIGN DECISIONS:
 - Uses subprocess to call kuzu-memory directly for maximum compatibility
 - Graceful degradation if kuzu-memory is not installed
 - Automatic extraction and storage of important information
+- Async learning with 'memory learn --no-wait' for non-blocking memory storage
+- Synchronous recall for immediate memory retrieval
+- kuzu-memory operates in subservient mode (MPM controls hooks, not kuzu)
 - kuzu-memory is an OPTIONAL dependency (install with: pip install claude-mpm[memory])
 """
 
 import json
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -170,7 +173,7 @@ class KuzuMemoryHook(SubmitHook):
                 return []
 
             # Use kuzu-memory recall command (v1.2.7+ syntax)
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 [self.kuzu_memory_cmd, "memory", "recall", query, "--format", "json"],
                 capture_output=True,
                 text=True,
@@ -269,42 +272,43 @@ Note: Use the memories above to provide more informed and contextual responses.
 
     def store_memory(self, content: str, tags: Optional[List[str]] = None) -> bool:
         """
-        Store a memory using kuzu-memory.
+        Store a memory using kuzu-memory async learn command.
+
+        This uses the async 'learn' command with --no-wait flag for non-blocking
+        execution, allowing the hook to return immediately without waiting for
+        memory processing to complete.
 
         Args:
             content: The memory content to store
-            tags: Optional tags for categorization
+            tags: Optional tags for categorization (currently unused)
 
         Returns:
-            True if storage was successful
+            True if the async learn command was launched successfully
         """
         if not self.enabled or self.kuzu_memory_cmd is None:
             return False
 
         try:
-            # Use kuzu-memory store command (v1.2.7+ syntax)
-            cmd = [self.kuzu_memory_cmd, "memory", "store", content]
+            # Use kuzu-memory learn command with --no-wait for async execution
+            # This is non-blocking and returns immediately
+            cmd = [self.kuzu_memory_cmd, "memory", "learn", content, "--no-wait"]
 
-            # Execute store command in project directory
-            result = subprocess.run(
+            # Launch async process (fire-and-forget)
+            # Use Popen instead of run for non-blocking execution
+            subprocess.Popen(  # nosec B603
                 cmd,
-                capture_output=True,
-                text=True,
-                timeout=5,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 cwd=str(self.project_path),
-                check=False,
+                start_new_session=True,  # Detach from parent process
             )
 
-            if result.returncode == 0:
-                logger.debug(f"Stored memory in kuzu: {content[:50]}...")
-                return True
-            logger.warning(f"Failed to store memory in kuzu: {result.stderr}")
-            return False
+            logger.debug(f"Launched async learn for memory: {content[:50]}...")
+            return True
 
         except Exception as e:
-            logger.error(f"Failed to store memory: {e}")
-
-        return False
+            logger.error(f"Failed to launch async learn: {e}")
+            return False
 
     def extract_and_store_learnings(self, text: str) -> int:
         """
