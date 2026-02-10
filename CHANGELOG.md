@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.7.25] - 2026-02-10
+
+### Added
+- **Google Workspace MCP**: Google Docs tabs support (list, get, create, update, move tabs)
+- **Google Workspace MCP**: Mermaid diagram rendering tool for creating diagrams in Google Docs
+
+### Fixed
+- **Kuzu-memory hooks**: Use async learn for non-blocking storage during prompt enhancement
+
 ## [5.7.24] - 2026-02-10
 
 ### Fixed
