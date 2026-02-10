@@ -14,6 +14,7 @@ DESIGN DECISIONS:
 import os
 import shutil
 import subprocess  # nosec B404
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -896,30 +897,86 @@ class SetupCommand(BaseCommand):
             except (ImportError, ModuleNotFoundError):
                 is_installed = False
 
-            if not is_installed:
-                console.print(
-                    "[yellow]mcp-vector-search not found. Installing...[/yellow]"
-                )
-                # Install mcp-vector-search using uv
-                install_result = subprocess.run(
-                    [
-                        "uv",
-                        "tool",
-                        "install",
-                        "mcp-vector-search",
-                        "--python",
-                        "3.13",
-                    ],
-                    check=False,
-                )  # nosec B603 B607
+            # Detect how claude-mpm was installed
+            if not is_installed or force:
+                console.print("[cyan]Detecting installation method...[/cyan]")
 
-                if install_result.returncode != 0:
-                    return CommandResult.error_result(
-                        "Failed to install mcp-vector-search. "
-                        "Try manually: uv tool install mcp-vector-search --python 3.13"
+                # Use existing detection utility
+                from ...services.diagnostics.checks.installation_check import (
+                    InstallationCheck,
+                )
+
+                checker = InstallationCheck()
+                methods = checker._check_installation_method()
+
+                # Determine primary method (priority: pipx > uv > pip)
+                install_method = None
+                detected_methods = methods.details.get("methods_detected", [])
+
+                if "pipx" in detected_methods:
+                    install_method = "pipx"
+                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
+                    install_method = "uv"
+                else:
+                    # If in venv or development, use pip within that environment
+                    # Otherwise use pip as default fallback
+                    install_method = "pip"
+
+                console.print(f"[dim]Detected: {install_method} installation[/dim]")
+
+                action = "Reinstalling" if is_installed else "Installing"
+                console.print(
+                    f"[yellow]{action} mcp-vector-search via {install_method}...[/yellow]"
+                )
+
+                try:
+                    if install_method == "pipx":
+                        subprocess.run(
+                            ["pipx", "install", "mcp-vector-search"],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "uv":
+                        subprocess.run(
+                            [
+                                "uv",
+                                "tool",
+                                "install",
+                                "mcp-vector-search",
+                                "--python",
+                                "3.13",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "pip":
+                        subprocess.run(
+                            [
+                                sys.executable,
+                                "-m",
+                                "pip",
+                                "install",
+                                "--user",
+                                "mcp-vector-search",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    console.print(
+                        f"[green]✓ mcp-vector-search installed via {install_method}[/green]"
                     )
 
-                console.print("[green]✓ mcp-vector-search installed[/green]")
+                except subprocess.CalledProcessError:
+                    return CommandResult.error_result(
+                        f"Failed to install mcp-vector-search via {install_method}. "
+                        f"Try manually: {install_method} install mcp-vector-search"
+                    )
             else:
                 console.print("[green]✓ mcp-vector-search already installed[/green]")
 
