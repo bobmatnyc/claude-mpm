@@ -11,6 +11,9 @@ using the OAuthManager for seamless re-authentication.
 import asyncio
 import json
 import logging
+import subprocess  # nosec B404
+import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
@@ -854,7 +857,27 @@ class GoogleWorkspaceServer:
                 ),
                 Tool(
                     name="get_document",
-                    description="Get the content and structure of a Google Doc",
+                    description="Get the content and structure of a Google Doc. Optionally include tab content for documents with multiple tabs.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "include_tabs_content": {
+                                "type": "boolean",
+                                "description": "Whether to include tab content (default: False). Set to True for documents with tabs.",
+                                "default": False,
+                            },
+                        },
+                        "required": ["document_id"],
+                    },
+                ),
+                # Google Docs Tab Operations
+                Tool(
+                    name="list_document_tabs",
+                    description="List all tabs in a Google Doc with their metadata (tabId, title, index, nestingLevel, iconEmoji, parentTabId). Use this to discover tabs in a document.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -864,6 +887,106 @@ class GoogleWorkspaceServer:
                             },
                         },
                         "required": ["document_id"],
+                    },
+                ),
+                Tool(
+                    name="get_tab_content",
+                    description="Get the content from a specific tab in a Google Doc. Returns tab metadata and text content.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID (from list_document_tabs)",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
+                    },
+                ),
+                Tool(
+                    name="create_document_tab",
+                    description="Create a new tab in a Google Doc. Tabs can be nested by specifying a parent tab ID. Returns the new tab ID.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Tab title",
+                            },
+                            "icon_emoji": {
+                                "type": "string",
+                                "description": "Icon emoji for the tab (optional, e.g., '📄', '✨')",
+                            },
+                            "parent_tab_id": {
+                                "type": "string",
+                                "description": "Parent tab ID for nested tabs (optional). Creates a child tab under the specified parent.",
+                            },
+                            "index": {
+                                "type": "integer",
+                                "description": "Position index for the tab (optional). 0 inserts at the beginning.",
+                            },
+                        },
+                        "required": ["document_id", "title"],
+                    },
+                ),
+                Tool(
+                    name="update_tab_properties",
+                    description="Update properties of an existing tab (title, iconEmoji). Use this to rename tabs or change their icon.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID to update (from list_document_tabs)",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "New tab title (optional)",
+                            },
+                            "icon_emoji": {
+                                "type": "string",
+                                "description": "New icon emoji (optional, e.g., '📝', '⭐')",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
+                    },
+                ),
+                Tool(
+                    name="move_tab",
+                    description="Move a tab to a new position or change its parent (nesting level). Use this to reorganize tab hierarchy.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID to move (from list_document_tabs)",
+                            },
+                            "new_parent_tab_id": {
+                                "type": "string",
+                                "description": "New parent tab ID (optional). Use empty string to move to root level.",
+                            },
+                            "new_index": {
+                                "type": "integer",
+                                "description": "New position index (optional). 0 moves to the beginning of its level.",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
                     },
                 ),
                 Tool(
@@ -892,6 +1015,42 @@ class GoogleWorkspaceServer:
                             },
                         },
                         "required": ["name", "markdown_content"],
+                    },
+                ),
+                Tool(
+                    name="render_mermaid_to_doc",
+                    description="Render Mermaid diagram code to an image and insert it into a Google Doc. Uses @mermaid-js/mermaid-cli to render diagrams to SVG or PNG format, uploads to Drive, then inserts into the document.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID where the image will be inserted",
+                            },
+                            "mermaid_code": {
+                                "type": "string",
+                                "description": "Mermaid diagram code (e.g., 'graph TD\\n    A-->B')",
+                            },
+                            "insert_index": {
+                                "type": "integer",
+                                "description": "Character index where to insert the image. If not provided, appends to end of document.",
+                            },
+                            "image_format": {
+                                "type": "string",
+                                "description": "Output image format: 'svg' (default, best quality) or 'png'",
+                                "default": "svg",
+                                "enum": ["svg", "png"],
+                            },
+                            "width_pt": {
+                                "type": "integer",
+                                "description": "Image width in points (optional, maintains aspect ratio if only one dimension specified)",
+                            },
+                            "height_pt": {
+                                "type": "integer",
+                                "description": "Image height in points (optional, maintains aspect ratio if only one dimension specified)",
+                            },
+                        },
+                        "required": ["document_id", "mermaid_code"],
                     },
                 ),
                 # Google Tasks API - Task Lists Operations
@@ -1490,8 +1649,16 @@ class GoogleWorkspaceServer:
             "create_document": self._create_document,
             "append_to_document": self._append_to_document,
             "get_document": self._get_document,
+            # Docs tab operations
+            "list_document_tabs": self._list_document_tabs,
+            "get_tab_content": self._get_tab_content,
+            "create_document_tab": self._create_document_tab,
+            "update_tab_properties": self._update_tab_properties,
+            "move_tab": self._move_tab,
             # Markdown conversion
             "upload_markdown_as_doc": self._upload_markdown_as_doc,
+            # Mermaid diagram rendering
+            "render_mermaid_to_doc": self._render_mermaid_to_doc,
             # Tasks - Task Lists operations
             "list_task_lists": self._list_task_lists,
             "get_task_list": self._get_task_list,
@@ -3128,25 +3295,35 @@ class GoogleWorkspaceServer:
         """Get the content and structure of a Google Doc.
 
         Args:
-            arguments: Tool arguments with document_id.
+            arguments: Tool arguments with document_id and optional include_tabs_content.
 
         Returns:
-            Document content and metadata.
+            Document content and metadata, optionally including tab information.
         """
         document_id = arguments["document_id"]
+        include_tabs_content = arguments.get("include_tabs_content", False)
 
         url = f"{DOCS_API_BASE}/documents/{document_id}"
+        if include_tabs_content:
+            url += "?includeTabsContent=true"
+
         response = await self._make_request("GET", url)
 
         # Extract text content from body
         text_content = self._extract_doc_text(response.get("body", {}))
 
-        return {
+        result = {
             "document_id": response.get("documentId"),
             "title": response.get("title"),
             "revision_id": response.get("revisionId"),
             "text_content": text_content,
         }
+
+        # Include tab information if requested
+        if include_tabs_content and "tabs" in response:
+            result["tabs"] = self._format_tabs(response["tabs"])
+
+        return result
 
     def _extract_doc_text(self, body: dict[str, Any]) -> str:
         """Extract plain text from a Google Docs body structure.
@@ -3176,6 +3353,320 @@ class GoogleWorkspaceServer:
         return "".join(text_parts)
 
     # =========================================================================
+    # =========================================================================
+    # Google Docs Tab Operations
+    # =========================================================================
+
+    def _format_tabs(self, tabs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format tab information for response.
+
+        Args:
+            tabs: Raw tabs array from Google Docs API.
+
+        Returns:
+            Formatted list of tab metadata.
+        """
+        formatted_tabs = []
+        for tab in tabs:
+            tab_props = tab.get("tabProperties", {})
+            formatted_tab = {
+                "tab_id": tab_props.get("tabId"),
+                "title": tab_props.get("title", ""),
+                "index": tab_props.get("index", 0),
+                "nesting_level": tab_props.get("nestingLevel", 0),
+            }
+
+            # Add optional fields if present
+            if "iconEmoji" in tab_props:
+                formatted_tab["icon_emoji"] = tab_props["iconEmoji"]
+            if "parentTabId" in tab_props:
+                formatted_tab["parent_tab_id"] = tab_props["parentTabId"]
+
+            formatted_tabs.append(formatted_tab)
+
+        return formatted_tabs
+
+    async def _list_document_tabs(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all tabs in a Google Doc with their metadata.
+
+        Args:
+            arguments: Tool arguments with document_id.
+
+        Returns:
+            List of tabs with metadata (tabId, title, index, nestingLevel, iconEmoji, parentTabId).
+        """
+        document_id = arguments["document_id"]
+
+        # Request document with tabs included
+        url = f"{DOCS_API_BASE}/documents/{document_id}?includeTabsContent=true"
+        response = await self._make_request("GET", url)
+
+        tabs = response.get("tabs", [])
+
+        if not tabs:
+            return {
+                "document_id": document_id,
+                "tabs": [],
+                "count": 0,
+                "message": "Document has no tabs or only a single tab",
+            }
+
+        formatted_tabs = self._format_tabs(tabs)
+
+        return {
+            "document_id": document_id,
+            "tabs": formatted_tabs,
+            "count": len(formatted_tabs),
+        }
+
+    async def _get_tab_content(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Get content from a specific tab in a Google Doc.
+
+        Args:
+            arguments: Tool arguments with document_id and tab_id.
+
+        Returns:
+            Tab metadata and text content.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+
+        # Request document with tabs included
+        url = f"{DOCS_API_BASE}/documents/{document_id}?includeTabsContent=true"
+        response = await self._make_request("GET", url)
+
+        tabs = response.get("tabs", [])
+
+        # Find the requested tab
+        target_tab = None
+        for tab in tabs:
+            tab_props = tab.get("tabProperties", {})
+            if tab_props.get("tabId") == tab_id:
+                target_tab = tab
+                break
+
+        if not target_tab:
+            return {
+                "error": f"Tab '{tab_id}' not found in document",
+                "document_id": document_id,
+                "available_tabs": [
+                    t.get("tabProperties", {}).get("tabId")
+                    for t in tabs
+                    if "tabProperties" in t
+                ],
+            }
+
+        # Extract tab properties
+        tab_props = target_tab.get("tabProperties", {})
+
+        # Extract text content from tab body
+        tab_body = target_tab.get("documentTab", {}).get("body", {})
+        text_content = self._extract_doc_text(tab_body)
+
+        result = {
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "title": tab_props.get("title", ""),
+            "index": tab_props.get("index", 0),
+            "nesting_level": tab_props.get("nestingLevel", 0),
+            "text_content": text_content,
+        }
+
+        # Add optional fields
+        if "iconEmoji" in tab_props:
+            result["icon_emoji"] = tab_props["iconEmoji"]
+        if "parentTabId" in tab_props:
+            result["parent_tab_id"] = tab_props["parentTabId"]
+
+        return result
+
+    async def _create_document_tab(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new tab in a Google Doc.
+
+        Args:
+            arguments: Tool arguments with document_id, title, and optional icon_emoji, parent_tab_id, index.
+
+        Returns:
+            Created tab information including the new tab_id.
+        """
+        document_id = arguments["document_id"]
+        title = arguments["title"]
+        icon_emoji = arguments.get("icon_emoji")
+        parent_tab_id = arguments.get("parent_tab_id")
+        index = arguments.get("index")
+
+        # Build the createTab request
+        create_tab_request: dict[str, Any] = {
+            "createTab": {
+                "tabProperties": {
+                    "title": title,
+                }
+            }
+        }
+
+        # Add optional properties
+        if icon_emoji:
+            create_tab_request["createTab"]["tabProperties"]["iconEmoji"] = icon_emoji
+        if parent_tab_id:
+            create_tab_request["createTab"]["tabProperties"]["parentTabId"] = (
+                parent_tab_id
+            )
+        if index is not None:
+            create_tab_request["createTab"]["tabProperties"]["index"] = index
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [create_tab_request]}
+
+        response = await self._make_request("POST", url, json_data=body)
+
+        # Extract the created tab ID from the response
+        replies = response.get("replies", [])
+        if replies and "createTab" in replies[0]:
+            created_tab = replies[0]["createTab"]
+            return {
+                "status": "created",
+                "document_id": document_id,
+                "tab_id": created_tab.get("tabId"),
+                "title": title,
+            }
+
+        return {
+            "status": "created",
+            "document_id": document_id,
+            "title": title,
+        }
+
+    async def _update_tab_properties(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update properties of an existing tab.
+
+        Args:
+            arguments: Tool arguments with document_id, tab_id, and optional title, icon_emoji.
+
+        Returns:
+            Updated tab information.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+        title = arguments.get("title")
+        icon_emoji = arguments.get("icon_emoji")
+
+        if not title and not icon_emoji:
+            return {
+                "error": "At least one of 'title' or 'icon_emoji' must be provided",
+                "document_id": document_id,
+                "tab_id": tab_id,
+            }
+
+        # Build the updateTabProperties request
+        update_request: dict[str, Any] = {
+            "updateTabProperties": {
+                "tabId": tab_id,
+                "tabProperties": {},
+                "fields": [],
+            }
+        }
+
+        # Add properties to update
+        if title:
+            update_request["updateTabProperties"]["tabProperties"]["title"] = title
+            update_request["updateTabProperties"]["fields"].append("title")
+
+        if icon_emoji:
+            update_request["updateTabProperties"]["tabProperties"]["iconEmoji"] = (
+                icon_emoji
+            )
+            update_request["updateTabProperties"]["fields"].append("iconEmoji")
+
+        # Convert fields list to comma-separated string
+        update_request["updateTabProperties"]["fields"] = ",".join(
+            update_request["updateTabProperties"]["fields"]
+        )
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [update_request]}
+
+        await self._make_request("POST", url, json_data=body)
+
+        return {
+            "status": "updated",
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "updated_fields": update_request["updateTabProperties"]["fields"].split(
+                ","
+            ),
+        }
+
+    async def _move_tab(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Move a tab to a new position or change its parent.
+
+        Args:
+            arguments: Tool arguments with document_id, tab_id, and optional new_parent_tab_id, new_index.
+
+        Returns:
+            Moved tab information.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+        new_parent_tab_id = arguments.get("new_parent_tab_id")
+        new_index = arguments.get("new_index")
+
+        if new_parent_tab_id is None and new_index is None:
+            return {
+                "error": "At least one of 'new_parent_tab_id' or 'new_index' must be provided",
+                "document_id": document_id,
+                "tab_id": tab_id,
+            }
+
+        # Build the updateTabProperties request for moving
+        update_request: dict[str, Any] = {
+            "updateTabProperties": {
+                "tabId": tab_id,
+                "tabProperties": {},
+                "fields": [],
+            }
+        }
+
+        # Add properties to update
+        if new_parent_tab_id is not None:
+            # Empty string means move to root level
+            if new_parent_tab_id == "":
+                # To move to root, we need to remove the parentTabId
+                # This requires a different approach - we'll set it to null
+                update_request["updateTabProperties"]["tabProperties"][
+                    "parentTabId"
+                ] = None
+            else:
+                update_request["updateTabProperties"]["tabProperties"][
+                    "parentTabId"
+                ] = new_parent_tab_id
+            update_request["updateTabProperties"]["fields"].append("parentTabId")
+
+        if new_index is not None:
+            update_request["updateTabProperties"]["tabProperties"]["index"] = new_index
+            update_request["updateTabProperties"]["fields"].append("index")
+
+        # Convert fields list to comma-separated string
+        update_request["updateTabProperties"]["fields"] = ",".join(
+            update_request["updateTabProperties"]["fields"]
+        )
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [update_request]}
+
+        await self._make_request("POST", url, json_data=body)
+
+        return {
+            "status": "moved",
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "updated_fields": update_request["updateTabProperties"]["fields"].split(
+                ","
+            ),
+        }
+
     # Markdown Conversion Operations
     # =========================================================================
 
@@ -3346,6 +3837,202 @@ class GoogleWorkspaceServer:
             "id": result.get("id"),
             "name": result.get("name"),
             "mimeType": result.get("mimeType"),
+        }
+
+    async def _render_mermaid_to_doc(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Render Mermaid diagram to image and insert into Google Doc.
+
+        Uses @mermaid-js/mermaid-cli (npx) to render Mermaid code to SVG or PNG,
+        uploads the image to Google Drive with public sharing, then inserts
+        it into the specified Google Doc using InsertInlineImageRequest.
+
+        Args:
+            arguments: Tool arguments with document_id, mermaid_code, insert_index,
+                      image_format, width_pt, height_pt.
+
+        Returns:
+            Dictionary with status, image URL, insert index, and document ID.
+
+        Raises:
+            RuntimeError: If mermaid-cli rendering fails or npx is not available.
+            ValueError: If invalid mermaid syntax provided.
+        """
+        document_id = arguments["document_id"]
+        mermaid_code = arguments["mermaid_code"]
+        insert_index = arguments.get("insert_index")
+        image_format = arguments.get("image_format", "svg")
+        width_pt = arguments.get("width_pt")
+        height_pt = arguments.get("height_pt")
+
+        # Check if npx is available
+        try:
+            subprocess.run(  # nosec B603 B607 - npx is trusted
+                ["npx", "--version"],
+                capture_output=True,
+                check=True,
+            )
+        except FileNotFoundError as err:
+            raise RuntimeError(
+                "npx is not installed. Install Node.js and npm from:\n"
+                "  https://nodejs.org/"
+            ) from err
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "diagram.mmd"
+            output_path = Path(tmpdir) / f"diagram.{image_format}"
+
+            # Write Mermaid code to temp file
+            input_path.write_text(mermaid_code, encoding="utf-8")
+
+            # Render Mermaid diagram using mermaid-cli
+            try:
+                result = subprocess.run(  # nosec B603 B607 - controlled paths
+                    [
+                        "npx",
+                        "-y",
+                        "@mermaid-js/mermaid-cli@11.12.0",
+                        "-i",
+                        str(input_path),
+                        "-o",
+                        str(output_path),
+                    ],
+                    capture_output=True,
+                    check=True,
+                    text=True,
+                    timeout=30,
+                )
+                logger.info("Mermaid rendering output: %s", result.stdout)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"Mermaid rendering failed: {e.stderr}\n"
+                    f"Check syntax at https://mermaid.js.org/intro/"
+                ) from e
+            except subprocess.TimeoutExpired as e:
+                raise RuntimeError(
+                    "Mermaid rendering timed out (>30s). "
+                    "Simplify the diagram or try again."
+                ) from e
+
+            # Verify output file was created
+            if not output_path.exists():
+                raise RuntimeError(
+                    f"Mermaid-cli failed to create output file: {output_path}"
+                )
+
+            # Read the rendered image
+            image_content = output_path.read_bytes()
+            logger.info(
+                "Rendered Mermaid diagram: %d bytes (%s)",
+                len(image_content),
+                image_format,
+            )
+
+        # Upload image to Google Drive
+        access_token = await self._get_access_token()
+
+        # Create a temp folder in Drive for Mermaid diagrams
+        metadata: dict[str, Any] = {
+            "name": f"mermaid-diagram-{document_id[:8]}.{image_format}",
+            "mimeType": f"image/{image_format}+xml"
+            if image_format == "svg"
+            else f"image/{image_format}",
+        }
+
+        # Use multipart upload for the image
+        upload_url = (
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+        )
+
+        boundary = "mermaid_diagram_boundary"
+
+        # Build multipart body
+        body_start = (
+            f"--{boundary}\r\n"
+            f"Content-Type: application/json; charset=UTF-8\r\n\r\n"
+            f"{json.dumps(metadata)}\r\n"
+            f"--{boundary}\r\n"
+            f"Content-Type: {metadata['mimeType']}\r\n\r\n"
+        ).encode()
+        body_end = f"\r\n--{boundary}--".encode()
+
+        full_body = body_start + image_content + body_end
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                upload_url,
+                content=full_body,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": f"multipart/related; boundary={boundary}",
+                },
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            upload_result = response.json()
+
+        file_id = upload_result.get("id")
+        logger.info("Uploaded Mermaid image to Drive: %s", file_id)
+
+        # Make the file publicly accessible
+        permission_url = f"{DRIVE_API_BASE}/files/{file_id}/permissions"
+        permission_body = {"role": "reader", "type": "anyone"}
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                permission_url,
+                json=permission_body,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        # Get public URL for the image
+        public_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+
+        # Determine insert index
+        if insert_index is None:
+            # Get document to find end index
+            get_url = f"{DOCS_API_BASE}/documents/{document_id}"
+            doc = await self._make_request("GET", get_url)
+            content = doc.get("body", {}).get("content", [])
+            if content:
+                last_element = content[-1]
+                end_index = last_element.get("endIndex", 1)
+                insert_index = max(1, end_index - 1)
+            else:
+                insert_index = 1
+
+        # Insert image into Google Doc using batchUpdate
+        update_url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+
+        # Build InsertInlineImageRequest
+        image_request: dict[str, Any] = {
+            "insertInlineImage": {
+                "uri": public_url,
+                "location": {"index": insert_index},
+            }
+        }
+
+        # Add optional sizing
+        if width_pt or height_pt:
+            object_size: dict[str, Any] = {}
+            if width_pt:
+                object_size["width"] = {"magnitude": width_pt, "unit": "PT"}
+            if height_pt:
+                object_size["height"] = {"magnitude": height_pt, "unit": "PT"}
+            image_request["insertInlineImage"]["objectSize"] = object_size
+
+        body = {"requests": [image_request]}
+
+        await self._make_request("POST", update_url, json_data=body)
+
+        return {
+            "status": "success",
+            "imageUrl": public_url,
+            "fileId": file_id,
+            "insertIndex": insert_index,
+            "documentId": document_id,
+            "format": image_format,
         }
 
     # =========================================================================
