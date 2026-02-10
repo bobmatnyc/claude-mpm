@@ -12,6 +12,7 @@ DESIGN DECISIONS:
 """
 
 import os
+import shutil
 import subprocess  # nosec B404
 from pathlib import Path
 from typing import Any
@@ -682,10 +683,78 @@ class SetupCommand(BaseCommand):
                     "  curl -LsSf https://astral.sh/uv/install.sh | sh"
                 )
 
-            # Update configuration to use kuzu backend
+            # Migrate existing static memory files if present
+            console.print("\n[cyan]Checking for existing memory files...[/cyan]")
+            static_memory_dir = Path.cwd() / ".claude-mpm" / "memories"
+            memories_migrated = False
+
+            if static_memory_dir.exists() and list(static_memory_dir.glob("*.md")):
+                console.print(
+                    "[yellow]Found existing static memory files. Migrating to kuzu-memory...[/yellow]"
+                )
+
+                # Count memory files
+                memory_files = list(static_memory_dir.glob("*.md"))
+                console.print(f"  Found {len(memory_files)} memory file(s)")
+
+                # Migrate each memory file to kuzu-memory
+                for memory_file in memory_files:
+                    try:
+                        content = memory_file.read_text()
+                        agent_name = memory_file.stem
+
+                        # Use kuzu-memory CLI to import the memory
+                        import_result = subprocess.run(
+                            [
+                                "kuzu-memory",
+                                "learn",
+                                content,
+                                "--metadata",
+                                f"agent={agent_name}",
+                                "--metadata",
+                                "source=mpm_static_migration",
+                            ],
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )  # nosec B603 B607
+
+                        if import_result.returncode == 0:
+                            console.print(
+                                f"  [green]✓ Migrated {memory_file.name}[/green]"
+                            )
+                            memories_migrated = True
+                        else:
+                            console.print(
+                                f"  [yellow]⚠ Could not migrate {memory_file.name}: {import_result.stderr}[/yellow]"
+                            )
+
+                    except Exception as e:
+                        console.print(
+                            f"  [yellow]⚠ Error migrating {memory_file.name}: {e}[/yellow]"
+                        )
+
+                if memories_migrated:
+                    console.print(
+                        "[green]✓ Memory files migrated to kuzu-memory[/green]"
+                    )
+
+                    # Create backup of static memory files
+                    backup_dir = static_memory_dir.parent / "memories_backup"
+                    backup_dir.mkdir(exist_ok=True)
+
+                    for memory_file in memory_files:
+                        shutil.copy2(memory_file, backup_dir / memory_file.name)
+
+                    console.print(f"[green]✓ Backup created at: {backup_dir}[/green]")
+            else:
+                console.print("  No existing memory files to migrate")
+
+            # Update PROJECT-LOCAL configuration (not global)
             console.print("\n[cyan]Configuring kuzu-memory backend...[/cyan]")
 
-            config_path = Path.home() / ".claude-mpm" / "configuration.yaml"
+            # Use project-local config in .claude-mpm/configuration.yaml
+            config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
 
             # Load existing config or create new
             import yaml
@@ -714,7 +783,9 @@ class SetupCommand(BaseCommand):
             with open(config_path, "w") as f:
                 yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
-            console.print(f"[green]✓ Configuration updated: {config_path}[/green]")
+            console.print(
+                f"[green]✓ Project configuration updated: {config_path}[/green]"
+            )
 
             # Create database directory
             db_path = Path(config["memory"]["kuzu"].get("db_path", "./kuzu-memories"))
@@ -741,18 +812,34 @@ class SetupCommand(BaseCommand):
                 )
 
             console.print("\n[green]✓ Kuzu Memory setup complete![/green]")
+
+            # Build what changed message
+            what_changed = [
+                "  1. kuzu-memory v1.6.33+ installed (or re-used if already installed)",
+                "  2. Project-local configuration created (.claude-mpm/configuration.yaml)",
+                "  3. Memory backend set to 'kuzu' for THIS PROJECT ONLY",
+                "  4. Database directory created",
+                "  5. Subservient mode enabled (MPM controls hooks, project-only)",
+            ]
+
+            if memories_migrated:
+                what_changed.append(
+                    "  6. Existing static memory files migrated and backed up"
+                )
+
+            console.print("\n[dim]What changed:[/dim]")
+            console.print("\n".join(what_changed))
+
             console.print(
-                "\n[dim]What changed:[/dim]\n"
-                "  1. kuzu-memory v1.6.33+ installed with subservient mode support\n"
-                "  2. Memory backend set to 'kuzu' in configuration\n"
-                "  3. Database directory created\n"
-                "  4. Subservient mode enabled (MPM controls hooks)\n"
                 "\n[dim]Next steps:[/dim]\n"
                 "  1. Start Claude MPM to use graph-based memory\n"
                 "  2. Your memories will be stored in the graph database\n"
                 "  3. Use semantic search for better context retrieval\n"
-                "\n[dim]Note:[/dim] kuzu-memory will not install its own hooks.\n"
-                "Claude MPM manages the hook system and calls kuzu as a backend.\n"
+                "\n[dim]Important:[/dim]\n"
+                "  • Configuration is PROJECT-LOCAL (not global)\n"
+                "  • Hooks are PROJECT-ONLY (not system-wide)\n"
+                "  • kuzu-memory operates in subservient mode\n"
+                "  • Each project can have its own memory backend configuration\n"
             )
 
             return CommandResult.success_result("Kuzu Memory setup completed")
