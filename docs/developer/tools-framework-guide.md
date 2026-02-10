@@ -70,7 +70,7 @@ claude-mpm tools google gmail-export \
   "data": {
     "messages": [
       {
-        "id": "1a2b3c4d5e6f",
+        "id": "1a2b3c4d5e6f",  # pragma: allowlist secret
         "thread_id": "thread123",
         ...
       }

@@ -27,6 +27,7 @@ claude-mpm run --monitor
 
 ### Integrations
 - **[Slack Setup](integrations/SLACK_SETUP.md)** - Integrate with Slack
+- **[Slack Setup Guide](integrations/slack-setup.md)** - Detailed Slack configuration
 - **[Slack User Proxy Setup](integrations/SLACK_USER_PROXY_SETUP.md)** - User proxy configuration for Slack
 - **[MCP Session Server](integrations/mcp-session-server.md)** - Programmatic session management via MCP
 
@@ -60,6 +61,11 @@ claude-mpm run --monitor
 - **[Documentation Audit](development/DOCUMENTATION-AUDIT.md)** - Documentation audit results
 - **[Agent Skills Spec Implementation](development/agentskills-spec-implementation.md)** - Skills specification
 - **[Dashboard File Tree Enhancements](development/DASHBOARD_FILE_TREE_ENHANCEMENTS.md)** - Dashboard improvements
+
+### Developer Reference
+- **[Startup Procedures](developer/startup/STARTUP-PROCEDURES.md)** - Complete initialization sequence
+- **[Tools Framework Guide](developer/tools-framework-guide.md)** - Tool development guide
+- **[Token Usage Verification](developer/token-usage-verification-findings.md)** - Token usage analysis
 
 ### User Guide
 - **[User Guide](user/user-guide.md)** - Complete user documentation
