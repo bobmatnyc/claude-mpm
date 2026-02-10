@@ -30,13 +30,14 @@ Available services:
   google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
   oauth                  Set up OAuth authentication (requires --oauth-service)
   kuzu-memory            Set up kuzu-memory integration
+  mcp-vector-search      Set up mcp-vector-search semantic code search
 
 Service options:
   --oauth-service NAME   Service name for OAuth setup (required for oauth)
   --no-browser           Don't auto-open browser for authentication (oauth only)
   --no-launch            Don't auto-launch claude-mpm after setup (slack, google-workspace-mcp, oauth)
   --no-start             Exit before launching claude-mpm (kuzu-memory only)
-  --force                Force credential re-entry (oauth only)
+  --force                Force credential re-entry (oauth only) or reinstall (mcp-vector-search only)
 
 Examples:
   # Single service
@@ -53,6 +54,12 @@ Examples:
 
   # Multiple services with mixed options
   claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-launch
+
+  # Set up mcp-vector-search
+  claude-mpm setup mcp-vector-search
+
+  # Force reinstall mcp-vector-search
+  claude-mpm setup mcp-vector-search --force
 
 Note: Flags are associated with the service that precedes them.
         """,

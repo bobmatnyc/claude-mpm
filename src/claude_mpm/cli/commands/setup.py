@@ -48,6 +48,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
         "notion",
         "confluence",
         "kuzu-memory",
+        "mcp-vector-search",
     }
     services = []
     current_service = None
@@ -94,7 +95,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, oauth, kuzu-memory) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, oauth, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -165,6 +166,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_confluence(service_args)
             elif service_name == "kuzu-memory":
                 result = self._setup_kuzu_memory(service_args)
+            elif service_name == "mcp-vector-search":
+                result = self._setup_mcp_vector_search(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             else:
@@ -206,6 +209,7 @@ class SetupCommand(BaseCommand):
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
+  mcp-vector-search      Set up mcp-vector-search semantic code search
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -229,6 +233,12 @@ class SetupCommand(BaseCommand):
 
   # Multiple services with options
   claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-launch
+
+  # Set up mcp-vector-search
+  claude-mpm setup mcp-vector-search
+
+  # With force flag to reinstall
+  claude-mpm setup mcp-vector-search --force
 
 [dim]Note: Flags apply to the service that precedes them.[/dim]
 """
@@ -858,6 +868,120 @@ class SetupCommand(BaseCommand):
                     sys.exit(0)
 
             return CommandResult.success_result("Kuzu Memory setup completed")
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Setup cancelled by user[/yellow]")
+            return CommandResult.error_result("Setup cancelled")
+        except Exception as e:
+            return CommandResult.error_result(f"Error during setup: {e}")
+
+    def _setup_mcp_vector_search(self, args) -> CommandResult:
+        """Set up mcp-vector-search semantic code search."""
+        try:
+            console.print(
+                "\n[bold]MCP Vector Search Setup[/bold]\n"
+                "This will set up semantic code search with vector embeddings.\n"
+            )
+
+            # Check if mcp-vector-search is installed
+            console.print("[cyan]Checking mcp-vector-search installation...[/cyan]")
+            force = getattr(args, "force", False)
+
+            # Try to import mcp-vector-search
+            try:
+                import importlib.util
+
+                spec = importlib.util.find_spec("mcp_vector_search")
+                is_installed = spec is not None
+            except (ImportError, ModuleNotFoundError):
+                is_installed = False
+
+            if not is_installed:
+                console.print(
+                    "[yellow]mcp-vector-search not found. Installing...[/yellow]"
+                )
+                # Install mcp-vector-search using uv
+                install_result = subprocess.run(
+                    [
+                        "uv",
+                        "tool",
+                        "install",
+                        "mcp-vector-search",
+                        "--python",
+                        "3.13",
+                    ],
+                    check=False,
+                )  # nosec B603 B607
+
+                if install_result.returncode != 0:
+                    return CommandResult.error_result(
+                        "Failed to install mcp-vector-search. "
+                        "Try manually: uv tool install mcp-vector-search --python 3.13"
+                    )
+
+                console.print("[green]✓ mcp-vector-search installed[/green]")
+            else:
+                console.print("[green]✓ mcp-vector-search already installed[/green]")
+
+            # Use MCPExternalServicesSetup to configure .mcp.json
+            console.print(
+                "\n[cyan]Configuring mcp-vector-search in .mcp.json...[/cyan]"
+            )
+
+            from .mcp_setup_external import MCPExternalServicesSetup
+
+            handler = MCPExternalServicesSetup(console)
+
+            # Load or create .mcp.json
+
+            mcp_config_path = Path.cwd() / ".mcp.json"
+            config = handler._load_config(mcp_config_path)
+
+            if config is None:
+                return CommandResult.error_result("Failed to load configuration")
+
+            # Ensure mcpServers section exists
+            if "mcpServers" not in config:
+                config["mcpServers"] = {}
+
+            # Get configuration for mcp-vector-search
+            project_path = Path.cwd()
+            services = handler.get_project_services(project_path)
+            service_info = services.get("mcp-vector-search")
+
+            if not service_info:
+                return CommandResult.error_result(
+                    "mcp-vector-search service not found in registry"
+                )
+
+            # Setup the service
+            success = handler._setup_service(
+                config, "mcp-vector-search", service_info, force
+            )
+
+            if success:
+                # Save configuration
+                if handler._save_config(config, mcp_config_path):
+                    console.print(
+                        "\n[green]✓ MCP Vector Search setup complete![/green]"
+                    )
+                    console.print(
+                        "\n[dim]What changed:[/dim]\n"
+                        "  1. mcp-vector-search installed (or re-used if already installed)\n"
+                        "  2. Configuration added to .mcp.json\n"
+                        "  3. MCP server will be available in Claude Code\n"
+                    )
+                    console.print(
+                        "\n[dim]Next steps:[/dim]\n"
+                        "  1. Start Claude Code to use semantic code search\n"
+                        "  2. Your code will be indexed for vector search\n"
+                        "  3. Use search tools for better context retrieval\n"
+                    )
+                    return CommandResult.success_result(
+                        "MCP Vector Search setup completed"
+                    )
+                return CommandResult.error_result("Failed to save configuration")
+            return CommandResult.error_result("Failed to configure mcp-vector-search")
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Setup cancelled by user[/yellow]")
