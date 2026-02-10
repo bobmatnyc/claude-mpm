@@ -40,7 +40,14 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     if not service_args:
         return []
 
-    valid_services = {"slack", "google-workspace-mcp", "oauth"}
+    valid_services = {
+        "slack",
+        "google-workspace-mcp",
+        "oauth",
+        "notion",
+        "confluence",
+        "kuzu-memory",
+    }
     services = []
     current_service = None
     current_options = {}
@@ -155,6 +162,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_notion(service_args)
             elif service_name == "confluence":
                 result = self._setup_confluence(service_args)
+            elif service_name == "kuzu-memory":
+                result = self._setup_kuzu_memory(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             else:
@@ -195,6 +204,7 @@ class SetupCommand(BaseCommand):
   google-workspace-mcp   Set up Google Workspace MCP (includes OAuth)
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
+  kuzu-memory            Set up kuzu-memory graph-based memory backend
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -609,6 +619,109 @@ class SetupCommand(BaseCommand):
             )
 
             return CommandResult.success_result("Confluence setup completed")
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Setup cancelled by user[/yellow]")
+            return CommandResult.error_result("Setup cancelled")
+        except Exception as e:
+            return CommandResult.error_result(f"Error during setup: {e}")
+
+    def _setup_kuzu_memory(self, args) -> CommandResult:
+        """Set up kuzu-memory graph-based memory backend."""
+        try:
+            console.print(
+                "\n[bold]Kuzu Memory Setup[/bold]\n"
+                "This will replace static file-based memory with graph-based kuzu-memory.\n"
+                "Kuzu-memory provides semantic search and enhanced context management.\n"
+            )
+
+            # Check if kuzu-memory is installed
+            console.print("[cyan]Checking kuzu-memory installation...[/cyan]")
+            try:
+                result = subprocess.run(
+                    ["kuzu-memory", "--version"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )  # nosec B603 B607
+
+                if result.returncode != 0:
+                    console.print(
+                        "[yellow]kuzu-memory not found. Installing...[/yellow]"
+                    )
+                    install_result = subprocess.run(
+                        ["uv", "tool", "install", "kuzu-memory", "--python", "3.13"],
+                        check=False,
+                    )  # nosec B603 B607
+
+                    if install_result.returncode != 0:
+                        return CommandResult.error_result(
+                            "Failed to install kuzu-memory. "
+                            "Try manually: uv tool install kuzu-memory --python 3.13"
+                        )
+
+                    console.print("[green]✓ kuzu-memory installed[/green]")
+                else:
+                    console.print("[green]✓ kuzu-memory already installed[/green]")
+
+            except FileNotFoundError:
+                return CommandResult.error_result(
+                    "uv not found. Please install uv first:\n"
+                    "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+                )
+
+            # Update configuration to use kuzu backend
+            console.print("\n[cyan]Configuring kuzu-memory backend...[/cyan]")
+
+            config_path = Path.home() / ".claude-mpm" / "configuration.yaml"
+
+            # Load existing config or create new
+            import yaml
+
+            if config_path.exists():
+                with open(config_path) as f:
+                    config = yaml.safe_load(f) or {}
+            else:
+                config = {}
+
+            # Set memory backend to kuzu
+            if "memory" not in config:
+                config["memory"] = {}
+
+            config["memory"]["backend"] = "kuzu"
+
+            # Set default kuzu config if not present
+            if "kuzu" not in config["memory"]:
+                config["memory"]["kuzu"] = {
+                    "project_root": str(Path.cwd()),
+                    "db_path": str(Path.cwd() / "kuzu-memories"),
+                }
+
+            # Save config
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "w") as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+            console.print(f"[green]✓ Configuration updated: {config_path}[/green]")
+
+            # Create database directory
+            db_path = Path(config["memory"]["kuzu"].get("db_path", "./kuzu-memories"))
+            db_path.mkdir(parents=True, exist_ok=True)
+            console.print(f"[green]✓ Created database directory: {db_path}[/green]")
+
+            console.print("\n[green]✓ Kuzu Memory setup complete![/green]")
+            console.print(
+                "\n[dim]What changed:[/dim]\n"
+                "  1. kuzu-memory installed as uv tool\n"
+                "  2. Memory backend set to 'kuzu' in configuration\n"
+                "  3. Database directory created\n"
+                "\n[dim]Next steps:[/dim]\n"
+                "  1. Start Claude MPM to use graph-based memory\n"
+                "  2. Your memories will be stored in the graph database\n"
+                "  3. Use semantic search for better context retrieval\n"
+            )
+
+            return CommandResult.success_result("Kuzu Memory setup completed")
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Setup cancelled by user[/yellow]")
