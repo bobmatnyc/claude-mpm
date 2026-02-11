@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.28] - 2026-02-11
+
+### Added
+- **PM Bug Reporting**: External system bug routing support for delegating bugs to external systems
+
 ## [5.7.27] - 2026-02-11
 
 ### Fixed
