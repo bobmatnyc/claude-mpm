@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.32] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory dependencies**: Fix numpy dependency issue in uv tool install
+
 ## [5.7.31] - 2026-02-11
 
 ### Fixed
