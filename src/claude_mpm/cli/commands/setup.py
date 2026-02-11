@@ -53,7 +53,21 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
         "kuzu-memory",
         "mcp-vector-search",
         "mcp-skillset",
+        "mcp-ticketer",
     }
+
+    # Pre-process service_args to split comma-separated values
+    expanded_args = []
+    for arg in service_args:
+        if "," in arg:
+            # Split on commas and add each part
+            expanded_args.extend(
+                [part.strip() for part in arg.split(",") if part.strip()]
+            )
+        else:
+            expanded_args.append(arg)
+    service_args = expanded_args
+
     services = []
     current_service = None
     current_options = {}
@@ -97,16 +111,9 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
                 i += 1
             continue
 
-        # Check if user used commas instead of spaces
-        if "," in arg:
-            raise ValueError(
-                f"Invalid argument '{arg}'. Services should be space-separated, not comma-separated. "
-                f"Example: 'claude-mpm setup kuzu-memory mcp-vector-search' (not 'kuzu-memory,mcp-vector-search')"
-            )
-
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -184,6 +191,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_mcp_vector_search(service_args)
             elif service_name == "mcp-skillset":
                 result = self._setup_mcp_skillset(service_args)
+            elif service_name == "mcp-ticketer":
+                result = self._setup_mcp_ticketer(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             else:
@@ -227,6 +236,7 @@ class SetupCommand(BaseCommand):
   kuzu-memory            Set up kuzu-memory graph-based memory backend
   mcp-vector-search      Set up mcp-vector-search semantic code search
   mcp-skillset           Set up mcp-skillset RAG-powered skills via MCP
+  mcp-ticketer           Set up mcp-ticketer ticket management via MCP
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -1245,6 +1255,48 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         except Exception as e:
             console.print(f"[red]✗ Failed to setup mcp-skillset: {e}[/red]")
             return CommandResult.error_result(f"Failed to setup mcp-skillset: {e}")
+
+    def _setup_mcp_ticketer(self, args) -> CommandResult:
+        """Setup mcp-ticketer with MPM hook integration.
+
+        Args:
+            args: Setup options (currently unused)
+
+        Returns:
+            CommandResult indicating success or failure
+        """
+        console.print("\n[bold cyan]Setting up mcp-ticketer...[/bold cyan]")
+
+        try:
+            # Run mcp-ticketer setup with auto mode
+            # This integrates with MPM's hook system automatically
+            result = subprocess.run(
+                ["mcp-ticketer", "setup", "--auto"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )  # nosec B603 B607
+
+            if result.returncode == 0:
+                console.print("[green]✓ mcp-ticketer configured successfully[/green]")
+                console.print("  [dim]Hooks integrated with MPM hook system[/dim]")
+                return CommandResult.success_result("mcp-ticketer setup completed")
+
+            console.print(
+                "[yellow]⚠ mcp-ticketer setup completed with warnings:[/yellow]"
+            )
+            console.print(f"  {result.stderr.strip()}")
+            return CommandResult.success_result(
+                "mcp-ticketer setup completed with warnings"
+            )
+
+        except FileNotFoundError:
+            console.print("[red]✗ mcp-ticketer not found. Install with:[/red]")
+            console.print("  pip install mcp-ticketer")
+            return CommandResult.error_result("mcp-ticketer not installed")
+        except Exception as e:
+            console.print(f"[red]✗ Failed to setup mcp-ticketer: {e}[/red]")
+            return CommandResult.error_result(f"Failed to setup mcp-ticketer: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
         """Set up Google Workspace MCP (delegates to OAuth setup)."""
