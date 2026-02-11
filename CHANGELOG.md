@@ -10,6 +10,18 @@
 
 ### Tests
 
+## [5.7.33] - 2026-02-11
+
+### Fixed
+- **Dashboard display**: Fresh installations now properly show tools, files, and agents
+  - Fixed event categorization in broadcaster.py
+  - Fixed correlation_id extraction in event-correlation.ts
+  - Fixed Svelte 5 reactivity issues with object wrapper pattern
+  - Fixed stream filter for 'all-streams' option
+  - Added processedEventIds to prevent duplicates in FilesView
+  - Enhanced file path extraction for notebook_path field
+  - Fixed FileViewer content fetch with proper vite proxy configuration
+
 ## [5.7.32] - 2026-02-11
 
 ### Fixed
