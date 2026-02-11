@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.7.30] - 2026-02-11
+
+### Added
+- **mcp-skillset integration**: Added mcp-skillset to setup command for skill management
+
+### Fixed
+- **Setup command**: Improved error messages for invalid arguments
+
 ## [5.7.29] - 2026-02-11
 
 ### Fixed
