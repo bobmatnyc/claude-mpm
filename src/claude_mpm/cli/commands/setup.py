@@ -96,9 +96,16 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
                 i += 1
             continue
 
+        # Check if user used commas instead of spaces
+        if "," in arg:
+            raise ValueError(
+                f"Invalid argument '{arg}'. Services should be space-separated, not comma-separated. "
+                f"Example: 'claude-mpm setup kuzu-memory mcp-vector-search' (not 'kuzu-memory,mcp-vector-search')"
+            )
+
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
