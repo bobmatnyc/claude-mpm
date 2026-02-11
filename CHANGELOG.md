@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.7.29] - 2026-02-11
+
+### Fixed
+- **Setup command**: Prevent auto-config from interfering with setup command (issue #297)
+  - Auto-configuration now skips during setup to avoid race conditions
+  - Setup command has exclusive control over .mcp.json during installation
+
 ## [5.7.28] - 2026-02-11
 
 ### Added
