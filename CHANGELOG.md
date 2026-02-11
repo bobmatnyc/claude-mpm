@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.7.26] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory hooks**: Remove independent hooks during setup to prevent conflicts with unified hooks
+
+### Changed
+- **PM instructions**: Circuit Breaker #13 - Language Detection for multilingual support
+- **PM instructions**: Circuit Breaker #13 - Model Preference handling for optimal model selection
+- **PM instructions**: Circuit Breaker #13 - Research Gate for preventing premature implementation
+
 ## [5.7.25] - 2026-02-10
 
 ### Added
