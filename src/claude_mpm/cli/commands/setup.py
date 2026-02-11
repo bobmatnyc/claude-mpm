@@ -784,6 +784,8 @@ class SetupCommand(BaseCommand):
                                 "tool",
                                 "install",
                                 "kuzu-memory>=1.6.33",
+                                "--with",
+                                "numpy",
                                 "--python",
                                 "3.13",
                             ],
