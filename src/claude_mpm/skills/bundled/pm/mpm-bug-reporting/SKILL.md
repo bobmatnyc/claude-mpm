@@ -29,6 +29,27 @@ Route bugs to the correct repository:
 | Agent bugs (wrong behavior, errors, missing capabilities) | claude-mpm-agents | bobmatnyc/claude-mpm-agents |
 | Skill bugs (wrong info, outdated, missing content) | claude-mpm-skills | bobmatnyc/claude-mpm-skills |
 
+### External System Bug Routing
+
+**Decision tree:**
+- Bug in MPM startup/config/delegation → `bobmatnyc/claude-mpm`
+- Bug in agent behavior → `bobmatnyc/claude-mpm-agents`
+- Bug in skill content → `bobmatnyc/claude-mpm-skills`
+- Bug in external system (installed via setup) → That system's GitHub repo
+
+**External systems installed via `claude-mpm setup`:**
+- `kuzu-memory` → File issue at kuzu-memory's GitHub
+- `mcp-vector-search` → File issue at mcp-vector-search's GitHub
+- `slack-user-proxy` → File issue at slack-user-proxy's GitHub
+- `google-workspace-mpm` → File issue at google-workspace-mpm's GitHub
+- Other MCP servers → Check their GitHub repos
+
+**Examples:**
+- "Vector search returns no results" → mcp-vector-search repo
+- "Kuzu memory fails to persist" → kuzu-memory repo
+- "PM fails to delegate" → claude-mpm repo
+- "Research agent crashes" → claude-mpm-agents repo
+
 ## Bug Report Template
 
 When creating an issue, include:
