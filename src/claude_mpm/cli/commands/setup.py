@@ -863,6 +863,47 @@ class SetupCommand(BaseCommand):
                         shutil.copy2(memory_file, backup_dir / memory_file.name)
 
                     console.print(f"[green]✓ Backup created at: {backup_dir}[/green]")
+
+                    # Archive original files to prevent re-import
+                    console.print("\n[cyan]Archiving original files...[/cyan]")
+                    archive_dir = static_memory_dir / ".migrated"
+                    archive_dir.mkdir(exist_ok=True)
+
+                    archived_count = 0
+                    for memory_file in memory_files:
+                        try:
+                            dest = archive_dir / memory_file.name
+                            memory_file.rename(dest)
+                            console.print(f"  [dim]✓ Archived {memory_file.name}[/dim]")
+                            archived_count += 1
+                        except Exception as e:
+                            console.print(
+                                f"  [yellow]⚠ Could not archive {memory_file.name}: {e}[/yellow]"
+                            )
+
+                    if archived_count > 0:
+                        # Create README in archive directory
+                        from datetime import datetime, timezone
+
+                        readme_content = f"""# Migrated Memory Files
+
+These static memory files were migrated to kuzu-memory on {datetime.now(timezone.utc).isoformat()}.
+
+**Status**: These files are archived and no longer active. The kuzu-memory graph database now manages all memories.
+
+**Backup**: Backup copies exist in `../memories_backup/` for recovery if needed.
+
+**Recovery**: If you need to restore these files, copy them back to `../` (parent directory).
+"""
+                        try:
+                            (archive_dir / "README.md").write_text(readme_content)
+                            console.print(
+                                f"[green]✓ Archived {archived_count} file(s) to .migrated/[/green]"
+                            )
+                        except Exception as e:
+                            console.print(
+                                f"[yellow]Warning: Could not create archive README: {e}[/yellow]"
+                            )
             else:
                 console.print("  No existing memory files to migrate")
 
