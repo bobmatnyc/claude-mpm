@@ -1683,6 +1683,12 @@ def check_mcp_auto_configuration():
     users to select services, setup has exclusive control over .mcp.json during
     installation).
     """
+    # Check if auto-config should be skipped via environment variable
+    # (set by configure command when launching run)
+    if os.getenv("CLAUDE_MPM_SKIP_AUTO_CONFIG") == "1":
+        os.environ.pop("CLAUDE_MPM_SKIP_AUTO_CONFIG", None)  # Clear immediately
+        return
+
     # Skip MCP service checks for the doctor, configure, and setup commands
     # The doctor command performs its own comprehensive MCP service check
     # The configure command allows users to configure which services to enable
