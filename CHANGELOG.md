@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.7.27] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory**: Archive migrated memory files to prevent re-import
+
 ## [5.7.26] - 2026-02-11
 
 ### Fixed
