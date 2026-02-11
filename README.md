@@ -361,6 +361,50 @@ claude-mpm agent-source add https://github.com/yourorg/your-agents --test
 
 ---
 
+## Integrations
+
+Claude MPM supports multiple integrations for enhanced functionality. See **[Complete Integration Documentation](docs/integrations/README.md)** for detailed setup guides.
+
+### Core Integrations
+
+- **[kuzu-memory](docs/integrations/kuzu-memory.md)** - Graph-based semantic memory for project context
+- **[mcp-vector-search](docs/integrations/mcp-vector-search.md)** - AI-powered semantic code search and discovery
+
+### External Services
+
+- **[Google Workspace MCP](docs/integrations/gworkspace-mcp.md)** - Gmail, Calendar, Drive, Docs, Tasks (67 tools)
+- **[Slack](docs/integrations/slack.md)** - Slack workspace integration via user proxy
+- **[Notion](docs/integrations/NOTION_SETUP.md)** - Notion databases and pages (7 MCP tools + bulk CLI)
+- **[Confluence](docs/integrations/CONFLUENCE_SETUP.md)** - Confluence pages and spaces (7 MCP tools + bulk CLI)
+
+### Quick Setup
+
+```bash
+# Setup any integration with one command
+claude-mpm setup <integration>
+
+# Examples:
+claude-mpm setup kuzu-memory
+claude-mpm setup mcp-vector-search
+claude-mpm setup google-workspace-mcp
+claude-mpm setup slack
+claude-mpm setup notion
+claude-mpm setup confluence
+
+# Setup multiple at once
+claude-mpm setup kuzu-memory mcp-vector-search google-workspace-mcp
+```
+
+**Integration Features:**
+- One-command setup for all services
+- Secure OAuth 2.0 authentication (Google Workspace, Slack)
+- Encrypted token storage in system keychain
+- Automatic token refresh
+- MCP protocol for standardized tool interfaces
+- Bulk CLI operations for high-performance batch processing
+
+---
+
 ## Contributing
 
 Contributions are welcome! Please see:
