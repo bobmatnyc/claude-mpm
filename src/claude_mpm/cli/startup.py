@@ -84,10 +84,10 @@ def cleanup_user_level_hooks() -> bool:
 
 
 def sync_hooks_on_startup(quiet: bool = False) -> bool:
-    """Ensure hooks are up-to-date on startup.
+    """Sync hooks on startup if not already installed.
 
     WHY: Users can have stale hook configurations in settings.json that cause errors.
-    Reinstalling hooks ensures the hook format matches the current code.
+    This ensures hooks exist without reinstalling on every startup (which causes lock conflicts).
 
     DESIGN DECISION: Shows brief status message on success for user awareness.
     Failures are logged but don't prevent startup to ensure claude-mpm
@@ -127,8 +127,14 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         if is_tty:
             print("Installing project hooks...", end=" ", flush=True)
 
-        # Reinstall hooks (force=True ensures update)
-        success = installer.install_hooks(force=True)
+        # Check if hooks need installation
+        status = installer.get_status()
+        if not status.get("installed", False):
+            # Hooks not installed, install them now
+            success = installer.install_hooks(force=False)
+        else:
+            # Hooks already installed, skip reinstall to avoid file lock conflicts
+            success = True
 
         if is_tty:
             if success:

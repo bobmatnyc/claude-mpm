@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.7.31] - 2026-02-11
+
+### Fixed
+- **Hook installation**: Prevent reinstalling hooks on every startup to avoid file lock conflicts
+  - sync_hooks_on_startup() now checks installation status before attempting reinstall
+  - Fixes "file is locked" errors during hook execution caused by concurrent writes to settings.local.json
+
 ## [5.7.30] - 2026-02-11
 
 ### Added
