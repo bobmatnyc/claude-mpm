@@ -11,6 +11,7 @@ DESIGN DECISIONS:
 - Delegate to service-specific handlers
 """
 
+import json
 import os
 import shutil
 import subprocess  # nosec B404
@@ -248,6 +249,60 @@ class SetupCommand(BaseCommand):
 [dim]Note: Flags apply to the service that precedes them.[/dim]
 """
         console.print(help_text)
+
+    def _remove_kuzu_memory_hooks(self) -> bool:
+        """Remove kuzu-memory's independent hooks from Claude Code settings.
+
+        This is called after setting up subservient mode to ensure kuzu-memory
+        integrates through MPM's hook system instead of running independently.
+        """
+        settings_path = Path.home() / ".claude" / "settings.local.json"
+
+        if not settings_path.exists():
+            # No settings file, nothing to clean
+            return True
+
+        try:
+            # Load settings
+            with open(settings_path) as f:
+                settings = json.load(f)
+
+            hooks = settings.get("hooks", {})
+            removed = []
+
+            # Find and remove kuzu-memory hooks
+            for hook_name, hook_config in list(hooks.items()):
+                if isinstance(hook_config, dict):
+                    command = hook_config.get("command", "")
+                    if "kuzu-memory hooks" in command or "/kuzu-memory" in command:
+                        del hooks[hook_name]
+                        removed.append(hook_name)
+
+            if removed:
+                # Save cleaned settings
+                settings["hooks"] = hooks
+                with open(settings_path, "w") as f:
+                    json.dump(settings, f, indent=2)
+
+                console.print(
+                    f"[green]✓ Removed {len(removed)} kuzu-memory hooks: "
+                    f"{', '.join(removed)}[/green]"
+                )
+                console.print(
+                    "[dim]kuzu-memory will now integrate through claude-mpm hooks[/dim]"
+                )
+
+            return True
+
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not remove kuzu-memory hooks: {e}[/yellow]"
+            )
+            console.print(
+                "[dim]You may need to manually remove them from "
+                ".claude/settings.local.json[/dim]"
+            )
+            return False
 
     def _configure_slack_mcp_server(self) -> None:
         """Configure slack-user-proxy MCP server in .mcp.json after OAuth setup."""
@@ -871,6 +926,10 @@ class SetupCommand(BaseCommand):
                 console.print(
                     f"[yellow]Warning: Could not create .kuzu-memory-config: {e}[/yellow]"
                 )
+
+            # Remove kuzu-memory's independent hooks
+            console.print("\n[cyan]Cleaning up kuzu-memory hooks...[/cyan]")
+            self._remove_kuzu_memory_hooks()
 
             console.print("\n[green]✓ Kuzu Memory setup complete![/green]")
 
