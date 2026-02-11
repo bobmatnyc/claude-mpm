@@ -52,6 +52,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
         "confluence",
         "kuzu-memory",
         "mcp-vector-search",
+        "mcp-skillset",
     }
     services = []
     current_service = None
@@ -105,7 +106,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -181,6 +182,8 @@ class SetupCommand(BaseCommand):
                 result = self._setup_kuzu_memory(service_args)
             elif service_name == "mcp-vector-search":
                 result = self._setup_mcp_vector_search(service_args)
+            elif service_name == "mcp-skillset":
+                result = self._setup_mcp_skillset(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
             else:
@@ -223,6 +226,7 @@ class SetupCommand(BaseCommand):
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
   mcp-vector-search      Set up mcp-vector-search semantic code search
+  mcp-skillset           Set up mcp-skillset RAG-powered skills via MCP
   oauth                  Set up OAuth authentication
 
 [bold]Service Options:[/bold]
@@ -1199,6 +1203,48 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             return CommandResult.error_result("Setup cancelled")
         except Exception as e:
             return CommandResult.error_result(f"Error during setup: {e}")
+
+    def _setup_mcp_skillset(self, args) -> CommandResult:
+        """Setup mcp-skillset with MPM hook integration.
+
+        Args:
+            args: Setup options (currently unused)
+
+        Returns:
+            CommandResult indicating success or failure
+        """
+        console.print("\n[bold cyan]Setting up mcp-skillset...[/bold cyan]")
+
+        try:
+            # Run mcp-skillset setup with auto mode
+            # This integrates with MPM's hook system automatically
+            result = subprocess.run(
+                ["mcp-skillset", "setup", "--auto"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )  # nosec B603 B607
+
+            if result.returncode == 0:
+                console.print("[green]✓ mcp-skillset configured successfully[/green]")
+                console.print("  [dim]Hooks integrated with MPM hook system[/dim]")
+                return CommandResult.success_result("mcp-skillset setup completed")
+
+            console.print(
+                "[yellow]⚠ mcp-skillset setup completed with warnings:[/yellow]"
+            )
+            console.print(f"  {result.stderr.strip()}")
+            return CommandResult.success_result(
+                "mcp-skillset setup completed with warnings"
+            )
+
+        except FileNotFoundError:
+            console.print("[red]✗ mcp-skillset not found. Install with:[/red]")
+            console.print("  pip install mcp-skillset")
+            return CommandResult.error_result("mcp-skillset not installed")
+        except Exception as e:
+            console.print(f"[red]✗ Failed to setup mcp-skillset: {e}[/red]")
+            return CommandResult.error_result(f"Failed to setup mcp-skillset: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
         """Set up Google Workspace MCP (delegates to OAuth setup)."""
