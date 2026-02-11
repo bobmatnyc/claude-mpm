@@ -1678,15 +1678,17 @@ def check_mcp_auto_configuration():
     a 10-second timeout. Shows progress feedback during checks to avoid
     appearing frozen.
 
-    OPTIMIZATION: Skip ALL MCP checks for doctor and configure commands to avoid
-    duplicate checks (doctor performs its own comprehensive check, configure
-    allows users to select services).
+    OPTIMIZATION: Skip ALL MCP checks for doctor, configure, and setup commands to
+    avoid conflicts (doctor performs its own comprehensive check, configure allows
+    users to select services, setup has exclusive control over .mcp.json during
+    installation).
     """
-    # Skip MCP service checks for the doctor and configure commands
+    # Skip MCP service checks for the doctor, configure, and setup commands
     # The doctor command performs its own comprehensive MCP service check
     # The configure command allows users to configure which services to enable
-    # Running both would cause duplicate checks and log messages (9 seconds apart)
-    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure"):
+    # The setup command installs MCP servers with exclusive control over .mcp.json
+    # Running auto-configuration during these commands would cause conflicts
+    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure", "setup"):
         return
 
     try:
