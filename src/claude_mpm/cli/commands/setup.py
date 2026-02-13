@@ -112,7 +112,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --force)"
         )
 
     # Save last service
@@ -225,11 +225,9 @@ class SetupCommand(BaseCommand):
                 style="bold",
             )
 
-        # Launch claude-mpm after all services are set up (unless --no-launch or --no-start specified)
+        # Launch claude-mpm after all services are set up (unless --no-launch specified)
         # Only launch if at least one service succeeded
-        no_launch = getattr(args, "no_launch", False) or getattr(
-            args, "no_start", False
-        )
+        no_launch = getattr(args, "no_launch", False)
         if not no_launch and len(successful) > 0:
             console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
             try:
@@ -268,9 +266,9 @@ class SetupCommand(BaseCommand):
 
 [bold]Service Options:[/bold]
   --oauth-service NAME   Service name for OAuth (required for 'oauth')
-  --no-browser           Don't auto-open browser (oauth only)
+  --no-browser           Don't auto-open browser for authentication (oauth only)
   --no-launch            Don't auto-launch claude-mpm after setup (all services)
-  --force                Force credential re-entry (oauth only)
+  --force                Force credential re-entry (oauth) or reinstall (mcp-vector-search, mcp-skillset)
 
 [bold]Examples:[/bold]
   # Single service

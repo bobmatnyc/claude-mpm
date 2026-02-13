@@ -36,8 +36,7 @@ Available services:
 Service options:
   --oauth-service NAME   Service name for OAuth setup (required for oauth)
   --no-browser           Don't auto-open browser for authentication (oauth only)
-  --no-launch            Don't auto-launch claude-mpm after setup (slack, gworkspace-mcp, oauth)
-  --no-start             Exit before launching claude-mpm (kuzu-memory only)
+  --no-launch            Don't auto-launch claude-mpm after setup (all services)
   --force                Force credential re-entry (oauth only) or reinstall (mcp-vector-search, mcp-skillset)
 
 Examples:
