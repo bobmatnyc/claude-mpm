@@ -3,10 +3,24 @@
 ### Added
 
 ### Changed
+- **Google Workspace MCP naming**: Standardized to `gworkspace-mcp` as canonical service name
+  - CLI accepts both `gworkspace-mcp` (canonical) and `google-workspace-mcp` (legacy alias)
+  - Automatic migration of old `google-workspace-mcp` configurations to `gworkspace-mcp`
+  - Command binary remains `google-workspace-mcp` (installed executable)
+  - Both names work for backward compatibility
 
 ### Fixed
+- **Google Workspace MCP setup**: Install `gworkspace-mcp` package before OAuth configuration
+  - Setup now runs `uv tool install gworkspace-mcp` before OAuth flow
+  - Fixes issue where `.mcp.json` referenced non-existent command
+  - Follows same pattern as other MCP services (kuzu-memory, mcp-vector-search)
 
 ### Documentation
+- **gworkspace-mcp naming**: Updated all documentation to reflect canonical `gworkspace-mcp` naming
+  - README.md: Updated references to use canonical name with backward compatibility note
+  - docs/integrations/README.md: Updated all setup examples and commands
+  - docs/integrations/gworkspace-mcp.md: Added comprehensive naming convention documentation
+  - Documented auto-migration behavior for old configurations
 
 ### Tests
 

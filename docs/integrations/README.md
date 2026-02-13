@@ -73,8 +73,14 @@ claude-mpm setup mcp-vector-search
 - **Tasks** (10 tools) - Task lists, management, completion
 
 ```bash
+# Canonical name (preferred)
+claude-mpm setup gworkspace-mcp
+
+# Legacy alias (also works)
 claude-mpm setup google-workspace-mcp
 ```
+
+**Note**: Both names work in CLI for backward compatibility. Configuration automatically migrates from old `google-workspace-mcp` to canonical `gworkspace-mcp` naming.
 
 **Requires**: OAuth 2.0 credentials from Google Cloud Console
 
@@ -278,14 +284,14 @@ claude-mpm setup <integration-name>
 
 ```bash
 # Setup multiple at once
-claude-mpm setup kuzu-memory mcp-vector-search google-workspace-mcp
+claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
 ```
 
 ### With Options
 
 ```bash
 # Setup with flags
-claude-mpm setup google-workspace-mcp --no-launch --no-browser
+claude-mpm setup gworkspace-mcp --no-launch --no-browser
 claude-mpm setup slack --no-launch
 claude-mpm setup mcp-vector-search --force
 ```
@@ -301,7 +307,7 @@ claude-mpm setup mcp-vector-search --force
 claude-mpm setup kuzu-memory mcp-vector-search
 
 # External services
-claude-mpm setup google-workspace-mcp slack notion
+claude-mpm setup gworkspace-mcp slack notion
 ```
 
 ### 2. Minimal Setup (Core Only)
@@ -315,7 +321,7 @@ claude-mpm setup kuzu-memory mcp-vector-search
 
 ```bash
 # Team communication + documentation
-claude-mpm setup slack notion confluence google-workspace-mcp
+claude-mpm setup slack notion confluence gworkspace-mcp
 ```
 
 ---

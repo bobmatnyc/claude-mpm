@@ -1,8 +1,19 @@
 # Google Workspace MCP Integration
 
+**Package Name**: `gworkspace-mcp` (canonical)
+**Command Name**: `google-workspace-mcp` (installed binary)
+**Service Name**: `gworkspace-mcp` (in `.mcp.json`)
+
 ## Overview
 
 Google Workspace MCP provides comprehensive integration with Google services including Gmail, Calendar, Drive, Docs, Sheets, Slides, and Tasks. This integration uses OAuth 2.0 for secure authentication and provides 67 MCP tools for workspace automation.
+
+### Naming Convention
+
+- **Canonical name**: `gworkspace-mcp` (matches PyPI package name)
+- **Command binary**: `google-workspace-mcp` (installed executable)
+- **Legacy alias**: `google-workspace-mcp` (CLI accepts both for backward compatibility)
+- **Auto-migration**: Old configurations automatically migrate to canonical naming
 
 ## Features
 
@@ -75,40 +86,50 @@ Google Workspace MCP provides comprehensive integration with Google services inc
 ### Step 4: Run Setup
 
 ```bash
-# From your project directory
+# From your project directory (canonical name preferred)
+claude-mpm setup gworkspace-mcp
+
+# Legacy alias (also works for backward compatibility)
 claude-mpm setup google-workspace-mcp
 ```
 
 This will:
-1. Prompt for OAuth credentials (client ID and secret)
-2. Open browser for Google authorization
-3. Store encrypted tokens in system keychain
-4. Configure MCP server in `.mcp.json`
-5. Install gworkspace-mcp package if needed
+1. Install `gworkspace-mcp` package via `uv tool install` (if not already installed)
+2. Prompt for OAuth credentials (client ID and secret)
+3. Open browser for Google authorization
+4. Store encrypted tokens in system keychain
+5. Configure MCP server in `.mcp.json` with canonical `gworkspace-mcp` key
+
+**Package Installation**: Setup automatically installs the `gworkspace-mcp` package (v0.1.2+, 49 dependencies) via `uv tool install gworkspace-mcp` before OAuth configuration.
 
 ### Setup Options
 
 ```bash
-# Setup without auto-launch
-claude-mpm setup google-workspace-mcp --no-launch
+# Setup without auto-launch (canonical name)
+claude-mpm setup gworkspace-mcp --no-launch
 
 # Setup without browser auto-open
-claude-mpm setup google-workspace-mcp --no-browser
+claude-mpm setup gworkspace-mcp --no-browser
 
-# Force credential re-entry
-claude-mpm setup google-workspace-mcp --force
+# Force credential re-entry and package reinstall
+claude-mpm setup gworkspace-mcp --force
+
+# Legacy alias works identically
+claude-mpm setup google-workspace-mcp --no-launch
 ```
+
+**Note**: Both `gworkspace-mcp` and `google-workspace-mcp` work in the CLI. The setup command normalizes to canonical `gworkspace-mcp` naming and automatically migrates old `google-workspace-mcp` keys in `.mcp.json`.
 
 ## Configuration
 
 ### MCP Server Configuration
 
-Added to `.mcp.json`:
+Added to `.mcp.json` (canonical naming):
 
 ```json
 {
   "mcpServers": {
-    "google-workspace-mcp": {
+    "gworkspace-mcp": {
       "command": "google-workspace-mcp",
       "args": [],
       "env": {
@@ -119,6 +140,11 @@ Added to `.mcp.json`:
   }
 }
 ```
+
+**Naming Details**:
+- **Service key**: `gworkspace-mcp` (canonical - used in `.mcp.json`)
+- **Command binary**: `google-workspace-mcp` (executable installed by package)
+- **Automatic migration**: Old `google-workspace-mcp` keys are auto-migrated to `gworkspace-mcp`
 
 ### Environment Variables
 

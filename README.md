@@ -386,13 +386,14 @@ claude-mpm setup <integration>
 # Examples:
 claude-mpm setup kuzu-memory
 claude-mpm setup mcp-vector-search
-claude-mpm setup google-workspace-mcp
+claude-mpm setup gworkspace-mcp         # Canonical name (preferred)
+claude-mpm setup google-workspace-mcp   # Legacy alias (also works)
 claude-mpm setup slack
 claude-mpm setup notion
 claude-mpm setup confluence
 
 # Setup multiple at once
-claude-mpm setup kuzu-memory mcp-vector-search google-workspace-mcp
+claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
 ```
 
 **Integration Features:**
