@@ -26,7 +26,7 @@ from ..shared import BaseCommand, CommandResult
 console = Console()
 
 
-def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
+def parse_service_args(service_args: list[str]) -> dict[str, Any]:
     """
     Parse service arguments into structured service configs.
 
@@ -34,14 +34,17 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
         service_args: Raw argument list (e.g., ['slack', 'oauth', '--oauth-service', 'gworkspace-mcp'])
 
     Returns:
-        List of service configs with their options
-        Example: [
-            {'name': 'slack', 'options': {}},
-            {'name': 'oauth', 'options': {'oauth_service': 'gworkspace-mcp'}}
-        ]
+        Dict with 'services' list and 'global_options' dict
+        Example: {
+            'services': [
+                {'name': 'slack', 'options': {}},
+                {'name': 'oauth', 'options': {'oauth_service': 'gworkspace-mcp'}}
+            ],
+            'global_options': {'no_launch': True}
+        }
     """
     if not service_args:
-        return []
+        return {"services": [], "global_options": {}}
 
     valid_services = {
         "slack",
@@ -54,6 +57,9 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
         "mcp-skillset",
         "mcp-ticketer",
     }
+
+    # Global flags that can appear without a service (apply to all services)
+    global_flags = {"no_launch"}
 
     # Pre-process service_args to split comma-separated values
     expanded_args = []
@@ -70,6 +76,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     services = []
     current_service = None
     current_options = {}
+    global_options = {}
 
     i = 0
     while i < len(service_args):
@@ -89,13 +96,24 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Check if this is a flag
         if arg.startswith("--"):
+            flag_name = arg[2:].replace("-", "_")
+
+            # Check if this is a global flag
+            if flag_name in global_flags:
+                # Global flag - can be used with or without a service
+                global_options[flag_name] = True
+                # Also apply to current service if one exists
+                if current_service:
+                    current_options[flag_name] = True
+                i += 1
+                continue
+
+            # Non-global flag requires a current service
             if not current_service:
                 raise ValueError(
                     f"Flag {arg} found before any service name. "
                     "Flags must come after the service they apply to."
                 )
-
-            flag_name = arg[2:].replace("-", "_")
 
             # Check if flag expects a value
             if flag_name in {"oauth_service"}:
@@ -119,7 +137,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     if current_service:
         services.append({"name": current_service, "options": current_options})
 
-    return services
+    return {"services": services, "global_options": global_options}
 
 
 class SetupCommand(BaseCommand):
@@ -133,11 +151,12 @@ class SetupCommand(BaseCommand):
         # Parse service_args if present
         if hasattr(args, "service_args") and args.service_args:
             try:
-                services = parse_service_args(args.service_args)
-                args.parsed_services = services
+                parsed = parse_service_args(args.service_args)
+                args.parsed_services = parsed["services"]
+                args.global_options = parsed["global_options"]
 
                 # Validate OAuth requirements
-                for service in services:
+                for service in parsed["services"]:
                     if service["name"] == "oauth":
                         if "oauth_service" not in service["options"]:
                             return (
@@ -227,7 +246,14 @@ class SetupCommand(BaseCommand):
 
         # Launch claude-mpm after all services are set up (unless --no-launch specified)
         # Only launch if at least one service succeeded
-        no_launch = getattr(args, "no_launch", False)
+        # Check global_options first, then fall back to checking any service's no_launch option
+        global_options = getattr(args, "global_options", {})
+        no_launch = global_options.get("no_launch", False)
+        # Also check if any service had --no-launch applied to it
+        if not no_launch:
+            no_launch = any(
+                svc.get("options", {}).get("no_launch", False) for svc in services
+            )
         if not no_launch and len(successful) > 0:
             console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
             try:
