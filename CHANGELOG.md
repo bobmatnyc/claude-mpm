@@ -3,6 +3,19 @@
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Documentation
+
+### Tests
+
+## [5.7.34] - 2026-02-12
+
+### Added
+- **PM and research workflow skills**: Added comprehensive workflow skills for project management and research tasks (PR #298)
+
+### Changed
 - **Google Workspace MCP naming**: Standardized to `gworkspace-mcp` as canonical service name
   - CLI accepts both `gworkspace-mcp` (canonical) and `google-workspace-mcp` (legacy alias)
   - Automatic migration of old `google-workspace-mcp` configurations to `gworkspace-mcp`
@@ -21,8 +34,6 @@
   - docs/integrations/README.md: Updated all setup examples and commands
   - docs/integrations/gworkspace-mcp.md: Added comprehensive naming convention documentation
   - Documented auto-migration behavior for old configurations
-
-### Tests
 
 ## [5.7.33] - 2026-02-11
 
