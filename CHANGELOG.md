@@ -10,6 +10,82 @@
 
 ### Tests
 
+## [5.8.1] - 2026-02-13
+
+### Fixed
+- Fixed startup warning by adding `AgentCapabilitiesService.get_all_agents()` method
+- Fixed hooks architecture by removing direct kuzu-memory hooks integration
+- Fixed multi-service setup bug that caused early termination
+- Added documentation for comma-delimited service support
+
+## [5.8.0] - 2026-02-13
+
+### Added
+- **Domain Authority System**: Intelligent agent and tool discovery for PM delegation (PR #XXX)
+  - **Setup Registry Service**: Centralized tracking of MCP servers and CLI tools
+    - Location: `~/.claude-mpm/setup-registry.json`
+    - Tracks service names, types, versions, tools, and setup dates
+    - Thread-safe registry operations with `SetupRegistry` class
+  - **Dynamic Skills Generator**: Auto-generates agent/tool selection skills at startup
+    - `mpm-select-agents.md`: Lists all available agents with capabilities
+    - `mpm-select-tools.md`: Lists all configured MCP/CLI tools with help text
+    - Generated at: `~/.claude-mpm/skills/dynamic/`
+    - Runs automatically during Claude MPM startup
+  - **PM Integration**: PM agent uses generated skills for intelligent delegation
+    - Agent selection based on capabilities and domains
+    - Tool selection based on available MCP servers
+    - Context-aware routing to appropriate specialists
+  - See: [Domain Authority System Documentation](docs/features/domain-authority-system.md)
+
+- **Skills Optimization Command**: Intelligent project-based skill recommendations (PR #XXX)
+  - `claude-mpm skills optimize`: Analyze project and recommend relevant skills
+  - Auto-detection of languages, frameworks, tools, and databases
+  - Priority-based recommendations (Critical, High, Medium, Low)
+  - Optional auto-deployment with `--auto-deploy` flag
+  - Filter by priority with `--priority` flag
+  - Limit recommendations with `--max-skills` flag
+  - See: [Skills Optimization Guide](docs/user/skills-optimize.md)
+
+- **MCP-Skillset Integration**: Optional user-level RAG-powered skill recommendations (PR #XXX)
+  - User-level MCP server (not project-specific)
+  - RAG-powered semantic skill matching
+  - Enhanced recommendations via `--use-mcp-skillset` flag
+  - Fallback to local manifest if unavailable
+  - See: [MCP-Skillset Integration](docs/features/mcp-skillset-integration.md)
+
+### Changed
+- **Startup Sequence**: Dynamic skills generation integrated into startup process
+  - Skills automatically regenerate on every Claude MPM startup
+  - Ensures agent/tool discovery is always current
+  - No manual regeneration needed after installing MCP servers
+
+### Documentation
+- **New Documentation**:
+  - `docs/features/domain-authority-system.md`: Comprehensive domain authority guide
+    - Architecture diagrams
+    - API reference
+    - Usage examples
+    - Troubleshooting guide
+  - Updated README.md with domain authority system features
+  - Skills optimization documentation already comprehensive
+
+- **Documentation Review**:
+  - `docs/user/skills-optimize.md`: Verified current (no changes needed)
+  - `docs/features/mcp-skillset-integration.md`: Verified current (no changes needed)
+  - `docs/integrations/gworkspace-mcp.md`: Already reflects canonical naming
+
+### Technical Details
+- New Services:
+  - `src/claude_mpm/services/setup_registry.py`: SetupRegistry class
+  - `src/claude_mpm/services/dynamic_skills_generator.py`: DynamicSkillsGenerator class
+- Integration Points:
+  - `src/claude_mpm/cli/startup.py`: Startup integration
+  - `src/claude_mpm/services/agent_capabilities_service.py`: Agent discovery
+- Generated Files:
+  - `~/.claude-mpm/skills/dynamic/mpm-select-agents.md`: Auto-generated agent skill
+  - `~/.claude-mpm/skills/dynamic/mpm-select-tools.md`: Auto-generated tool skill
+  - `~/.claude-mpm/setup-registry.json`: Tool registry data
+
 ## [5.7.34] - 2026-02-12
 
 ### Added

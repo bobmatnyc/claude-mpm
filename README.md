@@ -36,6 +36,8 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 - **44+ Bundled Skills** - TDD, debugging, Docker, API design, security scanning, Git workflows
 - **Progressive Disclosure** - Skills load on-demand to optimize context usage
 - **Three-Tier Organization** - Bundled → User → Project priority resolution
+- **Domain Authority System** - Auto-generated agent/tool discovery skills for intelligent PM delegation
+- **Skills Optimization** - Intelligent project analysis with automated skill recommendations
 
 ### 🔌 MCP Integration (Model Context Protocol)
 - **Google Workspace MCP** - 34 tools for Gmail, Calendar, Drive, Docs, Tasks

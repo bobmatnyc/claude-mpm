@@ -235,7 +235,7 @@ class SetupCommand(BaseCommand):
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
   mcp-vector-search      Set up mcp-vector-search semantic code search
-  mcp-skillset           Set up mcp-skillset RAG-powered skills via MCP
+  mcp-skillset           Set up mcp-skillset RAG-powered skills (USER-LEVEL)
   mcp-ticketer           Set up mcp-ticketer ticket management via MCP
   oauth                  Set up OAuth authentication
 
@@ -1217,46 +1217,256 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             return CommandResult.error_result(f"Error during setup: {e}")
 
     def _setup_mcp_skillset(self, args) -> CommandResult:
-        """Setup mcp-skillset with MPM hook integration.
+        """Setup mcp-skillset as a USER-LEVEL MCP server.
+
+        This configures mcp-skillset in Claude Desktop config (~/.claude-mpm/ or
+        ~/Library/Application Support/Claude/claude_desktop_config.json),
+        NOT in project .mcp.json.
 
         Args:
-            args: Setup options (currently unused)
+            args: Setup options (force flag supported)
 
         Returns:
             CommandResult indicating success or failure
         """
-        console.print("\n[bold cyan]Setting up mcp-skillset...[/bold cyan]")
+        console.print(
+            "\n[bold cyan]Setting up mcp-skillset (USER-LEVEL)...[/bold cyan]"
+        )
+        console.print(
+            "[dim]This will install mcp-skillset for ALL projects (not project-specific)[/dim]\n"
+        )
 
         try:
-            # Run mcp-skillset setup with auto mode
-            # This integrates with MPM's hook system automatically
-            result = subprocess.run(
-                ["mcp-skillset", "setup", "--auto"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )  # nosec B603 B607
+            # Check if mcp-skillset is installed
+            console.print("[cyan]Checking mcp-skillset installation...[/cyan]")
+            try:
+                import importlib.util
 
-            if result.returncode == 0:
-                console.print("[green]✓ mcp-skillset configured successfully[/green]")
-                console.print("  [dim]Hooks integrated with MPM hook system[/dim]")
-                return CommandResult.success_result("mcp-skillset setup completed")
+                spec = importlib.util.find_spec("mcp_skillset")
+                is_installed = spec is not None
+            except (ImportError, ModuleNotFoundError):
+                is_installed = False
 
+            # Install if needed
+            force = getattr(args, "force", False)
+            if not is_installed or force:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+
+                # Use existing detection utility
+                from ...services.diagnostics.checks.installation_check import (
+                    InstallationCheck,
+                )
+
+                checker = InstallationCheck()
+                methods = checker._check_installation_method()
+
+                # Determine primary method (priority: pipx > uv > pip)
+                install_method = None
+                detected_methods = methods.details.get("methods_detected", [])
+
+                if "pipx" in detected_methods:
+                    install_method = "pipx"
+                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
+                    install_method = "uv"
+                else:
+                    install_method = "pip"
+
+                console.print(f"[dim]Detected: {install_method} installation[/dim]")
+
+                action = "Reinstalling" if is_installed else "Installing"
+                console.print(
+                    f"[yellow]{action} mcp-skillset via {install_method}...[/yellow]"
+                )
+
+                try:
+                    if install_method == "pipx":
+                        subprocess.run(
+                            ["pipx", "install", "mcp-skillset"],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "uv":
+                        subprocess.run(
+                            [
+                                "uv",
+                                "tool",
+                                "install",
+                                "mcp-skillset",
+                                "--python",
+                                "3.13",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    elif install_method == "pip":
+                        subprocess.run(
+                            [
+                                sys.executable,
+                                "-m",
+                                "pip",
+                                "install",
+                                "--user",
+                                "mcp-skillset",
+                            ],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )  # nosec B603 B607
+
+                    console.print(
+                        f"[green]✓ mcp-skillset installed via {install_method}[/green]"
+                    )
+
+                except subprocess.CalledProcessError:
+                    return CommandResult.error_result(
+                        f"Failed to install mcp-skillset via {install_method}. "
+                        f"Try manually: {install_method} install mcp-skillset"
+                    )
+            else:
+                console.print("[green]✓ mcp-skillset already installed[/green]")
+
+            # Configure in USER-LEVEL Claude Desktop config
             console.print(
-                "[yellow]⚠ mcp-skillset setup completed with warnings:[/yellow]"
-            )
-            console.print(f"  {result.stderr.strip()}")
-            return CommandResult.success_result(
-                "mcp-skillset setup completed with warnings"
+                "\n[cyan]Configuring in Claude Desktop (user-level)...[/cyan]"
             )
 
-        except FileNotFoundError:
-            console.print("[red]✗ mcp-skillset not found. Install with:[/red]")
-            console.print("  pip install mcp-skillset")
-            return CommandResult.error_result("mcp-skillset not installed")
+            config_path = self._get_claude_desktop_config_path()
+            if not config_path:
+                return CommandResult.error_result(
+                    "Could not determine Claude Desktop config path"
+                )
+
+            console.print(f"  Config: {config_path}")
+
+            # Load or create config
+            import json
+
+            if config_path.exists():
+                try:
+                    with open(config_path) as f:
+                        config = json.load(f)
+                except (json.JSONDecodeError, OSError) as e:
+                    console.print(
+                        f"[yellow]Warning: Could not read config: {e}[/yellow]"
+                    )
+                    config = {"mcpServers": {}}
+            else:
+                config = {"mcpServers": {}}
+
+            # Ensure mcpServers exists
+            if "mcpServers" not in config:
+                config["mcpServers"] = {}
+
+            # Check if already configured
+            if "mcp-skillset" in config["mcpServers"] and not force:
+                console.print("[yellow]⚠ mcp-skillset already configured[/yellow]")
+                from rich.prompt import Confirm
+
+                if not Confirm.ask("Overwrite existing configuration?", default=False):
+                    console.print("[yellow]Skipping configuration[/yellow]")
+                    return CommandResult.success_result(
+                        "mcp-skillset already configured"
+                    )
+
+            # Add mcp-skillset configuration
+            config["mcpServers"]["mcp-skillset"] = {
+                "type": "stdio",
+                "command": "mcp-skillset",
+                "args": ["mcp"],
+                "env": {},
+            }
+
+            # Save config
+            try:
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(config_path, "w") as f:
+                    json.dump(config, f, indent=2)
+                    f.write("\n")
+
+                console.print(
+                    "[green]✓ Added mcp-skillset to Claude Desktop config[/green]"
+                )
+            except OSError as e:
+                return CommandResult.error_result(f"Could not save config: {e}")
+
+            console.print("\n[green]✓ mcp-skillset setup complete![/green]")
+            console.print(
+                "\n[dim]What changed:[/dim]\n"
+                "  1. mcp-skillset installed (or re-used if already installed)\n"
+                "  2. Configuration added to Claude Desktop config (USER-LEVEL)\n"
+                "  3. MCP tools available across ALL projects\n"
+                "  4. Skills optimization can now query mcp-skillset for recommendations\n"
+            )
+            console.print(
+                "\n[dim]Next steps:[/dim]\n"
+                "  1. Restart Claude Code to load mcp-skillset\n"
+                "  2. Use: claude-mpm skills optimize --use-mcp-skillset\n"
+                "  3. MCP tools will enhance skill recommendations\n"
+            )
+
+            return CommandResult.success_result("mcp-skillset setup completed")
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Setup cancelled by user[/yellow]")
+            return CommandResult.error_result("Setup cancelled")
         except Exception as e:
             console.print(f"[red]✗ Failed to setup mcp-skillset: {e}[/red]")
+            import traceback
+
+            traceback.print_exc()
             return CommandResult.error_result(f"Failed to setup mcp-skillset: {e}")
+
+    def _get_claude_desktop_config_path(self) -> Path | None:
+        """Get Claude Desktop configuration path.
+
+        Returns:
+            Path to claude_desktop_config.json or None if not found
+        """
+        import platform
+
+        possible_paths = [
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Claude"
+            / "claude_desktop_config.json",  # macOS
+            Path.home() / ".config" / "Claude" / "claude_desktop_config.json",  # Linux
+            Path.home()
+            / "AppData"
+            / "Roaming"
+            / "Claude"
+            / "claude_desktop_config.json",  # Windows
+            Path.home() / ".claude" / "claude_desktop_config.json",  # Alternative
+        ]
+
+        for path in possible_paths:
+            if path.exists():
+                return path
+
+        # Return platform-appropriate default
+        system = platform.system()
+        if system == "Darwin":  # macOS
+            return (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
+        if system == "Windows":
+            return (
+                Path.home()
+                / "AppData"
+                / "Roaming"
+                / "Claude"
+                / "claude_desktop_config.json"
+            )
+        # Linux and others
+        return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
 
     def _setup_mcp_ticketer(self, args) -> CommandResult:
         """Setup mcp-ticketer with MPM hook integration.
@@ -1352,6 +1562,50 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         )
 
         exit_code = manage_oauth(oauth_args)
+
+        # Register service in setup registry on success
+        if exit_code == 0:
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+
+                # Get CLI help for the tool
+                cli_help = ""
+                try:
+                    help_result = subprocess.run(  # nosec B603 B607
+                        ["google-workspace-mcp", "--help"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    if help_result.returncode == 0:
+                        cli_help = help_result.stdout
+                except Exception:  # nosec B110
+                    pass  # Help text is optional, failure is non-fatal
+
+                # Register with known tools
+                registry.add_service(
+                    name="gworkspace-mcp",
+                    service_type="mcp",
+                    version="0.1.2",  # TODO: Get from package
+                    tools=[
+                        "search_gmail_messages",
+                        "get_gmail_message_content",
+                        "list_calendar_events",
+                        "get_calendar_event",
+                        "search_drive_files",
+                        "get_drive_file_content",
+                    ],
+                    cli_help=cli_help,
+                    config_location="user",
+                )
+            except Exception as e:
+                console.print(
+                    f"[dim]Warning: Could not update setup registry: {e}[/dim]"
+                )
+
         return CommandResult(
             success=exit_code == 0,
             exit_code=exit_code,

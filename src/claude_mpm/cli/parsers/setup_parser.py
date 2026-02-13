@@ -32,13 +32,14 @@ Available services:
   oauth                  Set up OAuth authentication (requires --oauth-service)
   kuzu-memory            Set up kuzu-memory integration
   mcp-vector-search      Set up mcp-vector-search semantic code search
+  mcp-skillset           Set up mcp-skillset RAG-powered skills (USER-LEVEL, not project-specific)
 
 Service options:
   --oauth-service NAME   Service name for OAuth setup (required for oauth)
   --no-browser           Don't auto-open browser for authentication (oauth only)
   --no-launch            Don't auto-launch claude-mpm after setup (slack, google-workspace-mcp, oauth)
   --no-start             Exit before launching claude-mpm (kuzu-memory only)
-  --force                Force credential re-entry (oauth only) or reinstall (mcp-vector-search only)
+  --force                Force credential re-entry (oauth only) or reinstall (mcp-vector-search, mcp-skillset)
 
 Examples:
   # Single service
@@ -62,7 +63,14 @@ Examples:
   # Force reinstall mcp-vector-search
   claude-mpm setup mcp-vector-search --force
 
+  # Set up mcp-skillset (user-level, available across all projects)
+  claude-mpm setup mcp-skillset
+
+  # Force reinstall mcp-skillset
+  claude-mpm setup mcp-skillset --force
+
 Note: Flags are associated with the service that precedes them.
+      mcp-skillset is installed at user-level (Claude Desktop config) and available to all projects.
         """,
     )
 
