@@ -1555,6 +1555,36 @@ def sync_deployment_on_startup(force_sync: bool = False) -> None:
     show_agent_summary()  # Display agent counts after deployment
 
 
+def generate_dynamic_domain_authority_skills():
+    """Generate dynamic skills for agent and tool selection.
+
+    WHY: PM needs up-to-date information about available agents and configured
+    tools to make intelligent delegation decisions. These skills are regenerated
+    on every startup to reflect current system state.
+
+    Generated Skills:
+    - mpm-select-agents.md: Lists all available agents with capabilities
+    - mpm-select-tools.md: Lists all configured MCP/CLI tools with help text
+
+    Location: ~/.claude-mpm/skills/dynamic/
+    """
+    try:
+        from claude_mpm.services.dynamic_skills_generator import (
+            DynamicSkillsGenerator,
+        )
+
+        generator = DynamicSkillsGenerator()
+        generator.generate_all()
+    except Exception as e:
+        # Non-fatal: Skills will fall back to existing or manual selection
+        import sys
+
+        print(
+            f"Warning: Could not generate dynamic domain authority skills: {e}",
+            file=sys.stderr,
+        )
+
+
 def run_background_services(force_sync: bool = False, headless: bool = False):
     """
     Initialize all background services on startup.
@@ -1600,6 +1630,10 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         )  # Override layer: Git-based skills (takes precedence)
         discover_and_link_runtime_skills()  # Discovery: user-added skills
         show_skill_summary()  # Display skill counts after deployment
+
+        # Generate dynamic domain authority skills for PM
+        generate_dynamic_domain_authority_skills()
+
         verify_and_show_pm_skills()  # PM skills verification and status
 
         deploy_output_style_on_startup()

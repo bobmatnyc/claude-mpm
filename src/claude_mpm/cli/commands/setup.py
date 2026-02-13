@@ -1562,6 +1562,50 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         )
 
         exit_code = manage_oauth(oauth_args)
+
+        # Register service in setup registry on success
+        if exit_code == 0:
+            try:
+                from claude_mpm.services.setup_registry import SetupRegistry
+
+                registry = SetupRegistry()
+
+                # Get CLI help for the tool
+                cli_help = ""
+                try:
+                    help_result = subprocess.run(  # nosec B603 B607
+                        ["google-workspace-mcp", "--help"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    if help_result.returncode == 0:
+                        cli_help = help_result.stdout
+                except Exception:  # nosec B110
+                    pass  # Help text is optional, failure is non-fatal
+
+                # Register with known tools
+                registry.add_service(
+                    name="gworkspace-mcp",
+                    service_type="mcp",
+                    version="0.1.2",  # TODO: Get from package
+                    tools=[
+                        "search_gmail_messages",
+                        "get_gmail_message_content",
+                        "list_calendar_events",
+                        "get_calendar_event",
+                        "search_drive_files",
+                        "get_drive_file_content",
+                    ],
+                    cli_help=cli_help,
+                    config_location="user",
+                )
+            except Exception as e:
+                console.print(
+                    f"[dim]Warning: Could not update setup registry: {e}[/dim]"
+                )
+
         return CommandResult(
             success=exit_code == 0,
             exit_code=exit_code,
