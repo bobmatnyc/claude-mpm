@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.8.1] - 2026-02-13
+
+### Fixed
+- Fixed startup warning by adding `AgentCapabilitiesService.get_all_agents()` method
+- Fixed hooks architecture by removing direct kuzu-memory hooks integration
+- Fixed multi-service setup bug that caused early termination
+- Added documentation for comma-delimited service support
+
 ## [5.8.0] - 2026-02-13
 
 ### Added
