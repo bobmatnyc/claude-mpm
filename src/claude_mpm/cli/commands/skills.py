@@ -85,6 +85,7 @@ class SkillsManagementCommand(BaseCommand):
                 SkillsCommands.CONFIG.value: self._manage_config,
                 SkillsCommands.CONFIGURE.value: self._configure_skills,
                 SkillsCommands.SELECT.value: self._select_skills_interactive,
+                SkillsCommands.OPTIMIZE.value: self._optimize_skills,
                 # GitHub deployment commands
                 SkillsCommands.DEPLOY_FROM_GITHUB.value: self._deploy_from_github,
                 SkillsCommands.LIST_AVAILABLE.value: self._list_available_github_skills,
@@ -1371,6 +1372,259 @@ class SkillsManagementCommand(BaseCommand):
 
         except Exception as e:
             console.print(f"[red]Skill selection error: {e}[/red]")
+            import traceback
+
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            return CommandResult(success=False, message=str(e), exit_code=1)
+
+    def _optimize_skills(self, args) -> CommandResult:
+        """Intelligently recommend and deploy skills based on project analysis.
+
+        This command:
+        1. Analyzes the project to detect technology stack
+        2. Recommends relevant skills with priority levels
+        3. Optionally deploys recommended skills
+
+        Returns:
+            CommandResult with success/failure status
+        """
+        try:
+            from pathlib import Path
+
+            from rich.prompt import Confirm
+
+            from ...services.skills.project_inspector import ProjectInspector
+            from ...services.skills.skill_recommendation_engine import (
+                SkillPriority,
+                SkillRecommendationEngine,
+            )
+
+            console.print("\n[bold cyan]🔍 Analyzing project...[/bold cyan]\n")
+
+            # Inspect project
+            inspector = ProjectInspector(Path.cwd())
+            tech_stack = inspector.inspect()
+
+            # Display detected technologies
+            console.print("[bold]Detected Technologies:[/bold]")
+
+            if tech_stack.languages:
+                langs = ", ".join(
+                    f"{lang} ({int(conf * 100)}%)"
+                    for lang, conf in sorted(
+                        tech_stack.languages.items(), key=lambda x: x[1], reverse=True
+                    )
+                )
+                console.print(f"  Languages: {langs}")
+
+            if tech_stack.frameworks:
+                fws = ", ".join(
+                    f"{fw} ({int(conf * 100)}%)"
+                    for fw, conf in sorted(
+                        tech_stack.frameworks.items(), key=lambda x: x[1], reverse=True
+                    )
+                )
+                console.print(f"  Frameworks: {fws}")
+
+            if tech_stack.tools:
+                tools_list = ", ".join(
+                    f"{tool} ({int(conf * 100)}%)"
+                    for tool, conf in sorted(
+                        tech_stack.tools.items(), key=lambda x: x[1], reverse=True
+                    )
+                )
+                console.print(f"  Tools: {tools_list}")
+
+            if tech_stack.databases:
+                dbs = ", ".join(
+                    f"{db} ({int(conf * 100)}%)"
+                    for db, conf in sorted(
+                        tech_stack.databases.items(), key=lambda x: x[1], reverse=True
+                    )
+                )
+                console.print(f"  Databases: {dbs}")
+
+            console.print()
+
+            # Get recommendations
+            console.print(
+                "[bold cyan]Generating skill recommendations...[/bold cyan]\n"
+            )
+
+            engine = SkillRecommendationEngine()
+            already_deployed = engine.get_deployed_skills(Path.cwd())
+
+            max_skills = getattr(args, "max_skills", 10)
+            recommendations = engine.recommend_skills(
+                tech_stack, already_deployed, max_recommendations=max_skills
+            )
+
+            if not recommendations:
+                console.print(
+                    "[yellow]No skill recommendations found for your stack.[/yellow]"
+                )
+                console.print(
+                    "[dim]This could mean your stack is uncommon or all relevant skills are deployed.[/dim]\n"
+                )
+                return CommandResult(success=True, exit_code=0)
+
+            # Filter by priority if specified
+            min_priority = getattr(args, "priority", "high")
+            if min_priority != "all":
+                priority_levels = {
+                    "critical": [SkillPriority.CRITICAL],
+                    "high": [SkillPriority.CRITICAL, SkillPriority.HIGH],
+                    "medium": [
+                        SkillPriority.CRITICAL,
+                        SkillPriority.HIGH,
+                        SkillPriority.MEDIUM,
+                    ],
+                    "low": [
+                        SkillPriority.CRITICAL,
+                        SkillPriority.HIGH,
+                        SkillPriority.MEDIUM,
+                        SkillPriority.LOW,
+                    ],
+                }
+                allowed_priorities = priority_levels.get(min_priority, [])
+                recommendations = [
+                    r for r in recommendations if r.priority in allowed_priorities
+                ]
+
+            # Display recommendations grouped by priority
+            console.print(
+                f"[bold]Recommended Skills ({len(recommendations)}):[/bold]\n"
+            )
+
+            # Group by priority
+            by_priority = {
+                SkillPriority.CRITICAL: [],
+                SkillPriority.HIGH: [],
+                SkillPriority.MEDIUM: [],
+                SkillPriority.LOW: [],
+            }
+
+            for rec in recommendations:
+                by_priority[rec.priority].append(rec)
+
+            # Display each priority group
+            priority_display = {
+                SkillPriority.CRITICAL: ("Critical", "red"),
+                SkillPriority.HIGH: ("High Priority", "yellow"),
+                SkillPriority.MEDIUM: ("Medium Priority", "cyan"),
+                SkillPriority.LOW: ("Optional", "dim"),
+            }
+
+            total_displayed = 0
+            for priority in [
+                SkillPriority.CRITICAL,
+                SkillPriority.HIGH,
+                SkillPriority.MEDIUM,
+                SkillPriority.LOW,
+            ]:
+                skills = by_priority[priority]
+                if not skills:
+                    continue
+
+                label, color = priority_display[priority]
+                console.print(f"[bold {color}]{label} ({len(skills)}):[/bold {color}]")
+
+                for rec in skills:
+                    total_displayed += 1
+                    console.print(f"  {total_displayed}. [bold]{rec.skill_id}[/bold]")
+                    console.print(f"     {rec.justification}")
+
+                    # Show install command
+                    console.print(
+                        f"     [dim]Install: claude-mpm skills deploy --skill {rec.skill_id}[/dim]"
+                    )
+
+                console.print()
+
+            # Prompt for deployment
+            auto_deploy = getattr(args, "auto_deploy", False)
+
+            if auto_deploy:
+                should_deploy = True
+            else:
+                should_deploy = Confirm.ask(
+                    "\nDeploy recommended skills?", default=True
+                )
+
+            if not should_deploy:
+                console.print("[yellow]Skipping deployment.[/yellow]")
+                console.print(
+                    "[dim]You can deploy skills later with: claude-mpm skills deploy --skill <skill-id>[/dim]\n"
+                )
+                return CommandResult(success=True, exit_code=0)
+
+            # Deploy skills
+            console.print("\n[bold cyan]Deploying recommended skills...[/bold cyan]\n")
+
+            skill_ids = [rec.skill_id for rec in recommendations]
+
+            from ...config.skill_sources import SkillSourceConfiguration
+            from ...services.skills.git_skill_source_manager import (
+                GitSkillSourceManager,
+            )
+
+            config = SkillSourceConfiguration.load()
+            git_skill_manager = GitSkillSourceManager(config)
+
+            # Sync sources first
+            console.print("[dim]Syncing skill sources...[/dim]")
+            git_skill_manager.sync_all_sources(force=False)
+
+            # Deploy skills
+            deploy_result = git_skill_manager.deploy_skills_to_project(
+                project_dir=Path.cwd(), skill_list=skill_ids, force=False
+            )
+
+            # Display results
+            if deploy_result["deployed"]:
+                console.print(
+                    f"[green]✓ Deployed {len(deploy_result['deployed'])} skill(s):[/green]"
+                )
+                for skill in deploy_result["deployed"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            if deploy_result["skipped"]:
+                console.print(
+                    f"[yellow]⊘ Skipped {len(deploy_result['skipped'])} skill(s) (already deployed):[/yellow]"
+                )
+                for skill in deploy_result["skipped"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            if deploy_result["failed"]:
+                console.print(
+                    f"[red]✗ Failed to deploy {len(deploy_result['failed'])} skill(s):[/red]"
+                )
+                for skill in deploy_result["failed"]:
+                    console.print(f"  • {skill}")
+                console.print()
+
+            # Summary
+            success_count = len(deploy_result["deployed"]) + len(
+                deploy_result["updated"]
+            )
+            console.print(
+                "[bold green]✓ Successfully optimized skills for your project![/bold green]"
+            )
+            console.print(
+                f"[dim]{success_count} skills deployed, {len(deploy_result['skipped'])} already present[/dim]\n"
+            )
+
+            exit_code = 1 if deploy_result["failed"] else 0
+            return CommandResult(
+                success=not deploy_result["failed"],
+                message="Optimized skills for project",
+                exit_code=exit_code,
+            )
+
+        except Exception as e:
+            console.print(f"[red]Skill optimization error: {e}[/red]")
             import traceback
 
             console.print(f"[dim]{traceback.format_exc()}[/dim]")
