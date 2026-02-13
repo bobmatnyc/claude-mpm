@@ -27,8 +27,8 @@ def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
         epilog="""
 Available services:
   slack                  Set up Slack MPM integration
-  google-workspace-mcp   Set up Google Workspace MCP (automatically sets up OAuth)
-  gworkspace-mcp         Alias for google-workspace-mcp
+  gworkspace-mcp         Set up Google Workspace MCP (automatically sets up OAuth)
+  google-workspace-mcp   Alias for gworkspace-mcp
   oauth                  Set up OAuth authentication (requires --oauth-service)
   kuzu-memory            Set up kuzu-memory integration
   mcp-vector-search      Set up mcp-vector-search semantic code search

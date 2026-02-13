@@ -1345,7 +1345,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
 
         oauth_args = Namespace(
             oauth_command="setup",
-            service_name="google-workspace-mcp",
+            service_name="gworkspace-mcp",  # Canonical service name
             no_browser=getattr(args, "no_browser", False),
             no_launch=getattr(args, "no_launch", False),
             force=getattr(args, "force", False),

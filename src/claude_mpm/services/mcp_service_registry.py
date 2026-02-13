@@ -256,10 +256,10 @@ MCP_VECTOR_SEARCH = MCPServiceDefinition(
 # Package: https://pypi.org/project/gworkspace-mcp/ (v0.1.2+)
 # Entry points: 'workspace' or 'google-workspace-mcp'
 GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
-    name="google-workspace-mcp",
-    package="gworkspace-mcp",  # Correct PyPI package name
+    name="gworkspace-mcp",  # Canonical service name (matches package)
+    package="gworkspace-mcp",  # PyPI package name
     install_method=InstallMethod.UVX,
-    command="google-workspace-mcp",  # Entry point command
+    command="google-workspace-mcp",  # Entry point command (installed by package)
     args=[],  # No additional args needed (tool-tier removed)
     required_env=["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
     optional_env=[

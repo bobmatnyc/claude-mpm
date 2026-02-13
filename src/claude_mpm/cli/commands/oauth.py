@@ -36,12 +36,15 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     Returns:
         True if configuration was added/updated, False if already configured or not applicable
     """
-    if service_name != "google-workspace-mcp":
-        return False  # Only handle google-workspace-mcp for now
+    # Normalize service name (accept both for backward compat)
+    if service_name not in ("gworkspace-mcp", "google-workspace-mcp"):
+        return False  # Only handle gworkspace-mcp
 
+    # Use canonical name for configuration
+    canonical_name = "gworkspace-mcp"
     mcp_config_path = project_dir / ".mcp.json"
 
-    # Default config for google-workspace-mcp
+    # Default config (command is installed binary name from package)
     server_config = {"command": "google-workspace-mcp", "args": []}
 
     if mcp_config_path.exists():
@@ -59,15 +62,26 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     if "mcpServers" not in config:
         config["mcpServers"] = {}
 
+    # Migrate old key to canonical name
+    if (
+        "google-workspace-mcp" in config["mcpServers"]
+        and canonical_name not in config["mcpServers"]
+    ):
+        config["mcpServers"][canonical_name] = config["mcpServers"][
+            "google-workspace-mcp"
+        ]
+        del config["mcpServers"]["google-workspace-mcp"]
+        console.print("[dim]Migrated google-workspace-mcp → gworkspace-mcp[/dim]")
+
     # Check if already configured correctly
-    if "google-workspace-mcp" in config["mcpServers"]:
-        existing = config["mcpServers"]["google-workspace-mcp"]
+    if canonical_name in config["mcpServers"]:
+        existing = config["mcpServers"][canonical_name]
         if existing.get("command") == "google-workspace-mcp":
             console.print("[dim]MCP server already configured in .mcp.json[/dim]")
             return False
 
-    # Add/update google-workspace-mcp entry
-    config["mcpServers"]["google-workspace-mcp"] = server_config
+    # Add/update with canonical name
+    config["mcpServers"][canonical_name] = server_config
 
     # Write back
     try:
