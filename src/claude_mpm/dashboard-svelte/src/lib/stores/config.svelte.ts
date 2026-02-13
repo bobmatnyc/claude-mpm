@@ -364,7 +364,214 @@ export async function syncAllSources(force: boolean = false): Promise<void> {
 	}
 }
 
-// --- Phase 2: Socket.IO Config Event Handler ---
+// --- Phase 3: Deployment Types ---
+
+export interface DeployResult {
+	success: boolean;
+	message: string;
+	agent_name?: string;
+	skill_name?: string;
+	verification?: Record<string, any>;
+	backup_id?: string;
+	active_sessions_warning?: boolean;
+}
+
+export interface ModeImpactPreview {
+	skills_added: string[];
+	skills_removed: string[];
+	skills_unchanged: string[];
+	total_after_switch: number;
+	warning?: string;
+}
+
+export interface ToolchainResult {
+	primary_language: string;
+	frameworks: { name: string; confidence: string }[];
+	build_tools: { name: string; confidence: string }[];
+	overall_confidence: string;
+}
+
+export interface AutoConfigPreview {
+	recommended_agents: { name: string; confidence: string; rationale: string; selected?: boolean }[];
+	recommended_skills: { name: string; confidence: string; rationale: string; selected?: boolean }[];
+	changes: { agents_to_add: string[]; agents_to_remove: string[]; skills_to_add: string[]; skills_to_remove: string[] };
+	rationale: Record<string, string>;
+}
+
+export interface ActiveSessionInfo {
+	active: boolean;
+	sessions: { pid: number; started: string }[];
+	warning?: string;
+}
+
+// --- Phase 3: Deployment Mutation Functions ---
+
+async function mutateJSON(url: string, method: string, body?: any): Promise<any> {
+	const options: RequestInit = { method, headers: { 'Content-Type': 'application/json' } };
+	if (body !== undefined) options.body = JSON.stringify(body);
+	const response = await fetch(url, options);
+	const result = await response.json();
+	if (!response.ok && !result.success) {
+		const err = new Error(result.error || `HTTP ${response.status}`);
+		(err as any).status = response.status;
+		(err as any).data = result;
+		throw err;
+	}
+	return result;
+}
+
+/** Deploy a single agent. POST /api/config/agents/deploy */
+export async function deployAgent(agent_name: string, source_id?: string, force?: boolean): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { agent_name };
+		if (source_id) body.source_id = source_id;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/agents/deploy`, 'POST', body);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `Agent ${agent_name} deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to deploy ${agent_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Undeploy a single agent. DELETE /api/config/agents/{name} */
+export async function undeployAgent(agent_name: string): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/agents/${encodeURIComponent(agent_name)}`, 'DELETE');
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `Agent ${agent_name} undeployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to undeploy ${agent_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Batch deploy agents. POST /api/config/agents/deploy-collection */
+export async function batchDeployAgents(agents: string[], source_id?: string, force?: boolean): Promise<any> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { agents };
+		if (source_id) body.source_id = source_id;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/agents/deploy-collection`, 'POST', body);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `${agents.length} agents deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to deploy agents');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Deploy a single skill. POST /api/config/skills/deploy */
+export async function deploySkill(skill_name: string, mark_user_requested?: boolean, force?: boolean): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { skill_name };
+		if (mark_user_requested) body.mark_user_requested = true;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/skills/deploy`, 'POST', body);
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
+		toastStore.success(result.message || `Skill ${skill_name} deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to deploy ${skill_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Undeploy a single skill. DELETE /api/config/skills/{name} */
+export async function undeploySkill(skill_name: string): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/skills/${encodeURIComponent(skill_name)}`, 'DELETE');
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
+		toastStore.success(result.message || `Skill ${skill_name} undeployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to undeploy ${skill_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Get current deployment mode. GET /api/config/skills/deployment-mode */
+export async function getDeploymentMode(): Promise<any> {
+	const result = await fetchJSON(`${API_BASE}/skills/deployment-mode`);
+	return result;
+}
+
+/** Switch deployment mode. PUT /api/config/skills/deployment-mode */
+export async function switchDeploymentMode(
+	mode: string,
+	options: { preview?: boolean; confirm?: boolean; skills?: string[] } = {}
+): Promise<any> {
+	const body: Record<string, any> = { mode, ...options };
+	const result = await mutateJSON(`${API_BASE}/skills/deployment-mode`, 'PUT', body);
+	if (!options.preview) {
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills(), fetchProjectSummary()]);
+	}
+	return result;
+}
+
+/** Detect project toolchain. POST /api/config/auto-configure/detect */
+export async function detectToolchain(project_path?: string): Promise<ToolchainResult> {
+	const body: Record<string, any> = {};
+	if (project_path) body.project_path = project_path;
+	const result = await mutateJSON(`${API_BASE}/auto-configure/detect`, 'POST', body);
+	return result.data || result;
+}
+
+/** Preview auto-configuration. POST /api/config/auto-configure/preview */
+export async function previewAutoConfig(project_path?: string, min_confidence?: number): Promise<AutoConfigPreview> {
+	const body: Record<string, any> = {};
+	if (project_path) body.project_path = project_path;
+	if (min_confidence !== undefined) body.min_confidence = min_confidence;
+	const result = await mutateJSON(`${API_BASE}/auto-configure/preview`, 'POST', body);
+	return result.data || result;
+}
+
+/** Apply auto-configuration. POST /api/config/auto-configure/apply */
+export async function applyAutoConfig(options: Record<string, any> = {}): Promise<any> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/auto-configure/apply`, 'POST', options);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents(), fetchDeployedSkills(), fetchAvailableSkills(), fetchProjectSummary()]);
+		toastStore.success(result.message || 'Auto-configuration applied');
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || 'Auto-configuration failed');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Check for active Claude Code sessions. GET /api/config/active-sessions */
+export async function checkActiveSessions(): Promise<ActiveSessionInfo> {
+	try {
+		const result = await fetchJSON(`${API_BASE}/active-sessions`);
+		return result.data || result;
+	} catch {
+		return { active: false, sessions: [] };
+	}
+}
+
+// --- Phase 2 & 3: Socket.IO Config Event Handler ---
 
 /**
  * Handle a config_event from Socket.IO.
@@ -375,7 +582,6 @@ export function handleConfigEvent(event: ConfigEvent): void {
 		case 'source_added':
 		case 'source_removed':
 		case 'source_updated':
-			// Refetch sources to ensure consistency
 			fetchSources();
 			break;
 
@@ -383,6 +589,26 @@ export function handleConfigEvent(event: ConfigEvent): void {
 		case 'sync_completed':
 		case 'sync_failed':
 			updateSyncStatusFromEvent(event);
+			break;
+
+		case 'agent_deployed':
+		case 'agent_undeployed':
+			fetchDeployedAgents();
+			fetchAvailableAgents();
+			fetchProjectSummary();
+			break;
+
+		case 'skill_deployed':
+		case 'skill_undeployed':
+			fetchDeployedSkills();
+			fetchAvailableSkills();
+			fetchProjectSummary();
+			break;
+
+		case 'autoconfig_progress':
+		case 'autoconfig_completed':
+		case 'autoconfig_failed':
+			// These are handled by component-level listeners
 			break;
 
 		case 'external_change':

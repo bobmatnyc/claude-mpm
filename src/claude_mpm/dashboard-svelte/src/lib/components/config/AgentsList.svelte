@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { DeployedAgent, AvailableAgent, LoadingState } from '$lib/stores/config.svelte';
+	import { deployAgent, undeployAgent, batchDeployAgents, checkActiveSessions } from '$lib/stores/config.svelte';
+	import { toastStore } from '$lib/stores/toast.svelte';
 	import Badge from '$lib/components/Badge.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
 	interface Props {
 		deployedAgents: DeployedAgent[];
@@ -9,13 +12,26 @@
 		loading: LoadingState;
 		onSelect: (agent: DeployedAgent | AvailableAgent) => void;
 		selectedAgent: DeployedAgent | AvailableAgent | null;
+		onSessionWarning?: (active: boolean) => void;
 	}
 
-	let { deployedAgents, availableAgents, loading, onSelect, selectedAgent }: Props = $props();
+	let { deployedAgents, availableAgents, loading, onSelect, selectedAgent, onSessionWarning }: Props = $props();
 
 	let deployedExpanded = $state(true);
 	let availableExpanded = $state(true);
 	let searchQuery = $state('');
+
+	// Deploy/undeploy state
+	let deployingAgents = $state<Set<string>>(new Set());
+	let undeployingAgents = $state<Set<string>>(new Set());
+
+	// Confirm dialog state
+	let showUndeployConfirm = $state(false);
+	let undeployTarget = $state<DeployedAgent | null>(null);
+
+	// Force redeploy dialog
+	let showForceRedeploy = $state(false);
+	let forceRedeployTarget = $state<string>('');
 
 	let filteredDeployed = $derived(
 		searchQuery
@@ -32,6 +48,10 @@
 			: availableAgents
 	);
 
+	let availableNotDeployed = $derived(
+		filteredAvailable.filter(a => !a.is_deployed)
+	);
+
 	function isDeployedAgent(agent: DeployedAgent | AvailableAgent): agent is DeployedAgent {
 		return 'is_core' in agent;
 	}
@@ -45,6 +65,73 @@
 		if (!str) return '';
 		if (str.length <= maxLen) return str;
 		return str.slice(0, maxLen - 3) + '...';
+	}
+
+	async function handleDeploy(agent: AvailableAgent) {
+		deployingAgents = new Set([...deployingAgents, agent.name]);
+		try {
+			await deployAgent(agent.name);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch (e: any) {
+			if (e.status === 409) {
+				forceRedeployTarget = agent.name;
+				showForceRedeploy = true;
+			}
+		} finally {
+			deployingAgents = new Set([...deployingAgents].filter(n => n !== agent.name));
+		}
+	}
+
+	async function handleForceRedeploy() {
+		showForceRedeploy = false;
+		const name = forceRedeployTarget;
+		deployingAgents = new Set([...deployingAgents, name]);
+		try {
+			await deployAgent(name, undefined, true);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch {
+			// Error handled by store
+		} finally {
+			deployingAgents = new Set([...deployingAgents].filter(n => n !== name));
+		}
+	}
+
+	function openUndeployConfirm(agent: DeployedAgent) {
+		undeployTarget = agent;
+		showUndeployConfirm = true;
+	}
+
+	async function handleUndeploy() {
+		if (!undeployTarget) return;
+		showUndeployConfirm = false;
+		const name = undeployTarget.name;
+		undeployingAgents = new Set([...undeployingAgents, name]);
+		try {
+			await undeployAgent(name);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch (e: any) {
+			if (e.status === 403) {
+				toastStore.error('Cannot undeploy core agent: system protection');
+			}
+		} finally {
+			undeployingAgents = new Set([...undeployingAgents].filter(n => n !== name));
+			undeployTarget = null;
+		}
+	}
+
+	async function handleDeployCollection() {
+		const names = availableNotDeployed.map(a => a.name);
+		if (names.length === 0) return;
+		try {
+			await batchDeployAgents(names);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch {
+			// Error handled by store
+		}
 	}
 </script>
 
@@ -87,14 +174,17 @@
 				{:else}
 					<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{#each filteredDeployed as agent (agent.name)}
-							<button
-								onclick={() => onSelect(agent)}
+							{@const isUndeploying = undeployingAgents.has(agent.name)}
+							<div
 								class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
 									{getSelectedName(selectedAgent) === agent.name && isDeployedAgent(selectedAgent!)
 										? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
 										: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
 							>
-								<div class="flex-1 min-w-0">
+								<button
+									onclick={() => onSelect(agent)}
+									class="flex-1 min-w-0 text-left"
+								>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{agent.name}</span>
 										{#if agent.is_core}
@@ -111,13 +201,36 @@
 											{/each}
 										</div>
 									{/if}
-								</div>
+								</button>
+
+								<!-- Undeploy / Lock button -->
 								{#if agent.is_core}
-									<svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-										<path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-									</svg>
+									<span title="Core agent required by system" class="flex-shrink-0">
+										<svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+										</svg>
+									</span>
+								{:else}
+									<button
+										onclick={(e) => { e.stopPropagation(); openUndeployConfirm(agent); }}
+										disabled={isUndeploying}
+										class="flex-shrink-0 p-1 rounded text-slate-400 hover:text-red-400 transition-colors
+											disabled:opacity-50 disabled:cursor-not-allowed"
+										title="Undeploy agent"
+									>
+										{#if isUndeploying}
+											<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										{:else}
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										{/if}
+									</button>
 								{/if}
-							</button>
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -137,6 +250,21 @@
 			</button>
 
 			{#if availableExpanded}
+				<!-- Deploy Collection button -->
+				{#if availableNotDeployed.length > 1}
+					<div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700/50">
+						<button
+							onclick={handleDeployCollection}
+							class="px-3 py-1.5 text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors flex items-center gap-1"
+						>
+							<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+							</svg>
+							Deploy All ({availableNotDeployed.length})
+						</button>
+					</div>
+				{/if}
+
 				{#if loading.availableAgents}
 					<div class="flex items-center justify-center py-8 text-slate-500 dark:text-slate-400">
 						<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
@@ -152,14 +280,17 @@
 				{:else}
 					<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{#each filteredAvailable as agent (agent.agent_id || agent.name)}
-							<button
-								onclick={() => onSelect(agent)}
+							{@const isDeploying = deployingAgents.has(agent.name)}
+							<div
 								class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
 									{getSelectedName(selectedAgent) === agent.name && !isDeployedAgent(selectedAgent!)
 										? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
 										: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
 							>
-								<div class="flex-1 min-w-0">
+								<button
+									onclick={() => onSelect(agent)}
+									class="flex-1 min-w-0 text-left"
+								>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{agent.name}</span>
 										{#if agent.is_deployed}
@@ -176,8 +307,33 @@
 											{truncate(agent.description, 80)}
 										</p>
 									{/if}
-								</div>
-							</button>
+								</button>
+
+								<!-- Deploy button -->
+								{#if !agent.is_deployed}
+									<button
+										onclick={(e) => { e.stopPropagation(); handleDeploy(agent); }}
+										disabled={isDeploying}
+										class="flex-shrink-0 px-2.5 py-1 text-xs font-medium rounded-md transition-colors
+											text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20
+											disabled:opacity-50 disabled:cursor-not-allowed
+											flex items-center gap-1"
+									>
+										{#if isDeploying}
+											<svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+											<span>Deploying...</span>
+										{:else}
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+											</svg>
+											<span>Deploy</span>
+										{/if}
+									</button>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -185,3 +341,26 @@
 		</div>
 	</div>
 </div>
+
+<!-- Undeploy Confirmation Dialog -->
+<ConfirmDialog
+	bind:open={showUndeployConfirm}
+	title="Undeploy Agent"
+	description="This will remove the agent from your project. The agent will still be available for redeployment."
+	confirmText={undeployTarget?.name || ''}
+	confirmLabel="Undeploy"
+	destructive={true}
+	onConfirm={handleUndeploy}
+	onCancel={() => { showUndeployConfirm = false; undeployTarget = null; }}
+/>
+
+<!-- Force Redeploy Confirmation -->
+<ConfirmDialog
+	bind:open={showForceRedeploy}
+	title="Agent Already Deployed"
+	description="This agent is already deployed. Do you want to force a redeployment? This will overwrite the current deployment."
+	confirmLabel="Force Redeploy"
+	destructive={false}
+	onConfirm={handleForceRedeploy}
+	onCancel={() => { showForceRedeploy = false; }}
+/>

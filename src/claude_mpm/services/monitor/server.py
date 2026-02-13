@@ -1445,6 +1445,27 @@ class UnifiedMonitorServer:
                 self.app, self.config_event_handler, self.config_file_watcher
             )
 
+            # Register Phase 3 deployment routes
+            from claude_mpm.services.config_api.agent_deployment_handler import (
+                register_agent_deployment_routes,
+            )
+            from claude_mpm.services.config_api.autoconfig_handler import (
+                register_autoconfig_routes,
+            )
+            from claude_mpm.services.config_api.skill_deployment_handler import (
+                register_skill_deployment_routes,
+            )
+
+            register_agent_deployment_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+            register_skill_deployment_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+            register_autoconfig_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+
             self.logger.info("HTTP routes registered successfully")
 
         except Exception as e:

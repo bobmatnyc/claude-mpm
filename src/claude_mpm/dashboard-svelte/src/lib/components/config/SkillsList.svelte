@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { DeployedSkill, AvailableSkill, LoadingState } from '$lib/stores/config.svelte';
+	import { deploySkill, undeploySkill, checkActiveSessions } from '$lib/stores/config.svelte';
+	import { toastStore } from '$lib/stores/toast.svelte';
 	import Badge from '$lib/components/Badge.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
+	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
 	interface Props {
 		deployedSkills: DeployedSkill[];
@@ -9,13 +12,27 @@
 		loading: LoadingState;
 		onSelect: (skill: DeployedSkill | AvailableSkill) => void;
 		selectedSkill: DeployedSkill | AvailableSkill | null;
+		deploymentMode?: string;
+		onSwitchMode?: () => void;
+		onSessionWarning?: (active: boolean) => void;
 	}
 
-	let { deployedSkills, availableSkills, loading, onSelect, selectedSkill }: Props = $props();
+	let { deployedSkills, availableSkills, loading, onSelect, selectedSkill, deploymentMode = 'agent_referenced', onSwitchMode, onSessionWarning }: Props = $props();
+
+	// Immutable skill collections
+	const IMMUTABLE_COLLECTIONS = ['PM_CORE_SKILLS', 'CORE_SKILLS'];
 
 	let deployedExpanded = $state(true);
 	let availableExpanded = $state(true);
 	let searchQuery = $state('');
+
+	// Deploy/undeploy state
+	let deployingSkills = $state<Set<string>>(new Set());
+	let undeployingSkills = $state<Set<string>>(new Set());
+
+	// Confirm dialog state
+	let showUndeployConfirm = $state(false);
+	let undeployTarget = $state<DeployedSkill | null>(null);
 
 	let filteredDeployed = $derived(
 		searchQuery
@@ -41,6 +58,10 @@
 		return skill.name;
 	}
 
+	function isImmutableSkill(skill: DeployedSkill): boolean {
+		return IMMUTABLE_COLLECTIONS.includes(skill.collection);
+	}
+
 	function getDeployModeVariant(mode: string): 'info' | 'success' {
 		return mode === 'user_defined' ? 'success' : 'info';
 	}
@@ -48,11 +69,65 @@
 	function formatDeployMode(mode: string): string {
 		return mode === 'user_defined' ? 'User Defined' : 'Agent Referenced';
 	}
+
+	async function handleDeploy(skill: AvailableSkill) {
+		deployingSkills = new Set([...deployingSkills, skill.name]);
+		try {
+			await deploySkill(skill.name, true);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch {
+			// Error handled by store
+		} finally {
+			deployingSkills = new Set([...deployingSkills].filter(n => n !== skill.name));
+		}
+	}
+
+	function openUndeployConfirm(skill: DeployedSkill) {
+		undeployTarget = skill;
+		showUndeployConfirm = true;
+	}
+
+	async function handleUndeploy() {
+		if (!undeployTarget) return;
+		showUndeployConfirm = false;
+		const name = undeployTarget.name;
+		undeployingSkills = new Set([...undeployingSkills, name]);
+		try {
+			await undeploySkill(name);
+			const sessions = await checkActiveSessions();
+			onSessionWarning?.(sessions.active);
+		} catch {
+			// Error handled by store
+		} finally {
+			undeployingSkills = new Set([...undeployingSkills].filter(n => n !== name));
+			undeployTarget = null;
+		}
+	}
 </script>
 
 <div class="flex flex-col h-full">
-	<!-- Search -->
-	<div class="p-3 border-b border-slate-200 dark:border-slate-700">
+	<!-- Mode badge + Search -->
+	<div class="p-3 border-b border-slate-200 dark:border-slate-700 space-y-2">
+		<!-- Deployment mode header -->
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<span class="text-xs text-slate-500 dark:text-slate-400">Mode:</span>
+				<Badge
+					text={formatDeployMode(deploymentMode)}
+					variant={deploymentMode === 'user_defined' ? 'success' : 'info'}
+				/>
+			</div>
+			{#if onSwitchMode}
+				<button
+					onclick={onSwitchMode}
+					class="px-2 py-1 text-xs font-medium text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 rounded transition-colors"
+				>
+					Switch Mode
+				</button>
+			{/if}
+		</div>
+
 		<SearchInput
 			value={searchQuery}
 			placeholder="Search skills..."
@@ -89,35 +164,66 @@
 				{:else}
 					<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{#each filteredDeployed as skill (skill.name)}
-							<button
-								onclick={() => onSelect(skill)}
+							{@const immutable = isImmutableSkill(skill)}
+							{@const isUndeploying = undeployingSkills.has(skill.name)}
+							<div
 								class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
 									{getSelectedName(selectedSkill) === skill.name && isDeployedSkill(selectedSkill!)
 										? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
 										: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
 							>
-								<div class="flex-1 min-w-0">
+								<button
+									onclick={() => onSelect(skill)}
+									class="flex-1 min-w-0 text-left"
+								>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{skill.name}</span>
+										{#if immutable}
+											<Badge text="System" variant="danger" />
+										{/if}
 										{#if skill.category}
 											<Badge text={skill.category} variant="default" />
 										{/if}
 									</div>
 									<div class="mt-1 flex items-center gap-2">
 										<Badge text={formatDeployMode(skill.deploy_mode)} variant={getDeployModeVariant(skill.deploy_mode)} />
+										{#if skill.is_user_requested}
+											<Badge text="Requested" variant="warning" />
+										{/if}
 										{#if skill.collection}
 											<span class="text-xs text-slate-500 dark:text-slate-400">{skill.collection}</span>
 										{/if}
 									</div>
-								</div>
-								{#if skill.is_user_requested}
-									<span title="User requested">
-										<svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-											<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+								</button>
+
+								<!-- Undeploy / Lock -->
+								{#if immutable}
+									<span title="System skill cannot be undeployed" class="flex-shrink-0">
+										<svg class="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
+											<path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
 										</svg>
 									</span>
+								{:else}
+									<button
+										onclick={(e) => { e.stopPropagation(); openUndeployConfirm(skill); }}
+										disabled={isUndeploying}
+										class="flex-shrink-0 p-1 rounded text-slate-400 hover:text-red-400 transition-colors
+											disabled:opacity-50 disabled:cursor-not-allowed"
+										title="Undeploy skill"
+									>
+										{#if isUndeploying}
+											<svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										{:else}
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										{/if}
+									</button>
 								{/if}
-							</button>
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -152,14 +258,17 @@
 				{:else}
 					<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{#each filteredAvailable as skill (skill.name)}
-							<button
-								onclick={() => onSelect(skill)}
+							{@const isDeploying = deployingSkills.has(skill.name)}
+							<div
 								class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
 									{getSelectedName(selectedSkill) === skill.name && !isDeployedSkill(selectedSkill!)
 										? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
 										: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
 							>
-								<div class="flex-1 min-w-0">
+								<button
+									onclick={() => onSelect(skill)}
+									class="flex-1 min-w-0 text-left"
+								>
 									<div class="flex items-center gap-2">
 										<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{skill.name}</span>
 										{#if skill.is_deployed}
@@ -174,8 +283,33 @@
 									{#if skill.description}
 										<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400 truncate">{skill.description}</p>
 									{/if}
-								</div>
-							</button>
+								</button>
+
+								<!-- Deploy button -->
+								{#if !skill.is_deployed}
+									<button
+										onclick={(e) => { e.stopPropagation(); handleDeploy(skill); }}
+										disabled={isDeploying}
+										class="flex-shrink-0 px-2.5 py-1 text-xs font-medium rounded-md transition-colors
+											text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20
+											disabled:opacity-50 disabled:cursor-not-allowed
+											flex items-center gap-1"
+									>
+										{#if isDeploying}
+											<svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+											<span>Deploying...</span>
+										{:else}
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+											</svg>
+											<span>Deploy</span>
+										{/if}
+									</button>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -183,3 +317,15 @@
 		</div>
 	</div>
 </div>
+
+<!-- Undeploy Confirmation Dialog -->
+<ConfirmDialog
+	bind:open={showUndeployConfirm}
+	title="Undeploy Skill"
+	description="This will remove the skill from your project. The skill will still be available for redeployment."
+	confirmText={undeployTarget?.name || ''}
+	confirmLabel="Undeploy"
+	destructive={true}
+	onConfirm={handleUndeploy}
+	onCancel={() => { showUndeployConfirm = false; undeployTarget = null; }}
+/>

@@ -15,6 +15,8 @@
 	import AgentsList from './AgentsList.svelte';
 	import SkillsList from './SkillsList.svelte';
 	import SourcesList from './SourcesList.svelte';
+	import ModeSwitch from './ModeSwitch.svelte';
+	import AutoConfigPreview from './AutoConfigPreview.svelte';
 	import Badge from '$lib/components/Badge.svelte';
 
 	interface Props {
@@ -30,6 +32,14 @@
 	let selectedAgent = $state<DeployedAgent | AvailableAgent | null>(null);
 	let selectedSkill = $state<DeployedSkill | AvailableSkill | null>(null);
 	let selectedSource = $state<ConfigSource | null>(null);
+
+	// Phase 3: Active session warning
+	let showSessionWarning = $state(false);
+	let sessionWarningDismissed = $state(false);
+
+	// Phase 3: Modal states
+	let showModeSwitch = $state(false);
+	let showAutoConfig = $state(false);
 
 	// Store subscriptions (hybrid Svelte 4/5 pattern matching codebase)
 	let summaryData = $state<ProjectSummary | null>(null);
@@ -128,11 +138,41 @@
 			return dateStr;
 		}
 	}
+
+	function handleSessionWarning(active: boolean) {
+		if (active && !sessionWarningDismissed) {
+			showSessionWarning = true;
+		}
+	}
+
+	function handleModeChanged(newMode: string) {
+		showModeSwitch = false;
+		// Summary will be refetched by the store
+	}
 </script>
 
 {#if panelSide === 'left'}
 	<!-- LEFT PANEL: Summary cards + sub-tabs + lists -->
 	<div class="flex flex-col h-full bg-white dark:bg-slate-900">
+		<!-- Active Session Warning Banner -->
+		{#if showSessionWarning && !sessionWarningDismissed}
+			<div class="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-300">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+				</svg>
+				<p class="text-xs flex-1">Active Claude Code sessions detected. Configuration changes will take effect on next session start.</p>
+				<button
+					onclick={() => sessionWarningDismissed = true}
+					class="flex-shrink-0 p-0.5 text-amber-400 hover:text-amber-200 transition-colors"
+					aria-label="Dismiss warning"
+				>
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+		{/if}
+
 		<!-- Summary Cards Row -->
 		<div class="flex items-center gap-4 px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 transition-colors">
 			{#if loadingState.summary}
@@ -153,6 +193,18 @@
 			{:else}
 				<span class="text-sm text-slate-500 dark:text-slate-400">No data loaded</span>
 			{/if}
+
+			<!-- Auto-Configure button -->
+			<button
+				onclick={() => showAutoConfig = true}
+				class="ml-auto px-2.5 py-1 text-xs font-medium text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg transition-colors flex items-center gap-1"
+				title="Auto-configure project"
+			>
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+				</svg>
+				Auto-Configure
+			</button>
 		</div>
 
 		<!-- Error Banner -->
@@ -204,6 +256,7 @@
 					loading={loadingState}
 					onSelect={(agent) => { selectedAgent = agent; selectedSkill = null; selectedSource = null; }}
 					{selectedAgent}
+					onSessionWarning={handleSessionWarning}
 				/>
 			{:else if subTab === 'skills'}
 				<SkillsList
@@ -212,6 +265,9 @@
 					loading={loadingState}
 					onSelect={(skill) => { selectedSkill = skill; selectedAgent = null; selectedSource = null; }}
 					{selectedSkill}
+					deploymentMode={summaryData?.deployment_mode || 'agent_referenced'}
+					onSwitchMode={() => showModeSwitch = true}
+					onSessionWarning={handleSessionWarning}
 				/>
 			{:else if subTab === 'sources'}
 				<SourcesList
@@ -447,4 +503,18 @@
 			</div>
 		{/if}
 	</div>
+{/if}
+
+<!-- Mode Switch Modal -->
+{#if showModeSwitch}
+	<ModeSwitch
+		currentMode={summaryData?.deployment_mode || 'agent_referenced'}
+		onClose={() => showModeSwitch = false}
+		onModeChanged={handleModeChanged}
+	/>
+{/if}
+
+<!-- Auto-Configure Modal -->
+{#if showAutoConfig}
+	<AutoConfigPreview onClose={() => showAutoConfig = false} />
 {/if}
