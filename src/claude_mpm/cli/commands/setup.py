@@ -1575,21 +1575,24 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                     message=f"Failed to install gworkspace-mcp: {error_msg}",
                 )
 
-        # Delegate to OAuth setup with google-workspace-mcp as the service
-        # Create args for oauth setup
-        from argparse import Namespace
+        # Use the package's native setup command which stores tokens correctly
+        # at ~/.google-workspace-mcp/tokens.json
+        console.print("[cyan]Running google-workspace-mcp setup...[/cyan]\n")
+        try:
+            setup_result = subprocess.run(  # nosec B603 B607
+                ["google-workspace-mcp", "setup"],
+                check=False,
+            )
+            exit_code = setup_result.returncode
+        except Exception as e:
+            console.print(f"[red]Failed to run setup: {e}[/red]")
+            exit_code = 1
 
-        from .oauth import manage_oauth
+        # Configure MCP server in .mcp.json
+        if exit_code == 0:
+            from .oauth import _ensure_mcp_configured
 
-        oauth_args = Namespace(
-            oauth_command="setup",
-            service_name="gworkspace-mcp",  # Canonical service name
-            no_browser=getattr(args, "no_browser", False),
-            no_launch=getattr(args, "no_launch", False),
-            force=getattr(args, "force", False),
-        )
-
-        exit_code = manage_oauth(oauth_args)
+            _ensure_mcp_configured("gworkspace-mcp", Path.cwd())
 
         # Register service in setup registry on success
         if exit_code == 0:
