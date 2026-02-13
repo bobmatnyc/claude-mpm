@@ -5,11 +5,12 @@
 		deployedAgents, availableAgents,
 		deployedSkills, availableSkills,
 		configSources,
+		syncStatus as syncStatusStore,
 		fetchAllConfig,
 		type ProjectSummary, type LoadingState, type ConfigError,
 		type DeployedAgent, type AvailableAgent,
 		type DeployedSkill, type AvailableSkill,
-		type ConfigSource,
+		type ConfigSource, type SyncState,
 	} from '$lib/stores/config.svelte';
 	import AgentsList from './AgentsList.svelte';
 	import SkillsList from './SkillsList.svelte';
@@ -46,6 +47,7 @@
 	let deployedSkillsData = $state<DeployedSkill[]>([]);
 	let availableSkillsData = $state<AvailableSkill[]>([]);
 	let sourcesData = $state<ConfigSource[]>([]);
+	let syncStatusData = $state<Record<string, SyncState>>({});
 
 	$effect(() => {
 		const unsub = projectSummary.subscribe(v => { summaryData = v; });
@@ -77,6 +79,10 @@
 	});
 	$effect(() => {
 		const unsub = configSources.subscribe(v => { sourcesData = v; });
+		return unsub;
+	});
+	$effect(() => {
+		const unsub = syncStatusStore.subscribe(v => { syncStatusData = v; });
 		return unsub;
 	});
 
@@ -213,6 +219,7 @@
 					loading={loadingState.sources}
 					onSelect={(source) => { selectedSource = source; selectedAgent = null; selectedSkill = null; }}
 					{selectedSource}
+					syncStatus={syncStatusData}
 				/>
 			{/if}
 		</div>

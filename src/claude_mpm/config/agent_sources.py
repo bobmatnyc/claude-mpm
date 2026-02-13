@@ -143,8 +143,24 @@ class AgentSourceConfiguration:
         # Ensure parent directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Build YAML data structure
+        data = {
+            "disable_system_repo": self.disable_system_repo,
+            "repositories": [
+                {
+                    "url": repo.url,
+                    "subdirectory": repo.subdirectory,
+                    "enabled": repo.enabled,
+                    "priority": repo.priority,
+                }
+                for repo in self.repositories
+            ],
+        }
+
         try:
-            with open(config_path, "w") as f:
+            # Write atomically: write to temp file, then rename
+            temp_path = config_path.with_suffix(".yaml.tmp")
+            with open(temp_path, "w") as f:
                 # Write header comments if requested
                 if include_comments:
                     f.write("# Claude MPM Agent Sources Configuration\n")
@@ -168,26 +184,19 @@ class AgentSourceConfiguration:
                     )
                     f.write("#\n\n")
 
-                # Build YAML data structure
-                data = {
-                    "disable_system_repo": self.disable_system_repo,
-                    "repositories": [
-                        {
-                            "url": repo.url,
-                            "subdirectory": repo.subdirectory,
-                            "enabled": repo.enabled,
-                            "priority": repo.priority,
-                        }
-                        for repo in self.repositories
-                    ],
-                }
-
                 yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+
+            # Atomic rename
+            temp_path.replace(config_path)
 
             logger.info(f"Configuration saved to {config_path}")
 
         except Exception as e:
             logger.error(f"Failed to save configuration to {config_path}: {e}")
+            # Clean up temp file if it exists
+            temp_path = config_path.with_suffix(".yaml.tmp")
+            if temp_path.exists():
+                temp_path.unlink()
             raise
 
     def get_system_repo(self) -> Optional[GitRepository]:

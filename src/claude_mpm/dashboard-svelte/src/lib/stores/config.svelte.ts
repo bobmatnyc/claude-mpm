@@ -1,4 +1,5 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+import { toastStore } from './toast.svelte';
 
 // --- Types ---
 
@@ -76,6 +77,24 @@ export interface ConfigError {
 	timestamp: number;
 }
 
+export interface SyncState {
+	status: 'idle' | 'syncing' | 'completed' | 'failed';
+	progress: number;
+	lastSync: string | null;
+	error: string | null;
+	jobId: string | null;
+}
+
+export interface ConfigEvent {
+	type: string;
+	operation: string;
+	entity_type: string;
+	entity_id: string | null;
+	status: string;
+	data: Record<string, any>;
+	timestamp: string;
+}
+
 // --- Stores ---
 
 export const projectSummary = writable<ProjectSummary | null>(null);
@@ -93,6 +112,10 @@ export const configLoading = writable<LoadingState>({
 	sources: false,
 });
 export const configErrors = writable<ConfigError[]>([]);
+
+// --- Phase 2: Mutation state ---
+export const syncStatus = writable<Record<string, SyncState>>({});
+export const mutating = writable(false);
 
 // --- Fetch Functions ---
 
@@ -206,4 +229,216 @@ export async function fetchAllConfig() {
 	fetchAvailableAgents();
 	fetchDeployedSkills();
 	fetchAvailableSkills();
+}
+
+// --- Phase 2: Mutation Functions ---
+
+/**
+ * Add a new source (agent or skill).
+ * POST /api/config/sources/{type}
+ */
+export async function addSource(type: 'agent' | 'skill', data: Record<string, any>): Promise<void> {
+	mutating.set(true);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data),
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to add source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || `Source added successfully`);
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to add source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Update an existing source.
+ * PATCH /api/config/sources/{type}?id={encodedId}
+ */
+export async function updateSource(type: 'agent' | 'skill', id: string, updates: Record<string, any>): Promise<void> {
+	mutating.set(true);
+	const encodedId = encodeURIComponent(id);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}?id=${encodedId}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(updates),
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to update source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || 'Source updated');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to update source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Remove a source.
+ * DELETE /api/config/sources/{type}?id={encodedId}
+ */
+export async function removeSource(type: 'agent' | 'skill', id: string): Promise<void> {
+	mutating.set(true);
+	const encodedId = encodeURIComponent(id);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}?id=${encodedId}`, {
+			method: 'DELETE',
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to remove source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || 'Source removed');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to remove source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Sync a single source.
+ * POST /api/config/sources/{type}/sync?id={encodedId}
+ * Returns immediately (202). Progress via Socket.IO.
+ */
+export async function syncSource(type: 'agent' | 'skill', id: string, force: boolean = false): Promise<void> {
+	const encodedId = encodeURIComponent(id);
+	const forceParam = force ? '&force=true' : '';
+	try {
+		const response = await fetch(
+			`${API_BASE}/sources/${type}/sync?id=${encodedId}${forceParam}`,
+			{ method: 'POST' }
+		);
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to start sync');
+		}
+		// Update local sync state -- progress will come via Socket.IO
+		syncStatus.update((s) => ({
+			...s,
+			[id]: {
+				status: 'syncing',
+				progress: 0,
+				lastSync: null,
+				error: null,
+				jobId: result.job_id,
+			},
+		}));
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to start sync');
+	}
+}
+
+/**
+ * Sync all enabled sources.
+ * POST /api/config/sources/sync-all
+ */
+export async function syncAllSources(force: boolean = false): Promise<void> {
+	try {
+		const forceParam = force ? '?force=true' : '';
+		const response = await fetch(`${API_BASE}/sources/sync-all${forceParam}`, {
+			method: 'POST',
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to start sync');
+		}
+		toastStore.info(result.message || 'Sync started for all sources');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to start sync');
+	}
+}
+
+// --- Phase 2: Socket.IO Config Event Handler ---
+
+/**
+ * Handle a config_event from Socket.IO.
+ * Called from +page.svelte or +layout.svelte when socket receives 'config_event'.
+ */
+export function handleConfigEvent(event: ConfigEvent): void {
+	switch (event.operation) {
+		case 'source_added':
+		case 'source_removed':
+		case 'source_updated':
+			// Refetch sources to ensure consistency
+			fetchSources();
+			break;
+
+		case 'sync_progress':
+		case 'sync_completed':
+		case 'sync_failed':
+			updateSyncStatusFromEvent(event);
+			break;
+
+		case 'external_change':
+			toastStore.warning('Configuration changed externally. Refreshing...');
+			fetchSources();
+			break;
+	}
+}
+
+function updateSyncStatusFromEvent(event: ConfigEvent): void {
+	const id = event.entity_id;
+	if (!id) return;
+
+	syncStatus.update((s) => {
+		const current = s[id];
+
+		if (event.operation === 'sync_completed') {
+			return {
+				...s,
+				[id]: {
+					status: 'completed',
+					progress: 100,
+					lastSync: event.timestamp,
+					error: null,
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		} else if (event.operation === 'sync_failed') {
+			return {
+				...s,
+				[id]: {
+					status: 'failed',
+					progress: 0,
+					lastSync: current?.lastSync ?? null,
+					error: event.data?.error ?? 'Sync failed',
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		} else if (event.operation === 'sync_progress') {
+			return {
+				...s,
+				[id]: {
+					status: 'syncing',
+					progress: event.data?.progress_pct ?? event.data?.progress ?? 0,
+					lastSync: current?.lastSync ?? null,
+					error: null,
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		}
+
+		return s;
+	});
+
+	// Refetch sources after sync completes (may have new items)
+	if (event.operation === 'sync_completed') {
+		fetchSources();
+	}
 }

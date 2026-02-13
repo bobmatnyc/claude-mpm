@@ -164,6 +164,10 @@ class UnifiedMonitorServer:
         self.file_handler = None
         self.hook_handler = None
 
+        # Config event infrastructure (Phase 2)
+        self.config_event_handler = None
+        self.config_file_watcher = None
+
         # High-performance event emitter
         self.event_emitter = None
 
@@ -312,7 +316,7 @@ class UnifiedMonitorServer:
                     return web.Response(
                         headers={
                             "Access-Control-Allow-Origin": "*",
-                            "Access-Control-Allow-Methods": "GET, OPTIONS",
+                            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
                             "Access-Control-Allow-Headers": "Content-Type, If-None-Match",
                         }
                     )
@@ -339,6 +343,17 @@ class UnifiedMonitorServer:
             # Start heartbeat task
             self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             self.logger.info("Heartbeat task started (3-minute interval)")
+
+            # Setup config event infrastructure (Phase 2)
+            from claude_mpm.services.monitor.handlers.config_handler import (
+                ConfigEventHandler,
+                ConfigFileWatcher,
+            )
+
+            self.config_event_handler = ConfigEventHandler(self.sio)
+            self.config_file_watcher = ConfigFileWatcher(self.config_event_handler)
+            self.config_file_watcher.start()
+            self.logger.info("Config event handler and file watcher initialized")
 
             # Setup file watching for hot reload (if enabled)
             if self.enable_hot_reload:
@@ -1421,6 +1436,15 @@ class UnifiedMonitorServer:
 
             register_config_routes(self.app, server_instance=self)
 
+            # Register source management routes (Phase 2: mutations)
+            from claude_mpm.services.monitor.routes.config_sources import (
+                register_source_routes,
+            )
+
+            register_source_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+
             self.logger.info("HTTP routes registered successfully")
 
         except Exception as e:
@@ -1672,6 +1696,13 @@ class UnifiedMonitorServer:
         try:
             # Stop accepting new connections
             self.running = False
+
+            # Stop config file watcher
+            if self.config_file_watcher is not None:
+                try:
+                    await self.config_file_watcher.stop()
+                except Exception as e:
+                    self.logger.debug(f"Error stopping config file watcher: {e}")
 
             # Give ongoing operations a moment to complete
             await asyncio.sleep(0.5)
