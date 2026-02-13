@@ -1306,6 +1306,37 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             "This will configure OAuth authentication for Google Workspace.\n"
         )
 
+        # Check if gworkspace-mcp package is installed
+        import subprocess  # nosec B404
+
+        try:
+            result = subprocess.run(  # nosec B603 B607
+                ["which", "google-workspace-mcp"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            is_installed = result.returncode == 0
+        except Exception:
+            is_installed = False
+
+        # Install package if missing
+        if not is_installed:
+            console.print("[cyan]Installing gworkspace-mcp package...[/cyan]")
+            try:
+                subprocess.run(  # nosec B603 B607
+                    ["uv", "tool", "install", "gworkspace-mcp"],
+                    check=True,
+                    capture_output=True,
+                )
+                console.print("[green]✓[/green] Package installed successfully\n")
+            except subprocess.CalledProcessError as e:
+                error_msg = e.stderr.decode() if e.stderr else str(e)
+                return CommandResult(
+                    success=False,
+                    message=f"Failed to install gworkspace-mcp: {error_msg}",
+                )
+
         # Delegate to OAuth setup with google-workspace-mcp as the service
         # Create args for oauth setup
         from argparse import Namespace
