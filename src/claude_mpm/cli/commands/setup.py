@@ -31,13 +31,13 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     Parse service arguments into structured service configs.
 
     Args:
-        service_args: Raw argument list (e.g., ['slack', 'oauth', '--oauth-service', 'google-workspace-mcp'])
+        service_args: Raw argument list (e.g., ['slack', 'oauth', '--oauth-service', 'gworkspace-mcp'])
 
     Returns:
         List of service configs with their options
         Example: [
             {'name': 'slack', 'options': {}},
-            {'name': 'oauth', 'options': {'oauth_service': 'google-workspace-mcp'}}
+            {'name': 'oauth', 'options': {'oauth_service': 'gworkspace-mcp'}}
         ]
     """
     if not service_args:
@@ -45,8 +45,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
     valid_services = {
         "slack",
-        "google-workspace-mcp",
-        "gworkspace-mcp",  # Alias for google-workspace-mcp
+        "gworkspace-mcp",
         "oauth",
         "notion",
         "confluence",
@@ -113,7 +112,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Unknown argument
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name (slack, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
         )
 
     # Save last service
@@ -143,7 +142,7 @@ class SetupCommand(BaseCommand):
                         if "oauth_service" not in service["options"]:
                             return (
                                 "OAuth setup requires --oauth-service flag. "
-                                "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
+                                "Example: claude-mpm setup oauth --oauth-service gworkspace-mcp"
                             )
 
                 return None
@@ -177,9 +176,6 @@ class SetupCommand(BaseCommand):
             if service_name == "slack":
                 result = self._setup_slack(service_args)
             elif service_name == "gworkspace-mcp":
-                # Alias for google-workspace-mcp
-                result = self._setup_google_workspace(service_args)
-            elif service_name == "google-workspace-mcp":
                 result = self._setup_google_workspace(service_args)
             elif service_name == "notion":
                 result = self._setup_notion(service_args)
@@ -200,26 +196,57 @@ class SetupCommand(BaseCommand):
 
             results.append((service_name, result))
 
-            # Stop on first failure
+            # Track failure but continue processing remaining services
             if not result.success:
                 console.print(
                     f"\n[red]✗ Setup failed for {service_name}[/red]",
                     style="bold",
                 )
-                return result
+                # Don't return early - continue processing remaining services
+            else:
+                console.print(
+                    f"[green]✓ {service_name} setup complete![/green]",
+                    style="bold",
+                )
 
+        # Report results
+        successful = [r for r in results if r[1].success]
+        failed = [r for r in results if not r[1].success]
+
+        if successful:
             console.print(
-                f"[green]✓ {service_name} setup complete![/green]",
+                f"\n[green]✓ {len(successful)} service(s) set up successfully[/green]",
                 style="bold",
             )
 
-        # All setups succeeded
-        console.print(
-            f"\n[green]✓ All {len(results)} service(s) set up successfully![/green]",
-            style="bold",
+        if failed:
+            console.print(
+                f"\n[red]✗ {len(failed)} service(s) failed to set up[/red]",
+                style="bold",
+            )
+
+        # Launch claude-mpm after all services are set up (unless --no-launch or --no-start specified)
+        # Only launch if at least one service succeeded
+        no_launch = getattr(args, "no_launch", False) or getattr(
+            args, "no_start", False
         )
+        if not no_launch and len(successful) > 0:
+            console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
+            try:
+                # Replace current process with claude-mpm
+                os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
+            except OSError:
+                # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
+                subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
+                sys.exit(0)
+
+        # Return failure if all services failed, success if any succeeded
+        if len(failed) == len(results):
+            return CommandResult.error_result(
+                f"All {len(failed)} service(s) failed to set up"
+            )
         return CommandResult.success_result(
-            f"Set up {len(results)} service(s) successfully"
+            f"Set up {len(successful)}/{len(results)} service(s) successfully"
         )
 
     def _show_help(self) -> None:
@@ -230,7 +257,7 @@ class SetupCommand(BaseCommand):
 
 [bold]Available Services:[/bold]
   slack                  Set up Slack MPM integration
-  google-workspace-mcp   Set up Google Workspace MCP (includes OAuth)
+  gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
@@ -252,14 +279,17 @@ class SetupCommand(BaseCommand):
   # Slack without auto-launch
   claude-mpm setup slack --no-launch
 
-  # Multiple services
-  claude-mpm setup slack google-workspace-mcp
+  # Multiple services (space-separated)
+  claude-mpm setup slack gworkspace-mcp
+
+  # Multiple services (comma-separated)
+  claude-mpm setup slack,gworkspace-mcp,notion
 
   # Service with options
-  claude-mpm setup oauth --oauth-service google-workspace-mcp --no-browser
+  claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
 
   # Multiple services with options
-  claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-launch
+  claude-mpm setup slack oauth --oauth-service gworkspace-mcp --no-launch
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search
@@ -437,20 +467,6 @@ class SetupCommand(BaseCommand):
 
                 # Configure slack-user-proxy MCP server
                 self._configure_slack_mcp_server()
-
-                # Launch claude-mpm unless --no-launch was specified
-                no_launch = getattr(args, "no_launch", False)
-                if not no_launch:
-                    console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
-                    try:
-                        # Replace current process with claude-mpm
-                        os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
-                    except OSError:
-                        # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
-                        import sys
-
-                        subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
-                        sys.exit(0)
 
                 return CommandResult.success_result("Slack setup completed")
 
@@ -1025,18 +1041,6 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 "  • kuzu-memory operates in subservient mode\n"
                 "  • Each project can have its own memory backend configuration\n"
             )
-
-            # Launch claude-mpm unless --no-start was specified
-            no_start = getattr(args, "no_start", False)
-            if not no_start:
-                console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
-                try:
-                    # Replace current process with claude-mpm
-                    os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
-                except OSError:
-                    # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
-                    subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
-                    sys.exit(0)
 
             return CommandResult.success_result("Kuzu Memory setup completed")
 
@@ -1619,7 +1623,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         if not service_name:
             return CommandResult.error_result(
                 "OAuth setup requires --oauth-service flag. "
-                "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
+                "Example: claude-mpm setup oauth --oauth-service gworkspace-mcp"
             )
 
         # Delegate to OAuth setup
