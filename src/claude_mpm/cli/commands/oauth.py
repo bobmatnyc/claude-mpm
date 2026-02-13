@@ -45,7 +45,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     mcp_config_path = project_dir / ".mcp.json"
 
     # Default config (command is installed binary name from package)
-    server_config = {"command": "google-workspace-mcp", "args": []}
+    server_config = {"type": "stdio", "command": "google-workspace-mcp", "args": []}
 
     if mcp_config_path.exists():
         # Load existing config
@@ -79,8 +79,15 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     if canonical_name in config["mcpServers"]:
         existing = config["mcpServers"][canonical_name]
         if existing.get("command") == "google-workspace-mcp":
-            # If we migrated, save the config before returning
-            if migrated:
+            # Fix missing "type" field if needed
+            needs_save = migrated
+            if existing.get("type") != "stdio":
+                existing["type"] = "stdio"
+                config["mcpServers"][canonical_name] = existing
+                needs_save = True
+                console.print("[dim]Fixed missing 'type' field in config[/dim]")
+            # Save if we migrated or fixed type
+            if needs_save:
                 try:
                     with open(mcp_config_path, "w") as f:
                         json.dump(config, f, indent=2)
