@@ -49,7 +49,8 @@
 			if (!data.success) {
 				throw new Error(data.error || 'Validation failed');
 			}
-			result = data.data;
+			// Backend returns flat: { success, valid, issues, summary }
+			result = { valid: data.valid, issues: data.issues || [] };
 		} catch (e: any) {
 			error = e.message || 'Failed to validate configuration';
 		} finally {

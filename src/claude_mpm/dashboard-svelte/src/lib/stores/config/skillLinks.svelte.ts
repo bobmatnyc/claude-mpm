@@ -59,8 +59,63 @@ export async function loadSkillLinks(): Promise<void> {
 			throw new Error(result.error || 'Failed to load skill links');
 		}
 
+		// Transform backend flat response into frontend SkillLinksData shape.
+		// Backend returns: { by_agent: [...], by_skill: {...}, stats: {...}, total_agents }
+		// Frontend expects: { agents: AgentSkillLinks[], total_agents, total_skills }
+		const byAgent: Array<{
+			agent_name: string;
+			frontmatter_skills: string[];
+			content_marker_skills: string[];
+			total: number;
+		}> = result.by_agent || [];
+
+		const agents: AgentSkillLinks[] = byAgent.map((item) => {
+			const fmSet = new Set(item.frontmatter_skills || []);
+			const cmSet = new Set(item.content_marker_skills || []);
+
+			const skills: SkillLink[] = [];
+
+			// Add frontmatter skills
+			for (const name of fmSet) {
+				const inContent = cmSet.has(name);
+				skills.push({
+					skill_name: name,
+					source: { type: 'frontmatter', label: 'Frontmatter' },
+					is_deployed: true,
+					is_auto_managed: inContent,
+				});
+			}
+
+			// Add content marker skills (only those not already in frontmatter)
+			for (const name of cmSet) {
+				if (!fmSet.has(name)) {
+					skills.push({
+						skill_name: name,
+						source: { type: 'content_marker', label: 'Content Marker' },
+						is_deployed: true,
+						is_auto_managed: false,
+					});
+				}
+			}
+
+			return {
+				agent_name: item.agent_name,
+				is_deployed: true,
+				skills,
+				skill_count: skills.length,
+			};
+		});
+
+		const stats = result.stats || {};
+
+		const data: SkillLinksData = {
+			agents,
+			total_agents: stats.total_agents ?? result.total_agents ?? agents.length,
+			total_skills: stats.total_skills ?? 0,
+		};
+
 		skillLinksStore.set({
-			data: result.data,
+			data,
 			loading: false,
 			error: null,
 			loaded: true,

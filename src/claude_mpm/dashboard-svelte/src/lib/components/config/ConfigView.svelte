@@ -18,6 +18,7 @@
 	import SkillLinksView from './SkillLinksView.svelte';
 	import ModeSwitch from './ModeSwitch.svelte';
 	import AutoConfigPreview from './AutoConfigPreview.svelte';
+	import ValidationPanel from './ValidationPanel.svelte';
 	import Badge from '$lib/components/Badge.svelte';
 
 	interface Props {
@@ -257,6 +258,11 @@
 			>
 				Skill Links
 			</button>
+		</div>
+
+		<!-- Validation Panel (visible across all sub-tabs) -->
+		<div class="mx-3 mt-2">
+			<ValidationPanel />
 		</div>
 
 		<!-- Sub-tab content -->

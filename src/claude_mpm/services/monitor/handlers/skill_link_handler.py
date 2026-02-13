@@ -266,15 +266,6 @@ class SkillToAgentMapper:
 
         deployed_count = sum(
             1
-            for info in self._skill_to_agents.values()
-            if any(
-                s in self._deployed_skill_names
-                for s in [next(iter(self._skill_to_agents))]  # placeholder
-            )
-        )
-        # Simpler: count skills that are deployed
-        deployed_count = sum(
-            1
             for skill_name in self._skill_to_agents
             if skill_name in self._deployed_skill_names
         )
