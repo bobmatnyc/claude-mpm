@@ -63,6 +63,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
         config["mcpServers"] = {}
 
     # Migrate old key to canonical name
+    migrated = False
     if (
         "google-workspace-mcp" in config["mcpServers"]
         and canonical_name not in config["mcpServers"]
@@ -72,11 +73,20 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
         ]
         del config["mcpServers"]["google-workspace-mcp"]
         console.print("[dim]Migrated google-workspace-mcp → gworkspace-mcp[/dim]")
+        migrated = True
 
     # Check if already configured correctly
     if canonical_name in config["mcpServers"]:
         existing = config["mcpServers"][canonical_name]
         if existing.get("command") == "google-workspace-mcp":
+            # If we migrated, save the config before returning
+            if migrated:
+                try:
+                    with open(mcp_config_path, "w") as f:
+                        json.dump(config, f, indent=2)
+                        f.write("\n")
+                except OSError:
+                    pass  # Best effort save
             console.print("[dim]MCP server already configured in .mcp.json[/dim]")
             return False
 
