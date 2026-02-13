@@ -12,6 +12,24 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 
+def _normalize_mcp_key(service_name: str) -> str:
+    """Normalize service name to canonical MCP key.
+
+    This ensures we always use the canonical package name (gworkspace-mcp)
+    rather than the binary command name (google-workspace-mcp) as the key
+    in .mcp.json configuration files.
+
+    Args:
+        service_name: The service name (possibly from binary command)
+
+    Returns:
+        The canonical MCP key name for configuration files
+    """
+    if service_name in ("google-workspace-mcp", "gworkspace-mcp"):
+        return "gworkspace-mcp"
+    return service_name
+
+
 class MCPExternalServicesSetup:
     """Handles setup of external MCP services in Claude Code configuration."""
 
@@ -407,8 +425,10 @@ class MCPExternalServicesSetup:
             if "mcpServers" not in config:
                 config["mcpServers"] = {}
 
-            config["mcpServers"][service_name] = info["config"]
-            print(f"\n✅ Updated {service_name} configuration")
+            # Use canonical key name for .mcp.json
+            mcp_key = _normalize_mcp_key(service_name)
+            config["mcpServers"][mcp_key] = info["config"]
+            print(f"\n✅ Updated {mcp_key} configuration")
             updated = True
 
         # Save configuration if updated
@@ -535,9 +555,10 @@ class MCPExternalServicesSetup:
                 )
                 return False
 
-        # Add service configuration
-        config["mcpServers"][service_name] = service_info["config"]
-        print(f"   ✅ Configured {service_name}")
+        # Add service configuration using canonical key name
+        mcp_key = _normalize_mcp_key(service_name)
+        config["mcpServers"][mcp_key] = service_info["config"]
+        print(f"   ✅ Configured {mcp_key}")
         print(f"      Command: {service_info['config']['command']}")
         print(f"      Args: {service_info['config']['args']}")
         if "env" in service_info["config"]:
