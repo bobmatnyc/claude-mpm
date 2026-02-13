@@ -17,12 +17,14 @@
 	let searchQuery = $state('');
 	const PAGE_SIZE = 50;
 
+	let safeAgents = $derived(agents ?? []);
+
 	let filtered = $derived(
 		searchQuery
-			? agents.filter(a =>
+			? safeAgents.filter(a =>
 				a.agent_name.toLowerCase().includes(searchQuery.toLowerCase())
 			)
-			: agents
+			: safeAgents
 	);
 
 	let pagination = $state<PaginationState>(createPaginationState(PAGE_SIZE));

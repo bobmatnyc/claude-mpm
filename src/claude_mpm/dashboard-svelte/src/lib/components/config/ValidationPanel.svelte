@@ -19,14 +19,15 @@
 	let error = $state<string | null>(null);
 	let result = $state<ValidationResult | null>(null);
 
-	let errorCount = $derived(result?.issues.filter(i => i.severity === 'error').length ?? 0);
-	let warningCount = $derived(result?.issues.filter(i => i.severity === 'warning').length ?? 0);
-	let infoCount = $derived(result?.issues.filter(i => i.severity === 'info').length ?? 0);
+	let issues = $derived(result?.issues ?? []);
+	let errorCount = $derived(issues.filter(i => i.severity === 'error').length);
+	let warningCount = $derived(issues.filter(i => i.severity === 'warning').length);
+	let infoCount = $derived(issues.filter(i => i.severity === 'info').length);
 
 	let sortedIssues = $derived.by(() => {
-		if (!result) return [];
+		if (issues.length === 0) return [];
 		const order: Record<string, number> = { error: 0, warning: 1, info: 2 };
-		return [...result.issues].sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
+		return [...issues].sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
 	});
 
 	let summaryText = $derived.by(() => {
@@ -93,7 +94,7 @@
 				Retry
 			</button>
 		</div>
-	{:else if result?.valid && result.issues.length === 0}
+	{:else if result?.valid && issues.length === 0}
 		<!-- All valid -->
 		<div class="flex items-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20">
 			<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

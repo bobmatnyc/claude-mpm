@@ -15,8 +15,10 @@
 		skills: AgentSkillLinks['skills'];
 	}
 
+	let skills = $derived(agent?.skills ?? []);
+
 	let grouped = $derived.by(() => {
-		if (!agent || agent.skills.length === 0) return [];
+		if (!agent || skills.length === 0) return [];
 
 		const groups: Record<string, GroupedSkills> = {};
 		const order = ['user_defined', 'frontmatter', 'content_marker', 'inferred'];
@@ -27,7 +29,7 @@
 			inferred: 'Inferred',
 		};
 
-		for (const skill of agent.skills) {
+		for (const skill of skills) {
 			const key = skill.source.type;
 			if (!groups[key]) {
 				groups[key] = {
@@ -48,7 +50,7 @@
 <div class="flex flex-col h-full">
 	{#if !agent}
 		<EmptyState message="Select an agent to view its skill links" />
-	{:else if agent.skills.length === 0}
+	{:else if skills.length === 0}
 		<EmptyState message="This agent has no linked skills" />
 	{:else}
 		<div class="p-4 border-b border-slate-200 dark:border-slate-700">
