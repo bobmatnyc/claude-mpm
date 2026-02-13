@@ -8,6 +8,7 @@
 	import AgentDetail from '$lib/components/AgentDetail.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
 	import FileViewer from '$lib/components/FileViewer.svelte';
+	import ConfigView from '$lib/components/config/ConfigView.svelte';
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
 	import type { TouchedFile } from '$lib/stores/files.svelte';
 	import type { AgentNode } from '$lib/stores/agents.svelte';
@@ -17,7 +18,7 @@
 	import { createAgentsStore } from '$lib/stores/agents.svelte';
 	import { derived } from 'svelte/store';
 
-	type ViewMode = 'events' | 'tools' | 'files' | 'agents' | 'tokens';
+	type ViewMode = 'events' | 'tools' | 'files' | 'agents' | 'tokens' | 'config';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
@@ -123,6 +124,11 @@
 			selectedEvent = null;
 			selectedTool = null;
 			selectedFile = null;
+		} else if (viewMode === 'config') {
+			selectedEvent = null;
+			selectedTool = null;
+			selectedFile = null;
+			selectedAgent = null;
 		}
 	});
 
@@ -225,6 +231,13 @@
 					>
 						Agents
 					</button>
+					<button
+						onclick={() => viewMode = 'config'}
+						class="tab"
+						class:active={viewMode === 'config'}
+					>
+						Config
+					</button>
 					<!-- Temporarily hidden - token tracking data source investigation
 					<button
 						onclick={() => viewMode = 'tokens'}
@@ -266,6 +279,8 @@
 						bind:fileContent
 						bind:contentLoading
 					/>
+				{:else if viewMode === 'config'}
+					<ConfigView panelSide="left" />
 				{/if}
 			</div>
 		</div>
@@ -309,6 +324,8 @@
 				{/if}
 			{:else if viewMode === 'agents'}
 				<AgentDetail agent={selectedAgent} onToolClick={handleToolClickFromAgent} />
+			{:else if viewMode === 'config'}
+				<ConfigView panelSide="right" />
 			{:else}
 				<JSONExplorer event={selectedEvent} tool={selectedTool} />
 			{/if}

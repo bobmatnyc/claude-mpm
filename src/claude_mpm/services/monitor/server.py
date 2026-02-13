@@ -305,8 +305,23 @@ class UnifiedMonitorServer:
                 ping_timeout=60,  # 60 seconds ping timeout (generous for stability)
             )
 
-            # Create aiohttp application
-            self.app = web.Application()
+            # CORS middleware for Vite dev server and cross-origin requests
+            @web.middleware
+            async def cors_middleware(request, handler):
+                if request.method == "OPTIONS":
+                    return web.Response(
+                        headers={
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "GET, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type, If-None-Match",
+                        }
+                    )
+                response = await handler(request)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                return response
+
+            # Create aiohttp application with CORS middleware
+            self.app = web.Application(middlewares=[cors_middleware])
 
             # Attach Socket.IO to the app
             self.sio.attach(self.app)
@@ -1398,6 +1413,13 @@ class UnifiedMonitorServer:
                 )
             else:
                 self.logger.warning(f"Svelte build not found at: {svelte_build_dir}")
+
+            # Register config API routes (Phase 1: read-only)
+            from claude_mpm.services.monitor.config_routes import (
+                register_config_routes,
+            )
+
+            register_config_routes(self.app, server_instance=self)
 
             self.logger.info("HTTP routes registered successfully")
 
