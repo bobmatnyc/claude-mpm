@@ -1,6 +1,7 @@
 """Configuration API routes for the Claude MPM Dashboard.
 
 Phase 1: Read-only endpoints for configuration visibility.
+Phase 4A: Skill-to-Agent linking and configuration validation.
 All endpoints are GET-only. No mutation operations.
 """
 
@@ -11,12 +12,20 @@ from typing import Optional
 
 from aiohttp import web
 
+from claude_mpm.services.monitor.pagination import (
+    extract_pagination_params,
+    paginate,
+    paginated_json,
+)
+
 logger = logging.getLogger(__name__)
 
 # Lazy-initialized service singletons (per-process, not per-request)
 _agent_manager = None
 _git_source_manager = None
 _skills_deployer_service = None
+_skill_to_agent_mapper = None
+_config_validation_service = None
 
 
 def _get_agent_manager(project_dir: Optional[Path] = None):
@@ -51,6 +60,30 @@ def _get_skills_deployer():
     return _skills_deployer_service
 
 
+def _get_skill_to_agent_mapper():
+    """Lazy singleton for SkillToAgentMapper."""
+    global _skill_to_agent_mapper
+    if _skill_to_agent_mapper is None:
+        from claude_mpm.services.monitor.handlers.skill_link_handler import (
+            SkillToAgentMapper,
+        )
+
+        _skill_to_agent_mapper = SkillToAgentMapper()
+    return _skill_to_agent_mapper
+
+
+def _get_config_validation_service():
+    """Lazy singleton for ConfigValidationService."""
+    global _config_validation_service
+    if _config_validation_service is None:
+        from claude_mpm.services.config.config_validation_service import (
+            ConfigValidationService,
+        )
+
+        _config_validation_service = ConfigValidationService()
+    return _config_validation_service
+
+
 def register_config_routes(app: web.Application, server_instance=None):
     """Register all configuration API routes on the aiohttp app.
 
@@ -61,6 +94,7 @@ def register_config_routes(app: web.Application, server_instance=None):
         server_instance: Optional reference to UnifiedMonitorServer
                         (for accessing working_directory, etc.)
     """
+    # Phase 1: Read-only endpoints
     app.router.add_get("/api/config/project/summary", handle_project_summary)
     app.router.add_get("/api/config/agents/deployed", handle_agents_deployed)
     app.router.add_get("/api/config/agents/available", handle_agents_available)
@@ -68,7 +102,16 @@ def register_config_routes(app: web.Application, server_instance=None):
     app.router.add_get("/api/config/skills/available", handle_skills_available)
     app.router.add_get("/api/config/sources", handle_sources)
 
-    logger.info("Registered 6 config API routes under /api/config/")
+    # Phase 4A: Skill-to-Agent linking
+    app.router.add_get("/api/config/skill-links/", handle_skill_links)
+    app.router.add_get(
+        "/api/config/skill-links/agent/{agent_name}", handle_skill_links_agent
+    )
+
+    # Phase 4A: Configuration validation
+    app.router.add_get("/api/config/validate", handle_validate)
+
+    logger.info("Registered 9 config API routes under /api/config/")
 
 
 # --- Endpoint Handlers ---
@@ -176,9 +219,14 @@ async def handle_agents_deployed(request: web.Request) -> web.Response:
 
 
 async def handle_agents_available(request: web.Request) -> web.Response:
-    """GET /api/config/agents/available - List available agents from cache."""
+    """GET /api/config/agents/available - List available agents from cache.
+
+    Supports pagination: ?limit=50&cursor=<opaque>&sort=asc|desc
+    Backward compatible: no limit/cursor returns all items.
+    """
     try:
         search = request.query.get("search", None)
+        pagination_params = extract_pagination_params(request)
 
         def _list_available():
             git_mgr = _get_git_source_manager()
@@ -207,14 +255,20 @@ async def handle_agents_available(request: web.Request) -> web.Response:
 
         agents = await asyncio.to_thread(_list_available)
 
-        response = web.json_response(
-            {
-                "success": True,
-                "agents": agents,
-                "total": len(agents),
-                "filters_applied": {"search": search} if search else {},
-            }
+        # Apply pagination
+        result = paginate(
+            agents,
+            limit=pagination_params["limit"],
+            cursor=pagination_params["cursor"],
+            sort_key=lambda a: a.get("name", "").lower(),
+            sort_desc=pagination_params["sort_desc"],
         )
+
+        response_data = paginated_json(result, items_key="agents")
+        if search:
+            response_data["filters_applied"] = {"search": search}
+
+        response = web.json_response(response_data)
         # Cache hint: available agents change only on sync
         response.headers["Cache-Control"] = "private, max-age=60"
         return response
@@ -287,9 +341,14 @@ async def handle_skills_deployed(request: web.Request) -> web.Response:
 
 
 async def handle_skills_available(request: web.Request) -> web.Response:
-    """GET /api/config/skills/available - List available skills from sources."""
+    """GET /api/config/skills/available - List available skills from sources.
+
+    Supports pagination: ?limit=50&cursor=<opaque>&sort=asc|desc
+    Backward compatible: no limit/cursor returns all items.
+    """
     try:
         collection = request.query.get("collection", None)
+        pagination_params = extract_pagination_params(request)
 
         def _list_available_skills():
             skills_svc = _get_skills_deployer()
@@ -322,14 +381,20 @@ async def handle_skills_available(request: web.Request) -> web.Response:
 
         skills = await asyncio.to_thread(_list_available_skills)
 
-        response = web.json_response(
-            {
-                "success": True,
-                "skills": skills,
-                "total": len(skills),
-                "filters_applied": ({"collection": collection} if collection else {}),
-            }
+        # Apply pagination
+        result = paginate(
+            skills,
+            limit=pagination_params["limit"],
+            cursor=pagination_params["cursor"],
+            sort_key=lambda s: s.get("name", "").lower(),
+            sort_desc=pagination_params["sort_desc"],
         )
+
+        response_data = paginated_json(result, items_key="skills")
+        if collection:
+            response_data["filters_applied"] = {"collection": collection}
+
+        response = web.json_response(response_data)
         response.headers["Cache-Control"] = "private, max-age=120"
         return response
     except Exception as e:
@@ -406,6 +471,124 @@ async def handle_sources(request: web.Request) -> web.Response:
         )
     except Exception as e:
         logger.error(f"Error listing sources: {e}")
+        return web.json_response(
+            {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
+            status=500,
+        )
+
+
+# --- Phase 4A: Skill-to-Agent Linking ---
+
+
+async def handle_skill_links(request: web.Request) -> web.Response:
+    """GET /api/config/skill-links/ - Full bidirectional skill-agent mapping.
+
+    Returns by_agent mapping, by_skill mapping, and aggregate stats.
+    Supports pagination on by_agent: ?limit=50&cursor=<opaque>&sort=asc|desc
+    Backward compatible: no params returns all.
+    """
+    try:
+        pagination_params = extract_pagination_params(request)
+
+        def _get_links():
+            mapper = _get_skill_to_agent_mapper()
+            links = mapper.get_all_links()
+            stats = mapper.get_stats()
+            return links, stats
+
+        links, stats = await asyncio.to_thread(_get_links)
+
+        # Paginate by_agent entries
+        by_agent = links.get("by_agent", {})
+        agent_items = [
+            {"agent_name": name, **data} for name, data in sorted(by_agent.items())
+        ]
+
+        result = paginate(
+            agent_items,
+            limit=pagination_params["limit"],
+            cursor=pagination_params["cursor"],
+            sort_key=lambda a: a["agent_name"].lower(),
+            sort_desc=pagination_params["sort_desc"],
+        )
+
+        response_data = {
+            "success": True,
+            "by_agent": result.items,
+            "by_skill": links.get("by_skill", {}),
+            "stats": stats,
+            "total_agents": result.total,
+        }
+
+        if result.limit is not None:
+            response_data["pagination"] = {
+                "has_more": result.has_more,
+                "next_cursor": result.next_cursor,
+                "limit": result.limit,
+            }
+
+        response = web.json_response(response_data)
+        response.headers["Cache-Control"] = "private, max-age=30"
+        return response
+    except Exception as e:
+        logger.error(f"Error fetching skill links: {e}")
+        return web.json_response(
+            {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
+            status=500,
+        )
+
+
+async def handle_skill_links_agent(request: web.Request) -> web.Response:
+    """GET /api/config/skill-links/agent/{agent_name} - Per-agent skills."""
+    try:
+        agent_name = request.match_info["agent_name"]
+
+        def _get_agent_skills():
+            mapper = _get_skill_to_agent_mapper()
+            return mapper.get_agent_skills(agent_name)
+
+        result = await asyncio.to_thread(_get_agent_skills)
+
+        if result is None:
+            return web.json_response(
+                {
+                    "success": False,
+                    "error": f"Agent '{agent_name}' not found",
+                    "code": "NOT_FOUND",
+                },
+                status=404,
+            )
+
+        return web.json_response({"success": True, "data": result})
+    except Exception as e:
+        logger.error(
+            f"Error fetching agent skills for {request.match_info.get('agent_name', '?')}: {e}"
+        )
+        return web.json_response(
+            {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
+            status=500,
+        )
+
+
+# --- Phase 4A: Configuration Validation ---
+
+
+async def handle_validate(request: web.Request) -> web.Response:
+    """GET /api/config/validate - Run configuration validation.
+
+    Returns categorized issues with severity, path, message, and suggestion.
+    Results are cached for 60 seconds.
+    """
+    try:
+
+        def _validate():
+            svc = _get_config_validation_service()
+            return svc.validate_cached()
+
+        data = await asyncio.to_thread(_validate)
+        return web.json_response(data)
+    except Exception as e:
+        logger.error(f"Error running config validation: {e}")
         return web.json_response(
             {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
             status=500,

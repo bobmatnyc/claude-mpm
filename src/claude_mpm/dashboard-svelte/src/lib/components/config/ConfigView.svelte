@@ -15,6 +15,7 @@
 	import AgentsList from './AgentsList.svelte';
 	import SkillsList from './SkillsList.svelte';
 	import SourcesList from './SourcesList.svelte';
+	import SkillLinksView from './SkillLinksView.svelte';
 	import ModeSwitch from './ModeSwitch.svelte';
 	import AutoConfigPreview from './AutoConfigPreview.svelte';
 	import Badge from '$lib/components/Badge.svelte';
@@ -25,7 +26,7 @@
 
 	let { panelSide }: Props = $props();
 
-	type ConfigSubTab = 'agents' | 'skills' | 'sources';
+	type ConfigSubTab = 'agents' | 'skills' | 'sources' | 'skill-links';
 	let subTab = $state<ConfigSubTab>('agents');
 
 	// Selected items for detail view in right panel
@@ -245,6 +246,17 @@
 			>
 				Sources
 			</button>
+			<button
+				onclick={() => subTab = 'skill-links'}
+				class="px-4 py-2 text-xs font-semibold rounded-t-md transition-colors
+					{subTab === 'skill-links'
+						? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-b-0 border-slate-200 dark:border-slate-700'
+						: 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}"
+				role="tab"
+				aria-selected={subTab === 'skill-links'}
+			>
+				Skill Links
+			</button>
 		</div>
 
 		<!-- Sub-tab content -->
@@ -277,6 +289,8 @@
 					{selectedSource}
 					syncStatus={syncStatusData}
 				/>
+			{:else if subTab === 'skill-links'}
+				<SkillLinksView />
 			{/if}
 		</div>
 	</div>
