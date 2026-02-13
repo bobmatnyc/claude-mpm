@@ -17,7 +17,7 @@
 		onSessionWarning?: (active: boolean) => void;
 	}
 
-	let { deployedSkills, availableSkills, loading, onSelect, selectedSkill, deploymentMode = 'agent_referenced', onSwitchMode, onSessionWarning }: Props = $props();
+	let { deployedSkills, availableSkills, loading, onSelect, selectedSkill, deploymentMode = 'selective', onSwitchMode, onSessionWarning }: Props = $props();
 
 	// Immutable skill collections
 	const IMMUTABLE_COLLECTIONS = ['PM_CORE_SKILLS', 'CORE_SKILLS'];
@@ -63,11 +63,16 @@
 	}
 
 	function getDeployModeVariant(mode: string): 'info' | 'success' {
-		return mode === 'user_defined' ? 'success' : 'info';
+		return (mode === 'user_defined' || mode === 'full') ? 'success' : 'info';
 	}
 
 	function formatDeployMode(mode: string): string {
-		return mode === 'user_defined' ? 'User Defined' : 'Agent Referenced';
+		switch (mode) {
+			case 'full': return 'Full';
+			case 'selective': return 'Selective';
+			case 'user_defined': return 'User Defined';
+			default: return 'Agent Referenced';
+		}
 	}
 
 	async function handleDeploy(skill: AvailableSkill) {
@@ -115,7 +120,7 @@
 				<span class="text-xs text-slate-500 dark:text-slate-400">Mode:</span>
 				<Badge
 					text={formatDeployMode(deploymentMode)}
-					variant={deploymentMode === 'user_defined' ? 'success' : 'info'}
+					variant={deploymentMode === 'full' ? 'success' : 'info'}
 				/>
 			</div>
 			{#if onSwitchMode}

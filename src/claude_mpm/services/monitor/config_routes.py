@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+import yaml
 from aiohttp import web
 
 from claude_mpm.services.monitor.pagination import (
@@ -147,7 +148,16 @@ async def handle_project_summary(request: web.Request) -> web.Response:
             skill_config = SkillSourceConfiguration()
             skill_sources = skill_config.load()
 
+            # Read deployment mode from project configuration
+            config_path = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            if config_path.exists():
+                project_cfg = yaml.safe_load(config_path.read_text()) or {}
+            else:
+                project_cfg = {}
+            skills_cfg = project_cfg.get("skills", {})
+
             return {
+                "deployment_mode": skills_cfg.get("deployment_mode", "selective"),
                 "agents": {
                     "deployed": deployed_count,
                     "available": len(available_agents),

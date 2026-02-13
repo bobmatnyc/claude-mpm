@@ -25,9 +25,9 @@
 	let confirmChecked = $state(false);
 	let confirmTyped = $state('');
 
-	let targetMode = $derived(currentMode === 'agent_referenced' ? 'user_defined' : 'agent_referenced');
-	let targetModeLabel = $derived(targetMode === 'user_defined' ? 'User Defined' : 'Agent Referenced');
-	let currentModeLabel = $derived(currentMode === 'user_defined' ? 'User Defined' : 'Agent Referenced');
+	let targetMode = $derived(currentMode === 'selective' ? 'full' : 'selective');
+	let targetModeLabel = $derived(targetMode === 'full' ? 'Full' : 'Selective');
+	let currentModeLabel = $derived(currentMode === 'full' ? 'Full' : 'Selective');
 	let canConfirm = $derived(confirmChecked && confirmTyped.toLowerCase() === 'switch');
 
 	async function loadPreview() {
@@ -99,11 +99,11 @@
 
 		<!-- Mode switch header -->
 		<div class="flex items-center gap-2 mb-4 p-3 bg-slate-900 rounded-lg">
-			<Badge text={currentModeLabel} variant={currentMode === 'user_defined' ? 'success' : 'info'} />
+			<Badge text={currentModeLabel} variant={currentMode === 'full' ? 'success' : 'info'} />
 			<svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
 			</svg>
-			<Badge text={targetModeLabel} variant={targetMode === 'user_defined' ? 'success' : 'info'} />
+			<Badge text={targetModeLabel} variant={targetMode === 'full' ? 'success' : 'info'} />
 		</div>
 
 		{#if error}

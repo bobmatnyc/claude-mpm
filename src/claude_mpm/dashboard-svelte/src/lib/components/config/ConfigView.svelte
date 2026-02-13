@@ -283,7 +283,7 @@
 					loading={loadingState}
 					onSelect={(skill) => { selectedSkill = skill; selectedAgent = null; selectedSource = null; }}
 					{selectedSkill}
-					deploymentMode={summaryData?.deployment_mode || 'agent_referenced'}
+					deploymentMode={summaryData?.deployment_mode || 'selective'}
 					onSwitchMode={() => showModeSwitch = true}
 					onSessionWarning={handleSessionWarning}
 				/>
@@ -528,7 +528,7 @@
 <!-- Mode Switch Modal -->
 {#if showModeSwitch}
 	<ModeSwitch
-		currentMode={summaryData?.deployment_mode || 'agent_referenced'}
+		currentMode={summaryData?.deployment_mode || 'selective'}
 		onClose={() => showModeSwitch = false}
 		onModeChanged={handleModeChanged}
 	/>
