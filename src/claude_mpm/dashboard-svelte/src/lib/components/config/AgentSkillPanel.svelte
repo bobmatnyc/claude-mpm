@@ -28,7 +28,10 @@
 	let pagination = $state<PaginationState>(createPaginationState(PAGE_SIZE));
 
 	$effect(() => {
-		pagination = { ...pagination, total: filtered.length, offset: 0 };
+		const newTotal = filtered.length;
+		if (pagination.total !== newTotal || pagination.offset !== 0) {
+			pagination = { ...pagination, total: newTotal, offset: 0 };
+		}
 	});
 
 	let needsPagination = $derived(filtered.length > PAGE_SIZE);
