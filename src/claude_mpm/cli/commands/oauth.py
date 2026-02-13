@@ -90,7 +90,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
             f.write("\n")  # Add trailing newline
 
         if mcp_config_path.exists():
-            console.print("[green]✓ Added google-workspace-mcp to .mcp.json[/green]")
+            console.print("[green]✓ Added gworkspace-mcp to .mcp.json[/green]")
         return True
     except OSError as e:
         console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
