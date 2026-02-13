@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.8] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
 ## [5.8.7] - 2026-02-13
 
 ### Changed
