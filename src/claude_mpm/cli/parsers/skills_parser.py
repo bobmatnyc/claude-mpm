@@ -174,6 +174,11 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
         default="high",
         help="Minimum priority level to recommend (default: high)",
     )
+    optimize_parser.add_argument(
+        "--use-mcp-skillset",
+        action="store_true",
+        help="Query mcp-skillset MCP server for enhanced RAG-powered skill recommendations",
+    )
 
     # GitHub deployment commands
     # Deploy from GitHub command

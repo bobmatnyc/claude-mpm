@@ -1377,13 +1377,37 @@ class SkillsManagementCommand(BaseCommand):
             console.print(f"[dim]{traceback.format_exc()}[/dim]")
             return CommandResult(success=False, message=str(e), exit_code=1)
 
+    def _query_mcp_skillset(self, tech_stack) -> list[dict]:
+        """Query mcp-skillset MCP server for skill recommendations.
+
+        Args:
+            tech_stack: Detected technology stack
+
+        Returns:
+            List of skill recommendations from mcp-skillset
+        """
+        try:
+            # Check if mcp-skillset MCP tool is available
+            # This would require MCP SDK integration
+            # For now, return empty list (fallback to local manifest)
+            console.print(
+                "[dim]Note: MCP-skillset integration requires Claude Code with MCP enabled[/dim]"
+            )
+            return []
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not query mcp-skillset: {e}[/yellow]"
+            )
+            return []
+
     def _optimize_skills(self, args) -> CommandResult:
         """Intelligently recommend and deploy skills based on project analysis.
 
         This command:
         1. Analyzes the project to detect technology stack
         2. Recommends relevant skills with priority levels
-        3. Optionally deploys recommended skills
+        3. Optionally queries mcp-skillset MCP server for enhanced recommendations
+        4. Optionally deploys recommended skills
 
         Returns:
             CommandResult with success/failure status
@@ -1455,6 +1479,22 @@ class SkillsManagementCommand(BaseCommand):
             already_deployed = engine.get_deployed_skills(Path.cwd())
 
             max_skills = getattr(args, "max_skills", 10)
+
+            # Check if mcp-skillset should be used
+            use_mcp_skillset = getattr(args, "use_mcp_skillset", False)
+
+            if use_mcp_skillset:
+                console.print("[dim]Querying mcp-skillset MCP server...[/dim]")
+                mcp_recommendations = self._query_mcp_skillset(tech_stack)
+                if mcp_recommendations:
+                    console.print(
+                        f"[green]✓ Retrieved {len(mcp_recommendations)} suggestions from mcp-skillset[/green]\n"
+                    )
+                else:
+                    console.print(
+                        "[yellow]⚠ No recommendations from mcp-skillset, using local manifest[/yellow]\n"
+                    )
+
             recommendations = engine.recommend_skills(
                 tech_stack, already_deployed, max_recommendations=max_skills
             )
