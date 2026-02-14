@@ -377,11 +377,11 @@ export interface DeployResult {
 }
 
 export interface ModeImpactPreview {
-	skills_added: string[];
-	skills_removed: string[];
-	skills_unchanged: string[];
-	total_after_switch: number;
-	warning?: string;
+	would_remove: string[];
+	would_keep: string[];
+	remove_count: number;
+	keep_count: number;
+	note?: string;
 }
 
 export interface ToolchainResult {
