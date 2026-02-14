@@ -188,9 +188,7 @@ class PackageInstallerService:
         }[actual_action]
 
         console.print(f"[dim]Detected: {installer} installation[/dim]")
-        console.print(
-            f"[yellow]{action_verb} {spec.name} via {installer}...[/yellow]"
-        )
+        console.print(f"[yellow]{action_verb} {spec.name} via {installer}...[/yellow]")
 
         try:
             if actual_action == InstallAction.INSTALL:
@@ -347,7 +345,7 @@ class PackageInstallerService:
 
 # Package specifications for each service
 # Import here to avoid circular imports at module level
-def get_package_specs() -> dict["SetupService", PackageSpec]:
+def get_package_specs() -> dict[SetupService, PackageSpec]:
     """Get package specifications mapping.
 
     Returns:
@@ -390,10 +388,10 @@ def get_package_specs() -> dict["SetupService", PackageSpec]:
 
 
 # Lazy-loaded PACKAGE_SPECS for backward compatibility
-PACKAGE_SPECS: dict["SetupService", PackageSpec] | None = None
+PACKAGE_SPECS: dict[SetupService, PackageSpec] | None = None
 
 
-def get_spec(service: "SetupService") -> PackageSpec:
+def get_spec(service: SetupService) -> PackageSpec:
     """Get package spec for a service.
 
     Args:
