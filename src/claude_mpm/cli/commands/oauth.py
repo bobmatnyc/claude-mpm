@@ -81,16 +81,19 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     if mcp_servers_key not in config:
         config[mcp_servers_key] = {}
 
-    # Migrate old key to canonical name
+    # Migrate old key names to canonical name
+    old_names = ["google-workspace-mpm", "google-workspace-mcp", "google_workspace_mcp"]
     migrated = False
-    if (
-        binary_name in config[mcp_servers_key]
-        and canonical_name not in config[mcp_servers_key]
-    ):
-        config[mcp_servers_key][canonical_name] = config[mcp_servers_key][binary_name]
-        del config[mcp_servers_key][binary_name]
-        console.print(f"[dim]Migrated {binary_name} → {canonical_name}[/dim]")
-        migrated = True
+    for old_name in old_names:
+        if (
+            old_name in config[mcp_servers_key]
+            and canonical_name not in config[mcp_servers_key]
+        ):
+            config[mcp_servers_key][canonical_name] = config[mcp_servers_key][old_name]
+            del config[mcp_servers_key][old_name]
+            console.print(f"[dim]Migrated {old_name} → {canonical_name}[/dim]")
+            migrated = True
+            break  # Only migrate first found old key
 
     # Check if already configured correctly
     if canonical_name in config[mcp_servers_key]:

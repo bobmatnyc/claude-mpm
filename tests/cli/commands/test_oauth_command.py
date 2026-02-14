@@ -95,6 +95,152 @@ class TestEnsureMcpConfigured:
         # Should return False because already configured
         assert result is False
 
+    def test_migrates_old_key_google_workspace_mpm(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """Test migrating old key name google-workspace-mpm to canonical gworkspace-mcp."""
+        mcp_config_path = tmp_path / ".mcp.json"
+
+        # Create config with old key name
+        existing_config = {
+            "mcpServers": {
+                "google-workspace-mpm": {
+                    "type": "stdio",
+                    "command": "gworkspace-mcp",
+                    "args": ["mcp"],
+                }
+            }
+        }
+        with open(mcp_config_path, "w") as f:
+            json.dump(existing_config, f)
+
+        result = _ensure_mcp_configured("gworkspace-mcp", tmp_path)
+
+        # Should return False because it migrated and found existing config
+        assert result is False
+
+        # Verify migration message
+        captured = capsys.readouterr()
+        assert "Migrated google-workspace-mpm → gworkspace-mcp" in captured.out
+
+        # Verify config has canonical name
+        with open(mcp_config_path) as f:
+            config = json.load(f)
+
+        assert "gworkspace-mcp" in config["mcpServers"]
+        assert "google-workspace-mpm" not in config["mcpServers"]
+        assert config["mcpServers"]["gworkspace-mcp"]["command"] == "gworkspace-mcp"
+
+    def test_migrates_old_key_google_workspace_mcp(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """Test migrating old key name google-workspace-mcp to canonical gworkspace-mcp."""
+        mcp_config_path = tmp_path / ".mcp.json"
+
+        # Create config with old key name
+        existing_config = {
+            "mcpServers": {
+                "google-workspace-mcp": {
+                    "type": "stdio",
+                    "command": "gworkspace-mcp",
+                    "args": ["mcp"],
+                }
+            }
+        }
+        with open(mcp_config_path, "w") as f:
+            json.dump(existing_config, f)
+
+        result = _ensure_mcp_configured("gworkspace-mcp", tmp_path)
+
+        # Should return False because it migrated and found existing config
+        assert result is False
+
+        # Verify migration message
+        captured = capsys.readouterr()
+        assert "Migrated google-workspace-mcp → gworkspace-mcp" in captured.out
+
+        # Verify config has canonical name
+        with open(mcp_config_path) as f:
+            config = json.load(f)
+
+        assert "gworkspace-mcp" in config["mcpServers"]
+        assert "google-workspace-mcp" not in config["mcpServers"]
+
+    def test_migrates_old_key_google_workspace_mcp_underscore(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """Test migrating old key name google_workspace_mcp to canonical gworkspace-mcp."""
+        mcp_config_path = tmp_path / ".mcp.json"
+
+        # Create config with old key name (underscore variant)
+        existing_config = {
+            "mcpServers": {
+                "google_workspace_mcp": {
+                    "type": "stdio",
+                    "command": "gworkspace-mcp",
+                    "args": ["mcp"],
+                }
+            }
+        }
+        with open(mcp_config_path, "w") as f:
+            json.dump(existing_config, f)
+
+        result = _ensure_mcp_configured("gworkspace-mcp", tmp_path)
+
+        # Should return False because it migrated and found existing config
+        assert result is False
+
+        # Verify migration message
+        captured = capsys.readouterr()
+        assert "Migrated google_workspace_mcp → gworkspace-mcp" in captured.out
+
+        # Verify config has canonical name
+        with open(mcp_config_path) as f:
+            config = json.load(f)
+
+        assert "gworkspace-mcp" in config["mcpServers"]
+        assert "google_workspace_mcp" not in config["mcpServers"]
+
+    def test_no_migration_if_canonical_name_exists(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """Test that migration is skipped if canonical name already exists."""
+        mcp_config_path = tmp_path / ".mcp.json"
+
+        # Create config with both old and new keys
+        existing_config = {
+            "mcpServers": {
+                "google-workspace-mpm": {
+                    "type": "stdio",
+                    "command": "old-command",
+                    "args": [],
+                },
+                "gworkspace-mcp": {
+                    "type": "stdio",
+                    "command": "gworkspace-mcp",
+                    "args": ["mcp"],
+                },
+            }
+        }
+        with open(mcp_config_path, "w") as f:
+            json.dump(existing_config, f)
+
+        result = _ensure_mcp_configured("gworkspace-mcp", tmp_path)
+
+        # Should return False because already configured
+        assert result is False
+
+        # Verify no migration message
+        captured = capsys.readouterr()
+        assert "Migrated" not in captured.out
+
+        # Verify both keys still exist (no migration happened)
+        with open(mcp_config_path) as f:
+            config = json.load(f)
+
+        assert "gworkspace-mcp" in config["mcpServers"]
+        assert "google-workspace-mpm" in config["mcpServers"]
+
     def test_fixes_incorrect_config(self, tmp_path: Path) -> None:
         """Test that incorrect configuration is fixed."""
         mcp_config_path = tmp_path / ".mcp.json"
