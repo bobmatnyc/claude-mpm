@@ -20,6 +20,7 @@ from claude_mpm.core.config_file_lock import (
     config_file_lock,
 )
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.config_api.validation import validate_safe_name
 
 logger = get_logger(__name__)
 
@@ -142,6 +143,11 @@ def register_skill_deployment_routes(app, config_event_handler, config_file_watc
         if not skill_name:
             return _error_response(400, "skill_name is required", "VALIDATION_ERROR")
 
+        # C-02: Validate skill name to prevent path traversal
+        valid, err_msg = validate_safe_name(skill_name, "skill")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
+
         try:
 
             def _deploy_sync():
@@ -242,6 +248,11 @@ def register_skill_deployment_routes(app, config_event_handler, config_file_watc
     async def undeploy_skill(request: web.Request) -> web.Response:
         """Remove a deployed skill."""
         skill_name = request.match_info["skill_name"]
+
+        # C-02: Validate skill name to prevent path traversal
+        valid, err_msg = validate_safe_name(skill_name, "skill")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
 
         # Immutability check
         immutable = _get_immutable_skills()

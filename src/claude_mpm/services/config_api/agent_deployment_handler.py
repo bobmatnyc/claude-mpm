@@ -15,6 +15,10 @@ from typing import Any, Dict
 from aiohttp import web
 
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.config_api.validation import (
+    validate_path_containment,
+    validate_safe_name,
+)
 
 logger = get_logger(__name__)
 
@@ -127,8 +131,18 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
         if not agent_name:
             return _error_response(400, "agent_name is required", "VALIDATION_ERROR")
 
+        # C-01: Validate agent name to prevent path traversal
+        valid, err_msg = validate_safe_name(agent_name, "agent")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
+
         agents_dir = Path.cwd() / ".claude" / "agents"
         agent_path = agents_dir / f"{agent_name}.md"
+
+        # Path containment check (defence in depth)
+        valid, err_msg = validate_path_containment(agent_path, agents_dir, "agent")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
 
         # Conflict check
         if agent_path.exists() and not force:
@@ -226,6 +240,11 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
         """Remove a deployed agent."""
         agent_name = request.match_info["agent_name"]
 
+        # C-01: Validate agent name to prevent path traversal
+        valid, err_msg = validate_safe_name(agent_name, "agent")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
+
         # BR-01: core agent protection
         if agent_name in CORE_AGENTS:
             return _error_response(
@@ -237,6 +256,11 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
 
         agents_dir = Path.cwd() / ".claude" / "agents"
         agent_path = agents_dir / f"{agent_name}.md"
+
+        # Path containment check (defence in depth)
+        valid, err_msg = validate_path_containment(agent_path, agents_dir, "agent")
+        if not valid:
+            return _error_response(400, err_msg, "VALIDATION_ERROR")
 
         if not agent_path.exists():
             return _error_response(
@@ -329,6 +353,18 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
         start_time = time.time()
 
         for idx, agent_name in enumerate(agent_names):
+            # C-01: Validate each agent name to prevent path traversal
+            valid, err_msg = validate_safe_name(agent_name, "agent")
+            if not valid:
+                failed.append(agent_name)
+                results.append(
+                    {"agent_name": agent_name, "success": False, "error": err_msg}
+                )
+                logger.warning(
+                    "Batch deploy: agent '%s' rejected: %s", agent_name, err_msg
+                )
+                continue
+
             try:
 
                 def _deploy_one(name=agent_name):

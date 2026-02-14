@@ -468,6 +468,303 @@ class TestModeSwitchEndpoint(AioHTTPTestCase):
 # ====================================================================
 
 
+# ====================================================================
+# Path Traversal Validation (C-01 / C-02)
+# ====================================================================
+
+
+class TestAgentNameValidation(AioHTTPTestCase):
+    """Verify that path traversal attempts are blocked for agents."""
+
+    async def get_application(self):
+        _reset_agent_handler_singletons()
+        return create_agent_deploy_app()
+
+    async def test_deploy_valid_names_pass(self):
+        """Valid agent names are accepted (validation does not block them)."""
+        mock_backup = _mock_backup_result()
+        mock_verification = _mock_verification_result()
+
+        for name in ["my-agent", "agent_v2", "Research", "a1"]:
+            with patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+            ) as mock_bm, patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+            ) as mock_jl, patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+            ) as mock_dv, patch(
+                "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+            ) as mock_svc, patch(
+                "claude_mpm.services.config_api.session_detector.detect_active_claude_sessions",
+                return_value=[],
+            ), patch("pathlib.Path.exists", return_value=False), patch(
+                "pathlib.Path.mkdir"
+            ):
+                mock_bm.return_value.create_backup.return_value = mock_backup
+                mock_jl.return_value.begin_operation.return_value = "op-1"
+                mock_svc.return_value.deploy_agent.return_value = True
+                mock_dv.return_value.verify_agent_deployed.return_value = (
+                    mock_verification
+                )
+
+                resp = await self.client.request(
+                    "POST",
+                    "/api/config/agents/deploy",
+                    json={"agent_name": name},
+                )
+                assert resp.status == 201, (
+                    f"Expected 201 for name '{name}', got {resp.status}"
+                )
+
+    async def test_deploy_path_traversal_blocked(self):
+        """Path traversal attempts via deploy are rejected with 400."""
+        traversal_names = [
+            "../../etc/passwd",
+            "../secret",
+            "foo/bar",
+            "foo\\bar",
+            ".hidden",
+            "..double-dot",
+        ]
+        for name in traversal_names:
+            resp = await self.client.request(
+                "POST",
+                "/api/config/agents/deploy",
+                json={"agent_name": name},
+            )
+            assert resp.status == 400, (
+                f"Expected 400 for name '{name}', got {resp.status}"
+            )
+            data = await resp.json()
+            assert data["success"] is False
+            assert data["code"] == "VALIDATION_ERROR"
+
+    async def test_deploy_empty_name_blocked(self):
+        """Empty agent_name is rejected."""
+        resp = await self.client.request(
+            "POST",
+            "/api/config/agents/deploy",
+            json={"agent_name": ""},
+        )
+        assert resp.status == 400
+        data = await resp.json()
+        assert data["code"] == "VALIDATION_ERROR"
+
+    async def test_undeploy_path_traversal_blocked(self):
+        """Path traversal via undeploy DELETE is rejected with 400."""
+        # URL-encoded names that would be decoded by aiohttp
+        for name in ["..secret", ".hidden"]:
+            resp = await self.client.request(
+                "DELETE",
+                f"/api/config/agents/{name}",
+            )
+            assert resp.status == 400, (
+                f"Expected 400 for name '{name}', got {resp.status}"
+            )
+            data = await resp.json()
+            assert data["code"] == "VALIDATION_ERROR"
+
+
+class TestSkillNameValidation(AioHTTPTestCase):
+    """Verify that path traversal attempts are blocked for skills."""
+
+    async def get_application(self):
+        _reset_skill_handler_singletons()
+        return create_skill_deploy_app()
+
+    async def test_deploy_valid_skill_names_pass(self):
+        """Valid skill names are accepted (validation does not block them)."""
+        mock_backup = _mock_backup_result()
+        mock_verification = _mock_verification_result()
+
+        for name in ["my-skill", "skill_v2", "Research", "a1"]:
+            with patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_backup_manager"
+            ) as mock_bm, patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_operation_journal"
+            ) as mock_jl, patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_deployment_verifier"
+            ) as mock_dv, patch(
+                "claude_mpm.services.config_api.skill_deployment_handler._get_skills_deployer"
+            ) as mock_svc:
+                mock_bm.return_value.create_backup.return_value = mock_backup
+                mock_jl.return_value.begin_operation.return_value = "op-skill"
+                mock_svc.return_value.deploy_skills.return_value = {
+                    "deployed_count": 1,
+                    "deployed_skills": [name],
+                    "errors": [],
+                }
+                mock_dv.return_value.verify_skill_deployed.return_value = (
+                    mock_verification
+                )
+
+                resp = await self.client.request(
+                    "POST",
+                    "/api/config/skills/deploy",
+                    json={"skill_name": name},
+                )
+                assert resp.status == 201, (
+                    f"Expected 201 for name '{name}', got {resp.status}"
+                )
+
+    async def test_deploy_skill_path_traversal_blocked(self):
+        """Path traversal attempts via skill deploy are rejected with 400."""
+        traversal_names = [
+            "../../etc/passwd",
+            "../secret",
+            "foo/bar",
+            "foo\\bar",
+            ".hidden",
+            "..double-dot",
+        ]
+        for name in traversal_names:
+            resp = await self.client.request(
+                "POST",
+                "/api/config/skills/deploy",
+                json={"skill_name": name},
+            )
+            assert resp.status == 400, (
+                f"Expected 400 for name '{name}', got {resp.status}"
+            )
+            data = await resp.json()
+            assert data["success"] is False
+            assert data["code"] == "VALIDATION_ERROR"
+
+    async def test_deploy_skill_empty_name_blocked(self):
+        """Empty skill_name is rejected."""
+        resp = await self.client.request(
+            "POST",
+            "/api/config/skills/deploy",
+            json={"skill_name": ""},
+        )
+        assert resp.status == 400
+        data = await resp.json()
+        assert data["code"] == "VALIDATION_ERROR"
+
+    async def test_undeploy_skill_path_traversal_blocked(self):
+        """Path traversal via undeploy DELETE is rejected with 400."""
+        for name in ["..secret", ".hidden"]:
+            resp = await self.client.request(
+                "DELETE",
+                f"/api/config/skills/{name}",
+            )
+            assert resp.status == 400, (
+                f"Expected 400 for name '{name}', got {resp.status}"
+            )
+            data = await resp.json()
+            assert data["code"] == "VALIDATION_ERROR"
+
+
+class TestBatchDeployValidation(AioHTTPTestCase):
+    """Verify batch deploy validates each agent name."""
+
+    async def get_application(self):
+        _reset_agent_handler_singletons()
+        return create_agent_deploy_app()
+
+    async def test_batch_deploy_rejects_traversal_names(self):
+        """Batch deploy with traversal names marks them as failed."""
+        mock_backup = _mock_backup_result()
+        mock_verification = _mock_verification_result()
+
+        with patch(
+            "claude_mpm.services.config_api.agent_deployment_handler._get_backup_manager"
+        ) as mock_bm, patch(
+            "claude_mpm.services.config_api.agent_deployment_handler._get_operation_journal"
+        ) as mock_jl, patch(
+            "claude_mpm.services.config_api.agent_deployment_handler._get_deployment_verifier"
+        ) as mock_dv, patch(
+            "claude_mpm.services.config_api.agent_deployment_handler._get_agent_deployment_service"
+        ) as mock_svc, patch("pathlib.Path.mkdir"):
+            mock_bm.return_value.create_backup.return_value = mock_backup
+            mock_jl.return_value.begin_operation.return_value = "op-batch"
+            mock_svc.return_value.deploy_agent.return_value = True
+            mock_dv.return_value.verify_agent_deployed.return_value = mock_verification
+
+            resp = await self.client.request(
+                "POST",
+                "/api/config/agents/deploy-collection",
+                json={"agent_names": ["good-agent", "../../etc/passwd", ".hidden"]},
+            )
+            assert resp.status == 200
+            data = await resp.json()
+            assert data["success"] is False  # Not all succeeded
+            assert data["summary"]["deployed"] == 1
+            assert data["summary"]["failed"] == 2
+            assert "good-agent" in data["deployed_agents"]
+            assert "../../etc/passwd" in data["failed_agents"]
+            assert ".hidden" in data["failed_agents"]
+
+
+# ====================================================================
+# Validation Unit Tests (no HTTP needed)
+# ====================================================================
+
+
+class TestValidateSafeName:
+    """Unit tests for the validate_safe_name utility."""
+
+    def test_valid_names(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        valid_names = [
+            "my-agent",
+            "agent_v2",
+            "Research",
+            "a1",
+            "python-engineer",
+            "ABC123",
+            "test-agent-v3",
+        ]
+        for name in valid_names:
+            is_valid, _msg = validate_safe_name(name, "agent")
+            assert is_valid, f"Expected '{name}' to be valid, got error: {msg}"
+
+    def test_path_traversal_rejected(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        bad_names = [
+            "../../etc/passwd",
+            "../secret",
+            "../../.ssh/authorized_keys",
+        ]
+        for name in bad_names:
+            is_valid, _msg = validate_safe_name(name, "agent")
+            assert not is_valid, f"Expected '{name}' to be rejected"
+
+    def test_slashes_rejected(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        for name in ["foo/bar", "foo\\bar", "a/b/c"]:
+            is_valid, _msg = validate_safe_name(name, "agent")
+            assert not is_valid, f"Expected '{name}' to be rejected"
+
+    def test_empty_name_rejected(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        is_valid, _msg = validate_safe_name("", "agent")
+        assert not is_valid
+
+    def test_dot_prefixed_rejected(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        for name in [".hidden", "..double", ".env"]:
+            is_valid, _msg = validate_safe_name(name, "agent")
+            assert not is_valid, f"Expected '{name}' to be rejected"
+
+    def test_special_chars_rejected(self):
+        from claude_mpm.services.config_api.validation import validate_safe_name
+
+        for name in ["agent name", "agent@v2", "agent;drop", "agent&cmd"]:
+            is_valid, _msg = validate_safe_name(name, "agent")
+            assert not is_valid, f"Expected '{name}' to be rejected"
+
+
+# ====================================================================
+# Auto-Configure Endpoints
+# ====================================================================
+
+
 class TestAutoConfigEndpoints(AioHTTPTestCase):
     async def get_application(self):
         return create_autoconfig_app()
