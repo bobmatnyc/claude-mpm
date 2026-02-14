@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.8.14] - 2026-02-13
+
+### Fixed
+- Fixed multi-service setup failure handling (removed early return on first failure)
+- All services now processed regardless of individual failures
+- Comprehensive summary showing X/Y services succeeded
+- Smart auto-launch only when at least one service succeeds
+
 ## [5.8.13] - 2026-02-13
 
 ### Changed
