@@ -41,6 +41,65 @@ class SetupService(str, Enum):
         return self.value
 
 
+class MCPConfigKey(str, Enum):
+    """Keys used in .mcp.json configuration files."""
+
+    MCP_SERVERS = "mcpServers"
+    TYPE = "type"
+    COMMAND = "command"
+    ARGS = "args"
+    ENV = "env"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class MCPServerType(str, Enum):
+    """MCP server types."""
+
+    STDIO = "stdio"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class MCPBinary(str, Enum):
+    """MCP server binary/command names (installed executables)."""
+
+    GOOGLE_WORKSPACE = "google-workspace-mcp"
+    KUZU_MEMORY = "kuzu-memory"
+    MCP_TICKETER = "mcp-ticketer"
+    MCP_VECTOR_SEARCH = "mcp-vector-search"
+    MCP_SKILLSET = "mcp-skillset"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class MCPSubcommand(str, Enum):
+    """Common MCP subcommands."""
+
+    MCP = "mcp"
+    SETUP = "setup"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class TicketStatus(str, Enum):
+    """Ticket/issue status values."""
+
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    TESTING = "testing"
+    CLOSED = "closed"
+    ALL = "all"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 # Global flags that can appear without a preceding service
 GLOBAL_SETUP_FLAGS = {SetupFlag.NO_LAUNCH}
 

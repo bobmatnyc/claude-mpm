@@ -21,6 +21,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from ..constants import (
+    MCPBinary,
+    MCPConfigKey,
+    MCPServerType,
+    MCPSubcommand,
+    SetupService,
+)
 from ..shared import BaseCommand, CommandResult
 
 console = Console()
@@ -37,18 +44,18 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
         True if configuration was added/updated, False if already configured or not applicable
     """
     # Only handle gworkspace-mcp service
-    if service_name != "gworkspace-mcp":
+    if service_name != str(SetupService.GWORKSPACE_MCP):
         return False  # Only handle gworkspace-mcp
 
     # Use canonical name for configuration
-    canonical_name = "gworkspace-mcp"
+    canonical_name = str(SetupService.GWORKSPACE_MCP)
     mcp_config_path = project_dir / ".mcp.json"
 
     # Default config (command is installed binary name from package)
     server_config = {
-        "type": "stdio",
-        "command": "google-workspace-mcp",
-        "args": ["mcp"],
+        str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+        str(MCPConfigKey.COMMAND): str(MCPBinary.GOOGLE_WORKSPACE),
+        str(MCPConfigKey.ARGS): [str(MCPSubcommand.MCP)],
     }
 
     if mcp_config_path.exists():
@@ -58,42 +65,50 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
                 config = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
             console.print(f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]")
-            config = {"mcpServers": {}}
+            config = {str(MCPConfigKey.MCP_SERVERS): {}}
     else:
-        config = {"mcpServers": {}}
+        config = {str(MCPConfigKey.MCP_SERVERS): {}}
+
+    mcp_servers_key = str(MCPConfigKey.MCP_SERVERS)
+    type_key = str(MCPConfigKey.TYPE)
+    command_key = str(MCPConfigKey.COMMAND)
+    args_key = str(MCPConfigKey.ARGS)
+    stdio_type = str(MCPServerType.STDIO)
+    binary_name = str(MCPBinary.GOOGLE_WORKSPACE)
+    mcp_arg = [str(MCPSubcommand.MCP)]
 
     # Ensure mcpServers key exists
-    if "mcpServers" not in config:
-        config["mcpServers"] = {}
+    if mcp_servers_key not in config:
+        config[mcp_servers_key] = {}
 
     # Migrate old key to canonical name
     migrated = False
     if (
-        "google-workspace-mcp" in config["mcpServers"]
-        and canonical_name not in config["mcpServers"]
+        binary_name in config[mcp_servers_key]
+        and canonical_name not in config[mcp_servers_key]
     ):
-        config["mcpServers"][canonical_name] = config["mcpServers"][
-            "google-workspace-mcp"
-        ]
-        del config["mcpServers"]["google-workspace-mcp"]
-        console.print("[dim]Migrated google-workspace-mcp → gworkspace-mcp[/dim]")
+        config[mcp_servers_key][canonical_name] = config[mcp_servers_key][binary_name]
+        del config[mcp_servers_key][binary_name]
+        console.print(f"[dim]Migrated {binary_name} → {canonical_name}[/dim]")
         migrated = True
 
     # Check if already configured correctly
-    if canonical_name in config["mcpServers"]:
-        existing = config["mcpServers"][canonical_name]
-        if existing.get("command") == "google-workspace-mcp":
+    if canonical_name in config[mcp_servers_key]:
+        existing = config[mcp_servers_key][canonical_name]
+        if existing.get(command_key) == binary_name:
             # Fix missing or incorrect fields
             needs_save = migrated
-            if existing.get("type") != "stdio":
-                existing["type"] = "stdio"
+            if existing.get(type_key) != stdio_type:
+                existing[type_key] = stdio_type
                 needs_save = True
-                console.print("[dim]Fixed missing 'type' field in config[/dim]")
-            if existing.get("args") != ["mcp"]:
-                existing["args"] = ["mcp"]
+                console.print(f"[dim]Fixed missing '{type_key}' field in config[/dim]")
+            if existing.get(args_key) != mcp_arg:
+                existing[args_key] = mcp_arg
                 needs_save = True
-                console.print("[dim]Fixed missing 'mcp' arg in config[/dim]")
-            config["mcpServers"][canonical_name] = existing
+                console.print(
+                    f"[dim]Fixed missing '{MCPSubcommand.MCP}' arg in config[/dim]"
+                )
+            config[mcp_servers_key][canonical_name] = existing
             # Save if we migrated or fixed fields
             if needs_save:
                 try:
@@ -106,7 +121,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
             return False
 
     # Add/update with canonical name
-    config["mcpServers"][canonical_name] = server_config
+    config[mcp_servers_key][canonical_name] = server_config
 
     # Write back
     try:
@@ -115,7 +130,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
             f.write("\n")  # Add trailing newline
 
         if mcp_config_path.exists():
-            console.print("[green]✓ Added gworkspace-mcp to .mcp.json[/green]")
+            console.print(f"[green]✓ Added {canonical_name} to .mcp.json[/green]")
         return True
     except OSError as e:
         console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
