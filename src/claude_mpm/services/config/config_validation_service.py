@@ -444,6 +444,47 @@ class ConfigValidationService:
 
         return issues
 
+    @staticmethod
+    def _skill_name_matches_deployed(
+        skill_name: str, deployed_skill_names: set
+    ) -> bool:
+        """Check if a short skill name matches any deployed (long) skill name.
+
+        The deployment system normalizes skill source paths into directory names.
+        For example, source_path "toolchains/ui/components/daisyui/SKILL.md"
+        becomes deployed directory name "toolchains-ui-components-daisyui".
+
+        Agent frontmatter may reference skills by their short name (e.g., "daisyui")
+        or their full deployed name (e.g., "toolchains-ui-components-daisyui").
+
+        Matching rules (consistent with skill_matches_requirement in skills_deployer.py):
+        1. Exact match: skill_name == deployed_name
+        2. Segment suffix match: deployed_name ends with "-{skill_name}"
+           (using "-" as segment boundary to prevent partial matches like
+            "ui" matching "toolchains-ui-components-daisyui")
+
+        Args:
+            skill_name: Skill name from agent frontmatter (short or long)
+            deployed_skill_names: Set of deployed skill directory names
+
+        Returns:
+            True if the skill name matches any deployed skill
+        """
+        # Exact match (handles full deployed names)
+        if skill_name in deployed_skill_names:
+            return True
+
+        # Segment suffix match: deployed name ends with "-{skill_name}"
+        # The "-" boundary prevents partial matches (e.g., "ui" won't match
+        # "toolchains-ui-components-daisyui" because the suffix would be
+        # "-ui" but the deployed name has "-ui-components-daisyui" after it)
+        suffix = f"-{skill_name}"
+        for deployed_name in deployed_skill_names:
+            if deployed_name.endswith(suffix):
+                return True
+
+        return False
+
     def _validate_cross_references(self) -> List[ValidationIssue]:
         """Check for skills referenced by agents but not deployed."""
         issues: List[ValidationIssue] = []
@@ -500,7 +541,9 @@ class ConfigValidationService:
 
             # Find missing skills
             for skill_name in agent_skills:
-                if skill_name not in deployed_skill_names:
+                if not self._skill_name_matches_deployed(
+                    skill_name, deployed_skill_names
+                ):
                     issues.append(
                         ValidationIssue(
                             severity="warning",

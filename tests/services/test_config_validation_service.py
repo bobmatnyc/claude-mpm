@@ -364,6 +364,176 @@ class TestCrossReferenceValidation:
         warnings = [i for i in issues if i.severity == "warning"]
         assert any("undeployed-marker-skill" in w.message for w in warnings)
 
+    def test_short_name_matches_long_deployed_name(self, tmp_path):
+        """Short skill name 'daisyui' should match deployed 'toolchains-ui-components-daisyui'."""
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "engineer.md").write_text(
+            "---\nname: Engineer\nskills:\n- daisyui\n- react\n---\n\n# Engineer"
+        )
+
+        svc = ConfigValidationService()
+
+        mock_deployer = MagicMock()
+        mock_deployer.check_deployed_skills.return_value = {
+            "skills": [
+                {"name": "toolchains-ui-components-daisyui"},
+                {"name": "toolchains-javascript-frameworks-react"},
+            ]
+        }
+
+        with patch(
+            "claude_mpm.services.config.config_validation_service.Path"
+        ) as mock_path:
+            mock_path.cwd.return_value = tmp_path
+
+            with patch.dict(
+                "sys.modules",
+                {
+                    "claude_mpm.services.skills_deployer": MagicMock(
+                        SkillsDeployerService=MagicMock(return_value=mock_deployer)
+                    )
+                },
+            ):
+                issues = svc._validate_cross_references()
+
+        warnings = [i for i in issues if i.severity == "warning"]
+        # Neither "daisyui" nor "react" should produce warnings - they match deployed skills
+        assert not any("daisyui" in w.message for w in warnings)
+        assert not any("react" in w.message for w in warnings)
+
+    def test_short_name_no_partial_match(self, tmp_path):
+        """Short name 'ui' should NOT match 'toolchains-ui-components-daisyui'."""
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "engineer.md").write_text(
+            "---\nname: Engineer\nskills:\n- ui\n---\n\n# Engineer"
+        )
+
+        svc = ConfigValidationService()
+
+        mock_deployer = MagicMock()
+        mock_deployer.check_deployed_skills.return_value = {
+            "skills": [
+                {"name": "toolchains-ui-components-daisyui"},
+            ]
+        }
+
+        with patch(
+            "claude_mpm.services.config.config_validation_service.Path"
+        ) as mock_path:
+            mock_path.cwd.return_value = tmp_path
+
+            with patch.dict(
+                "sys.modules",
+                {
+                    "claude_mpm.services.skills_deployer": MagicMock(
+                        SkillsDeployerService=MagicMock(return_value=mock_deployer)
+                    )
+                },
+            ):
+                issues = svc._validate_cross_references()
+
+        warnings = [i for i in issues if i.severity == "warning"]
+        # "ui" should NOT match because it's a middle segment, not a suffix
+        assert any("ui" in w.message for w in warnings)
+
+    def test_full_deployed_name_exact_match(self, tmp_path):
+        """Full deployed name should match exactly."""
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "engineer.md").write_text(
+            "---\nname: Engineer\nskills:\n- toolchains-ui-components-daisyui\n---\n\n# Engineer"
+        )
+
+        svc = ConfigValidationService()
+
+        mock_deployer = MagicMock()
+        mock_deployer.check_deployed_skills.return_value = {
+            "skills": [
+                {"name": "toolchains-ui-components-daisyui"},
+            ]
+        }
+
+        with patch(
+            "claude_mpm.services.config.config_validation_service.Path"
+        ) as mock_path:
+            mock_path.cwd.return_value = tmp_path
+
+            with patch.dict(
+                "sys.modules",
+                {
+                    "claude_mpm.services.skills_deployer": MagicMock(
+                        SkillsDeployerService=MagicMock(return_value=mock_deployer)
+                    )
+                },
+            ):
+                issues = svc._validate_cross_references()
+
+        warnings = [i for i in issues if i.severity == "warning"]
+        assert len(warnings) == 0
+
+
+class TestSkillNameMatchesDeployed:
+    """Test _skill_name_matches_deployed static method."""
+
+    def test_exact_match(self):
+        deployed = {"toolchains-ui-components-daisyui", "universal-testing-tdd"}
+        assert ConfigValidationService._skill_name_matches_deployed(
+            "toolchains-ui-components-daisyui", deployed
+        )
+
+    def test_suffix_match_short_name(self):
+        deployed = {"toolchains-ui-components-daisyui", "universal-testing-tdd"}
+        assert ConfigValidationService._skill_name_matches_deployed("daisyui", deployed)
+        assert ConfigValidationService._skill_name_matches_deployed("tdd", deployed)
+
+    def test_suffix_match_medium_name(self):
+        deployed = {"toolchains-ui-components-daisyui"}
+        # "components-daisyui" ends at a segment boundary
+        assert ConfigValidationService._skill_name_matches_deployed(
+            "components-daisyui", deployed
+        )
+
+    def test_no_partial_segment_match(self):
+        deployed = {"toolchains-ui-components-daisyui"}
+        # "ui" is a middle segment, not a suffix
+        assert not ConfigValidationService._skill_name_matches_deployed("ui", deployed)
+        # "aisyui" is a substring but not a segment-aligned suffix
+        assert not ConfigValidationService._skill_name_matches_deployed(
+            "aisyui", deployed
+        )
+
+    def test_no_match_at_all(self):
+        deployed = {"toolchains-ui-components-daisyui"}
+        assert not ConfigValidationService._skill_name_matches_deployed(
+            "nonexistent-skill", deployed
+        )
+
+    def test_empty_deployed_set(self):
+        assert not ConfigValidationService._skill_name_matches_deployed(
+            "daisyui", set()
+        )
+
+    def test_multiple_deployed_matches_first_found(self):
+        deployed = {
+            "toolchains-python-core",
+            "toolchains-javascript-core",
+        }
+        # "core" matches both, but should return True
+        assert ConfigValidationService._skill_name_matches_deployed("core", deployed)
+
+    def test_hyphenated_short_name(self):
+        deployed = {"universal-debugging-systematic-debugging"}
+        assert ConfigValidationService._skill_name_matches_deployed(
+            "systematic-debugging", deployed
+        )
+
+    def test_exact_short_name_in_deployed(self):
+        """If a deployed skill has no prefix (just the short name), exact match works."""
+        deployed = {"daisyui"}
+        assert ConfigValidationService._skill_name_matches_deployed("daisyui", deployed)
+
 
 class TestValidationCache:
     """Test caching behavior."""
