@@ -379,6 +379,40 @@ class SetupCommand(BaseCommand):
             )
             return False
 
+    def _add_gworkspace_to_gitignore(self) -> None:
+        """Add .gworkspace-mcp/ to project .gitignore to prevent token commits."""
+        gitignore_path = Path.cwd() / ".gitignore"
+        gworkspace_entry = ".gworkspace-mcp/"
+
+        # Check if .gitignore exists
+        if not gitignore_path.exists():
+            console.print(
+                f"[dim]No .gitignore found at {gitignore_path}, skipping gitignore update[/dim]"
+            )
+            return
+
+        try:
+            # Read existing content
+            with open(gitignore_path) as f:
+                content = f.read()
+
+            # Check if already present
+            if gworkspace_entry in content:
+                console.print("[dim].gworkspace-mcp/ already in .gitignore[/dim]")
+                return
+
+            # Append entry
+            with open(gitignore_path, "a") as f:
+                # Add newline if file doesn't end with one
+                if content and not content.endswith("\n"):
+                    f.write("\n")
+                f.write(f"{gworkspace_entry}\n")
+
+            console.print("[green]✓ Added .gworkspace-mcp/ to .gitignore[/green]")
+
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not update .gitignore: {e}[/yellow]")
+
     def _configure_slack_mcp_server(self) -> None:
         """Configure slack-user-proxy MCP server in .mcp.json after OAuth setup."""
         try:
@@ -1450,6 +1484,10 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         from .oauth import _ensure_mcp_configured
 
         _ensure_mcp_configured("gworkspace-mcp", Path.cwd())
+
+        # Add .gworkspace-mcp/ to .gitignore if not present
+        if exit_code == 0:
+            self._add_gworkspace_to_gitignore()
 
         # Register service in setup registry on success
         if exit_code == 0:
