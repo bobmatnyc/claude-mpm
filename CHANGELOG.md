@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.8.15] - 2026-02-14
+
+### Changed
+- Renamed google-workspace-mcp binary to gworkspace-mcp for consistency
+- Updated token path from ~/.google-workspace-mcp/ to ~/.gworkspace-mcp/
+- Aligned with upstream gworkspace-mcp package v0.1.5
+
+### Fixed
+- Fixed bandit security warnings with nosec comments in mcp_setup_external.py
+
 ## [5.8.14] - 2026-02-13
 
 ### Fixed
