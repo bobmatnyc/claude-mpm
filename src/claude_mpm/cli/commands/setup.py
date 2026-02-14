@@ -767,186 +767,33 @@ class SetupCommand(BaseCommand):
                 "Kuzu-memory provides semantic search and enhanced context management.\n"
             )
 
-            # Check if kuzu-memory is installed
+            # Use centralized package installer
             console.print("[cyan]Checking kuzu-memory installation...[/cyan]")
-            try:
-                import importlib.util
 
-                spec = importlib.util.find_spec("kuzu_memory")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
 
-            # Detect how claude-mpm was installed
-            # Get flags
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.KUZU_MEMORY)
+
             force = getattr(args, "force", False)
             upgrade = getattr(args, "upgrade", False)
 
-            if not is_installed or force or upgrade:
-                console.print("[cyan]Detecting installation method...[/cyan]")
-
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
-
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    # If in venv or development, use pip within that environment
-                    # Otherwise use pip as default fallback
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                # Determine action
-                if upgrade and is_installed:
-                    action = "Upgrading"
-                elif force and is_installed:
-                    action = "Reinstalling"
-                else:
-                    action = "Installing"
-
-                console.print(
-                    f"[yellow]{action} kuzu-memory>=1.6.33 via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["pipx", "upgrade", "kuzu-memory"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                ["pipx", "reinstall", "kuzu-memory"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                ["pipx", "install", "kuzu-memory>=1.6.33"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["uv", "tool", "upgrade", "kuzu-memory"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            # uv tool doesn't have reinstall, so uninstall then install
-                            subprocess.run(
-                                ["uv", "tool", "uninstall", "kuzu-memory"],
-                                check=False,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "kuzu-memory>=1.6.33",
-                                    "--with",
-                                    "numpy",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "kuzu-memory>=1.6.33",
-                                    "--with",
-                                    "numpy",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--upgrade",
-                                    "kuzu-memory>=1.6.33",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--force-reinstall",
-                                    "kuzu-memory>=1.6.33",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--user",
-                                    "kuzu-memory>=1.6.33",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ kuzu-memory {action.lower()}d via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install kuzu-memory via {install_method}. "
-                        f"Try manually: {install_method} install kuzu-memory>=1.6.33"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ kuzu-memory already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Migrate existing static memory files if present
             console.print("\n[cyan]Checking for existing memory files...[/cyan]")
