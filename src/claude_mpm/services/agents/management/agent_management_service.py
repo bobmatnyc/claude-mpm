@@ -64,8 +64,8 @@ class AgentManager:
 
         if project_dir is None:
             project_root = get_path_manager().get_project_root()
-            # Use direct agents directory without subdirectory to match deployment expectations
-            self.project_dir = project_root / get_path_manager().CONFIG_DIR / "agents"
+            # Deployed agents live in .claude/agents/ (Claude Code's native directory)
+            self.project_dir = project_root / ".claude" / "agents"
         else:
             self.project_dir = project_dir
         self.version_manager = AgentVersionManager()

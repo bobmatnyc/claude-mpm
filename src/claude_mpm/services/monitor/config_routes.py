@@ -37,7 +37,8 @@ def _get_agent_manager(project_dir: Optional[Path] = None):
             AgentManager,
         )
 
-        _agent_manager = AgentManager(project_dir=project_dir or Path.cwd())
+        agents_dir = project_dir or (Path.cwd() / ".claude" / "agents")
+        _agent_manager = AgentManager(project_dir=agents_dir)
     return _agent_manager
 
 
@@ -241,6 +242,16 @@ async def handle_agents_available(request: web.Request) -> web.Response:
         def _list_available():
             git_mgr = _get_git_source_manager()
             agents = git_mgr.list_cached_agents()
+
+            # Promote metadata fields to root level for frontend compatibility.
+            # The discovery service nests name/description under metadata,
+            # but the frontend AvailableAgent interface expects them at root.
+            for agent in agents:
+                metadata = agent.get("metadata", {})
+                agent.setdefault(
+                    "name", metadata.get("name", agent.get("agent_id", ""))
+                )
+                agent.setdefault("description", metadata.get("description", ""))
 
             # Client-side search filter on name/description
             if search:
