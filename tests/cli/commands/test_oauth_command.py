@@ -52,7 +52,7 @@ class TestEnsureMcpConfigured:
         assert (
             config["mcpServers"]["gworkspace-mcp"]["command"] == "google-workspace-mcp"
         )
-        assert config["mcpServers"]["gworkspace-mcp"]["args"] == []
+        assert config["mcpServers"]["gworkspace-mcp"]["args"] == ["mcp"]
 
     def test_adds_to_existing_mcp_json(self, tmp_path: Path) -> None:
         """Test adding to existing .mcp.json with other servers."""

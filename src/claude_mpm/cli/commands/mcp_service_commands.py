@@ -12,6 +12,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..constants import MCPBinary, SetupService
+
 if TYPE_CHECKING:
     from argparse import Namespace
     from logging import Logger
@@ -30,8 +32,11 @@ def _normalize_mcp_key(service_name: str) -> str:
     Returns:
         The canonical MCP key name for configuration files
     """
-    if service_name in ("google-workspace-mcp", "gworkspace-mcp"):
-        return "gworkspace-mcp"
+    if service_name in (
+        str(MCPBinary.GOOGLE_WORKSPACE),
+        str(SetupService.GWORKSPACE_MCP),
+    ):
+        return str(SetupService.GWORKSPACE_MCP)
     return service_name
 
 

@@ -11,6 +11,8 @@ from datetime import timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from ..constants import MCPBinary, MCPConfigKey, MCPServerType, SetupService
+
 
 def _normalize_mcp_key(service_name: str) -> str:
     """Normalize service name to canonical MCP key.
@@ -25,8 +27,11 @@ def _normalize_mcp_key(service_name: str) -> str:
     Returns:
         The canonical MCP key name for configuration files
     """
-    if service_name in ("google-workspace-mcp", "gworkspace-mcp"):
-        return "gworkspace-mcp"
+    if service_name in (
+        str(MCPBinary.GOOGLE_WORKSPACE),
+        str(SetupService.GWORKSPACE_MCP),
+    ):
+        return str(SetupService.GWORKSPACE_MCP)
     return service_name
 
 
@@ -49,8 +54,8 @@ class MCPExternalServicesSetup:
         )
 
         return {
-            "mcp-vector-search": {
-                "package_name": "mcp-vector-search",
+            str(SetupService.MCP_VECTOR_SEARCH): {
+                "package_name": str(SetupService.MCP_VECTOR_SEARCH),
                 "module_name": "mcp_vector_search",
                 "description": "Semantic code search with vector embeddings",
                 "config": mcp_vector_search_config,
@@ -146,10 +151,10 @@ class MCPExternalServicesSetup:
                         mcp_browser_binary = venv_python.parent / "mcp-browser"
                         if mcp_browser_binary.exists():
                             return {
-                                "type": "stdio",
-                                "command": str(mcp_browser_binary),
-                                "args": ["mcp"],
-                                "env": {
+                                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                                str(MCPConfigKey.COMMAND): str(mcp_browser_binary),
+                                str(MCPConfigKey.ARGS): ["mcp"],
+                                str(MCPConfigKey.ENV): {
                                     "MCP_BROWSER_HOME": str(
                                         Path.home() / ".mcp-browser"
                                     )
@@ -160,10 +165,10 @@ class MCPExternalServicesSetup:
                         mcp_server = dev_path / "mcp-server.py"
                         if mcp_server.exists():
                             return {
-                                "type": "stdio",
-                                "command": str(venv_python),
-                                "args": [str(mcp_server)],
-                                "env": {
+                                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                                str(MCPConfigKey.COMMAND): str(venv_python),
+                                str(MCPConfigKey.ARGS): [str(mcp_server)],
+                                str(MCPConfigKey.ENV): {
                                     "MCP_BROWSER_HOME": str(
                                         Path.home() / ".mcp-browser"
                                     ),
@@ -182,24 +187,28 @@ class MCPExternalServicesSetup:
                         )
                         if result.returncode == 0:
                             # Use special configuration for local dev
-                            if service_name == "mcp-vector-search":
+                            if service_name == str(SetupService.MCP_VECTOR_SEARCH):
                                 return {
-                                    "type": "stdio",
-                                    "command": str(venv_python),
-                                    "args": [
+                                    str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                                    str(MCPConfigKey.COMMAND): str(venv_python),
+                                    str(MCPConfigKey.ARGS): [
                                         "-m",
                                         "mcp_vector_search.mcp.server",
                                         str(project_path),
                                     ],
-                                    "env": {},
+                                    str(MCPConfigKey.ENV): {},
                                 }
                             if service_name == "mcp-browser":
                                 # Fallback for mcp-browser without mcp-server.py
                                 return {
-                                    "type": "stdio",
-                                    "command": str(venv_python),
-                                    "args": ["-m", "mcp_browser", "mcp"],
-                                    "env": {
+                                    str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                                    str(MCPConfigKey.COMMAND): str(venv_python),
+                                    str(MCPConfigKey.ARGS): [
+                                        "-m",
+                                        "mcp_browser",
+                                        "mcp",
+                                    ],
+                                    str(MCPConfigKey.ENV): {
                                         "MCP_BROWSER_HOME": str(
                                             Path.home() / ".mcp-browser"
                                         ),
@@ -278,32 +287,40 @@ class MCPExternalServicesSetup:
             binary_path = Path(python_path).parent / "mcp-browser"
             if binary_path.exists():
                 return {
-                    "type": "stdio",
-                    "command": str(binary_path),
-                    "args": ["mcp"],
-                    "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")},
+                    str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                    str(MCPConfigKey.COMMAND): str(binary_path),
+                    str(MCPConfigKey.ARGS): ["mcp"],
+                    str(MCPConfigKey.ENV): {
+                        "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
+                    },
                 }
             # Use Python module invocation
             return {
-                "type": "stdio",
-                "command": python_path,
-                "args": ["-m", "mcp_browser", "mcp"],
-                "env": {"MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")},
+                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                str(MCPConfigKey.COMMAND): python_path,
+                str(MCPConfigKey.ARGS): ["-m", "mcp_browser", "mcp"],
+                str(MCPConfigKey.ENV): {
+                    "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
+                },
             }
-        if service_name == "mcp-vector-search":
+        if service_name == str(SetupService.MCP_VECTOR_SEARCH):
             return {
-                "type": "stdio",
-                "command": python_path,
-                "args": ["-m", "mcp_vector_search.mcp.server", str(project_path)],
-                "env": {},
+                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                str(MCPConfigKey.COMMAND): python_path,
+                str(MCPConfigKey.ARGS): [
+                    "-m",
+                    "mcp_vector_search.mcp.server",
+                    str(project_path),
+                ],
+                str(MCPConfigKey.ENV): {},
             }
         # Generic configuration for other services
         module_name = service_name.replace("-", "_")
         return {
-            "type": "stdio",
-            "command": python_path,
-            "args": ["-m", module_name],
-            "env": {},
+            str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+            str(MCPConfigKey.COMMAND): python_path,
+            str(MCPConfigKey.ARGS): ["-m", module_name],
+            str(MCPConfigKey.ENV): {},
         }
 
     def detect_mcp_installations(self) -> Dict[str, Dict]:
@@ -322,7 +339,7 @@ class MCPExternalServicesSetup:
         installations = {}
         project_path = Path.cwd()
 
-        for service_name in ["mcp-browser", "mcp-vector-search"]:
+        for service_name in ["mcp-browser", str(SetupService.MCP_VECTOR_SEARCH)]:
             # Try each detection method in priority order
             local_dev_config = self._get_local_dev_config(service_name, project_path)
             if local_dev_config:
@@ -724,16 +741,20 @@ class MCPExternalServicesSetup:
                     )
                     if result.returncode == 0:
                         return {
-                            "type": "stdio",
-                            "command": str(python_path),
-                            "args": ["-m", "mcp_browser.cli.main", "mcp"],
-                            "env": {
+                            str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                            str(MCPConfigKey.COMMAND): str(python_path),
+                            str(MCPConfigKey.ARGS): [
+                                "-m",
+                                "mcp_browser.cli.main",
+                                "mcp",
+                            ],
+                            str(MCPConfigKey.ENV): {
                                 "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
                             },
                         }
                 except Exception:
                     pass
-        elif package_name == "mcp-vector-search":
+        elif package_name == str(SetupService.MCP_VECTOR_SEARCH):
             # mcp-vector-search uses Python module invocation
             python_path = pipx_venv / "bin" / "python"
             if python_path.exists():
@@ -747,14 +768,14 @@ class MCPExternalServicesSetup:
                     )
                     if result.returncode == 0:
                         return {
-                            "type": "stdio",
-                            "command": str(python_path),
-                            "args": [
+                            str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                            str(MCPConfigKey.COMMAND): str(python_path),
+                            str(MCPConfigKey.ARGS): [
                                 "-m",
                                 "mcp_vector_search.mcp.server",
                                 str(project_path),
                             ],
-                            "env": {},
+                            str(MCPConfigKey.ENV): {},
                         }
                 except Exception:
                     pass
