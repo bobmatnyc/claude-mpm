@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.8.12] - 2026-02-13
+
+### Added
+- **PackageInstallerService**: Declarative package installation abstraction
+  - New centralized service for handling pipx/uv/pip installations
+  - InstallerType, InstallAction enums for clean API
+  - PackageSpec dataclass for declarative package definitions
+  - PACKAGE_SPECS mapping for all setup services
+  - Refactored kuzu-memory setup as proof of concept (190 -> 35 lines)
+
 ## [5.8.11] - 2026-02-13
 
 ### Changed
