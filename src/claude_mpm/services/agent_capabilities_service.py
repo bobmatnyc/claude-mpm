@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 """Agent capabilities service for discovering and generating agent capability descriptions.
 
@@ -29,7 +30,7 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
 
-    def get_all_agents(self) -> dict[str, dict[str, any]]:
+    def get_all_agents(self) -> dict[str, dict[str, Any]]:
         """Get all discovered agents with their metadata.
 
         Returns:

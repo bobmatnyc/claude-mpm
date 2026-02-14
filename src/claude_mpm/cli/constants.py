@@ -13,6 +13,7 @@ class SetupFlag(str, Enum):
     NO_LAUNCH = "no_launch"
     NO_BROWSER = "no_browser"
     FORCE = "force"
+    UPGRADE = "upgrade"
     OAUTH_SERVICE = "oauth_service"
 
     def __str__(self) -> str:
