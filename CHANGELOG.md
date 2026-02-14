@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.18] - 2026-02-14
+
+### Added
+- feat(setup): add .gworkspace-mcp/ to .gitignore on setup
+
 ## [5.8.17] - 2026-02-14
 
 ### Fixed
