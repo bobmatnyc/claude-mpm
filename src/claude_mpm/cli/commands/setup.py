@@ -1016,183 +1016,33 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 "This will set up semantic code search with vector embeddings.\n"
             )
 
-            # Check if mcp-vector-search is installed
+            # Use centralized package installer
             console.print("[cyan]Checking mcp-vector-search installation...[/cyan]")
+
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
+
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_VECTOR_SEARCH)
+
             force = getattr(args, "force", False)
-
-            # Try to import mcp-vector-search
-            try:
-                import importlib.util
-
-                spec = importlib.util.find_spec("mcp_vector_search")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
-
-            # Detect how claude-mpm was installed
             upgrade = getattr(args, "upgrade", False)
 
-            if not is_installed or force or upgrade:
-                console.print("[cyan]Detecting installation method...[/cyan]")
-
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
-
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    # If in venv or development, use pip within that environment
-                    # Otherwise use pip as default fallback
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                # Determine action
-                if upgrade and is_installed:
-                    action = "Upgrading"
-                elif force and is_installed:
-                    action = "Reinstalling"
-                else:
-                    action = "Installing"
-
-                console.print(
-                    f"[yellow]{action} mcp-vector-search via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["pipx", "upgrade", "mcp-vector-search"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                ["pipx", "reinstall", "mcp-vector-search"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                ["pipx", "install", "mcp-vector-search"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["uv", "tool", "upgrade", "mcp-vector-search"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            # uv tool doesn't have reinstall, so uninstall then install
-                            subprocess.run(
-                                ["uv", "tool", "uninstall", "mcp-vector-search"],
-                                check=False,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "mcp-vector-search",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "mcp-vector-search",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--upgrade",
-                                    "mcp-vector-search",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--force-reinstall",
-                                    "mcp-vector-search",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--user",
-                                    "mcp-vector-search",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ mcp-vector-search {action.lower()}d via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install mcp-vector-search via {install_method}. "
-                        f"Try manually: {install_method} install mcp-vector-search"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ mcp-vector-search already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Use MCPExternalServicesSetup to configure .mcp.json
             console.print(
@@ -1225,10 +1075,18 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                     "mcp-vector-search service not found in registry"
                 )
 
-            # Setup the service
-            success = handler._setup_service(
-                config, "mcp-vector-search", service_info, force
-            )
+            # Check if already configured correctly (skip prompt if so)
+            service_key = str(SetupService.MCP_VECTOR_SEARCH)
+            if service_key in config.get("mcpServers", {}) and not force:
+                console.print(
+                    f"[dim]{service_key} already configured in .mcp.json[/dim]"
+                )
+                success = True
+            else:
+                # Setup the service (pass force=True to skip interactive prompt)
+                success = handler._setup_service(
+                    config, "mcp-vector-search", service_info, force=True
+                )
 
             if success:
                 # Save configuration
@@ -1281,179 +1139,33 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         )
 
         try:
-            # Check if mcp-skillset is installed
+            # Use centralized package installer
             console.print("[cyan]Checking mcp-skillset installation...[/cyan]")
-            try:
-                import importlib.util
 
-                spec = importlib.util.find_spec("mcp_skillset")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
 
-            # Install if needed
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_SKILLSET)
+
             force = getattr(args, "force", False)
             upgrade = getattr(args, "upgrade", False)
 
-            if not is_installed or force or upgrade:
-                console.print("[cyan]Detecting installation method...[/cyan]")
-
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
-
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                # Determine action
-                if upgrade and is_installed:
-                    action = "Upgrading"
-                elif force and is_installed:
-                    action = "Reinstalling"
-                else:
-                    action = "Installing"
-
-                console.print(
-                    f"[yellow]{action} mcp-skillset via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["pipx", "upgrade", "mcp-skillset"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                ["pipx", "reinstall", "mcp-skillset"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                ["pipx", "install", "mcp-skillset"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                ["uv", "tool", "upgrade", "mcp-skillset"],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            # uv tool doesn't have reinstall, so uninstall then install
-                            subprocess.run(
-                                ["uv", "tool", "uninstall", "mcp-skillset"],
-                                check=False,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "mcp-skillset",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    "uv",
-                                    "tool",
-                                    "install",
-                                    "mcp-skillset",
-                                    "--python",
-                                    "3.13",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        if upgrade and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--upgrade",
-                                    "mcp-skillset",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        elif force and is_installed:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--force-reinstall",
-                                    "mcp-skillset",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-                        else:
-                            subprocess.run(
-                                [
-                                    sys.executable,
-                                    "-m",
-                                    "pip",
-                                    "install",
-                                    "--user",
-                                    "mcp-skillset",
-                                ],
-                                check=True,
-                                capture_output=True,
-                                text=True,
-                            )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ mcp-skillset {action.lower()}d via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install mcp-skillset via {install_method}. "
-                        f"Try manually: {install_method} install mcp-skillset"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ mcp-skillset already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Configure in USER-LEVEL Claude Desktop config
             console.print(
@@ -1489,14 +1201,8 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
 
             # Check if already configured
             if "mcp-skillset" in config["mcpServers"] and not force:
-                console.print("[yellow]⚠ mcp-skillset already configured[/yellow]")
-                from rich.prompt import Confirm
-
-                if not Confirm.ask("Overwrite existing configuration?", default=False):
-                    console.print("[yellow]Skipping configuration[/yellow]")
-                    return CommandResult.success_result(
-                        "mcp-skillset already configured"
-                    )
+                console.print("[dim]mcp-skillset already configured[/dim]")
+                return CommandResult.success_result("mcp-skillset already configured")
 
             # Add mcp-skillset configuration
             config["mcpServers"]["mcp-skillset"] = {
@@ -1598,7 +1304,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         """Setup mcp-ticketer with MPM hook integration.
 
         Args:
-            args: Setup options (currently unused)
+            args: Setup options (force, upgrade flags supported)
 
         Returns:
             CommandResult indicating success or failure
@@ -1606,10 +1312,39 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         console.print("\n[bold cyan]Setting up mcp-ticketer...[/bold cyan]")
 
         try:
+            # Use centralized package installer
+            console.print("[cyan]Checking mcp-ticketer installation...[/cyan]")
+
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
+
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_TICKETER)
+
+            force = getattr(args, "force", False)
+            upgrade = getattr(args, "upgrade", False)
+
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
+                console.print("[green]✓ mcp-ticketer already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
+
             # Run mcp-ticketer setup with auto mode
             # This integrates with MPM's hook system automatically
+            console.print("\n[cyan]Running mcp-ticketer setup...[/cyan]")
             result = subprocess.run(
-                ["mcp-ticketer", "setup", "--auto"],
+                ["mcp-ticketer", "setup"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -1621,7 +1356,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 return CommandResult.success_result("mcp-ticketer setup completed")
 
             console.print(
-                "[yellow]⚠ mcp-ticketer setup completed with warnings:[/yellow]"
+                "[yellow]mcp-ticketer setup completed with warnings:[/yellow]"
             )
             console.print(f"  {result.stderr.strip()}")
             return CommandResult.success_result(
@@ -1629,11 +1364,11 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             )
 
         except FileNotFoundError:
-            console.print("[red]✗ mcp-ticketer not found. Install with:[/red]")
+            console.print("[red]mcp-ticketer not found. Install with:[/red]")
             console.print("  pip install mcp-ticketer")
             return CommandResult.error_result("mcp-ticketer not installed")
         except Exception as e:
-            console.print(f"[red]✗ Failed to setup mcp-ticketer: {e}[/red]")
+            console.print(f"[red]Failed to setup mcp-ticketer: {e}[/red]")
             return CommandResult.error_result(f"Failed to setup mcp-ticketer: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
@@ -1642,169 +1377,33 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             "This will configure OAuth authentication for Google Workspace.\n"
         )
 
-        # Check if gworkspace-mcp package is installed
-        import subprocess  # nosec B404
+        # Use centralized package installer
+        console.print("[cyan]Checking gworkspace-mcp installation...[/cyan]")
 
-        try:
-            result = subprocess.run(  # nosec B603 B607
-                ["which", "google-workspace-mcp"],
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            is_installed = result.returncode == 0
-        except Exception:
-            is_installed = False
+        from ...services.package_installer import (
+            InstallAction,
+            PackageInstallerService,
+            get_spec,
+        )
 
-        # Get flags
+        installer = PackageInstallerService()
+        spec = get_spec(SetupService.GWORKSPACE_MCP)
+
         force = getattr(args, "force", False)
         upgrade = getattr(args, "upgrade", False)
 
-        # Install, upgrade, or reinstall package
-        if not is_installed or force or upgrade:
+        # Check if already installed and no flags set
+        if installer.is_installed(spec) and not force and not upgrade:
+            console.print("[green]✓ gworkspace-mcp already installed[/green]")
+        else:
             console.print("[cyan]Detecting installation method...[/cyan]")
-
-            # Use existing detection utility
-            from ...services.diagnostics.checks.installation_check import (
-                InstallationCheck,
+            success, message = installer.install(
+                spec, InstallAction.INSTALL, force=force, upgrade=upgrade
             )
-
-            checker = InstallationCheck()
-            methods = checker._check_installation_method()
-
-            # Determine primary method (priority: pipx > uv > pip)
-            install_method = None
-            detected_methods = methods.details.get("methods_detected", [])
-
-            if "pipx" in detected_methods:
-                install_method = "pipx"
-            elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                install_method = "uv"
+            if success:
+                console.print(f"[green]✓ {message}[/green]\n")
             else:
-                install_method = "pip"
-
-            console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-            # Determine action
-            if upgrade and is_installed:
-                action = "Upgrading"
-            elif force and is_installed:
-                action = "Reinstalling"
-            else:
-                action = "Installing"
-
-            console.print(
-                f"[yellow]{action} gworkspace-mcp via {install_method}...[/yellow]"
-            )
-
-            try:
-                if install_method == "pipx":
-                    if upgrade and is_installed:
-                        subprocess.run(
-                            ["pipx", "upgrade", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    elif force and is_installed:
-                        subprocess.run(
-                            ["pipx", "reinstall", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    else:
-                        subprocess.run(
-                            ["pipx", "install", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                elif install_method == "uv":
-                    if upgrade and is_installed:
-                        subprocess.run(
-                            ["uv", "tool", "upgrade", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    elif force and is_installed:
-                        # uv tool doesn't have reinstall, so uninstall then install
-                        subprocess.run(
-                            ["uv", "tool", "uninstall", "gworkspace-mcp"],
-                            check=False,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                        subprocess.run(
-                            ["uv", "tool", "install", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    else:
-                        subprocess.run(
-                            ["uv", "tool", "install", "gworkspace-mcp"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                elif install_method == "pip":
-                    if upgrade and is_installed:
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--upgrade",
-                                "gworkspace-mcp",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    elif force and is_installed:
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--force-reinstall",
-                                "gworkspace-mcp",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-                    else:
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--user",
-                                "gworkspace-mcp",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                console.print(
-                    f"[green]✓ gworkspace-mcp {action.lower()}d via {install_method}[/green]\n"
-                )
-
-            except subprocess.CalledProcessError as e:
-                error_msg = e.stderr if e.stderr else str(e)
-                return CommandResult(
-                    success=False,
-                    message=f"Failed to install gworkspace-mcp via {install_method}: {error_msg}",
-                )
+                return CommandResult.error_result(message)
 
         # Use the package's native setup command which stores tokens correctly
         # at ~/.google-workspace-mcp/tokens.json
