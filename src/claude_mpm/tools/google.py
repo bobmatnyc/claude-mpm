@@ -69,13 +69,13 @@ class GoogleTools(BaseToolModule):
         stored = self.storage.retrieve(service)
         if not stored:
             raise ValueError(
-                f"No token found for {service}. Run 'claude-mpm setup oauth google-workspace-mcp' first."
+                f"No token found for {service}. Run 'claude-mpm setup gworkspace-mcp' first."
             )
 
         # Check if token is expired
         if stored.token.is_expired():
             raise ValueError(
-                f"Token for {service} is expired. Run 'claude-mpm setup oauth google-workspace-mcp' to re-authenticate."
+                f"Token for {service} is expired. Run 'claude-mpm setup gworkspace-mcp --force' to re-authenticate."
             )
 
         return stored.token.access_token

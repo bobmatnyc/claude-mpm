@@ -5,7 +5,7 @@ This module handles the registration of external MCP services
 """
 
 import json
-import subprocess
+import subprocess  # nosec B404 - subprocess is required to execute MCP service commands
 import sys
 from datetime import timezone
 from pathlib import Path
@@ -17,9 +17,8 @@ from ..constants import MCPBinary, MCPConfigKey, MCPServerType, SetupService
 def _normalize_mcp_key(service_name: str) -> str:
     """Normalize service name to canonical MCP key.
 
-    This ensures we always use the canonical package name (gworkspace-mcp)
-    rather than the binary command name (google-workspace-mcp) as the key
-    in .mcp.json configuration files.
+    This ensures we always use the canonical name (gworkspace-mcp)
+    as the key in .mcp.json configuration files.
 
     Args:
         service_name: The service name (possibly from binary command)
@@ -179,7 +178,7 @@ class MCPExternalServicesSetup:
                     # Check if the package is installed in this venv
                     module_name = service_name.replace("-", "_")
                     try:
-                        result = subprocess.run(
+                        result = subprocess.run(  # nosec B603 - venv_python is from controlled path
                             [str(venv_python), "-c", f"import {module_name}"],
                             capture_output=True,
                             timeout=5,
@@ -215,7 +214,7 @@ class MCPExternalServicesSetup:
                                         "PYTHONPATH": str(dev_path),
                                     },
                                 }
-                    except Exception:
+                    except Exception:  # nosec B112 - intentionally skip dev paths that fail
                         continue
 
         return None
@@ -242,7 +241,7 @@ class MCPExternalServicesSetup:
                 # Check if the package is installed in this venv
                 module_name = service_name.replace("-", "_")
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 - venv_python is from controlled path
                         [str(venv_python), "-c", f"import {module_name}"],
                         capture_output=True,
                         timeout=5,
@@ -252,7 +251,7 @@ class MCPExternalServicesSetup:
                         return self._create_service_config(
                             service_name, str(venv_python), project_path
                         )
-                except Exception:
+                except Exception:  # nosec B112 - intentionally skip venvs that fail import check
                     continue
 
         return None
@@ -637,7 +636,7 @@ class MCPExternalServicesSetup:
             bool: True if installation was successful
         """
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 - sys.executable is trusted Python interpreter
                 [sys.executable, "-m", "pip", "install", package_name],
                 capture_output=True,
                 text=True,
@@ -733,7 +732,7 @@ class MCPExternalServicesSetup:
             if python_path.exists():
                 # Check if module is importable
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 - python_path is from pipx venv
                         [str(python_path), "-c", "import mcp_browser.cli.main"],
                         capture_output=True,
                         timeout=5,
@@ -752,7 +751,7 @@ class MCPExternalServicesSetup:
                                 "MCP_BROWSER_HOME": str(Path.home() / ".mcp-browser")
                             },
                         }
-                except Exception:
+                except Exception:  # nosec B110 - intentionally ignore import check failures
                     pass
         elif package_name == str(SetupService.MCP_VECTOR_SEARCH):
             # mcp-vector-search uses Python module invocation
@@ -760,7 +759,7 @@ class MCPExternalServicesSetup:
             if python_path.exists():
                 # Check if module is importable
                 try:
-                    result = subprocess.run(
+                    result = subprocess.run(  # nosec B603 - python_path is from pipx venv
                         [str(python_path), "-c", "import mcp_vector_search"],
                         capture_output=True,
                         timeout=5,
@@ -777,7 +776,7 @@ class MCPExternalServicesSetup:
                             ],
                             str(MCPConfigKey.ENV): {},
                         }
-                except Exception:
+                except Exception:  # nosec B110 - intentionally ignore import check failures
                     pass
 
         return None

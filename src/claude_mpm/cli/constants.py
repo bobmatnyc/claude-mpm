@@ -67,7 +67,7 @@ class MCPServerType(str, Enum):
 class MCPBinary(str, Enum):
     """MCP server binary/command names (installed executables)."""
 
-    GOOGLE_WORKSPACE = "google-workspace-mcp"
+    GOOGLE_WORKSPACE = "gworkspace-mcp"
     KUZU_MEMORY = "kuzu-memory"
     MCP_TICKETER = "mcp-ticketer"
     MCP_VECTOR_SEARCH = "mcp-vector-search"

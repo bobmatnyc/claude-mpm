@@ -22,9 +22,8 @@ if TYPE_CHECKING:
 def _normalize_mcp_key(service_name: str) -> str:
     """Normalize service name to canonical MCP key.
 
-    This ensures we always use the canonical package name (gworkspace-mcp)
-    rather than the binary command name (google-workspace-mcp) as the key
-    in .mcp.json configuration files.
+    This ensures we always use the canonical name (gworkspace-mcp)
+    as the key in .mcp.json configuration files.
 
     Args:
         service_name: The service name (possibly from binary command)

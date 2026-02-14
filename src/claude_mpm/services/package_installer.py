@@ -375,7 +375,7 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
         ),
         SetupService.GWORKSPACE_MCP: PackageSpec(
             name="gworkspace-mcp",
-            binary_name="google-workspace-mcp",
+            binary_name="gworkspace-mcp",
             module_name="gworkspace_mcp",
         ),
         SetupService.MCP_TICKETER: PackageSpec(

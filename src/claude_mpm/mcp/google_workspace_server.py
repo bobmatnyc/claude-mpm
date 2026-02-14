@@ -30,8 +30,8 @@ from claude_mpm.auth import OAuthManager, TokenStatus, TokenStorage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Service name for token storage - matches google-workspace-mcp convention
-SERVICE_NAME = "google-workspace-mcp"
+# Service name for token storage - matches gworkspace-mcp convention
+SERVICE_NAME = "gworkspace-mcp"
 
 # Google API base URLs
 CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
@@ -55,7 +55,7 @@ class GoogleWorkspaceServer:
 
     def __init__(self) -> None:
         """Initialize the Google Workspace MCP server."""
-        self.server = Server("google-workspace-mcp")
+        self.server = Server("gworkspace-mcp")
         self.storage = TokenStorage()
         self.manager = OAuthManager(storage=self.storage)
         self._setup_handlers()

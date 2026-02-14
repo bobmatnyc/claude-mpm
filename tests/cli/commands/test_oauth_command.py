@@ -49,9 +49,7 @@ class TestEnsureMcpConfigured:
 
         assert "mcpServers" in config
         assert "gworkspace-mcp" in config["mcpServers"]
-        assert (
-            config["mcpServers"]["gworkspace-mcp"]["command"] == "google-workspace-mcp"
-        )
+        assert config["mcpServers"]["gworkspace-mcp"]["command"] == "gworkspace-mcp"
         assert config["mcpServers"]["gworkspace-mcp"]["args"] == ["mcp"]
 
     def test_adds_to_existing_mcp_json(self, tmp_path: Path) -> None:
@@ -79,9 +77,7 @@ class TestEnsureMcpConfigured:
 
         # Should add new server
         assert "gworkspace-mcp" in config["mcpServers"]
-        assert (
-            config["mcpServers"]["gworkspace-mcp"]["command"] == "google-workspace-mcp"
-        )
+        assert config["mcpServers"]["gworkspace-mcp"]["command"] == "gworkspace-mcp"
 
     def test_skips_if_already_configured(self, tmp_path: Path) -> None:
         """Test that already configured server is not modified."""
@@ -89,9 +85,7 @@ class TestEnsureMcpConfigured:
 
         # Create existing config with gworkspace-mcp already configured
         existing_config = {
-            "mcpServers": {
-                "gworkspace-mcp": {"command": "google-workspace-mcp", "args": []}
-            }
+            "mcpServers": {"gworkspace-mcp": {"command": "gworkspace-mcp", "args": []}}
         }
         with open(mcp_config_path, "w") as f:
             json.dump(existing_config, f)
@@ -120,9 +114,7 @@ class TestEnsureMcpConfigured:
         with open(mcp_config_path) as f:
             config = json.load(f)
 
-        assert (
-            config["mcpServers"]["gworkspace-mcp"]["command"] == "google-workspace-mcp"
-        )
+        assert config["mcpServers"]["gworkspace-mcp"]["command"] == "gworkspace-mcp"
 
     def test_handles_empty_mcp_json(self, tmp_path: Path) -> None:
         """Test handling of empty .mcp.json file."""
