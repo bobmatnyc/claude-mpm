@@ -246,9 +246,11 @@ class SetupCommand(BaseCommand):
 
         # Launch claude-mpm after all services are set up (unless --no-launch specified)
         # Only launch if at least one service succeeded
-        # Check global_options first, then fall back to checking any service's no_launch option
-        global_options = getattr(args, "global_options", {})
-        no_launch = global_options.get("no_launch", False)
+        # Check argparse flag first, then global_options, then per-service options
+        no_launch = getattr(args, "no_launch", False)
+        if not no_launch:
+            global_options = getattr(args, "global_options", {})
+            no_launch = global_options.get("no_launch", False)
         # Also check if any service had --no-launch applied to it
         if not no_launch:
             no_launch = any(

@@ -72,6 +72,31 @@ Note: Flags are associated with the service that precedes them.
         """,
     )
 
+    # Global flags that can appear anywhere in the command
+    setup_parser.add_argument(
+        "--no-launch",
+        action="store_true",
+        default=False,
+        help="Don't auto-launch claude-mpm after setup",
+    )
+    setup_parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        default=False,
+        help="Don't auto-open browser for authentication",
+    )
+    setup_parser.add_argument(
+        "--force",
+        action="store_true",
+        default=False,
+        help="Force reinstall or credential re-entry",
+    )
+    setup_parser.add_argument(
+        "--oauth-service",
+        type=str,
+        help="Service name for OAuth setup",
+    )
+
     # Services as positional remainder arguments
     # We'll parse this manually to associate flags with services
     setup_parser.add_argument(
