@@ -53,7 +53,9 @@ class TestSetupKuzuMemoryArchival:
         setup_cmd = SetupCommand()
 
         # Create mock args
-        args = Mock(no_launch=True, force=False, upgrade=False)  # Don't launch after setup
+        args = Mock(
+            no_launch=True, force=False, upgrade=False
+        )  # Don't launch after setup
 
         # Run setup
         result = setup_cmd._setup_kuzu_memory(args)
