@@ -26,6 +26,13 @@
 	let availableExpanded = $state(true);
 	let searchQuery = $state('');
 
+	// Step 2: Sort controls
+	type SortOption = 'name-asc' | 'name-desc' | 'version' | 'status';
+	let sortBy = $state<SortOption>('name-asc');
+
+	// Step 3: Toolchain grouping toggle
+	let groupByToolchain = $state(true);
+
 	// Deploy/undeploy state
 	let deployingSkills = $state<Set<string>>(new Set());
 	let undeployingSkills = $state<Set<string>>(new Set());
@@ -34,20 +41,94 @@
 	let showUndeployConfirm = $state(false);
 	let undeployTarget = $state<DeployedSkill | null>(null);
 
+	// Step 2: Sort function
+	function sortItems<T extends { name: string }>(items: T[], sort: SortOption, getVersion?: (item: T) => string, getDeployed?: (item: T) => boolean): T[] {
+		const sorted = [...items];
+		switch (sort) {
+			case 'name-asc':
+				return sorted.sort((a, b) => a.name.localeCompare(b.name));
+			case 'name-desc':
+				return sorted.sort((a, b) => b.name.localeCompare(a.name));
+			case 'version':
+				return sorted.sort((a, b) => (getVersion?.(b) ?? '').localeCompare(getVersion?.(a) ?? ''));
+			case 'status':
+				return sorted.sort((a, b) => {
+					const aDeployed = getDeployed?.(a) ? 1 : 0;
+					const bDeployed = getDeployed?.(b) ? 1 : 0;
+					return bDeployed - aDeployed;
+				});
+			default:
+				return sorted;
+		}
+	}
+
+	// Step 7: Token formatting helper
+	function formatTokens(count: number): string {
+		if (!count || count === 0) return '';
+		if (count >= 1000) return `${(count / 1000).toFixed(1)}k tok`;
+		return `${count} tok`;
+	}
+
 	let filteredDeployed = $derived(
-		searchQuery
-			? deployedSkills.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-			: deployedSkills
+		sortItems(
+			searchQuery
+				? deployedSkills.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+				: deployedSkills,
+			sortBy,
+			() => '',
+			() => true
+		)
 	);
 
 	let filteredAvailable = $derived(
-		searchQuery
-			? availableSkills.filter(s =>
-				s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(s.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-			)
-			: availableSkills
+		sortItems(
+			searchQuery
+				? availableSkills.filter(s =>
+					s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(s.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(s.tags ?? []).some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+				)
+				: availableSkills,
+			sortBy,
+			(s) => (s as AvailableSkill).version ?? '',
+			(s) => (s as AvailableSkill).is_deployed
+		)
 	);
+
+	// Step 3: Toolchain grouping
+	interface SkillGroup {
+		name: string;
+		skills: AvailableSkill[];
+	}
+
+	let groupedAvailable = $derived.by<SkillGroup[]>(() => {
+		const skills = filteredAvailable;
+		if (!groupByToolchain) {
+			return [{ name: 'All Skills', skills }];
+		}
+		const groups = new Map<string, AvailableSkill[]>();
+		for (const skill of skills) {
+			// Normalize: falsy values and any case of "universal" -> 'Universal'
+			// Capitalize all other toolchain names at grouping time to prevent
+			// capitalization collisions producing duplicate keys
+			const raw = skill.toolchain?.trim() || '';
+			const key = (!raw || raw.toLowerCase() === 'universal')
+				? 'Universal'
+				: raw.charAt(0).toUpperCase() + raw.slice(1);
+			if (!groups.has(key)) groups.set(key, []);
+			groups.get(key)!.push(skill);
+		}
+		const sorted: SkillGroup[] = [];
+		// Always place 'Universal' first if it exists
+		if (groups.has('Universal')) {
+			sorted.push({ name: 'Universal', skills: groups.get('Universal')! });
+			groups.delete('Universal');
+		}
+		for (const [name, groupSkills] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+			sorted.push({ name, skills: groupSkills });
+		}
+		return sorted;
+	});
 
 	function isDeployedSkill(skill: DeployedSkill | AvailableSkill): skill is DeployedSkill {
 		return 'deploy_mode' in skill;
@@ -112,7 +193,7 @@
 </script>
 
 <div class="flex flex-col h-full">
-	<!-- Mode badge + Search -->
+	<!-- Mode badge + Search + Sort -->
 	<div class="p-3 border-b border-slate-200 dark:border-slate-700 space-y-2">
 		<!-- Deployment mode header -->
 		<div class="flex items-center justify-between">
@@ -138,6 +219,33 @@
 			placeholder="Search skills..."
 			onInput={(v) => searchQuery = v}
 		/>
+
+		<!-- Sort + Group controls -->
+		<div class="flex items-center gap-2">
+			<span class="text-xs text-slate-500 dark:text-slate-400">Sort:</span>
+			<select
+				bind:value={sortBy}
+				aria-label="Sort order"
+				class="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+			>
+				<option value="name-asc">Name (A-Z)</option>
+				<option value="name-desc">Name (Z-A)</option>
+				<option value="version">Version</option>
+				<option value="status">Deploy Status</option>
+			</select>
+
+			<button
+				onclick={() => groupByToolchain = !groupByToolchain}
+				class="text-xs px-2 py-1 rounded-md transition-colors
+					{groupByToolchain
+						? 'bg-cyan-500/20 text-cyan-400'
+						: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}"
+				title={groupByToolchain ? 'Disable grouping' : 'Group by toolchain'}
+				aria-pressed={groupByToolchain}
+			>
+				Group
+			</button>
+		</div>
 	</div>
 
 	<div class="flex-1 overflow-y-auto">
@@ -261,62 +369,92 @@
 						{searchQuery ? 'No available skills match your search' : 'No available skills found'}
 					</div>
 				{:else}
-					<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
-						{#each filteredAvailable as skill (skill.name)}
-							{@const isDeploying = deployingSkills.has(skill.name)}
-							<div
-								class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
-									{getSelectedName(selectedSkill) === skill.name && !isDeployedSkill(selectedSkill!)
-										? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
-										: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
-							>
-								<button
-									onclick={() => onSelect(skill)}
-									class="flex-1 min-w-0 text-left"
+					<!-- Step 3: Grouped rendering -->
+					{#each groupedAvailable as group (group.name)}
+						{#if groupByToolchain}
+							<div class="px-4 py-1.5 bg-slate-100/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-700/50">
+								<span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+									{group.name} ({group.skills.length})
+								</span>
+							</div>
+						{/if}
+						<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+							{#each group.skills as skill (skill.name)}
+								{@const isDeploying = deployingSkills.has(skill.name)}
+								<div
+									class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
+										{getSelectedName(selectedSkill) === skill.name && !isDeployedSkill(selectedSkill!)
+											? 'bg-cyan-50 dark:bg-cyan-900/20 border-l-2 border-l-cyan-500'
+											: 'hover:bg-slate-50 dark:hover:bg-slate-700/30 border-l-2 border-l-transparent'}"
 								>
-									<div class="flex items-center gap-2">
-										<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{skill.name}</span>
-										{#if skill.is_deployed}
-											<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-												<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-											</svg>
-										{/if}
-										{#if skill.category}
-											<Badge text={skill.category} variant="default" />
-										{/if}
-									</div>
-									{#if skill.description}
-										<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400 truncate">{skill.description}</p>
-									{/if}
-								</button>
-
-								<!-- Deploy button -->
-								{#if !skill.is_deployed}
 									<button
-										onclick={(e) => { e.stopPropagation(); handleDeploy(skill); }}
-										disabled={isDeploying}
-										class="flex-shrink-0 px-2.5 py-1 text-xs font-medium rounded-md transition-colors
-											text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20
-											disabled:opacity-50 disabled:cursor-not-allowed
-											flex items-center gap-1"
+										onclick={() => onSelect(skill)}
+										class="flex-1 min-w-0 text-left"
 									>
-										{#if isDeploying}
-											<svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-											</svg>
-											<span>Deploying...</span>
-										{:else}
-											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-											</svg>
-											<span>Deploy</span>
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-slate-900 dark:text-slate-100 truncate">{skill.name}</span>
+											{#if skill.is_deployed}
+												<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+													<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+												</svg>
+											{/if}
+											<!-- Step 5: Version + Toolchain badges -->
+											{#if skill.version}
+												<Badge text="v{skill.version}" variant="default" />
+											{/if}
+											{#if skill.toolchain}
+												<Badge text={skill.toolchain} variant="info" />
+											{:else if skill.category}
+												<Badge text={skill.category} variant="default" />
+											{/if}
+										</div>
+										{#if skill.description}
+											<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400 truncate">{skill.description}</p>
+										{/if}
+										<!-- Step 6: Tags + Step 7: Token count -->
+										{#if (skill.tags ?? []).length > 0 || (skill.full_tokens && skill.full_tokens > 0)}
+											<div class="mt-1 flex items-center gap-1 flex-wrap">
+												{#each (skill.tags ?? []).slice(0, 3) as tag}
+													<span class="text-xs px-1.5 py-0 rounded bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400">{tag}</span>
+												{/each}
+												{#if (skill.tags ?? []).length > 3}
+													<span class="text-xs text-slate-400 dark:text-slate-500">+{(skill.tags ?? []).length - 3}</span>
+												{/if}
+												{#if skill.full_tokens && skill.full_tokens > 0}
+													<span class="ml-auto text-xs text-slate-400 dark:text-slate-500">{formatTokens(skill.full_tokens)}</span>
+												{/if}
+											</div>
 										{/if}
 									</button>
-								{/if}
-							</div>
-						{/each}
-					</div>
+
+									<!-- Deploy button -->
+									{#if !skill.is_deployed}
+										<button
+											onclick={(e) => { e.stopPropagation(); handleDeploy(skill); }}
+											disabled={isDeploying}
+											class="flex-shrink-0 px-2.5 py-1 text-xs font-medium rounded-md transition-colors
+												text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20
+												disabled:opacity-50 disabled:cursor-not-allowed
+												flex items-center gap-1"
+										>
+											{#if isDeploying}
+												<svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+												</svg>
+												<span>Deploying...</span>
+											{:else}
+												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+												</svg>
+												<span>Deploy</span>
+											{/if}
+										</button>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/each}
 				{/if}
 			{/if}
 		</div>

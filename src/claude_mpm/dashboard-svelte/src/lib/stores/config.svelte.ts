@@ -50,6 +50,17 @@ export interface AvailableSkill {
 	category: string;
 	collection: string;
 	is_deployed: boolean;
+	// Extended fields from API (optional for VP-1-A graceful degradation)
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	entry_point_tokens?: number;
+	full_tokens?: number;
+	requires?: string[];
+	author?: string;
+	updated?: string;
+	source_path?: string;
 }
 
 export interface ConfigSource {

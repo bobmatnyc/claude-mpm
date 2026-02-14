@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ConfigSource } from '$lib/stores/config.svelte';
 	import ProgressBar from '$lib/components/shared/ProgressBar.svelte';
-	import SharedBadge from '$lib/components/shared/Badge.svelte';
+	import Badge from '$lib/components/Badge.svelte';
 
 	interface SyncState {
 		status: 'idle' | 'syncing' | 'completed' | 'failed';
@@ -122,9 +122,9 @@
 				<div class="flex items-center justify-between mb-1">
 					<div class="flex items-center gap-2 min-w-0">
 						<span class="text-sm text-slate-200 truncate">{source.id}</span>
-						<SharedBadge variant={getStatusVariant(status.status)} size="sm">
+						<Badge variant={getStatusVariant(status.status)} size="sm">
 							{status.status}
-						</SharedBadge>
+						</Badge>
 					</div>
 					<div class="flex items-center gap-2 flex-shrink-0">
 						{#if status.status === 'failed'}

@@ -151,6 +151,12 @@
 		showModeSwitch = false;
 		// Summary will be refetched by the store
 	}
+
+	function formatTokens(count: number): string {
+		if (!count || count === 0) return '';
+		if (count >= 1000) return `${(count / 1000).toFixed(1)}k tok`;
+		return `${count} tok`;
+	}
 </script>
 
 {#if panelSide === 'left'}
@@ -419,6 +425,9 @@
 						{:else}
 							<Badge text="Available" variant="default" />
 						{/if}
+						{#if selectedSkill.version}
+							<Badge text="v{selectedSkill.version}" variant="default" />
+						{/if}
 					{/if}
 				</div>
 
@@ -457,12 +466,92 @@
 								</div>
 							{/if}
 						{/if}
+						<!-- Extended metadata for available skills -->
+						{#if !isDeployedSkill(selectedSkill)}
+							{#if selectedSkill.toolchain}
+								<div>
+									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Toolchain</h3>
+									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.toolchain}</p>
+								</div>
+							{/if}
+							{#if selectedSkill.framework}
+								<div>
+									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Framework</h3>
+									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.framework}</p>
+								</div>
+							{/if}
+							{#if selectedSkill.author}
+								<div>
+									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Author</h3>
+									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.author}</p>
+								</div>
+							{/if}
+							{#if selectedSkill.updated}
+								<div>
+									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Updated</h3>
+									<p class="text-sm text-slate-700 dark:text-slate-300">{formatDate(selectedSkill.updated)}</p>
+								</div>
+							{/if}
+						{/if}
 					</div>
 
 					{#if isDeployedSkill(selectedSkill) && selectedSkill.path}
 						<div>
 							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Path</h3>
 							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedSkill.path}</p>
+						</div>
+					{/if}
+
+					<!-- Tags for available skills -->
+					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.tags ?? []).length > 0}
+						<div>
+							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Tags</h3>
+							<div class="flex gap-2 flex-wrap mt-1">
+								{#each (selectedSkill.tags ?? []) as tag}
+									<Badge text={tag} variant="info" />
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Token counts for available skills -->
+					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.full_tokens > 0 || selectedSkill.entry_point_tokens > 0)}
+						<div>
+							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Token Counts</h3>
+							<div class="grid grid-cols-2 gap-4">
+								{#if selectedSkill.full_tokens > 0}
+									<div>
+										<span class="text-xs text-slate-500 dark:text-slate-400">Full:</span>
+										<span class="text-sm text-slate-700 dark:text-slate-300 ml-1">{formatTokens(selectedSkill.full_tokens)}</span>
+									</div>
+								{/if}
+								{#if selectedSkill.entry_point_tokens > 0}
+									<div>
+										<span class="text-xs text-slate-500 dark:text-slate-400">Entry Point:</span>
+										<span class="text-sm text-slate-700 dark:text-slate-300 ml-1">{formatTokens(selectedSkill.entry_point_tokens)}</span>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Dependencies for available skills -->
+					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.requires ?? []).length > 0}
+						<div>
+							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Dependencies</h3>
+							<div class="flex gap-2 flex-wrap mt-1">
+								{#each (selectedSkill.requires ?? []) as dep}
+									<Badge text={dep} variant="default" />
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Source path for available skills -->
+					{#if !isDeployedSkill(selectedSkill) && selectedSkill.source_path}
+						<div>
+							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Source Path</h3>
+							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedSkill.source_path}</p>
 						</div>
 					{/if}
 				</div>
