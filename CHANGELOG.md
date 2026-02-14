@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.17] - 2026-02-14
+
+### Fixed
+- fix(setup): migrate old gworkspace-mcp key names in .mcp.json
+
 ## [5.8.16] - 2026-02-14
 
 ### Fixed
