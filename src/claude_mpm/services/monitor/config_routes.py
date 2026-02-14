@@ -137,9 +137,12 @@ async def handle_project_summary(request: web.Request) -> web.Response:
             git_mgr = _get_git_source_manager()
             available_agents = git_mgr.list_cached_agents()
 
-            # Count deployed skills
+            # Count deployed skills (use project-level directory to match CLI)
             skills_svc = _get_skills_deployer()
-            deployed_skills = skills_svc.check_deployed_skills()
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed_skills = skills_svc.check_deployed_skills(
+                skills_dir=project_skills_dir
+            )
 
             # Count sources
             from claude_mpm.config.agent_sources import AgentSourceConfiguration
@@ -307,7 +310,10 @@ async def handle_skills_deployed(request: web.Request) -> web.Response:
 
         def _list_deployed_skills():
             skills_svc = _get_skills_deployer()
-            deployed = skills_svc.check_deployed_skills()
+            # Use project-level skills directory instead of user-level
+            # This matches the CLI behavior which reads from $CWD/.claude/skills/
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed = skills_svc.check_deployed_skills(skills_dir=project_skills_dir)
 
             # Enrich with deployment index metadata if available
             try:
@@ -315,7 +321,7 @@ async def handle_skills_deployed(request: web.Request) -> web.Response:
                     load_deployment_index,
                 )
 
-                skills_dir = Path.home() / ".claude" / "skills"
+                skills_dir = project_skills_dir
                 index = load_deployment_index(skills_dir)
 
                 deployed_meta = index.get("deployed_skills", {})
@@ -375,9 +381,28 @@ async def handle_skills_available(request: web.Request) -> web.Response:
             skills_svc = _get_skills_deployer()
             result = skills_svc.list_available_skills(collection=collection)
 
-            # Mark which are deployed
-            deployed = skills_svc.check_deployed_skills()
+            # Mark which are deployed (use project-level directory)
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed = skills_svc.check_deployed_skills(skills_dir=project_skills_dir)
             deployed_names = {s.get("name", "") for s in deployed.get("skills", [])}
+
+            def _is_skill_deployed(short_name: str) -> bool:
+                """Check if a skill is deployed, accounting for path-normalization.
+
+                Deployed directory names are path-normalized (e.g.,
+                'universal-main-mcp-builder') while available skill names are
+                short manifest names (e.g., 'mcp-builder'). This function
+                checks for exact match first, then suffix-based matching.
+                """
+                if not short_name:
+                    return False
+                # Exact match (handles already-normalized names)
+                if short_name in deployed_names:
+                    return True
+                # Suffix match: check if any deployed name ends with
+                # '-{short_name}' to handle path-normalization
+                suffix = f"-{short_name}"
+                return any(dn.endswith(suffix) for dn in deployed_names)
 
             # Flatten into a flat list for the UI
             flat_skills = []
@@ -385,7 +410,7 @@ async def handle_skills_available(request: web.Request) -> web.Response:
             if isinstance(skills, list):
                 for skill in skills:
                     if isinstance(skill, dict):
-                        skill["is_deployed"] = skill.get("name", "") in deployed_names
+                        skill["is_deployed"] = _is_skill_deployed(skill.get("name", ""))
                         flat_skills.append(skill)
             elif isinstance(skills, dict):
                 for category, category_skills in skills.items():
@@ -393,8 +418,8 @@ async def handle_skills_available(request: web.Request) -> web.Response:
                         for skill in category_skills:
                             if isinstance(skill, dict):
                                 skill["category"] = category
-                                skill["is_deployed"] = (
-                                    skill.get("name", "") in deployed_names
+                                skill["is_deployed"] = _is_skill_deployed(
+                                    skill.get("name", "")
                                 )
                                 flat_skills.append(skill)
 

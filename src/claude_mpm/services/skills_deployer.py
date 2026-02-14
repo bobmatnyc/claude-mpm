@@ -505,25 +505,34 @@ class SkillsDeployerService(LoggerMixin):
                 "collection": collection_name,
             }
 
-    def check_deployed_skills(self) -> Dict:
+    def check_deployed_skills(self, skills_dir: Optional[Path] = None) -> Dict:
         """Check which skills are currently deployed.
 
-        Scans ~/.claude/skills/ directory for deployed skills.
+        Scans the given skills directory (or ~/.claude/skills/ by default)
+        for deployed skills.
+
+        Args:
+            skills_dir: Directory to scan for deployed skills.
+                        Defaults to self.CLAUDE_SKILLS_DIR (~/.claude/skills/).
+                        Pass Path.cwd() / ".claude" / "skills" for project-level skills.
 
         Returns:
             Dict containing:
             - deployed_count: Number of deployed skills
             - skills: List of deployed skill names with paths
-            - claude_skills_dir: Path to Claude skills directory
+            - claude_skills_dir: Path to the scanned skills directory
 
         Example:
             >>> result = deployer.check_deployed_skills()
             >>> print(f"Currently deployed: {result['deployed_count']} skills")
+            >>> # Scan project-level skills instead
+            >>> result = deployer.check_deployed_skills(Path.cwd() / ".claude" / "skills")
         """
+        scan_dir = skills_dir if skills_dir is not None else self.CLAUDE_SKILLS_DIR
         deployed_skills = []
 
-        if self.CLAUDE_SKILLS_DIR.exists():
-            for skill_dir in self.CLAUDE_SKILLS_DIR.iterdir():
+        if scan_dir.exists():
+            for skill_dir in scan_dir.iterdir():
                 if skill_dir.is_dir() and not skill_dir.name.startswith("."):
                     # Check for SKILL.md
                     skill_md = skill_dir / "SKILL.md"
@@ -535,7 +544,7 @@ class SkillsDeployerService(LoggerMixin):
         return {
             "deployed_count": len(deployed_skills),
             "skills": deployed_skills,
-            "claude_skills_dir": str(self.CLAUDE_SKILLS_DIR),
+            "claude_skills_dir": str(scan_dir),
         }
 
     def remove_skills(self, skill_names: Optional[List[str]] = None) -> Dict:
