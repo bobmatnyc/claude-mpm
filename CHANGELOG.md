@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.16] - 2026-02-14
+
+### Fixed
+- Comprehensive test fixes for CLI commands (502 passed, 8 skipped)
+
 ## [5.8.15] - 2026-02-14
 
 ### Changed
