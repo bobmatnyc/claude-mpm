@@ -11,6 +11,8 @@ DESIGN DECISIONS:
 
 import argparse
 
+from ..constants import SetupFlag
+
 
 def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
     """
@@ -72,27 +74,31 @@ Note: Flags are associated with the service that precedes them.
         """,
     )
 
-    # Global flags that can appear anywhere in the command
+    # Global flags that can appear anywhere in the command (using SetupFlag enum)
     setup_parser.add_argument(
-        "--no-launch",
+        SetupFlag.NO_LAUNCH.cli_flag,
+        dest=str(SetupFlag.NO_LAUNCH),
         action="store_true",
         default=False,
         help="Don't auto-launch claude-mpm after setup",
     )
     setup_parser.add_argument(
-        "--no-browser",
+        SetupFlag.NO_BROWSER.cli_flag,
+        dest=str(SetupFlag.NO_BROWSER),
         action="store_true",
         default=False,
         help="Don't auto-open browser for authentication",
     )
     setup_parser.add_argument(
-        "--force",
+        SetupFlag.FORCE.cli_flag,
+        dest=str(SetupFlag.FORCE),
         action="store_true",
         default=False,
         help="Force reinstall or credential re-entry",
     )
     setup_parser.add_argument(
-        "--oauth-service",
+        SetupFlag.OAUTH_SERVICE.cli_flag,
+        dest=str(SetupFlag.OAUTH_SERVICE),
         type=str,
         help="Service name for OAuth setup",
     )

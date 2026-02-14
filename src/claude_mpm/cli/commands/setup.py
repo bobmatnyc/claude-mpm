@@ -21,6 +21,7 @@ from typing import Any
 
 from rich.console import Console
 
+from ..constants import GLOBAL_SETUP_FLAGS, VALUE_FLAGS, SetupFlag, SetupService
 from ..shared import BaseCommand, CommandResult
 
 console = Console()
@@ -46,20 +47,11 @@ def parse_service_args(service_args: list[str]) -> dict[str, Any]:
     if not service_args:
         return {"services": [], "global_options": {}}
 
-    valid_services = {
-        "slack",
-        "gworkspace-mcp",
-        "oauth",
-        "notion",
-        "confluence",
-        "kuzu-memory",
-        "mcp-vector-search",
-        "mcp-skillset",
-        "mcp-ticketer",
-    }
+    # Use enum values for valid services
+    valid_services = {str(s) for s in SetupService}
 
-    # Global flags that can appear without a service (apply to all services)
-    global_flags = {"no_launch"}
+    # Global flags from constants
+    global_flags = {str(f) for f in GLOBAL_SETUP_FLAGS}
 
     # Pre-process service_args to split comma-separated values
     expanded_args = []
@@ -115,8 +107,9 @@ def parse_service_args(service_args: list[str]) -> dict[str, Any]:
                     "Flags must come after the service they apply to."
                 )
 
-            # Check if flag expects a value
-            if flag_name in {"oauth_service"}:
+            # Check if flag expects a value (using VALUE_FLAGS enum)
+            value_flag_names = {str(f) for f in VALUE_FLAGS}
+            if flag_name in value_flag_names:
                 # Flag expects a value
                 if i + 1 >= len(service_args):
                     raise ValueError(f"Flag {arg} requires a value")
@@ -128,9 +121,11 @@ def parse_service_args(service_args: list[str]) -> dict[str, Any]:
                 i += 1
             continue
 
-        # Unknown argument
+        # Unknown argument - build error message from enums
+        service_names = ", ".join(str(s) for s in SetupService)
+        flag_names = ", ".join(f.cli_flag for f in SetupFlag)
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --force)"
+            f"Unknown argument: {arg}. Expected a service name ({service_names}) or a flag ({flag_names})"
         )
 
     # Save last service
@@ -157,11 +152,12 @@ class SetupCommand(BaseCommand):
 
                 # Validate OAuth requirements
                 for service in parsed["services"]:
-                    if service["name"] == "oauth":
-                        if "oauth_service" not in service["options"]:
+                    if service["name"] == str(SetupService.OAUTH):
+                        oauth_svc_key = str(SetupFlag.OAUTH_SERVICE)
+                        if oauth_svc_key not in service["options"]:
                             return (
-                                "OAuth setup requires --oauth-service flag. "
-                                "Example: claude-mpm setup oauth --oauth-service gworkspace-mcp"
+                                f"OAuth setup requires {SetupFlag.OAUTH_SERVICE.cli_flag} flag. "
+                                f"Example: claude-mpm setup oauth {SetupFlag.OAUTH_SERVICE.cli_flag} {SetupService.GWORKSPACE_MCP}"
                             )
 
                 return None
@@ -247,14 +243,15 @@ class SetupCommand(BaseCommand):
         # Launch claude-mpm after all services are set up (unless --no-launch specified)
         # Only launch if at least one service succeeded
         # Check argparse flag first, then global_options, then per-service options
-        no_launch = getattr(args, "no_launch", False)
+        no_launch_key = str(SetupFlag.NO_LAUNCH)
+        no_launch = getattr(args, no_launch_key, False)
         if not no_launch:
             global_options = getattr(args, "global_options", {})
-            no_launch = global_options.get("no_launch", False)
+            no_launch = global_options.get(no_launch_key, False)
         # Also check if any service had --no-launch applied to it
         if not no_launch:
             no_launch = any(
-                svc.get("options", {}).get("no_launch", False) for svc in services
+                svc.get("options", {}).get(no_launch_key, False) for svc in services
             )
         if not no_launch and len(successful) > 0:
             console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
