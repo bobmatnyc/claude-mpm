@@ -10,6 +10,19 @@
 
 ### Tests
 
+## [5.8.19] - 2026-02-15
+
+### Added
+- feat(research): intelligent web search provider detection with automatic fallback hierarchy
+- Support for Brave Search, Tavily, and Firecrawl MCP providers in Research agent
+- Automatic provider selection with graceful degradation to WebSearch/WebFetch
+- Provider detection using ToolSearch for optimal research workflow
+
+### Changed
+- Updated Research agent template with comprehensive provider hierarchy and detection patterns
+- Enhanced web search reliability with multi-provider support
+- Improved research agent documentation with provider selection examples
+
 ## [5.8.18] - 2026-02-14
 
 ### Added
