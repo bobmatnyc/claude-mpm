@@ -17,6 +17,7 @@ class AgentNameNormalizer:
     """
 
     # Canonical agent names (standardized format)
+    # These are the display names used in TodoWrite prefixes
     CANONICAL_NAMES = {
         "research": "Research",
         "engineer": "Engineer",
@@ -28,70 +29,179 @@ class AgentNameNormalizer:
         "data_engineer": "Data Engineer",
         "architect": "Architect",
         "pm": "PM",
+        # Additional agent types from deployed agents
+        "python_engineer": "Python Engineer",
+        "golang_engineer": "Golang Engineer",
+        "java_engineer": "Java Engineer",
+        "javascript_engineer": "JavaScript Engineer",
+        "typescript_engineer": "TypeScript Engineer",
+        "rust_engineer": "Rust Engineer",
+        "ruby_engineer": "Ruby Engineer",
+        "php_engineer": "PHP Engineer",
+        "phoenix_engineer": "Phoenix Engineer",
+        "nestjs_engineer": "NestJS Engineer",
+        "react_engineer": "React Engineer",
+        "nextjs_engineer": "NextJS Engineer",
+        "svelte_engineer": "Svelte Engineer",
+        "dart_engineer": "Dart Engineer",
+        "tauri_engineer": "Tauri Engineer",
+        "prompt_engineer": "Prompt Engineer",
+        "refactoring_engineer": "Refactoring Engineer",
+        # QA variants
+        "api_qa": "API QA",
+        "web_qa": "Web QA",
+        "real_user": "Real User",
+        # Ops variants
+        "clerk_ops": "Clerk Ops",
+        "digitalocean_ops": "DigitalOcean Ops",
+        "gcp_ops": "GCP Ops",
+        "local_ops": "Local Ops",
+        "vercel_ops": "Vercel Ops",
+        "project_organizer": "Project Organizer",
+        "agentic_coder_optimizer": "Agentic Coder Optimizer",
+        "tmux": "Tmux",
+        # Universal agents
+        "code_analyzer": "Code Analyzer",
+        "content": "Content",
+        "memory_manager": "Memory Manager",
+        "product_owner": "Product Owner",
+        "web_ui": "Web UI",
+        "imagemagick": "ImageMagick",
+        "ticketing": "Ticketing",
+        # MPM-specific agents
+        "mpm_agent_manager": "MPM Agent Manager",
+        "mpm_skills_manager": "MPM Skills Manager",
+        "tavily_research": "Research",  # Maps to Research
     }
 
     # Aliases and variations that map to canonical names
+    # Keys are normalized (lowercase, underscores) and map to canonical keys
     ALIASES = {
         # Research variations
         "research": "research",
-        "Research": "research",
-        "RESEARCH": "research",
         "researcher": "research",
+        "tavily_research": "research",
         # Engineer variations
         "engineer": "engineer",
-        "Engineer": "engineer",
-        "ENGINEER": "engineer",
         "engineering": "engineer",
         "dev": "engineer",
         "developer": "engineer",
+        # Language-specific engineers
+        "python_engineer": "python_engineer",
+        "python": "python_engineer",
+        "golang_engineer": "golang_engineer",
+        "golang": "golang_engineer",
+        "go_engineer": "golang_engineer",
+        "java_engineer": "java_engineer",
+        "java": "java_engineer",
+        "javascript_engineer": "javascript_engineer",
+        "javascript": "javascript_engineer",
+        "js_engineer": "javascript_engineer",
+        "typescript_engineer": "typescript_engineer",
+        "typescript": "typescript_engineer",
+        "ts_engineer": "typescript_engineer",
+        "rust_engineer": "rust_engineer",
+        "rust": "rust_engineer",
+        "ruby_engineer": "ruby_engineer",
+        "ruby": "ruby_engineer",
+        "php_engineer": "php_engineer",
+        "php": "php_engineer",
+        "phoenix_engineer": "phoenix_engineer",
+        "phoenix": "phoenix_engineer",
+        "elixir_engineer": "phoenix_engineer",
+        "nestjs_engineer": "nestjs_engineer",
+        "nestjs": "nestjs_engineer",
+        # Frontend engineers
+        "react_engineer": "react_engineer",
+        "react": "react_engineer",
+        "nextjs_engineer": "nextjs_engineer",
+        "nextjs": "nextjs_engineer",
+        "next": "nextjs_engineer",
+        "svelte_engineer": "svelte_engineer",
+        "svelte": "svelte_engineer",
+        "web_ui": "web_ui",
+        # Mobile/Desktop engineers
+        "dart_engineer": "dart_engineer",
+        "dart": "dart_engineer",
+        "flutter_engineer": "dart_engineer",
+        "flutter": "dart_engineer",
+        "tauri_engineer": "tauri_engineer",
+        "tauri": "tauri_engineer",
+        # Specialized engineers
+        "prompt_engineer": "prompt_engineer",
+        "refactoring_engineer": "refactoring_engineer",
+        "refactoring": "refactoring_engineer",
         # QA variations
         "qa": "qa",
-        "QA": "qa",
-        "Qa": "qa",
         "quality": "qa",
         "testing": "qa",
         "test": "qa",
+        "api_qa": "api_qa",
+        "web_qa": "web_qa",
+        "real_user": "real_user",
         # Security variations
         "security": "security",
-        "Security": "security",
-        "SECURITY": "security",
         "sec": "security",
         # Documentation variations
         "documentation": "documentation",
-        "Documentation": "documentation",
         "docs": "documentation",
         "doc": "documentation",
+        "ticketing": "ticketing",
         # Ops variations
         "ops": "ops",
-        "Ops": "ops",
-        "OPS": "ops",
         "operations": "ops",
         "devops": "ops",
+        "clerk_ops": "clerk_ops",
+        "clerk": "clerk_ops",
+        "digitalocean_ops": "digitalocean_ops",
+        "digitalocean": "digitalocean_ops",
+        "do_ops": "digitalocean_ops",
+        "gcp_ops": "gcp_ops",
+        "gcp": "gcp_ops",
+        "google_cloud": "gcp_ops",
+        "local_ops": "local_ops",
+        "local": "local_ops",
+        "vercel_ops": "vercel_ops",
+        "vercel": "vercel_ops",
+        "project_organizer": "project_organizer",
+        "agentic_coder_optimizer": "agentic_coder_optimizer",
+        "tmux": "tmux",
+        "tmux_agent": "tmux",
         # Version Control variations
         "version_control": "version_control",
-        "version control": "version_control",
-        "Version Control": "version_control",
         "git": "version_control",
         "vcs": "version_control",
         # Data Engineer variations
         "data_engineer": "data_engineer",
-        "data engineer": "data_engineer",
-        "Data Engineer": "data_engineer",
         "data": "data_engineer",
         # Architect variations
         "architect": "architect",
-        "Architect": "architect",
         "architecture": "architect",
         "arch": "architect",
         # PM variations
         "pm": "pm",
-        "PM": "pm",
         "project_manager": "pm",
-        "project manager": "pm",
+        # Universal agents
+        "code_analyzer": "code_analyzer",
+        "analyzer": "code_analyzer",
+        "content": "content",
+        "content_agent": "content",
+        "memory_manager": "memory_manager",
+        "memory_manager_agent": "memory_manager",
+        "product_owner": "product_owner",
+        "po": "product_owner",
+        "imagemagick": "imagemagick",
+        # MPM-specific agents
+        "mpm_agent_manager": "mpm_agent_manager",
+        "agent_manager": "mpm_agent_manager",
+        "mpm_skills_manager": "mpm_skills_manager",
+        "skills_manager": "mpm_skills_manager",
     }
 
     # Agent colors for consistent display
+    # Base agent colors
     AGENT_COLORS = {
+        # Core agents
         "research": "\033[36m",  # Cyan
         "engineer": "\033[32m",  # Green
         "qa": "\033[33m",  # Yellow
@@ -102,6 +212,48 @@ class AgentNameNormalizer:
         "data_engineer": "\033[96m",  # Bright Cyan
         "architect": "\033[95m",  # Bright Magenta
         "pm": "\033[92m",  # Bright Green
+        # Language-specific engineers (all use green variants)
+        "python_engineer": "\033[32m",  # Green
+        "golang_engineer": "\033[32m",  # Green
+        "java_engineer": "\033[32m",  # Green
+        "javascript_engineer": "\033[32m",  # Green
+        "typescript_engineer": "\033[32m",  # Green
+        "rust_engineer": "\033[32m",  # Green
+        "ruby_engineer": "\033[32m",  # Green
+        "php_engineer": "\033[32m",  # Green
+        "phoenix_engineer": "\033[32m",  # Green
+        "nestjs_engineer": "\033[32m",  # Green
+        "react_engineer": "\033[32m",  # Green
+        "nextjs_engineer": "\033[32m",  # Green
+        "svelte_engineer": "\033[32m",  # Green
+        "dart_engineer": "\033[32m",  # Green
+        "tauri_engineer": "\033[32m",  # Green
+        "prompt_engineer": "\033[32m",  # Green
+        "refactoring_engineer": "\033[32m",  # Green
+        "web_ui": "\033[32m",  # Green
+        "imagemagick": "\033[32m",  # Green
+        # QA variants (all use yellow)
+        "api_qa": "\033[33m",  # Yellow
+        "web_qa": "\033[33m",  # Yellow
+        "real_user": "\033[33m",  # Yellow
+        # Ops variants (all use magenta)
+        "clerk_ops": "\033[35m",  # Magenta
+        "digitalocean_ops": "\033[35m",  # Magenta
+        "gcp_ops": "\033[35m",  # Magenta
+        "local_ops": "\033[35m",  # Magenta
+        "vercel_ops": "\033[35m",  # Magenta
+        "project_organizer": "\033[35m",  # Magenta
+        "agentic_coder_optimizer": "\033[35m",  # Magenta
+        "tmux": "\033[35m",  # Magenta
+        # Universal agents
+        "code_analyzer": "\033[36m",  # Cyan (like research)
+        "content": "\033[34m",  # Blue (like documentation)
+        "memory_manager": "\033[36m",  # Cyan
+        "product_owner": "\033[92m",  # Bright Green (like PM)
+        "ticketing": "\033[34m",  # Blue (like documentation)
+        # MPM-specific agents
+        "mpm_agent_manager": "\033[95m",  # Bright Magenta
+        "mpm_skills_manager": "\033[95m",  # Bright Magenta
     }
 
     COLOR_RESET = "\033[0m"
@@ -120,21 +272,46 @@ class AgentNameNormalizer:
         if not agent_name:
             return "Engineer"  # Default
 
-        # Clean the input
-        cleaned = agent_name.strip().lower().replace("-", "_")
+        # Clean the input: strip whitespace, convert to lowercase
+        cleaned = agent_name.strip().lower()
 
-        # Check aliases first
+        # Return default for whitespace-only input
+        if not cleaned:
+            return "Engineer"
+
+        # Replace hyphens and spaces with underscores for consistent lookup
+        cleaned = cleaned.replace("-", "_").replace(" ", "_")
+
+        # Strip common suffixes before alias lookup
+        # This handles cases like "research-agent" -> "research" or "python_engineer_agent" -> "python_engineer"
+        for suffix in ("_agent", "_agent_agent"):
+            if cleaned.endswith(suffix):
+                cleaned = cleaned[: -len(suffix)]
+                break
+
+        # Check aliases first (exact match)
         if cleaned in cls.ALIASES:
             canonical_key = cls.ALIASES[cleaned]
             return cls.CANONICAL_NAMES.get(canonical_key, "Engineer")
 
-        # Check if it's already a canonical key
+        # Check if it's already a canonical key (exact match)
         if cleaned in cls.CANONICAL_NAMES:
             return cls.CANONICAL_NAMES[cleaned]
 
-        # Try to find partial matches
-        for alias, canonical_key in cls.ALIASES.items():
-            if cleaned in alias or alias in cleaned:
+        # Try partial matching - but only if the cleaned name contains the alias as a word boundary
+        # This prevents "python_engineer" from matching just "engineer"
+        # Sort aliases by length (longest first) to ensure more specific matches take priority
+        sorted_aliases = sorted(
+            cls.ALIASES.items(), key=lambda x: len(x[0]), reverse=True
+        )
+        for alias, canonical_key in sorted_aliases:
+            # Only match if the cleaned name starts with or ends with the alias
+            # Or if the alias is a complete match (already handled above)
+            if cleaned == alias:
+                return cls.CANONICAL_NAMES.get(canonical_key, "Engineer")
+            # Allow partial match only for generic aliases (single words like "python", "react")
+            # Don't allow "engineer" to match inside "python_engineer"
+            if "_" not in alias and alias in cleaned.split("_"):
                 return cls.CANONICAL_NAMES.get(canonical_key, "Engineer")
 
         logger.warning(f"Unknown agent name '{agent_name}', defaulting to Engineer")
