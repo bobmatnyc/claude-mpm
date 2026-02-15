@@ -65,7 +65,8 @@ class SkillToAgentMapper:
             from claude_mpm.services.skills_deployer import SkillsDeployerService
 
             svc = SkillsDeployerService()
-            deployed = svc.check_deployed_skills()
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed = svc.check_deployed_skills(skills_dir=project_skills_dir)
             self._deployed_skill_names = {
                 s.get("name", "") for s in deployed.get("skills", [])
             }
@@ -128,6 +129,29 @@ class SkillToAgentMapper:
             if skill_name in content_marker_skills:
                 self._skill_to_agents[skill_name]["sources"].add("content_marker")
 
+    def _is_skill_deployed(self, skill_name: str) -> bool:
+        """Check if a skill name matches any deployed skill, with suffix matching.
+
+        Agent frontmatter may reference skills by short name (e.g., "daisyui")
+        while deployed directory names are path-normalized (e.g.,
+        "toolchains-ui-components-daisyui"). This checks exact match first,
+        then suffix-based matching using "-" as segment boundary.
+
+        Args:
+            skill_name: Skill name from agent frontmatter (short or long).
+
+        Returns:
+            True if the skill name matches any deployed skill.
+        """
+        if not skill_name:
+            return False
+        # Exact match
+        if skill_name in self._deployed_skill_names:
+            return True
+        # Segment suffix match: deployed name ends with "-{skill_name}"
+        suffix = f"-{skill_name}"
+        return any(dn.endswith(suffix) for dn in self._deployed_skill_names)
+
     def _ensure_initialized(self) -> None:
         """Lazy-initialize the index on first access."""
         if not self._initialized:
@@ -156,7 +180,7 @@ class SkillToAgentMapper:
             by_skill[skill_name] = {
                 "agents": sorted(info["agents"]),
                 "sources": sorted(info["sources"]),
-                "is_deployed": skill_name in self._deployed_skill_names,
+                "is_deployed": self._is_skill_deployed(skill_name),
             }
 
         return {"by_agent": by_agent, "by_skill": by_skill}
@@ -198,7 +222,7 @@ class SkillToAgentMapper:
                 {
                     "name": skill,
                     "source": source,
-                    "is_deployed": skill in self._deployed_skill_names,
+                    "is_deployed": self._is_skill_deployed(skill),
                 }
             )
 
@@ -229,7 +253,7 @@ class SkillToAgentMapper:
             "skill_name": skill_name,
             "agents": sorted(info["agents"]),
             "sources": sorted(info["sources"]),
-            "is_deployed": skill_name in self._deployed_skill_names,
+            "is_deployed": self._is_skill_deployed(skill_name),
         }
 
     def get_stats(self) -> Dict[str, Any]:
@@ -267,7 +291,7 @@ class SkillToAgentMapper:
         deployed_count = sum(
             1
             for skill_name in self._skill_to_agents
-            if skill_name in self._deployed_skill_names
+            if self._is_skill_deployed(skill_name)
         )
 
         return {

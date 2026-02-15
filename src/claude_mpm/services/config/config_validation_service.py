@@ -374,7 +374,8 @@ class ConfigValidationService:
             from claude_mpm.services.skills_deployer import SkillsDeployerService
 
             svc = SkillsDeployerService()
-            deployed = svc.check_deployed_skills()
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed = svc.check_deployed_skills(skills_dir=project_skills_dir)
             deployed_skills = [s.get("name", "") for s in deployed.get("skills", [])]
         except Exception as e:
             logger.warning(f"Could not check deployed skills: {e}")
@@ -499,7 +500,8 @@ class ConfigValidationService:
             from claude_mpm.services.skills_deployer import SkillsDeployerService
 
             svc = SkillsDeployerService()
-            deployed = svc.check_deployed_skills()
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            deployed = svc.check_deployed_skills(skills_dir=project_skills_dir)
             deployed_skill_names = {
                 s.get("name", "") for s in deployed.get("skills", [])
             }
