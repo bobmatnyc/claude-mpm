@@ -57,6 +57,7 @@ export interface DeployedSkill {
 	tags?: string[];
 	full_tokens?: number;
 	entry_point_tokens?: number;
+	manifest_name?: string;
 }
 
 export interface AvailableSkill {

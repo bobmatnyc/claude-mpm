@@ -120,7 +120,8 @@
 
 	// Apply filters to available skills
 	let filteredAvailable = $derived.by(() => {
-		let items = availableSkills;
+		// Filter out already-deployed skills to prevent duplicates between sections
+		let items = availableSkills.filter(s => !s.is_deployed);
 		const q = searchQuery;
 		const f = currentFilters;
 
@@ -137,7 +138,6 @@
 		// Status filter
 		if (f.status.length > 0) {
 			items = items.filter(s => {
-				if (f.status.includes('deployed') && s.is_deployed) return true;
 				if (f.status.includes('available') && !s.is_deployed) return true;
 				return false;
 			});
@@ -146,12 +146,26 @@
 		return sortItems(items, sortBy, (s) => s.version ?? '', (s) => s.is_deployed);
 	});
 
+	// Match a deployed skill to its available counterpart by manifest_name with fallback
+	function findAvailableForDeployed(deployed: DeployedSkill): AvailableSkill | undefined {
+		// Primary: use manifest_name (short name from manifest, e.g. "sveltekit")
+		if (deployed.manifest_name) {
+			const match = availableSkills.find(s => s.name === deployed.manifest_name);
+			if (match) return match;
+		}
+		// Exact match on deployed name (works when names already align)
+		const exact = availableSkills.find(s => s.name === deployed.name);
+		if (exact) return exact;
+		// Fallback: suffix match (e.g. deployed "toolchains-javascript-frameworks-sveltekit" ends with "-sveltekit")
+		return availableSkills.find(s => deployed.name.endsWith('-' + s.name));
+	}
+
 	// Version update detection: count skills with outdated versions
 	let outdatedCount = $derived.by(() => {
 		let count = 0;
 		for (const deployed of deployedSkills) {
 			if (!deployed.version) continue;
-			const available = availableSkills.find(s => s.name === deployed.name);
+			const available = findAvailableForDeployed(deployed);
 			if (available && available.version) {
 				if (compareVersions(deployed.version, available.version) === 'outdated') {
 					count++;
@@ -162,8 +176,8 @@
 	});
 
 	// Find available version for a deployed skill
-	function getAvailableVersion(skillName: string): string | undefined {
-		return availableSkills.find(s => s.name === skillName)?.version;
+	function getAvailableVersion(skill: DeployedSkill): string | undefined {
+		return findAvailableForDeployed(skill)?.version;
 	}
 
 	// Check if all filters are empty
@@ -401,7 +415,7 @@
 							{#each filteredDeployed as skill (skill.name)}
 								{@const immutable = isImmutableSkill(skill)}
 								{@const isUndeploying = undeployingSkills.has(skill.name)}
-								{@const availVersion = getAvailableVersion(skill.name)}
+								{@const availVersion = getAvailableVersion(skill)}
 								<div
 									class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
 										{getSelectedName(selectedSkill) === skill.name && isDeployedSkill(selectedSkill!)

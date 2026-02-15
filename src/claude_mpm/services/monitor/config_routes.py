@@ -175,6 +175,7 @@ def _enrich_skill_from_manifest(skill_item: dict, manifest_lookup: dict) -> None
     skill_name = skill_item.get("name", "")
     manifest_entry = _find_manifest_entry(skill_name, manifest_lookup)
     if manifest_entry:
+        skill_item["manifest_name"] = manifest_entry.get("name", "")
         skill_item["version"] = manifest_entry.get("version", "")
         skill_item["toolchain"] = manifest_entry.get("toolchain")
         skill_item["framework"] = manifest_entry.get("framework")
@@ -815,6 +816,7 @@ async def handle_skill_detail(request: web.Request) -> web.Response:
                 manifest_entry = _find_manifest_entry(skill_name, manifest_lookup)
 
                 if manifest_entry:
+                    result["manifest_name"] = manifest_entry.get("name", "")
                     result["version"] = manifest_entry.get("version", "")
                     result["toolchain"] = manifest_entry.get("toolchain")
                     result["framework"] = manifest_entry.get("framework")

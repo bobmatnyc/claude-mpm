@@ -188,7 +188,11 @@
 
 	// Cross-navigation: from agent detail, navigate to a skill
 	function handleNavigateToSkill(skillName: string) {
-		const deployed = deployedSkillsData.find(s => s.name === skillName);
+		const deployed = deployedSkillsData.find(s =>
+			s.name === skillName ||
+			s.manifest_name === skillName ||
+			s.name.endsWith('-' + skillName)
+		);
 		const available = availableSkillsData.find(s => s.name === skillName);
 		const skill = deployed || available;
 		if (skill) {
