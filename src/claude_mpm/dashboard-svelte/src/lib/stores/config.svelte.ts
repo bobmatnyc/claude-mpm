@@ -18,6 +18,14 @@ export interface DeployedAgent {
 	type: string;
 	specializations?: string[];
 	is_core: boolean;
+	// Phase 2 enrichment fields (optional for backward compatibility)
+	description?: string;
+	category?: string;
+	color?: string;
+	tags?: string[];
+	resource_tier?: string;
+	network_access?: boolean;
+	skills_count?: number;
 }
 
 export interface AvailableAgent {
@@ -42,6 +50,13 @@ export interface DeployedSkill {
 	is_user_requested: boolean;
 	deploy_mode: 'agent_referenced' | 'user_defined';
 	deploy_date: string;
+	// Phase 2 enrichment fields (optional for backward compatibility)
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	full_tokens?: number;
+	entry_point_tokens?: number;
 }
 
 export interface AvailableSkill {
@@ -61,6 +76,7 @@ export interface AvailableSkill {
 	author?: string;
 	updated?: string;
 	source_path?: string;
+	agent_count?: number;
 }
 
 export interface ConfigSource {
@@ -127,6 +143,12 @@ export const configErrors = writable<ConfigError[]>([]);
 // --- Phase 2: Mutation state ---
 export const syncStatus = writable<Record<string, SyncState>>({});
 export const mutating = writable(false);
+
+// --- Shared selection state (used by both left/right ConfigView instances) ---
+export const configSelectedAgent = writable<DeployedAgent | AvailableAgent | null>(null);
+export const configSelectedSkill = writable<DeployedSkill | AvailableSkill | null>(null);
+export const configSelectedSource = writable<ConfigSource | null>(null);
+export const configActiveSubTab = writable<'agents' | 'skills' | 'sources' | 'skill-links'>('agents');
 
 // --- Fetch Functions ---
 
@@ -226,6 +248,122 @@ export async function fetchSources() {
 		addError('sources', e.message);
 	} finally {
 		configLoading.update(l => ({ ...l, sources: false }));
+	}
+}
+
+// --- Phase 2 Step 9: Detail Data Types ---
+
+export interface AgentDetailData {
+	name: string;
+	agent_id?: string;
+	description?: string;
+	version?: string;
+	category?: string;
+	color?: string;
+	tags?: string[];
+	resource_tier?: string;
+	agent_type?: string;
+	temperature?: number | null;
+	timeout?: number | null;
+	network_access?: boolean | null;
+	skills?: string[];
+	dependencies?: Record<string, string[]>;
+	knowledge?: {
+		domain_expertise: string[];
+		constraints: string[];
+		best_practices: string[];
+	};
+	handoff_agents?: string[];
+	author?: string;
+	schema_version?: string;
+}
+
+export interface SkillDetailData {
+	name: string;
+	description?: string;
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	full_tokens?: number;
+	entry_point_tokens?: number;
+	requires?: string[];
+	author?: string;
+	updated?: string;
+	source_path?: string;
+	when_to_use?: string;
+	languages?: string;
+	summary?: string;
+	quick_start?: string;
+	frontmatter_name?: string;
+	frontmatter_tags?: string[];
+	references?: { path: string; purpose: string }[];
+	used_by_agents?: string[];
+	agent_count?: number;
+}
+
+// --- Detail caches with LRU eviction (max 50 entries each) ---
+
+const DETAIL_CACHE_MAX = 50;
+
+const agentDetailCache = new Map<string, AgentDetailData>();
+const skillDetailCache = new Map<string, SkillDetailData>();
+
+/** Evict oldest entry if cache exceeds max size. Map preserves insertion order. */
+function evictIfNeeded<T>(cache: Map<string, T>, max: number): void {
+	if (cache.size > max) {
+		const firstKey = cache.keys().next().value;
+		if (firstKey !== undefined) {
+			cache.delete(firstKey);
+		}
+	}
+}
+
+/** Invalidate a specific agent detail cache entry (e.g. after deploy/undeploy). */
+export function invalidateAgentDetailCache(name: string): void {
+	agentDetailCache.delete(name);
+}
+
+/** Invalidate a specific skill detail cache entry (e.g. after deploy/undeploy). */
+export function invalidateSkillDetailCache(name: string): void {
+	skillDetailCache.delete(name);
+}
+
+/** Fetch full detail for a single agent. GET /api/config/agents/{name}/detail */
+export async function fetchAgentDetail(name: string): Promise<AgentDetailData | null> {
+	const cached = agentDetailCache.get(name);
+	if (cached) return cached;
+
+	try {
+		const data = await fetchJSON(`${API_BASE}/agents/${encodeURIComponent(name)}/detail`);
+		const detail = data.data as AgentDetailData;
+		if (detail) {
+			agentDetailCache.set(name, detail);
+			evictIfNeeded(agentDetailCache, DETAIL_CACHE_MAX);
+		}
+		return detail;
+	} catch (e: any) {
+		addError('agentDetail', e.message);
+		return null;
+	}
+}
+
+/** Fetch full detail for a single skill. GET /api/config/skills/{name}/detail */
+export async function fetchSkillDetail(name: string): Promise<SkillDetailData | null> {
+	const cached = skillDetailCache.get(name);
+	if (cached) return cached;
+
+	try {
+		const data = await fetchJSON(`${API_BASE}/skills/${encodeURIComponent(name)}/detail`);
+		const detail = data.data as SkillDetailData;
+		if (detail) {
+			skillDetailCache.set(name, detail);
+			evictIfNeeded(skillDetailCache, DETAIL_CACHE_MAX);
+		}
+		return detail;
+	} catch (e: any) {
+		addError('skillDetail', e.message);
+		return null;
 	}
 }
 
@@ -439,6 +577,7 @@ export async function deployAgent(agent_name: string, source_id?: string, force?
 		if (source_id) body.source_id = source_id;
 		if (force) body.force = true;
 		const result = await mutateJSON(`${API_BASE}/agents/deploy`, 'POST', body);
+		invalidateAgentDetailCache(agent_name);
 		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
 		toastStore.success(result.message || `Agent ${agent_name} deployed`);
 		return result;
@@ -455,6 +594,7 @@ export async function undeployAgent(agent_name: string): Promise<DeployResult> {
 	mutating.set(true);
 	try {
 		const result = await mutateJSON(`${API_BASE}/agents/${encodeURIComponent(agent_name)}`, 'DELETE');
+		invalidateAgentDetailCache(agent_name);
 		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
 		toastStore.success(result.message || `Agent ${agent_name} undeployed`);
 		return result;
@@ -493,6 +633,7 @@ export async function deploySkill(skill_name: string, mark_user_requested?: bool
 		if (mark_user_requested) body.mark_user_requested = true;
 		if (force) body.force = true;
 		const result = await mutateJSON(`${API_BASE}/skills/deploy`, 'POST', body);
+		invalidateSkillDetailCache(skill_name);
 		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
 		toastStore.success(result.message || `Skill ${skill_name} deployed`);
 		return result;
@@ -509,6 +650,7 @@ export async function undeploySkill(skill_name: string): Promise<DeployResult> {
 	mutating.set(true);
 	try {
 		const result = await mutateJSON(`${API_BASE}/skills/${encodeURIComponent(skill_name)}`, 'DELETE');
+		invalidateSkillDetailCache(skill_name);
 		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
 		toastStore.success(result.message || `Skill ${skill_name} undeployed`);
 		return result;

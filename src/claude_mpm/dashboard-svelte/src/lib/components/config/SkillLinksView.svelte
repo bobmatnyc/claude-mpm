@@ -39,6 +39,16 @@
 </script>
 
 <div class="flex flex-col h-full">
+	<!-- Deprecation notice -->
+	<div class="flex items-start gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+		<svg class="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+		</svg>
+		<p class="text-xs text-amber-700 dark:text-amber-300">
+			Skill links are now shown in agent and skill detail panels. This tab will be removed in a future update.
+		</p>
+	</div>
+
 	<!-- Stats bar -->
 	<div class="flex items-center gap-4 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
 		{#if storeState.loading}

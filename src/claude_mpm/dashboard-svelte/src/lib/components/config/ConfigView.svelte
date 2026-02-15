@@ -6,7 +6,11 @@
 		deployedSkills, availableSkills,
 		configSources,
 		syncStatus as syncStatusStore,
+		configSelectedAgent, configSelectedSkill, configSelectedSource, configActiveSubTab,
 		fetchAllConfig,
+		deployAgent, undeployAgent,
+		deploySkill, undeploySkill,
+		checkActiveSessions,
 		type ProjectSummary, type LoadingState, type ConfigError,
 		type DeployedAgent, type AvailableAgent,
 		type DeployedSkill, type AvailableSkill,
@@ -19,7 +23,11 @@
 	import ModeSwitch from './ModeSwitch.svelte';
 	import AutoConfigPreview from './AutoConfigPreview.svelte';
 	import ValidationPanel from './ValidationPanel.svelte';
+	import AgentDetailPanel from './AgentDetailPanel.svelte';
+	import SkillDetailPanel from './SkillDetailPanel.svelte';
+	import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 	import Badge from '$lib/components/Badge.svelte';
+	import { FEATURES } from '$lib/config/features';
 
 	interface Props {
 		panelSide: 'left' | 'right';
@@ -28,12 +36,47 @@
 	let { panelSide }: Props = $props();
 
 	type ConfigSubTab = 'agents' | 'skills' | 'sources' | 'skill-links';
-	let subTab = $state<ConfigSubTab>('agents');
 
-	// Selected items for detail view in right panel
+	// --- Shared selection state from stores ---
+	// These local variables are kept in sync with the shared writable stores.
+	// Both the left and right ConfigView instances subscribe to the same stores,
+	// so setting a value in one instance is visible in the other.
+	let subTab = $state<ConfigSubTab>('agents');
 	let selectedAgent = $state<DeployedAgent | AvailableAgent | null>(null);
 	let selectedSkill = $state<DeployedSkill | AvailableSkill | null>(null);
 	let selectedSource = $state<ConfigSource | null>(null);
+
+	// Subscribe to shared stores
+	$effect(() => {
+		const unsub = configSelectedAgent.subscribe(v => { selectedAgent = v; });
+		return unsub;
+	});
+	$effect(() => {
+		const unsub = configSelectedSkill.subscribe(v => { selectedSkill = v; });
+		return unsub;
+	});
+	$effect(() => {
+		const unsub = configSelectedSource.subscribe(v => { selectedSource = v; });
+		return unsub;
+	});
+	$effect(() => {
+		const unsub = configActiveSubTab.subscribe(v => { subTab = v; });
+		return unsub;
+	});
+
+	// Helper functions to update the shared stores
+	function setSelectedAgent(agent: DeployedAgent | AvailableAgent | null) {
+		configSelectedAgent.set(agent);
+	}
+	function setSelectedSkill(skill: DeployedSkill | AvailableSkill | null) {
+		configSelectedSkill.set(skill);
+	}
+	function setSelectedSource(source: ConfigSource | null) {
+		configSelectedSource.set(source);
+	}
+	function setSubTab(tab: ConfigSubTab) {
+		configActiveSubTab.set(tab);
+	}
 
 	// Phase 3: Active session warning
 	let showSessionWarning = $state(false);
@@ -98,13 +141,21 @@
 		return unsub;
 	});
 
-	// Clear selections when switching sub-tabs
+	// Clear selections when switching sub-tabs via user click (not cross-nav)
+	// Cross-navigation sets skipNextClear before changing subTab
+	let skipNextClear = $state(false);
+	let prevSubTab = $state<ConfigSubTab>('agents');
 	$effect(() => {
-		// React to subTab changes
-		subTab;
-		selectedAgent = null;
-		selectedSkill = null;
-		selectedSource = null;
+		if (subTab !== prevSubTab) {
+			prevSubTab = subTab;
+			if (skipNextClear) {
+				skipNextClear = false;
+			} else {
+				setSelectedAgent(null);
+				setSelectedSkill(null);
+				setSelectedSource(null);
+			}
+		}
 	});
 
 	let hasFetched = false;
@@ -115,31 +166,6 @@
 			hasFetched = true;
 		}
 	});
-
-	// Helpers for detail view
-	function isDeployedAgent(agent: DeployedAgent | AvailableAgent): agent is DeployedAgent {
-		return 'is_core' in agent;
-	}
-
-	function isDeployedSkill(skill: DeployedSkill | AvailableSkill): skill is DeployedSkill {
-		return 'deploy_mode' in skill;
-	}
-
-	function hasSelection(): boolean {
-		return selectedAgent !== null || selectedSkill !== null || selectedSource !== null;
-	}
-
-	function formatDate(dateStr: string): string {
-		if (!dateStr) return 'Unknown';
-		try {
-			return new Date(dateStr).toLocaleDateString(undefined, {
-				year: 'numeric', month: 'short', day: 'numeric',
-				hour: '2-digit', minute: '2-digit',
-			});
-		} catch {
-			return dateStr;
-		}
-	}
 
 	function handleSessionWarning(active: boolean) {
 		if (active && !sessionWarningDismissed) {
@@ -152,10 +178,96 @@
 		// Summary will be refetched by the store
 	}
 
-	function formatTokens(count: number): string {
-		if (!count || count === 0) return '';
-		if (count >= 1000) return `${(count / 1000).toFixed(1)}k tok`;
-		return `${count} tok`;
+	// All known agent names for navigability checking in detail panels
+	let allAgentNames = $derived(
+		[...new Set([
+			...deployedAgentsData.map(a => a.name),
+			...availableAgentsData.map(a => a.name),
+		])]
+	);
+
+	// Cross-navigation: from agent detail, navigate to a skill
+	function handleNavigateToSkill(skillName: string) {
+		const deployed = deployedSkillsData.find(s => s.name === skillName);
+		const available = availableSkillsData.find(s => s.name === skillName);
+		const skill = deployed || available;
+		if (skill) {
+			skipNextClear = true;
+			setSubTab('skills');
+			setSelectedSkill(skill);
+			setSelectedAgent(null);
+			setSelectedSource(null);
+		}
+	}
+
+	// Cross-navigation: from skill detail, navigate to an agent
+	function handleNavigateToAgent(agentName: string) {
+		const deployed = deployedAgentsData.find(a => a.name === agentName);
+		const available = availableAgentsData.find(a => a.name === agentName);
+		const agent = deployed || available;
+		if (agent) {
+			skipNextClear = true;
+			setSubTab('agents');
+			setSelectedAgent(agent);
+			setSelectedSkill(null);
+			setSelectedSource(null);
+		}
+	}
+
+	// --- Deploy/Undeploy from detail panels ---
+	let showDetailUndeployConfirm = $state(false);
+	let detailUndeployTarget = $state<{ name: string; type: 'agent' | 'skill' } | null>(null);
+
+	async function handleDetailAgentDeploy(name: string) {
+		try {
+			await deployAgent(name);
+			const sessions = await checkActiveSessions();
+			handleSessionWarning(sessions.active);
+		} catch {
+			// Error handled by store
+		}
+	}
+
+	function handleDetailAgentUndeploy(name: string) {
+		detailUndeployTarget = { name, type: 'agent' };
+		showDetailUndeployConfirm = true;
+	}
+
+	async function handleDetailSkillDeploy(name: string) {
+		try {
+			await deploySkill(name, true);
+			const sessions = await checkActiveSessions();
+			handleSessionWarning(sessions.active);
+		} catch {
+			// Error handled by store
+		}
+	}
+
+	function handleDetailSkillUndeploy(name: string) {
+		detailUndeployTarget = { name, type: 'skill' };
+		showDetailUndeployConfirm = true;
+	}
+
+	async function confirmDetailUndeploy() {
+		if (!detailUndeployTarget) return;
+		showDetailUndeployConfirm = false;
+		const { name, type } = detailUndeployTarget;
+		try {
+			if (type === 'agent') {
+				await undeployAgent(name);
+			} else {
+				await undeploySkill(name);
+			}
+			const sessions = await checkActiveSessions();
+			handleSessionWarning(sessions.active);
+			// Clear selection since the item is no longer deployed
+			if (type === 'agent') setSelectedAgent(null);
+			else setSelectedSkill(null);
+		} catch {
+			// Error handled by store
+		} finally {
+			detailUndeployTarget = null;
+		}
 	}
 </script>
 
@@ -227,7 +339,7 @@
 		<!-- Sub-tabs -->
 		<div class="flex gap-0 px-3 pt-2 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
 			<button
-				onclick={() => subTab = 'agents'}
+				onclick={() => setSubTab('agents')}
 				class="px-4 py-2 text-xs font-semibold rounded-t-md transition-colors
 					{subTab === 'agents'
 						? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-b-0 border-slate-200 dark:border-slate-700'
@@ -236,7 +348,7 @@
 				Agents
 			</button>
 			<button
-				onclick={() => subTab = 'skills'}
+				onclick={() => setSubTab('skills')}
 				class="px-4 py-2 text-xs font-semibold rounded-t-md transition-colors
 					{subTab === 'skills'
 						? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-b-0 border-slate-200 dark:border-slate-700'
@@ -245,7 +357,7 @@
 				Skills
 			</button>
 			<button
-				onclick={() => subTab = 'sources'}
+				onclick={() => setSubTab('sources')}
 				class="px-4 py-2 text-xs font-semibold rounded-t-md transition-colors
 					{subTab === 'sources'
 						? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-b-0 border-slate-200 dark:border-slate-700'
@@ -254,7 +366,7 @@
 				Sources
 			</button>
 			<button
-				onclick={() => subTab = 'skill-links'}
+				onclick={() => setSubTab('skill-links')}
 				class="px-4 py-2 text-xs font-semibold rounded-t-md transition-colors
 					{subTab === 'skill-links'
 						? 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border border-b-0 border-slate-200 dark:border-slate-700'
@@ -278,7 +390,7 @@
 					deployedAgents={deployedAgentsData}
 					availableAgents={availableAgentsData}
 					loading={loadingState}
-					onSelect={(agent) => { selectedAgent = agent; selectedSkill = null; selectedSource = null; }}
+					onSelect={(agent) => { setSelectedAgent(agent); setSelectedSkill(null); setSelectedSource(null); }}
 					{selectedAgent}
 					onSessionWarning={handleSessionWarning}
 				/>
@@ -287,7 +399,7 @@
 					deployedSkills={deployedSkillsData}
 					availableSkills={availableSkillsData}
 					loading={loadingState}
-					onSelect={(skill) => { selectedSkill = skill; selectedAgent = null; selectedSource = null; }}
+					onSelect={(skill) => { setSelectedSkill(skill); setSelectedAgent(null); setSelectedSource(null); }}
 					{selectedSkill}
 					deploymentMode={summaryData?.deployment_mode || 'selective'}
 					onSwitchMode={() => showModeSwitch = true}
@@ -297,7 +409,7 @@
 				<SourcesList
 					sources={sourcesData}
 					loading={loadingState.sources}
-					onSelect={(source) => { selectedSource = source; selectedAgent = null; selectedSkill = null; }}
+					onSelect={(source) => { setSelectedSource(source); setSelectedAgent(null); setSelectedSkill(null); }}
 					{selectedSource}
 					syncStatus={syncStatusData}
 				/>
@@ -311,251 +423,42 @@
 	<!-- RIGHT PANEL: Detail view -->
 	<div class="flex flex-col h-full bg-white dark:bg-slate-900">
 		{#if selectedAgent}
-			<!-- Agent Detail -->
-			<div class="flex-1 overflow-y-auto p-6">
-				<div class="flex items-center gap-3 mb-4">
-					<h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedAgent.name}</h2>
-					{#if isDeployedAgent(selectedAgent)}
-						{#if selectedAgent.is_core}
-							<Badge text="Core" variant="primary" />
-						{/if}
-						<Badge text="Deployed" variant="success" />
-					{:else}
-						{#if selectedAgent.is_deployed}
-							<Badge text="Deployed" variant="success" />
-						{:else}
-							<Badge text="Available" variant="default" />
-						{/if}
+			<!-- Agent Detail Panel -->
+			{#if FEATURES.RICH_DETAIL_PANELS}
+				<AgentDetailPanel
+					agent={selectedAgent}
+					onNavigateToSkill={handleNavigateToSkill}
+					onNavigateToAgent={handleNavigateToAgent}
+					{allAgentNames}
+					onDeploy={handleDetailAgentDeploy}
+					onUndeploy={handleDetailAgentUndeploy}
+				/>
+			{:else}
+				<div class="flex-1 overflow-y-auto p-6">
+					<h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{selectedAgent.name}</h2>
+					{#if selectedAgent.description}
+						<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.description}</p>
 					{/if}
 				</div>
-
-				<div class="space-y-4">
-					{#if !isDeployedAgent(selectedAgent) && selectedAgent.description}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Description</h3>
-							<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.description}</p>
-						</div>
-					{/if}
-
-					<div class="grid grid-cols-2 gap-4">
-						{#if isDeployedAgent(selectedAgent)}
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Version</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.version || 'N/A'}</p>
-							</div>
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Type</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.type || 'N/A'}</p>
-							</div>
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Location</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.location || 'project'}</p>
-							</div>
-						{:else}
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Version</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.version || 'N/A'}</p>
-							</div>
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Category</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.category || 'N/A'}</p>
-							</div>
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Source</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.source || 'N/A'}</p>
-							</div>
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Priority</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedAgent.priority}</p>
-							</div>
-						{/if}
-					</div>
-
-					{#if isDeployedAgent(selectedAgent) && selectedAgent.path}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Path</h3>
-							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedAgent.path}</p>
-						</div>
-					{/if}
-
-					{#if isDeployedAgent(selectedAgent) && selectedAgent.specializations && selectedAgent.specializations.length > 0}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Specializations</h3>
-							<div class="flex gap-2 flex-wrap mt-1">
-								{#each selectedAgent.specializations as spec}
-									<Badge text={spec} variant="info" />
-								{/each}
-							</div>
-						</div>
-					{/if}
-
-					{#if !isDeployedAgent(selectedAgent) && selectedAgent.tags && selectedAgent.tags.length > 0}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Tags</h3>
-							<div class="flex gap-2 flex-wrap mt-1">
-								{#each selectedAgent.tags as tag}
-									<Badge text={tag} variant="info" />
-								{/each}
-							</div>
-						</div>
-					{/if}
-
-					{#if !isDeployedAgent(selectedAgent) && selectedAgent.source_url}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Source URL</h3>
-							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedAgent.source_url}</p>
-						</div>
-					{/if}
-				</div>
-			</div>
+			{/if}
 
 		{:else if selectedSkill}
-			<!-- Skill Detail -->
-			<div class="flex-1 overflow-y-auto p-6">
-				<div class="flex items-center gap-3 mb-4">
-					<h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">{selectedSkill.name}</h2>
-					{#if isDeployedSkill(selectedSkill)}
-						<Badge text="Deployed" variant="success" />
-						{#if selectedSkill.is_user_requested}
-							<Badge text="User Requested" variant="warning" />
-						{/if}
-					{:else}
-						{#if selectedSkill.is_deployed}
-							<Badge text="Deployed" variant="success" />
-						{:else}
-							<Badge text="Available" variant="default" />
-						{/if}
-						{#if selectedSkill.version}
-							<Badge text="v{selectedSkill.version}" variant="default" />
-						{/if}
-					{/if}
-				</div>
-
-				<div class="space-y-4">
+			<!-- Skill Detail Panel -->
+			{#if FEATURES.RICH_DETAIL_PANELS}
+				<SkillDetailPanel
+					skill={selectedSkill}
+					onNavigateToAgent={handleNavigateToAgent}
+					onDeploy={handleDetailSkillDeploy}
+					onUndeploy={handleDetailSkillUndeploy}
+				/>
+			{:else}
+				<div class="flex-1 overflow-y-auto p-6">
+					<h2 class="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{selectedSkill.name}</h2>
 					{#if selectedSkill.description}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Description</h3>
-							<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.description}</p>
-						</div>
-					{/if}
-
-					<div class="grid grid-cols-2 gap-4">
-						{#if selectedSkill.category}
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Category</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.category}</p>
-							</div>
-						{/if}
-						{#if selectedSkill.collection}
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Collection</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.collection}</p>
-							</div>
-						{/if}
-						{#if isDeployedSkill(selectedSkill)}
-							<div>
-								<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Deploy Mode</h3>
-								<p class="text-sm text-slate-700 dark:text-slate-300">
-									{selectedSkill.deploy_mode === 'user_defined' ? 'User Defined' : 'Agent Referenced'}
-								</p>
-							</div>
-							{#if selectedSkill.deploy_date}
-								<div>
-									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Deploy Date</h3>
-									<p class="text-sm text-slate-700 dark:text-slate-300">{formatDate(selectedSkill.deploy_date)}</p>
-								</div>
-							{/if}
-						{/if}
-						<!-- Extended metadata for available skills -->
-						{#if !isDeployedSkill(selectedSkill)}
-							{#if selectedSkill.toolchain}
-								<div>
-									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Toolchain</h3>
-									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.toolchain}</p>
-								</div>
-							{/if}
-							{#if selectedSkill.framework}
-								<div>
-									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Framework</h3>
-									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.framework}</p>
-								</div>
-							{/if}
-							{#if selectedSkill.author}
-								<div>
-									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Author</h3>
-									<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.author}</p>
-								</div>
-							{/if}
-							{#if selectedSkill.updated}
-								<div>
-									<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Updated</h3>
-									<p class="text-sm text-slate-700 dark:text-slate-300">{formatDate(selectedSkill.updated)}</p>
-								</div>
-							{/if}
-						{/if}
-					</div>
-
-					{#if isDeployedSkill(selectedSkill) && selectedSkill.path}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Path</h3>
-							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedSkill.path}</p>
-						</div>
-					{/if}
-
-					<!-- Tags for available skills -->
-					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.tags ?? []).length > 0}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Tags</h3>
-							<div class="flex gap-2 flex-wrap mt-1">
-								{#each (selectedSkill.tags ?? []) as tag}
-									<Badge text={tag} variant="info" />
-								{/each}
-							</div>
-						</div>
-					{/if}
-
-					<!-- Token counts for available skills -->
-					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.full_tokens > 0 || selectedSkill.entry_point_tokens > 0)}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Token Counts</h3>
-							<div class="grid grid-cols-2 gap-4">
-								{#if selectedSkill.full_tokens > 0}
-									<div>
-										<span class="text-xs text-slate-500 dark:text-slate-400">Full:</span>
-										<span class="text-sm text-slate-700 dark:text-slate-300 ml-1">{formatTokens(selectedSkill.full_tokens)}</span>
-									</div>
-								{/if}
-								{#if selectedSkill.entry_point_tokens > 0}
-									<div>
-										<span class="text-xs text-slate-500 dark:text-slate-400">Entry Point:</span>
-										<span class="text-sm text-slate-700 dark:text-slate-300 ml-1">{formatTokens(selectedSkill.entry_point_tokens)}</span>
-									</div>
-								{/if}
-							</div>
-						</div>
-					{/if}
-
-					<!-- Dependencies for available skills -->
-					{#if !isDeployedSkill(selectedSkill) && (selectedSkill.requires ?? []).length > 0}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Dependencies</h3>
-							<div class="flex gap-2 flex-wrap mt-1">
-								{#each (selectedSkill.requires ?? []) as dep}
-									<Badge text={dep} variant="default" />
-								{/each}
-							</div>
-						</div>
-					{/if}
-
-					<!-- Source path for available skills -->
-					{#if !isDeployedSkill(selectedSkill) && selectedSkill.source_path}
-						<div>
-							<h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Source Path</h3>
-							<p class="text-sm font-mono text-slate-600 dark:text-slate-400 break-all">{selectedSkill.source_path}</p>
-						</div>
+						<p class="text-sm text-slate-700 dark:text-slate-300">{selectedSkill.description}</p>
 					{/if}
 				</div>
-			</div>
+			{/if}
 
 		{:else if selectedSource}
 			<!-- Source Detail -->
@@ -627,3 +530,15 @@
 {#if showAutoConfig}
 	<AutoConfigPreview onClose={() => showAutoConfig = false} />
 {/if}
+
+<!-- Detail Panel Undeploy Confirmation Dialog -->
+<ConfirmDialog
+	bind:open={showDetailUndeployConfirm}
+	title="Undeploy {detailUndeployTarget?.type === 'agent' ? 'Agent' : 'Skill'}"
+	description="This will remove the {detailUndeployTarget?.type ?? 'item'} from your project. It will still be available for redeployment."
+	confirmText={detailUndeployTarget?.name || ''}
+	confirmLabel="Undeploy"
+	destructive={true}
+	onConfirm={confirmDetailUndeploy}
+	onCancel={() => { showDetailUndeployConfirm = false; detailUndeployTarget = null; }}
+/>

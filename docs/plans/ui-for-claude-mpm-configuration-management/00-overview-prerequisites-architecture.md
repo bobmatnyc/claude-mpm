@@ -46,7 +46,10 @@ A **Configuration Management** tab in the existing Claude MPM dashboard that all
 | Phase 1 | Read-only visibility into all configuration state | 2-3 days | LOW |
 | Phase 2 | Safe mutations: source management, simple config edits | 1-2 weeks | MEDIUM |
 | Phase 3 | Deploy/undeploy agents and skills via UI | 2-3 weeks | HIGH |
-| Phase 4 | Full feature parity: YAML editor, history, bulk operations | Ongoing | HIGHEST |
+| Phase 4A | Foundation infrastructure + skill links + validation display | 2-3 weeks | MEDIUM |
+| Phase 4B | Configuration history/versioning with undo capability | 2-3 weeks | HIGH |
+| Phase 4C | Power-user tools: YAML editor, bulk ops, import/export | 3-5 weeks | HIGH |
+| Phase 4D | Advanced features backlog (conditional on user demand) | 2-3 weeks | MEDIUM-HIGH |
 
 ### Key Constraint
 
@@ -279,21 +282,69 @@ POST   /api/config/auto-configure/apply       -- apply recommendations (202)
 
 ---
 
-### Phase 4: Full Feature Parity
+### Phase 4: Full Feature Parity (4 Sub-Phases)
+
+Phase 4 is broken into four independently shippable sub-phases, each with its own go/no-go gate. See individual plan files for full specifications.
 
 | Attribute | Value |
 |-----------|-------|
 | **Risk Level** | HIGHEST |
-| **Timeline** | Ongoing |
+| **Timeline** | 9-14 weeks realistic (4A through 4D); 7-11 weeks for 4A-4C |
 | **Prerequisites** | Audit log, config history/versioning, comprehensive test suite, load testing |
 
-**Deliverables:**
-- Direct YAML editor with syntax validation and diff preview
-- Configuration history and restore
-- Bulk operations (multi-agent/skill deploy/undeploy)
-- Import/export configuration
-- Pagination for large datasets (200+ agents/skills)
-- Agent/skill detail views with full metadata
+#### Sub-Phase 4A: Foundation Infrastructure + High-Value Read-Only
+
+| Attribute | Value |
+|-----------|-------|
+| **Plan File** | `04a-phase-4a-foundation-infrastructure.md` |
+| **Risk Level** | MEDIUM |
+| **Timeline** | 2-3 weeks |
+| **Features** | P1 (Skill-to-Agent Linking), P2 (Configuration Validation Display) |
+| **Infrastructure** | Testing framework, cursor-based pagination, LazyStore, shared components, config tab sub-navigation |
+
+#### Sub-Phase 4B: Configuration History/Versioning
+
+| Attribute | Value |
+|-----------|-------|
+| **Plan File** | `04b-phase-4b-history-versioning.md` |
+| **Risk Level** | HIGH |
+| **Timeline** | 2-3 weeks |
+| **Features** | P3 (Configuration History/Versioning) |
+| **Key Work** | Integration into ALL Phase 2-3 mutation endpoints (10+ endpoints modified) |
+
+#### Sub-Phase 4C: Power-User Mutation Tools
+
+| Attribute | Value |
+|-----------|-------|
+| **Plan File** | `04c-phase-4c-power-user-tools.md` |
+| **Risk Level** | HIGH |
+| **Timeline** | 3-5 weeks |
+| **Features** | P4 (YAML Editor), P5 (Bulk Operations), P6 (Import/Export) |
+| **Hard Dependency** | Sub-Phase 4B must be complete (bulk undeploy without undo is irrecoverable) |
+
+#### Sub-Phase 4D: Advanced Features Backlog (Conditional)
+
+| Attribute | Value |
+|-----------|-------|
+| **Plan File** | `04d-phase-4d-advanced-features.md` |
+| **Risk Level** | MEDIUM-HIGH |
+| **Timeline** | 2-3 weeks (if built; may never be started) |
+| **Features** | P7 (Collection Management), P8 (Advanced Auto-Configure) |
+| **Condition** | Only built if user demand materializes (at least 3 feature requests) |
+
+**Dependency chain:** Phase 3 -> 4A -> 4B -> 4C -> 4D (conditional)
+
+**Deliverables (cumulative across all sub-phases):**
+- Skill-to-agent linking visualization (4A)
+- Configuration validation display (4A)
+- Configuration history and restore (4B)
+- Direct YAML editor with syntax validation and diff preview (4C)
+- Bulk operations (multi-agent/skill deploy/undeploy) (4C)
+- Import/export configuration (4C)
+- Collection management (4D, conditional)
+- Advanced auto-configure profiles (4D, conditional)
+- Pagination for large datasets (200+ agents/skills) (4A infrastructure)
+- Frontend testing framework (4A infrastructure)
 
 ---
 
@@ -1046,6 +1097,10 @@ These business rules (from Doc 02) affect API validation and UI behavior across 
 
 Next documents in this series:
 - `01-phase-1-read-only-dashboard.md` -- Detailed implementation plan for Phase 1
-- `02-phase-2-safe-mutations.md` -- Detailed implementation plan for Phase 2
+- `02-phase-2-source-management-mutations.md` -- Detailed implementation plan for Phase 2
 - `03-phase-3-deployment-operations.md` -- Detailed implementation plan for Phase 3
-- `04-phase-4-full-feature-parity.md` -- Detailed implementation plan for Phase 4
+- `04-phase-4-full-feature-parity.md` -- Detailed implementation plan for Phase 4 (original monolithic spec)
+- `04a-phase-4a-foundation-infrastructure.md` -- Sub-Phase 4A: Foundation Infrastructure + Read-Only (P1, P2)
+- `04b-phase-4b-history-versioning.md` -- Sub-Phase 4B: Configuration History/Versioning (P3)
+- `04c-phase-4c-power-user-tools.md` -- Sub-Phase 4C: Power-User Mutation Tools (P4, P5, P6)
+- `04d-phase-4d-advanced-features.md` -- Sub-Phase 4D: Advanced Features Backlog (P7, P8)

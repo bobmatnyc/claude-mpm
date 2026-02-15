@@ -13,7 +13,7 @@ Uses python-frontmatter and mistune for markdown parsing as recommended.
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import frontmatter
 import mistune
@@ -262,6 +262,32 @@ class AgentManager:
             logger.error(f"Error deleting agent '{name}': {e}")
             return False
 
+    def list_agent_names(self, location: Optional[str] = None) -> Set[str]:
+        """Return set of agent names (filenames without .md) without parsing content.
+
+        This is a lightweight alternative to list_agents() when only names are needed,
+        e.g., for is_deployed cross-referencing. Avoids O(n * parse_time) when
+        O(n * glob_time) suffices.
+
+        Args:
+            location: Filter by location ("project", "framework", or None for all)
+
+        Returns:
+            Set of agent name strings (stems of .md files)
+        """
+        names: Set[str] = set()
+        if location in (None, "framework"):
+            if self.framework_dir.exists():
+                names.update(
+                    f.stem
+                    for f in self.framework_dir.glob("*.md")
+                    if f.name != "base_agent.md"
+                )
+        if location in (None, "project"):
+            if self.project_dir.exists():
+                names.update(f.stem for f in self.project_dir.glob("*.md"))
+        return names
+
     def list_agents(self, location: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
         """
         List all available agents.
@@ -270,40 +296,106 @@ class AgentManager:
             location: Filter by location ("project", "framework", or None for all)
 
         Returns:
-            Dictionary of agent info
+            Dictionary of agent info with enriched frontmatter fields
         """
         agents = {}
+
+        def _build_agent_entry(
+            agent_file: Path, agent_name: str, loc: str
+        ) -> Optional[Dict[str, Any]]:
+            agent_def = self.read_agent(agent_name)
+            if not agent_def:
+                return None
+
+            # Extract enrichment fields from already-loaded raw_content
+            # (in-memory frontmatter re-parse, no additional file I/O)
+            enrichment = self._extract_enrichment_fields(agent_def.raw_content)
+
+            return {
+                "location": loc,
+                "path": str(agent_file),
+                "version": agent_def.metadata.version,
+                "type": agent_def.metadata.type.value,
+                "specializations": agent_def.metadata.specializations,
+                **enrichment,
+            }
 
         # Check framework agents
         if location in [None, "framework"]:
             for agent_file in self.framework_dir.glob("*.md"):
                 if agent_file.name != "base_agent.md":
                     agent_name = agent_file.stem
-                    agent_def = self.read_agent(agent_name)
-                    if agent_def:
-                        agents[agent_name] = {
-                            "location": "framework",
-                            "path": str(agent_file),
-                            "version": agent_def.metadata.version,
-                            "type": agent_def.metadata.type.value,
-                            "specializations": agent_def.metadata.specializations,
-                        }
+                    entry = _build_agent_entry(agent_file, agent_name, "framework")
+                    if entry:
+                        agents[agent_name] = entry
 
         # Check project agents
         if location in [None, "project"] and self.project_dir.exists():
             for agent_file in self.project_dir.glob("*.md"):
                 agent_name = agent_file.stem
-                agent_def = self.read_agent(agent_name)
-                if agent_def:
-                    agents[agent_name] = {
-                        "location": "project",
-                        "path": str(agent_file),
-                        "version": agent_def.metadata.version,
-                        "type": agent_def.metadata.type.value,
-                        "specializations": agent_def.metadata.specializations,
-                    }
+                entry = _build_agent_entry(agent_file, agent_name, "project")
+                if entry:
+                    agents[agent_name] = entry
 
         return agents
+
+    def _extract_enrichment_fields(self, raw_content: str) -> Dict[str, Any]:
+        """Extract UI enrichment fields from agent raw content frontmatter.
+
+        Parses the in-memory raw_content string to extract fields that are
+        present in YAML frontmatter but not stored in AgentMetadata:
+        description, category, color, tags, resource_tier, network_access,
+        and skills_count.
+
+        Args:
+            raw_content: The full markdown content string (already in memory).
+
+        Returns:
+            Dict of enrichment fields with safe defaults for missing/malformed data.
+        """
+        defaults: Dict[str, Any] = {
+            "description": "",
+            "category": "",
+            "color": "gray",
+            "tags": [],
+            "resource_tier": "",
+            "network_access": None,
+            "skills_count": 0,
+        }
+        try:
+            post = frontmatter.loads(raw_content)
+            fm = post.metadata
+
+            capabilities = fm.get("capabilities", {})
+            if not isinstance(capabilities, dict):
+                capabilities = {}
+
+            skills_field = fm.get("skills", [])
+            if isinstance(skills_field, dict):
+                skills_count = len(skills_field.get("required", []) or []) + len(
+                    skills_field.get("optional", []) or []
+                )
+            elif isinstance(skills_field, list):
+                skills_count = len(skills_field)
+            else:
+                skills_count = 0
+
+            tags = fm.get("tags", [])
+            if not isinstance(tags, list):
+                tags = []
+
+            return {
+                "description": fm.get("description", ""),
+                "category": fm.get("category", ""),
+                "color": fm.get("color", "gray"),
+                "tags": tags,
+                "resource_tier": fm.get("resource_tier", ""),
+                "network_access": capabilities.get("network_access"),
+                "skills_count": skills_count,
+            }
+        except Exception:
+            logger.warning("Failed to parse frontmatter for enrichment, using defaults")
+            return defaults
 
     def get_agent_api(self, name: str) -> Optional[Dict[str, Any]]:
         """

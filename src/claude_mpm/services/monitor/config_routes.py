@@ -7,12 +7,14 @@ All endpoints are GET-only. No mutation operations.
 
 import asyncio
 import logging
+import re
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import yaml
 from aiohttp import web
 
+from claude_mpm.services.config_api.validation import validate_safe_name
 from claude_mpm.services.monitor.pagination import (
     extract_pagination_params,
     paginate,
@@ -104,6 +106,10 @@ def register_config_routes(app: web.Application, server_instance=None):
     app.router.add_get("/api/config/skills/available", handle_skills_available)
     app.router.add_get("/api/config/sources", handle_sources)
 
+    # Phase 2: Detail endpoints (lazy-loaded rich metadata)
+    app.router.add_get("/api/config/agents/{name}/detail", handle_agent_detail)
+    app.router.add_get("/api/config/skills/{name}/detail", handle_skill_detail)
+
     # Phase 4A: Skill-to-Agent linking
     app.router.add_get("/api/config/skill-links/", handle_skill_links)
     app.router.add_get(
@@ -113,7 +119,71 @@ def register_config_routes(app: web.Application, server_instance=None):
     # Phase 4A: Configuration validation
     app.router.add_get("/api/config/validate", handle_validate)
 
-    logger.info("Registered 9 config API routes under /api/config/")
+    logger.info("Registered 11 config API routes under /api/config/")
+
+
+# --- Shared Helpers ---
+
+
+def _build_manifest_lookup(skills_svc) -> dict:
+    """Build a name-to-manifest-entry lookup dict from available skills.
+
+    Handles both flat list and nested dict manifest structures.
+    Returns empty dict on any error (graceful degradation).
+    """
+    manifest_lookup: dict = {}
+    try:
+        available = skills_svc.list_available_skills()
+        available_skills = available.get("skills", [])
+        if isinstance(available_skills, list):
+            for skill in available_skills:
+                if isinstance(skill, dict):
+                    manifest_lookup[skill.get("name", "")] = skill
+        elif isinstance(available_skills, dict):
+            for _category, cat_skills in available_skills.items():
+                if isinstance(cat_skills, list):
+                    for skill in cat_skills:
+                        if isinstance(skill, dict):
+                            manifest_lookup[skill.get("name", "")] = skill
+    except Exception as e:
+        logger.warning(f"Could not load manifest for skill enrichment: {e}")
+    return manifest_lookup
+
+
+def _find_manifest_entry(skill_name: str, manifest_lookup: dict) -> Optional[dict]:
+    """Find a manifest entry for a skill, using exact match then suffix match.
+
+    Deployed names are path-normalized (e.g., 'universal-testing-tdd') while
+    manifest names are short (e.g., 'test-driven-development'). This function
+    tries exact match first, then suffix-based matching.
+    """
+    entry = manifest_lookup.get(skill_name)
+    if entry:
+        return entry
+    for m_name, m_data in manifest_lookup.items():
+        if skill_name.endswith(f"-{m_name}"):
+            return m_data
+    return None
+
+
+def _enrich_skill_from_manifest(skill_item: dict, manifest_lookup: dict) -> None:
+    """Enrich a deployed skill dict in-place with manifest metadata.
+
+    Adds version, toolchain, framework, tags, full_tokens, entry_point_tokens.
+    Fills empty description from manifest if available.
+    """
+    skill_name = skill_item.get("name", "")
+    manifest_entry = _find_manifest_entry(skill_name, manifest_lookup)
+    if manifest_entry:
+        skill_item["version"] = manifest_entry.get("version", "")
+        skill_item["toolchain"] = manifest_entry.get("toolchain")
+        skill_item["framework"] = manifest_entry.get("framework")
+        skill_item["tags"] = manifest_entry.get("tags", [])
+        skill_item["full_tokens"] = manifest_entry.get("full_tokens", 0)
+        skill_item["entry_point_tokens"] = manifest_entry.get("entry_point_tokens", 0)
+        # Enrich description from manifest if deployment index has empty description
+        if not skill_item.get("description") and manifest_entry.get("description"):
+            skill_item["description"] = manifest_entry.get("description", "")
 
 
 # --- Endpoint Handlers ---
@@ -267,9 +337,9 @@ async def handle_agents_available(request: web.Request) -> web.Response:
                 ]
 
             # Enrich with is_deployed flag by checking project agents
+            # Use lightweight list_agent_names() to avoid parsing all agent files
             agent_mgr = _get_agent_manager()
-            deployed = agent_mgr.list_agents(location="project")
-            deployed_names = set(deployed.keys())
+            deployed_names = agent_mgr.list_agent_names(location="project")
 
             for agent in agents:
                 agent_name = agent.get("name", agent.get("agent_id", ""))
@@ -348,6 +418,11 @@ async def handle_skills_deployed(request: web.Request) -> web.Response:
                         }
                     )
 
+                # Phase 2 Step 3: Cross-reference with manifest for enrichment
+                manifest_lookup = _build_manifest_lookup(skills_svc)
+                for skill_item in skills_list:
+                    _enrich_skill_from_manifest(skill_item, manifest_lookup)
+
                 return {
                     "skills": skills_list,
                     "total": len(skills_list),
@@ -422,6 +497,33 @@ async def handle_skills_available(request: web.Request) -> web.Response:
                                     skill.get("name", "")
                                 )
                                 flat_skills.append(skill)
+
+            # Phase 2 Step 6: Enrich with agent count from skill-links
+            try:
+                mapper = _get_skill_to_agent_mapper()
+                links = mapper.get_all_links()
+                by_skill = links.get("by_skill", {})
+
+                for skill in flat_skills:
+                    skill_name = skill.get("name", "")
+                    skill_data = by_skill.get(skill_name, {})
+                    if not skill_data:
+                        # Try suffix matching for normalized names
+                        for s_name, s_data in by_skill.items():
+                            if s_name.endswith(f"-{skill_name}") or skill_name.endswith(
+                                f"-{s_name}"
+                            ):
+                                skill_data = s_data
+                                break
+                    agents = (
+                        skill_data.get("agents", [])
+                        if isinstance(skill_data, dict)
+                        else []
+                    )
+                    skill["agent_count"] = len(agents)
+            except Exception as e:
+                logger.warning(f"Could not load skill-links for agent counts: {e}")
+                # Don't fail - just skip enrichment
 
             return flat_skills
 
@@ -517,6 +619,252 @@ async def handle_sources(request: web.Request) -> web.Response:
         )
     except Exception as e:
         logger.error(f"Error listing sources: {e}")
+        return web.json_response(
+            {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
+            status=500,
+        )
+
+
+# --- Phase 2: Detail Endpoints ---
+
+
+async def handle_agent_detail(request: web.Request) -> web.Response:
+    """GET /api/config/agents/{name}/detail - Full agent metadata for detail panel.
+
+    Returns the complete frontmatter data for a single deployed agent, including
+    knowledge, skills list, dependencies, handoff agents, and constraints.
+    Path traversal protection via validate_safe_name() (VP-1-SEC).
+    """
+    try:
+        agent_name = request.match_info["name"]
+
+        # MANDATORY: Path traversal protection (VP-1-SEC)
+        valid, _err_msg = validate_safe_name(agent_name, "agent")
+        if not valid:
+            return web.json_response(
+                {
+                    "success": False,
+                    "error": f"Invalid agent name: '{agent_name}'",
+                    "code": "INVALID_NAME",
+                },
+                status=400,
+            )
+
+        def _get_detail() -> Optional[Dict[str, Any]]:
+            import frontmatter as fm_lib
+
+            agent_mgr = _get_agent_manager()
+            agent_def = agent_mgr.read_agent(agent_name)
+            if not agent_def:
+                return None
+
+            # Parse full frontmatter from raw content
+            post = fm_lib.loads(agent_def.raw_content)
+            fmdata = post.metadata
+
+            capabilities = fmdata.get("capabilities", {})
+            if not isinstance(capabilities, dict):
+                capabilities = {}
+
+            knowledge = fmdata.get("knowledge", {})
+            if not isinstance(knowledge, dict):
+                knowledge = {}
+
+            interactions = fmdata.get("interactions", {})
+            if not isinstance(interactions, dict):
+                interactions = {}
+
+            # Normalize skills field
+            skills_field = fmdata.get("skills", [])
+            if isinstance(skills_field, dict):
+                skills_list = list(
+                    set(
+                        (skills_field.get("required") or [])
+                        + (skills_field.get("optional") or [])
+                    )
+                )
+            elif isinstance(skills_field, list):
+                skills_list = skills_field
+            else:
+                skills_list = []
+
+            # Normalize dependencies
+            dependencies = fmdata.get("dependencies", {})
+            if not isinstance(dependencies, dict):
+                dependencies = {}
+
+            tags = fmdata.get("tags", [])
+            if not isinstance(tags, list):
+                tags = []
+
+            return {
+                "name": fmdata.get("name", agent_name),
+                "agent_id": fmdata.get("agent_id", agent_name),
+                "description": fmdata.get("description", ""),
+                "version": fmdata.get("version", agent_def.metadata.version),
+                "category": fmdata.get("category", ""),
+                "color": fmdata.get("color", "gray"),
+                "tags": tags,
+                "resource_tier": fmdata.get("resource_tier", ""),
+                "agent_type": fmdata.get("agent_type", ""),
+                "temperature": fmdata.get("temperature"),
+                "timeout": fmdata.get("timeout"),
+                "network_access": capabilities.get("network_access"),
+                "skills": skills_list,
+                "dependencies": dependencies,
+                "knowledge": {
+                    "domain_expertise": knowledge.get("domain_expertise", []),
+                    "constraints": knowledge.get("constraints", []),
+                    "best_practices": knowledge.get("best_practices", []),
+                },
+                "handoff_agents": interactions.get("handoff_agents", []),
+                "author": fmdata.get("author", ""),
+                "schema_version": fmdata.get("schema_version", ""),
+            }
+
+        data = await asyncio.to_thread(_get_detail)
+
+        if data is None:
+            return web.json_response(
+                {
+                    "success": False,
+                    "error": f"Agent '{agent_name}' not found",
+                    "code": "NOT_FOUND",
+                },
+                status=404,
+            )
+
+        return web.json_response({"success": True, "data": data})
+    except Exception as e:
+        logger.error(
+            f"Error fetching agent detail for {request.match_info.get('name', '?')}: {e}"
+        )
+        return web.json_response(
+            {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
+            status=500,
+        )
+
+
+async def handle_skill_detail(request: web.Request) -> web.Response:
+    """GET /api/config/skills/{name}/detail - Enriched skill metadata for detail panel.
+
+    Combines three data sources: SKILL.md frontmatter, manifest metadata, and
+    skill-to-agent links. Path traversal protection via validate_safe_name() (VP-1-SEC).
+    """
+    try:
+        skill_name = request.match_info["name"]
+
+        # MANDATORY: Path traversal protection (VP-1-SEC)
+        valid, _err_msg = validate_safe_name(skill_name, "skill")
+        if not valid:
+            return web.json_response(
+                {
+                    "success": False,
+                    "error": f"Invalid skill name: '{skill_name}'",
+                    "code": "INVALID_NAME",
+                },
+                status=400,
+            )
+
+        def _get_skill_detail() -> Dict[str, Any]:
+            # Look for the skill in the deployed skills directory
+            project_skills_dir = Path.cwd() / ".claude" / "skills"
+            skill_dir = project_skills_dir / skill_name
+            skill_md = skill_dir / "SKILL.md"
+
+            result: Dict[str, Any] = {"name": skill_name}
+
+            # Parse SKILL.md frontmatter if deployed
+            if skill_md.exists():
+                try:
+                    content = skill_md.read_text(encoding="utf-8")
+                    match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+                    if match:
+                        fm = yaml.safe_load(match.group(1)) or {}
+                        result["when_to_use"] = fm.get("when_to_use", "")
+                        result["languages"] = fm.get("languages", "")
+                        pd = fm.get("progressive_disclosure", {})
+                        if isinstance(pd, dict):
+                            entry = pd.get("entry_point", {})
+                            if isinstance(entry, dict):
+                                result["summary"] = entry.get("summary", "")
+                                result["quick_start"] = entry.get("quick_start", "")
+                            refs = pd.get("references", [])
+                            if isinstance(refs, list):
+                                result["references"] = [
+                                    {
+                                        "path": r.get("path", ""),
+                                        "purpose": r.get("purpose", ""),
+                                    }
+                                    for r in refs
+                                    if isinstance(r, dict)
+                                ]
+                        # Frontmatter description/name override
+                        result["description"] = fm.get(
+                            "description", result.get("description", "")
+                        )
+                        result["frontmatter_name"] = fm.get("name", "")
+                        result["frontmatter_tags"] = fm.get("tags", [])
+                except Exception as e:
+                    logger.warning(f"Failed to parse SKILL.md for {skill_name}: {e}")
+
+            # Cross-reference with manifest data for baseline fields
+            try:
+                skills_svc = _get_skills_deployer()
+                manifest_lookup = _build_manifest_lookup(skills_svc)
+                manifest_entry = _find_manifest_entry(skill_name, manifest_lookup)
+
+                if manifest_entry:
+                    result["version"] = manifest_entry.get("version", "")
+                    result["toolchain"] = manifest_entry.get("toolchain")
+                    result["framework"] = manifest_entry.get("framework")
+                    result["tags"] = manifest_entry.get("tags", [])
+                    result["full_tokens"] = manifest_entry.get("full_tokens", 0)
+                    result["entry_point_tokens"] = manifest_entry.get(
+                        "entry_point_tokens", 0
+                    )
+                    result["requires"] = manifest_entry.get("requires", [])
+                    result["author"] = manifest_entry.get("author", "")
+                    result["updated"] = manifest_entry.get("updated", "")
+                    result["source_path"] = manifest_entry.get("source_path", "")
+                    if not result.get("description"):
+                        result["description"] = manifest_entry.get("description", "")
+            except Exception as e:
+                logger.warning(f"Could not load manifest for skill detail: {e}")
+
+            # Get agent usage from skill-links
+            try:
+                mapper = _get_skill_to_agent_mapper()
+                links = mapper.get_all_links()
+                by_skill = links.get("by_skill", {})
+                # Try exact match, then suffix match
+                skill_agents = by_skill.get(skill_name, {})
+                if not skill_agents:
+                    for s_name, s_data in by_skill.items():
+                        if skill_name.endswith(f"-{s_name}") or s_name.endswith(
+                            f"-{skill_name}"
+                        ):
+                            skill_agents = s_data
+                            break
+                result["used_by_agents"] = (
+                    skill_agents.get("agents", [])
+                    if isinstance(skill_agents, dict)
+                    else []
+                )
+                result["agent_count"] = len(result["used_by_agents"])
+            except Exception as e:
+                logger.warning(f"Could not load skill-links for {skill_name}: {e}")
+                result["used_by_agents"] = []
+                result["agent_count"] = 0
+
+            return result
+
+        data = await asyncio.to_thread(_get_skill_detail)
+        return web.json_response({"success": True, "data": data})
+    except Exception as e:
+        logger.error(
+            f"Error fetching skill detail for {request.match_info.get('name', '?')}: {e}"
+        )
         return web.json_response(
             {"success": False, "error": str(e), "code": "SERVICE_ERROR"},
             status=500,
