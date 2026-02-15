@@ -24,8 +24,7 @@ from claude_mpm.services.agents.deployment.multi_source_deployment_service impor
     _normalize_agent_name,
 )
 from claude_mpm.services.agents.deployment_utils import (
-    ensure_agent_id_in_frontmatter,
-    get_underscore_variant_filename,
+    deploy_agent_file,
     normalize_deployment_filename,
 )
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
@@ -1118,70 +1117,31 @@ class GitSourceSyncService:
                     results["failed"].append(agent_path)
                     continue
 
-                # Phase 2 Fix (Issue #299): Normalize filename to dash-based convention
-                # Priority: source filename (cache convention) > agent_id (YAML)
-                source_filename = Path(agent_path).name
-                deploy_filename = normalize_deployment_filename(source_filename)
-                deploy_file = deployment_dir / deploy_filename
-
-                # Phase 2 Fix: Clean up underscore variant if it exists
-                # This handles legacy files like "qa_engineer.md" when deploying "qa-engineer.md"
-                underscore_variant = get_underscore_variant_filename(deploy_filename)
-                if underscore_variant:
-                    underscore_path = deployment_dir / underscore_variant
-                    if underscore_path.exists() and underscore_path != deploy_file:
-                        logger.info(
-                            f"Removing underscore variant: {underscore_variant} "
-                            f"(replaced by {deploy_filename})"
-                        )
-                        underscore_path.unlink()
-
-                # Check if update needed (compare content, not just mtime)
-                # DESIGN: Use content hash comparison for reliable change detection
-                # Mtime comparison can fail when cache downloads have older timestamps
-                should_deploy = force
-                was_existing = deploy_file.exists()
-
-                # Read cache content for comparison and potential modification
-                cache_content = cache_file.read_text(encoding="utf-8")
-
-                if not force and was_existing:
-                    # Compare file contents using hash
-                    deploy_content = deploy_file.read_text(encoding="utf-8")
-                    should_deploy = cache_content != deploy_content
-
-                if not should_deploy and was_existing:
-                    results["skipped"].append(deploy_filename)
-                    logger.debug(f"Skipped (up-to-date): {deploy_filename}")
-                    continue
-
-                # Phase 2 Fix: Ensure agent_id in frontmatter during deployment
-                # This ensures deployed files have proper agent_id for discovery
-                modified_content = ensure_agent_id_in_frontmatter(
-                    cache_content, deploy_filename
+                # Phase 3 Fix (Issue #299): Use unified deploy_agent_file() function
+                # This ensures identical behavior between GitSourceSyncService
+                # and SingleTierDeploymentService
+                result = deploy_agent_file(
+                    source_file=cache_file,
+                    deployment_dir=deployment_dir,
+                    cleanup_legacy=True,
+                    ensure_frontmatter=True,
+                    force=force,
                 )
 
-                # Write content to deployment location
-                deploy_file.write_text(modified_content, encoding="utf-8")
+                # Get normalized filename for tracking
+                deploy_filename = normalize_deployment_filename(Path(agent_path).name)
 
-                # Track result
-                if deploy_file.exists():
-                    if was_existing:
-                        results["updated"].append(deploy_filename)
-                        logger.info(f"Updated: {deploy_filename}")
-                    else:
+                if result.success:
+                    if result.action == "deployed":
                         results["deployed"].append(deploy_filename)
-                        logger.info(f"Deployed: {deploy_filename}")
+                    elif result.action == "updated":
+                        results["updated"].append(deploy_filename)
+                    elif result.action == "skipped":
+                        results["skipped"].append(deploy_filename)
                 else:
                     results["failed"].append(deploy_filename)
-                    logger.error(f"Failed to deploy: {deploy_filename}")
+                    logger.error(f"Failed to deploy: {deploy_filename}: {result.error}")
 
-            except PermissionError as e:
-                logger.error(f"Permission denied deploying {agent_path}: {e}")
-                results["failed"].append(Path(agent_path).name)
-            except OSError as e:
-                logger.error(f"IO error deploying {agent_path}: {e}")
-                results["failed"].append(Path(agent_path).name)
             except Exception as e:
                 logger.error(f"Unexpected error deploying {agent_path}: {e}")
                 results["failed"].append(Path(agent_path).name)

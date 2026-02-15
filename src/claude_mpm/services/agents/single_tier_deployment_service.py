@@ -25,7 +25,6 @@ Trade-offs:
 """
 
 import logging
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -36,8 +35,7 @@ from claude_mpm.services.agents.deployment.remote_agent_discovery_service import
     RemoteAgentDiscoveryService,
 )
 from claude_mpm.services.agents.deployment_utils import (
-    get_underscore_variant_filename,
-    normalize_deployment_filename,
+    deploy_agent_file,
 )
 from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
@@ -657,14 +655,12 @@ class SingleTierDeploymentService:
     def _deploy_agent_file(self, agent: Dict[str, Any]) -> bool:
         """Deploy a single agent file to deployment directory.
 
-        Copies the agent Markdown file from cache to .claude/agents/
-        Uses normalized dash-based filenames to ensure consistency.
+        Uses the unified deploy_agent_file() function from deployment_utils
+        to ensure consistent behavior across all deployment paths.
 
-        Naming Strategy (Issue #299 Phase 2):
-        1. Use normalize_deployment_filename() to standardize on dash-based names
-        2. Source filename takes precedence (matches cache convention)
-        3. agent_id from YAML frontmatter used as fallback, converting underscores
-        4. Cleans up any underscore variants to prevent duplicates
+        Phase 3 Fix (Issue #299): Delegates to shared deployment function.
+        This ensures identical behavior between SingleTierDeploymentService
+        and GitSourceSyncService.
 
         Args:
             agent: Agent dictionary with source_file path
@@ -674,41 +670,30 @@ class SingleTierDeploymentService:
 
         Error Handling:
         - Returns False if source file doesn't exist
-        - Returns False if copy operation fails
+        - Returns False if deployment fails
         - Logs all errors for debugging
         """
         try:
             # Get source file path
             source_file = Path(agent.get("source_file", ""))
-            if not source_file.exists():
-                logger.error(f"Source file does not exist: {source_file}")
-                return False
 
-            # Phase 2 Fix: Normalize filename to dash-based convention
-            # Priority: source filename (cache convention) > agent_id (YAML)
-            agent_id = agent.get("agent_id")
-            normalized_filename = normalize_deployment_filename(
-                source_file.name, agent_id
+            # Phase 3: Use unified deploy_agent_file() function
+            result = deploy_agent_file(
+                source_file=source_file,
+                deployment_dir=self.deployment_dir,
+                cleanup_legacy=True,
+                ensure_frontmatter=True,
+                force=False,
             )
-            target_file = self.deployment_dir / normalized_filename
 
-            # Phase 2 Fix: Clean up underscore variant if it exists
-            # This handles legacy files like "qa_engineer.md" when deploying "qa-engineer.md"
-            underscore_variant = get_underscore_variant_filename(normalized_filename)
-            if underscore_variant:
-                underscore_path = self.deployment_dir / underscore_variant
-                if underscore_path.exists() and underscore_path != target_file:
-                    logger.info(
-                        f"Removing underscore variant: {underscore_variant} "
-                        f"(replaced by {normalized_filename})"
-                    )
-                    underscore_path.unlink()
-
-            # Copy file
-            shutil.copy2(source_file, target_file)
-
-            logger.debug(f"Deployed {source_file.name} to {target_file}")
-            return True
+            if result.success:
+                logger.debug(
+                    f"Deployed {source_file.name} to {result.deployed_path} "
+                    f"(action: {result.action})"
+                )
+                return True
+            logger.error(f"Failed to deploy agent file: {result.error}")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to deploy agent file: {e}")
