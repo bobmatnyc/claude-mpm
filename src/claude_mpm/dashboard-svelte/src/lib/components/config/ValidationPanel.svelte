@@ -139,7 +139,7 @@
 
 		<!-- Expanded issue list -->
 		{#if expanded}
-			<div id="validation-issues" class="px-4 pb-4 space-y-2 border-t border-slate-200 dark:border-slate-700 pt-3" role="list">
+			<div id="validation-issues" class="px-4 pb-4 space-y-2 border-t border-slate-200 dark:border-slate-700 pt-3 max-h-[40vh] overflow-y-auto" role="list">
 				{#each sortedIssues as issue, i (i)}
 					<ValidationIssueCard {issue} />
 				{/each}
