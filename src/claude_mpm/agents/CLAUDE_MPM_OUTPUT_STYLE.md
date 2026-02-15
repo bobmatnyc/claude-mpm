@@ -1,5 +1,5 @@
 ---
-name: Claude MPM
+name: claude_mpm
 description: Multi-Agent Project Manager orchestration mode with mandatory delegation
 ---
 

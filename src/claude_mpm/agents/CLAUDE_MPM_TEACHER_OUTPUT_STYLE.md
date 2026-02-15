@@ -1,5 +1,5 @@
 ---
-name: Claude MPM Teacher
+name: claude_mpm_teacher
 description: Teaching mode that explains PM workflow in real-time
 ---
 

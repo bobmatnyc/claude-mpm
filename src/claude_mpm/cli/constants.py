@@ -37,6 +37,9 @@ class SetupService(str, Enum):
     MCP_TICKETER = "mcp-ticketer"
     NOTION = "notion"
     CONFLUENCE = "confluence"
+    BRAVE_SEARCH = "brave-search"
+    TAVILY = "tavily"
+    FIRECRAWL = "firecrawl"
 
     def __str__(self) -> str:
         return self.value
