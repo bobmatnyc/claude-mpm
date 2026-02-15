@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.21] - 2026-02-14
+
+### Fixed
+- fix(agents): agent naming inconsistencies (#299)
+
 ## [5.8.20] - 2026-02-15
 
 ### Added
