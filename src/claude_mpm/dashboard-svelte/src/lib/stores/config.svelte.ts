@@ -301,6 +301,8 @@ export interface SkillDetailData {
 	references?: { path: string; purpose: string }[];
 	used_by_agents?: string[];
 	agent_count?: number;
+	content?: string;
+	content_size?: number;
 }
 
 // --- Detail caches with LRU eviction (max 50 entries each) ---

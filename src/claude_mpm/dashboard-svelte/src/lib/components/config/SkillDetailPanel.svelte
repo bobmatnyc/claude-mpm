@@ -3,6 +3,7 @@
 	import Badge from '$lib/components/Badge.svelte';
 	import CollapsibleSection from '$lib/components/shared/CollapsibleSection.svelte';
 	import MetadataGrid from '$lib/components/shared/MetadataGrid.svelte';
+	import MarkdownViewer from '$lib/components/MarkdownViewer.svelte';
 
 	interface Props {
 		skill: DeployedSkill | AvailableSkill;
@@ -293,6 +294,23 @@
 							</div>
 						{/each}
 					</div>
+				</CollapsibleSection>
+			{/if}
+
+			<!-- Full Skill Content -->
+			{#if detailData.content}
+				<CollapsibleSection
+					title="Skill Content"
+					defaultExpanded={true}
+				>
+					<div class="max-h-[600px] overflow-y-auto rounded border border-slate-200 dark:border-slate-700 p-4">
+						<MarkdownViewer content={detailData.content} />
+					</div>
+					{#if detailData.content_size && detailData.content_size > 20000}
+						<p class="mt-1 text-xs text-slate-400 dark:text-slate-500 italic">
+							Large skill ({Math.round(detailData.content_size / 1024)} KB) - scroll to see full content
+						</p>
+					{/if}
 				</CollapsibleSection>
 			{/if}
 		</div>

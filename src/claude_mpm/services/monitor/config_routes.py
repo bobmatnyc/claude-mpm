@@ -6,6 +6,7 @@ All endpoints are GET-only. No mutation operations.
 """
 
 import asyncio
+import json as json_module
 import logging
 import re
 from pathlib import Path
@@ -125,26 +126,70 @@ def register_config_routes(app: web.Application, server_instance=None):
 # --- Shared Helpers ---
 
 
+def _parse_manifest_skills(available_skills) -> dict:
+    """Parse manifest skills from either flat list or nested dict structure.
+
+    Handles three levels of nesting found in the manifest:
+    - Flat list: [{"name": "...", ...}, ...]
+    - Category dict: {"universal": [...], "toolchains": {...}}
+    - Subcategory dict: {"toolchains": {"python": [...], "ai": [...]}}
+
+    Returns a name-to-skill-entry lookup dict.
+    """
+    lookup: dict = {}
+    if isinstance(available_skills, list):
+        for skill in available_skills:
+            if isinstance(skill, dict):
+                lookup[skill.get("name", "")] = skill
+    elif isinstance(available_skills, dict):
+        for _category, cat_skills in available_skills.items():
+            if isinstance(cat_skills, list):
+                for skill in cat_skills:
+                    if isinstance(skill, dict):
+                        lookup[skill.get("name", "")] = skill
+            elif isinstance(cat_skills, dict):
+                # Handle nested subcategories (e.g., toolchains.python.*)
+                for _subcat, sub_skills in cat_skills.items():
+                    if isinstance(sub_skills, list):
+                        for skill in sub_skills:
+                            if isinstance(skill, dict):
+                                lookup[skill.get("name", "")] = skill
+    return lookup
+
+
 def _build_manifest_lookup(skills_svc) -> dict:
     """Build a name-to-manifest-entry lookup dict from available skills.
 
-    Handles both flat list and nested dict manifest structures.
+    Reads local cached manifest first (no network), falls back to
+    list_available_skills() which requires git pull.
     Returns empty dict on any error (graceful degradation).
     """
     manifest_lookup: dict = {}
+
+    # --- Primary: read local cached manifest from disk (no network) ---
+    local_manifest_paths = [
+        Path.home() / ".claude" / "skills" / "claude-mpm" / "manifest.json",
+        Path.home() / ".claude-mpm" / "cache" / "skills" / "system" / "manifest.json",
+    ]
+    for manifest_path in local_manifest_paths:
+        try:
+            if manifest_path.exists():
+                raw = json_module.loads(manifest_path.read_text(encoding="utf-8"))
+                available_skills = raw.get("skills", {})
+                manifest_lookup = _parse_manifest_skills(available_skills)
+                if manifest_lookup:
+                    logger.debug(
+                        f"Loaded manifest from {manifest_path} ({len(manifest_lookup)} skills)"
+                    )
+                    return manifest_lookup
+        except Exception as e:
+            logger.debug(f"Could not read local manifest {manifest_path}: {e}")
+
+    # --- Fallback: network-dependent list_available_skills() ---
     try:
         available = skills_svc.list_available_skills()
         available_skills = available.get("skills", [])
-        if isinstance(available_skills, list):
-            for skill in available_skills:
-                if isinstance(skill, dict):
-                    manifest_lookup[skill.get("name", "")] = skill
-        elif isinstance(available_skills, dict):
-            for _category, cat_skills in available_skills.items():
-                if isinstance(cat_skills, list):
-                    for skill in cat_skills:
-                        if isinstance(skill, dict):
-                            manifest_lookup[skill.get("name", "")] = skill
+        manifest_lookup = _parse_manifest_skills(available_skills)
     except Exception as e:
         logger.warning(f"Could not load manifest for skill enrichment: {e}")
     return manifest_lookup
@@ -808,6 +853,21 @@ async def handle_skill_detail(request: web.Request) -> web.Response:
                         result["frontmatter_tags"] = fm.get("tags", [])
                 except Exception as e:
                     logger.warning(f"Failed to parse SKILL.md for {skill_name}: {e}")
+
+                # Add raw markdown content (frontmatter stripped) for display
+                try:
+                    display_content = content
+                    fm_match = re.match(r"^---\n.*?\n---\n?", content, re.DOTALL)
+                    if fm_match:
+                        display_content = content[fm_match.end() :]
+                    display_content = display_content.strip()
+                    if display_content:
+                        result["content"] = display_content
+                        result["content_size"] = len(display_content)
+                except Exception as e:
+                    logger.debug(
+                        f"Could not extract skill content for {skill_name}: {e}"
+                    )
 
             # Cross-reference with manifest data for baseline fields
             try:
