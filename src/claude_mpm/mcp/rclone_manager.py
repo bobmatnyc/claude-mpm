@@ -10,7 +10,7 @@ between the MCP server's authentication and rclone's file operations.
 Example:
     >>> from claude_mpm.auth import TokenStorage
     >>> storage = TokenStorage()
-    >>> manager = RcloneManager(storage, "google-workspace-mcp")
+    >>> manager = RcloneManager(storage, "gworkspace-mcp")
     >>> items = manager.list_json("Documents")
     >>> manager.cleanup()
 """
@@ -203,7 +203,7 @@ class RcloneManager:
         if not stored:
             raise RuntimeError(
                 f"No OAuth tokens available for service '{self.service_name}'. "
-                "Run 'google-workspace-mcp --setup' first."
+                "Run 'gworkspace-mcp setup' first."
             )
 
         token = stored.token

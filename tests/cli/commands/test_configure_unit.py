@@ -213,7 +213,8 @@ class TestSimpleAgentManager:
         # Mock Path to return our templates dir
         agent_manager.templates_dir = templates_dir
 
-        agents = agent_manager.discover_agents()
+        # Call with include_remote=False to only discover local templates
+        agents = agent_manager.discover_agents(include_remote=False)
 
         assert len(agents) == 2
         agent_names = [a.name for a in agents]
@@ -227,7 +228,8 @@ class TestSimpleAgentManager:
         templates_dir.mkdir()
         agent_manager.templates_dir = templates_dir
 
-        agents = agent_manager.discover_agents()
+        # Call with include_remote=False to only discover local templates
+        agents = agent_manager.discover_agents(include_remote=False)
 
         # Should return default agent
         assert len(agents) == 1

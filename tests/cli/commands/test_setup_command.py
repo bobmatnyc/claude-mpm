@@ -53,7 +53,9 @@ class TestSetupKuzuMemoryArchival:
         setup_cmd = SetupCommand()
 
         # Create mock args
-        args = Mock(no_start=True)  # Don't launch after setup
+        args = Mock(
+            no_launch=True, force=False, upgrade=False
+        )  # Don't launch after setup
 
         # Run setup
         result = setup_cmd._setup_kuzu_memory(args)
@@ -110,7 +112,7 @@ class TestSetupKuzuMemoryArchival:
 
         # Run setup
         setup_cmd = SetupCommand()
-        args = Mock(no_start=True)
+        args = Mock(no_launch=True, force=False, upgrade=False)
         result = setup_cmd._setup_kuzu_memory(args)
 
         assert result.success
@@ -148,7 +150,7 @@ class TestSetupKuzuMemoryArchival:
 
         # Run setup
         setup_cmd = SetupCommand()
-        args = Mock(no_start=True)
+        args = Mock(no_launch=True, force=False, upgrade=False)
 
         # Setup should still succeed even if archival has issues
         result = setup_cmd._setup_kuzu_memory(args)
@@ -176,7 +178,7 @@ class TestSetupKuzuMemoryArchival:
 
         # Run setup
         setup_cmd = SetupCommand()
-        args = Mock(no_start=True)
+        args = Mock(no_launch=True, force=False, upgrade=False)
         result = setup_cmd._setup_kuzu_memory(args)
 
         # Setup should complete (kuzu-memory configured)
@@ -208,7 +210,7 @@ class TestSetupKuzuMemoryArchival:
 
         # First setup run
         setup_cmd = SetupCommand()
-        args = Mock(no_start=True)
+        args = Mock(no_launch=True, force=False, upgrade=False)
         result1 = setup_cmd._setup_kuzu_memory(args)
         assert result1.success
 

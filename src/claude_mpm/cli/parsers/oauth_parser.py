@@ -42,10 +42,10 @@ Available commands:
 
 Examples:
   claude-mpm oauth list
-  claude-mpm oauth setup google-workspace-mcp
-  claude-mpm oauth status google-workspace-mcp
-  claude-mpm oauth revoke google-workspace-mcp
-  claude-mpm oauth refresh google-workspace-mcp
+  claude-mpm oauth setup gworkspace-mcp
+  claude-mpm oauth status gworkspace-mcp
+  claude-mpm oauth revoke gworkspace-mcp
+  claude-mpm oauth refresh gworkspace-mcp
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -100,7 +100,7 @@ Get credentials from: https://console.cloud.google.com/apis/credentials
     add_common_arguments(setup_parser)
     setup_parser.add_argument(
         "service_name",
-        help="Name of the MCP service to authenticate (e.g., google-workspace-mcp)",
+        help="Name of the MCP service to authenticate (e.g., gworkspace-mcp)",
     )
     setup_parser.add_argument(
         "--force",

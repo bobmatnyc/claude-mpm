@@ -118,18 +118,20 @@ class TestOneshotSession:
         result = oneshot_session.deploy_agents()
 
         assert result is True
-        oneshot_session.runner.setup_agents.assert_called_once()
+        # NOTE: System agents are deployed via reconciliation during startup.
+        # setup_agents() is no longer called during deploy_agents().
+        # Only project-specific agents are deployed here.
+        oneshot_session.runner.setup_agents.assert_not_called()
         oneshot_session.runner.deploy_project_agents_to_claude.assert_called_once()
 
-    def test_deploy_agents_setup_failure(self, oneshot_session, capsys):
-        """Test agent deployment when setup_agents fails."""
-        oneshot_session.runner.setup_agents.return_value = False
-
+    def test_deploy_agents_always_returns_true(self, oneshot_session):
+        """Test that deploy_agents always returns True (project agents only)."""
+        # Even if deploy_project_agents_to_claude has issues, deploy_agents returns True
+        # because system agent deployment is handled by reconciliation
         result = oneshot_session.deploy_agents()
 
-        assert result is True  # Still returns True, just prints warning
-        captured = capsys.readouterr()
-        assert "Continuing without native agents..." in captured.out
+        assert result is True
+        oneshot_session.runner.deploy_project_agents_to_claude.assert_called_once()
 
     def test_setup_infrastructure_basic(self, oneshot_session):
         """Test basic infrastructure setup."""
@@ -906,7 +908,8 @@ class TestOneshotSessionIntegration:
             session.cleanup_session()
 
             # Verify mocks were called appropriately
-            mock_runner.setup_agents.assert_called_once()
+            # NOTE: setup_agents() is no longer called - reconciliation handles system agents
+            mock_runner.setup_agents.assert_not_called()
             mock_runner.deploy_project_agents_to_claude.assert_called_once()
             mock_runner.project_logger.log_system.assert_called()
 

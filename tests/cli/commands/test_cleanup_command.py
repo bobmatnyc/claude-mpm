@@ -1,23 +1,85 @@
 """
 Comprehensive tests for the CleanupCommand class.
 
-WHY: The cleanup command manages system cleanup operations including memory,
-cache, and temporary files. This is important for system maintenance.
+WHY: The cleanup command manages Claude conversation history cleanup to reduce
+memory usage. This is important for preventing memory issues with large .claude.json files.
 
 DESIGN DECISIONS:
-- Test all cleanup types (memory, cache, temp, all)
-- Mock file operations to avoid actual deletion
+- Test validate_args method with valid and invalid inputs
+- Test run method with mocked file operations
 - Test dry-run mode for safety
-- Verify confirmation prompts
-- Test error handling for permission issues
+- Verify proper CommandResult handling
+- Test error handling scenarios
 """
 
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
-from claude_mpm.cli.commands.cleanup import CleanupCommand
+import pytest
+
+from claude_mpm.cli.commands.cleanup import (
+    CleanupCommand,
+    analyze_claude_json,
+    format_size,
+    parse_size,
+)
 from claude_mpm.cli.shared.base_command import CommandResult
+
+
+class TestParseSizeFunction:
+    """Test the parse_size helper function."""
+
+    def test_parse_bytes(self):
+        """Test parsing byte values."""
+        assert parse_size("100B") == 100
+        assert parse_size("100b") == 100
+
+    def test_parse_kilobytes(self):
+        """Test parsing kilobyte values."""
+        assert parse_size("1KB") == 1024
+        assert parse_size("500KB") == 500 * 1024
+
+    def test_parse_megabytes(self):
+        """Test parsing megabyte values."""
+        assert parse_size("1MB") == 1024 * 1024
+        assert parse_size("10MB") == 10 * 1024 * 1024
+
+    def test_parse_gigabytes(self):
+        """Test parsing gigabyte values."""
+        assert parse_size("1GB") == 1024 * 1024 * 1024
+
+    def test_parse_raw_number(self):
+        """Test parsing raw number as bytes."""
+        assert parse_size("1024") == 1024
+
+    def test_parse_invalid_format(self):
+        """Test that invalid format raises ValueError."""
+        with pytest.raises(ValueError):
+            parse_size("invalid")
+
+
+class TestFormatSizeFunction:
+    """Test the format_size helper function."""
+
+    def test_format_bytes(self):
+        """Test formatting byte values."""
+        assert format_size(100) == "100.0B"
+
+    def test_format_kilobytes(self):
+        """Test formatting kilobyte values."""
+        result = format_size(1024)
+        assert "KB" in result
+
+    def test_format_megabytes(self):
+        """Test formatting megabyte values."""
+        result = format_size(1024 * 1024)
+        assert "MB" in result
+
+    def test_format_gigabytes(self):
+        """Test formatting gigabyte values."""
+        result = format_size(1024 * 1024 * 1024)
+        assert "GB" in result
 
 
 class TestCleanupCommand:
@@ -27,149 +89,56 @@ class TestCleanupCommand:
         """Set up test fixtures."""
         self.command = CleanupCommand()
 
-    def test_validate_args_default():
+    def test_validate_args_default(self):
         """Test validation with default args."""
-        args = Namespace(cleanup_type="all", dry_run=False, force=False)
+        args = Namespace(max_size="500KB", days=30)
         error = self.command.validate_args(args)
         assert error is None
 
-    def test_validate_args_valid_types():
-        """Test validation with valid cleanup types."""
-        valid_types = ["memory", "cache", "temp", "logs", "all"]
+    def test_validate_args_valid_max_size(self):
+        """Test validation with various valid max_size values."""
+        valid_sizes = ["100KB", "1MB", "500KB", "2GB"]
 
-        for cleanup_type in valid_types:
-            args = Namespace(cleanup_type=cleanup_type, dry_run=False, force=False)
+        for size in valid_sizes:
+            args = Namespace(max_size=size, days=30)
             error = self.command.validate_args(args)
-            assert error is None, f"Cleanup type {cleanup_type} should be valid"
+            assert error is None, f"Size {size} should be valid"
 
-    def test_validate_args_invalid_type():
-        """Test validation with invalid cleanup type."""
-        Namespace(cleanup_type="invalid", dry_run=False, force=False)
-        # Depending on implementation, this might be caught in validation
-        # or during execution
+    def test_validate_args_invalid_max_size(self):
+        """Test validation with invalid max_size."""
+        args = Namespace(max_size="invalid_size", days=30)
+        error = self.command.validate_args(args)
+        assert error is not None
+        assert "Invalid size format" in error
 
-    @patch("claude_mpm.cli.commands.cleanup.Path")
-    @patch("claude_mpm.cli.commands.cleanup.shutil")
-    def test_run_memory_cleanup(self, mock_path_class):
-        """Test memory cleanup operation."""
-        mock_path = Mock()
-        mock_path.exists.return_value = True
-        mock_path.glob.return_value = [
-            Path("/mock/path/.claude.json"),
-            Path("/mock/path/.claude_cache.json"),
-        ]
-        mock_path_class.return_value = mock_path
+    def test_validate_args_negative_days(self):
+        """Test validation with negative days value."""
+        args = Namespace(max_size="500KB", days=-1)
+        error = self.command.validate_args(args)
+        assert error is not None
+        assert "positive" in error.lower()
 
-        args = Namespace(
-            cleanup_type="memory", dry_run=False, force=True, format="text"
-        )
+    def test_validate_args_missing_max_size_uses_default(self):
+        """Test validation when max_size is missing uses default."""
+        args = Namespace(days=30)
+        error = self.command.validate_args(args)
+        assert error is None
 
-        with patch.object(self.command, "_cleanup_memory") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Memory cleaned", data={"files_removed": 2, "space_freed": "10MB"}
-            )
+    def test_run_no_claude_json_file(self, tmp_path):
+        """Test run when .claude.json doesn't exist."""
+        # Use a temp directory as fake home
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
 
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_cleanup.assert_called_once_with(args)
-
-    @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_run_memory_cleanup_dry_run(self):
-        """Test memory cleanup in dry-run mode."""
-        mock_path = Mock()
-        mock_path.exists.return_value = True
-        mock_path.glob.return_value = [
-            Path("/mock/path/.claude.json"),
-            Path("/mock/path/.claude_cache.json"),
-        ]
-        self.return_value = mock_path
-
-        args = Namespace(
-            cleanup_type="memory",
-            dry_run=True,  # Dry run mode
-            force=False,
-            format="text",
-        )
-
-        with patch.object(self.command, "_cleanup_memory") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Memory cleanup (dry-run)",
-                data={"files_to_remove": 2, "space_to_free": "10MB"},
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            # In dry run, files should not actually be deleted
-
-    def test_run_cache_cleanup():
-        """Test cache cleanup operation."""
-        args = Namespace(cleanup_type="cache", dry_run=False, force=True, format="text")
-
-        with patch.object(self.command, "_cleanup_cache") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Cache cleaned", data={"cache_cleared": True, "items_removed": 50}
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_cleanup.assert_called_once_with(args)
-
-    def test_run_temp_cleanup():
-        """Test temporary files cleanup."""
-        args = Namespace(cleanup_type="temp", dry_run=False, force=True, format="text")
-
-        with patch.object(self.command, "_cleanup_temp") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Temp files cleaned", data={"files_removed": 10, "space_freed": "5MB"}
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_cleanup.assert_called_once_with(args)
-
-    def test_run_logs_cleanup():
-        """Test logs cleanup operation."""
-        args = Namespace(
-            cleanup_type="logs",
-            dry_run=False,
-            force=True,
-            format="text",
-            keep_days=7,  # Keep logs from last 7 days
-        )
-
-        with patch.object(self.command, "_cleanup_logs") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Logs cleaned", data={"files_removed": 20, "space_freed": "100MB"}
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_cleanup.assert_called_once_with(args)
-
-    def test_run_all_cleanup():
-        """Test cleaning all types."""
-        args = Namespace(cleanup_type="all", dry_run=False, force=True, format="json")
-
-        with patch.object(self.command, "_cleanup_all") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "All cleanup completed",
-                data={
-                    "memory": {"files_removed": 2, "space_freed": "10MB"},
-                    "cache": {"items_removed": 50},
-                    "temp": {"files_removed": 10, "space_freed": "5MB"},
-                    "logs": {"files_removed": 20, "space_freed": "100MB"},
-                    "total_space_freed": "115MB",
-                },
+        with patch("claude_mpm.cli.commands.cleanup.Path.home", return_value=fake_home):
+            # Use dry_run=True since there's no file to actually clean
+            args = Namespace(
+                max_size="500KB",
+                days=30,
+                archive=True,
+                force=True,
+                dry_run=True,
+                format="json",
             )
 
             result = self.command.run(args)
@@ -177,160 +146,160 @@ class TestCleanupCommand:
             assert isinstance(result, CommandResult)
             assert result.success is True
             assert result.data is not None
-            assert "total_space_freed" in result.data
+            assert result.data.get("file_exists") is False
 
-    def test_cleanup_with_confirmation():
-        """Test cleanup with user confirmation prompt."""
-        args = Namespace(
-            cleanup_type="memory",
-            dry_run=False,
-            force=False,  # Will prompt for confirmation
-            format="text",
-        )
+    def test_run_dry_run_mode(self, tmp_path):
+        """Test run in dry-run mode."""
+        # Create a fake .claude.json file
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        claude_json = fake_home / ".claude.json"
+        claude_json.write_text('{"test": "data"}')
 
-        with patch("builtins.input", return_value="y"):
-            with patch.object(self.command, "_cleanup_memory") as mock_cleanup:
-                mock_cleanup.return_value = CommandResult.success_result(
-                    "Memory cleaned"
-                )
-
-                result = self.command.run(args)
-
-                assert result.success is True
-
-    def test_cleanup_cancelled_by_user():
-        """Test cleanup cancelled by user."""
-        args = Namespace(
-            cleanup_type="memory", dry_run=False, force=False, format="text"
-        )
-
-        with patch("builtins.input", return_value="n"):
-            self.command.run(args)
-
-            # Depending on implementation, might return success with no action
-            # or a specific cancellation result
-
-    @patch("claude_mpm.cli.commands.cleanup.Path")
-    def test_cleanup_permission_error(self):
-        """Test handling permission errors during cleanup."""
-        mock_path = Mock()
-        mock_path.unlink.side_effect = PermissionError("Access denied")
-        self.return_value = mock_path
-
-        args = Namespace(
-            cleanup_type="memory", dry_run=False, force=True, format="text"
-        )
-
-        with patch.object(self.command, "_cleanup_memory") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.error_result(
-                "Permission denied", data={"error": "Access denied to some files"}
+        with patch("claude_mpm.cli.commands.cleanup.Path.home", return_value=fake_home):
+            args = Namespace(
+                max_size="500KB",
+                days=30,
+                archive=True,
+                force=True,
+                dry_run=True,
+                format="json",
             )
 
             result = self.command.run(args)
 
-            assert result.success is False
-            assert "Permission" in result.message or "denied" in result.message
-
-    def test_cleanup_with_pattern():
-        """Test cleanup with file pattern matching."""
-        args = Namespace(
-            cleanup_type="temp",
-            pattern="*.tmp",  # Only clean .tmp files
-            dry_run=False,
-            force=True,
-            format="text",
-        )
-
-        with patch.object(self.command, "_cleanup_temp") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Temp files cleaned", data={"pattern": "*.tmp", "files_removed": 5}
-            )
-
-            result = self.command.run(args)
-
+            assert isinstance(result, CommandResult)
             assert result.success is True
+            assert "dry run" in result.message.lower()
 
-    def test_cleanup_with_size_threshold():
-        """Test cleanup with size threshold."""
-        args = Namespace(
-            cleanup_type="logs",
-            min_size="10MB",  # Only clean files larger than 10MB
-            dry_run=False,
-            force=True,
-            format="text",
-        )
+    @patch("claude_mpm.cli.commands.cleanup.cleanup_memory")
+    def test_run_text_format(self, mock_cleanup, tmp_path):
+        """Test run with text format delegates to cleanup_memory."""
+        # Create a fake .claude.json file
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        claude_json = fake_home / ".claude.json"
+        claude_json.write_text('{"test": "data"}')
 
-        with patch.object(self.command, "_cleanup_logs") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Large log files cleaned", data={"min_size": "10MB", "files_removed": 3}
+        with patch("claude_mpm.cli.commands.cleanup.Path.home", return_value=fake_home):
+            args = Namespace(
+                max_size="500KB",
+                days=30,
+                archive=True,
+                force=True,
+                dry_run=False,
+                format="text",
             )
 
             result = self.command.run(args)
 
+            assert isinstance(result, CommandResult)
             assert result.success is True
+            mock_cleanup.assert_called_once_with(args)
 
-    def test_cleanup_statistics():
-        """Test cleanup statistics reporting."""
+    def test_run_with_exception(self):
+        """Test that exceptions are handled gracefully."""
         args = Namespace(
-            cleanup_type="all",
-            dry_run=False,
+            max_size="500KB",
+            days=30,
+            archive=True,
             force=True,
+            dry_run=False,
             format="json",
-            stats=True,  # Request detailed statistics
-        )
-
-        with patch.object(self.command, "_cleanup_all") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Cleanup completed",
-                data={
-                    "statistics": {
-                        "start_time": "2024-01-01 12:00:00",
-                        "end_time": "2024-01-01 12:00:05",
-                        "duration": "5 seconds",
-                        "total_files_scanned": 1000,
-                        "total_files_removed": 100,
-                        "total_space_freed": "500MB",
-                        "errors": 0,
-                    }
-                },
-            )
-
-            result = self.command.run(args)
-
-            assert result.success is True
-            assert "statistics" in result.data
-            assert result.data["statistics"]["total_files_removed"] == 100
-
-    def test_cleanup_with_exclusions():
-        """Test cleanup with exclusion patterns."""
-        args = Namespace(
-            cleanup_type="logs",
-            exclude=["*.important", "critical-*"],
-            dry_run=False,
-            force=True,
-            format="text",
-        )
-
-        with patch.object(self.command, "_cleanup_logs") as mock_cleanup:
-            mock_cleanup.return_value = CommandResult.success_result(
-                "Logs cleaned with exclusions",
-                data={"excluded_patterns": ["*.important", "critical-*"]},
-            )
-
-            result = self.command.run(args)
-
-            assert result.success is True
-
-    def test_run_with_exception():
-        """Test general exception handling in run method."""
-        args = Namespace(
-            cleanup_type="memory", dry_run=False, force=True, format="text"
         )
 
         with patch.object(
-            self.command, "_cleanup_memory", side_effect=Exception("Cleanup failed")
+            self.command,
+            "_analyze_cleanup_needs",
+            side_effect=Exception("Test error"),
         ):
             result = self.command.run(args)
 
-            # Should handle the exception gracefully
             assert isinstance(result, CommandResult)
+            assert result.success is False
+            assert "error" in result.message.lower()
+
+    def test_analyze_cleanup_needs_file_exists(self, tmp_path):
+        """Test _analyze_cleanup_needs when file exists."""
+        # Create a large fake .claude.json file (larger than 500KB)
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        claude_json = fake_home / ".claude.json"
+        # Create content larger than 500KB
+        large_content = '{"data": "' + "x" * (600 * 1024) + '"}'
+        claude_json.write_text(large_content)
+
+        with patch("claude_mpm.cli.commands.cleanup.Path.home", return_value=fake_home):
+            args = Namespace(
+                max_size="500KB", days=30, archive=True, force=False, dry_run=False
+            )
+
+            result = self.command._analyze_cleanup_needs(args)
+
+            assert result["file_exists"] is True
+            assert result["needs_cleanup"] is True  # File > 500KB
+
+    def test_analyze_cleanup_needs_file_not_exists(self, tmp_path):
+        """Test _analyze_cleanup_needs when file doesn't exist."""
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        # Don't create .claude.json
+
+        with patch("claude_mpm.cli.commands.cleanup.Path.home", return_value=fake_home):
+            args = Namespace(max_size="500KB", days=30)
+
+            result = self.command._analyze_cleanup_needs(args)
+
+            assert result["file_exists"] is False
+            assert result["needs_cleanup"] is False
+
+
+class TestAnalyzeClaudeJson:
+    """Test the analyze_claude_json helper function."""
+
+    def test_analyze_nonexistent_file(self, tmp_path):
+        """Test analyzing a file that doesn't exist."""
+        nonexistent = tmp_path / "nonexistent.json"
+        stats, issues = analyze_claude_json(nonexistent)
+
+        assert stats["file_size"] == 0
+        assert len(issues) > 0
+        assert "not found" in issues[0].lower()
+
+    def test_analyze_empty_json(self, tmp_path):
+        """Test analyzing an empty JSON file."""
+        json_file = tmp_path / ".claude.json"
+        json_file.write_text("{}")
+
+        stats, _issues = analyze_claude_json(json_file)
+
+        assert stats["file_size"] > 0
+        assert stats["line_count"] == 1
+        assert stats["conversation_count"] == 0
+
+    def test_analyze_valid_json(self, tmp_path):
+        """Test analyzing a valid JSON file with conversations."""
+        import json
+
+        json_file = tmp_path / ".claude.json"
+        data = {
+            "conversation1": {"messages": [{"role": "user", "content": "Hello"}]},
+            "conversation2": {"messages": [{"role": "user", "content": "Hi"}]},
+        }
+        json_file.write_text(json.dumps(data))
+
+        stats, issues = analyze_claude_json(json_file)
+
+        assert stats["file_size"] > 0
+        assert stats["conversation_count"] == 2
+        assert len(issues) == 0
+
+    def test_analyze_invalid_json(self, tmp_path):
+        """Test analyzing an invalid JSON file."""
+        json_file = tmp_path / ".claude.json"
+        json_file.write_text("{ invalid json }")
+
+        _stats, issues = analyze_claude_json(json_file)
+
+        assert len(issues) > 0
+        assert "json" in issues[0].lower()

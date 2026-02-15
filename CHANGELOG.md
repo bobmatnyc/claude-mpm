@@ -10,6 +10,131 @@
 
 ### Tests
 
+## [5.8.21] - 2026-02-14
+
+### Fixed
+- fix(agents): agent naming inconsistencies (#299)
+
+## [5.8.20] - 2026-02-15
+
+### Added
+- feat(setup): add setup commands for Brave Search MCP server
+- feat(setup): add setup commands for Tavily AI Search MCP server
+- feat(setup): add setup commands for Firecrawl web scraping MCP server
+- Automatic API key detection and configuration for search providers
+- User-friendly setup prompts with API key instructions
+
+## [5.8.19] - 2026-02-15
+
+### Added
+- feat(research): intelligent web search provider detection with automatic fallback hierarchy
+- Support for Brave Search, Tavily, and Firecrawl MCP providers in Research agent
+- Automatic provider selection with graceful degradation to WebSearch/WebFetch
+- Provider detection using ToolSearch for optimal research workflow
+
+### Changed
+- Updated Research agent template with comprehensive provider hierarchy and detection patterns
+- Enhanced web search reliability with multi-provider support
+- Improved research agent documentation with provider selection examples
+
+## [5.8.18] - 2026-02-14
+
+### Added
+- feat(setup): add .gworkspace-mcp/ to .gitignore on setup
+
+## [5.8.17] - 2026-02-14
+
+### Fixed
+- fix(setup): migrate old gworkspace-mcp key names in .mcp.json
+
+## [5.8.16] - 2026-02-14
+
+### Fixed
+- Comprehensive test fixes for CLI commands (502 passed, 8 skipped)
+
+## [5.8.15] - 2026-02-14
+
+### Changed
+- Renamed google-workspace-mcp binary to gworkspace-mcp for consistency
+- Updated token path from ~/.google-workspace-mcp/ to ~/.gworkspace-mcp/
+- Aligned with upstream gworkspace-mcp package v0.1.5
+
+### Fixed
+- Fixed bandit security warnings with nosec comments in mcp_setup_external.py
+
+## [5.8.14] - 2026-02-13
+
+### Fixed
+- Fixed multi-service setup failure handling (removed early return on first failure)
+- All services now processed regardless of individual failures
+- Comprehensive summary showing X/Y services succeeded
+- Smart auto-launch only when at least one service succeeds
+
+## [5.8.13] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.12] - 2026-02-13
+
+### Added
+- **PackageInstallerService**: Declarative package installation abstraction
+  - New centralized service for handling pipx/uv/pip installations
+  - InstallerType, InstallAction enums for clean API
+  - PackageSpec dataclass for declarative package definitions
+  - PACKAGE_SPECS mapping for all setup services
+  - Refactored kuzu-memory setup as proof of concept (190 -> 35 lines)
+
+## [5.8.11] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.10] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.9] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.8] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.7] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.6] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.5] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.4] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.3] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.2] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
 ## [5.8.1] - 2026-02-13
 
 ### Fixed

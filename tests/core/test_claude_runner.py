@@ -470,8 +470,10 @@ class TestClaudeRunnerAgentDeployment:
             runner.deployment_service = mock_deployment_service
             return runner
 
-    def test_setup_agents_success(self, runner):
-        """Test successful agent setup."""
+    def test_setup_agents_success(self, runner, tmp_path):
+        """Test successful agent setup when no agents exist yet."""
+        import os
+
         # Mock the deployment service to return expected format
         runner.deployment_service.deploy_agents.return_value = {
             "deployed": ["agent1", "agent2", "agent3"],  # List of deployed agents
@@ -479,17 +481,70 @@ class TestClaudeRunnerAgentDeployment:
             "skipped": [],
             "errors": [],
         }
+        # Mock set_claude_environment to return a valid dict
+        runner.deployment_service.set_claude_environment.return_value = {}
 
-        result = runner.setup_agents()
+        # Save original directory and change to tmp_path
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
 
+        try:
+            # No .claude/agents directory initially - setup_agents should proceed
+            # After deploy_agents is called, create the directory structure
+            # to simulate what deployment_service.deploy_agents would do
+
+            # Create a mock side effect that creates the agents directory
+            def deploy_and_create_files():
+                agents_dir = tmp_path / ".claude" / "agents"
+                agents_dir.mkdir(parents=True, exist_ok=True)
+                (agents_dir / "agent1.md").write_text("# Agent 1")
+                (agents_dir / "agent2.md").write_text("# Agent 2")
+                (agents_dir / "agent3.md").write_text("# Agent 3")
+                return {
+                    "deployed": ["agent1", "agent2", "agent3"],
+                    "updated": [],
+                    "skipped": [],
+                    "errors": [],
+                }
+
+            runner.deployment_service.deploy_agents.side_effect = (
+                deploy_and_create_files
+            )
+
+            result = runner.setup_agents()
+
+            assert result is True
+            runner.deployment_service.deploy_agents.assert_called_once()
+        finally:
+            # Restore original directory
+            os.chdir(original_cwd)
+
+    def test_setup_agents_skipped_when_agents_exist(self, runner):
+        """Test that setup_agents skips deployment when agents already exist (reconciliation)."""
+        # Mock Path.cwd() to return a directory with existing agents
+        with patch("claude_mpm.core.claude_runner.Path") as mock_path_class:
+            mock_agents_dir = Mock()
+            mock_agents_dir.exists.return_value = True
+            mock_agents_dir.glob.return_value = [Mock(), Mock()]  # 2 existing agents
+            mock_path_class.cwd.return_value.__truediv__.return_value.__truediv__.return_value = mock_agents_dir
+
+            result = runner.setup_agents()
+
+        # Should return True but skip deployment (agents exist from reconciliation)
         assert result is True
-        runner.deployment_service.deploy_agents.assert_called_once()
+        runner.deployment_service.deploy_agents.assert_not_called()
 
     def test_setup_agents_failure(self, runner):
-        """Test agent setup failure."""
+        """Test agent setup failure when deployment raises exception."""
         runner.deployment_service.deploy_agents.side_effect = Exception("Deploy failed")
 
-        result = runner.setup_agents()
+        # Mock Path.cwd() to return a directory without existing agents
+        with patch("claude_mpm.core.claude_runner.Path") as mock_path_class:
+            mock_agents_dir = Mock()
+            mock_agents_dir.exists.return_value = False
+            mock_path_class.cwd.return_value.__truediv__.return_value.__truediv__.return_value = mock_agents_dir
+
+            result = runner.setup_agents()
 
         assert result is False
 

@@ -12,9 +12,31 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..constants import MCPBinary, SetupService
+
 if TYPE_CHECKING:
     from argparse import Namespace
     from logging import Logger
+
+
+def _normalize_mcp_key(service_name: str) -> str:
+    """Normalize service name to canonical MCP key.
+
+    This ensures we always use the canonical name (gworkspace-mcp)
+    as the key in .mcp.json configuration files.
+
+    Args:
+        service_name: The service name (possibly from binary command)
+
+    Returns:
+        The canonical MCP key name for configuration files
+    """
+    if service_name in (
+        str(MCPBinary.GOOGLE_WORKSPACE),
+        str(SetupService.GWORKSPACE_MCP),
+    ):
+        return str(SetupService.GWORKSPACE_MCP)
+    return service_name
 
 
 class MCPServiceCommands:
@@ -110,14 +132,16 @@ class MCPServiceCommands:
         if "mcpServers" not in existing_config:
             existing_config["mcpServers"] = {}
 
-        existing_config["mcpServers"][service_name] = config
+        # Use canonical key name for .mcp.json
+        mcp_key = _normalize_mcp_key(service_name)
+        existing_config["mcpServers"][mcp_key] = config
 
         # Save configuration
         if self._save_config(config_path, existing_config):
             location = (
                 "global (~/.claude.json)" if args.use_global else "project (.mcp.json)"
             )
-            print(f"Enabled '{service_name}' in {location}")
+            print(f"Enabled '{mcp_key}' in {location}")
             print(f"Description: {service.description}")
 
             if service.optional_env:

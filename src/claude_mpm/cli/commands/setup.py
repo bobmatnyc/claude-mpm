@@ -21,40 +21,37 @@ from typing import Any
 
 from rich.console import Console
 
+from ..constants import GLOBAL_SETUP_FLAGS, VALUE_FLAGS, SetupFlag, SetupService
 from ..shared import BaseCommand, CommandResult
 
 console = Console()
 
 
-def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
+def parse_service_args(service_args: list[str]) -> dict[str, Any]:
     """
     Parse service arguments into structured service configs.
 
     Args:
-        service_args: Raw argument list (e.g., ['slack', 'oauth', '--oauth-service', 'google-workspace-mcp'])
+        service_args: Raw argument list (e.g., ['slack', 'oauth', '--oauth-service', 'gworkspace-mcp'])
 
     Returns:
-        List of service configs with their options
-        Example: [
-            {'name': 'slack', 'options': {}},
-            {'name': 'oauth', 'options': {'oauth_service': 'google-workspace-mcp'}}
-        ]
+        Dict with 'services' list and 'global_options' dict
+        Example: {
+            'services': [
+                {'name': 'slack', 'options': {}},
+                {'name': 'oauth', 'options': {'oauth_service': 'gworkspace-mcp'}}
+            ],
+            'global_options': {'no_launch': True}
+        }
     """
     if not service_args:
-        return []
+        return {"services": [], "global_options": {}}
 
-    valid_services = {
-        "slack",
-        "google-workspace-mcp",
-        "gworkspace-mcp",  # Alias for google-workspace-mcp
-        "oauth",
-        "notion",
-        "confluence",
-        "kuzu-memory",
-        "mcp-vector-search",
-        "mcp-skillset",
-        "mcp-ticketer",
-    }
+    # Use enum values for valid services
+    valid_services = {str(s) for s in SetupService}
+
+    # Global flags from constants
+    global_flags = {str(f) for f in GLOBAL_SETUP_FLAGS}
 
     # Pre-process service_args to split comma-separated values
     expanded_args = []
@@ -71,6 +68,7 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
     services = []
     current_service = None
     current_options = {}
+    global_options = {}
 
     i = 0
     while i < len(service_args):
@@ -90,16 +88,28 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
 
         # Check if this is a flag
         if arg.startswith("--"):
+            flag_name = arg[2:].replace("-", "_")
+
+            # Check if this is a global flag
+            if flag_name in global_flags:
+                # Global flag - can be used with or without a service
+                global_options[flag_name] = True
+                # Also apply to current service if one exists
+                if current_service:
+                    current_options[flag_name] = True
+                i += 1
+                continue
+
+            # Non-global flag requires a current service
             if not current_service:
                 raise ValueError(
                     f"Flag {arg} found before any service name. "
                     "Flags must come after the service they apply to."
                 )
 
-            flag_name = arg[2:].replace("-", "_")
-
-            # Check if flag expects a value
-            if flag_name in {"oauth_service"}:
+            # Check if flag expects a value (using VALUE_FLAGS enum)
+            value_flag_names = {str(f) for f in VALUE_FLAGS}
+            if flag_name in value_flag_names:
                 # Flag expects a value
                 if i + 1 >= len(service_args):
                     raise ValueError(f"Flag {arg} requires a value")
@@ -111,16 +121,18 @@ def parse_service_args(service_args: list[str]) -> list[dict[str, Any]]:
                 i += 1
             continue
 
-        # Unknown argument
+        # Unknown argument - build error message from enums
+        service_names = ", ".join(str(s) for s in SetupService)
+        flag_names = ", ".join(f.cli_flag for f in SetupFlag)
         raise ValueError(
-            f"Unknown argument: {arg}. Expected a service name (slack, google-workspace-mcp, gworkspace-mcp, oauth, notion, confluence, kuzu-memory, mcp-vector-search, mcp-skillset, mcp-ticketer) or a flag (--oauth-service, --no-browser, --no-launch, --no-start, --force)"
+            f"Unknown argument: {arg}. Expected a service name ({service_names}) or a flag ({flag_names})"
         )
 
     # Save last service
     if current_service:
         services.append({"name": current_service, "options": current_options})
 
-    return services
+    return {"services": services, "global_options": global_options}
 
 
 class SetupCommand(BaseCommand):
@@ -134,16 +146,18 @@ class SetupCommand(BaseCommand):
         # Parse service_args if present
         if hasattr(args, "service_args") and args.service_args:
             try:
-                services = parse_service_args(args.service_args)
-                args.parsed_services = services
+                parsed = parse_service_args(args.service_args)
+                args.parsed_services = parsed["services"]
+                args.global_options = parsed["global_options"]
 
                 # Validate OAuth requirements
-                for service in services:
-                    if service["name"] == "oauth":
-                        if "oauth_service" not in service["options"]:
+                for service in parsed["services"]:
+                    if service["name"] == str(SetupService.OAUTH):
+                        oauth_svc_key = str(SetupFlag.OAUTH_SERVICE)
+                        if oauth_svc_key not in service["options"]:
                             return (
-                                "OAuth setup requires --oauth-service flag. "
-                                "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
+                                f"OAuth setup requires {SetupFlag.OAUTH_SERVICE.cli_flag} flag. "
+                                f"Example: claude-mpm setup oauth {SetupFlag.OAUTH_SERVICE.cli_flag} {SetupService.GWORKSPACE_MCP}"
                             )
 
                 return None
@@ -177,9 +191,6 @@ class SetupCommand(BaseCommand):
             if service_name == "slack":
                 result = self._setup_slack(service_args)
             elif service_name == "gworkspace-mcp":
-                # Alias for google-workspace-mcp
-                result = self._setup_google_workspace(service_args)
-            elif service_name == "google-workspace-mcp":
                 result = self._setup_google_workspace(service_args)
             elif service_name == "notion":
                 result = self._setup_notion(service_args)
@@ -195,31 +206,76 @@ class SetupCommand(BaseCommand):
                 result = self._setup_mcp_ticketer(service_args)
             elif service_name == "oauth":
                 result = self._setup_oauth(service_args)
+            elif service_name == "brave-search":
+                result = self._setup_brave_search(service_args)
+            elif service_name == "tavily":
+                result = self._setup_tavily(service_args)
+            elif service_name == "firecrawl":
+                result = self._setup_firecrawl(service_args)
             else:
                 result = CommandResult.error_result(f"Unknown service: {service_name}")
 
             results.append((service_name, result))
 
-            # Stop on first failure
+            # Track failure but continue processing remaining services
             if not result.success:
                 console.print(
                     f"\n[red]✗ Setup failed for {service_name}[/red]",
                     style="bold",
                 )
-                return result
+                # Don't return early - continue processing remaining services
+            else:
+                console.print(
+                    f"[green]✓ {service_name} setup complete![/green]",
+                    style="bold",
+                )
 
+        # Report results
+        successful = [r for r in results if r[1].success]
+        failed = [r for r in results if not r[1].success]
+
+        if successful:
             console.print(
-                f"[green]✓ {service_name} setup complete![/green]",
+                f"\n[green]✓ {len(successful)} service(s) set up successfully[/green]",
                 style="bold",
             )
 
-        # All setups succeeded
-        console.print(
-            f"\n[green]✓ All {len(results)} service(s) set up successfully![/green]",
-            style="bold",
-        )
+        if failed:
+            console.print(
+                f"\n[red]✗ {len(failed)} service(s) failed to set up[/red]",
+                style="bold",
+            )
+
+        # Launch claude-mpm after all services are set up (unless --no-launch specified)
+        # Only launch if at least one service succeeded
+        # Check argparse flag first, then global_options, then per-service options
+        no_launch_key = str(SetupFlag.NO_LAUNCH)
+        no_launch = getattr(args, no_launch_key, False)
+        if not no_launch:
+            global_options = getattr(args, "global_options", {})
+            no_launch = global_options.get(no_launch_key, False)
+        # Also check if any service had --no-launch applied to it
+        if not no_launch:
+            no_launch = any(
+                svc.get("options", {}).get(no_launch_key, False) for svc in services
+            )
+        if not no_launch and len(successful) > 0:
+            console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
+            try:
+                # Replace current process with claude-mpm
+                os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
+            except OSError:
+                # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
+                subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
+                sys.exit(0)
+
+        # Return failure if all services failed, success if any succeeded
+        if len(failed) == len(results):
+            return CommandResult.error_result(
+                f"All {len(failed)} service(s) failed to set up"
+            )
         return CommandResult.success_result(
-            f"Set up {len(results)} service(s) successfully"
+            f"Set up {len(successful)}/{len(results)} service(s) successfully"
         )
 
     def _show_help(self) -> None:
@@ -230,7 +286,7 @@ class SetupCommand(BaseCommand):
 
 [bold]Available Services:[/bold]
   slack                  Set up Slack MPM integration
-  google-workspace-mcp   Set up Google Workspace MCP (includes OAuth)
+  gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
@@ -241,9 +297,10 @@ class SetupCommand(BaseCommand):
 
 [bold]Service Options:[/bold]
   --oauth-service NAME   Service name for OAuth (required for 'oauth')
-  --no-browser           Don't auto-open browser (oauth only)
+  --no-browser           Don't auto-open browser for authentication (oauth only)
   --no-launch            Don't auto-launch claude-mpm after setup (all services)
-  --force                Force credential re-entry (oauth only)
+  --force                Force credential re-entry (oauth) or reinstall (mcp-vector-search, mcp-skillset)
+  --upgrade              Upgrade installed packages to latest version
 
 [bold]Examples:[/bold]
   # Single service
@@ -252,14 +309,17 @@ class SetupCommand(BaseCommand):
   # Slack without auto-launch
   claude-mpm setup slack --no-launch
 
-  # Multiple services
-  claude-mpm setup slack google-workspace-mcp
+  # Multiple services (space-separated)
+  claude-mpm setup slack gworkspace-mcp
+
+  # Multiple services (comma-separated)
+  claude-mpm setup slack,gworkspace-mcp,notion
 
   # Service with options
-  claude-mpm setup oauth --oauth-service google-workspace-mcp --no-browser
+  claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
 
   # Multiple services with options
-  claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-launch
+  claude-mpm setup slack oauth --oauth-service gworkspace-mcp --no-launch
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search
@@ -324,6 +384,76 @@ class SetupCommand(BaseCommand):
                 ".claude/settings.local.json[/dim]"
             )
             return False
+
+    def _load_mcp_config(self) -> dict:
+        """Load .mcp.json configuration file.
+
+        Returns:
+            Dict containing config or empty dict if file doesn't exist
+        """
+        mcp_config_path = Path.cwd() / ".mcp.json"
+
+        if mcp_config_path.exists():
+            try:
+                with open(mcp_config_path) as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                console.print(
+                    f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]"
+                )
+                return {"mcpServers": {}}
+
+        return {"mcpServers": {}}
+
+    def _save_mcp_config(self, config: dict) -> None:
+        """Save .mcp.json configuration file.
+
+        Args:
+            config: Configuration dict to save
+        """
+        mcp_config_path = Path.cwd() / ".mcp.json"
+
+        try:
+            with open(mcp_config_path, "w") as f:
+                json.dump(config, f, indent=2)
+                f.write("\n")  # Add trailing newline
+        except OSError as e:
+            console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
+            raise
+
+    def _add_gworkspace_to_gitignore(self) -> None:
+        """Add .gworkspace-mcp/ to project .gitignore to prevent token commits."""
+        gitignore_path = Path.cwd() / ".gitignore"
+        gworkspace_entry = ".gworkspace-mcp/"
+
+        # Check if .gitignore exists
+        if not gitignore_path.exists():
+            console.print(
+                f"[dim]No .gitignore found at {gitignore_path}, skipping gitignore update[/dim]"
+            )
+            return
+
+        try:
+            # Read existing content
+            with open(gitignore_path) as f:
+                content = f.read()
+
+            # Check if already present
+            if gworkspace_entry in content:
+                console.print("[dim].gworkspace-mcp/ already in .gitignore[/dim]")
+                return
+
+            # Append entry
+            with open(gitignore_path, "a") as f:
+                # Add newline if file doesn't end with one
+                if content and not content.endswith("\n"):
+                    f.write("\n")
+                f.write(f"{gworkspace_entry}\n")
+
+            console.print("[green]✓ Added .gworkspace-mcp/ to .gitignore[/green]")
+
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not update .gitignore: {e}[/yellow]")
 
     def _configure_slack_mcp_server(self) -> None:
         """Configure slack-user-proxy MCP server in .mcp.json after OAuth setup."""
@@ -437,20 +567,6 @@ class SetupCommand(BaseCommand):
 
                 # Configure slack-user-proxy MCP server
                 self._configure_slack_mcp_server()
-
-                # Launch claude-mpm unless --no-launch was specified
-                no_launch = getattr(args, "no_launch", False)
-                if not no_launch:
-                    console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
-                    try:
-                        # Replace current process with claude-mpm
-                        os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
-                    except OSError:
-                        # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
-                        import sys
-
-                        subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
-                        sys.exit(0)
 
                 return CommandResult.success_result("Slack setup completed")
 
@@ -718,6 +834,188 @@ class SetupCommand(BaseCommand):
         except Exception as e:
             return CommandResult.error_result(f"Error during setup: {e}")
 
+    def _setup_brave_search(self, args) -> CommandResult:
+        """Set up Brave Search MCP server for web search."""
+        console.print("\n[bold cyan]Brave Search MCP Setup[/bold cyan]")
+        console.print("This will configure Brave Search for web research.\n")
+
+        # Check for API key
+        api_key = os.getenv("BRAVE_API_KEY")
+        if not api_key:
+            console.print("[yellow]⚠️  BRAVE_API_KEY not found in environment[/yellow]")
+            console.print("\nTo use Brave Search:")
+            console.print("1. Get an API key from: https://brave.com/search/api/")
+            console.print("2. Set environment variable:")
+            console.print(
+                "   export BRAVE_API_KEY='your-api-key'"  # pragma: allowlist secret
+            )
+            console.print("3. Run setup again\n")
+
+            from rich.prompt import Prompt
+
+            skip = Prompt.ask(
+                "Continue without API key? (will configure but won't work until key added)",
+                choices=["y", "n"],
+                default="n",
+            )
+            if skip.lower() != "y":
+                return CommandResult.error_result("Brave Search API key required")
+
+        # Configure in .mcp.json
+        try:
+            mcp_config = self._load_mcp_config()
+
+            # Check if already configured
+            if "brave-search" in mcp_config.get("mcpServers", {}):
+                console.print("[yellow]⚠️  brave-search already configured[/yellow]")
+                from rich.prompt import Prompt
+
+                overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
+                if overwrite.lower() != "y":
+                    return CommandResult.failure_result("Setup cancelled")
+
+            # Add Brave Search configuration
+            if "mcpServers" not in mcp_config:
+                mcp_config["mcpServers"] = {}
+
+            mcp_config["mcpServers"]["brave-search"] = {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+                "env": {"BRAVE_API_KEY": api_key or "${BRAVE_API_KEY}"},
+            }
+
+            self._save_mcp_config(mcp_config)
+            console.print("[green]✓ Brave Search configured successfully[/green]")
+
+            return CommandResult.success_result("Brave Search setup complete")
+
+        except Exception as e:
+            console.print(f"[red]✗ Error setting up Brave Search: {e}[/red]")
+            return CommandResult.failure_result(f"Setup failed: {e}")
+
+    def _setup_tavily(self, args) -> CommandResult:
+        """Set up Tavily MCP server for AI-optimized search."""
+        console.print("\n[bold cyan]Tavily Search MCP Setup[/bold cyan]")
+        console.print("This will configure Tavily for AI-optimized research.\n")
+
+        # Check for API key
+        api_key = os.getenv("TAVILY_API_KEY")
+        if not api_key:
+            console.print("[yellow]⚠️  TAVILY_API_KEY not found in environment[/yellow]")
+            console.print("\nTo use Tavily:")
+            console.print("1. Get an API key from: https://tavily.com/")
+            console.print("2. Set environment variable:")
+            console.print(
+                "   export TAVILY_API_KEY='your-api-key'"  # pragma: allowlist secret
+            )
+            console.print("3. Run setup again\n")
+
+            from rich.prompt import Prompt
+
+            skip = Prompt.ask(
+                "Continue without API key? (will configure but won't work until key added)",
+                choices=["y", "n"],
+                default="n",
+            )
+            if skip.lower() != "y":
+                return CommandResult.error_result("Tavily API key required")
+
+        # Configure in .mcp.json
+        try:
+            mcp_config = self._load_mcp_config()
+
+            # Check if already configured
+            if "tavily" in mcp_config.get("mcpServers", {}):
+                console.print("[yellow]⚠️  tavily already configured[/yellow]")
+                from rich.prompt import Prompt
+
+                overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
+                if overwrite.lower() != "y":
+                    return CommandResult.failure_result("Setup cancelled")
+
+            # Add Tavily configuration
+            if "mcpServers" not in mcp_config:
+                mcp_config["mcpServers"] = {}
+
+            mcp_config["mcpServers"]["tavily"] = {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-tavily"],
+                "env": {"TAVILY_API_KEY": api_key or "${TAVILY_API_KEY}"},
+            }
+
+            self._save_mcp_config(mcp_config)
+            console.print("[green]✓ Tavily configured successfully[/green]")
+
+            return CommandResult.success_result("Tavily setup complete")
+
+        except Exception as e:
+            console.print(f"[red]✗ Error setting up Tavily: {e}[/red]")
+            return CommandResult.failure_result(f"Setup failed: {e}")
+
+    def _setup_firecrawl(self, args) -> CommandResult:
+        """Set up Firecrawl MCP server for web scraping."""
+        console.print("\n[bold cyan]Firecrawl MCP Setup[/bold cyan]")
+        console.print("This will configure Firecrawl for web scraping.\n")
+
+        # Check for API key
+        api_key = os.getenv("FIRECRAWL_API_KEY")
+        if not api_key:
+            console.print(
+                "[yellow]⚠️  FIRECRAWL_API_KEY not found in environment[/yellow]"
+            )
+            console.print("\nTo use Firecrawl:")
+            console.print("1. Get an API key from: https://firecrawl.dev/")
+            console.print("2. Set environment variable:")
+            console.print(
+                "   export FIRECRAWL_API_KEY='your-api-key'"  # pragma: allowlist secret
+            )
+            console.print("3. Run setup again\n")
+
+            from rich.prompt import Prompt
+
+            skip = Prompt.ask(
+                "Continue without API key? (will configure but won't work until key added)",
+                choices=["y", "n"],
+                default="n",
+            )
+            if skip.lower() != "y":
+                return CommandResult.error_result("Firecrawl API key required")
+
+        # Configure in .mcp.json
+        try:
+            mcp_config = self._load_mcp_config()
+
+            # Check if already configured
+            if "firecrawl" in mcp_config.get("mcpServers", {}):
+                console.print("[yellow]⚠️  firecrawl already configured[/yellow]")
+                from rich.prompt import Prompt
+
+                overwrite = Prompt.ask("Overwrite?", choices=["y", "n"], default="n")
+                if overwrite.lower() != "y":
+                    return CommandResult.failure_result("Setup cancelled")
+
+            # Add Firecrawl configuration
+            if "mcpServers" not in mcp_config:
+                mcp_config["mcpServers"] = {}
+
+            mcp_config["mcpServers"]["firecrawl"] = {
+                "type": "stdio",
+                "command": "npx",
+                "args": ["-y", "@mendable/firecrawl-mcp"],
+                "env": {"FIRECRAWL_API_KEY": api_key or "${FIRECRAWL_API_KEY}"},
+            }
+
+            self._save_mcp_config(mcp_config)
+            console.print("[green]✓ Firecrawl configured successfully[/green]")
+
+            return CommandResult.success_result("Firecrawl setup complete")
+
+        except Exception as e:
+            console.print(f"[red]✗ Error setting up Firecrawl: {e}[/red]")
+            return CommandResult.failure_result(f"Setup failed: {e}")
+
     def _setup_kuzu_memory(self, args) -> CommandResult:
         """Set up kuzu-memory graph-based memory backend."""
         try:
@@ -727,99 +1025,33 @@ class SetupCommand(BaseCommand):
                 "Kuzu-memory provides semantic search and enhanced context management.\n"
             )
 
-            # Check if kuzu-memory is installed
+            # Use centralized package installer
             console.print("[cyan]Checking kuzu-memory installation...[/cyan]")
-            try:
-                import importlib.util
 
-                spec = importlib.util.find_spec("kuzu_memory")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
 
-            # Detect how claude-mpm was installed
-            if not is_installed:
-                console.print("[cyan]Detecting installation method...[/cyan]")
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.KUZU_MEMORY)
 
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
+            force = getattr(args, "force", False)
+            upgrade = getattr(args, "upgrade", False)
 
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    # If in venv or development, use pip within that environment
-                    # Otherwise use pip as default fallback
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                console.print(
-                    f"[yellow]Installing kuzu-memory>=1.6.33 via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        subprocess.run(
-                            ["pipx", "install", "kuzu-memory>=1.6.33"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        subprocess.run(
-                            [
-                                "uv",
-                                "tool",
-                                "install",
-                                "kuzu-memory>=1.6.33",
-                                "--with",
-                                "numpy",
-                                "--python",
-                                "3.13",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--user",
-                                "kuzu-memory>=1.6.33",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ kuzu-memory installed via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install kuzu-memory via {install_method}. "
-                        f"Try manually: {install_method} install kuzu-memory>=1.6.33"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ kuzu-memory already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Migrate existing static memory files if present
             console.print("\n[cyan]Checking for existing memory files...[/cyan]")
@@ -1026,18 +1258,6 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 "  • Each project can have its own memory backend configuration\n"
             )
 
-            # Launch claude-mpm unless --no-start was specified
-            no_start = getattr(args, "no_start", False)
-            if not no_start:
-                console.print("\n[cyan]Launching claude-mpm...[/cyan]\n")
-                try:
-                    # Replace current process with claude-mpm
-                    os.execvp("claude-mpm", ["claude-mpm"])  # nosec B606 B607
-                except OSError:
-                    # If execvp fails (e.g., claude-mpm not in PATH), try subprocess
-                    subprocess.run(["claude-mpm"], check=False)  # nosec B603 B607
-                    sys.exit(0)
-
             return CommandResult.success_result("Kuzu Memory setup completed")
 
         except KeyboardInterrupt:
@@ -1054,101 +1274,33 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 "This will set up semantic code search with vector embeddings.\n"
             )
 
-            # Check if mcp-vector-search is installed
+            # Use centralized package installer
             console.print("[cyan]Checking mcp-vector-search installation...[/cyan]")
+
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
+
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_VECTOR_SEARCH)
+
             force = getattr(args, "force", False)
+            upgrade = getattr(args, "upgrade", False)
 
-            # Try to import mcp-vector-search
-            try:
-                import importlib.util
-
-                spec = importlib.util.find_spec("mcp_vector_search")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
-
-            # Detect how claude-mpm was installed
-            if not is_installed or force:
-                console.print("[cyan]Detecting installation method...[/cyan]")
-
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
-
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    # If in venv or development, use pip within that environment
-                    # Otherwise use pip as default fallback
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                action = "Reinstalling" if is_installed else "Installing"
-                console.print(
-                    f"[yellow]{action} mcp-vector-search via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        subprocess.run(
-                            ["pipx", "install", "mcp-vector-search"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        subprocess.run(
-                            [
-                                "uv",
-                                "tool",
-                                "install",
-                                "mcp-vector-search",
-                                "--python",
-                                "3.13",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--user",
-                                "mcp-vector-search",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ mcp-vector-search installed via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install mcp-vector-search via {install_method}. "
-                        f"Try manually: {install_method} install mcp-vector-search"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ mcp-vector-search already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Use MCPExternalServicesSetup to configure .mcp.json
             console.print(
@@ -1181,10 +1333,18 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                     "mcp-vector-search service not found in registry"
                 )
 
-            # Setup the service
-            success = handler._setup_service(
-                config, "mcp-vector-search", service_info, force
-            )
+            # Check if already configured correctly (skip prompt if so)
+            service_key = str(SetupService.MCP_VECTOR_SEARCH)
+            if service_key in config.get("mcpServers", {}) and not force:
+                console.print(
+                    f"[dim]{service_key} already configured in .mcp.json[/dim]"
+                )
+                success = True
+            else:
+                # Setup the service (pass force=True to skip interactive prompt)
+                success = handler._setup_service(
+                    config, "mcp-vector-search", service_info, force=True
+                )
 
             if success:
                 # Save configuration
@@ -1237,97 +1397,33 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         )
 
         try:
-            # Check if mcp-skillset is installed
+            # Use centralized package installer
             console.print("[cyan]Checking mcp-skillset installation...[/cyan]")
-            try:
-                import importlib.util
 
-                spec = importlib.util.find_spec("mcp_skillset")
-                is_installed = spec is not None
-            except (ImportError, ModuleNotFoundError):
-                is_installed = False
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
 
-            # Install if needed
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_SKILLSET)
+
             force = getattr(args, "force", False)
-            if not is_installed or force:
-                console.print("[cyan]Detecting installation method...[/cyan]")
+            upgrade = getattr(args, "upgrade", False)
 
-                # Use existing detection utility
-                from ...services.diagnostics.checks.installation_check import (
-                    InstallationCheck,
-                )
-
-                checker = InstallationCheck()
-                methods = checker._check_installation_method()
-
-                # Determine primary method (priority: pipx > uv > pip)
-                install_method = None
-                detected_methods = methods.details.get("methods_detected", [])
-
-                if "pipx" in detected_methods:
-                    install_method = "pipx"
-                elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
-                    install_method = "uv"
-                else:
-                    install_method = "pip"
-
-                console.print(f"[dim]Detected: {install_method} installation[/dim]")
-
-                action = "Reinstalling" if is_installed else "Installing"
-                console.print(
-                    f"[yellow]{action} mcp-skillset via {install_method}...[/yellow]"
-                )
-
-                try:
-                    if install_method == "pipx":
-                        subprocess.run(
-                            ["pipx", "install", "mcp-skillset"],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "uv":
-                        subprocess.run(
-                            [
-                                "uv",
-                                "tool",
-                                "install",
-                                "mcp-skillset",
-                                "--python",
-                                "3.13",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    elif install_method == "pip":
-                        subprocess.run(
-                            [
-                                sys.executable,
-                                "-m",
-                                "pip",
-                                "install",
-                                "--user",
-                                "mcp-skillset",
-                            ],
-                            check=True,
-                            capture_output=True,
-                            text=True,
-                        )  # nosec B603 B607
-
-                    console.print(
-                        f"[green]✓ mcp-skillset installed via {install_method}[/green]"
-                    )
-
-                except subprocess.CalledProcessError:
-                    return CommandResult.error_result(
-                        f"Failed to install mcp-skillset via {install_method}. "
-                        f"Try manually: {install_method} install mcp-skillset"
-                    )
-            else:
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
                 console.print("[green]✓ mcp-skillset already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
 
             # Configure in USER-LEVEL Claude Desktop config
             console.print(
@@ -1363,14 +1459,8 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
 
             # Check if already configured
             if "mcp-skillset" in config["mcpServers"] and not force:
-                console.print("[yellow]⚠ mcp-skillset already configured[/yellow]")
-                from rich.prompt import Confirm
-
-                if not Confirm.ask("Overwrite existing configuration?", default=False):
-                    console.print("[yellow]Skipping configuration[/yellow]")
-                    return CommandResult.success_result(
-                        "mcp-skillset already configured"
-                    )
+                console.print("[dim]mcp-skillset already configured[/dim]")
+                return CommandResult.success_result("mcp-skillset already configured")
 
             # Add mcp-skillset configuration
             config["mcpServers"]["mcp-skillset"] = {
@@ -1472,7 +1562,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         """Setup mcp-ticketer with MPM hook integration.
 
         Args:
-            args: Setup options (currently unused)
+            args: Setup options (force, upgrade flags supported)
 
         Returns:
             CommandResult indicating success or failure
@@ -1480,10 +1570,39 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         console.print("\n[bold cyan]Setting up mcp-ticketer...[/bold cyan]")
 
         try:
+            # Use centralized package installer
+            console.print("[cyan]Checking mcp-ticketer installation...[/cyan]")
+
+            from ...services.package_installer import (
+                InstallAction,
+                PackageInstallerService,
+                get_spec,
+            )
+
+            installer = PackageInstallerService()
+            spec = get_spec(SetupService.MCP_TICKETER)
+
+            force = getattr(args, "force", False)
+            upgrade = getattr(args, "upgrade", False)
+
+            # Check if already installed and no flags set
+            if installer.is_installed(spec) and not force and not upgrade:
+                console.print("[green]✓ mcp-ticketer already installed[/green]")
+            else:
+                console.print("[cyan]Detecting installation method...[/cyan]")
+                success, message = installer.install(
+                    spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+                )
+                if success:
+                    console.print(f"[green]✓ {message}[/green]")
+                else:
+                    return CommandResult.error_result(message)
+
             # Run mcp-ticketer setup with auto mode
             # This integrates with MPM's hook system automatically
+            console.print("\n[cyan]Running mcp-ticketer setup...[/cyan]")
             result = subprocess.run(
-                ["mcp-ticketer", "setup", "--auto"],
+                ["mcp-ticketer", "setup"],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -1495,7 +1614,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 return CommandResult.success_result("mcp-ticketer setup completed")
 
             console.print(
-                "[yellow]⚠ mcp-ticketer setup completed with warnings:[/yellow]"
+                "[yellow]mcp-ticketer setup completed with warnings:[/yellow]"
             )
             console.print(f"  {result.stderr.strip()}")
             return CommandResult.success_result(
@@ -1503,11 +1622,11 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             )
 
         except FileNotFoundError:
-            console.print("[red]✗ mcp-ticketer not found. Install with:[/red]")
+            console.print("[red]mcp-ticketer not found. Install with:[/red]")
             console.print("  pip install mcp-ticketer")
             return CommandResult.error_result("mcp-ticketer not installed")
         except Exception as e:
-            console.print(f"[red]✗ Failed to setup mcp-ticketer: {e}[/red]")
+            console.print(f"[red]Failed to setup mcp-ticketer: {e}[/red]")
             return CommandResult.error_result(f"Failed to setup mcp-ticketer: {e}")
 
     def _setup_google_workspace(self, args) -> CommandResult:
@@ -1516,52 +1635,83 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             "This will configure OAuth authentication for Google Workspace.\n"
         )
 
-        # Check if gworkspace-mcp package is installed
-        import subprocess  # nosec B404
+        # Use centralized package installer
+        console.print("[cyan]Checking gworkspace-mcp installation...[/cyan]")
 
-        try:
-            result = subprocess.run(  # nosec B603 B607
-                ["which", "google-workspace-mcp"],
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            is_installed = result.returncode == 0
-        except Exception:
-            is_installed = False
-
-        # Install package if missing
-        if not is_installed:
-            console.print("[cyan]Installing gworkspace-mcp package...[/cyan]")
-            try:
-                subprocess.run(  # nosec B603 B607
-                    ["uv", "tool", "install", "gworkspace-mcp"],
-                    check=True,
-                    capture_output=True,
-                )
-                console.print("[green]✓[/green] Package installed successfully\n")
-            except subprocess.CalledProcessError as e:
-                error_msg = e.stderr.decode() if e.stderr else str(e)
-                return CommandResult(
-                    success=False,
-                    message=f"Failed to install gworkspace-mcp: {error_msg}",
-                )
-
-        # Delegate to OAuth setup with google-workspace-mcp as the service
-        # Create args for oauth setup
-        from argparse import Namespace
-
-        from .oauth import manage_oauth
-
-        oauth_args = Namespace(
-            oauth_command="setup",
-            service_name="gworkspace-mcp",  # Canonical service name
-            no_browser=getattr(args, "no_browser", False),
-            no_launch=getattr(args, "no_launch", False),
-            force=getattr(args, "force", False),
+        from ...services.package_installer import (
+            InstallAction,
+            PackageInstallerService,
+            get_spec,
         )
 
-        exit_code = manage_oauth(oauth_args)
+        installer = PackageInstallerService()
+        spec = get_spec(SetupService.GWORKSPACE_MCP)
+
+        force = getattr(args, "force", False)
+        upgrade = getattr(args, "upgrade", False)
+
+        # Check if already installed and no flags set
+        if installer.is_installed(spec) and not force and not upgrade:
+            console.print("[green]✓ gworkspace-mcp already installed[/green]")
+        else:
+            console.print("[cyan]Detecting installation method...[/cyan]")
+            success, message = installer.install(
+                spec, InstallAction.INSTALL, force=force, upgrade=upgrade
+            )
+            if success:
+                console.print(f"[green]✓ {message}[/green]\n")
+            else:
+                return CommandResult.error_result(message)
+
+        # Check if tokens already exist - skip setup if authenticated
+        tokens_path = Path.home() / ".gworkspace-mcp" / "tokens.json"
+        if tokens_path.exists() and tokens_path.stat().st_size > 10 and not force:
+            console.print("[green]✓ Already authenticated (tokens exist)[/green]")
+            exit_code = 0
+        else:
+            # Detect credentials from environment or .env files
+            from .oauth import _detect_google_credentials
+
+            client_id, client_secret, source = _detect_google_credentials()
+
+            if client_id and client_secret:
+                console.print(f"[dim]Using credentials from {source}[/dim]")
+                # Set environment variables for the setup command
+                env = os.environ.copy()
+                env["GOOGLE_OAUTH_CLIENT_ID"] = client_id
+                env["GOOGLE_OAUTH_CLIENT_SECRET"] = client_secret
+
+                console.print("[cyan]Running gworkspace-mcp setup...[/cyan]\n")
+                try:
+                    setup_result = subprocess.run(  # nosec B603 B607
+                        ["gworkspace-mcp", "setup"],
+                        check=False,
+                        env=env,
+                    )
+                    exit_code = setup_result.returncode
+                except Exception as e:
+                    console.print(f"[red]Failed to run setup: {e}[/red]")
+                    exit_code = 1
+            else:
+                console.print(
+                    "[yellow]No OAuth credentials found.[/yellow]\n"
+                    "[dim]Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in:[/dim]\n"
+                    "  - Environment variables, or\n"
+                    "  - .env.local file, or\n"
+                    "  - .env file\n"
+                )
+                return CommandResult.error_result(
+                    "OAuth credentials required. See above for details."
+                )
+
+        # Configure MCP server in .mcp.json
+        from .oauth import _ensure_mcp_configured
+
+        _ensure_mcp_configured("gworkspace-mcp", Path.cwd())
+
+        # Add .gworkspace-mcp/ to .gitignore if not present
+        if exit_code == 0:
+            self._add_gworkspace_to_gitignore()
 
         # Register service in setup registry on success
         if exit_code == 0:
@@ -1574,7 +1724,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 cli_help = ""
                 try:
                     help_result = subprocess.run(  # nosec B603 B607
-                        ["google-workspace-mcp", "--help"],
+                        ["gworkspace-mcp", "--help"],
                         check=False,
                         capture_output=True,
                         text=True,
@@ -1619,7 +1769,7 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
         if not service_name:
             return CommandResult.error_result(
                 "OAuth setup requires --oauth-service flag. "
-                "Example: claude-mpm setup oauth --oauth-service google-workspace-mcp"
+                "Example: claude-mpm setup oauth --oauth-service gworkspace-mcp"
             )
 
         # Delegate to OAuth setup

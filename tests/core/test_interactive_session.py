@@ -169,15 +169,17 @@ class TestInteractiveSession:
             assert env["environment"] == {"ENV": "test"}
             assert env["session_id"] == "test-session"
 
-            # Verify agents were set up
-            interactive_session.runner.setup_agents.assert_called_once()
+            # NOTE: System agents are deployed via reconciliation during startup.
+            # setup_agents() is no longer called during environment setup.
+            # Only project-specific agents are deployed here.
+            interactive_session.runner.setup_agents.assert_not_called()
             interactive_session.runner.deploy_project_agents_to_claude.assert_called_once()
 
-    def test_setup_interactive_environment_agents_fail(
-        self, interactive_session, capsys
+    def test_setup_interactive_environment_deploy_project_agents(
+        self, interactive_session
     ):
-        """Test environment setup when agents fail."""
-        interactive_session.runner.setup_agents.return_value = False
+        """Test environment setup deploys project agents."""
+        interactive_session.session_id = "test-session"
 
         with patch.object(
             interactive_session, "_build_claude_command", return_value=["claude"]
@@ -187,12 +189,15 @@ class TestInteractiveSession:
             success, _env = interactive_session.setup_interactive_environment()
 
             assert success is True
-            captured = capsys.readouterr()
-            assert "Continuing without native agents..." in captured.out
+            # Verify only project agents are deployed (not system agents)
+            interactive_session.runner.deploy_project_agents_to_claude.assert_called_once()
 
     def test_setup_interactive_environment_exception(self, interactive_session):
         """Test environment setup with exception."""
-        interactive_session.runner.setup_agents.side_effect = Exception("Setup failed")
+        # Simulate exception in deploy_project_agents_to_claude
+        interactive_session.runner.deploy_project_agents_to_claude.side_effect = (
+            Exception("Deploy failed")
+        )
 
         success, env = interactive_session.setup_interactive_environment()
 
@@ -843,7 +848,8 @@ class TestInteractiveSessionIntegration:
             session.cleanup_interactive_session()
 
             # Verify mocks were called appropriately
-            mock_runner.setup_agents.assert_called_once()
+            # NOTE: setup_agents() is no longer called - reconciliation handles system agents
+            mock_runner.setup_agents.assert_not_called()
             mock_runner.deploy_project_agents_to_claude.assert_called_once()
             mock_runner.project_logger.log_system.assert_called()
 

@@ -23,6 +23,10 @@ from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
     _normalize_agent_name,
 )
+from claude_mpm.services.agents.deployment_utils import (
+    deploy_agent_file,
+    normalize_deployment_filename,
+)
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
 from claude_mpm.utils.progress import create_progress_bar
 
@@ -1036,7 +1040,6 @@ class GitSourceSyncService:
             >>> result = service.deploy_agents_to_project(Path("/my/project"))
             >>> print(f"Deployed {len(result['deployed'])} agents")
         """
-        import shutil
 
         from claude_mpm.core.config import Config
 
@@ -1114,48 +1117,31 @@ class GitSourceSyncService:
                     results["failed"].append(agent_path)
                     continue
 
-                # Flatten nested path for deployment (engineer/core/engineer.md → engineer.md)
-                deploy_filename = Path(agent_path).name
-                deploy_file = deployment_dir / deploy_filename
+                # Phase 3 Fix (Issue #299): Use unified deploy_agent_file() function
+                # This ensures identical behavior between GitSourceSyncService
+                # and SingleTierDeploymentService
+                result = deploy_agent_file(
+                    source_file=cache_file,
+                    deployment_dir=deployment_dir,
+                    cleanup_legacy=True,
+                    ensure_frontmatter=True,
+                    force=force,
+                )
 
-                # Check if update needed (compare content, not just mtime)
-                # DESIGN: Use content hash comparison for reliable change detection
-                # Mtime comparison can fail when cache downloads have older timestamps
-                should_deploy = force
-                was_existing = deploy_file.exists()
+                # Get normalized filename for tracking
+                deploy_filename = normalize_deployment_filename(Path(agent_path).name)
 
-                if not force and was_existing:
-                    # Compare file contents using hash
-                    cache_content = cache_file.read_bytes()
-                    deploy_content = deploy_file.read_bytes()
-                    should_deploy = cache_content != deploy_content
-
-                if not should_deploy and was_existing:
-                    results["skipped"].append(deploy_filename)
-                    logger.debug(f"Skipped (up-to-date): {deploy_filename}")
-                    continue
-
-                # Copy from cache to deployment
-                shutil.copy2(cache_file, deploy_file)
-
-                # Track result
-                if deploy_file.exists():
-                    if was_existing:
-                        results["updated"].append(deploy_filename)
-                        logger.info(f"Updated: {deploy_filename}")
-                    else:
+                if result.success:
+                    if result.action == "deployed":
                         results["deployed"].append(deploy_filename)
-                        logger.info(f"Deployed: {deploy_filename}")
+                    elif result.action == "updated":
+                        results["updated"].append(deploy_filename)
+                    elif result.action == "skipped":
+                        results["skipped"].append(deploy_filename)
                 else:
                     results["failed"].append(deploy_filename)
-                    logger.error(f"Failed to deploy: {deploy_filename}")
+                    logger.error(f"Failed to deploy: {deploy_filename}: {result.error}")
 
-            except PermissionError as e:
-                logger.error(f"Permission denied deploying {agent_path}: {e}")
-                results["failed"].append(Path(agent_path).name)
-            except OSError as e:
-                logger.error(f"IO error deploying {agent_path}: {e}")
-                results["failed"].append(Path(agent_path).name)
             except Exception as e:
                 logger.error(f"Unexpected error deploying {agent_path}: {e}")
                 results["failed"].append(Path(agent_path).name)
