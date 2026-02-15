@@ -25,6 +25,8 @@
 	let confirmChecked = $state(false);
 	let confirmTyped = $state('');
 
+	let helpExpanded = $state(false);
+
 	let targetMode = $derived(currentMode === 'selective' ? 'full' : 'selective');
 	let targetModeLabel = $derived(targetMode === 'full' ? 'Full' : 'Selective');
 	let currentModeLabel = $derived(currentMode === 'full' ? 'Full' : 'Selective');
@@ -104,6 +106,38 @@
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
 			</svg>
 			<Badge text={targetModeLabel} variant={targetMode === 'full' ? 'success' : 'info'} />
+		</div>
+
+		<!-- Collapsible help section -->
+		<div class="mb-4">
+			<button
+				type="button"
+				class="text-xs font-medium text-slate-400 cursor-pointer flex items-center gap-1.5"
+				aria-expanded={helpExpanded}
+				onclick={() => helpExpanded = !helpExpanded}
+			>
+				<svg
+					class="w-3 h-3 transition-transform {helpExpanded ? 'rotate-0' : '-rotate-90'}"
+					fill="currentColor"
+					viewBox="0 0 20 20"
+				>
+					<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+				</svg>
+				What do these modes mean?
+			</button>
+			{#if helpExpanded}
+				<div role="region" class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-2 space-y-2">
+					<div>
+						<span class="text-xs font-semibold text-blue-200">Selective (default)</span>
+						<span class="text-xs text-blue-300"> — Deploys only skills referenced by your agents, plus core skills. Lighter context window usage.</span>
+					</div>
+					<div>
+						<span class="text-xs font-semibold text-blue-200">Full</span>
+						<span class="text-xs text-blue-300"> — Deploys all available skills from all sources. Maximum capability, higher context window usage.</span>
+					</div>
+					<p class="text-xs text-slate-400 italic">The switch takes effect on the next sync — no skills change immediately.</p>
+				</div>
+			{/if}
 		</div>
 
 		{#if error}
