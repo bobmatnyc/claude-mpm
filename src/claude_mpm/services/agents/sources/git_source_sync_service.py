@@ -23,6 +23,11 @@ from claude_mpm.core.file_utils import get_file_hash
 from claude_mpm.services.agents.deployment.multi_source_deployment_service import (
     _normalize_agent_name,
 )
+from claude_mpm.services.agents.deployment_utils import (
+    ensure_agent_id_in_frontmatter,
+    get_underscore_variant_filename,
+    normalize_deployment_filename,
+)
 from claude_mpm.services.agents.sources.agent_sync_state import AgentSyncState
 from claude_mpm.utils.progress import create_progress_bar
 
@@ -1036,7 +1041,6 @@ class GitSourceSyncService:
             >>> result = service.deploy_agents_to_project(Path("/my/project"))
             >>> print(f"Deployed {len(result['deployed'])} agents")
         """
-        import shutil
 
         from claude_mpm.core.config import Config
 
@@ -1114,9 +1118,23 @@ class GitSourceSyncService:
                     results["failed"].append(agent_path)
                     continue
 
-                # Flatten nested path for deployment (engineer/core/engineer.md → engineer.md)
-                deploy_filename = Path(agent_path).name
+                # Phase 2 Fix (Issue #299): Normalize filename to dash-based convention
+                # Priority: source filename (cache convention) > agent_id (YAML)
+                source_filename = Path(agent_path).name
+                deploy_filename = normalize_deployment_filename(source_filename)
                 deploy_file = deployment_dir / deploy_filename
+
+                # Phase 2 Fix: Clean up underscore variant if it exists
+                # This handles legacy files like "qa_engineer.md" when deploying "qa-engineer.md"
+                underscore_variant = get_underscore_variant_filename(deploy_filename)
+                if underscore_variant:
+                    underscore_path = deployment_dir / underscore_variant
+                    if underscore_path.exists() and underscore_path != deploy_file:
+                        logger.info(
+                            f"Removing underscore variant: {underscore_variant} "
+                            f"(replaced by {deploy_filename})"
+                        )
+                        underscore_path.unlink()
 
                 # Check if update needed (compare content, not just mtime)
                 # DESIGN: Use content hash comparison for reliable change detection
@@ -1124,10 +1142,12 @@ class GitSourceSyncService:
                 should_deploy = force
                 was_existing = deploy_file.exists()
 
+                # Read cache content for comparison and potential modification
+                cache_content = cache_file.read_text(encoding="utf-8")
+
                 if not force and was_existing:
                     # Compare file contents using hash
-                    cache_content = cache_file.read_bytes()
-                    deploy_content = deploy_file.read_bytes()
+                    deploy_content = deploy_file.read_text(encoding="utf-8")
                     should_deploy = cache_content != deploy_content
 
                 if not should_deploy and was_existing:
@@ -1135,8 +1155,14 @@ class GitSourceSyncService:
                     logger.debug(f"Skipped (up-to-date): {deploy_filename}")
                     continue
 
-                # Copy from cache to deployment
-                shutil.copy2(cache_file, deploy_file)
+                # Phase 2 Fix: Ensure agent_id in frontmatter during deployment
+                # This ensures deployed files have proper agent_id for discovery
+                modified_content = ensure_agent_id_in_frontmatter(
+                    cache_content, deploy_filename
+                )
+
+                # Write content to deployment location
+                deploy_file.write_text(modified_content, encoding="utf-8")
 
                 # Track result
                 if deploy_file.exists():

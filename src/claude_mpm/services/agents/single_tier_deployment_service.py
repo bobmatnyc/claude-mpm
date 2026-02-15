@@ -35,6 +35,10 @@ from claude_mpm.models.git_repository import GitRepository
 from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
     RemoteAgentDiscoveryService,
 )
+from claude_mpm.services.agents.deployment_utils import (
+    get_underscore_variant_filename,
+    normalize_deployment_filename,
+)
 from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
 logger = logging.getLogger(__name__)
@@ -654,6 +658,13 @@ class SingleTierDeploymentService:
         """Deploy a single agent file to deployment directory.
 
         Copies the agent Markdown file from cache to .claude/agents/
+        Uses normalized dash-based filenames to ensure consistency.
+
+        Naming Strategy (Issue #299 Phase 2):
+        1. Use normalize_deployment_filename() to standardize on dash-based names
+        2. Source filename takes precedence (matches cache convention)
+        3. agent_id from YAML frontmatter used as fallback, converting underscores
+        4. Cleans up any underscore variants to prevent duplicates
 
         Args:
             agent: Agent dictionary with source_file path
@@ -673,9 +684,25 @@ class SingleTierDeploymentService:
                 logger.error(f"Source file does not exist: {source_file}")
                 return False
 
-            # Build target filename using agent_id
-            agent_id = agent.get("agent_id", "unknown")
-            target_file = self.deployment_dir / f"{agent_id}.md"
+            # Phase 2 Fix: Normalize filename to dash-based convention
+            # Priority: source filename (cache convention) > agent_id (YAML)
+            agent_id = agent.get("agent_id")
+            normalized_filename = normalize_deployment_filename(
+                source_file.name, agent_id
+            )
+            target_file = self.deployment_dir / normalized_filename
+
+            # Phase 2 Fix: Clean up underscore variant if it exists
+            # This handles legacy files like "qa_engineer.md" when deploying "qa-engineer.md"
+            underscore_variant = get_underscore_variant_filename(normalized_filename)
+            if underscore_variant:
+                underscore_path = self.deployment_dir / underscore_variant
+                if underscore_path.exists() and underscore_path != target_file:
+                    logger.info(
+                        f"Removing underscore variant: {underscore_variant} "
+                        f"(replaced by {normalized_filename})"
+                    )
+                    underscore_path.unlink()
 
             # Copy file
             shutil.copy2(source_file, target_file)
