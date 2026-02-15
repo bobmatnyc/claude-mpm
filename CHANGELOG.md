@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.8.20] - 2026-02-15
+
+### Added
+- feat(setup): add setup commands for Brave Search MCP server
+- feat(setup): add setup commands for Tavily AI Search MCP server
+- feat(setup): add setup commands for Firecrawl web scraping MCP server
+- Automatic API key detection and configuration for search providers
+- User-friendly setup prompts with API key instructions
+
 ## [5.8.19] - 2026-02-15
 
 ### Added
