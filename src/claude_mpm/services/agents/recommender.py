@@ -46,6 +46,21 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
     - Framework-specific agents override language agents
     """
 
+    # Maps ecosystem/runtime names to their underlying programming languages.
+    # Detection strategies may report ecosystem names (e.g. "Node.js") while
+    # the YAML agent config lists programming languages ("javascript", "typescript").
+    LANGUAGE_ALIASES: Dict[str, List[str]] = {
+        "node.js": ["javascript", "typescript"],
+        "nodejs": ["javascript", "typescript"],
+        "node": ["javascript", "typescript"],
+        "deno": ["javascript", "typescript"],
+        "bun": ["javascript", "typescript"],
+        "cpython": ["python"],
+        "jvm": ["java", "kotlin", "scala"],
+        "dotnet": ["c#", "csharp", "f#"],
+        ".net": ["c#", "csharp", "f#"],
+    }
+
     def __init__(
         self,
         config_path: Optional[Path] = None,
@@ -391,16 +406,27 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
             supports.get("deployment", []), toolchain
         )
 
-        # Calculate base score
+        # Calculate base score from weighted components
         base_score = (
             language_score * language_weight
             + framework_score * framework_weight
             + deployment_score * deployment_weight
         )
 
-        # Apply agent confidence weight
+        # Apply language-only boost: when language matches but no framework/deployment
+        # detected, the max base_score is only 0.5 (language_weight). Boost it so
+        # language-only matches can pass reasonable thresholds.
+        if language_score >= 1.0 and framework_score == 0.0 and deployment_score == 0.0:
+            language_only_boost = 0.15
+            base_score = min(1.0, base_score + language_only_boost)
+
+        # Apply agent confidence weight as a scaling factor.
+        # Use a blend: base_score dominates, confidence_weight provides a bonus/penalty.
+        # Formula: base_score * (0.5 + 0.5 * confidence_weight)
+        # This ensures a language-only match (base_score ~0.65) with lowest confidence_weight
+        # (0.6) still produces: 0.65 * (0.5 + 0.3) = 0.52, above the 0.5 threshold.
         agent_confidence_weight = agent_config.get("confidence_weight", 1.0)
-        final_score = base_score * agent_confidence_weight
+        final_score = base_score * (0.5 + 0.5 * agent_confidence_weight)
 
         # Apply framework priority boost if applicable
         if framework_score > 0.5:  # Strong framework match
@@ -419,25 +445,66 @@ class AgentRecommenderService(BaseService, IAgentRecommender):
         # Ensure score is in valid range and return
         return max(0.0, min(1.0, final_score))
 
+    def _resolve_language_aliases(self, language: str) -> List[str]:
+        """Resolve a language name to all equivalent names via LANGUAGE_ALIASES.
+
+        Returns the original language plus any aliases. For example,
+        "node.js" resolves to ["node.js", "javascript", "typescript"].
+
+        Args:
+            language: Language name to resolve (case-insensitive)
+
+        Returns:
+            List of equivalent language names (all lowercase)
+        """
+        lang_lower = language.lower()
+        aliases = self.LANGUAGE_ALIASES.get(lang_lower, [])
+        return [lang_lower] + [a.lower() for a in aliases]
+
     def _calculate_language_score(
         self, supported_languages: List[str], toolchain: ToolchainAnalysis
     ) -> float:
-        """Calculate language match score."""
+        """Calculate language match score.
+
+        Supports language alias resolution so ecosystem names like "Node.js"
+        match against programming language names like "javascript"/"typescript".
+        """
         if not supported_languages:
             return 0.0
 
         primary_language = toolchain.primary_language.lower()
         all_languages = [lang.lower() for lang in toolchain.all_languages]
 
-        # Check for primary language match
-        for lang in supported_languages:
-            if lang.lower() == primary_language:
+        # Resolve aliases for the primary language (e.g. "node.js" -> ["javascript", "typescript"])
+        primary_resolved = self._resolve_language_aliases(primary_language)
+
+        supported_lower = [lang.lower() for lang in supported_languages]
+
+        # Check for primary language match (including aliases)
+        for resolved_lang in primary_resolved:
+            if resolved_lang in supported_lower:
                 return 1.0  # Perfect match on primary language
 
-        # Check for secondary language match
-        for lang in supported_languages:
-            if lang.lower() in all_languages:
+        # Also check if any supported language resolves to match via aliases
+        for sup_lang in supported_lower:
+            sup_resolved = self._resolve_language_aliases(sup_lang)
+            for resolved_lang in sup_resolved:
+                if resolved_lang in primary_resolved:
+                    return 1.0
+
+        # Check for secondary language match (with alias resolution)
+        all_resolved = set()
+        for lang in all_languages:
+            all_resolved.update(self._resolve_language_aliases(lang))
+
+        for sup_lang in supported_lower:
+            if sup_lang in all_resolved:
                 return 0.6  # Partial match on secondary language
+            # Also check aliases of supported language against secondary
+            sup_resolved = self._resolve_language_aliases(sup_lang)
+            for resolved_lang in sup_resolved:
+                if resolved_lang in all_resolved:
+                    return 0.6
 
         return 0.0
 
