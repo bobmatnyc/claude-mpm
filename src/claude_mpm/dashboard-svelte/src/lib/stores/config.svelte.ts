@@ -538,16 +538,36 @@ export interface ModeImpactPreview {
 
 export interface ToolchainResult {
 	primary_language: string;
-	frameworks: { name: string; confidence: string }[];
+	primary_confidence: string;
+	frameworks: { name: string; version?: string; framework_type?: string; confidence: string }[];
 	build_tools: { name: string; confidence: string }[];
+	package_managers: { name: string; confidence: string }[];
+	deployment_target: { target_type: string; platform: string; confidence: string } | null;
 	overall_confidence: string;
+	metadata: Record<string, any>;
 }
 
 export interface AutoConfigPreview {
-	recommended_agents: { name: string; confidence: string; rationale: string; selected?: boolean }[];
-	recommended_skills: { name: string; confidence: string; rationale: string; selected?: boolean }[];
-	changes: { agents_to_add: string[]; agents_to_remove: string[]; skills_to_add: string[]; skills_to_remove: string[] };
-	rationale: Record<string, string>;
+	would_deploy: string[];
+	would_skip: string[];
+	deployment_count: number;
+	estimated_deployment_time: number;
+	requires_confirmation: boolean;
+	recommendations: {
+		agent_id: string;
+		agent_name: string;
+		confidence_score: number;
+		rationale: string;
+		match_reasons: string[];
+		deployment_priority: number;
+	}[];
+	validation: {
+		is_valid: boolean;
+		error_count: number;
+		warning_count: number;
+	} | null;
+	toolchain?: ToolchainResult;
+	metadata: Record<string, any>;
 }
 
 export interface ActiveSessionInfo {
@@ -689,7 +709,7 @@ export async function detectToolchain(project_path?: string): Promise<ToolchainR
 	const body: Record<string, any> = {};
 	if (project_path) body.project_path = project_path;
 	const result = await mutateJSON(`${API_BASE}/auto-configure/detect`, 'POST', body);
-	return result.data || result;
+	return result.toolchain || result.data || result;
 }
 
 /** Preview auto-configuration. POST /api/config/auto-configure/preview */
@@ -698,7 +718,7 @@ export async function previewAutoConfig(project_path?: string, min_confidence?: 
 	if (project_path) body.project_path = project_path;
 	if (min_confidence !== undefined) body.min_confidence = min_confidence;
 	const result = await mutateJSON(`${API_BASE}/auto-configure/preview`, 'POST', body);
-	return result.data || result;
+	return result.preview || result.data || result;
 }
 
 /** Apply auto-configuration. POST /api/config/auto-configure/apply */

@@ -166,33 +166,46 @@
 				{#if previewData}
 					<!-- Recommended agents -->
 					<div class="mb-3">
-						<h4 class="text-xs font-semibold text-slate-400 uppercase mb-2">Recommended Agents ({previewData.recommended_agents.length})</h4>
+						<h4 class="text-xs font-semibold text-slate-400 uppercase mb-2">
+							Recommended Agents ({previewData.recommendations.length})
+						</h4>
 						<div class="space-y-1 max-h-32 overflow-y-auto">
-							{#each previewData.recommended_agents as agent}
+							{#each previewData.recommendations as rec}
 								<div class="flex items-center justify-between px-2 py-1.5 bg-slate-900/50 rounded text-sm">
-									<span class="text-slate-200">{agent.name}</span>
+									<div class="flex flex-col min-w-0">
+										<span class="text-slate-200">{rec.agent_name}</span>
+										{#if rec.rationale}
+											<span class="text-xs text-slate-500 truncate max-w-xs">{rec.rationale}</span>
+										{/if}
+									</div>
 									<div class="flex items-center gap-2">
-										<Badge text={agent.confidence} variant={confidenceColors[agent.confidence] || 'default'} size="sm" />
+										<Badge
+											text={rec.confidence_score >= 0.8 ? 'HIGH' : rec.confidence_score >= 0.5 ? 'MEDIUM' : 'LOW'}
+											variant={rec.confidence_score >= 0.8 ? 'success' : rec.confidence_score >= 0.5 ? 'warning' : 'danger'}
+											size="sm"
+										/>
 									</div>
 								</div>
 							{/each}
 						</div>
+						{#if previewData.recommendations.length === 0}
+							<p class="text-sm text-slate-500 py-4 text-center">No agent recommendations for this project. Try adjusting the confidence threshold.</p>
+						{/if}
 					</div>
 
-					<!-- Recommended skills -->
-					<div>
-						<h4 class="text-xs font-semibold text-slate-400 uppercase mb-2">Recommended Skills ({previewData.recommended_skills.length})</h4>
-						<div class="space-y-1 max-h-32 overflow-y-auto">
-							{#each previewData.recommended_skills as skill}
-								<div class="flex items-center justify-between px-2 py-1.5 bg-slate-900/50 rounded text-sm">
-									<span class="text-slate-200">{skill.name}</span>
-									<div class="flex items-center gap-2">
-										<Badge text={skill.confidence} variant={confidenceColors[skill.confidence] || 'default'} size="sm" />
-									</div>
-								</div>
-							{/each}
+					{#if previewData.validation}
+						<div class="mb-3 flex items-center gap-2 text-xs text-slate-500">
+							<span>Validation:</span>
+							{#if previewData.validation.is_valid}
+								<Badge text="Passed" variant="success" size="sm" />
+							{:else}
+								<Badge text="{previewData.validation.error_count} errors" variant="danger" size="sm" />
+							{/if}
+							{#if previewData.validation.warning_count > 0}
+								<Badge text="{previewData.validation.warning_count} warnings" variant="warning" size="sm" />
+							{/if}
 						</div>
-					</div>
+					{/if}
 				{/if}
 			{/if}
 
@@ -213,47 +226,40 @@
 				<!-- Diff view -->
 				{#if previewData}
 					<div class="space-y-3 max-h-48 overflow-y-auto mb-4">
-						{#if previewData.changes.agents_to_add.length > 0}
+						{#if previewData.would_deploy.length > 0}
 							<div>
-								<h4 class="text-xs font-semibold text-emerald-400 uppercase mb-1">Agents to Add ({previewData.changes.agents_to_add.length})</h4>
+								<h4 class="text-xs font-semibold text-emerald-400 uppercase mb-1">
+									Agents to Deploy ({previewData.would_deploy.length})
+								</h4>
 								<div class="flex flex-wrap gap-1">
-									{#each previewData.changes.agents_to_add as name}
+									{#each previewData.would_deploy as name}
 										<span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-300">+ {name}</span>
 									{/each}
 								</div>
 							</div>
 						{/if}
-						{#if previewData.changes.agents_to_remove.length > 0}
+						{#if previewData.would_skip.length > 0}
 							<div>
-								<h4 class="text-xs font-semibold text-red-400 uppercase mb-1">Agents to Remove ({previewData.changes.agents_to_remove.length})</h4>
+								<h4 class="text-xs font-semibold text-amber-400 uppercase mb-1">
+									Agents Skipped — Low Confidence ({previewData.would_skip.length})
+								</h4>
 								<div class="flex flex-wrap gap-1">
-									{#each previewData.changes.agents_to_remove as name}
-										<span class="px-2 py-0.5 text-xs rounded-full bg-red-500/10 text-red-300">- {name}</span>
+									{#each previewData.would_skip as name}
+										<span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-300">~ {name}</span>
 									{/each}
 								</div>
 							</div>
 						{/if}
-						{#if previewData.changes.skills_to_add.length > 0}
-							<div>
-								<h4 class="text-xs font-semibold text-emerald-400 uppercase mb-1">Skills to Add ({previewData.changes.skills_to_add.length})</h4>
-								<div class="flex flex-wrap gap-1">
-									{#each previewData.changes.skills_to_add as name}
-										<span class="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-300">+ {name}</span>
-									{/each}
-								</div>
-							</div>
-						{/if}
-						{#if previewData.changes.skills_to_remove.length > 0}
-							<div>
-								<h4 class="text-xs font-semibold text-red-400 uppercase mb-1">Skills to Remove ({previewData.changes.skills_to_remove.length})</h4>
-								<div class="flex flex-wrap gap-1">
-									{#each previewData.changes.skills_to_remove as name}
-										<span class="px-2 py-0.5 text-xs rounded-full bg-red-500/10 text-red-300">- {name}</span>
-									{/each}
-								</div>
-							</div>
+						{#if previewData.would_deploy.length === 0 && previewData.would_skip.length === 0}
+							<p class="text-sm text-slate-500 py-4 text-center">No agents matched the current configuration criteria.</p>
 						{/if}
 					</div>
+
+					{#if previewData.estimated_deployment_time > 0}
+						<div class="text-xs text-slate-500 mb-2">
+							Estimated time: ~{Math.round(previewData.estimated_deployment_time)}s
+						</div>
+					{/if}
 				{/if}
 
 				<!-- Pipeline progress during apply -->

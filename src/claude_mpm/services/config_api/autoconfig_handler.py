@@ -43,12 +43,46 @@ def _get_toolchain_analyzer():
 def _get_auto_config_manager():
     global _auto_config_manager
     if _auto_config_manager is None:
-        from claude_mpm.services.agents.auto_config_manager import (
-            AutoConfigManagerService,
-        )
+        try:
+            from claude_mpm.services.agents.auto_config_manager import (
+                AutoConfigManagerService,
+            )
+            from claude_mpm.services.agents.recommender import (
+                AgentRecommenderService,
+            )
 
-        _auto_config_manager = AutoConfigManagerService()
+            # Reuse the existing toolchain analyzer singleton
+            toolchain_analyzer = _get_toolchain_analyzer()
+            agent_recommender = AgentRecommenderService()
+
+            # AgentRegistry improves validation quality (Issue #9)
+            # but is not strictly required -- degrade gracefully if unavailable
+            agent_registry = None
+            try:
+                from claude_mpm.services.agents.registry import AgentRegistry
+
+                agent_registry = AgentRegistry()
+            except Exception:
+                logger.warning(
+                    "AgentRegistry not available; validation will skip agent existence checks"
+                )
+
+            _auto_config_manager = AutoConfigManagerService(
+                toolchain_analyzer=toolchain_analyzer,
+                agent_recommender=agent_recommender,
+                agent_registry=agent_registry,
+            )
+        except Exception:
+            # Do NOT cache a broken instance -- let next request retry (Issue #7)
+            logger.error("Failed to initialize AutoConfigManagerService", exc_info=True)
+            raise
     return _auto_config_manager
+
+
+def _reset_auto_config_manager():
+    """Reset the auto-config manager singleton (for testing and error recovery)."""
+    global _auto_config_manager
+    _auto_config_manager = None
 
 
 def _get_backup_manager():
@@ -141,7 +175,8 @@ def _preview_to_dict(preview) -> Dict[str, Any]:
                 "agent_id": rec.agent_id,
                 "agent_name": rec.agent_name,
                 "confidence_score": rec.confidence_score,
-                "rationale": rec.rationale,
+                "rationale": rec.reasoning,
+                "match_reasons": rec.match_reasons,
                 "deployment_priority": rec.deployment_priority,
             }
         )
@@ -215,8 +250,9 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
     async def preview_configuration(request: web.Request) -> web.Response:
         """Get configuration recommendations without applying.
 
-        MUST use asyncio.to_thread() because preview_configuration
-        uses run_until_complete internally.
+        Uses asyncio.to_thread() because preview_configuration
+        performs blocking synchronous work (toolchain analysis,
+        agent recommendation) that would block the event loop.
         """
         try:
             body = {}
