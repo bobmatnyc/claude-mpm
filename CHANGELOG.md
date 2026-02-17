@@ -10,6 +10,21 @@
 
 ### Tests
 
+## [5.9.0] - 2026-02-16
+
+### Added
+- **API Integration Framework** (`/mpm-integrate`): Complete framework for third-party API integrations
+  - Integration manifest system for declarative API definitions
+  - Credential management with interactive `.env` wizard
+  - REST/GraphQL client with automatic authentication handling
+  - Auto-generated MCP servers from integration manifests
+  - Agent/skill pairing for integration-aware workflows
+  - Batch operations support for bulk API interactions
+  - Community contribution workflow for sharing integrations
+- New CLI command: `claude-mpm integrate` for managing API integrations
+- Integration templates for common APIs (Stripe, Twilio, SendGrid, etc.)
+- Secure credential storage with keyring integration
+
 ## [5.8.22] - 2026-02-16
 
 ### Fixed
