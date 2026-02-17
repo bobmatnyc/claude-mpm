@@ -16,7 +16,11 @@ from typing import Any, Dict, Optional
 
 from aiohttp import web
 
-from claude_mpm.core.config_scope import ConfigScope, resolve_agents_dir
+from claude_mpm.core.config_scope import (
+    ConfigScope,
+    resolve_agents_dir,
+    resolve_skills_dir,
+)
 from claude_mpm.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -568,8 +572,13 @@ async def _run_auto_configure(
                 return {"deployed_skills": [], "errors": []}
 
             svc = _get_skills_deployer()
+            # Deploy skills to project-scoped directory instead of ~/.claude/skills/
+            project_skills_dir = resolve_skills_dir(ConfigScope.PROJECT, project_path)
+            project_skills_dir.mkdir(parents=True, exist_ok=True)
             return svc.deploy_skills(
-                skill_names=sorted(recommended_skills), force=False
+                skill_names=sorted(recommended_skills),
+                force=False,
+                skills_dir=project_skills_dir,
             )
 
         try:

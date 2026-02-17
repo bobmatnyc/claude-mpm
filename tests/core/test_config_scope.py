@@ -59,17 +59,27 @@ class TestResolveAgentsDir:
 class TestResolveSkillsDir:
     """Tests for resolve_skills_dir()."""
 
-    def test_default_returns_user_home(self) -> None:
+    def test_default_returns_project_scope(self) -> None:
+        """Default (no args) uses PROJECT scope with cwd."""
         result = resolve_skills_dir()
-        assert result == Path.home() / ".claude" / "skills"
+        assert result == Path.cwd() / ".claude" / "skills"
+
+    def test_project_scope_with_explicit_path(self) -> None:
+        result = resolve_skills_dir(ConfigScope.PROJECT, Path("/project"))
+        assert result == Path("/project/.claude/skills")
+
+    def test_project_scope_defaults_to_cwd(self) -> None:
+        """PROJECT scope without project_path falls back to cwd."""
+        result = resolve_skills_dir(ConfigScope.PROJECT)
+        assert result == Path.cwd() / ".claude" / "skills"
 
     def test_user_scope_returns_user_home(self) -> None:
         result = resolve_skills_dir(ConfigScope.USER)
         assert result == Path.home() / ".claude" / "skills"
 
-    def test_project_scope_still_returns_user_home(self) -> None:
-        """Skills are always user-scoped regardless of input scope."""
-        result = resolve_skills_dir(ConfigScope.PROJECT)
+    def test_user_scope_ignores_project_path(self) -> None:
+        """USER scope should always resolve to home, regardless of project_path."""
+        result = resolve_skills_dir(ConfigScope.USER, Path("/project"))
         assert result == Path.home() / ".claude" / "skills"
 
 

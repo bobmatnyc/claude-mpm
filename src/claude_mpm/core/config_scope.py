@@ -44,19 +44,27 @@ def resolve_agents_dir(scope: ConfigScope, project_path: Path) -> Path:
     return Path.home() / ".claude" / "agents"
 
 
-def resolve_skills_dir(scope: ConfigScope = ConfigScope.USER) -> Path:
+def resolve_skills_dir(
+    scope: ConfigScope = ConfigScope.PROJECT,
+    project_path: Path | None = None,
+) -> Path:
     """Resolve the Claude Code skills directory.
 
-    Currently always returns ~/.claude/skills/ regardless of scope,
-    because Claude Code loads skills from the user home directory at
-    startup. The scope parameter exists for future extensibility.
+    Claude Code reads skills from both project-level and user-level
+    directories. The project uses project-scoped deployment by default
+    to keep skills isolated per project.
 
     Args:
-        scope: Currently ignored (skills are always user-scoped)
+        scope: PROJECT deploys to <project>/.claude/skills/,
+               USER deploys to ~/.claude/skills/
+        project_path: Root directory of the project (used for PROJECT scope).
+                      Defaults to Path.cwd() if not provided.
 
     Returns:
-        Path to the skills directory (~/.claude/skills/)
+        Path to the skills directory
     """
+    if scope == ConfigScope.PROJECT:
+        return (project_path or Path.cwd()) / ".claude" / "skills"
     return Path.home() / ".claude" / "skills"
 
 
