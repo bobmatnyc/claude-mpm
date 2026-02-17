@@ -1,0 +1,106 @@
+# Integration Manifest Template
+# Copy this file to myservice/integration.yaml and customize
+
+# Required: Integration metadata
+name: my-service
+version: "1.0.0"
+description: "Short description of what this integration does"
+
+# Required: Base URL for API requests
+base_url: "https://api.example.com/v1"
+
+# Optional: Authentication configuration
+auth:
+  type: api_key  # Options: api_key, bearer, basic, oauth2
+  # For api_key:
+  header: "X-API-Key"
+  # For bearer:
+  # prefix: "Bearer"
+  # For oauth2:
+  # token_url: "https://api.example.com/oauth/token"
+  # scopes: ["read", "write"]
+
+# Required: Credential definitions
+credentials:
+  - name: API_KEY
+    description: "API key from example.com dashboard"
+    required: true
+    # Optional: URL where user can get this credential
+    obtain_url: "https://example.com/settings/api"
+
+  # Example OAuth credentials:
+  # - name: CLIENT_ID
+  #   description: "OAuth client ID"
+  #   required: true
+  # - name: CLIENT_SECRET
+  #   description: "OAuth client secret"
+  #   required: true
+  #   sensitive: true
+
+# Required: At least one operation
+operations:
+  - name: list_items
+    description: "List all items"
+    method: GET
+    path: "/items"
+    # Optional: Query parameters
+    parameters:
+      - name: limit
+        type: integer
+        required: false
+        default: 10
+        description: "Max items to return"
+      - name: offset
+        type: integer
+        required: false
+        default: 0
+    # Optional: Response schema hint
+    response:
+      type: array
+      items: object
+
+  - name: get_item
+    description: "Get a single item by ID"
+    method: GET
+    path: "/items/{id}"
+    parameters:
+      - name: id
+        type: integer
+        required: true
+        in: path
+        description: "Item ID"
+
+  - name: create_item
+    description: "Create a new item"
+    method: POST
+    path: "/items"
+    parameters:
+      - name: title
+        type: string
+        required: true
+        in: body
+      - name: body
+        type: string
+        required: false
+        in: body
+
+# Recommended: Health check for status monitoring
+health_check:
+  path: "/health"
+  method: GET
+  # Expected status code (default: 200)
+  expected_status: 200
+  # Optional: Check response body
+  # expected_body:
+  #   status: "ok"
+
+# Optional: Rate limiting info
+rate_limit:
+  requests_per_minute: 60
+  requests_per_day: 10000
+
+# Optional: Tags for discovery
+tags:
+  - api
+  - rest
+  - example

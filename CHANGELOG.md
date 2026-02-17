@@ -10,6 +10,43 @@
 
 ### Tests
 
+## [5.9.2] - 2026-02-17
+
+### Added
+- feat(config): add project-level API provider switch
+
+### Fixed
+- fix(autoconf): resolve three interconnected recommender bugs (#300)
+
+## [5.9.1] - 2026-02-16
+
+### Documentation
+- docs(integrate): Add user documentation for /mpm-integrate
+- docs(agents): Add Minimalism Principle to BASE_AGENT.md
+
+### Added
+- feat(integrate): Add Fireflies.io integration to catalog
+
+## [5.9.0] - 2026-02-16
+
+### Added
+- **API Integration Framework** (`/mpm-integrate`): Complete framework for third-party API integrations
+  - Integration manifest system for declarative API definitions
+  - Credential management with interactive `.env` wizard
+  - REST/GraphQL client with automatic authentication handling
+  - Auto-generated MCP servers from integration manifests
+  - Agent/skill pairing for integration-aware workflows
+  - Batch operations support for bulk API interactions
+  - Community contribution workflow for sharing integrations
+- New CLI command: `claude-mpm integrate` for managing API integrations
+- Integration templates for common APIs (Stripe, Twilio, SendGrid, etc.)
+- Secure credential storage with keyring integration
+
+## [5.8.22] - 2026-02-16
+
+### Fixed
+- fix(cli): Remove startup configuration prompt - users can run /mpm-configure manually
+
 ## [5.8.21] - 2026-02-14
 
 ### Fixed

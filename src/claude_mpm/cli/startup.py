@@ -311,6 +311,16 @@ def setup_early_environment(argv):
     if "configure" in argv or (len(argv) > 0 and argv[0] == "configure"):
         os.environ["CLAUDE_MPM_SKIP_CLEANUP"] = "1"
 
+    # Apply API provider configuration early (before Claude Code launches)
+    # This sets CLAUDE_CODE_USE_BEDROCK, ANTHROPIC_MODEL, etc.
+    try:
+        from ..config.api_provider import apply_api_provider_config
+
+        apply_api_provider_config()
+    except Exception:  # nosec B110
+        # Non-critical - if config loading fails, use defaults
+        pass
+
     return argv
 
 

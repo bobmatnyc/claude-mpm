@@ -1,0 +1,166 @@
+# Fireflies.ai Integration
+# AI meeting assistant that records, transcribes, and analyzes meetings
+
+name: fireflies
+version: "1.0.0"
+description: "Fireflies.ai meeting transcription and analysis API"
+
+api_type: graphql
+base_url: "https://api.fireflies.ai/graphql"
+
+# Bearer token authentication
+auth:
+  type: bearer
+  credentials:
+    - name: FIREFLIES_API_KEY
+      prompt: "Enter your Fireflies.ai API key"
+      help: "Get your API key from https://app.fireflies.ai/integrations/custom/fireflies"
+      required: true
+
+operations:
+  - name: list_transcripts
+    description: "List meeting transcripts with optional filtering by date, participants, or keyword"
+    type: query
+    query: |
+      query ListTranscripts($limit: Int, $skip: Int, $keyword: String, $fromDate: DateTime, $toDate: DateTime, $mine: Boolean) {
+        transcripts(limit: $limit, skip: $skip, keyword: $keyword, fromDate: $fromDate, toDate: $toDate, mine: $mine) {
+          id
+          title
+          date
+          duration
+          organizer_email
+          participants
+          transcript_url
+        }
+      }
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        default: 20
+        description: "Maximum number of transcripts to return (max 50)"
+      - name: skip
+        type: int
+        required: false
+        default: 0
+        description: "Number of transcripts to skip for pagination"
+      - name: keyword
+        type: string
+        required: false
+        description: "Search keyword in meeting titles or spoken words (max 255 chars)"
+      - name: fromDate
+        type: string
+        required: false
+        description: "Filter transcripts from this date (ISO 8601 format)"
+      - name: toDate
+        type: string
+        required: false
+        description: "Filter transcripts until this date (ISO 8601 format)"
+      - name: mine
+        type: bool
+        required: false
+        description: "Return only transcripts owned by API key owner"
+
+  - name: get_transcript
+    description: "Get a specific transcript with full details including sentences, summary, and analytics"
+    type: query
+    query: |
+      query GetTranscript($id: String!) {
+        transcript(id: $id) {
+          id
+          title
+          date
+          duration
+          organizer_email
+          participants
+          transcript_url
+          audio_url
+          video_url
+          sentences {
+            text
+            speaker_name
+            start_time
+            end_time
+          }
+          summary {
+            keywords
+            action_items
+            outline
+            overview
+          }
+        }
+      }
+    parameters:
+      - name: id
+        type: string
+        required: true
+        description: "Transcript ID"
+
+  - name: search_transcripts
+    description: "Search transcripts by title or spoken content"
+    type: query
+    query: |
+      query SearchTranscripts($keyword: String!, $limit: Int) {
+        transcripts(keyword: $keyword, limit: $limit) {
+          id
+          title
+          date
+          duration
+          organizer_email
+          participants
+          transcript_url
+        }
+      }
+    parameters:
+      - name: keyword
+        type: string
+        required: true
+        description: "Search keyword (max 255 chars)"
+      - name: limit
+        type: int
+        required: false
+        default: 20
+        description: "Maximum results to return (max 50)"
+
+  - name: get_user
+    description: "Get current user info or specific user by ID"
+    type: query
+    query: |
+      query GetUser($id: String) {
+        user(id: $id) {
+          user_id
+          name
+          email
+          is_admin
+          num_transcripts
+          minutes_consumed
+          integrations
+        }
+      }
+    parameters:
+      - name: id
+        type: string
+        required: false
+        description: "User ID (omit to get current user)"
+
+# Health check using get_user operation
+health:
+  operation: get_user
+  params: {}
+  expect: {}
+
+# MCP tool generation
+mcp:
+  generate: true
+  tools:
+    - list_transcripts
+    - get_transcript
+    - search_transcripts
+    - get_user
+
+tags:
+  - meetings
+  - transcription
+  - ai
+  - graphql
+  - productivity
