@@ -183,6 +183,14 @@ def execute_command(command: str, args) -> int:
         result = manage_tools(args)
         return result if result is not None else 0
 
+    # Handle provider command with lazy import
+    if command == "provider":
+        # Lazy import to avoid loading unless needed
+        from .commands.provider import manage_provider
+
+        result = manage_provider(args)
+        return result if result is not None else 0
+
     # Handle profile command with lazy import
     if command == "profile":
         # Lazy import to avoid loading unless needed
@@ -416,6 +424,7 @@ def execute_command(command: str, args) -> int:
         "oauth",
         "setup",
         "slack",
+        "provider",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

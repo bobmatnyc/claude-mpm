@@ -549,6 +549,14 @@ def create_parser(
     except ImportError:
         pass
 
+    # Add provider command parser for API backend management
+    try:
+        from .provider_parser import add_provider_subparser
+
+        add_provider_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Add uninstall command parser
     try:
         from ..commands.uninstall import add_uninstall_parser

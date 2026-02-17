@@ -11,6 +11,15 @@ from .agent_config import (
     set_agent_config,
 )
 
+# Import API provider configuration
+from .api_provider import (
+    AnthropicConfig,
+    APIBackend,
+    APIProviderConfig,
+    BedrockConfig,
+    apply_api_provider_config,
+)
+
 # Import centralized path management
 from .paths import (
     ClaudeMPMPaths,
@@ -27,8 +36,13 @@ from .paths import (
 
 __all__.extend(
     [
+        "APIBackend",
+        "APIProviderConfig",
         "AgentConfig",
+        "AnthropicConfig",
+        "BedrockConfig",
         "ClaudeMPMPaths",
+        "apply_api_provider_config",
         "ensure_src_in_path",
         "get_agent_config",
         "get_agents_dir",
