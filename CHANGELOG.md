@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.2] - 2026-02-17
+
+### Added
+- feat(config): add project-level API provider switch
+
+### Fixed
+- fix(autoconf): resolve three interconnected recommender bugs (#300)
+
 ## [5.9.1] - 2026-02-16
 
 ### Documentation
