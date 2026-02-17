@@ -263,7 +263,7 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
                 pass
 
             project_path = Path(body.get("project_path", str(Path.cwd())))
-            min_confidence = body.get("min_confidence", 0.8)
+            min_confidence = body.get("min_confidence", 0.5)
 
             if not project_path.exists():
                 return _error_response(
@@ -303,7 +303,7 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
 
             project_path = Path(body.get("project_path", str(Path.cwd())))
             dry_run = body.get("dry_run", False)
-            min_confidence = body.get("min_confidence", 0.8)
+            min_confidence = body.get("min_confidence", 0.5)
 
             if not project_path.exists():
                 return _error_response(

@@ -175,7 +175,7 @@ def test_service_initialization(service):
     assert service._agent_recommender is not None
     assert service._agent_registry is not None
     assert service._agent_deployment is not None
-    assert service._min_confidence_default == 0.8
+    assert service._min_confidence_default == 0.5
 
 
 @pytest.mark.asyncio
