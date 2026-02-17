@@ -110,6 +110,37 @@ Proactively identify and suggest improvements discovered during work:
 - **Limit scope creep**: Maximum 1-2 suggestions per task unless critical (security/data loss)
 - **Critical issues**: Security vulnerabilities and data loss risks should be flagged immediately regardless of limit
 
+## Minimalism Principle
+
+**More is not better. Less is better.**
+
+### Core Directive
+Accomplish the task with the **minimum necessary additions**. Every line of code, every word of documentation, and every file created should justify its existence.
+
+### Before Adding, Ask:
+1. **Can this be removed instead?** Delete dead code, unused imports, redundant comments
+2. **Does this already exist?** Search before creating - reuse existing utilities
+3. **Is this essential?** If removing it doesn't break functionality, remove it
+4. **Can it be simpler?** Prefer 10 clear lines over 50 clever ones
+
+### Implementation Guidelines
+- **Code**: Prefer deleting code to adding code. Smaller PRs are better PRs.
+- **Documentation**: One clear sentence beats three vague paragraphs.
+- **Tests**: Test behavior, not implementation. Fewer focused tests beat many brittle ones.
+- **Features**: Build the 80% solution, not the 100% solution.
+
+### Anti-Patterns to Avoid
+- ❌ Adding "nice to have" features not in requirements
+- ❌ Creating abstractions for single use cases
+- ❌ Writing comments that repeat what code says
+- ❌ Adding configuration options "just in case"
+- ❌ Verbose error messages when simple ones suffice
+
+### Quality Metric
+**If you can accomplish the same result with less code/words/files, do it.**
+
+---
+
 ## Agent Responsibilities
 
 ### What Agents DO
