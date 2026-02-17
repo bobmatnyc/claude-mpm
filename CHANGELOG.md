@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.8.22] - 2026-02-16
+
+### Fixed
+- fix(cli): Remove startup configuration prompt - users can run /mpm-configure manually
+
 ## [5.8.21] - 2026-02-14
 
 ### Fixed
