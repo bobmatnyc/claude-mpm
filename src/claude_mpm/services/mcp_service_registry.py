@@ -7,8 +7,10 @@ WHY: Centralizes MCP service definitions to enable enable/disable/list
 operations with automatic configuration generation.
 """
 
+import os
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar
 
 
@@ -19,6 +21,7 @@ class InstallMethod(str, Enum):
     PIPX = "pipx"
     NPX = "npx"
     PIP = "pip"
+    INTERNAL = "internal"  # Internal server, installed via console script
 
 
 @dataclass(frozen=True)
@@ -39,7 +42,7 @@ class MCPServiceDefinition:
     """
 
     name: str
-    package: str
+    package: str | None  # None for internal servers
     install_method: InstallMethod
     command: str
     args: list[str] = field(default_factory=list)
@@ -50,6 +53,53 @@ class MCPServiceDefinition:
     enabled_by_default: bool = False
     oauth_provider: str | None = None  # "google", "microsoft", etc.
     oauth_scopes: list[str] = field(default_factory=list)  # OAuth scopes if applicable
+
+
+def _load_env_from_files(var_names: list[str]) -> dict[str, str]:
+    """Load environment variables from .env.local and .env files.
+
+    Checks in priority order:
+    1. Current environment variables (os.environ)
+    2. .env.local in current directory
+    3. .env in current directory
+
+    Args:
+        var_names: List of environment variable names to look for
+
+    Returns:
+        Dict of found environment variables and their values
+    """
+    result: dict[str, str] = {}
+
+    # Check environment variables first
+    for var in var_names:
+        if var in os.environ:
+            result[var] = os.environ[var]
+
+    # Check .env files for remaining vars
+    remaining = [v for v in var_names if v not in result]
+    if not remaining:
+        return result
+
+    for env_file in [".env.local", ".env"]:
+        env_path = Path.cwd() / env_file
+        if env_path.exists():
+            try:
+                with open(env_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, _, value = line.partition("=")
+                            key = key.strip()
+                            value = value.strip().strip('"').strip("'")
+                            if key in remaining and key not in result:
+                                result[key] = value
+            except Exception:  # nosec B110 - intentionally ignore .env file read errors
+                pass
+
+    return result
 
 
 class MCPServiceRegistry:
@@ -97,31 +147,33 @@ class MCPServiceRegistry:
         cls,
         service: MCPServiceDefinition,
         env_overrides: dict[str, str] | None = None,
+        load_from_env_files: bool = True,
     ) -> dict:
         """Generate MCP configuration for a service.
 
         Args:
             service: The service definition
             env_overrides: Environment variable overrides
+            load_from_env_files: If True, auto-load from .env.local/.env
 
         Returns:
             Configuration dict suitable for .mcp.json or ~/.claude.json
         """
-        env = {}
+        env: dict[str, str] = {}
 
-        # Add required env vars (must be provided or have defaults)
-        for var in service.required_env:
-            if env_overrides and var in env_overrides:
-                env[var] = env_overrides[var]
-            elif var in service.env_defaults:
-                env[var] = service.env_defaults[var]
-            # If required and not provided, leave it out - caller should validate
+        # Auto-load from .env files if enabled
+        if load_from_env_files:
+            all_vars = service.required_env + service.optional_env
+            env_from_files = _load_env_from_files(all_vars)
+            env.update(env_from_files)
 
-        # Add optional env vars if provided or have defaults
-        for var in service.optional_env:
-            if env_overrides and var in env_overrides:
-                env[var] = env_overrides[var]
-            elif var in service.env_defaults:
+        # Apply explicit overrides (highest priority)
+        if env_overrides:
+            env.update(env_overrides)
+
+        # Apply defaults for any remaining missing vars
+        for var in service.required_env + service.optional_env:
+            if var not in env and var in service.env_defaults:
                 env[var] = service.env_defaults[var]
 
         config: dict = {
@@ -201,13 +253,14 @@ MCP_VECTOR_SEARCH = MCPServiceDefinition(
 )
 
 # Google Workspace MCP - Google Drive, Docs, Sheets integration
-# Package: https://pypi.org/project/workspace-mcp/
+# Package: https://pypi.org/project/gworkspace-mcp/ (v0.1.2+)
+# Entry points: 'workspace' or 'gworkspace-mcp'
 GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
-    name="google-workspace-mcp",
-    package="workspace-mcp",
+    name="gworkspace-mcp",  # Canonical service name (matches package)
+    package="gworkspace-mcp",  # PyPI package name
     install_method=InstallMethod.UVX,
-    command="uvx",
-    args=["workspace-mcp", "--tool-tier", "core"],
+    command="gworkspace-mcp",  # Entry point command (installed by package)
+    args=[],  # No additional args needed (tool-tier removed)
     required_env=["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
     optional_env=[
         "OAUTHLIB_INSECURE_TRANSPORT",
@@ -228,6 +281,36 @@ GOOGLE_WORKSPACE_MCP = MCPServiceDefinition(
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/documents",
         "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/tasks",
+    ],
+)
+
+# Slack User Proxy - Internal MCP server for Slack user token operations
+SLACK_USER_PROXY = MCPServiceDefinition(
+    name="slack-user-proxy",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="slack-user-proxy",
+    args=[],
+    required_env=["SLACK_OAUTH_CLIENT_ID", "SLACK_OAUTH_CLIENT_SECRET"],
+    optional_env=[],
+    description="Slack user proxy for channels, messages, DMs, and search",
+    enabled_by_default=False,
+    oauth_provider="slack",
+    oauth_scopes=[
+        "channels:read",
+        "channels:history",
+        "groups:read",
+        "groups:history",
+        "im:read",
+        "im:history",
+        "mpim:read",
+        "mpim:history",
+        "chat:write",
+        "users:read",
+        "users:read.email",
+        "team:read",
+        "search:read",
     ],
 )
 
@@ -273,6 +356,47 @@ MCP_SKILLSET = MCPServiceDefinition(
     enabled_by_default=True,
 )
 
+# Notion MCP - Official Notion integration
+# Package: https://www.npmjs.com/package/@notionhq/notion-mcp-server
+NOTION_MCP = MCPServiceDefinition(
+    name="notion-mcp",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="notion-mcp",
+    args=[],
+    required_env=["NOTION_API_KEY"],
+    optional_env=["NOTION_DATABASE_ID"],
+    description="Notion integration for databases, pages, and content with markdown import",
+    enabled_by_default=False,
+)
+
+# Confluence - Internal MCP server for Confluence operations
+CONFLUENCE_MCP = MCPServiceDefinition(
+    name="confluence-mcp",
+    package=None,  # Internal server
+    install_method=InstallMethod.INTERNAL,
+    command="confluence-mcp",
+    args=[],
+    required_env=["CONFLUENCE_URL", "CONFLUENCE_EMAIL", "CONFLUENCE_API_TOKEN"],
+    optional_env=[],
+    description="Confluence integration for pages, spaces, and content with markdown import",
+    enabled_by_default=False,
+)
+
+# MCP LSP - Language Server Protocol integration for code intelligence
+# Package: https://www.npmjs.com/package/@axivo/mcp-lsp
+MCP_LSP = MCPServiceDefinition(
+    name="mcp-lsp",
+    package="@axivo/mcp-lsp",
+    install_method=InstallMethod.NPX,
+    command="npx",
+    args=["-y", "@axivo/mcp-lsp"],
+    required_env=["LSP_FILE_PATH"],
+    optional_env=[],
+    description="Language Server Protocol integration for code intelligence (40+ tools)",
+    enabled_by_default=False,
+)
+
 
 # Register all services
 def _register_builtin_services() -> None:
@@ -282,9 +406,13 @@ def _register_builtin_services() -> None:
         MCP_TICKETER,
         MCP_VECTOR_SEARCH,
         GOOGLE_WORKSPACE_MCP,
+        SLACK_USER_PROXY,
         MCP_GITHUB,
         MCP_FILESYSTEM,
         MCP_SKILLSET,
+        NOTION_MCP,
+        CONFLUENCE_MCP,
+        MCP_LSP,
     ]
     for service in services:
         MCPServiceRegistry.register(service)

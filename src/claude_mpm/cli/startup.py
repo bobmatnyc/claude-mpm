@@ -84,10 +84,10 @@ def cleanup_user_level_hooks() -> bool:
 
 
 def sync_hooks_on_startup(quiet: bool = False) -> bool:
-    """Ensure hooks are up-to-date on startup.
+    """Sync hooks on startup if not already installed.
 
     WHY: Users can have stale hook configurations in settings.json that cause errors.
-    Reinstalling hooks ensures the hook format matches the current code.
+    This ensures hooks exist without reinstalling on every startup (which causes lock conflicts).
 
     DESIGN DECISION: Shows brief status message on success for user awareness.
     Failures are logged but don't prevent startup to ensure claude-mpm
@@ -127,8 +127,14 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         if is_tty:
             print("Installing project hooks...", end=" ", flush=True)
 
-        # Reinstall hooks (force=True ensures update)
-        success = installer.install_hooks(force=True)
+        # Check if hooks need installation
+        status = installer.get_status()
+        if not status.get("installed", False):
+            # Hooks not installed, install them now
+            success = installer.install_hooks(force=False)
+        else:
+            # Hooks already installed, skip reinstall to avoid file lock conflicts
+            success = True
 
         if is_tty:
             if success:
@@ -312,8 +318,12 @@ def should_skip_background_services(args, processed_argv):
     """
     Determine if background services should be skipped for this command.
 
-    WHY: Some commands (help, version, configure, doctor, oauth) don't need
+    WHY: Some commands (help, version, configure, doctor, oauth, setup, slack) don't need
     background services and should start faster.
+
+    IMPORTANT: Setup commands (setup, slack, oauth) MUST run before Claude Code launches.
+    These commands configure services and dependencies needed by Claude Code itself.
+    Running them after launch is too late and causes setup to fail.
 
     NOTE: Headless mode with --resume skips background services because:
     - Each claude-mpm call is a NEW process (orchestrators like Vibe Kanban)
@@ -350,6 +360,9 @@ def should_skip_background_services(args, processed_argv):
             "hook-errors",
             "autotodos",
             "oauth",
+            "setup",
+            "slack",
+            "tools",
         ]
     )
 
@@ -1542,6 +1555,37 @@ def sync_deployment_on_startup(force_sync: bool = False) -> None:
     show_agent_summary()  # Display agent counts after deployment
 
 
+def generate_dynamic_domain_authority_skills():
+    """Generate dynamic skills for agent and tool selection.
+
+    WHY: PM needs up-to-date information about available agents and configured
+    tools to make intelligent delegation decisions. These skills are regenerated
+    on every startup to reflect current system state.
+
+    Generated Skills:
+    - mpm-select-agents.md: Lists all available agents with capabilities
+    - mpm-select-tools.md: Lists all configured MCP/CLI tools with help text
+
+    Location: ~/.claude-mpm/skills/dynamic/
+    """
+    try:
+        from claude_mpm.services.dynamic_skills_generator import (
+            DynamicSkillsGenerator,
+        )
+
+        generator = DynamicSkillsGenerator()
+        generator.generate_all()
+    except Exception as e:
+        # Non-fatal: Skills will fall back to existing or manual selection
+        import sys
+
+        print(
+            f"Warning: Could not generate dynamic domain authority skills: {e}",
+            file=sys.stderr,
+        )
+
+
+
 def run_background_services(force_sync: bool = False, headless: bool = False):
     """
     Initialize all background services on startup.
@@ -1554,15 +1598,15 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
     file creation in project .claude/ directories.
     See: SystemInstructionsDeployer and agent_deployment.py line 504-509
 
+    NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
+    This allows migration results to be displayed in the startup banner
+    See: cli/__init__.py lines 77-83
+
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
         headless: If True, redirect stdout to stderr during startup.
                   This keeps stdout clean for JSON streaming in headless mode.
     """
-    # NOTE: Startup migrations now run in cli/__init__.py BEFORE the banner
-    # This allows migration results to be displayed in the startup banner
-    # See: cli/__init__.py lines 77-83
-
     # Wrap all startup operations in quiet_startup_context for headless mode
     # This redirects stdout to stderr, keeping stdout clean for JSON output
     with quiet_startup_context(headless=headless):
@@ -1587,9 +1631,14 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         )  # Override layer: Git-based skills (takes precedence)
         discover_and_link_runtime_skills()  # Discovery: user-added skills
         show_skill_summary()  # Display skill counts after deployment
+
+        # Generate dynamic domain authority skills for PM
+        generate_dynamic_domain_authority_skills()
+
         verify_and_show_pm_skills()  # PM skills verification and status
 
         deploy_output_style_on_startup()
+
 
         # Auto-install chrome-devtools-mcp for browser automation
         auto_install_chrome_devtools_on_startup()
@@ -1671,15 +1720,23 @@ def check_mcp_auto_configuration():
     a 10-second timeout. Shows progress feedback during checks to avoid
     appearing frozen.
 
-    OPTIMIZATION: Skip ALL MCP checks for doctor and configure commands to avoid
-    duplicate checks (doctor performs its own comprehensive check, configure
-    allows users to select services).
+    OPTIMIZATION: Skip ALL MCP checks for doctor, configure, and setup commands to
+    avoid conflicts (doctor performs its own comprehensive check, configure allows
+    users to select services, setup has exclusive control over .mcp.json during
+    installation).
     """
-    # Skip MCP service checks for the doctor and configure commands
+    # Check if auto-config should be skipped via environment variable
+    # (set by configure command when launching run)
+    if os.getenv("CLAUDE_MPM_SKIP_AUTO_CONFIG") == "1":
+        os.environ.pop("CLAUDE_MPM_SKIP_AUTO_CONFIG", None)  # Clear immediately
+        return
+
+    # Skip MCP service checks for the doctor, configure, and setup commands
     # The doctor command performs its own comprehensive MCP service check
     # The configure command allows users to configure which services to enable
-    # Running both would cause duplicate checks and log messages (9 seconds apart)
-    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure"):
+    # The setup command installs MCP servers with exclusive control over .mcp.json
+    # Running auto-configuration during these commands would cause conflicts
+    if len(sys.argv) > 1 and sys.argv[1] in ("doctor", "configure", "setup"):
         return
 
     try:

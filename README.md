@@ -36,9 +36,14 @@ Claude MPM transforms Claude Code into a **comprehensive AI development platform
 - **44+ Bundled Skills** - TDD, debugging, Docker, API design, security scanning, Git workflows
 - **Progressive Disclosure** - Skills load on-demand to optimize context usage
 - **Three-Tier Organization** - Bundled → User → Project priority resolution
+- **Domain Authority System** - Auto-generated agent/tool discovery skills for intelligent PM delegation
+- **Skills Optimization** - Intelligent project analysis with automated skill recommendations
 
 ### 🔌 MCP Integration (Model Context Protocol)
 - **Google Workspace MCP** - 34 tools for Gmail, Calendar, Drive, Docs, Tasks
+- **Notion** - 7 tools + bulk operations for databases, pages, markdown import
+- **Confluence** - 7 tools + bulk operations for pages, spaces, CQL search
+- **Slack** - User proxy for channels, messages, DMs, search
 - **Semantic Code Search** - AI-powered code discovery via mcp-vector-search
 - **Ticket Management** - GitHub, Linear, Jira integration via mcp-ticketer
 - **Graph Memory** - Persistent project knowledge via kuzu-memory
@@ -201,13 +206,14 @@ uv tool install mcp-browser --python 3.13
 
 ### 🔌 Advanced Integration
 - **MCP Integration** with full Model Context Protocol support
+- **MCP Session Server** (`mpm-session-server`) for programmatic session management
 - **Real-Time Monitoring** via `--monitor` flag and web dashboard
 - **Multi-Project Support** with per-session working directories
 - **Git Integration** with diff viewing and change tracking
 
-[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md)
+[→ Learn more: MCP Gateway](docs/developer/13-mcp-gateway/README.md) | [→ MCP Session Server](docs/mcp-session-server.md)
 
-### 🔐 OAuth & Google Workspace Integration
+### 🔐 External Integrations
 - **Browser-Based OAuth** for secure authentication with MCP services
 - **Google Workspace MCP** built-in server with **34 tools** for:
   - **Gmail** (5 tools): Search, read, send, draft, reply
@@ -215,12 +221,30 @@ uv tool install mcp-browser --python 3.13
   - **Drive** (7 tools): Search, read, create folders, upload, delete, move files
   - **Docs** (4 tools): Create, read, append, markdown-to-doc conversion
   - **Tasks** (12 tools): Full task and task list management
+- **Notion MCP** built-in server with **7 tools** + bulk operations:
+  - Query databases, get/create/update pages, search, markdown import
+  - Setup: `claude-mpm setup notion`
+- **Confluence MCP** built-in server with **7 tools** + bulk operations:
+  - Get/create/update pages, search with CQL, list spaces, markdown import
+  - Setup: `claude-mpm setup confluence`
+- **Slack MCP** user proxy with **12 tools**:
+  - Channels, messages, DMs, search - acts as authenticated user
+  - Setup: `claude-mpm setup slack`
 - **Encrypted Token Storage** using Fernet encryption with system keychain
 - **Automatic Token Refresh** handles expiration seamlessly
 
 ```bash
 # Set up Google Workspace OAuth
 claude-mpm oauth setup workspace-mcp
+
+# Set up Notion (API token)
+claude-mpm setup notion
+
+# Set up Confluence (URL + API token)
+claude-mpm setup confluence
+
+# Set up Slack (OAuth user token)
+claude-mpm setup slack
 
 # Check token status
 claude-mpm oauth status workspace-mcp
@@ -229,7 +253,7 @@ claude-mpm oauth status workspace-mcp
 claude-mpm oauth list
 ```
 
-[→ Learn more: OAuth Setup Guide](docs/guides/oauth-setup.md)
+[→ Google Workspace Setup](docs/guides/oauth-setup.md) | [→ Notion Setup](docs/integrations/NOTION_SETUP.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md)
 
 ### ⚡ Performance & Security
 - **Simplified Architecture** with ~3,700 lines removed for better performance
@@ -377,6 +401,51 @@ claude-mpm agent-source add https://github.com/yourorg/your-agents --test
 - **[🚀 Deployment](docs/DEPLOYMENT.md)** - Release management & versioning
 - **[📊 Monitoring](docs/MONITOR.md)** - Real-time dashboard & metrics
 - **[🐛 Troubleshooting](docs/TROUBLESHOOTING.md)** - Enhanced `doctor` command with auto-fix
+
+---
+
+## Integrations
+
+Claude MPM supports multiple integrations for enhanced functionality. See **[Complete Integration Documentation](docs/integrations/README.md)** for detailed setup guides.
+
+### Core Integrations
+
+- **[kuzu-memory](docs/integrations/kuzu-memory.md)** - Graph-based semantic memory for project context
+- **[mcp-vector-search](docs/integrations/mcp-vector-search.md)** - AI-powered semantic code search and discovery
+
+### External Services
+
+- **[Google Workspace MCP](docs/integrations/gworkspace-mcp.md)** - Gmail, Calendar, Drive, Docs, Tasks (67 tools)
+- **[Slack](docs/integrations/slack.md)** - Slack workspace integration via user proxy
+- **[Notion](docs/integrations/NOTION_SETUP.md)** - Notion databases and pages (7 MCP tools + bulk CLI)
+- **[Confluence](docs/integrations/CONFLUENCE_SETUP.md)** - Confluence pages and spaces (7 MCP tools + bulk CLI)
+
+### Quick Setup
+
+```bash
+# Setup any integration with one command
+claude-mpm setup <integration>
+
+# Examples:
+claude-mpm setup kuzu-memory
+claude-mpm setup mcp-vector-search
+claude-mpm setup gworkspace-mcp         # Canonical name (preferred)
+claude-mpm setup google-workspace-mcp   # Legacy alias (also works)
+claude-mpm setup slack
+claude-mpm setup notion
+claude-mpm setup confluence
+
+# Setup multiple at once
+claude-mpm setup kuzu-memory mcp-vector-search gworkspace-mcp
+```
+
+**Integration Features:**
+- One-command setup for all services
+- Secure OAuth 2.0 authentication (Google Workspace, Slack)
+- Encrypted token storage in system keychain
+- Automatic token refresh
+- MCP protocol for standardized tool interfaces
+- Bulk CLI operations for high-performance batch processing
 
 ---
 

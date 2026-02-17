@@ -56,10 +56,16 @@ class TestTicketsCommand:
             error = self.command.validate_args(args)
             assert error is None, f"Command {cmd} should be valid"
 
-    @patch("claude_mpm.cli.commands.tickets.create_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.create_ticket"
+    )
     def test_create_ticket_success(self, mock_create):
         """Test successful ticket creation."""
-        mock_create.return_value = 0
+        mock_create.return_value = {
+            "success": True,
+            "ticket_id": "TSK-001",
+            "message": "Created ticket: TSK-001",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.CREATE.value,
@@ -77,13 +83,17 @@ class TestTicketsCommand:
 
         assert result.success is True
         assert result.exit_code == 0
-        assert "Ticket created successfully" in result.message
-        mock_create.assert_called_once_with(args)
+        assert "Created ticket: TSK-001" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.create_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.create_ticket"
+    )
     def test_create_ticket_failure(self, mock_create):
         """Test failed ticket creation."""
-        mock_create.return_value = 1
+        mock_create.return_value = {
+            "success": False,
+            "error": "Failed to create ticket: validation error",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.CREATE.value,
@@ -92,6 +102,8 @@ class TestTicketsCommand:
             priority="medium",
             description=[],
             tags="",
+            parent_epic=None,
+            parent_issue=None,
             verbose=False,
         )
 
@@ -101,10 +113,15 @@ class TestTicketsCommand:
         assert result.exit_code == 1
         assert "Failed to create ticket" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.list_tickets_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.list_tickets"
+    )
     def test_list_tickets_success(self, mock_list):
         """Test successful ticket listing."""
-        mock_list.return_value = 0
+        mock_list.return_value = {
+            "success": True,
+            "tickets": [{"id": "TSK-001", "title": "Test ticket"}],
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.LIST.value,
@@ -120,12 +137,24 @@ class TestTicketsCommand:
 
         assert result.success is True
         assert "Tickets listed successfully" in result.message
-        mock_list.assert_called_once_with(args)
 
-    @patch("claude_mpm.cli.commands.tickets.view_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.get_ticket"
+    )
     def test_view_ticket_success(self, mock_view):
         """Test successful ticket viewing."""
-        mock_view.return_value = 0
+        mock_view.return_value = {
+            "id": "TSK-001",
+            "title": "Test ticket",
+            "status": "open",
+            "priority": "medium",
+            "metadata": {"ticket_type": "task"},
+            "tags": [],
+            "assignees": [],
+            "description": "Test description",
+            "created_at": "2024-01-01T00:00:00",
+            "updated_at": "2024-01-01T00:00:00",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.VIEW.value, ticket_id="TSK-001", verbose=True
@@ -135,12 +164,16 @@ class TestTicketsCommand:
 
         assert result.success is True
         assert "Ticket viewed successfully" in result.message
-        mock_view.assert_called_once_with(args)
 
-    @patch("claude_mpm.cli.commands.tickets.update_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.update_ticket"
+    )
     def test_update_ticket_success(self, mock_update):
         """Test successful ticket update."""
-        mock_update.return_value = 0
+        mock_update.return_value = {
+            "success": True,
+            "message": "Updated ticket: TSK-001",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.UPDATE.value,
@@ -155,13 +188,14 @@ class TestTicketsCommand:
         result = self.command.run(args)
 
         assert result.success is True
-        assert "Ticket updated successfully" in result.message
-        mock_update.assert_called_once_with(args)
+        assert "Updated ticket: TSK-001" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.close_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.close_ticket"
+    )
     def test_close_ticket_success(self, mock_close):
         """Test successful ticket closure."""
-        mock_close.return_value = 0
+        mock_close.return_value = {"success": True, "message": "Closed ticket: TSK-001"}
 
         args = Namespace(
             tickets_command=TicketCommands.CLOSE.value,
@@ -172,13 +206,17 @@ class TestTicketsCommand:
         result = self.command.run(args)
 
         assert result.success is True
-        assert "Ticket closed successfully" in result.message
-        mock_close.assert_called_once_with(args)
+        assert "Closed ticket: TSK-001" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.delete_ticket_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.delete_ticket"
+    )
     def test_delete_ticket_success(self, mock_delete):
         """Test successful ticket deletion."""
-        mock_delete.return_value = 0
+        mock_delete.return_value = {
+            "success": True,
+            "message": "Deleted ticket: TSK-001",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.DELETE.value, ticket_id="TSK-001", force=True
@@ -187,13 +225,14 @@ class TestTicketsCommand:
         result = self.command.run(args)
 
         assert result.success is True
-        assert "Ticket deleted successfully" in result.message
-        mock_delete.assert_called_once_with(args)
+        assert "Deleted ticket: TSK-001" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.search_tickets_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.search_service.TicketSearchService.search_tickets"
+    )
     def test_search_tickets_success(self, mock_search):
         """Test successful ticket search."""
-        mock_search.return_value = 0
+        mock_search.return_value = [{"id": "TSK-001", "title": "Bug in login"}]
 
         args = Namespace(
             tickets_command=TicketCommands.SEARCH.value,
@@ -207,12 +246,16 @@ class TestTicketsCommand:
 
         assert result.success is True
         assert "Tickets searched successfully" in result.message
-        mock_search.assert_called_once_with(args)
 
-    @patch("claude_mpm.cli.commands.tickets.add_comment_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.workflow_service.TicketWorkflowService.add_comment"
+    )
     def test_add_comment_success(self, mock_comment):
         """Test successful comment addition."""
-        mock_comment.return_value = 0
+        mock_comment.return_value = {
+            "success": True,
+            "message": "Added comment to ticket: TSK-001",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.COMMENT.value,
@@ -223,13 +266,17 @@ class TestTicketsCommand:
         result = self.command.run(args)
 
         assert result.success is True
-        assert "Comment added successfully" in result.message
-        mock_comment.assert_called_once_with(args)
+        assert "Added comment to ticket: TSK-001" in result.message
 
-    @patch("claude_mpm.cli.commands.tickets.update_workflow_legacy")
+    @patch(
+        "claude_mpm.services.ticket_services.workflow_service.TicketWorkflowService.transition_ticket"
+    )
     def test_update_workflow_success(self, mock_workflow):
         """Test successful workflow update."""
-        mock_workflow.return_value = 0
+        mock_workflow.return_value = {
+            "success": True,
+            "message": "Transitioned ticket TSK-001 to ready",
+        }
 
         args = Namespace(
             tickets_command=TicketCommands.WORKFLOW.value,
@@ -241,8 +288,7 @@ class TestTicketsCommand:
         result = self.command.run(args)
 
         assert result.success is True
-        assert "Workflow updated successfully" in result.message
-        mock_workflow.assert_called_once_with(args)
+        assert "Transitioned ticket TSK-001 to ready" in result.message
 
     def test_run_exception_handling(self):
         """Test exception handling in run method."""
@@ -449,42 +495,44 @@ class TestTicketLegacyFunctions:
         mock_subprocess.assert_called_once()
         mock_print.assert_called_with("✅ Updated ticket: TSK-001")
 
-    @patch("subprocess.run")
-    def test_delete_ticket_legacy_with_confirmation(self, mock_subprocess):
+    @patch("sys.stdin.isatty", return_value=True)
+    @patch("builtins.input", return_value="y")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.delete_ticket"
+    )
+    def test_delete_ticket_legacy_with_confirmation(
+        self, mock_delete, mock_input, mock_isatty
+    ):
         """Test ticket deletion with user confirmation."""
         from claude_mpm.cli.commands.tickets import delete_ticket_legacy
 
-        mock_subprocess.return_value = Mock()
+        mock_delete.return_value = {
+            "success": True,
+            "message": "Deleted ticket: TSK-001",
+        }
 
         args = Namespace(ticket_id="TSK-001", force=False)
-
-        with patch("builtins.input", return_value="y"):
-            with patch("builtins.print") as mock_print:
-                result = delete_ticket_legacy(args)
+        result = delete_ticket_legacy(args)
 
         assert result == 0
-        mock_subprocess.assert_called_once_with(
-            ["aitrackdown", "delete", "TSK-001"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        mock_print.assert_called_with("✅ Deleted ticket: TSK-001")
+        mock_input.assert_called_once()
+        mock_delete.assert_called_once_with("TSK-001", False)
 
-    @patch("subprocess.run")
-    def test_delete_ticket_legacy_cancelled(self, mock_subprocess):
+    @patch("sys.stdin.isatty", return_value=True)
+    @patch("builtins.input", return_value="n")
+    @patch(
+        "claude_mpm.services.ticket_services.crud_service.TicketCRUDService.delete_ticket"
+    )
+    def test_delete_ticket_legacy_cancelled(self, mock_delete, mock_input, mock_isatty):
         """Test ticket deletion cancelled by user."""
         from claude_mpm.cli.commands.tickets import delete_ticket_legacy
 
         args = Namespace(ticket_id="TSK-001", force=False)
-
-        with patch("builtins.input", return_value="n"):
-            with patch("builtins.print") as mock_print:
-                result = delete_ticket_legacy(args)
+        result = delete_ticket_legacy(args)
 
         assert result == 0
-        mock_subprocess.assert_not_called()
-        mock_print.assert_called_with("Deletion cancelled")
+        mock_delete.assert_not_called()
+        mock_input.assert_called_once()
 
     @patch("claude_mpm.services.ticket_manager.TicketManager")
     def test_search_tickets_legacy_success(self, mock_manager_class):

@@ -25,7 +25,6 @@ Trade-offs:
 """
 
 import logging
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -34,6 +33,9 @@ from claude_mpm.config.agent_sources import AgentSourceConfiguration
 from claude_mpm.models.git_repository import GitRepository
 from claude_mpm.services.agents.deployment.remote_agent_discovery_service import (
     RemoteAgentDiscoveryService,
+)
+from claude_mpm.services.agents.deployment_utils import (
+    deploy_agent_file,
 )
 from claude_mpm.services.agents.git_source_manager import GitSourceManager
 
@@ -653,7 +655,12 @@ class SingleTierDeploymentService:
     def _deploy_agent_file(self, agent: Dict[str, Any]) -> bool:
         """Deploy a single agent file to deployment directory.
 
-        Copies the agent Markdown file from cache to .claude/agents/
+        Uses the unified deploy_agent_file() function from deployment_utils
+        to ensure consistent behavior across all deployment paths.
+
+        Phase 3 Fix (Issue #299): Delegates to shared deployment function.
+        This ensures identical behavior between SingleTierDeploymentService
+        and GitSourceSyncService.
 
         Args:
             agent: Agent dictionary with source_file path
@@ -663,25 +670,30 @@ class SingleTierDeploymentService:
 
         Error Handling:
         - Returns False if source file doesn't exist
-        - Returns False if copy operation fails
+        - Returns False if deployment fails
         - Logs all errors for debugging
         """
         try:
             # Get source file path
             source_file = Path(agent.get("source_file", ""))
-            if not source_file.exists():
-                logger.error(f"Source file does not exist: {source_file}")
-                return False
 
-            # Build target filename using agent_id
-            agent_id = agent.get("agent_id", "unknown")
-            target_file = self.deployment_dir / f"{agent_id}.md"
+            # Phase 3: Use unified deploy_agent_file() function
+            result = deploy_agent_file(
+                source_file=source_file,
+                deployment_dir=self.deployment_dir,
+                cleanup_legacy=True,
+                ensure_frontmatter=True,
+                force=False,
+            )
 
-            # Copy file
-            shutil.copy2(source_file, target_file)
-
-            logger.debug(f"Deployed {source_file.name} to {target_file}")
-            return True
+            if result.success:
+                logger.debug(
+                    f"Deployed {source_file.name} to {result.deployed_path} "
+                    f"(action: {result.action})"
+                )
+                return True
+            logger.error(f"Failed to deploy agent file: {result.error}")
+            return False
 
         except Exception as e:
             logger.error(f"Failed to deploy agent file: {e}")

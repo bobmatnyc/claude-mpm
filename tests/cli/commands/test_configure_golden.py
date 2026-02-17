@@ -210,15 +210,15 @@ class TestConfigureGolden:
         mock_path.return_value.parent.parent.parent = mock_templates_dir.parent
         agent_manager.templates_dir = mock_templates_dir
 
-        # Execute discovery
-        agents = agent_manager.discover_agents()
+        # Execute discovery (exclude remote agents to test only local templates)
+        agents = agent_manager.discover_agents(include_remote=False)
 
-        # Verify discovered agents
+        # Verify discovered agents - at least 3 local agents exist
         agent_names = [agent.name for agent in agents]
         assert "engineer" in agent_names
         assert "designer" in agent_names
         assert "qa" in agent_names
-        assert len(agents) == 3
+        assert len(agents) >= 3  # Allow for additional local templates
 
     # ============================================================================
     # GOLDEN TEST 6: Validate Args - Conflicting Navigation

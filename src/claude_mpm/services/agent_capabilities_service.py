@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 """Agent capabilities service for discovering and generating agent capability descriptions.
 
@@ -28,6 +29,50 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
+
+    def get_all_agents(self) -> dict[str, dict[str, Any]]:
+        """Get all discovered agents with their metadata.
+
+        Returns:
+            Dictionary mapping agent IDs to agent metadata containing:
+            - id: Agent identifier
+            - name: Human-readable agent name
+            - description: Agent description
+            - category: Agent category (Development, Research, etc.)
+            - tier: Agent tier (project, user, or system)
+            - path: Path to agent file
+        """
+        agents = {}
+
+        # Discover from all agent directories following precedence order
+        # 1. System agents (lowest priority)
+        system_agents_dirs = [
+            Path.home() / ".claude" / "agents",  # Claude MPM system agents
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Claude"
+            / "agents",  # macOS
+            Path.home() / ".config" / "claude" / "agents",  # Linux
+            Path.home() / "AppData" / "Roaming" / "Claude" / "agents",  # Windows
+        ]
+
+        for system_dir in system_agents_dirs:
+            if system_dir.exists():
+                self._discover_agents_from_dir(system_dir, agents, "system")
+                break
+
+        # 2. User agents (middle priority, overrides system)
+        user_agents_dir = Path.home() / ".config" / "claude" / "agents"
+        if user_agents_dir.exists():
+            self._discover_agents_from_dir(user_agents_dir, agents, "user")
+
+        # 3. Project agents (highest priority, overrides all)
+        project_agents_dir = Path.cwd() / ".claude" / "agents"
+        if project_agents_dir.exists():
+            self._discover_agents_from_dir(project_agents_dir, agents, "project")
+
+        return agents
 
     def generate_agent_capabilities(self, agent_type: str = "general") -> str:
         """Generate formatted agent capabilities for Claude.

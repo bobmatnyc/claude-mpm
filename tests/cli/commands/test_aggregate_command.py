@@ -5,15 +5,16 @@ WHY: The aggregate command manages event aggregation for monitoring and analytic
 This is important for system observability and debugging.
 
 DESIGN DECISIONS:
-- Test event collection and aggregation
-- Mock event sources to control test data
-- Test filtering and query capabilities
-- Verify output formatting options
-- Test real-time vs batch aggregation
+- Test the actual AggregateCommand implementation
+- Mock the legacy command functions that do the real work
+- Test validation and routing logic
+- Verify CommandResult handling
 """
 
 from argparse import Namespace
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+import pytest
 
 from claude_mpm.cli.commands.aggregate import AggregateCommand
 from claude_mpm.cli.shared.base_command import CommandResult
@@ -26,14 +27,24 @@ class TestAggregateCommand:
         """Set up test fixtures."""
         self.command = AggregateCommand()
 
-    def test_validate_args_default():
-        """Test validation with default args."""
-        args = Namespace(aggregate_subcommand="status", format="text")
-        error = self.command.validate_args(args)
-        assert error is None
+    def test_init(self):
+        """Test command initialization."""
+        assert self.command.command_name == "aggregate"
 
-    def test_validate_args_valid_commands():
-        """Test validation with valid aggregate commands."""
+    def test_validate_args_missing_subcommand(self):
+        """Test validation when subcommand is missing."""
+        args = Namespace()
+        error = self.command.validate_args(args)
+        assert error == "No aggregate subcommand specified"
+
+    def test_validate_args_none_subcommand(self):
+        """Test validation when subcommand is None."""
+        args = Namespace(aggregate_subcommand=None)
+        error = self.command.validate_args(args)
+        assert error == "No aggregate subcommand specified"
+
+    def test_validate_args_valid_subcommands(self):
+        """Test validation with valid aggregate subcommands."""
         valid_commands = ["start", "stop", "status", "sessions", "view", "export"]
 
         for cmd in valid_commands:
@@ -41,310 +52,213 @@ class TestAggregateCommand:
             error = self.command.validate_args(args)
             assert error is None, f"Command {cmd} should be valid"
 
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_status_command(self):
-        """Test status command showing aggregator status."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
-        mock_aggregator.is_running.return_value = True
-        mock_aggregator.get_stats.return_value = {
-            "events_collected": 1000,
-            "start_time": "2024-01-01 12:00:00",
-            "uptime": "2 hours",
-        }
+    def test_validate_args_invalid_subcommand(self):
+        """Test validation with invalid subcommand."""
+        args = Namespace(aggregate_subcommand="invalid")
+        error = self.command.validate_args(args)
+        assert "Unknown aggregate command: invalid" in error
+        assert "Valid commands:" in error
 
-        args = Namespace(aggregate_command="status", format="json")
+    @patch("claude_mpm.cli.commands.aggregate.start_command_legacy")
+    def test_run_start_command_success(self, mock_start):
+        """Test running the start subcommand successfully."""
+        mock_start.return_value = 0
+        args = Namespace(aggregate_subcommand="start")
 
-        with patch.object(self.command, "_show_status") as mock_show:
-            mock_show.return_value = CommandResult.success_result(
-                "Aggregator is running",
-                data={
-                    "running": True,
-                    "stats": {
-                        "events_collected": 1000,
-                        "start_time": "2024-01-01 12:00:00",
-                        "uptime": "2 hours",
-                    },
-                },
-            )
+        result = self.command.run(args)
 
-            result = self.command.run(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "start completed successfully" in result.message
+        mock_start.assert_called_once_with(args)
 
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            assert result.data["running"] is True
-            mock_show.assert_called_once_with(args)
+    @patch("claude_mpm.cli.commands.aggregate.start_command_legacy")
+    def test_run_start_command_failure(self, mock_start):
+        """Test running the start subcommand with failure."""
+        mock_start.return_value = 1
+        args = Namespace(aggregate_subcommand="start")
 
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_start_command(self):
-        """Test starting the aggregator."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
-        mock_aggregator.start.return_value = True
+        result = self.command.run(args)
 
+        assert isinstance(result, CommandResult)
+        assert result.success is False
+        assert "start failed" in result.message
+
+    @patch("claude_mpm.cli.commands.aggregate.stop_command_legacy")
+    def test_run_stop_command_success(self, mock_stop):
+        """Test running the stop subcommand successfully."""
+        mock_stop.return_value = 0
+        args = Namespace(aggregate_subcommand="stop")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "stop completed successfully" in result.message
+        mock_stop.assert_called_once_with(args)
+
+    @patch("claude_mpm.cli.commands.aggregate.status_command_legacy")
+    def test_run_status_command_success(self, mock_status):
+        """Test running the status subcommand successfully."""
+        mock_status.return_value = 0
+        args = Namespace(aggregate_subcommand="status")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "status completed successfully" in result.message
+        mock_status.assert_called_once_with(args)
+
+    @patch("claude_mpm.cli.commands.aggregate.sessions_command_legacy")
+    def test_run_sessions_command_success(self, mock_sessions):
+        """Test running the sessions subcommand successfully."""
+        mock_sessions.return_value = 0
+        args = Namespace(aggregate_subcommand="sessions")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "sessions completed successfully" in result.message
+        mock_sessions.assert_called_once_with(args)
+
+    @patch("claude_mpm.cli.commands.aggregate.view_command_legacy")
+    def test_run_view_command_success(self, mock_view):
+        """Test running the view subcommand successfully."""
+        mock_view.return_value = 0
+        args = Namespace(aggregate_subcommand="view", session_id="test123")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "view completed successfully" in result.message
+        mock_view.assert_called_once_with(args)
+
+    @patch("claude_mpm.cli.commands.aggregate.view_command_legacy")
+    def test_run_view_command_not_found(self, mock_view):
+        """Test running view when session is not found."""
+        mock_view.return_value = 1
+        args = Namespace(aggregate_subcommand="view", session_id="nonexistent")
+
+        result = self.command.run(args)
+
+        assert isinstance(result, CommandResult)
+        assert result.success is False
+        assert "view failed" in result.message
+
+    @patch("claude_mpm.cli.commands.aggregate.export_command_legacy")
+    def test_run_export_command_success(self, mock_export):
+        """Test running the export subcommand successfully."""
+        mock_export.return_value = 0
         args = Namespace(
-            aggregate_command="start", background=True, port=8090, format="text"
-        )
-
-        with patch.object(self.command, "_start_aggregator") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Aggregator started", data={"port": 8090, "pid": 12345}
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_start.assert_called_once_with(args)
-
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_stop_command(self):
-        """Test stopping the aggregator."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
-        mock_aggregator.stop.return_value = True
-
-        args = Namespace(aggregate_command="stop", force=False, format="text")
-
-        with patch.object(self.command, "_stop_aggregator") as mock_stop:
-            mock_stop.return_value = CommandResult.success_result("Aggregator stopped")
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_stop.assert_called_once_with(args)
-
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_collect_command(self):
-        """Test collecting events."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
-        mock_aggregator.collect_events.return_value = [
-            {"timestamp": "2024-01-01 12:00:00", "event": "test_event", "data": {}},
-            {"timestamp": "2024-01-01 12:00:01", "event": "another_event", "data": {}},
-        ]
-
-        args = Namespace(
-            aggregate_command="collect", source="all", interval=60, format="json"
-        )
-
-        with patch.object(self.command, "_collect_events") as mock_collect:
-            mock_collect.return_value = CommandResult.success_result(
-                "Events collected",
-                data={
-                    "events_count": 2,
-                    "events": [
-                        {"timestamp": "2024-01-01 12:00:00", "event": "test_event"},
-                        {"timestamp": "2024-01-01 12:00:01", "event": "another_event"},
-                    ],
-                },
-            )
-
-            result = self.command.run(args)
-
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            assert result.data["events_count"] == 2
-            mock_collect.assert_called_once_with(args)
-
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_query_command(self):
-        """Test querying aggregated events."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
-
-        args = Namespace(
-            aggregate_command="query",
-            filter="event_type=error",
-            start_time="2024-01-01",
-            end_time="2024-01-02",
-            limit=100,
+            aggregate_subcommand="export",
+            session_id="test123",
+            output="/tmp/export.json",
             format="json",
         )
 
-        with patch.object(self.command, "_query_events") as mock_query:
-            mock_query.return_value = CommandResult.success_result(
-                "Query executed",
-                data={
-                    "query": "event_type=error",
-                    "results_count": 5,
-                    "results": [
-                        {
-                            "timestamp": "2024-01-01 13:00:00",
-                            "event": "error",
-                            "message": "Test error",
-                        }
-                    ]
-                    * 5,
-                },
-            )
+        result = self.command.run(args)
 
-            result = self.command.run(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "export completed successfully" in result.message
+        mock_export.assert_called_once_with(args)
 
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            assert result.data["results_count"] == 5
-            mock_query.assert_called_once_with(args)
+    def test_run_unknown_subcommand(self):
+        """Test running with an unknown subcommand."""
+        args = Namespace(aggregate_subcommand="unknown")
 
-    @patch("claude_mpm.cli.commands.aggregate.EventAggregator")
-    def test_run_clear_command(self):
-        """Test clearing aggregated data."""
-        mock_aggregator = Mock()
-        self.return_value = mock_aggregator
+        result = self.command.run(args)
 
-        args = Namespace(
-            aggregate_command="clear", before_date=None, force=True, format="text"
-        )
+        assert isinstance(result, CommandResult)
+        assert result.success is False
+        assert "Unknown aggregate command" in result.message
 
-        with patch.object(self.command, "_clear_data") as mock_clear:
-            mock_clear.return_value = CommandResult.success_result(
-                "Data cleared", data={"events_removed": 1000}
-            )
+    @patch("claude_mpm.cli.commands.aggregate.start_command_legacy")
+    def test_run_handles_exception(self, mock_start):
+        """Test that run handles exceptions gracefully."""
+        mock_start.side_effect = Exception("Test error")
+        args = Namespace(aggregate_subcommand="start")
 
-            result = self.command.run(args)
+        result = self.command.run(args)
 
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_clear.assert_called_once_with(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is False
+        assert "Error executing aggregate command" in result.message
 
-    def test_collect_with_filters():
-        """Test collecting events with filters."""
-        args = Namespace(
-            aggregate_subcommand="sessions",
-            source="hooks",
-            event_type="response",
-            min_duration=100,
-            format="json",
-        )
 
-        with patch.object(self.command, "_collect_events") as mock_collect:
-            mock_collect.return_value = CommandResult.success_result(
-                "Filtered events collected",
-                data={
-                    "filters_applied": [
-                        "source=hooks",
-                        "event_type=response",
-                        "min_duration=100",
-                    ],
-                    "events_count": 10,
-                },
-            )
+class TestAggregateCommandFunction:
+    """Test the aggregate_command entry point function."""
 
-            result = self.command.run(args)
+    @patch("claude_mpm.cli.commands.aggregate.AggregateCommand")
+    def test_aggregate_command_function(self, mock_command_class):
+        """Test the aggregate_command function."""
+        from claude_mpm.cli.commands.aggregate import aggregate_command
 
-            assert result.success is True
-            assert result.data["events_count"] == 10
+        mock_instance = mock_command_class.return_value
+        mock_result = CommandResult.success_result("Success")
+        mock_instance.execute.return_value = mock_result
 
-    def test_query_with_aggregation():
-        """Test query with aggregation functions."""
-        args = Namespace(
-            aggregate_command="query",
-            aggregate_by="event_type",
-            aggregate_func="count",
-            format="json",
-        )
+        args = Namespace(aggregate_subcommand="status", format="text")
 
-        with patch.object(self.command, "_query_events") as mock_query:
-            mock_query.return_value = CommandResult.success_result(
-                "Aggregated query results",
-                data={"aggregation": {"error": 50, "warning": 100, "info": 500}},
-            )
+        exit_code = aggregate_command(args)
 
-            result = self.command.run(args)
+        assert exit_code == 0
+        mock_instance.execute.assert_called_once_with(args)
 
-            assert result.success is True
-            assert result.data["aggregation"]["error"] == 50
 
-    def test_real_time_collection():
-        """Test real-time event collection."""
-        args = Namespace(
-            aggregate_command="collect",
-            real_time=True,
-            duration=10,  # Collect for 10 seconds
-            format="text",
-        )
+class TestLegacyCommandDispatcher:
+    """Test the legacy command dispatcher function."""
 
-        with patch.object(self.command, "_collect_realtime") as mock_collect:
-            mock_collect.return_value = CommandResult.success_result(
-                "Real-time collection completed",
-                data={"events_collected": 25, "duration": 10},
-            )
+    @patch("claude_mpm.cli.commands.aggregate.start_command_legacy")
+    def test_legacy_dispatcher_start(self, mock_start):
+        """Test legacy dispatcher routes to start command."""
+        from claude_mpm.cli.commands.aggregate import aggregate_command_legacy
 
-            result = self.command.run(args)
+        mock_start.return_value = 0
+        args = Namespace(aggregate_subcommand="start")
 
-            assert result.success is True
+        result = aggregate_command_legacy(args)
 
-    def test_export_aggregated_data():
-        """Test exporting aggregated data."""
-        args = Namespace(
-            aggregate_command="export", output_file="/tmp/events.json", format="json"
-        )
+        assert result == 0
+        mock_start.assert_called_once_with(args)
 
-        with patch.object(self.command, "_export_data") as mock_export:
-            mock_export.return_value = CommandResult.success_result(
-                "Data exported",
-                data={"file": "/tmp/events.json", "events_exported": 1000},
-            )
+    @patch("claude_mpm.cli.commands.aggregate.stop_command_legacy")
+    def test_legacy_dispatcher_stop(self, mock_stop):
+        """Test legacy dispatcher routes to stop command."""
+        from claude_mpm.cli.commands.aggregate import aggregate_command_legacy
 
-            result = self.command.run(args)
+        mock_stop.return_value = 0
+        args = Namespace(aggregate_subcommand="stop")
 
-            assert result.success is True
+        result = aggregate_command_legacy(args)
 
-    def test_aggregator_already_running():
-        """Test starting aggregator when already running."""
-        args = Namespace(aggregate_command="start", background=True, format="text")
+        assert result == 0
+        mock_stop.assert_called_once_with(args)
 
-        with patch.object(self.command, "_start_aggregator") as mock_start:
-            mock_start.return_value = CommandResult.error_result(
-                "Aggregator already running", data={"pid": 12345}
-            )
+    @patch("claude_mpm.cli.commands.aggregate.status_command_legacy")
+    def test_legacy_dispatcher_status(self, mock_status):
+        """Test legacy dispatcher routes to status command."""
+        from claude_mpm.cli.commands.aggregate import aggregate_command_legacy
 
-            result = self.command.run(args)
+        mock_status.return_value = 0
+        args = Namespace(aggregate_subcommand="status")
 
-            assert result.success is False
-            assert "already running" in result.message
+        result = aggregate_command_legacy(args)
 
-    def test_stop_aggregator_not_running():
-        """Test stopping aggregator when not running."""
-        args = Namespace(aggregate_command="stop", force=False, format="text")
+        assert result == 0
+        mock_status.assert_called_once_with(args)
 
-        with patch.object(self.command, "_stop_aggregator") as mock_stop:
-            mock_stop.return_value = CommandResult.error_result(
-                "Aggregator not running"
-            )
+    def test_legacy_dispatcher_unknown(self, capsys):
+        """Test legacy dispatcher handles unknown subcommand."""
+        from claude_mpm.cli.commands.aggregate import aggregate_command_legacy
 
-            result = self.command.run(args)
+        args = Namespace(aggregate_subcommand="unknown")
 
-            assert result.success is False
-            assert "not running" in result.message
+        result = aggregate_command_legacy(args)
 
-    def test_clear_with_confirmation():
-        """Test clearing data with user confirmation."""
-        args = Namespace(
-            aggregate_command="clear", before_date=None, force=False, format="text"
-        )
-
-        with patch("builtins.input", return_value="y"):
-            with patch.object(self.command, "_clear_data") as mock_clear:
-                mock_clear.return_value = CommandResult.success_result("Data cleared")
-
-                result = self.command.run(args)
-
-                assert result.success is True
-
-    def test_query_with_invalid_filter():
-        """Test query with invalid filter syntax."""
-        args = Namespace(
-            aggregate_command="query", filter="invalid filter syntax", format="text"
-        )
-
-        with patch.object(self.command, "_query_events") as mock_query:
-            mock_query.return_value = CommandResult.error_result(
-                "Invalid filter syntax", data={"error": "Expected format: key=value"}
-            )
-
-            result = self.command.run(args)
-
-            assert result.success is False
-            assert "Invalid filter" in result.message
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "Unknown subcommand: unknown" in captured.err

@@ -21,6 +21,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from ..constants import (
+    MCPBinary,
+    MCPConfigKey,
+    MCPServerType,
+    MCPSubcommand,
+    SetupService,
+)
 from ..shared import BaseCommand, CommandResult
 
 console = Console()
@@ -30,19 +37,26 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
     """Ensure MCP server is configured in .mcp.json after OAuth setup.
 
     Args:
-        service_name: The service name (e.g., "google-workspace-mcp")
+        service_name: The service name (e.g., "gworkspace-mcp")
         project_dir: Directory where .mcp.json should be created/updated
 
     Returns:
         True if configuration was added/updated, False if already configured or not applicable
     """
-    if service_name != "google-workspace-mcp":
-        return False  # Only handle google-workspace-mcp for now
+    # Only handle gworkspace-mcp service
+    if service_name != str(SetupService.GWORKSPACE_MCP):
+        return False  # Only handle gworkspace-mcp
 
+    # Use canonical name for configuration
+    canonical_name = str(SetupService.GWORKSPACE_MCP)
     mcp_config_path = project_dir / ".mcp.json"
 
-    # Default config for google-workspace-mcp
-    server_config = {"command": "google-workspace-mcp", "args": []}
+    # Default config (command is installed binary name from package)
+    server_config = {
+        str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+        str(MCPConfigKey.COMMAND): str(MCPBinary.GOOGLE_WORKSPACE),
+        str(MCPConfigKey.ARGS): [str(MCPSubcommand.MCP)],
+    }
 
     if mcp_config_path.exists():
         # Load existing config
@@ -51,23 +65,66 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
                 config = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
             console.print(f"[yellow]Warning: Could not read .mcp.json: {e}[/yellow]")
-            config = {"mcpServers": {}}
+            config = {str(MCPConfigKey.MCP_SERVERS): {}}
     else:
-        config = {"mcpServers": {}}
+        config = {str(MCPConfigKey.MCP_SERVERS): {}}
+
+    mcp_servers_key = str(MCPConfigKey.MCP_SERVERS)
+    type_key = str(MCPConfigKey.TYPE)
+    command_key = str(MCPConfigKey.COMMAND)
+    args_key = str(MCPConfigKey.ARGS)
+    stdio_type = str(MCPServerType.STDIO)
+    binary_name = str(MCPBinary.GOOGLE_WORKSPACE)
+    mcp_arg = [str(MCPSubcommand.MCP)]
 
     # Ensure mcpServers key exists
-    if "mcpServers" not in config:
-        config["mcpServers"] = {}
+    if mcp_servers_key not in config:
+        config[mcp_servers_key] = {}
+
+    # Migrate old key names to canonical name
+    old_names = ["google-workspace-mpm", "google-workspace-mcp", "google_workspace_mcp"]
+    migrated = False
+    for old_name in old_names:
+        if (
+            old_name in config[mcp_servers_key]
+            and canonical_name not in config[mcp_servers_key]
+        ):
+            config[mcp_servers_key][canonical_name] = config[mcp_servers_key][old_name]
+            del config[mcp_servers_key][old_name]
+            console.print(f"[dim]Migrated {old_name} → {canonical_name}[/dim]")
+            migrated = True
+            break  # Only migrate first found old key
 
     # Check if already configured correctly
-    if "google-workspace-mcp" in config["mcpServers"]:
-        existing = config["mcpServers"]["google-workspace-mcp"]
-        if existing.get("command") == "google-workspace-mcp":
+    if canonical_name in config[mcp_servers_key]:
+        existing = config[mcp_servers_key][canonical_name]
+        if existing.get(command_key) == binary_name:
+            # Fix missing or incorrect fields
+            needs_save = migrated
+            if existing.get(type_key) != stdio_type:
+                existing[type_key] = stdio_type
+                needs_save = True
+                console.print(f"[dim]Fixed missing '{type_key}' field in config[/dim]")
+            if existing.get(args_key) != mcp_arg:
+                existing[args_key] = mcp_arg
+                needs_save = True
+                console.print(
+                    f"[dim]Fixed missing '{MCPSubcommand.MCP}' arg in config[/dim]"
+                )
+            config[mcp_servers_key][canonical_name] = existing
+            # Save if we migrated or fixed fields
+            if needs_save:
+                try:
+                    with open(mcp_config_path, "w") as f:
+                        json.dump(config, f, indent=2)
+                        f.write("\n")
+                except OSError:
+                    pass  # Best effort save
             console.print("[dim]MCP server already configured in .mcp.json[/dim]")
             return False
 
-    # Add/update google-workspace-mcp entry
-    config["mcpServers"]["google-workspace-mcp"] = server_config
+    # Add/update with canonical name
+    config[mcp_servers_key][canonical_name] = server_config
 
     # Write back
     try:
@@ -76,7 +133,7 @@ def _ensure_mcp_configured(service_name: str, project_dir: Path) -> bool:
             f.write("\n")  # Add trailing newline
 
         if mcp_config_path.exists():
-            console.print("[green]✓ Added google-workspace-mcp to .mcp.json[/green]")
+            console.print(f"[green]✓ Added {canonical_name} to .mcp.json[/green]")
         return True
     except OSError as e:
         console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
@@ -216,6 +273,17 @@ class OAuthCommand(BaseCommand):
         if args.oauth_command == "list":
             return self._list_services(args)
         if args.oauth_command == "setup":
+            # Show deprecation warning for setup subcommand
+            console.print(
+                "\n[yellow]⚠️  DEPRECATION WARNING[/yellow]",
+                style="bold",
+            )
+            console.print(
+                "[yellow]The 'claude-mpm oauth setup <service>' command is deprecated.[/yellow]"
+            )
+            console.print(
+                "[yellow]Please use: [bold cyan]claude-mpm setup oauth <service>[/bold cyan][/yellow]\n"
+            )
             return self._setup_oauth(args)
         if args.oauth_command == "status":
             return self._show_status(args)
@@ -233,15 +301,16 @@ class OAuthCommand(BaseCommand):
         help_text = """
 [bold]OAuth Commands:[/bold]
   oauth list              List OAuth-capable MCP services
-  oauth setup <service>   Set up OAuth authentication for a service
+  oauth setup <service>   [yellow](deprecated)[/yellow] Set up OAuth authentication for a service
   oauth status <service>  Show OAuth token status for a service
   oauth revoke <service>  Revoke OAuth tokens for a service
   oauth refresh <service> Refresh OAuth tokens for a service
 
 [bold]Examples:[/bold]
   claude-mpm oauth list
-  claude-mpm oauth setup google-workspace-mcp
-  claude-mpm oauth status google-workspace-mcp
+  claude-mpm oauth status gworkspace-mcp
+
+[yellow]⚠️  For setup, use:[/yellow] [bold cyan]claude-mpm setup oauth <service>[/bold cyan]
 """
         console.print(help_text)
 

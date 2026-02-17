@@ -19,11 +19,9 @@ from claude_mpm.config.paths import paths
 from ..constants import CLICommands
 from ..utils.progress import ProgressBar
 from .executor import ensure_run_attributes, execute_command
-from .helpers import (
-    handle_missing_configuration,
-    has_configuration_file,
-    should_skip_config_check,
-)
+
+# handle_missing_configuration, has_configuration_file, should_skip_config_check
+# removed - startup config prompt disabled, users can run `/mpm-configure` manually
 from .parser import create_parser, preprocess_args
 from .startup import (
     run_background_services,
@@ -56,14 +54,11 @@ def main(argv: Optional[list] = None):
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
 
-    help_version_flags = ["--version", "-v", "--help", "-h"]
-    is_help_or_version = any(
-        flag in (processed_argv or sys.argv[1:]) for flag in help_version_flags
-    )
-
-    if not has_configuration_file() and not is_help_or_version:
-        if not should_skip_config_check(getattr(args, "command", None)):
-            handle_missing_configuration()
+    # Configuration prompt removed - users can run `/mpm-configure` manually
+    # See: handle_missing_configuration() in helpers.py if re-enabling
+    # if not has_configuration_file() and not is_help_or_version:
+    #     if not should_skip_config_check(getattr(args, "command", None)):
+    #         handle_missing_configuration()
 
     setup_configure_command_environment(args)
 

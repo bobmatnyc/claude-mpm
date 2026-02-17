@@ -581,9 +581,11 @@ class StartupManager:
             # 3. Disabled agents are removed from .claude/agents/
             # 4. MCP services and hooks are started
             try:
+                # Skip auto-config since we just configured everything
+                os.environ["CLAUDE_MPM_SKIP_AUTO_CONFIG"] = "1"
                 # Use execvp to replace the current process with claude-mpm run
                 # This ensures a clean transition from configurator to Claude MPM
-                os.execvp("claude-mpm", ["claude-mpm", "run"])
+                os.execvp("claude-mpm", ["claude-mpm", "run"])  # nosec
             except Exception as e:
                 self.console.print(
                     f"[yellow]Could not launch Claude MPM automatically: {e}[/yellow]"

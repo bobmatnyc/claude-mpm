@@ -175,6 +175,7 @@ class SkillsCommands(str, Enum):
     CONFIG = "config"
     CONFIGURE = "configure"  # Interactive skills selection (like agents configure)
     SELECT = "select"  # Interactive topic-grouped skill selector
+    OPTIMIZE = "optimize"  # Intelligent skill recommendation based on project analysis
     # GitHub deployment commands
     DEPLOY_FROM_GITHUB = "deploy-github"
     LIST_AVAILABLE = "list-available"

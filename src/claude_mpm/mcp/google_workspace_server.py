@@ -11,9 +11,15 @@ using the OAuthManager for seamless re-authentication.
 import asyncio
 import json
 import logging
-from typing import Any, Optional
+import subprocess  # nosec B404
+import tempfile
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
+
+if TYPE_CHECKING:
+    from claude_mpm.mcp.rclone_manager import RcloneManager
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
@@ -24,8 +30,8 @@ from claude_mpm.auth import OAuthManager, TokenStatus, TokenStorage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Service name for token storage - matches google-workspace-mcp convention
-SERVICE_NAME = "google-workspace-mcp"
+# Service name for token storage - matches gworkspace-mcp convention
+SERVICE_NAME = "gworkspace-mcp"
 
 # Google API base URLs
 CALENDAR_API_BASE = "https://www.googleapis.com/calendar/v3"
@@ -49,7 +55,7 @@ class GoogleWorkspaceServer:
 
     def __init__(self) -> None:
         """Initialize the Google Workspace MCP server."""
-        self.server = Server("google-workspace-mcp")
+        self.server = Server("gworkspace-mcp")
         self.storage = TokenStorage()
         self.manager = OAuthManager(storage=self.storage)
         self._setup_handlers()
@@ -68,6 +74,68 @@ class GoogleWorkspaceServer:
                         "type": "object",
                         "properties": {},
                         "required": [],
+                    },
+                ),
+                Tool(
+                    name="create_calendar",
+                    description="Create a new calendar",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "summary": {
+                                "type": "string",
+                                "description": "Calendar title/name",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "Calendar description (optional)",
+                            },
+                            "timezone": {
+                                "type": "string",
+                                "description": "Calendar timezone (e.g., 'America/New_York', optional)",
+                            },
+                        },
+                        "required": ["summary"],
+                    },
+                ),
+                Tool(
+                    name="update_calendar",
+                    description="Update an existing calendar's properties",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "calendar_id": {
+                                "type": "string",
+                                "description": "Calendar ID to update",
+                            },
+                            "summary": {
+                                "type": "string",
+                                "description": "New calendar title/name (optional)",
+                            },
+                            "description": {
+                                "type": "string",
+                                "description": "New calendar description (optional)",
+                            },
+                            "timezone": {
+                                "type": "string",
+                                "description": "New calendar timezone (optional)",
+                            },
+                        },
+                        "required": ["calendar_id"],
+                    },
+                ),
+                Tool(
+                    name="delete_calendar",
+                    description="Delete a calendar (cannot delete primary calendar)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "calendar_id": {
+                                "type": "string",
+                                "description": "Calendar ID to delete",
+                            },
+                        },
+                        "required": ["calendar_id"],
                     },
                 ),
                 Tool(
@@ -133,13 +201,13 @@ class GoogleWorkspaceServer:
                 ),
                 Tool(
                     name="search_drive_files",
-                    description="Search Google Drive files using a query string",
+                    description="Search Google Drive files using a query string. Bare search terms like 'MSA' are automatically wrapped in 'fullText contains' syntax. You can also use Drive API query syntax directly (e.g., 'name contains \"report\"', 'mimeType = \"application/pdf\"').",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "query": {
                                 "type": "string",
-                                "description": "Drive search query (e.g., 'name contains \"report\"')",
+                                "description": "Search query - can be simple terms (auto-wrapped) or Drive API syntax (e.g., 'name contains \"report\"')",
                             },
                             "max_results": {
                                 "type": "integer",
@@ -186,6 +254,50 @@ class GoogleWorkspaceServer:
                             },
                         },
                         "required": ["file_id"],
+                    },
+                ),
+                Tool(
+                    name="add_document_comment",
+                    description="Add a new comment to a Google Docs, Sheets, or Slides file. Comments appear in the document's comment sidebar. Write concise, actionable comments.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_id": {
+                                "type": "string",
+                                "description": "Google Drive file ID (from the document URL)",
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "The comment text. Style guidelines: Be brief and direct (1-2 sentences). Focus on specific, actionable feedback. Avoid filler phrases like 'I think' or 'Maybe consider'. Use imperative mood for suggestions (e.g., 'Add error handling' not 'You might want to add error handling').",
+                            },
+                            "anchor": {
+                                "type": "string",
+                                "description": "Optional JSON string specifying the anchor location in the document (for anchored comments)",
+                            },
+                        },
+                        "required": ["file_id", "content"],
+                    },
+                ),
+                Tool(
+                    name="reply_to_comment",
+                    description="Reply to an existing comment on a Google Docs, Sheets, or Slides file. Write concise replies that directly address the comment.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_id": {
+                                "type": "string",
+                                "description": "Google Drive file ID (from the document URL)",
+                            },
+                            "comment_id": {
+                                "type": "string",
+                                "description": "The ID of the comment to reply to (from list_document_comments)",
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "The reply text. Style guidelines: Be brief (1-2 sentences max). Directly address the original comment. State resolution clearly ('Done', 'Fixed', 'Won't fix because X'). No pleasantries or filler.",
+                            },
+                        },
+                        "required": ["file_id", "comment_id", "content"],
                     },
                 ),
                 # Calendar Write Operations
@@ -375,6 +487,263 @@ class GoogleWorkspaceServer:
                         "required": ["message_id", "body"],
                     },
                 ),
+                # Gmail Label Management
+                Tool(
+                    name="list_gmail_labels",
+                    description="List all Gmail labels (system and custom)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="create_gmail_label",
+                    description="Create a custom Gmail label. Use '/' for nesting (e.g., 'Work/Projects')",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Label name (use '/' for nesting, e.g., 'Work/Projects')",
+                            },
+                            "label_list_visibility": {
+                                "type": "string",
+                                "enum": ["labelShow", "labelShowIfUnread", "labelHide"],
+                                "description": "Visibility in label list (default: labelShow)",
+                            },
+                            "message_list_visibility": {
+                                "type": "string",
+                                "enum": ["show", "hide"],
+                                "description": "Visibility in message list (default: show)",
+                            },
+                        },
+                        "required": ["name"],
+                    },
+                ),
+                Tool(
+                    name="delete_gmail_label",
+                    description="Delete a custom Gmail label (cannot delete system labels)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "label_id": {
+                                "type": "string",
+                                "description": "Label ID to delete",
+                            },
+                        },
+                        "required": ["label_id"],
+                    },
+                ),
+                # Gmail Message Management
+                Tool(
+                    name="modify_gmail_message",
+                    description="Add or remove labels from a Gmail message (core label operation)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to modify",
+                            },
+                            "add_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to add (e.g., ['STARRED', 'IMPORTANT'])",
+                            },
+                            "remove_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to remove (e.g., ['UNREAD', 'INBOX'])",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="archive_gmail_message",
+                    description="Archive a Gmail message (removes from INBOX, keeps in All Mail)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to archive",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="trash_gmail_message",
+                    description="Move a Gmail message to trash",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to trash",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="untrash_gmail_message",
+                    description="Restore a Gmail message from trash",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to restore from trash",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="mark_gmail_as_read",
+                    description="Mark a Gmail message as read",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to mark as read",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="mark_gmail_as_unread",
+                    description="Mark a Gmail message as unread",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to mark as unread",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="star_gmail_message",
+                    description="Add star to a Gmail message",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to star",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                Tool(
+                    name="unstar_gmail_message",
+                    description="Remove star from a Gmail message",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_id": {
+                                "type": "string",
+                                "description": "Message ID to unstar",
+                            },
+                        },
+                        "required": ["message_id"],
+                    },
+                ),
+                # Gmail Batch Operations
+                Tool(
+                    name="batch_modify_gmail_messages",
+                    description="Add or remove labels from multiple Gmail messages at once. Uses Gmail's efficient batch API.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to modify",
+                            },
+                            "add_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to add (e.g., ['STARRED', 'IMPORTANT', or custom label IDs])",
+                            },
+                            "remove_label_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Label IDs to remove (e.g., ['UNREAD', 'INBOX'])",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_archive_gmail_messages",
+                    description="Archive multiple Gmail messages at once (removes INBOX label, keeps in All Mail)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to archive",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_trash_gmail_messages",
+                    description="Move multiple Gmail messages to trash at once",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to trash",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_mark_gmail_as_read",
+                    description="Mark multiple Gmail messages as read at once",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to mark as read",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
+                Tool(
+                    name="batch_delete_gmail_messages",
+                    description="Permanently delete multiple Gmail messages at once (CAUTION: cannot be undone)",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "message_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of message IDs to permanently delete",
+                            },
+                        },
+                        "required": ["message_ids"],
+                    },
+                ),
                 # Drive Write Operations
                 Tool(
                     name="create_drive_folder",
@@ -488,7 +857,27 @@ class GoogleWorkspaceServer:
                 ),
                 Tool(
                     name="get_document",
-                    description="Get the content and structure of a Google Doc",
+                    description="Get the content and structure of a Google Doc. Optionally include tab content for documents with multiple tabs.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "include_tabs_content": {
+                                "type": "boolean",
+                                "description": "Whether to include tab content (default: False). Set to True for documents with tabs.",
+                                "default": False,
+                            },
+                        },
+                        "required": ["document_id"],
+                    },
+                ),
+                # Google Docs Tab Operations
+                Tool(
+                    name="list_document_tabs",
+                    description="List all tabs in a Google Doc with their metadata (tabId, title, index, nestingLevel, iconEmoji, parentTabId). Use this to discover tabs in a document.",
                     inputSchema={
                         "type": "object",
                         "properties": {
@@ -498,6 +887,106 @@ class GoogleWorkspaceServer:
                             },
                         },
                         "required": ["document_id"],
+                    },
+                ),
+                Tool(
+                    name="get_tab_content",
+                    description="Get the content from a specific tab in a Google Doc. Returns tab metadata and text content.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID (from list_document_tabs)",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
+                    },
+                ),
+                Tool(
+                    name="create_document_tab",
+                    description="Create a new tab in a Google Doc. Tabs can be nested by specifying a parent tab ID. Returns the new tab ID.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Tab title",
+                            },
+                            "icon_emoji": {
+                                "type": "string",
+                                "description": "Icon emoji for the tab (optional, e.g., '📄', '✨')",
+                            },
+                            "parent_tab_id": {
+                                "type": "string",
+                                "description": "Parent tab ID for nested tabs (optional). Creates a child tab under the specified parent.",
+                            },
+                            "index": {
+                                "type": "integer",
+                                "description": "Position index for the tab (optional). 0 inserts at the beginning.",
+                            },
+                        },
+                        "required": ["document_id", "title"],
+                    },
+                ),
+                Tool(
+                    name="update_tab_properties",
+                    description="Update properties of an existing tab (title, iconEmoji). Use this to rename tabs or change their icon.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID to update (from list_document_tabs)",
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "New tab title (optional)",
+                            },
+                            "icon_emoji": {
+                                "type": "string",
+                                "description": "New icon emoji (optional, e.g., '📝', '⭐')",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
+                    },
+                ),
+                Tool(
+                    name="move_tab",
+                    description="Move a tab to a new position or change its parent (nesting level). Use this to reorganize tab hierarchy.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID",
+                            },
+                            "tab_id": {
+                                "type": "string",
+                                "description": "Tab ID to move (from list_document_tabs)",
+                            },
+                            "new_parent_tab_id": {
+                                "type": "string",
+                                "description": "New parent tab ID (optional). Use empty string to move to root level.",
+                            },
+                            "new_index": {
+                                "type": "integer",
+                                "description": "New position index (optional). 0 moves to the beginning of its level.",
+                            },
+                        },
+                        "required": ["document_id", "tab_id"],
                     },
                 ),
                 Tool(
@@ -526,6 +1015,42 @@ class GoogleWorkspaceServer:
                             },
                         },
                         "required": ["name", "markdown_content"],
+                    },
+                ),
+                Tool(
+                    name="render_mermaid_to_doc",
+                    description="Render Mermaid diagram code to an image and insert it into a Google Doc. Uses @mermaid-js/mermaid-cli to render diagrams to SVG or PNG format, uploads to Drive, then inserts into the document.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "document_id": {
+                                "type": "string",
+                                "description": "Google Doc ID where the image will be inserted",
+                            },
+                            "mermaid_code": {
+                                "type": "string",
+                                "description": "Mermaid diagram code (e.g., 'graph TD\\n    A-->B')",
+                            },
+                            "insert_index": {
+                                "type": "integer",
+                                "description": "Character index where to insert the image. If not provided, appends to end of document.",
+                            },
+                            "image_format": {
+                                "type": "string",
+                                "description": "Output image format: 'svg' (default, best quality) or 'png'",
+                                "default": "svg",
+                                "enum": ["svg", "png"],
+                            },
+                            "width_pt": {
+                                "type": "integer",
+                                "description": "Image width in points (optional, maintains aspect ratio if only one dimension specified)",
+                            },
+                            "height_pt": {
+                                "type": "integer",
+                                "description": "Image height in points (optional, maintains aspect ratio if only one dimension specified)",
+                            },
+                        },
+                        "required": ["document_id", "mermaid_code"],
                     },
                 ),
                 # Google Tasks API - Task Lists Operations
@@ -813,6 +1338,155 @@ class GoogleWorkspaceServer:
                         "required": ["task_id"],
                     },
                 ),
+                # Rclone-based Drive file sync operations
+                Tool(
+                    name="list_drive_contents",
+                    description="List contents of a Google Drive folder using rclone. Returns structured JSON with file metadata including size, modification time, and file IDs. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "Drive path to list (e.g., 'Documents' or 'Shared drives/TeamDrive/Projects')",
+                                "default": "",
+                            },
+                            "recursive": {
+                                "type": "boolean",
+                                "description": "Recursively list all subdirectories",
+                                "default": False,
+                            },
+                            "files_only": {
+                                "type": "boolean",
+                                "description": "Show only files, not directories",
+                                "default": False,
+                            },
+                            "include_hash": {
+                                "type": "boolean",
+                                "description": "Include MD5 hash for each file",
+                                "default": False,
+                            },
+                            "max_depth": {
+                                "type": "integer",
+                                "description": "Maximum recursion depth (requires recursive=true, -1 for unlimited)",
+                                "default": -1,
+                            },
+                        },
+                        "required": [],
+                    },
+                ),
+                Tool(
+                    name="download_drive_folder",
+                    description="Download a folder from Google Drive to local filesystem using rclone. Does not delete local files. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drive_path": {
+                                "type": "string",
+                                "description": "Path in Google Drive to download (e.g., 'Documents/Reports')",
+                            },
+                            "local_path": {
+                                "type": "string",
+                                "description": "Local destination directory",
+                            },
+                            "google_docs_format": {
+                                "type": "string",
+                                "description": "Export format for Google Docs/Sheets/Slides",
+                                "enum": [
+                                    "docx",
+                                    "pdf",
+                                    "odt",
+                                    "txt",
+                                    "xlsx",
+                                    "csv",
+                                    "pptx",
+                                ],
+                                "default": "docx",
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['*.tmp', '.git/**'])",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without downloading",
+                                "default": False,
+                            },
+                        },
+                        "required": ["drive_path", "local_path"],
+                    },
+                ),
+                Tool(
+                    name="upload_to_drive",
+                    description="Upload a local folder to Google Drive using rclone. Does not delete files in Drive. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "local_path": {
+                                "type": "string",
+                                "description": "Local folder path to upload",
+                            },
+                            "drive_path": {
+                                "type": "string",
+                                "description": "Destination path in Google Drive",
+                            },
+                            "convert_to_google_docs": {
+                                "type": "boolean",
+                                "description": "Convert Office files to Google Docs format",
+                                "default": False,
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['node_modules/**', '.git/**'])",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without uploading",
+                                "default": False,
+                            },
+                        },
+                        "required": ["local_path", "drive_path"],
+                    },
+                ),
+                Tool(
+                    name="sync_drive_folder",
+                    description="Sync files between local filesystem and Google Drive using rclone. Use dry_run=true to preview changes before syncing. Requires rclone to be installed.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "source": {
+                                "type": "string",
+                                "description": "Source path. Use 'drive:path' for Drive or '/local/path' for local",
+                            },
+                            "destination": {
+                                "type": "string",
+                                "description": "Destination path. Use 'drive:path' for Drive or '/local/path' for local",
+                            },
+                            "dry_run": {
+                                "type": "boolean",
+                                "description": "Preview changes without making them (RECOMMENDED: start with true)",
+                                "default": True,
+                            },
+                            "delete_extra": {
+                                "type": "boolean",
+                                "description": "Delete files in destination that don't exist in source (CAUTION: destructive)",
+                                "default": False,
+                            },
+                            "exclude": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to exclude (e.g., ['*.tmp', '.git/**'])",
+                            },
+                            "include": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Patterns to include (if set, only matching files are synced)",
+                            },
+                        },
+                        "required": ["source", "destination"],
+                    },
+                ),
             ]
 
         @self.server.call_tool()
@@ -928,12 +1602,17 @@ class GoogleWorkspaceServer:
         handlers = {
             # Read operations
             "list_calendars": self._list_calendars,
+            "create_calendar": self._create_calendar,
+            "update_calendar": self._update_calendar,
+            "delete_calendar": self._delete_calendar,
             "get_events": self._get_events,
             "search_gmail_messages": self._search_gmail_messages,
             "get_gmail_message_content": self._get_gmail_message_content,
             "search_drive_files": self._search_drive_files,
             "get_drive_file_content": self._get_drive_file_content,
             "list_document_comments": self._list_document_comments,
+            "add_document_comment": self._add_document_comment,
+            "reply_to_comment": self._reply_to_comment,
             # Calendar write operations
             "create_event": self._create_event,
             "update_event": self._update_event,
@@ -942,6 +1621,25 @@ class GoogleWorkspaceServer:
             "send_email": self._send_email,
             "create_draft": self._create_draft,
             "reply_to_email": self._reply_to_email,
+            # Gmail label management
+            "list_gmail_labels": self._list_gmail_labels,
+            "create_gmail_label": self._create_gmail_label,
+            "delete_gmail_label": self._delete_gmail_label,
+            # Gmail message management
+            "modify_gmail_message": self._modify_gmail_message,
+            "archive_gmail_message": self._archive_gmail_message,
+            "trash_gmail_message": self._trash_gmail_message,
+            "untrash_gmail_message": self._untrash_gmail_message,
+            "mark_gmail_as_read": self._mark_gmail_as_read,
+            "mark_gmail_as_unread": self._mark_gmail_as_unread,
+            "star_gmail_message": self._star_gmail_message,
+            "unstar_gmail_message": self._unstar_gmail_message,
+            # Gmail batch operations
+            "batch_modify_gmail_messages": self._batch_modify_gmail_messages,
+            "batch_archive_gmail_messages": self._batch_archive_gmail_messages,
+            "batch_trash_gmail_messages": self._batch_trash_gmail_messages,
+            "batch_mark_gmail_as_read": self._batch_mark_gmail_as_read,
+            "batch_delete_gmail_messages": self._batch_delete_gmail_messages,
             # Drive write operations
             "create_drive_folder": self._create_drive_folder,
             "upload_drive_file": self._upload_drive_file,
@@ -951,8 +1649,16 @@ class GoogleWorkspaceServer:
             "create_document": self._create_document,
             "append_to_document": self._append_to_document,
             "get_document": self._get_document,
+            # Docs tab operations
+            "list_document_tabs": self._list_document_tabs,
+            "get_tab_content": self._get_tab_content,
+            "create_document_tab": self._create_document_tab,
+            "update_tab_properties": self._update_tab_properties,
+            "move_tab": self._move_tab,
             # Markdown conversion
             "upload_markdown_as_doc": self._upload_markdown_as_doc,
+            # Mermaid diagram rendering
+            "render_mermaid_to_doc": self._render_mermaid_to_doc,
             # Tasks - Task Lists operations
             "list_task_lists": self._list_task_lists,
             "get_task_list": self._get_task_list,
@@ -968,6 +1674,11 @@ class GoogleWorkspaceServer:
             "complete_task": self._complete_task,
             "delete_task": self._delete_task,
             "move_task": self._move_task,
+            # Rclone Drive sync operations
+            "list_drive_contents": self._list_drive_contents,
+            "download_drive_folder": self._download_drive_folder,
+            "upload_to_drive": self._upload_to_drive,
+            "sync_drive_folder": self._sync_drive_folder,
         }
 
         handler = handlers.get(name)
@@ -1001,6 +1712,102 @@ class GoogleWorkspaceServer:
             )
 
         return {"calendars": calendars, "count": len(calendars)}
+
+    async def _create_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new calendar.
+
+        Args:
+            arguments: Tool arguments with summary, description, and timezone.
+
+        Returns:
+            Created calendar details.
+        """
+        summary = arguments["summary"]
+        description = arguments.get("description")
+        timezone = arguments.get("timezone")
+
+        url = f"{CALENDAR_API_BASE}/calendars"
+
+        calendar_body: dict[str, Any] = {
+            "summary": summary,
+        }
+
+        if description:
+            calendar_body["description"] = description
+        if timezone:
+            calendar_body["timeZone"] = timezone
+
+        response = await self._make_request("POST", url, json_data=calendar_body)
+
+        return {
+            "status": "created",
+            "id": response.get("id"),
+            "summary": response.get("summary"),
+            "description": response.get("description"),
+            "timezone": response.get("timeZone"),
+        }
+
+    async def _update_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update an existing calendar's properties.
+
+        Args:
+            arguments: Tool arguments with calendar_id and optional summary, description, timezone.
+
+        Returns:
+            Updated calendar details.
+        """
+        calendar_id = arguments["calendar_id"]
+        summary = arguments.get("summary")
+        description = arguments.get("description")
+        timezone = arguments.get("timezone")
+
+        # Build update body with only provided fields
+        update_body: dict[str, Any] = {}
+        if summary:
+            update_body["summary"] = summary
+        if description:
+            update_body["description"] = description
+        if timezone:
+            update_body["timeZone"] = timezone
+
+        if not update_body:
+            raise ValueError(
+                "At least one field (summary, description, or timezone) must be provided for update"
+            )
+
+        url = f"{CALENDAR_API_BASE}/calendars/{calendar_id}"
+        response = await self._make_request("PATCH", url, json_data=update_body)
+
+        return {
+            "status": "updated",
+            "id": response.get("id"),
+            "summary": response.get("summary"),
+            "description": response.get("description"),
+            "timezone": response.get("timeZone"),
+        }
+
+    async def _delete_calendar(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a calendar.
+
+        Args:
+            arguments: Tool arguments with calendar_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        calendar_id = arguments["calendar_id"]
+
+        # Prevent deletion of primary calendar
+        if calendar_id == "primary":
+            raise ValueError("Cannot delete the primary calendar")
+
+        url = f"{CALENDAR_API_BASE}/calendars/{calendar_id}"
+        await self._make_request("DELETE", url)
+
+        return {
+            "status": "deleted",
+            "calendar_id": calendar_id,
+        }
 
     async def _get_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Get events from a calendar.
@@ -1173,6 +1980,30 @@ class GoogleWorkspaceServer:
 
         return ""
 
+    def _normalize_drive_query(self, query: str) -> str:
+        """Normalize a search query for Google Drive API.
+
+        If the query doesn't contain Drive API operators, wrap it in fullText contains.
+
+        Args:
+            query: Raw search query from user
+
+        Returns:
+            Properly formatted Drive API query
+        """
+        # List of Drive API query operators
+        operators = ["contains", "=", "!=", "<", ">", " in ", " has ", " not "]
+
+        # Check if query already uses API syntax
+        query_lower = query.lower()
+        if any(op in query_lower for op in operators):
+            return query
+
+        # Wrap bare terms in fullText contains
+        # Escape single quotes in the query
+        escaped_query = query.replace("'", "\\'")
+        return f"fullText contains '{escaped_query}'"
+
     async def _search_drive_files(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Search Google Drive files.
 
@@ -1185,9 +2016,12 @@ class GoogleWorkspaceServer:
         query = arguments.get("query", "")
         max_results = arguments.get("max_results", 10)
 
+        # Normalize the query to handle bare search terms
+        normalized_query = self._normalize_drive_query(query)
+
         url = f"{DRIVE_API_BASE}/files"
         params = {
-            "q": query,
+            "q": normalized_query,
             "pageSize": max_results,
             "fields": "files(id,name,mimeType,modifiedTime,size,webViewLink,owners)",
         }
@@ -1358,6 +2192,89 @@ class GoogleWorkspaceServer:
             formatted_comments.append(formatted_comment)
 
         return {"comments": formatted_comments, "count": len(formatted_comments)}
+
+    async def _add_document_comment(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add a comment to a Google Drive file (Docs, Sheets, Slides).
+
+        Args:
+            arguments: Tool arguments with file_id, content, and optional anchor.
+
+        Returns:
+            Created comment details with id, author, and timestamps.
+        """
+        file_id = arguments["file_id"]
+        content = arguments["content"]
+        anchor = arguments.get("anchor")
+
+        # Build request URL
+        url = f"{DRIVE_API_BASE}/files/{file_id}/comments"
+        params = {
+            "fields": "id,content,author(displayName,emailAddress),createdTime,modifiedTime,resolved",
+        }
+
+        # Build request body
+        body: dict[str, Any] = {"content": content}
+        if anchor:
+            # Parse anchor if provided as JSON string
+            try:
+                body["anchor"] = (
+                    json.loads(anchor) if isinstance(anchor, str) else anchor
+                )
+            except json.JSONDecodeError:
+                # If not valid JSON, treat as raw anchor string
+                body["anchor"] = anchor
+
+        response = await self._make_request("POST", url, params=params, json_data=body)
+
+        # Format the response
+        author = response.get("author", {})
+        return {
+            "id": response.get("id"),
+            "content": response.get("content", ""),
+            "author_name": author.get("displayName", "Unknown"),
+            "author_email": author.get("emailAddress", ""),
+            "created_time": response.get("createdTime", ""),
+            "modified_time": response.get("modifiedTime", ""),
+            "resolved": response.get("resolved", False),
+            "message": "Comment added successfully.",
+        }
+
+    async def _reply_to_comment(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Reply to an existing comment on a Google Drive file.
+
+        Args:
+            arguments: Tool arguments with file_id, comment_id, and content.
+
+        Returns:
+            Created reply details with id, author, and timestamps.
+        """
+        file_id = arguments["file_id"]
+        comment_id = arguments["comment_id"]
+        content = arguments["content"]
+
+        # Build request URL
+        url = f"{DRIVE_API_BASE}/files/{file_id}/comments/{comment_id}/replies"
+        params = {
+            "fields": "id,content,author(displayName,emailAddress),createdTime,modifiedTime",
+        }
+
+        # Build request body
+        body = {"content": content}
+
+        response = await self._make_request("POST", url, params=params, json_data=body)
+
+        # Format the response
+        author = response.get("author", {})
+        return {
+            "id": response.get("id"),
+            "content": response.get("content", ""),
+            "author_name": author.get("displayName", "Unknown"),
+            "author_email": author.get("emailAddress", ""),
+            "created_time": response.get("createdTime", ""),
+            "modified_time": response.get("modifiedTime", ""),
+            "comment_id": comment_id,
+            "message": "Reply added successfully.",
+        }
 
     # =========================================================================
     # Calendar Write Operations
@@ -1647,6 +2564,498 @@ class GoogleWorkspaceServer:
         }
 
     # =========================================================================
+    # Gmail Label Management
+    # =========================================================================
+
+    async def _list_gmail_labels(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all Gmail labels (system and custom).
+
+        Args:
+            arguments: Tool arguments (none required).
+
+        Returns:
+            List of all labels with their properties.
+        """
+        url = f"{GMAIL_API_BASE}/users/me/labels"
+        response = await self._make_request("GET", url)
+
+        labels = []
+        for label in response.get("labels", []):
+            labels.append(
+                {
+                    "id": label.get("id"),
+                    "name": label.get("name"),
+                    "type": label.get("type"),  # system or user
+                    "message_list_visibility": label.get("messageListVisibility"),
+                    "label_list_visibility": label.get("labelListVisibility"),
+                }
+            )
+
+        # Sort labels: system labels first, then user labels alphabetically
+        system_labels = sorted(
+            [l for l in labels if l["type"] == "system"], key=lambda x: x["name"]
+        )
+        user_labels = sorted(
+            [l for l in labels if l["type"] == "user"], key=lambda x: x["name"]
+        )
+
+        return {
+            "total": len(labels),
+            "system_labels": system_labels,
+            "user_labels": user_labels,
+        }
+
+    async def _create_gmail_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a custom Gmail label.
+
+        Args:
+            arguments: Tool arguments with name and optional visibility settings.
+
+        Returns:
+            Created label details.
+        """
+        name = arguments["name"]
+        label_list_visibility = arguments.get("label_list_visibility", "labelShow")
+        message_list_visibility = arguments.get("message_list_visibility", "show")
+
+        url = f"{GMAIL_API_BASE}/users/me/labels"
+        label_body = {
+            "name": name,
+            "labelListVisibility": label_list_visibility,
+            "messageListVisibility": message_list_visibility,
+        }
+
+        response = await self._make_request("POST", url, json_data=label_body)
+
+        return {
+            "status": "label_created",
+            "id": response.get("id"),
+            "name": response.get("name"),
+            "type": response.get("type"),
+            "label_list_visibility": response.get("labelListVisibility"),
+            "message_list_visibility": response.get("messageListVisibility"),
+        }
+
+    async def _delete_gmail_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Delete a custom Gmail label.
+
+        Args:
+            arguments: Tool arguments with label_id.
+
+        Returns:
+            Deletion confirmation.
+        """
+        label_id = arguments["label_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/labels/{label_id}"
+        access_token = await self._get_access_token()
+
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        return {
+            "status": "label_deleted",
+            "label_id": label_id,
+        }
+
+    # =========================================================================
+    # Gmail Message Management
+    # =========================================================================
+
+    async def _modify_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add or remove labels from a Gmail message.
+
+        This is the core label modification operation. Other convenience methods
+        (archive, star, mark_as_read, etc.) use this internally.
+
+        Args:
+            arguments: Tool arguments with message_id and optional add_label_ids/remove_label_ids.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+        add_label_ids = arguments.get("add_label_ids", [])
+        remove_label_ids = arguments.get("remove_label_ids", [])
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/modify"
+        modify_body: dict[str, Any] = {}
+
+        if add_label_ids:
+            modify_body["addLabelIds"] = add_label_ids
+        if remove_label_ids:
+            modify_body["removeLabelIds"] = remove_label_ids
+
+        response = await self._make_request("POST", url, json_data=modify_body)
+
+        return {
+            "status": "message_modified",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _archive_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Archive a Gmail message (removes from INBOX).
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Archived message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["INBOX"],
+            }
+        )
+
+        return {
+            "status": "message_archived",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _trash_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Move a Gmail message to trash.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Trashed message details.
+        """
+        message_id = arguments["message_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/trash"
+        response = await self._make_request("POST", url)
+
+        return {
+            "status": "message_trashed",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _untrash_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Restore a Gmail message from trash.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Restored message details.
+        """
+        message_id = arguments["message_id"]
+
+        url = f"{GMAIL_API_BASE}/users/me/messages/{message_id}/untrash"
+        response = await self._make_request("POST", url)
+
+        return {
+            "status": "message_restored",
+            "id": response.get("id"),
+            "thread_id": response.get("threadId"),
+            "label_ids": response.get("labelIds", []),
+        }
+
+    async def _mark_gmail_as_read(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Mark a Gmail message as read.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "message_marked_as_read",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _mark_gmail_as_unread(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Mark a Gmail message as unread.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "add_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "message_marked_as_unread",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _star_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Add star to a Gmail message.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "add_label_ids": ["STARRED"],
+            }
+        )
+
+        return {
+            "status": "message_starred",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    async def _unstar_gmail_message(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Remove star from a Gmail message.
+
+        Args:
+            arguments: Tool arguments with message_id.
+
+        Returns:
+            Modified message details.
+        """
+        message_id = arguments["message_id"]
+
+        result = await self._modify_gmail_message(
+            {
+                "message_id": message_id,
+                "remove_label_ids": ["STARRED"],
+            }
+        )
+
+        return {
+            "status": "message_unstarred",
+            "id": result.get("id"),
+            "thread_id": result.get("thread_id"),
+            "label_ids": result.get("label_ids", []),
+        }
+
+    # =========================================================================
+    # Gmail Batch Operations
+    # =========================================================================
+
+    async def _batch_modify_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Add or remove labels from multiple Gmail messages using batch API.
+
+        Args:
+            arguments: Tool arguments with message_ids and optional
+                add_label_ids/remove_label_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+        add_label_ids = arguments.get("add_label_ids", [])
+        remove_label_ids = arguments.get("remove_label_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "modified_count": 0,
+            }
+
+        # Use Gmail's batchModify endpoint for efficiency
+        url = f"{GMAIL_API_BASE}/users/me/messages/batchModify"
+        batch_body: dict[str, Any] = {"ids": message_ids}
+
+        if add_label_ids:
+            batch_body["addLabelIds"] = add_label_ids
+        if remove_label_ids:
+            batch_body["removeLabelIds"] = remove_label_ids
+
+        await self._make_request("POST", url, json_data=batch_body)
+
+        return {
+            "status": "messages_modified",
+            "modified_count": len(message_ids),
+            "add_label_ids": add_label_ids,
+            "remove_label_ids": remove_label_ids,
+        }
+
+    async def _batch_archive_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Archive multiple Gmail messages at once.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "archived_count": 0,
+            }
+
+        result = await self._batch_modify_gmail_messages(
+            {
+                "message_ids": message_ids,
+                "remove_label_ids": ["INBOX"],
+            }
+        )
+
+        return {
+            "status": "messages_archived",
+            "archived_count": result.get("modified_count", 0),
+        }
+
+    async def _batch_trash_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Move multiple Gmail messages to trash at once.
+
+        Note: Gmail doesn't have a batch trash endpoint, so we process
+        messages concurrently for efficiency.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success/failure counts.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "trashed_count": 0,
+                "failed_count": 0,
+            }
+
+        # Process concurrently since there's no batch trash endpoint
+        async def trash_single(msg_id: str) -> tuple[str, bool]:
+            try:
+                url = f"{GMAIL_API_BASE}/users/me/messages/{msg_id}/trash"
+                await self._make_request("POST", url)
+                return msg_id, True
+            except Exception:
+                return msg_id, False
+
+        results = await asyncio.gather(
+            *[trash_single(msg_id) for msg_id in message_ids], return_exceptions=True
+        )
+
+        success_count = sum(1 for r in results if isinstance(r, tuple) and r[1])
+        failed_count = len(message_ids) - success_count
+
+        return {
+            "status": "messages_trashed",
+            "trashed_count": success_count,
+            "failed_count": failed_count,
+        }
+
+    async def _batch_mark_gmail_as_read(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Mark multiple Gmail messages as read at once.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with success count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "marked_count": 0,
+            }
+
+        result = await self._batch_modify_gmail_messages(
+            {
+                "message_ids": message_ids,
+                "remove_label_ids": ["UNREAD"],
+            }
+        )
+
+        return {
+            "status": "messages_marked_as_read",
+            "marked_count": result.get("modified_count", 0),
+        }
+
+    async def _batch_delete_gmail_messages(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Permanently delete multiple Gmail messages at once.
+
+        WARNING: This action cannot be undone. Messages are permanently deleted,
+        not moved to trash.
+
+        Args:
+            arguments: Tool arguments with message_ids.
+
+        Returns:
+            Batch operation result with deleted count.
+        """
+        message_ids = arguments.get("message_ids", [])
+
+        if not message_ids:
+            return {
+                "status": "no_messages",
+                "message": "No message IDs provided",
+                "deleted_count": 0,
+            }
+
+        # Use Gmail's batchDelete endpoint
+        url = f"{GMAIL_API_BASE}/users/me/messages/batchDelete"
+        await self._make_request("POST", url, json_data={"ids": message_ids})
+
+        return {
+            "status": "messages_deleted",
+            "deleted_count": len(message_ids),
+            "warning": "Messages permanently deleted (cannot be undone)",
+        }
+
+    # =========================================================================
     # Drive Write Operations
     # =========================================================================
 
@@ -1886,25 +3295,35 @@ class GoogleWorkspaceServer:
         """Get the content and structure of a Google Doc.
 
         Args:
-            arguments: Tool arguments with document_id.
+            arguments: Tool arguments with document_id and optional include_tabs_content.
 
         Returns:
-            Document content and metadata.
+            Document content and metadata, optionally including tab information.
         """
         document_id = arguments["document_id"]
+        include_tabs_content = arguments.get("include_tabs_content", False)
 
         url = f"{DOCS_API_BASE}/documents/{document_id}"
+        if include_tabs_content:
+            url += "?includeTabsContent=true"
+
         response = await self._make_request("GET", url)
 
         # Extract text content from body
         text_content = self._extract_doc_text(response.get("body", {}))
 
-        return {
+        result = {
             "document_id": response.get("documentId"),
             "title": response.get("title"),
             "revision_id": response.get("revisionId"),
             "text_content": text_content,
         }
+
+        # Include tab information if requested
+        if include_tabs_content and "tabs" in response:
+            result["tabs"] = self._format_tabs(response["tabs"])
+
+        return result
 
     def _extract_doc_text(self, body: dict[str, Any]) -> str:
         """Extract plain text from a Google Docs body structure.
@@ -1934,6 +3353,320 @@ class GoogleWorkspaceServer:
         return "".join(text_parts)
 
     # =========================================================================
+    # =========================================================================
+    # Google Docs Tab Operations
+    # =========================================================================
+
+    def _format_tabs(self, tabs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format tab information for response.
+
+        Args:
+            tabs: Raw tabs array from Google Docs API.
+
+        Returns:
+            Formatted list of tab metadata.
+        """
+        formatted_tabs = []
+        for tab in tabs:
+            tab_props = tab.get("tabProperties", {})
+            formatted_tab = {
+                "tab_id": tab_props.get("tabId"),
+                "title": tab_props.get("title", ""),
+                "index": tab_props.get("index", 0),
+                "nesting_level": tab_props.get("nestingLevel", 0),
+            }
+
+            # Add optional fields if present
+            if "iconEmoji" in tab_props:
+                formatted_tab["icon_emoji"] = tab_props["iconEmoji"]
+            if "parentTabId" in tab_props:
+                formatted_tab["parent_tab_id"] = tab_props["parentTabId"]
+
+            formatted_tabs.append(formatted_tab)
+
+        return formatted_tabs
+
+    async def _list_document_tabs(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List all tabs in a Google Doc with their metadata.
+
+        Args:
+            arguments: Tool arguments with document_id.
+
+        Returns:
+            List of tabs with metadata (tabId, title, index, nestingLevel, iconEmoji, parentTabId).
+        """
+        document_id = arguments["document_id"]
+
+        # Request document with tabs included
+        url = f"{DOCS_API_BASE}/documents/{document_id}?includeTabsContent=true"
+        response = await self._make_request("GET", url)
+
+        tabs = response.get("tabs", [])
+
+        if not tabs:
+            return {
+                "document_id": document_id,
+                "tabs": [],
+                "count": 0,
+                "message": "Document has no tabs or only a single tab",
+            }
+
+        formatted_tabs = self._format_tabs(tabs)
+
+        return {
+            "document_id": document_id,
+            "tabs": formatted_tabs,
+            "count": len(formatted_tabs),
+        }
+
+    async def _get_tab_content(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Get content from a specific tab in a Google Doc.
+
+        Args:
+            arguments: Tool arguments with document_id and tab_id.
+
+        Returns:
+            Tab metadata and text content.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+
+        # Request document with tabs included
+        url = f"{DOCS_API_BASE}/documents/{document_id}?includeTabsContent=true"
+        response = await self._make_request("GET", url)
+
+        tabs = response.get("tabs", [])
+
+        # Find the requested tab
+        target_tab = None
+        for tab in tabs:
+            tab_props = tab.get("tabProperties", {})
+            if tab_props.get("tabId") == tab_id:
+                target_tab = tab
+                break
+
+        if not target_tab:
+            return {
+                "error": f"Tab '{tab_id}' not found in document",
+                "document_id": document_id,
+                "available_tabs": [
+                    t.get("tabProperties", {}).get("tabId")
+                    for t in tabs
+                    if "tabProperties" in t
+                ],
+            }
+
+        # Extract tab properties
+        tab_props = target_tab.get("tabProperties", {})
+
+        # Extract text content from tab body
+        tab_body = target_tab.get("documentTab", {}).get("body", {})
+        text_content = self._extract_doc_text(tab_body)
+
+        result = {
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "title": tab_props.get("title", ""),
+            "index": tab_props.get("index", 0),
+            "nesting_level": tab_props.get("nestingLevel", 0),
+            "text_content": text_content,
+        }
+
+        # Add optional fields
+        if "iconEmoji" in tab_props:
+            result["icon_emoji"] = tab_props["iconEmoji"]
+        if "parentTabId" in tab_props:
+            result["parent_tab_id"] = tab_props["parentTabId"]
+
+        return result
+
+    async def _create_document_tab(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a new tab in a Google Doc.
+
+        Args:
+            arguments: Tool arguments with document_id, title, and optional icon_emoji, parent_tab_id, index.
+
+        Returns:
+            Created tab information including the new tab_id.
+        """
+        document_id = arguments["document_id"]
+        title = arguments["title"]
+        icon_emoji = arguments.get("icon_emoji")
+        parent_tab_id = arguments.get("parent_tab_id")
+        index = arguments.get("index")
+
+        # Build the createTab request
+        create_tab_request: dict[str, Any] = {
+            "createTab": {
+                "tabProperties": {
+                    "title": title,
+                }
+            }
+        }
+
+        # Add optional properties
+        if icon_emoji:
+            create_tab_request["createTab"]["tabProperties"]["iconEmoji"] = icon_emoji
+        if parent_tab_id:
+            create_tab_request["createTab"]["tabProperties"]["parentTabId"] = (
+                parent_tab_id
+            )
+        if index is not None:
+            create_tab_request["createTab"]["tabProperties"]["index"] = index
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [create_tab_request]}
+
+        response = await self._make_request("POST", url, json_data=body)
+
+        # Extract the created tab ID from the response
+        replies = response.get("replies", [])
+        if replies and "createTab" in replies[0]:
+            created_tab = replies[0]["createTab"]
+            return {
+                "status": "created",
+                "document_id": document_id,
+                "tab_id": created_tab.get("tabId"),
+                "title": title,
+            }
+
+        return {
+            "status": "created",
+            "document_id": document_id,
+            "title": title,
+        }
+
+    async def _update_tab_properties(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Update properties of an existing tab.
+
+        Args:
+            arguments: Tool arguments with document_id, tab_id, and optional title, icon_emoji.
+
+        Returns:
+            Updated tab information.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+        title = arguments.get("title")
+        icon_emoji = arguments.get("icon_emoji")
+
+        if not title and not icon_emoji:
+            return {
+                "error": "At least one of 'title' or 'icon_emoji' must be provided",
+                "document_id": document_id,
+                "tab_id": tab_id,
+            }
+
+        # Build the updateTabProperties request
+        update_request: dict[str, Any] = {
+            "updateTabProperties": {
+                "tabId": tab_id,
+                "tabProperties": {},
+                "fields": [],
+            }
+        }
+
+        # Add properties to update
+        if title:
+            update_request["updateTabProperties"]["tabProperties"]["title"] = title
+            update_request["updateTabProperties"]["fields"].append("title")
+
+        if icon_emoji:
+            update_request["updateTabProperties"]["tabProperties"]["iconEmoji"] = (
+                icon_emoji
+            )
+            update_request["updateTabProperties"]["fields"].append("iconEmoji")
+
+        # Convert fields list to comma-separated string
+        update_request["updateTabProperties"]["fields"] = ",".join(
+            update_request["updateTabProperties"]["fields"]
+        )
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [update_request]}
+
+        await self._make_request("POST", url, json_data=body)
+
+        return {
+            "status": "updated",
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "updated_fields": update_request["updateTabProperties"]["fields"].split(
+                ","
+            ),
+        }
+
+    async def _move_tab(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Move a tab to a new position or change its parent.
+
+        Args:
+            arguments: Tool arguments with document_id, tab_id, and optional new_parent_tab_id, new_index.
+
+        Returns:
+            Moved tab information.
+        """
+        document_id = arguments["document_id"]
+        tab_id = arguments["tab_id"]
+        new_parent_tab_id = arguments.get("new_parent_tab_id")
+        new_index = arguments.get("new_index")
+
+        if new_parent_tab_id is None and new_index is None:
+            return {
+                "error": "At least one of 'new_parent_tab_id' or 'new_index' must be provided",
+                "document_id": document_id,
+                "tab_id": tab_id,
+            }
+
+        # Build the updateTabProperties request for moving
+        update_request: dict[str, Any] = {
+            "updateTabProperties": {
+                "tabId": tab_id,
+                "tabProperties": {},
+                "fields": [],
+            }
+        }
+
+        # Add properties to update
+        if new_parent_tab_id is not None:
+            # Empty string means move to root level
+            if new_parent_tab_id == "":
+                # To move to root, we need to remove the parentTabId
+                # This requires a different approach - we'll set it to null
+                update_request["updateTabProperties"]["tabProperties"][
+                    "parentTabId"
+                ] = None
+            else:
+                update_request["updateTabProperties"]["tabProperties"][
+                    "parentTabId"
+                ] = new_parent_tab_id
+            update_request["updateTabProperties"]["fields"].append("parentTabId")
+
+        if new_index is not None:
+            update_request["updateTabProperties"]["tabProperties"]["index"] = new_index
+            update_request["updateTabProperties"]["fields"].append("index")
+
+        # Convert fields list to comma-separated string
+        update_request["updateTabProperties"]["fields"] = ",".join(
+            update_request["updateTabProperties"]["fields"]
+        )
+
+        # Execute the batchUpdate
+        url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+        body = {"requests": [update_request]}
+
+        await self._make_request("POST", url, json_data=body)
+
+        return {
+            "status": "moved",
+            "document_id": document_id,
+            "tab_id": tab_id,
+            "updated_fields": update_request["updateTabProperties"]["fields"].split(
+                ","
+            ),
+        }
+
     # Markdown Conversion Operations
     # =========================================================================
 
@@ -2104,6 +3837,202 @@ class GoogleWorkspaceServer:
             "id": result.get("id"),
             "name": result.get("name"),
             "mimeType": result.get("mimeType"),
+        }
+
+    async def _render_mermaid_to_doc(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Render Mermaid diagram to image and insert into Google Doc.
+
+        Uses @mermaid-js/mermaid-cli (npx) to render Mermaid code to SVG or PNG,
+        uploads the image to Google Drive with public sharing, then inserts
+        it into the specified Google Doc using InsertInlineImageRequest.
+
+        Args:
+            arguments: Tool arguments with document_id, mermaid_code, insert_index,
+                      image_format, width_pt, height_pt.
+
+        Returns:
+            Dictionary with status, image URL, insert index, and document ID.
+
+        Raises:
+            RuntimeError: If mermaid-cli rendering fails or npx is not available.
+            ValueError: If invalid mermaid syntax provided.
+        """
+        document_id = arguments["document_id"]
+        mermaid_code = arguments["mermaid_code"]
+        insert_index = arguments.get("insert_index")
+        image_format = arguments.get("image_format", "svg")
+        width_pt = arguments.get("width_pt")
+        height_pt = arguments.get("height_pt")
+
+        # Check if npx is available
+        try:
+            subprocess.run(  # nosec B603 B607 - npx is trusted
+                ["npx", "--version"],
+                capture_output=True,
+                check=True,
+            )
+        except FileNotFoundError as err:
+            raise RuntimeError(
+                "npx is not installed. Install Node.js and npm from:\n"
+                "  https://nodejs.org/"
+            ) from err
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "diagram.mmd"
+            output_path = Path(tmpdir) / f"diagram.{image_format}"
+
+            # Write Mermaid code to temp file
+            input_path.write_text(mermaid_code, encoding="utf-8")
+
+            # Render Mermaid diagram using mermaid-cli
+            try:
+                result = subprocess.run(  # nosec B603 B607 - controlled paths
+                    [
+                        "npx",
+                        "-y",
+                        "@mermaid-js/mermaid-cli@11.12.0",
+                        "-i",
+                        str(input_path),
+                        "-o",
+                        str(output_path),
+                    ],
+                    capture_output=True,
+                    check=True,
+                    text=True,
+                    timeout=30,
+                )
+                logger.info("Mermaid rendering output: %s", result.stdout)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"Mermaid rendering failed: {e.stderr}\n"
+                    f"Check syntax at https://mermaid.js.org/intro/"
+                ) from e
+            except subprocess.TimeoutExpired as e:
+                raise RuntimeError(
+                    "Mermaid rendering timed out (>30s). "
+                    "Simplify the diagram or try again."
+                ) from e
+
+            # Verify output file was created
+            if not output_path.exists():
+                raise RuntimeError(
+                    f"Mermaid-cli failed to create output file: {output_path}"
+                )
+
+            # Read the rendered image
+            image_content = output_path.read_bytes()
+            logger.info(
+                "Rendered Mermaid diagram: %d bytes (%s)",
+                len(image_content),
+                image_format,
+            )
+
+        # Upload image to Google Drive
+        access_token = await self._get_access_token()
+
+        # Create a temp folder in Drive for Mermaid diagrams
+        metadata: dict[str, Any] = {
+            "name": f"mermaid-diagram-{document_id[:8]}.{image_format}",
+            "mimeType": f"image/{image_format}+xml"
+            if image_format == "svg"
+            else f"image/{image_format}",
+        }
+
+        # Use multipart upload for the image
+        upload_url = (
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+        )
+
+        boundary = "mermaid_diagram_boundary"
+
+        # Build multipart body
+        body_start = (
+            f"--{boundary}\r\n"
+            f"Content-Type: application/json; charset=UTF-8\r\n\r\n"
+            f"{json.dumps(metadata)}\r\n"
+            f"--{boundary}\r\n"
+            f"Content-Type: {metadata['mimeType']}\r\n\r\n"
+        ).encode()
+        body_end = f"\r\n--{boundary}--".encode()
+
+        full_body = body_start + image_content + body_end
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                upload_url,
+                content=full_body,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": f"multipart/related; boundary={boundary}",
+                },
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            upload_result = response.json()
+
+        file_id = upload_result.get("id")
+        logger.info("Uploaded Mermaid image to Drive: %s", file_id)
+
+        # Make the file publicly accessible
+        permission_url = f"{DRIVE_API_BASE}/files/{file_id}/permissions"
+        permission_body = {"role": "reader", "type": "anyone"}
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                permission_url,
+                json=permission_body,
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+        # Get public URL for the image
+        public_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+
+        # Determine insert index
+        if insert_index is None:
+            # Get document to find end index
+            get_url = f"{DOCS_API_BASE}/documents/{document_id}"
+            doc = await self._make_request("GET", get_url)
+            content = doc.get("body", {}).get("content", [])
+            if content:
+                last_element = content[-1]
+                end_index = last_element.get("endIndex", 1)
+                insert_index = max(1, end_index - 1)
+            else:
+                insert_index = 1
+
+        # Insert image into Google Doc using batchUpdate
+        update_url = f"{DOCS_API_BASE}/documents/{document_id}:batchUpdate"
+
+        # Build InsertInlineImageRequest
+        image_request: dict[str, Any] = {
+            "insertInlineImage": {
+                "uri": public_url,
+                "location": {"index": insert_index},
+            }
+        }
+
+        # Add optional sizing
+        if width_pt or height_pt:
+            object_size: dict[str, Any] = {}
+            if width_pt:
+                object_size["width"] = {"magnitude": width_pt, "unit": "PT"}
+            if height_pt:
+                object_size["height"] = {"magnitude": height_pt, "unit": "PT"}
+            image_request["insertInlineImage"]["objectSize"] = object_size
+
+        body = {"requests": [image_request]}
+
+        await self._make_request("POST", update_url, json_data=body)
+
+        return {
+            "status": "success",
+            "imageUrl": public_url,
+            "fileId": file_id,
+            "insertIndex": insert_index,
+            "documentId": document_id,
+            "format": image_format,
         }
 
     # =========================================================================
@@ -2498,6 +4427,153 @@ class GoogleWorkspaceServer:
         result = self._format_task(response)
         result["move_status"] = "moved"
         return result
+
+    # -------------------- Rclone Drive Sync Operations --------------------
+
+    def _get_rclone_manager(self) -> "RcloneManager":
+        """Get or create an RcloneManager instance.
+
+        Lazily creates an RcloneManager using the current OAuth tokens
+        from TokenStorage.
+
+        Returns:
+            Configured RcloneManager instance.
+
+        Raises:
+            RuntimeError: If rclone is not installed or tokens unavailable.
+        """
+        # Import here to avoid circular imports and make rclone optional
+        from claude_mpm.mcp.rclone_manager import RcloneManager, RcloneNotInstalledError
+
+        try:
+            return RcloneManager(
+                storage=self.storage,
+                service_name=SERVICE_NAME,
+            )
+        except RcloneNotInstalledError as e:
+            raise RuntimeError(
+                "rclone is not installed. Install it from https://rclone.org/downloads/ "
+                "to use Drive sync features."
+            ) from e
+
+    async def _list_drive_contents(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """List Drive folder contents using rclone lsjson.
+
+        Args:
+            arguments: Tool arguments with path, recursive, files_only,
+                include_hash, max_depth.
+
+        Returns:
+            Dictionary with items list, count, and path.
+        """
+        path = arguments.get("path", "")
+        recursive = arguments.get("recursive", False)
+        files_only = arguments.get("files_only", False)
+        include_hash = arguments.get("include_hash", False)
+        max_depth = arguments.get("max_depth", -1)
+
+        manager = self._get_rclone_manager()
+        try:
+            items = manager.list_json(
+                path=path,
+                recursive=recursive,
+                files_only=files_only,
+                include_hash=include_hash,
+                max_depth=max_depth,
+            )
+            return {
+                "items": items,
+                "count": len(items),
+                "path": path or "(root)",
+            }
+        finally:
+            manager.cleanup()
+
+    async def _download_drive_folder(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Download Drive folder to local filesystem.
+
+        Args:
+            arguments: Tool arguments with drive_path, local_path,
+                google_docs_format, exclude, dry_run.
+
+        Returns:
+            Operation result with status and details.
+        """
+        drive_path = arguments["drive_path"]
+        local_path = arguments["local_path"]
+        google_docs_format = arguments.get("google_docs_format", "docx")
+        exclude = arguments.get("exclude")
+        dry_run = arguments.get("dry_run", False)
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.download(
+                drive_path=drive_path,
+                local_path=local_path,
+                google_docs_format=google_docs_format,
+                exclude=exclude,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
+
+    async def _upload_to_drive(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Upload local folder to Google Drive.
+
+        Args:
+            arguments: Tool arguments with local_path, drive_path,
+                convert_to_google_docs, exclude, dry_run.
+
+        Returns:
+            Operation result with status and details.
+        """
+        local_path = arguments["local_path"]
+        drive_path = arguments["drive_path"]
+        convert_to_google_docs = arguments.get("convert_to_google_docs", False)
+        exclude = arguments.get("exclude")
+        dry_run = arguments.get("dry_run", False)
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.upload(
+                local_path=local_path,
+                drive_path=drive_path,
+                convert_to_google_docs=convert_to_google_docs,
+                exclude=exclude,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
+
+    async def _sync_drive_folder(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Sync files between local and Drive.
+
+        Args:
+            arguments: Tool arguments with source, destination,
+                dry_run, delete_extra, exclude, include.
+
+        Returns:
+            Operation result with status and details.
+        """
+        source = arguments["source"]
+        destination = arguments["destination"]
+        dry_run = arguments.get("dry_run", True)  # Safe default
+        delete_extra = arguments.get("delete_extra", False)
+        exclude = arguments.get("exclude")
+        include = arguments.get("include")
+
+        manager = self._get_rclone_manager()
+        try:
+            return manager.sync(
+                source=source,
+                destination=destination,
+                delete_extra=delete_extra,
+                exclude=exclude,
+                include=include,
+                dry_run=dry_run,
+            )
+        finally:
+            manager.cleanup()
 
     async def run(self) -> None:
         """Run the MCP server using stdio transport."""

@@ -170,6 +170,30 @@ def execute_command(command: str, args) -> int:
         result = manage_oauth(args)
         return result if result is not None else 0
 
+    # Handle slack command with lazy import
+    if command == "slack":
+        # Lazy import to avoid loading unless needed
+        from .commands.slack import manage_slack
+
+        result = manage_slack(args)
+        return result if result is not None else 0
+
+    # Handle setup command with lazy import
+    if command == "setup":
+        # Lazy import to avoid loading unless needed
+        from .commands.setup import manage_setup
+
+        result = manage_setup(args)
+        return result if result is not None else 0
+
+    # Handle tools command with lazy import
+    if command == "tools":
+        # Lazy import to avoid loading unless needed
+        from .commands.tools import manage_tools
+
+        result = manage_tools(args)
+        return result if result is not None else 0
+
     # Handle profile command with lazy import
     if command == "profile":
         # Lazy import to avoid loading unless needed
@@ -401,6 +425,8 @@ def execute_command(command: str, args) -> int:
         "hook-errors",
         "autotodos",
         "oauth",
+        "setup",
+        "slack",
     ]
 
     suggestion = suggest_similar_commands(command, all_commands)

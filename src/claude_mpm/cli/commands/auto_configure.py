@@ -198,7 +198,7 @@ class AutoConfigureCommand(BaseCommand):
             min_confidence = (
                 args.min_confidence
                 if hasattr(args, "min_confidence") and args.min_confidence
-                else 0.8
+                else 0.5
             )
             dry_run = getattr(args, "preview", False)
             skip_confirmation = args.yes if hasattr(args, "yes") and args.yes else False

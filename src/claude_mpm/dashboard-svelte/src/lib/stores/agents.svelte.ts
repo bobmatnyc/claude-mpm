@@ -11,6 +11,14 @@
 import { derived } from 'svelte/store';
 import type { ClaudeEvent } from '$lib/types/events';
 
+export interface TokenUsage {
+	inputTokens: number;
+	outputTokens: number;
+	cacheCreationTokens: number;
+	cacheReadTokens: number;
+	totalTokens: number; // Computed: input + output + cache_creation + cache_read
+}
+
 export interface AgentNode {
 	id: string; // session_id or "pm" for root
 	name: string; // Agent type (PM, Engineer, etc.)
@@ -29,6 +37,7 @@ export interface AgentNode {
 	delegationPrompt?: string; // PM's prompt to this agent
 	delegationDescription?: string; // Short description of delegation
 	responses: AgentResponse[]; // Messages from this agent
+	tokenUsage: TokenUsage; // Token usage stats for this agent
 }
 
 export interface AgentResponse {
@@ -235,6 +244,27 @@ function extractTodos(event: ClaudeEvent): TodoActivity['todos'] {
 }
 
 /**
+ * Extract token usage from token_usage_updated event
+ */
+function extractTokenUsage(event: ClaudeEvent): TokenUsage | null {
+	if (typeof event.data !== 'object' || !event.data) return null;
+	const data = event.data as Record<string, unknown>;
+
+	const inputTokens = (data.input_tokens as number) || 0;
+	const outputTokens = (data.output_tokens as number) || 0;
+	const cacheCreationTokens = (data.cache_creation_tokens as number) || 0;
+	const cacheReadTokens = (data.cache_read_tokens as number) || 0;
+
+	return {
+		inputTokens,
+		outputTokens,
+		cacheCreationTokens,
+		cacheReadTokens,
+		totalTokens: inputTokens + outputTokens + cacheCreationTokens + cacheReadTokens
+	};
+}
+
+/**
  * Extract correlation ID from event (matches tools store logic)
  */
 function getEventCorrelationId(event: ClaudeEvent): string | null {
@@ -385,6 +415,7 @@ export function createAgentsStore(eventsStore: any): any {
 		const toolCallMap = new Map<string, ToolCall[]>(); // sessionId -> tool calls
 		const todoMap = new Map<string, TodoActivity[]>(); // sessionId -> todos
 		const planMap = new Map<string, AgentPlan[]>(); // sessionId -> plans
+		const tokenUsageMap = new Map<string, TokenUsage>(); // sessionId -> token usage
 
 		// Create PM root node (always exists)
 		const pmNode: AgentNode = {
@@ -401,7 +432,14 @@ export function createAgentsStore(eventsStore: any): any {
 			groupedToolCalls: [],
 			todos: [],
 			plans: [],
-			responses: []
+			responses: [],
+			tokenUsage: {
+				inputTokens: 0,
+				outputTokens: 0,
+				cacheCreationTokens: 0,
+				cacheReadTokens: 0,
+				totalTokens: 0
+			}
 		};
 		agentMap.set('pm', pmNode);
 
@@ -447,7 +485,14 @@ export function createAgentsStore(eventsStore: any): any {
 						groupedToolCalls: [],
 						todos: [],
 						plans: [],
-						responses: []
+						responses: [],
+						tokenUsage: {
+							inputTokens: 0,
+							outputTokens: 0,
+							cacheCreationTokens: 0,
+							cacheReadTokens: 0,
+							totalTokens: 0
+						}
 					});
 				} else {
 					// Log if we're seeing duplicate session IDs (this would indicate a bug)
@@ -605,6 +650,21 @@ export function createAgentsStore(eventsStore: any): any {
 				}
 			}
 
+			// Handle token_usage_updated events
+			if (event.subtype === 'token_usage_updated' || event.type === 'token_usage_updated') {
+				const tokenUsage = extractTokenUsage(event);
+				if (tokenUsage && sessionId) {
+					tokenUsageMap.set(sessionId, tokenUsage);
+					console.log('[AgentsStore] Captured token_usage_updated event:', {
+						sessionId: sessionId.slice(0, 12),
+						totalTokens: tokenUsage.totalTokens,
+						inputTokens: tokenUsage.inputTokens,
+						outputTokens: tokenUsage.outputTokens,
+						timestamp: new Date(timestamp).toLocaleTimeString()
+					});
+				}
+			}
+
 			// Handle dedicated todo_updated events (alternative to pre_tool TodoWrite)
 			// This ensures todos are captured even if pre_tool handling fails
 			if (event.subtype === 'todo_updated' || event.type === 'todo_updated') {
@@ -732,6 +792,13 @@ export function createAgentsStore(eventsStore: any): any {
 			agent.groupedToolCalls = groupToolCalls(agent.toolCalls);
 			agent.todos = todoMap.get(sessionId) || [];
 			agent.plans = planMap.get(sessionId) || [];
+		agent.tokenUsage = tokenUsageMap.get(sessionId) || {
+			inputTokens: 0,
+			outputTokens: 0,
+			cacheCreationTokens: 0,
+			cacheReadTokens: 0,
+			totalTokens: 0
+		};
 		});
 
 		// Build hierarchy: For now, all agents are children of PM

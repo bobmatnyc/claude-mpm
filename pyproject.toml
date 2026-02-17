@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "5.6.108"
+version = "5.9.1"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -93,6 +93,12 @@ data-processing = [ "pandas>=2.1.0", "openpyxl>=3.1.0", "xlsxwriter>=3.1.0", "nu
 memory = [ "kuzu-memory>=1.1.5",]
 # Slack MPM client for team collaboration
 slack = [ "slack-bolt>=1.18.0", "slack-sdk>=3.23.0",]
+# HTTP transport with SSE and ngrok for remote MCP access
+http = [ "starlette>=0.38.0", "sse-starlette>=2.0.0", "pyngrok>=7.0.0",]
+# Google Workspace extended features (rclone for Drive sync)
+# NOTE: Requires rclone CLI binary installed separately (https://rclone.org/downloads/)
+# The implementation uses rclone via subprocess, not a Python package.
+google = []
 
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
@@ -100,7 +106,12 @@ claude-mpm-doctor = "claude_mpm.scripts.mpm_doctor:main"
 claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
 claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 claude-hook = "claude_mpm.hooks.claude_hooks.hook_handler:main"
-google-workspace-mcp = "claude_mpm.mcp.google_workspace_server:main"
+# google-workspace-mcp = "claude_mpm.mcp.google_workspace_server:main"  # REMOVED: Migrated to external gworkspace-mcp package
+slack-user-proxy = "claude_mpm.mcp.slack_user_proxy_server:main"
+notion-mcp = "claude_mpm.mcp.notion_server:main"
+confluence-mcp = "claude_mpm.mcp.confluence_server:main"
+mpm-session-server = "claude_mpm.mcp.session_server:main"
+mpm-session-server-http = "claude_mpm.mcp.session_server_http:main"
 slack-mpm = "claude_mpm.slack_client:start_socket_mode"
 # DEPRECATED: MCP gateway archived 2025-12-11
 # claude-mpm-mcp = "claude_mpm.services.mcp_gateway.server.stdio_server:main_sync"
@@ -247,14 +258,14 @@ ignore-imports = false
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "5.6.108"
+version = "5.9.1"
 version_files = [ "VERSION", "src/claude_mpm/VERSION", "package.json:version",]
 tag_format = "v$version"
 update_changelog_on_bump = true
 changelog_incremental = true
 
 [tool.setuptools.package-data]
-claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "commands/*.md", "skills/bundled/**/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml",]
+claude_mpm = [ "VERSION", "BUILD_NUMBER", "scripts/*", "scripts/*.sh", "scripts/setup/*", "scripts/setup/*.sh", "commands/*.md", "config/*.yaml", "skills/bundled/**/*.md", "dashboard/*.html", "dashboard/templates/*.html", "dashboard/static/*.css", "dashboard/static/*.js", "dashboard/static/css/*.css", "dashboard/static/js/*.js", "dashboard/static/js/components/*.js", "dashboard/static/svelte-build/**/*", "agents/*.md", "agents/*.json", "agents/*.yaml", "agents/templates/*.json", "agents/templates/*.md", "agents/schema/*.json", "hooks/**/*.py", "hooks/**/*.sh", "hooks/claude_hooks/*", "hooks/claude_hooks/**/*", "templates/*.yaml", "templates/.pre-commit-config.yaml",]
 
 [tool.pytest.ini_options]
 testpaths = [ "tests",]

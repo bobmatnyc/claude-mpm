@@ -498,7 +498,11 @@ class TestDeployAgentFile:
     """Test _deploy_agent_file method."""
 
     def test_deploy_agent_file_success(self, service, mock_deployment_dir, tmp_path):
-        """Test successful file deployment."""
+        """Test successful file deployment.
+
+        Phase 3 (Issue #299): Now uses unified deploy_agent_file() which
+        adds frontmatter with agent_id by default.
+        """
         # Create source file
         source_file = tmp_path / "engineer.md"
         source_file.write_text("# Engineer\n\nTest content")
@@ -512,9 +516,11 @@ class TestDeployAgentFile:
 
         assert result is True
         assert (mock_deployment_dir / "engineer.md").exists()
-        assert (
-            mock_deployment_dir / "engineer.md"
-        ).read_text() == "# Engineer\n\nTest content"
+        # Phase 3: Now adds frontmatter with agent_id
+        deployed_content = (mock_deployment_dir / "engineer.md").read_text()
+        assert "agent_id: engineer" in deployed_content
+        assert "# Engineer" in deployed_content
+        assert "Test content" in deployed_content
 
     def test_deploy_agent_file_source_not_found(self, service):
         """Test deployment with missing source file."""

@@ -11,6 +11,7 @@ that warrants a dedicated module.
 import argparse
 
 from ...constants import CLICommands, TicketCommands
+from ..constants import TicketStatus
 from .base_parser import add_common_arguments
 
 
@@ -83,8 +84,13 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
     list_tickets_parser.add_argument(
         "-s",
         "--status",
-        choices=["open", "in_progress", "closed", "all"],
-        default="open",
+        choices=[
+            str(TicketStatus.OPEN),
+            str(TicketStatus.IN_PROGRESS),
+            str(TicketStatus.CLOSED),
+            str(TicketStatus.ALL),
+        ],
+        default=str(TicketStatus.OPEN),
         help="Filter by status (default: open)",
     )
     list_tickets_parser.add_argument(
@@ -135,7 +141,11 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
     update_ticket_parser.add_argument(
         "-s",
         "--status",
-        choices=["open", "in_progress", "closed"],
+        choices=[
+            str(TicketStatus.OPEN),
+            str(TicketStatus.IN_PROGRESS),
+            str(TicketStatus.CLOSED),
+        ],
         help="Update status",
     )
     update_ticket_parser.add_argument("--title", help="Update title")
@@ -195,7 +205,13 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
     workflow_ticket_parser.add_argument("ticket_id", help="Ticket ID")
     workflow_ticket_parser.add_argument(
         "state",
-        choices=["open", "in_progress", "review", "testing", "closed"],
+        choices=[
+            str(TicketStatus.OPEN),
+            str(TicketStatus.IN_PROGRESS),
+            str(TicketStatus.REVIEW),
+            str(TicketStatus.TESTING),
+            str(TicketStatus.CLOSED),
+        ],
         help="New workflow state",
     )
     workflow_ticket_parser.add_argument("--comment", help="Workflow transition comment")

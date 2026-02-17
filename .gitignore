@@ -371,3 +371,7 @@ chunk-graph.json
 
 # Generated Homebrew Formula (managed separately in homebrew-tap)
 Formula/
+
+
+# gworkspace-mcp OAuth tokens (project-level)
+.gworkspace-mcp/

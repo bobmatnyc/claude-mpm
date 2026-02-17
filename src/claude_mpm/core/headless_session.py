@@ -213,9 +213,7 @@ class HeadlessSession:
 
         return cmd
 
-    def build_claude_command(
-        self, resume_session: Optional[str] = None
-    ) -> list:
+    def build_claude_command(self, resume_session: Optional[str] = None) -> list:
         """Build the Claude command for headless execution.
 
         Args:
@@ -316,7 +314,9 @@ class HeadlessSession:
 
         if uses_stream_json_input:
             # Vibe-kanban mode: stdin passes through to Claude Code via exec
-            self.logger.debug("Using stream-json input mode (vibe-kanban compatibility)")
+            self.logger.debug(
+                "Using stream-json input mode (vibe-kanban compatibility)"
+            )
         else:
             # Standard headless mode: read prompt from argument or stdin
             if prompt is None:

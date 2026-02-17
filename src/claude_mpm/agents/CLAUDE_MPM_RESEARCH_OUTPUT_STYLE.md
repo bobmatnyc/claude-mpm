@@ -1,5 +1,5 @@
 ---
-name: Claude MPM Research
+name: claude_mpm_research
 description: Codebase research tool for founders, PMs, and developers - deep analysis in accessible language
 ---
 

@@ -11,11 +11,13 @@ from claude_mpm.auth.callback_server import OAuthCallbackServer
 from claude_mpm.auth.models import OAuthToken, StoredToken, TokenMetadata, TokenStatus
 from claude_mpm.auth.providers.base import OAuthProvider
 from claude_mpm.auth.providers.google import GoogleOAuthProvider, OAuthError
+from claude_mpm.auth.providers.slack import SlackOAuthProvider
 from claude_mpm.auth.token_storage import TokenStorage
 
 # Mapping of provider names to provider classes
 PROVIDERS: dict[str, type[OAuthProvider]] = {
     "google": GoogleOAuthProvider,
+    "slack": SlackOAuthProvider,
 }
 
 

@@ -342,8 +342,9 @@ def test_match_score_language_only(
 
     score = recommender_service.match_score("test_python_engineer", toolchain)
 
-    # Should have decent score from language match (50% weight * 0.9 confidence)
-    assert 0.4 < score < 0.6
+    # Should have decent score from language match (language_only_boost + blended confidence)
+    # With fix: base_score = 0.5 + 0.15 = 0.65, final = 0.65 * (0.5 + 0.45) = ~0.617
+    assert 0.5 < score < 0.7
 
 
 def test_match_score_framework_priority(
@@ -916,12 +917,12 @@ def test_default_configuration_priority_ordering(tmp_path: Path):
 
     recommendations = recommender.recommend_agents(toolchain)
 
-    # Check priority ordering
+    # Check priority ordering (matches agent_capabilities.yaml default_configuration)
     assert recommendations[0].agent_id == "engineer"  # priority 1
     assert recommendations[1].agent_id == "research"  # priority 2
     assert recommendations[2].agent_id == "qa"  # priority 3
-    assert recommendations[3].agent_id == "ops"  # priority 4
-    assert recommendations[4].agent_id == "documentation"  # priority 5
+    assert recommendations[3].agent_id == "documentation"  # priority 4
+    assert recommendations[4].agent_id == "ops"  # priority 5
 
     # Verify priorities are correct
     assert recommendations[0].deployment_priority == 1

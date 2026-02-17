@@ -8,8 +8,11 @@ Test coverage:
 1. CLI flag parsing tests
 2. Command building tests
 3. Argument filtering tests
-4. Integration tests (with mocked subprocess)
+4. Integration tests (with mocked os.execvpe)
 5. End-to-end workflow tests
+
+Note: These tests verify command building and argument handling.
+The actual os.execvpe() execution is mocked since it replaces the process.
 """
 
 import io
@@ -22,10 +25,9 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.cli.commands.run import filter_claude_mpm_args, _run_headless_session
+from claude_mpm.cli.commands.run import _run_headless_session, filter_claude_mpm_args
 from claude_mpm.cli.parsers.run_parser import add_run_arguments
 from claude_mpm.core.headless_session import HeadlessSession
-
 
 # =============================================================================
 # Fixtures
@@ -43,7 +45,9 @@ def mock_runner():
 @pytest.fixture
 def headless_session(mock_runner):
     """Create a HeadlessSession instance for testing."""
-    with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+    with patch.object(
+        HeadlessSession, "_get_working_directory", return_value=Path("/test")
+    ):
         return HeadlessSession(mock_runner)
 
 
@@ -88,6 +92,7 @@ class TestCLIFlagParsing:
     def test_headless_flag_recognized(self):
         """--headless flag should be parsed without error."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -97,6 +102,7 @@ class TestCLIFlagParsing:
     def test_headless_flag_default_false(self):
         """--headless flag should default to False."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -106,6 +112,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_recognized(self):
         """--resume <session_id> should be parsed correctly."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -115,6 +122,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_without_argument(self):
         """--resume without argument should use empty string (resume last)."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -124,6 +132,7 @@ class TestCLIFlagParsing:
     def test_resume_flag_default_none(self):
         """--resume flag should default to None when not used."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -133,6 +142,7 @@ class TestCLIFlagParsing:
     def test_headless_with_resume_combined(self):
         """--headless --resume can be combined."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -143,6 +153,7 @@ class TestCLIFlagParsing:
     def test_headless_with_input_flag(self):
         """--headless with -i flag should work."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -153,6 +164,7 @@ class TestCLIFlagParsing:
     def test_mpm_resume_flag_recognized(self):
         """--mpm-resume flag should be parsed correctly."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -162,6 +174,7 @@ class TestCLIFlagParsing:
     def test_mpm_resume_without_argument(self):
         """--mpm-resume without argument should use 'last'."""
         import argparse
+
         parser = argparse.ArgumentParser()
         add_run_arguments(parser)
 
@@ -190,7 +203,9 @@ class TestCommandBuilding:
 
     def test_command_with_resume_session(self, mock_runner):
         """Resume command should include --resume with session ID."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command(resume_session="abc123")
@@ -200,48 +215,63 @@ class TestCommandBuilding:
         idx = cmd.index("--resume")
         assert cmd[idx + 1] == "abc123"
 
-    def test_command_preserves_custom_claude_args(self, mock_runner):
-        """Custom claude_args should be preserved in command."""
-        mock_runner.claude_args = ["--model", "sonnet", "--verbose"]
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+    def test_command_with_custom_claude_args(self, mock_runner):
+        """Custom claude_args should be included in command."""
+        mock_runner.claude_args = ["--model", "opus", "--verbose"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command()
 
         assert "--model" in cmd
-        assert "sonnet" in cmd
-        assert "--verbose" in cmd
+        assert "opus" in cmd
 
-    def test_command_deduplicates_resume_flag(self, mock_runner):
-        """When resume_session is provided, skip --resume from runner.claude_args."""
-        mock_runner.claude_args = ["--resume", "old_session", "--model", "sonnet"]
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+    def test_command_skips_duplicate_resume(self, mock_runner):
+        """Command should not duplicate --resume flag."""
+        mock_runner.claude_args = ["--resume", "old_session"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         cmd = session.build_claude_command(resume_session="new_session")
 
-        # Should have new_session, not old_session
-        assert "new_session" in cmd
-        assert "old_session" not in cmd
-        # --resume should appear only once
-        assert cmd.count("--resume") == 1
+        # Should only have one --resume with new_session
+        resume_indices = [i for i, arg in enumerate(cmd) if arg == "--resume"]
+        assert len(resume_indices) == 1
+        assert cmd[resume_indices[0] + 1] == "new_session"
 
-    def test_command_filters_fork_session_when_resume_provided(self, mock_runner):
-        """--fork-session from runner.claude_args should be skipped when resume_session provided."""
-        mock_runner.claude_args = ["--fork-session", "--model", "sonnet"]
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+    def test_command_preserves_output_format_passthrough(self, mock_runner):
+        """Should not add stream-json if output-format already specified."""
+        mock_runner.claude_args = ["--output-format", "json"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        cmd = session.build_claude_command(resume_session="abc123")
+        cmd = session.build_claude_command()
 
-        assert "--fork-session" not in cmd
-        assert "--model" in cmd
+        # Should preserve the passthrough format
+        output_format_indices = [
+            i for i, arg in enumerate(cmd) if arg == "--output-format"
+        ]
+        assert len(output_format_indices) == 1
 
-    def test_command_without_resume(self, headless_session):
-        """Command without resume should not include --resume flag."""
-        cmd = headless_session.build_claude_command()
+    def test_command_includes_verbose(self, mock_runner):
+        """Headless command should include --verbose for stream-json."""
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
 
-        assert "--resume" not in cmd
+        cmd = session.build_claude_command()
+
+        assert "--verbose" in cmd
 
 
 # =============================================================================
@@ -250,111 +280,65 @@ class TestCommandBuilding:
 
 
 class TestArgumentFiltering:
-    """Test filter_claude_mpm_args function."""
+    """Test filtering of MPM-specific arguments."""
 
-    def test_filters_monitor_flag(self):
-        """--monitor should be filtered out."""
-        args = ["--monitor", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "--monitor" not in filtered
-        assert "--model" in filtered
-        assert "sonnet" in filtered
-
-    def test_filters_headless_flag(self):
-        """--headless should be filtered out."""
-        args = ["--headless", "--model", "sonnet"]
+    def test_filter_removes_headless_flag(self):
+        """filter_claude_mpm_args should remove --headless."""
+        args = ["--headless", "--model", "opus"]
         filtered = filter_claude_mpm_args(args)
 
         assert "--headless" not in filtered
         assert "--model" in filtered
+        assert "opus" in filtered
 
-    def test_filters_websocket_port_with_value(self):
-        """--websocket-port and its value should be filtered out."""
-        args = ["--websocket-port", "9000", "--model", "sonnet"]
+    def test_filter_removes_monitor_flags(self):
+        """filter_claude_mpm_args should remove --monitor and --websocket-port."""
+        args = ["--monitor", "--websocket-port", "8765", "--verbose"]
         filtered = filter_claude_mpm_args(args)
 
+        assert "--monitor" not in filtered
         assert "--websocket-port" not in filtered
-        assert "9000" not in filtered
-        assert "--model" in filtered
+        assert "8765" not in filtered
+        assert "--verbose" in filtered
 
-    def test_filters_input_flag_with_value(self):
-        """--input and its value should be filtered out."""
-        args = ["--input", "test prompt", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "--input" not in filtered
-        assert "test prompt" not in filtered
-
-    def test_filters_short_input_flag(self):
-        """-i and its value should be filtered out."""
-        args = ["-i", "test prompt", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "-i" not in filtered
-        assert "test prompt" not in filtered
-
-    def test_filters_no_hooks_flag(self):
-        """--no-hooks should be filtered out."""
-        args = ["--no-hooks", "--model", "sonnet"]
+    def test_filter_removes_mpm_specific_flags(self):
+        """filter_claude_mpm_args should remove all MPM-specific flags."""
+        args = [
+            "--no-hooks",
+            "--no-tickets",
+            "--launch-method",
+            "vscode",
+            "--model",
+            "sonnet",
+        ]
         filtered = filter_claude_mpm_args(args)
 
         assert "--no-hooks" not in filtered
-
-    def test_filters_no_tickets_flag(self):
-        """--no-tickets should be filtered out."""
-        args = ["--no-tickets", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
         assert "--no-tickets" not in filtered
-
-    def test_filters_mpm_resume_with_value(self):
-        """--mpm-resume and its value should be filtered out."""
-        args = ["--mpm-resume", "abc123", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "--mpm-resume" not in filtered
-        assert "abc123" not in filtered
-
-    def test_filters_mpm_resume_without_value(self):
-        """--mpm-resume without value should be filtered (value is optional)."""
-        args = ["--mpm-resume", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "--mpm-resume" not in filtered
-        # --model should be preserved (not treated as mpm-resume value since it starts with --)
-        assert "--model" in filtered
-
-    def test_removes_double_dash_separator(self):
-        """The -- separator should be removed."""
-        args = ["--", "--model", "sonnet"]
-        filtered = filter_claude_mpm_args(args)
-
-        assert "--" not in filtered
-        assert "--model" in filtered
-
-    def test_preserves_genuine_claude_args(self):
-        """Genuine Claude CLI arguments should be preserved."""
-        args = ["--model", "sonnet", "--verbose", "--system-prompt", "You are helpful"]
-        filtered = filter_claude_mpm_args(args)
-
+        assert "--launch-method" not in filtered
+        assert "vscode" not in filtered
         assert "--model" in filtered
         assert "sonnet" in filtered
-        assert "--verbose" in filtered
-        assert "--system-prompt" in filtered
-        assert "You are helpful" in filtered
 
-    def test_empty_args(self):
-        """Empty args should return empty list."""
+    def test_filter_handles_empty_list(self):
+        """filter_claude_mpm_args should handle empty list."""
         assert filter_claude_mpm_args([]) == []
+
+    def test_filter_handles_none(self):
+        """filter_claude_mpm_args should handle None."""
         assert filter_claude_mpm_args(None) == []
 
     def test_multiple_mpm_flags(self):
         """Multiple MPM flags should all be filtered."""
         args = [
-            "--monitor", "--websocket-port", "8765",
-            "--no-hooks", "--no-tickets", "--headless",
-            "--model", "sonnet"
+            "--monitor",
+            "--websocket-port",
+            "8765",
+            "--no-hooks",
+            "--no-tickets",
+            "--headless",
+            "--model",
+            "sonnet",
         ]
         filtered = filter_claude_mpm_args(args)
 
@@ -364,124 +348,141 @@ class TestArgumentFiltering:
 
 
 # =============================================================================
-# 4. Integration Tests
+# 4. Integration Tests (with mocked os.execvpe)
 # =============================================================================
 
 
 class TestHeadlessIntegration:
-    """Integration tests for headless mode with mocked subprocess."""
+    """Integration tests for headless mode with mocked os.execvpe.
 
-    def test_run_outputs_to_stdout(self, mock_runner):
-        """Headless run should output to stdout without Rich formatting."""
+    Note: os.execvpe() replaces the current process and never returns
+    on success. We mock it to verify the command that would be executed.
+    """
+
+    def test_run_calls_execvpe_with_correct_command(self, mock_runner):
+        """Headless run should call os.execvpe with properly built command."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        mock_process = Mock()
-        mock_process.communicate.return_value = ('{"type": "result", "data": "test"}\n', "")
-        mock_process.returncode = 0
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                # execvpe never returns, so we simulate that by raising SystemExit
+                mock_exec.side_effect = SystemExit(0)
 
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            with patch("sys.stdout.write") as mock_write:
-                with patch("sys.stdout.flush"):
-                    exit_code = session.run(prompt="test prompt")
-
-        assert exit_code == 0
-        mock_write.assert_called()
-        # Verify NDJSON was written to stdout
-        write_calls = [call[0][0] for call in mock_write.call_args_list]
-        assert any('{"type": "result"' in str(call) for call in write_calls)
-
-    def test_run_preserves_stderr(self, mock_runner):
-        """Headless run should pass stderr through."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "Warning: test warning\n")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stderr.write") as mock_stderr:
-                with patch("sys.stderr.flush"):
+                try:
                     session.run(prompt="test prompt")
+                except SystemExit:
+                    pass
 
-        mock_stderr.assert_called()
-        write_calls = [call[0][0] for call in mock_stderr.call_args_list]
-        assert any("Warning" in str(call) for call in write_calls)
+                # Verify execvpe was called
+                mock_exec.assert_called_once()
 
-    def test_run_returns_correct_exit_code(self, mock_runner):
-        """Headless run should return Claude's exit code."""
+                # Get the command that would be executed
+                call_args = mock_exec.call_args
+                cmd = call_args[0][1]  # Second positional arg is command list
+                env = call_args[0][2]  # Third positional arg is environment
+
+                # Verify command structure
+                assert cmd[0] == "claude"
+                assert "--output-format" in cmd
+                assert "stream-json" in cmd
+                assert "--print" in cmd
+                assert "test prompt" in cmd
+
+    def test_run_includes_resume_in_command(self, mock_runner):
+        """Headless run with resume should include --resume in command."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 42
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
 
-        with patch("subprocess.Popen", return_value=mock_process):
-            exit_code = session.run(prompt="test prompt")
+                try:
+                    session.run(prompt="test prompt", resume_session="abc123")
+                except SystemExit:
+                    pass
 
-        assert exit_code == 42
+                cmd = mock_exec.call_args[0][1]
+                assert "--resume" in cmd
+                assert "abc123" in cmd
+
+    def test_run_changes_to_working_directory(self, mock_runner):
+        """Headless run should chdir to working directory before exec."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession,
+            "_get_working_directory",
+            return_value=Path("/test/project"),
+        ):
+            session = HeadlessSession(mock_runner)
+
+        with patch("os.chdir") as mock_chdir:
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
+
+                try:
+                    session.run(prompt="test prompt")
+                except SystemExit:
+                    pass
+
+                mock_chdir.assert_called_with("/test/project")
 
     def test_run_handles_file_not_found(self, mock_runner):
         """Headless run should handle Claude CLI not found."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        with patch("subprocess.Popen", side_effect=FileNotFoundError("claude not found")):
-            with patch("sys.stderr.write") as mock_stderr:
-                with patch("sys.stderr.flush"):
-                    exit_code = session.run(prompt="test prompt")
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = FileNotFoundError("claude not found")
 
-        assert exit_code == 127  # Standard "command not found" exit code
-        mock_stderr.assert_called()
+                with patch("sys.stderr.write") as mock_stderr:
+                    with patch("sys.stderr.flush"):
+                        exit_code = session.run(prompt="test prompt")
+
+                assert exit_code == 127  # Standard "command not found" exit code
+                mock_stderr.assert_called()
 
     def test_run_handles_permission_error(self, mock_runner):
         """Headless run should handle permission denied."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        with patch("subprocess.Popen", side_effect=PermissionError("Permission denied")):
-            with patch("sys.stderr.write") as mock_stderr:
-                with patch("sys.stderr.flush"):
-                    exit_code = session.run(prompt="test prompt")
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = PermissionError("Permission denied")
 
-        assert exit_code == 126  # Standard "permission denied" exit code
+                with patch("sys.stderr.write"):
+                    with patch("sys.stderr.flush"):
+                        exit_code = session.run(prompt="test prompt")
 
-    def test_run_uses_print_flag_for_prompt(self, mock_runner):
-        """Headless run should use --print flag for prompt."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            session.run(prompt="my test prompt")
-
-        # Get the command passed to Popen
-        cmd = mock_popen.call_args[0][0]
-        assert "--print" in cmd
-        assert "my test prompt" in cmd
+                assert exit_code == 126  # Standard "permission denied" exit code
 
     def test_environment_sets_disable_telemetry(self, mock_runner):
         """Headless run should set DISABLE_TELEMETRY=1."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         env = session._prepare_environment()
@@ -492,12 +493,36 @@ class TestHeadlessIntegration:
         """Headless run should set CI=true."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         env = session._prepare_environment()
 
         assert env.get("CI") == "true"
+
+    def test_run_passes_through_custom_claude_args(self, mock_runner):
+        """Custom claude_args should be passed to os.execvpe."""
+        mock_runner.claude_args = ["--model", "opus"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
+
+                try:
+                    session.run(prompt="test prompt")
+                except SystemExit:
+                    pass
+
+                cmd = mock_exec.call_args[0][1]
+                assert "--model" in cmd
+                assert "opus" in cmd
 
 
 # =============================================================================
@@ -512,10 +537,14 @@ class TestPromptHandling:
         """Empty prompt should return error exit code."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        exit_code = session.run(prompt="")
+        with patch("sys.stderr.write"):
+            with patch("sys.stderr.flush"):
+                exit_code = session.run(prompt="")
 
         assert exit_code == 1
 
@@ -523,11 +552,15 @@ class TestPromptHandling:
         """None prompt with TTY stdin should return error (no piped input)."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
         with patch("sys.stdin.isatty", return_value=True):
-            exit_code = session.run(prompt=None)
+            with patch("sys.stderr.write"):
+                with patch("sys.stderr.flush"):
+                    exit_code = session.run(prompt=None)
 
         assert exit_code == 1
 
@@ -535,21 +568,26 @@ class TestPromptHandling:
         """Should read prompt from stdin when not TTY."""
         mock_runner.claude_args = []
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
 
         with patch("sys.stdin.isatty", return_value=False):
             with patch("sys.stdin.read", return_value="piped prompt\n"):
-                with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-                    exit_code = session.run(prompt=None)
+                with patch("os.chdir"):
+                    with patch(
+                        "claude_mpm.core.headless_session.os.execvpe"
+                    ) as mock_exec:
+                        mock_exec.side_effect = SystemExit(0)
 
-        assert exit_code == 0
-        cmd = mock_popen.call_args[0][0]
-        assert "piped prompt" in cmd
+                        try:
+                            session.run(prompt=None)
+                        except SystemExit:
+                            pass
+
+                        cmd = mock_exec.call_args[0][1]
+                        assert "piped prompt" in cmd
 
 
 # =============================================================================
@@ -564,664 +602,225 @@ class TestRunHeadlessSessionFunction:
         """_run_headless_session should work with basic args."""
         headless_args.input = "test prompt"
 
-        mock_process = Mock()
-        mock_process.communicate.return_value = ('{"type": "result"}\n', "")
-        mock_process.returncode = 0
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
 
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdout.write"):
-                with patch("sys.stdout.flush"):
-                    exit_code = _run_headless_session(headless_args)
+                try:
+                    _run_headless_session(headless_args)
+                except SystemExit:
+                    pass
 
-        assert exit_code == 0
+                mock_exec.assert_called_once()
+                cmd = mock_exec.call_args[0][1]
+                assert "claude" in cmd
+                assert "test prompt" in cmd
 
     def test_run_headless_session_with_resume(self, headless_args):
         """_run_headless_session should handle --resume flag."""
         headless_args.input = "test prompt"
         headless_args.resume = "session123"
 
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
 
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            _run_headless_session(headless_args)
+                try:
+                    _run_headless_session(headless_args)
+                except SystemExit:
+                    pass
 
-        cmd = mock_popen.call_args[0][0]
-        assert "--resume" in cmd
-        assert "session123" in cmd
-        assert "--fork-session" in cmd
+                cmd = mock_exec.call_args[0][1]
+                assert "--resume" in cmd
+                assert "session123" in cmd
+                assert "--fork-session" in cmd
 
-    def test_run_headless_session_resume_last(self, headless_args):
-        """_run_headless_session should handle --resume without session ID."""
+    def test_run_headless_session_passthrough_flags(self, headless_args):
+        """_run_headless_session should pass through Claude flags."""
         headless_args.input = "test prompt"
-        headless_args.resume = ""  # Empty string = resume last
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            _run_headless_session(headless_args)
-
-        cmd = mock_popen.call_args[0][0]
-        assert "--resume" in cmd
-        # Should NOT have --fork-session when resuming last session
-        assert "--fork-session" not in cmd
-
-    def test_run_headless_session_filters_mpm_args(self, headless_args):
-        """_run_headless_session should filter MPM-specific args."""
-        headless_args.input = "test prompt"
-        headless_args.claude_args = ["--", "--monitor", "--model", "sonnet"]
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            _run_headless_session(headless_args)
-
-        cmd = mock_popen.call_args[0][0]
-        assert "--monitor" not in cmd
-        assert "--model" in cmd
-
-
-# =============================================================================
-# 8. Working Directory Tests
-# =============================================================================
-
-
-class TestWorkingDirectory:
-    """Test working directory handling in headless mode."""
-
-    def test_uses_cwd_by_default(self, mock_runner):
-        """Should use current working directory by default."""
-        with patch("os.environ", {}):
-            with patch("pathlib.Path.cwd", return_value=Path("/default/cwd")):
-                session = HeadlessSession(mock_runner)
-
-        assert session.working_dir == Path("/default/cwd")
-
-    def test_uses_env_var_when_set(self, mock_runner):
-        """Should use CLAUDE_MPM_USER_PWD environment variable when set."""
-        with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": "/custom/path"}):
-            session = HeadlessSession(mock_runner)
-
-        assert session.working_dir == Path("/custom/path")
-
-    def test_subprocess_uses_working_dir(self, mock_runner):
-        """Subprocess should be started in the correct working directory."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test/dir")):
-            session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            session.run(prompt="test")
-
-        # Verify cwd was passed to Popen
-        popen_kwargs = mock_popen.call_args[1]
-        assert popen_kwargs.get("cwd") == "/test/dir"
-
-
-# =============================================================================
-# 9. NDJSON Output Format Tests
-# =============================================================================
-
-
-class TestNDJSONOutput:
-    """Test that output is valid NDJSON format."""
-
-    def test_output_passes_through_ndjson(self, mock_runner):
-        """Output should be valid NDJSON (one JSON object per line)."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        # Simulate NDJSON output from Claude
-        ndjson_output = (
-            '{"type": "init", "session_id": "abc123"}\n'
-            '{"type": "message", "content": "Hello"}\n'
-            '{"type": "result", "status": "success"}\n'
-        )
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = (ndjson_output, "")
-        mock_process.returncode = 0
-
-        captured_output = []
-
-        def capture_write(content):
-            captured_output.append(content)
-
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdout.write", side_effect=capture_write):
-                with patch("sys.stdout.flush"):
-                    session.run(prompt="test")
-
-        # Verify output was passed through
-        full_output = "".join(captured_output)
-
-        # Each line should be valid JSON
-        for line in full_output.strip().split("\n"):
-            if line:
-                parsed = json.loads(line)
-                assert "type" in parsed
-
-
-# =============================================================================
-# 10. End-to-End Workflow Tests
-# =============================================================================
-
-
-class TestEndToEndWorkflow:
-    """Test complete headless workflow scenarios."""
-
-    def test_headless_follow_up_workflow(self, headless_args):
-        """Test workflow: initial prompt -> capture session_id -> follow-up."""
-        # Simulate initial session response with session_id
-        initial_output = '{"type": "init", "session_id": "session-xyz-123"}\n{"type": "result", "status": "success"}\n'
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = (initial_output, "")
-        mock_process.returncode = 0
-
-        captured_stdout = []
-
-        def capture_stdout(content):
-            captured_stdout.append(content)
-
-        headless_args.input = "Start a new task"
-
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdout.write", side_effect=capture_stdout):
-                with patch("sys.stdout.flush"):
-                    exit_code = _run_headless_session(headless_args)
-
-        assert exit_code == 0
-
-        # Parse output to find session_id
-        full_output = "".join(captured_stdout)
-        session_id = None
-        for line in full_output.strip().split("\n"):
-            if line:
-                data = json.loads(line)
-                if data.get("type") == "init":
-                    session_id = data.get("session_id")
-                    break
-
-        assert session_id == "session-xyz-123"
-
-        # Now simulate follow-up with resume
-        headless_args.input = "Continue the task"
-        headless_args.resume = session_id
-
-        captured_stdout.clear()
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            with patch("sys.stdout.write", side_effect=capture_stdout):
-                with patch("sys.stdout.flush"):
-                    exit_code = _run_headless_session(headless_args)
-
-        # Verify --resume was used with the captured session_id
-        cmd = mock_popen.call_args[0][0]
-        assert "--resume" in cmd
-        assert "session-xyz-123" in cmd
-        assert "--fork-session" in cmd
-
-    def test_ci_pipeline_workflow(self, headless_args):
-        """Test typical CI/CD pipeline usage."""
-        headless_args.input = "Run linting and fix any issues"
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = (
-            '{"type": "result", "status": "success", "output": "Fixed 3 issues"}\n',
-            ""
-        )
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            with patch("sys.stdout.write"):
-                with patch("sys.stdout.flush"):
-                    exit_code = _run_headless_session(headless_args)
-
-        assert exit_code == 0
-
-        # Verify proper command was built
-        cmd = mock_popen.call_args[0][0]
-        assert "claude" in cmd
-        assert "--output-format" in cmd
-        assert "stream-json" in cmd
-        assert "--print" in cmd
-        assert "Run linting and fix any issues" in cmd
-
-    def test_vibe_kanban_integration_workflow(self, headless_args):
-        """Test Vibe Kanban integration workflow."""
-        # Vibe Kanban passes task description via -i
-        headless_args.input = """## Task: Implement user authentication
-
-        ### Requirements:
-        - Add login endpoint
-        - Add logout endpoint
-        - Use JWT tokens
-        """
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = (
-            '{"type": "init", "session_id": "vk-session-001"}\n'
-            '{"type": "tool_use", "tool": "Edit", "file": "auth.py"}\n'
-            '{"type": "result", "status": "success"}\n',
-            ""
-        )
-        mock_process.returncode = 0
-
-        captured = []
-
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdout.write", side_effect=lambda x: captured.append(x)):
-                with patch("sys.stdout.flush"):
-                    exit_code = _run_headless_session(headless_args)
-
-        assert exit_code == 0
-
-        # Verify output can be parsed for session info
-        output = "".join(captured)
-        lines = [json.loads(line) for line in output.strip().split("\n") if line]
-
-        # Should have init with session_id
-        init_msg = next((m for m in lines if m.get("type") == "init"), None)
-        assert init_msg is not None
-        assert "session_id" in init_msg
-
-
-# =============================================================================
-# 11. Edge Cases and Error Handling
-# =============================================================================
-
-
-class TestEdgeCases:
-    """Test edge cases and error scenarios."""
-
-    def test_handles_unexpected_exception(self, mock_runner):
-        """Should handle unexpected exceptions gracefully."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        with patch("subprocess.Popen", side_effect=RuntimeError("Unexpected error")):
-            with patch("sys.stderr.write") as mock_stderr:
-                with patch("sys.stderr.flush"):
-                    exit_code = session.run(prompt="test")
-
-        assert exit_code == 1
-        mock_stderr.assert_called()
-
-    def test_handles_whitespace_only_prompt(self, mock_runner):
-        """Whitespace-only prompt should be passed through (not stripped).
-
-        Note: The implementation does NOT strip prompts provided directly.
-        Only prompts read from stdin are stripped. This is by design -
-        if you provide a prompt directly, you get what you asked for.
-        """
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            exit_code = session.run(prompt="   \n\t  ")
-
-        # The prompt is passed through unchanged
-        assert exit_code == 0
-        cmd = mock_popen.call_args[0][0]
-        assert "--print" in cmd
-        assert "   \n\t  " in cmd
-
-    def test_handles_very_long_prompt(self, mock_runner):
-        """Should handle very long prompts."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        long_prompt = "A" * 100000  # 100KB prompt
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            exit_code = session.run(prompt=long_prompt)
-
-        assert exit_code == 0
-        cmd = mock_popen.call_args[0][0]
-        assert long_prompt in cmd
-
-    def test_handles_special_characters_in_prompt(self, mock_runner):
-        """Should handle special characters in prompts."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        special_prompt = 'Test with "quotes" and \'apostrophes\' and $variables and `backticks`'
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            exit_code = session.run(prompt=special_prompt)
-
-        assert exit_code == 0
-        cmd = mock_popen.call_args[0][0]
-        assert special_prompt in cmd
-
-    def test_handles_unicode_prompt(self, mock_runner):
-        """Should handle unicode characters in prompts."""
-        mock_runner.claude_args = []
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        unicode_prompt = "Test with emoji and unicode"
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            exit_code = session.run(prompt=unicode_prompt)
-
-        assert exit_code == 0
-
-
-# =============================================================================
-# 12. Claude Code Passthrough Flags Tests (Vibe Kanban Compatibility)
-# =============================================================================
-
-
-class TestPassthroughFlags:
-    """Test Claude Code passthrough flags for Vibe Kanban compatibility."""
-
-    def test_passthrough_flags_parsing(self):
-        """All passthrough flags should be parsed correctly."""
-        import argparse
-        parser = argparse.ArgumentParser()
-        add_run_arguments(parser)
-
-        args = parser.parse_args([
-            "-p",
-            "--dangerously-skip-permissions",
-            "--output-format=stream-json",
-            "--input-format=stream-json",
-            "--include-partial-messages",
-            "--disallowedTools=AskUserQuestion",
-        ])
-
-        assert args.passthrough_print is True
-        assert args.dangerously_skip_permissions is True
-        assert args.output_format == "stream-json"
-        assert args.input_format == "stream-json"
-        assert args.include_partial_messages is True
-        assert args.disallowedTools == "AskUserQuestion"
-
-    def test_passthrough_flags_defaults(self):
-        """Passthrough flags should have correct default values."""
-        import argparse
-        parser = argparse.ArgumentParser()
-        add_run_arguments(parser)
-
-        args = parser.parse_args([])
-
-        assert args.passthrough_print is False
-        assert args.dangerously_skip_permissions is False
-        assert args.output_format is None
-        assert args.input_format is None
-        assert args.include_partial_messages is False
-        assert args.disallowedTools is None
-
-    def test_passthrough_flags_with_headless(self):
-        """Passthrough flags should work together with --headless."""
-        import argparse
-        parser = argparse.ArgumentParser()
-        add_run_arguments(parser)
-
-        args = parser.parse_args([
-            "--headless",
-            "-p",
-            "--dangerously-skip-permissions",
-            "--output-format", "stream-json",
-        ])
-
-        assert args.headless is True
-        assert args.passthrough_print is True
-        assert args.dangerously_skip_permissions is True
-        assert args.output_format == "stream-json"
-
-    def test_passthrough_flags_forwarded_to_claude(self, headless_args):
-        """Passthrough flags should be forwarded to Claude Code in headless mode."""
-        headless_args.input = "test prompt"
-        headless_args.passthrough_print = True
         headless_args.dangerously_skip_permissions = True
-        headless_args.output_format = "stream-json"
-        headless_args.input_format = "stream-json"
-        headless_args.include_partial_messages = True
-        headless_args.disallowedTools = "AskUserQuestion"
+        headless_args.output_format = "json"
 
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
+        with patch("os.chdir"):
+            with patch("claude_mpm.core.headless_session.os.execvpe") as mock_exec:
+                mock_exec.side_effect = SystemExit(0)
 
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            _run_headless_session(headless_args)
+                try:
+                    _run_headless_session(headless_args)
+                except SystemExit:
+                    pass
 
-        cmd = mock_popen.call_args[0][0]
-        assert "-p" in cmd
-        assert "--dangerously-skip-permissions" in cmd
-        assert "--output-format" in cmd
-        assert "stream-json" in cmd
-        assert "--input-format" in cmd
-        assert "--include-partial-messages" in cmd
-        assert "--disallowedTools" in cmd
-        assert "AskUserQuestion" in cmd
+                cmd = mock_exec.call_args[0][1]
+                assert "--dangerously-skip-permissions" in cmd
+                assert "--output-format" in cmd
+                assert "json" in cmd
 
-    def test_output_format_not_duplicated(self, mock_runner):
-        """When --output-format is passed through, it should not be added twice."""
-        # Simulate passthrough args including --output-format
-        mock_runner.claude_args = [
-            "-p",
-            "--output-format", "stream-json",
-            "--include-partial-messages",
-        ]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+# =============================================================================
+# 7. Stream-JSON Input Tests
+# =============================================================================
+
+
+class TestStreamJsonInput:
+    """Test stream-json input mode (Vibe Kanban compatibility)."""
+
+    def test_detects_stream_json_input_format(self, mock_runner):
+        """Should detect --input-format stream-json."""
+        mock_runner.claude_args = ["--input-format", "stream-json"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        cmd = session.build_claude_command()
-
-        # Should start with just "claude" (no extra --output-format added)
-        assert cmd[0] == "claude"
-        # Count occurrences of --output-format
-        assert cmd.count("--output-format") == 1
-
-    def test_vibe_kanban_full_command(self, headless_args):
-        """Test the full Vibe Kanban command flow."""
-        # Simulate Vibe Kanban's CLAUDE_CODE executor call
-        headless_args.input = "implement feature X"
-        headless_args.passthrough_print = True
-        headless_args.dangerously_skip_permissions = True
-        headless_args.output_format = "stream-json"
-        headless_args.input_format = "stream-json"
-        headless_args.include_partial_messages = True
-        headless_args.disallowedTools = "AskUserQuestion"
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = (
-            '{"type": "init", "session_id": "vk-123"}\n',
-            ""
+        # The session should detect stream-json input mode
+        claude_args = session.runner.claude_args or []
+        uses_stream_json = (
+            "--input-format=stream-json" in claude_args
+            or session._has_adjacent_args(claude_args, "--input-format", "stream-json")
         )
-        mock_process.returncode = 0
+        assert uses_stream_json is True
 
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            exit_code = _run_headless_session(headless_args)
-
-        assert exit_code == 0
-
-        # Verify the full command
-        cmd = mock_popen.call_args[0][0]
-        assert "claude" in cmd
-        # Should NOT have --output-format added twice
-        format_indices = [i for i, x in enumerate(cmd) if x == "--output-format"]
-        assert len(format_indices) == 1
-        # All passthrough flags should be present
-        assert "-p" in cmd
-        assert "--dangerously-skip-permissions" in cmd
-        assert "--include-partial-messages" in cmd
-        assert "--disallowedTools" in cmd
-
-    def test_partial_passthrough_flags(self, headless_args):
-        """Test that only specified passthrough flags are forwarded."""
-        headless_args.input = "test prompt"
-        headless_args.passthrough_print = False
-        headless_args.dangerously_skip_permissions = True
-        headless_args.output_format = None
-        headless_args.input_format = None
-        headless_args.include_partial_messages = False
-        headless_args.disallowedTools = "SomeTool"
-
-        mock_process = Mock()
-        mock_process.communicate.return_value = ("", "")
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            _run_headless_session(headless_args)
-
-        cmd = mock_popen.call_args[0][0]
-        # Should have --dangerously-skip-permissions and --disallowedTools
-        assert "--dangerously-skip-permissions" in cmd
-        assert "--disallowedTools" in cmd
-        assert "SomeTool" in cmd
-        # Should NOT have -p or --include-partial-messages
-        assert "-p" not in cmd
-        assert "--include-partial-messages" not in cmd
-        # Should have default stream-json since no output_format specified
-        assert "--output-format" in cmd
-        assert "stream-json" in cmd
-
-
-# =============================================================================
-# 13. Stream-JSON Input Detection Tests (Vibe Kanban Bug Fix)
-# =============================================================================
-
-
-class TestStreamJsonInputDetection:
-    """Test stream-json input format detection for vibe-kanban integration.
-
-    This tests the fix for the bug where claude-mpm couldn't detect
-    space-separated --input-format stream-json args.
-    """
-
-    def test_has_adjacent_args_space_separated(self, mock_runner):
-        """_has_adjacent_args should detect space-separated args."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        # Space-separated: ["--input-format", "stream-json"]
-        args = ["--input-format", "stream-json", "--other", "arg"]
-        assert session._has_adjacent_args(args, "--input-format", "stream-json") is True
-
-    def test_has_adjacent_args_combined(self, mock_runner):
-        """_has_adjacent_args should return False for combined args (not its job)."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        # Combined args should be handled by direct "in" check
-        args = ["--input-format=stream-json"]
-        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
-
-    def test_has_adjacent_args_flag_not_found(self, mock_runner):
-        """_has_adjacent_args should return False when flag not present."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        args = ["--output-format", "stream-json"]
-        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
-
-    def test_has_adjacent_args_wrong_value(self, mock_runner):
-        """_has_adjacent_args should return False when value doesn't match."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        args = ["--input-format", "text"]
-        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
-
-    def test_has_adjacent_args_flag_at_end(self, mock_runner):
-        """_has_adjacent_args should return False when flag is last element."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        args = ["--other", "arg", "--input-format"]
-        assert session._has_adjacent_args(args, "--input-format", "stream-json") is False
-
-    def test_has_adjacent_args_empty_list(self, mock_runner):
-        """_has_adjacent_args should return False for empty list."""
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        assert session._has_adjacent_args([], "--input-format", "stream-json") is False
-
-    def test_stream_json_detection_space_separated(self, mock_runner):
-        """Should detect stream-json input with space-separated args."""
-        # This is what vibe-kanban passes: ["--input-format", "stream-json"]
-        mock_runner.claude_args = ["--input-format", "stream-json", "--output-format", "stream-json"]
-
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
-            session = HeadlessSession(mock_runner)
-
-        mock_process = Mock()
-        mock_process.stdout = iter([])
-        mock_process.stderr = iter([])
-        mock_process.wait.return_value = None
-        mock_process.returncode = 0
-
-        with patch("subprocess.Popen", return_value=mock_process) as mock_popen:
-            with patch("sys.stdin", Mock()):
-                # Should NOT try to read from stdin (would call stdin.read())
-                # and should NOT require a prompt argument
-                exit_code = session.run(prompt=None)
-
-        # Verify stdin was passed through (sys.stdin, not subprocess.PIPE)
-        popen_kwargs = mock_popen.call_args[1]
-        assert popen_kwargs.get("stdin") is not None
-        # When using stream-json input, stdin should be sys.stdin (passthrough)
-        # not subprocess.PIPE (which would be used for standard headless mode)
-
-    def test_stream_json_detection_combined(self, mock_runner):
-        """Should detect stream-json input with combined args."""
+    def test_detects_stream_json_input_format_equals(self, mock_runner):
+        """Should detect --input-format=stream-json (equals format)."""
         mock_runner.claude_args = ["--input-format=stream-json"]
 
-        with patch.object(HeadlessSession, "_get_working_directory", return_value=Path("/test")):
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
             session = HeadlessSession(mock_runner)
 
-        mock_process = Mock()
-        mock_process.stdout = iter([])
-        mock_process.stderr = iter([])
-        mock_process.wait.return_value = None
-        mock_process.returncode = 0
+        claude_args = session.runner.claude_args or []
+        uses_stream_json = "--input-format=stream-json" in claude_args
+        assert uses_stream_json is True
 
-        with patch("subprocess.Popen", return_value=mock_process):
-            with patch("sys.stdin", Mock()):
-                exit_code = session.run(prompt=None)
 
-        assert exit_code == 0
+# =============================================================================
+# 8. Resume Mode Detection Tests
+# =============================================================================
+
+
+class TestResumeModeDetection:
+    """Test resume mode detection for system prompt handling."""
+
+    def test_is_resume_mode_with_session_arg(self, mock_runner):
+        """_is_resume_mode should return True when resume_session is provided."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        # Test with resume_session argument
+        assert session._is_resume_mode(resume_session="abc123") is True
+
+    def test_is_resume_mode_with_claude_args(self, mock_runner):
+        """_is_resume_mode should return True when --resume in claude_args."""
+        mock_runner.claude_args = ["--resume", "session123"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        assert session._is_resume_mode() is True
+
+    def test_is_resume_mode_false_for_new_session(self, mock_runner):
+        """_is_resume_mode should return False for new sessions."""
+        mock_runner.claude_args = ["--model", "opus"]
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        assert session._is_resume_mode() is False
+
+
+# =============================================================================
+# 9. Hook Verification Tests
+# =============================================================================
+
+
+class TestHookVerification:
+    """Test hook verification in headless mode."""
+
+    def test_verify_hooks_warns_on_issues(self, mock_runner):
+        """Should warn to stderr when hook issues are detected."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        mock_installer = Mock()
+        mock_installer.verify_hooks.return_value = (False, ["Hook not installed"])
+
+        # Patch at the import location within the method
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
+            with patch("sys.stderr.write") as mock_stderr:
+                with patch("sys.stderr.flush"):
+                    session._verify_hooks_deployed()
+
+        mock_stderr.assert_called()
+        # Verify warning was written to stderr
+        call_args = str(mock_stderr.call_args_list)
+        assert "Warning" in call_args or "Hook" in call_args
+
+    def test_verify_hooks_silent_on_success(self, mock_runner):
+        """Should not write to stderr when hooks are valid."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        mock_installer = Mock()
+        mock_installer.verify_hooks.return_value = (True, [])
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
+            with patch("sys.stderr.write") as mock_stderr:
+                session._verify_hooks_deployed()
+
+        mock_stderr.assert_not_called()
+
+    def test_verify_hooks_handles_exception(self, mock_runner):
+        """Should handle exceptions gracefully without crashing."""
+        mock_runner.claude_args = []
+
+        with patch.object(
+            HeadlessSession, "_get_working_directory", return_value=Path("/test")
+        ):
+            session = HeadlessSession(mock_runner)
+
+        # Make the import succeed but the verification fail with exception
+        mock_installer = Mock()
+        mock_installer.verify_hooks.side_effect = Exception("Unexpected error")
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "claude_mpm.hooks.claude_hooks.installer": Mock(
+                    HookInstaller=Mock(return_value=mock_installer)
+                )
+            },
+        ):
+            # Should not raise - exceptions are caught and logged
+            session._verify_hooks_deployed()

@@ -1,15 +1,14 @@
 """
 Comprehensive tests for the MonitorCommand class.
 
-WHY: The monitor command provides real-time monitoring of claude-mpm operations.
+WHY: The monitor command provides management of the unified monitoring daemon.
 This is crucial for debugging and observability.
 
 DESIGN DECISIONS:
-- Test WebSocket connection handling
-- Mock real-time event streams
-- Test filtering and display options
-- Verify reconnection logic
-- Test output formatting
+- Test monitor daemon start/stop/restart/status operations
+- Mock UnifiedMonitorDaemon to avoid side effects
+- Test argument validation
+- Verify proper command routing
 """
 
 from argparse import Namespace
@@ -26,201 +25,172 @@ class TestMonitorCommand:
         """Set up test fixtures."""
         self.command = MonitorCommand()
 
-    def test_validate_args_default():
-        """Test validation with default args."""
+    def test_validate_args_default(self):
+        """Test validation with default args (no monitor_command)."""
         args = Namespace(port=8080, filter=None, output="console")
         error = self.command.validate_args(args)
         assert error is None
 
-    def test_validate_args_with_filter():
-        """Test validation with event filter."""
-        args = Namespace(port=8080, filter="event_type=response", output="console")
+    def test_validate_args_with_valid_command(self):
+        """Test validation with valid monitor command."""
+        args = Namespace(monitor_command="start")
         error = self.command.validate_args(args)
         assert error is None
 
-    @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_run_monitor_console(self):
-        """Test monitoring with console output."""
-        mock_client = Mock()
-        self.return_value = mock_client
-        mock_client.connect.return_value = True
-        mock_client.receive_events.return_value = [
-            {"type": "response", "data": "test"},
-            {"type": "error", "data": "error"},
-        ]
+    def test_validate_args_with_invalid_command(self):
+        """Test validation with invalid monitor command."""
+        args = Namespace(monitor_command="invalid_command")
+        error = self.command.validate_args(args)
+        assert error is not None
+        assert "Unknown monitor command" in error
 
-        args = Namespace(port=8080, filter=None, output="console", format="text")
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_default_status(self, mock_daemon_class):
+        """Test running monitor without subcommand defaults to status."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.status.return_value = {
+            "running": True,
+            "host": "localhost",
+            "port": 8765,
+            "pid": 12345,
+        }
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result("Monitoring started")
+        args = Namespace()
+        # No monitor_command attribute means default to status
 
-            result = self.command.run(args)
+        result = self.command.run(args)
 
-            assert isinstance(result, CommandResult)
-            assert result.success is True
-            mock_start.assert_called_once_with(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        mock_daemon.status.assert_called_once()
 
-    @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_run_monitor_file_output(self):
-        """Test monitoring with file output."""
-        mock_client = Mock()
-        self.return_value = mock_client
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_start_command(self, mock_daemon_class):
+        """Test starting the monitor daemon."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.lifecycle.is_running.return_value = False
+        mock_daemon.start.return_value = True
 
         args = Namespace(
-            port=8080,
-            filter=None,
-            output="file",
-            output_file="/tmp/monitor.log",
-            format="json",
+            monitor_command="start", port=8765, host="localhost", foreground=True
         )
 
-        with patch("builtins.open", create=True):
-            with patch.object(self.command, "_start_monitoring") as mock_start:
-                mock_start.return_value = CommandResult.success_result(
-                    "Monitoring to file", data={"output_file": "/tmp/monitor.log"}
-                )
+        result = self.command.run(args)
 
-                result = self.command.run(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        mock_daemon.start.assert_called_once()
 
-                assert result.success is True
-                assert result.data["output_file"] == "/tmp/monitor.log"
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_start_already_running(self, mock_daemon_class):
+        """Test starting when daemon is already running."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.lifecycle.is_running.return_value = True
+        mock_daemon.lifecycle.get_pid.return_value = 12345
 
-    def test_monitor_with_event_filter():
-        """Test monitoring with event filtering."""
         args = Namespace(
-            port=8080,
-            filter="type=error,level=critical",
-            output="console",
-            format="text",
+            monitor_command="start", port=8765, host="localhost", force=False
         )
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring with filters",
-                data={"filters": ["type=error", "level=critical"]},
-            )
+        result = self.command.run(args)
 
-            result = self.command.run(args)
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "already running" in result.message
 
-            assert result.success is True
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_stop_command(self, mock_daemon_class):
+        """Test stopping the monitor daemon."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.lifecycle.is_running.return_value = True
+        mock_daemon.stop.return_value = True
 
-    @patch("claude_mpm.cli.commands.monitor.WebSocketClient")
-    def test_monitor_connection_error(self):
-        """Test handling connection errors."""
-        mock_client = Mock()
-        self.return_value = mock_client
-        mock_client.connect.side_effect = ConnectionError("Cannot connect to WebSocket")
+        args = Namespace(monitor_command="stop", port=8765, host="localhost")
 
-        args = Namespace(port=8080, filter=None, output="console", format="text")
+        result = self.command.run(args)
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.error_result(
-                "Connection failed",
-                data={"error": "Cannot connect to WebSocket on port 8080"},
-            )
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        mock_daemon.stop.assert_called_once()
 
-            result = self.command.run(args)
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_stop_not_running(self, mock_daemon_class):
+        """Test stopping when daemon is not running."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.lifecycle.is_running.return_value = False
 
-            assert result.success is False
-            assert "Connection failed" in result.message
+        args = Namespace(monitor_command="stop", port=8765, host="localhost")
 
-    def test_monitor_with_reconnect():
-        """Test automatic reconnection on disconnect."""
-        args = Namespace(
-            port=8080,
-            filter=None,
-            output="console",
-            auto_reconnect=True,
-            reconnect_interval=5,
-            format="text",
-        )
+        result = self.command.run(args)
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring with auto-reconnect",
-                data={"auto_reconnect": True, "reconnect_interval": 5},
-            )
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "No unified monitor daemon running" in result.message
 
-            result = self.command.run(args)
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_restart_command(self, mock_daemon_class):
+        """Test restarting the monitor daemon."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.restart.return_value = True
 
-            assert result.success is True
+        args = Namespace(monitor_command="restart", port=8765, host="localhost")
 
-    def test_monitor_with_custom_port():
-        """Test monitoring on custom port."""
-        args = Namespace(
-            port=9090,
-            filter=None,
-            output="console",
-            format="text",  # Custom port
-        )
+        result = self.command.run(args)
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring on port 9090", data={"port": 9090}
-            )
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        mock_daemon.restart.assert_called_once()
 
-            result = self.command.run(args)
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_status_command(self, mock_daemon_class):
+        """Test getting status of monitor daemon."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.status.return_value = {
+            "running": True,
+            "host": "localhost",
+            "port": 8765,
+            "pid": 12345,
+        }
 
-            assert result.success is True
-            assert result.data["port"] == 9090
+        args = Namespace(monitor_command="status")
 
-    def test_monitor_with_json_output():
-        """Test monitoring with JSON formatted output."""
-        args = Namespace(
-            port=8080, filter=None, output="console", format="json", pretty=True
-        )
+        result = self.command.run(args)
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring with JSON output", data={"format": "json", "pretty": True}
-            )
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert result.data["running"] is True
+        mock_daemon.status.assert_called_once()
 
-            result = self.command.run(args)
+    @patch("claude_mpm.cli.commands.monitor.UnifiedMonitorDaemon")
+    def test_run_status_not_running(self, mock_daemon_class):
+        """Test status when daemon is not running."""
+        mock_daemon = Mock()
+        mock_daemon_class.return_value = mock_daemon
+        mock_daemon.status.return_value = {
+            "running": False,
+            "host": "localhost",
+            "port": 8765,
+        }
 
-            assert result.success is True
-            assert result.data["format"] == "json"
+        args = Namespace(monitor_command="status")
 
-    def test_monitor_with_stats():
-        """Test monitoring with statistics display."""
-        args = Namespace(
-            port=8080,
-            filter=None,
-            output="console",
-            show_stats=True,
-            stats_interval=30,
-            format="text",
-        )
+        result = self.command.run(args)
 
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring with stats",
-                data={
-                    "show_stats": True,
-                    "stats": {"events_received": 100, "errors": 5, "warnings": 10},
-                },
-            )
+        assert isinstance(result, CommandResult)
+        assert result.success is True
+        assert "not running" in result.message
 
-            result = self.command.run(args)
+    def test_run_unknown_command(self):
+        """Test handling of unknown monitor command."""
+        args = Namespace(monitor_command="unknown")
 
-            assert result.success is True
-            assert result.data["show_stats"] is True
-
-    def test_monitor_timeout():
-        """Test monitoring with timeout."""
-        args = Namespace(
-            port=8080,
-            filter=None,
-            output="console",
-            timeout=60,  # Monitor for 60 seconds
-            format="text",
-        )
-
-        with patch.object(self.command, "_start_monitoring") as mock_start:
-            mock_start.return_value = CommandResult.success_result(
-                "Monitoring completed", data={"duration": 60, "events_captured": 500}
-            )
-
-            result = self.command.run(args)
-
-            assert result.success is True
-            assert result.data["duration"] == 60
+        # First validate will fail
+        error = self.command.validate_args(args)
+        assert error is not None

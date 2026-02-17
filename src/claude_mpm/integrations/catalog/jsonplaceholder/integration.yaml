@@ -1,0 +1,93 @@
+# JSONPlaceholder Integration
+# Free fake REST API for testing and prototyping
+
+name: jsonplaceholder
+version: "1.0.0"
+description: "JSONPlaceholder fake REST API for testing"
+
+base_url: "https://jsonplaceholder.typicode.com"
+
+# No authentication required for this public API
+auth:
+  type: none
+
+credentials: []
+
+operations:
+  - name: list_posts
+    description: "List all posts"
+    method: GET
+    path: "/posts"
+    parameters:
+      - name: userId
+        type: integer
+        required: false
+        description: "Filter by user ID"
+    response:
+      type: array
+      items: object
+
+  - name: get_post
+    description: "Get a single post by ID"
+    method: GET
+    path: "/posts/{id}"
+    parameters:
+      - name: id
+        type: integer
+        required: true
+        in: path
+        description: "Post ID"
+
+  - name: create_post
+    description: "Create a new post"
+    method: POST
+    path: "/posts"
+    parameters:
+      - name: title
+        type: string
+        required: true
+        in: body
+      - name: body
+        type: string
+        required: true
+        in: body
+      - name: userId
+        type: integer
+        required: true
+        in: body
+
+  - name: list_users
+    description: "List all users"
+    method: GET
+    path: "/users"
+
+  - name: get_user
+    description: "Get user by ID"
+    method: GET
+    path: "/users/{id}"
+    parameters:
+      - name: id
+        type: integer
+        required: true
+        in: path
+
+  - name: list_comments
+    description: "List comments, optionally filtered by post"
+    method: GET
+    path: "/comments"
+    parameters:
+      - name: postId
+        type: integer
+        required: false
+        description: "Filter by post ID"
+
+health_check:
+  path: "/posts/1"
+  method: GET
+  expected_status: 200
+
+tags:
+  - api
+  - rest
+  - testing
+  - fake-api

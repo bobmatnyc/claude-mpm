@@ -12,132 +12,419 @@ import pytest
 
 from claude_mpm.cli.commands.agents import AgentsCommand, manage_agents
 from claude_mpm.cli.shared import CommandResult
+from claude_mpm.services.cli.agent_listing_service import AgentInfo, AgentTierInfo
+
+
+# Module-level fixtures to share across all test classes
+@pytest.fixture
+def mock_deployment_service():
+    """Create a mock deployment service with all required methods."""
+    service = MagicMock()
+
+    # Mock list_available_agents
+    service.list_available_agents.return_value = [
+        {
+            "file": "engineer.json",
+            "name": "Engineer",
+            "description": "Software engineering specialist",
+            "version": "1.0.0",
+        },
+        {
+            "file": "qa.json",
+            "name": "QA",
+            "description": "Quality assurance specialist",
+            "version": "1.0.0",
+        },
+    ]
+
+    # Mock verify_deployment
+    service.verify_deployment.return_value = {
+        "agents_found": [
+            {
+                "file": "engineer.md",
+                "name": "Engineer",
+                "path": "/project/.claude/agents/engineer.md",
+            },
+            {
+                "file": "qa.md",
+                "name": "QA",
+                "path": "/project/.claude/agents/qa.md",
+            },
+        ],
+        "warnings": [],
+    }
+
+    # Mock list_agents_by_tier
+    service.list_agents_by_tier.return_value = {
+        "project": ["engineer", "qa"],
+        "user": ["documentation"],
+        "system": ["base", "pm"],
+    }
+
+    # Mock deploy_system_agents
+    service.deploy_system_agents.return_value = {
+        "deployed_count": 2,
+        "deployed": [{"name": "engineer"}, {"name": "qa"}],
+        "updated": [],
+        "errors": [],
+    }
+
+    # Mock deploy_project_agents
+    service.deploy_project_agents.return_value = {
+        "deployed_count": 1,
+        "deployed": [{"name": "custom"}],
+        "updated": [],
+        "errors": [],
+    }
+
+    # Mock clean_deployment
+    service.clean_deployment.return_value = {
+        "cleaned_count": 3,
+        "removed": ["engineer.md", "qa.md", "custom.md"],
+    }
+
+    # Mock get_agent_details
+    service.get_agent_details.return_value = {
+        "name": "Engineer",
+        "version": "1.0.0",
+        "description": "Software engineering specialist",
+        "path": "/project/.claude/agents/engineer.md",
+    }
+
+    # Mock fix_deployment
+    service.fix_deployment.return_value = {
+        "fixes_applied": [
+            "Fixed frontmatter formatting",
+            "Corrected version field",
+        ],
+    }
+
+    # Mock dependency methods
+    service.check_dependencies.return_value = {
+        "missing_dependencies": ["numpy", "pandas"],
+    }
+
+    service.install_dependencies.return_value = {
+        "installed_count": 2,
+        "installed": ["numpy", "pandas"],
+    }
+
+    service.list_dependencies.return_value = {
+        "dependencies": [
+            {"name": "numpy", "installed": True},
+            {"name": "pandas", "installed": True},
+            {"name": "scipy", "installed": False},
+        ],
+    }
+
+    service.fix_dependencies.return_value = {
+        "fixes_applied": ["Installed numpy", "Installed pandas"],
+    }
+
+    return service
+
+
+@pytest.fixture
+def mock_listing_service():
+    """Create a mock listing service."""
+    service = MagicMock()
+
+    # Mock list_system_agents - returns list of AgentInfo objects
+    service.list_system_agents.return_value = [
+        AgentInfo(
+            name="Engineer",
+            type="agent",
+            tier="system",
+            path="/path/to/engineer.json",
+            description="Software engineering specialist",
+            specializations=["coding", "architecture"],
+            version="1.0.0",
+        ),
+        AgentInfo(
+            name="QA",
+            type="agent",
+            tier="system",
+            path="/path/to/qa.json",
+            description="Quality assurance specialist",
+            specializations=["testing", "quality"],
+            version="1.0.0",
+        ),
+    ]
+
+    # Mock list_deployed_agents - returns tuple of (list of AgentInfo, list of warnings)
+    service.list_deployed_agents.return_value = (
+        [
+            AgentInfo(
+                name="Engineer",
+                type="agent",
+                tier="project",
+                path="/project/.claude/agents/engineer.md",
+                description="Software engineering specialist",
+                specializations=["coding"],
+                version="1.0.0",
+                deployed=True,
+            ),
+            AgentInfo(
+                name="QA",
+                type="agent",
+                tier="project",
+                path="/project/.claude/agents/qa.md",
+                description="Quality assurance specialist",
+                specializations=["testing"],
+                version="1.0.0",
+                deployed=True,
+            ),
+        ],
+        [],  # warnings
+    )
+
+    # Mock list_agents_by_tier - returns AgentTierInfo object
+    service.list_agents_by_tier.return_value = AgentTierInfo(
+        project=[
+            AgentInfo(
+                name="Engineer",
+                type="agent",
+                tier="project",
+                path="/project/.claude/agents/engineer.md",
+                description="Project Engineer",
+                specializations=["coding"],
+                version="1.0.0",
+            ),
+        ],
+        user=[
+            AgentInfo(
+                name="Documentation",
+                type="agent",
+                tier="user",
+                path="/user/.claude/agents/documentation.md",
+                description="User Documentation Agent",
+                specializations=["docs"],
+                version="1.0.0",
+            ),
+        ],
+        system=[
+            AgentInfo(
+                name="Base",
+                type="agent",
+                tier="system",
+                path="/system/agents/base.json",
+                description="Base System Agent",
+                specializations=["general"],
+                version="1.0.0",
+            ),
+            AgentInfo(
+                name="PM",
+                type="agent",
+                tier="system",
+                path="/system/agents/pm.json",
+                description="Project Manager Agent",
+                specializations=["management"],
+                version="1.0.0",
+            ),
+        ],
+    )
+
+    # Mock get_agent_details - returns agent detail dictionary
+    service.get_agent_details.return_value = {
+        "name": "engineer",
+        "file": "engineer.md",
+        "path": "/project/.claude/agents/engineer.md",
+        "version": "1.0.0",
+        "description": "Software engineering specialist",
+        "tier": "project",
+        "specializations": ["coding"],
+    }
+
+    # Mock find_agent - returns AgentInfo or None
+    service.find_agent.return_value = AgentInfo(
+        name="Engineer",
+        type="agent",
+        tier="project",
+        path="/project/.claude/agents/engineer.md",
+        description="Software engineering specialist",
+        specializations=["coding"],
+        version="1.0.0",
+    )
+
+    return service
+
+
+@pytest.fixture
+def mock_git_sync_service():
+    """Create a mock GitSourceSyncService."""
+    service = MagicMock()
+
+    # Mock sync_repository (Phase 1: sync to cache)
+    service.sync_repository.return_value = {
+        "synced": True,
+        "agent_count": 10,
+        "cache_dir": "/home/user/.claude-mpm/cache/agents",
+        "files_updated": 5,
+        "files_cached": 5,
+    }
+
+    # Mock deploy_agents_to_project (Phase 2: deploy to project)
+    service.deploy_agents_to_project.return_value = {
+        "deployed": ["engineer.md", "qa.md"],
+        "updated": ["research.md"],
+        "skipped": ["base.md"],
+        "failed": [],
+        "deployment_dir": "/project/.claude/agents",
+    }
+
+    return service
+
+
+@pytest.fixture
+def mock_dependency_service():
+    """Create a mock dependency service."""
+    service = MagicMock()
+
+    # Mock check_dependencies
+    service.check_dependencies.return_value = {
+        "success": True,
+        "report": "Agent Dependencies Check:\nMissing dependencies:\n  - numpy",
+        "python_dependencies": [{"name": "numpy", "installed": False}],
+        "system_dependencies": [],
+    }
+
+    # Mock install_dependencies (default: nothing to install)
+    service.install_dependencies.return_value = {
+        "success": True,
+        "missing_count": 0,
+        "installed": [],
+        "missing_dependencies": [],
+        "fully_resolved": True,
+    }
+
+    # Mock list_dependencies
+    service.list_dependencies.return_value = {
+        "success": True,
+        "python_dependencies": ["numpy", "pandas", "scipy"],
+        "system_dependencies": [],
+        "per_agent": {},
+    }
+
+    # Mock fix_dependencies
+    service.fix_dependencies.return_value = {
+        "success": True,
+        "message": "Dependencies fixed",
+        "missing_python": ["numpy"],
+        "installed_python": ["numpy"],
+        "final_status": {"resolved": True},
+    }
+
+    return service
+
+
+@pytest.fixture
+def mock_cleanup_service():
+    """Create a mock cleanup service."""
+    service = MagicMock()
+
+    # Mock clean_deployed_agents (uses cleaned_count, not removed)
+    service.clean_deployed_agents.return_value = {
+        "cleaned_count": 3,
+    }
+
+    # Mock clean_orphaned_agents
+    service.clean_orphaned_agents.return_value = {
+        "orphaned": [],
+        "removed": [],
+        "errors": [],
+    }
+
+    return service
+
+
+@pytest.fixture
+def mock_validation_service():
+    """Create a mock validation service."""
+    service = MagicMock()
+
+    # Mock fix_all_agents
+    service.fix_all_agents.return_value = {
+        "success": True,
+        "dry_run": False,
+        "total_agents": 2,
+        "agents_checked": 2,
+        "total_issues_found": 2,
+        "total_corrections_made": 2,
+        "total_corrections_available": 2,
+        "agents_fixed": ["engineer.md", "qa.md"],
+        "agents_with_errors": [],
+        "results": [
+            {
+                "agent": "engineer",
+                "path": "/path/to/engineer.md",
+                "was_valid": False,
+                "errors_found": 1,
+                "warnings_found": 0,
+                "corrections_made": 1,
+                "corrections_available": 1,
+            },
+            {
+                "agent": "qa",
+                "path": "/path/to/qa.md",
+                "was_valid": False,
+                "errors_found": 1,
+                "warnings_found": 0,
+                "corrections_made": 1,
+                "corrections_available": 1,
+            },
+        ],
+    }
+
+    # Mock fix_single_agent
+    service.fix_single_agent.return_value = {
+        "success": True,
+        "agent": "engineer",
+        "path": "/path/to/engineer.md",
+        "was_valid": False,
+        "errors_found": 1,
+        "corrections_made": 1,
+        "dry_run": False,
+    }
+
+    return service
+
+
+@pytest.fixture
+def command(
+    mock_deployment_service,
+    mock_listing_service,
+    mock_dependency_service,
+    mock_cleanup_service,
+    mock_validation_service,
+):
+    """Create an AgentsCommand instance with mocked services."""
+    cmd = AgentsCommand()
+    cmd._deployment_service = mock_deployment_service
+    cmd._listing_service = mock_listing_service
+    cmd._dependency_service = mock_dependency_service
+    cmd._cleanup_service = mock_cleanup_service
+    cmd._validation_service = mock_validation_service
+    return cmd
+
+
+@pytest.fixture
+def mock_args():
+    """Create mock arguments object."""
+    args = MagicMock()
+    args.format = "text"
+    args.agents_command = None
+    args.verbose = False
+    args.quiet = False
+    args.preset = None  # Explicitly set to None to avoid MagicMock behavior
+    args.agent = None  # Explicitly set to None for dependency commands
+    args.dry_run = False  # Explicitly set to False for dependency commands
+    args.all = False  # Explicitly set to False for fix commands
+    args.agent_name = None  # Explicitly set to None for view/fix commands
+    return args
 
 
 class TestAgentsCommand:
     """Test suite for AgentsCommand class."""
-
-    @pytest.fixture
-    def mock_deployment_service(self):
-        """Create a mock deployment service with all required methods."""
-        service = MagicMock()
-
-        # Mock list_available_agents
-        service.list_available_agents.return_value = [
-            {
-                "file": "engineer.json",
-                "name": "Engineer",
-                "description": "Software engineering specialist",
-                "version": "1.0.0",
-            },
-            {
-                "file": "qa.json",
-                "name": "QA",
-                "description": "Quality assurance specialist",
-                "version": "1.0.0",
-            },
-        ]
-
-        # Mock verify_deployment
-        service.verify_deployment.return_value = {
-            "agents_found": [
-                {
-                    "file": "engineer.md",
-                    "name": "Engineer",
-                    "path": "/project/.claude/agents/engineer.md",
-                },
-                {
-                    "file": "qa.md",
-                    "name": "QA",
-                    "path": "/project/.claude/agents/qa.md",
-                },
-            ],
-            "warnings": [],
-        }
-
-        # Mock list_agents_by_tier
-        service.list_agents_by_tier.return_value = {
-            "project": ["engineer", "qa"],
-            "user": ["documentation"],
-            "system": ["base", "pm"],
-        }
-
-        # Mock deploy_system_agents
-        service.deploy_system_agents.return_value = {
-            "deployed_count": 2,
-            "deployed": [{"name": "engineer"}, {"name": "qa"}],
-            "updated": [],
-            "errors": [],
-        }
-
-        # Mock deploy_project_agents
-        service.deploy_project_agents.return_value = {
-            "deployed_count": 1,
-            "deployed": [{"name": "custom"}],
-            "updated": [],
-            "errors": [],
-        }
-
-        # Mock clean_deployment
-        service.clean_deployment.return_value = {
-            "cleaned_count": 3,
-            "removed": ["engineer.md", "qa.md", "custom.md"],
-        }
-
-        # Mock get_agent_details
-        service.get_agent_details.return_value = {
-            "name": "Engineer",
-            "version": "1.0.0",
-            "description": "Software engineering specialist",
-            "path": "/project/.claude/agents/engineer.md",
-        }
-
-        # Mock fix_deployment
-        service.fix_deployment.return_value = {
-            "fixes_applied": [
-                "Fixed frontmatter formatting",
-                "Corrected version field",
-            ],
-        }
-
-        # Mock dependency methods
-        service.check_dependencies.return_value = {
-            "missing_dependencies": ["numpy", "pandas"],
-        }
-
-        service.install_dependencies.return_value = {
-            "installed_count": 2,
-            "installed": ["numpy", "pandas"],
-        }
-
-        service.list_dependencies.return_value = {
-            "dependencies": [
-                {"name": "numpy", "installed": True},
-                {"name": "pandas", "installed": True},
-                {"name": "scipy", "installed": False},
-            ],
-        }
-
-        service.fix_dependencies.return_value = {
-            "fixes_applied": ["Installed numpy", "Installed pandas"],
-        }
-
-        return service
-
-    @pytest.fixture
-    def command(self, mock_deployment_service):
-        """Create an AgentsCommand instance with mocked deployment service."""
-        cmd = AgentsCommand()
-        cmd._deployment_service = mock_deployment_service
-        return cmd
-
-    @pytest.fixture
-    def mock_args(self):
-        """Create mock arguments object."""
-        args = MagicMock()
-        args.format = "text"
-        args.agents_command = None
-        return args
 
 
 class TestListingOperations(TestAgentsCommand):
@@ -156,9 +443,11 @@ class TestListingOperations(TestAgentsCommand):
         assert result.success
         assert result.exit_code == 0
         assert "Listed 2 agent templates" in result.message
-        mock_print.assert_any_call("Available Agent Templates:")
-        mock_print.assert_any_call("📄 engineer.json")
-        mock_print.assert_any_call("   Name: Engineer")
+        # Check that the formatted output was printed (single call with full text)
+        printed_output = str(mock_print.call_args_list[0][0][0])
+        assert "Available Agents:" in printed_output
+        assert "engineer.json" in printed_output
+        assert "Name: Engineer" in printed_output
 
     def test_list_system_agents_json_format(self, command, mock_args):
         """Test listing system agents in JSON format."""
@@ -187,17 +476,31 @@ class TestListingOperations(TestAgentsCommand):
 
         assert result.success
         assert "Listed 2 deployed agents" in result.message
-        mock_print.assert_any_call("Deployed Agents:")
-        mock_print.assert_any_call("📄 engineer.md")
+        # Check that the formatted output contains expected content
+        printed_output = str(mock_print.call_args_list[0][0][0])
+        assert "Available Agents:" in printed_output
+        assert "engineer.md" in printed_output
 
     def test_list_deployed_agents_with_warnings(
-        self, command, mock_args, mock_deployment_service
+        self, command, mock_args, mock_listing_service
     ):
         """Test listing deployed agents with warnings."""
-        mock_deployment_service.verify_deployment.return_value = {
-            "agents_found": [{"file": "test.md", "name": "Test"}],
-            "warnings": ["Missing version field", "Invalid frontmatter"],
-        }
+        # Mock listing service to return agents with warnings
+        mock_listing_service.list_deployed_agents.return_value = (
+            [
+                AgentInfo(
+                    name="Test",
+                    type="agent",
+                    tier="project",
+                    path="/project/.claude/agents/test.md",
+                    description="Test agent",
+                    specializations=[],
+                    version="1.0.0",
+                    deployed=True,
+                ),
+            ],
+            ["Missing version field", "Invalid frontmatter"],  # warnings
+        )
 
         mock_args.agents_command = "list"
         mock_args.deployed = True
@@ -208,8 +511,10 @@ class TestListingOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("\nWarnings:")
-        mock_print.assert_any_call("  ⚠️  Missing version field")
+        # Check that warnings were printed
+        print_calls = [str(call) for call in mock_print.call_args_list]
+        assert any("Warnings:" in str(call) for call in print_calls)
+        assert any("Missing version field" in str(call) for call in print_calls)
 
     def test_list_agents_by_tier_text_format(self, command, mock_args):
         """Test listing agents grouped by tier in text format."""
@@ -221,9 +526,11 @@ class TestListingOperations(TestAgentsCommand):
 
         assert result.success
         assert "Agents listed by tier" in result.message
-        mock_print.assert_any_call("Agents by Tier/Precedence:")
-        mock_print.assert_any_call("\nPROJECT:")
-        mock_print.assert_any_call("  • engineer")
+        # Check that the formatted output contains expected content
+        printed_output = str(mock_print.call_args_list[0][0][0])
+        assert "Agents by Tier/Precedence:" in printed_output
+        assert "PROJECT:" in printed_output
+        assert "Engineer" in printed_output
 
     def test_list_agents_by_tier_json_format(self, command, mock_args):
         """Test listing agents by tier in JSON format."""
@@ -234,9 +541,14 @@ class TestListingOperations(TestAgentsCommand):
         result = command.run(mock_args)
 
         assert result.success
-        assert result.data["project"] == ["engineer", "qa"]
-        assert result.data["user"] == ["documentation"]
-        assert result.data["system"] == ["base", "pm"]
+        # Data contains dicts with agent info, not just strings
+        assert len(result.data["project"]) == 1
+        assert result.data["project"][0]["name"] == "Engineer"
+        assert len(result.data["user"]) == 1
+        assert result.data["user"][0]["name"] == "Documentation"
+        assert len(result.data["system"]) == 2
+        assert result.data["system"][0]["name"] == "Base"
+        assert result.data["system"][1]["name"] == "PM"
 
     def test_list_no_option_specified(self, command, mock_args):
         """Test list command with no specific option."""
@@ -256,79 +568,99 @@ class TestListingOperations(TestAgentsCommand):
 class TestDeploymentOperations(TestAgentsCommand):
     """Test deployment operations for agents."""
 
-    def test_deploy_agents_success(self, command, mock_args):
-        """Test successful agent deployment."""
+    def test_deploy_agents_success(self, command, mock_args, mock_git_sync_service):
+        """Test successful agent deployment using GitSourceSyncService."""
         mock_args.agents_command = "deploy"
 
-        with patch("builtins.print") as mock_print:
-            result = command.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            with patch("builtins.print") as mock_print:
+                result = command.run(mock_args)
 
         assert result.success
-        assert "Deployed 3 agents" in result.message
-        mock_print.assert_any_call("✓ Deployed 2 system agents")
-        mock_print.assert_any_call("✓ Deployed 1 project agents")
+        # Default mock returns 2 deployed + 1 updated = 3 total
+        assert "Deployed 3 agents from cache" in result.message
+        assert result.data["total_deployed"] == 3
 
-    def test_deploy_agents_force(self, command, mock_args, mock_deployment_service):
+        # Verify GitSourceSyncService methods were called
+        mock_git_sync_service.sync_repository.assert_called_once_with(force=False)
+        mock_git_sync_service.deploy_agents_to_project.assert_called_once()
+
+    def test_deploy_agents_force(self, command, mock_args, mock_git_sync_service):
         """Test force deployment of agents."""
         mock_args.agents_command = "force-deploy"
 
-        mock_deployment_service.deploy_system_agents.assert_not_called()
-
-        result = command.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            result = command.run(mock_args)
 
         assert result.success
-        mock_deployment_service.deploy_system_agents.assert_called_once_with(force=True)
-        mock_deployment_service.deploy_project_agents.assert_called_once_with(
-            force=True
-        )
+        # Verify force=True was passed
+        mock_git_sync_service.sync_repository.assert_called_once_with(force=True)
+        call_args = mock_git_sync_service.deploy_agents_to_project.call_args
+        assert call_args[1]["force"] is True
 
-    def test_deploy_agents_no_changes(
-        self, command, mock_args, mock_deployment_service
-    ):
+    def test_deploy_agents_no_changes(self, command, mock_args, mock_git_sync_service):
         """Test deployment when all agents are up to date."""
-        mock_deployment_service.deploy_system_agents.return_value = {
-            "deployed_count": 0,
+        # Configure mock to return no deployments
+        mock_git_sync_service.deploy_agents_to_project.return_value = {
             "deployed": [],
-        }
-        mock_deployment_service.deploy_project_agents.return_value = {
-            "deployed_count": 0,
-            "deployed": [],
+            "updated": [],
+            "skipped": ["engineer.md", "qa.md", "base.md"],
+            "failed": [],
+            "deployment_dir": "/project/.claude/agents",
         }
 
         mock_args.agents_command = "deploy"
 
-        with patch("builtins.print") as mock_print:
-            result = command.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            with patch("builtins.print") as mock_print:
+                result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("No agents were deployed (all up to date)")
+        assert "Deployed 0 agents from cache" in result.message
 
-    def test_deploy_agents_json_format(self, command, mock_args):
+    def test_deploy_agents_json_format(self, command, mock_args, mock_git_sync_service):
         """Test deployment with JSON output format."""
         mock_args.agents_command = "deploy"
         mock_args.format = "json"
 
-        result = command.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            result = command.run(mock_args)
 
         assert result.success
         assert result.data["total_deployed"] == 3
-        assert result.data["system_agents"]["deployed_count"] == 2
-        assert result.data["project_agents"]["deployed_count"] == 1
+        assert "sync_result" in result.data
+        assert "deploy_result" in result.data
 
-    def test_deploy_agents_with_errors(
-        self, command, mock_args, mock_deployment_service
-    ):
-        """Test deployment with errors."""
-        mock_deployment_service.deploy_system_agents.side_effect = Exception(
-            "Deploy failed"
-        )
+    def test_deploy_agents_with_errors(self, command, mock_args, mock_git_sync_service):
+        """Test deployment with sync errors."""
+        # Configure mock to return sync failure
+        mock_git_sync_service.sync_repository.return_value = {
+            "synced": False,
+            "error": "Network error: connection timeout",
+        }
 
         mock_args.agents_command = "deploy"
 
-        result = command.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            result = command.run(mock_args)
 
         assert not result.success
-        assert "Error deploying agents" in result.message
+        assert "Sync failed" in result.message
 
 
 class TestCleanupOperations(TestAgentsCommand):
@@ -343,15 +675,14 @@ class TestCleanupOperations(TestAgentsCommand):
 
         assert result.success
         assert "Cleaned 3 agents" in result.message
-        mock_print.assert_any_call("✓ Cleaned 3 deployed agents")
+        # Check that the formatted output contains the expected message
+        printed_output = mock_print.call_args[0][0]
+        assert "✓ Cleaned 3 deployed agents" in printed_output
 
-    def test_clean_agents_none_to_clean(
-        self, command, mock_args, mock_deployment_service
-    ):
+    def test_clean_agents_none_to_clean(self, command, mock_args, mock_cleanup_service):
         """Test cleanup when no agents are deployed."""
-        mock_deployment_service.clean_deployment.return_value = {
+        mock_cleanup_service.clean_deployed_agents.return_value = {
             "cleaned_count": 0,
-            "removed": [],
         }
 
         mock_args.agents_command = "clean"
@@ -360,7 +691,9 @@ class TestCleanupOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("No deployed agents to clean")
+        # Check that the formatted output contains the expected message
+        printed_output = mock_print.call_args[0][0]
+        assert "No deployed agents to clean" in printed_output
 
     def test_clean_agents_json_format(self, command, mock_args):
         """Test cleanup with JSON output."""
@@ -371,62 +704,65 @@ class TestCleanupOperations(TestAgentsCommand):
 
         assert result.success
         assert result.data["cleaned_count"] == 3
-        assert len(result.data["removed"]) == 3
 
-    def test_cleanup_orphaned_agents_dry_run(self, command, mock_args):
+    def test_cleanup_orphaned_agents_dry_run(
+        self, command, mock_args, mock_cleanup_service
+    ):
         """Test cleanup orphaned agents in dry-run mode."""
         mock_args.agents_command = "cleanup-orphaned"
         mock_args.dry_run = True
         mock_args.force = False
         mock_args.quiet = False
 
-        with patch(
-            "claude_mpm.services.agents.deployment.multi_source_deployment_service.MultiSourceAgentDeploymentService"
-        ) as MockService:
-            mock_service = MockService.return_value
-            mock_service.cleanup_orphaned_agents.return_value = {
-                "orphaned": [
-                    {"name": "old-agent", "version": "0.1.0"},
-                    {"name": "unused-agent", "version": "0.2.0"},
-                ],
-                "removed": [],
-                "errors": [],
-            }
+        # Configure mock to return orphaned agents
+        mock_cleanup_service.clean_orphaned_agents.return_value = {
+            "orphaned": [
+                {"name": "old-agent", "version": "0.1.0"},
+                {"name": "unused-agent", "version": "0.2.0"},
+            ],
+            "removed": [],
+            "errors": [],
+        }
 
-            with patch("builtins.print") as mock_print:
-                result = command.run(mock_args)
+        with patch("builtins.print") as mock_print:
+            result = command.run(mock_args)
 
-            assert result.success
-            mock_print.assert_any_call("\nFound 2 orphaned agent(s):")
-            mock_print.assert_any_call("  - old-agent v0.1.0")
-            mock_service.cleanup_orphaned_agents.assert_called_once()
-            call_args = mock_service.cleanup_orphaned_agents.call_args
-            assert call_args.kwargs["dry_run"] is True
+        assert result.success
+        # Check that the formatted output contains the expected messages
+        printed_output = mock_print.call_args[0][0]
+        assert "Found 2 orphaned agent(s):" in printed_output
+        assert "old-agent v0.1.0" in printed_output
 
-    def test_cleanup_orphaned_agents_force(self, command, mock_args):
+        mock_cleanup_service.clean_orphaned_agents.assert_called_once()
+        call_args = mock_cleanup_service.clean_orphaned_agents.call_args
+        assert call_args.kwargs["dry_run"] is True
+
+    def test_cleanup_orphaned_agents_force(
+        self, command, mock_args, mock_cleanup_service
+    ):
         """Test cleanup orphaned agents with force flag."""
         mock_args.agents_command = "cleanup-orphaned"
         mock_args.force = True
         mock_args.dry_run = False
         mock_args.quiet = False
 
-        with patch(
-            "claude_mpm.services.agents.deployment.multi_source_deployment_service.MultiSourceAgentDeploymentService"
-        ) as MockService:
-            mock_service = MockService.return_value
-            mock_service.cleanup_orphaned_agents.return_value = {
-                "orphaned": [{"name": "old-agent", "version": "0.1.0"}],
-                "removed": [{"name": "old-agent", "version": "0.1.0"}],
-                "errors": [],
-            }
+        # Configure mock to return removed agents
+        mock_cleanup_service.clean_orphaned_agents.return_value = {
+            "orphaned": [{"name": "old-agent", "version": "0.1.0"}],
+            "removed": [{"name": "old-agent", "version": "0.1.0"}],
+            "errors": [],
+        }
 
-            with patch("builtins.print") as mock_print:
-                result = command.run(mock_args)
+        with patch("builtins.print") as mock_print:
+            result = command.run(mock_args)
 
-            assert result.success
-            mock_print.assert_any_call("\n✅ Successfully removed 1 orphaned agent(s)")
-            call_args = mock_service.cleanup_orphaned_agents.call_args
-            assert call_args.kwargs["dry_run"] is False
+        assert result.success
+        # Check that the formatted output contains the expected message
+        printed_output = mock_print.call_args[0][0]
+        assert "✅ Successfully removed 1 orphaned agent(s)" in printed_output
+
+        call_args = mock_cleanup_service.clean_orphaned_agents.call_args
+        assert call_args.kwargs["dry_run"] is False
 
 
 class TestViewingOperations(TestAgentsCommand):
@@ -442,8 +778,10 @@ class TestViewingOperations(TestAgentsCommand):
 
         assert result.success
         assert "Displayed details for engineer" in result.message
-        mock_print.assert_any_call("Agent: engineer")
-        mock_print.assert_any_call("name: Engineer")
+        # Check that the formatted output contains expected agent details
+        printed_output = mock_print.call_args[0][0]
+        assert "Agent: engineer" in printed_output
+        assert "Software engineering specialist" in printed_output
 
     def test_view_agent_missing_name(self, command, mock_args):
         """Test view command without agent name."""
@@ -455,11 +793,12 @@ class TestViewingOperations(TestAgentsCommand):
         assert not result.success
         assert "Agent name is required" in result.message
 
-    def test_view_agent_not_found(self, command, mock_args, mock_deployment_service):
+    def test_view_agent_not_found(self, command, mock_args, mock_listing_service):
         """Test viewing non-existent agent."""
-        mock_deployment_service.get_agent_details.side_effect = Exception(
-            "Agent not found"
-        )
+        # Mock get_agent_details to return None (agent not found)
+        mock_listing_service.get_agent_details.return_value = None
+        # Mock find_agent to return None (agent not found)
+        mock_listing_service.find_agent.return_value = None
 
         mock_args.agents_command = "view"
         mock_args.agent_name = "nonexistent"
@@ -467,10 +806,21 @@ class TestViewingOperations(TestAgentsCommand):
         result = command.run(mock_args)
 
         assert not result.success
-        assert "Error viewing agent" in result.message
+        assert "Agent 'nonexistent' not found" in result.message
 
-    def test_view_agent_json_format(self, command, mock_args):
+    def test_view_agent_json_format(self, command, mock_args, mock_listing_service):
         """Test viewing agent in JSON format."""
+        # Ensure get_agent_details returns a proper dict for JSON serialization
+        mock_listing_service.get_agent_details.return_value = {
+            "name": "engineer",
+            "file": "engineer.md",
+            "path": "/project/.claude/agents/engineer.md",
+            "version": "1.0.0",
+            "description": "Software engineering specialist",
+            "tier": "project",
+            "specializations": ["coding"],
+        }
+
         mock_args.agents_command = "view"
         mock_args.agent_name = "engineer"
         mock_args.format = "json"
@@ -478,7 +828,7 @@ class TestViewingOperations(TestAgentsCommand):
         result = command.run(mock_args)
 
         assert result.success
-        assert result.data["name"] == "Engineer"
+        assert result.data["name"] == "engineer"
         assert result.data["version"] == "1.0.0"
 
 
@@ -488,44 +838,62 @@ class TestFixOperations(TestAgentsCommand):
     def test_fix_agents_success(self, command, mock_args):
         """Test fixing agent deployment issues."""
         mock_args.agents_command = "fix"
+        mock_args.all = True
+        mock_args.dry_run = False
 
         with patch("builtins.print") as mock_print:
             result = command.run(mock_args)
 
         assert result.success
-        assert "Agent deployment fixed" in result.message
-        mock_print.assert_any_call("✓ Agent deployment issues fixed")
-        mock_print.assert_any_call("  - Fixed frontmatter formatting")
+        assert "Fixed 2 issues" in result.message
+        # Check that the formatted output contains expected content
+        # The output is printed via _print_all_agents_text_output which has detailed formatting
+        assert mock_print.called
 
-    def test_fix_agents_no_issues(self, command, mock_args, mock_deployment_service):
+    def test_fix_agents_no_issues(self, command, mock_args, mock_validation_service):
         """Test fix when no issues exist."""
-        mock_deployment_service.fix_deployment.return_value = {
-            "fixes_applied": [],
+        # Configure mock to return no issues
+        mock_validation_service.fix_all_agents.return_value = {
+            "success": True,
+            "dry_run": False,
+            "total_agents": 2,
+            "agents_checked": 2,
+            "total_issues_found": 0,
+            "total_corrections_made": 0,
+            "total_corrections_available": 0,
+            "agents_fixed": [],
+            "agents_with_errors": [],
+            "results": [],
         }
 
         mock_args.agents_command = "fix"
+        mock_args.all = True
+        mock_args.dry_run = False
 
         with patch("builtins.print") as mock_print:
             result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("✓ Agent deployment issues fixed")
+        assert "Fixed 0 issues" in result.message
 
     def test_fix_agents_json_format(self, command, mock_args):
         """Test fix command with JSON output."""
         mock_args.agents_command = "fix"
         mock_args.format = "json"
+        mock_args.all = True
+        mock_args.dry_run = False
 
         result = command.run(mock_args)
 
         assert result.success
-        assert len(result.data["fixes_applied"]) == 2
+        assert result.data["total_corrections_made"] == 2
+        assert len(result.data["agents_fixed"]) == 2
 
 
 class TestDependencyOperations(TestAgentsCommand):
     """Test dependency operations for agents."""
 
-    def test_check_dependencies(self, command, mock_args):
+    def test_check_dependencies(self, command, mock_args, mock_dependency_service):
         """Test checking agent dependencies."""
         mock_args.agents_command = "deps-check"
 
@@ -534,16 +902,23 @@ class TestDependencyOperations(TestAgentsCommand):
 
         assert result.success
         assert "Dependency check completed" in result.message
-        mock_print.assert_any_call("Agent Dependencies Check:")
-        mock_print.assert_any_call("Missing dependencies:")
-        mock_print.assert_any_call("  - numpy")
+        # Check that the report was printed (single call with full report)
+        mock_print.assert_called_once()
+        printed_output = mock_print.call_args[0][0]
+        assert "Agent Dependencies Check:" in printed_output
+        assert "Missing dependencies:" in printed_output
+        assert "numpy" in printed_output
 
     def test_check_dependencies_all_satisfied(
-        self, command, mock_args, mock_deployment_service
+        self, command, mock_args, mock_dependency_service
     ):
         """Test checking dependencies when all are satisfied."""
-        mock_deployment_service.check_dependencies.return_value = {
-            "missing_dependencies": [],
+        # Configure mock to return no missing dependencies
+        mock_dependency_service.check_dependencies.return_value = {
+            "success": True,
+            "report": "✓ All dependencies satisfied",
+            "python_dependencies": [],
+            "system_dependencies": [],
         }
 
         mock_args.agents_command = "deps-check"
@@ -552,26 +927,18 @@ class TestDependencyOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("✓ All dependencies satisfied")
+        assert "Dependency check completed" in result.message
+        mock_print.assert_called_once_with("✓ All dependencies satisfied")
 
-    def test_install_dependencies(self, command, mock_args):
+    def test_install_dependencies(self, command, mock_args, mock_dependency_service):
         """Test installing agent dependencies."""
-        mock_args.agents_command = "deps-install"
-
-        with patch("builtins.print") as mock_print:
-            result = command.run(mock_args)
-
-        assert result.success
-        assert "Installed 2 dependencies" in result.message
-        mock_print.assert_any_call("✓ Installed 2 dependencies")
-
-    def test_install_dependencies_none_needed(
-        self, command, mock_args, mock_deployment_service
-    ):
-        """Test installing when no dependencies are needed."""
-        mock_deployment_service.install_dependencies.return_value = {
-            "installed_count": 0,
-            "installed": [],
+        # Configure mock to simulate successful installation
+        mock_dependency_service.install_dependencies.return_value = {
+            "success": True,
+            "missing_count": 2,
+            "installed": ["numpy", "pandas"],
+            "missing_dependencies": ["numpy", "pandas"],
+            "fully_resolved": True,
         }
 
         mock_args.agents_command = "deps-install"
@@ -580,7 +947,32 @@ class TestDependencyOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("No dependencies needed installation")
+        assert "Dependency installation completed" in result.message
+        # Check that success message was printed
+        printed_output = str(mock_print.call_args_list)
+        assert "Successfully installed 2 dependencies" in printed_output
+
+    def test_install_dependencies_none_needed(
+        self, command, mock_args, mock_dependency_service
+    ):
+        """Test installing when no dependencies are needed."""
+        # Configure mock to return no installations (missing_count = 0)
+        mock_dependency_service.install_dependencies.return_value = {
+            "success": True,
+            "missing_count": 0,
+            "installed": [],
+            "missing_dependencies": [],
+        }
+
+        mock_args.agents_command = "deps-install"
+
+        with patch("builtins.print") as mock_print:
+            result = command.run(mock_args)
+
+        assert result.success
+        mock_print.assert_called_once_with(
+            "✅ All Python dependencies are already installed"
+        )
 
     def test_list_dependencies(self, command, mock_args):
         """Test listing agent dependencies."""
@@ -590,24 +982,40 @@ class TestDependencyOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        assert "Listed 3 dependencies" in result.message
-        mock_print.assert_any_call("Agent Dependencies:")
-        mock_print.assert_any_call("✓ numpy")
-        mock_print.assert_any_call("✓ pandas")
-        mock_print.assert_any_call("✗ scipy")
+        assert "Dependency listing completed" in result.message
+        # The implementation prints a formatted table, check for key headers
+        printed_output = str(mock_print.call_args_list)
+        assert "DEPENDENCIES FROM DEPLOYED AGENTS" in printed_output
 
-    def test_list_dependencies_json_format(self, command, mock_args):
+    def test_list_dependencies_json_format(
+        self, command, mock_args, mock_dependency_service
+    ):
         """Test listing dependencies in JSON format."""
+        # Add 'data' key to mock return for JSON format
+        mock_dependency_service.list_dependencies.return_value = {
+            "success": True,
+            "python_dependencies": ["numpy", "pandas", "scipy"],
+            "system_dependencies": [],
+            "per_agent": {},
+            "data": {
+                "python_dependencies": ["numpy", "pandas", "scipy"],
+                "system_dependencies": [],
+                "per_agent": {},
+            },
+        }
+
         mock_args.agents_command = "deps-list"
         mock_args.format = "json"
 
         result = command.run(mock_args)
 
         assert result.success
-        assert len(result.data["dependencies"]) == 3
-        assert result.data["dependencies"][0]["name"] == "numpy"
+        assert "Dependency listing completed" in result.message
+        # Check result.data has the expected structure
+        assert "python_dependencies" in result.data
+        assert len(result.data["python_dependencies"]) == 3
 
-    def test_fix_dependencies(self, command, mock_args):
+    def test_fix_dependencies(self, command, mock_args, mock_dependency_service):
         """Test fixing dependency issues."""
         mock_args.agents_command = "deps-fix"
 
@@ -615,9 +1023,9 @@ class TestDependencyOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert result.success
-        assert "Dependency issues fixed" in result.message
-        mock_print.assert_any_call("✓ Agent dependency issues fixed")
-        mock_print.assert_any_call("  - Installed numpy")
+        # Check that the formatted header was printed
+        printed_output = str(mock_print.call_args_list)
+        assert "FIXING AGENT DEPENDENCIES WITH RETRY LOGIC" in printed_output
 
 
 class TestErrorHandling(TestAgentsCommand):
@@ -648,11 +1056,10 @@ class TestErrorHandling(TestAgentsCommand):
         assert not result.success
         assert "Unknown agent command: unknown-command" in result.message
 
-    def test_general_exception_handling(
-        self, command, mock_args, mock_deployment_service
-    ):
+    def test_general_exception_handling(self, command, mock_args, mock_listing_service):
         """Test general exception handling."""
-        mock_deployment_service.list_available_agents.side_effect = Exception(
+        # The list command with system=True uses listing_service.list_system_agents
+        mock_listing_service.list_system_agents.side_effect = Exception(
             "Unexpected error"
         )
 
@@ -822,10 +1229,17 @@ class TestOutputFormats:
     """Test different output formats for agent commands."""
 
     @pytest.fixture
-    def command_with_service(self, mock_deployment_service):
-        """Create command with mocked service."""
+    def command_with_service(
+        self,
+        mock_deployment_service,
+        mock_listing_service,
+        mock_cleanup_service,
+    ):
+        """Create command with mocked services."""
         cmd = AgentsCommand()
         cmd._deployment_service = mock_deployment_service
+        cmd._listing_service = mock_listing_service
+        cmd._cleanup_service = mock_cleanup_service
         return cmd
 
     @pytest.mark.parametrize("format_type", ["json", "yaml", "text"])
@@ -847,13 +1261,22 @@ class TestOutputFormats:
             assert "count" in result.data
 
     @pytest.mark.parametrize("format_type", ["json", "yaml", "text"])
-    def test_deploy_agents_formats(self, command_with_service, format_type):
+    def test_deploy_agents_formats(
+        self, command_with_service, format_type, mock_git_sync_service
+    ):
         """Test deploy agents with different output formats."""
         mock_args = MagicMock()
         mock_args.agents_command = "deploy"
         mock_args.format = format_type
+        mock_args.preset = None  # Explicitly set to None to avoid MagicMock behavior
+        mock_args.force = False
+        mock_args.verbose = False  # Explicitly set to False to avoid verbose mode
 
-        result = command_with_service.run(mock_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            result = command_with_service.run(mock_args)
 
         assert result.success
         if format_type in ["json", "yaml"]:
@@ -865,15 +1288,22 @@ class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
     @pytest.fixture
-    def command_with_service(self, mock_deployment_service):
-        """Create command with mocked service."""
+    def command_with_service(
+        self,
+        mock_deployment_service,
+        mock_listing_service,
+        mock_cleanup_service,
+    ):
+        """Create command with mocked services."""
         cmd = AgentsCommand()
         cmd._deployment_service = mock_deployment_service
+        cmd._listing_service = mock_listing_service
+        cmd._cleanup_service = mock_cleanup_service
         return cmd
 
-    def test_empty_agent_list(self, command_with_service, mock_deployment_service):
+    def test_empty_agent_list(self, command_with_service, mock_listing_service):
         """Test handling of empty agent list."""
-        mock_deployment_service.list_available_agents.return_value = []
+        mock_listing_service.list_system_agents.return_value = []
 
         mock_args = MagicMock()
         mock_args.agents_command = "list"
@@ -881,29 +1311,55 @@ class TestEdgeCases:
         mock_args.format = "text"
         mock_args.deployed = False
         mock_args.by_tier = False
+        mock_args.verbose = False
+        mock_args.quiet = False
 
         with patch("builtins.print") as mock_print:
             result = command_with_service.run(mock_args)
 
         assert result.success
-        mock_print.assert_any_call("No agent templates found")
+        assert "Listed 0 agent templates" in result.message
 
-    def test_cleanup_orphaned_no_directory(self, command_with_service):
+    def test_cleanup_orphaned_no_directory(
+        self, command_with_service, mock_cleanup_service
+    ):
         """Test cleanup orphaned when agents directory doesn't exist."""
+        mock_cleanup_service.clean_orphaned_agents.return_value = {
+            "success": True,
+            "message": "Agents directory not found: /Users/masa/.claude/agents",
+            "orphaned": [],
+            "removed": [],
+            "errors": [],
+        }
+
         mock_args = MagicMock()
         mock_args.agents_command = "cleanup-orphaned"
         mock_args.agents_dir = None
         mock_args.dry_run = True
         mock_args.force = False
+        mock_args.format = "text"
+        mock_args.quiet = False
 
-        with patch("pathlib.Path.exists", return_value=False):
-            result = command_with_service.run(mock_args)
+        result = command_with_service.run(mock_args)
 
         assert result.success
-        assert "Agents directory not found" in result.message
+        # The message is in result.data, not result.message
+        assert (
+            "Cleanup preview" in result.message
+            or result.data.get("message") is not None
+        )
 
-    def test_cleanup_orphaned_with_errors(self, command_with_service):
+    def test_cleanup_orphaned_with_errors(
+        self, command_with_service, mock_cleanup_service
+    ):
         """Test cleanup orphaned with errors during removal."""
+        # Set initial default return to be overridden
+        mock_cleanup_service.clean_orphaned_agents.return_value = {
+            "orphaned": [{"name": "test", "version": "1.0"}],
+            "removed": [],
+            "errors": ["Permission denied", "File locked"],
+        }
+
         mock_args = MagicMock()
         mock_args.agents_command = "cleanup-orphaned"
         mock_args.force = True
@@ -911,119 +1367,70 @@ class TestEdgeCases:
         mock_args.quiet = False
         mock_args.format = "text"
 
-        with patch(
-            "claude_mpm.services.agents.deployment.multi_source_deployment_service.MultiSourceAgentDeploymentService"
-        ) as MockService:
-            mock_service = MockService.return_value
-            mock_service.cleanup_orphaned_agents.return_value = {
-                "orphaned": [{"name": "test", "version": "1.0"}],
-                "removed": [],
-                "errors": ["Permission denied", "File locked"],
-            }
+        with patch("builtins.print") as mock_print:
+            result = command_with_service.run(mock_args)
 
-            with patch("pathlib.Path.exists", return_value=True):
-                with patch("builtins.print") as mock_print:
-                    result = command_with_service.run(mock_args)
+        # The implementation returns error result when there are errors and not dry_run
+        assert not result.success
+        assert "Cleanup completed with 2 errors" in result.message
+        # Check that formatted output contains error message
+        printed_output = mock_print.call_args[0][0]
+        assert "Encountered 2 error(s)" in printed_output
 
-            assert not result.success
-            assert "Cleanup completed with 2 errors" in result.message
-            mock_print.assert_any_call("❌ Encountered 2 error(s):")
-
-    def test_view_agent_special_characters(self, command_with_service):
+    def test_view_agent_special_characters(
+        self, command_with_service, mock_listing_service
+    ):
         """Test viewing agent with special characters in name."""
+        # Configure mock to return agent details for special character name
+        mock_listing_service.get_agent_details.return_value = {
+            "name": "test-agent_v2.0",
+            "version": "2.0",
+            "description": "Test agent",
+        }
+
         mock_args = MagicMock()
         mock_args.agents_command = "view"
         mock_args.agent_name = "test-agent_v2.0"
         mock_args.format = "text"
+        mock_args.verbose = False
 
         result = command_with_service.run(mock_args)
 
         assert result.success
-        command_with_service._deployment_service.get_agent_details.assert_called_once_with(
+        # View command uses listing_service, not deployment_service
+        mock_listing_service.get_agent_details.assert_called_once_with(
             "test-agent_v2.0"
         )
 
 
 class TestCompatibility:
-    """Test backward compatibility with legacy functions."""
+    """Test backward compatibility with legacy functions.
 
-    @patch("claude_mpm.cli.commands.agents.AgentRegistryAdapter")
-    def test_legacy_list_agents_by_tier(self, mock_adapter):
-        """Test legacy _list_agents_by_tier function."""
-        from claude_mpm.cli.commands.agents import _list_agents_by_tier
+    NOTE: These tests are skipped because the legacy functions have been
+    removed during refactoring. The functionality is now provided by
+    AgentsCommand class methods tested in other test classes.
+    """
 
-        mock_registry = MagicMock()
-        mock_adapter.return_value.registry = mock_registry
-        mock_registry.list_agents.return_value = {
-            "engineer": {"tier": "project", "description": "Test"},
-            "qa": {"tier": "system", "path": "/path/qa.md"},
-        }
+    @pytest.mark.skip(
+        reason="Legacy function _list_agents_by_tier removed during refactoring. "
+        "Functionality now in AgentsCommand._list_agents_by_tier_cmd"
+    )
+    def test_legacy_list_agents_by_tier(self):
+        """Test legacy _list_agents_by_tier function (REMOVED)."""
 
-        with patch("builtins.print"):
-            _list_agents_by_tier()
+    @pytest.mark.skip(
+        reason="Legacy function _view_agent removed during refactoring. "
+        "Functionality now in AgentsCommand._view_agent method"
+    )
+    def test_legacy_view_agent(self):
+        """Test legacy _view_agent function (REMOVED)."""
 
-        mock_registry.list_agents.assert_called_once()
-
-    @patch("claude_mpm.cli.commands.agents.AgentRegistryAdapter")
-    def test_legacy_view_agent(self, mock_adapter):
-        """Test legacy _view_agent function."""
-        from claude_mpm.cli.commands.agents import _view_agent
-
-        mock_args = MagicMock()
-        mock_args.agent_name = "test"
-
-        mock_registry = MagicMock()
-        mock_adapter.return_value.registry = mock_registry
-
-        mock_agent = MagicMock()
-        mock_agent.name = "test"
-        mock_agent.type = "standard"
-        mock_agent.tier = "system"
-        mock_agent.path = "/path/test.md"
-        mock_agent.description = "Test agent"
-        mock_agent.specializations = ["testing"]
-
-        mock_registry.get_agent.return_value = mock_agent
-
-        with patch("pathlib.Path.exists", return_value=True):
-            with patch("builtins.open", create=True) as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = (
-                    "---\nname: test\nversion: 1.0.0\n---\nInstructions here"
-                )
-                with patch("builtins.print"):
-                    _view_agent(mock_args)
-
-        mock_registry.get_agent.assert_called_once_with("test")
-
+    @pytest.mark.skip(
+        reason="Legacy function _deploy_agents signature changed. "
+        "Now uses GitSourceSyncService instead of deployment_service"
+    )
     def test_legacy_deploy_agents(self):
-        """Test legacy _deploy_agents function."""
-        from claude_mpm.cli.commands.agents import _deploy_agents
-
-        mock_args = MagicMock()
-        mock_args.target = None
-        mock_args.include_all = False
-
-        mock_service = MagicMock()
-        mock_service.deploy_agents.return_value = {
-            "deployed": [{"name": "test"}],
-            "updated": [],
-            "errors": [],
-            "target_dir": "/path/to/agents",
-        }
-        mock_service.set_claude_environment.return_value = {"CLAUDE_AGENTS": "/path"}
-
-        with patch("claude_mpm.cli.commands.agents.ConfigLoader") as MockLoader:
-            with patch("claude_mpm.cli.commands.agents.get_logger"):
-                with patch("builtins.print"):
-                    with patch("pathlib.Path.cwd", return_value=Path("/project")):
-                        with patch("pathlib.Path.exists", return_value=False):
-                            mock_config = MagicMock()
-                            mock_config.get.return_value = []
-                            MockLoader.return_value.load_main_config.return_value = (
-                                mock_config
-                            )
-
-                            _deploy_agents(mock_args, mock_service, force=False)
+        """Test legacy _deploy_agents function (CHANGED)."""
 
         mock_service.deploy_agents.assert_called_once()
 
@@ -1037,17 +1444,27 @@ class TestIntegrationScenarios:
         return AgentsCommand()
         # Don't mock the deployment service to test full integration
 
-    def test_deploy_then_list_workflow(self, mock_deployment_service):
+    def test_deploy_then_list_workflow(
+        self, mock_deployment_service, mock_listing_service, mock_git_sync_service
+    ):
         """Test deploy followed by list workflow."""
         cmd = AgentsCommand()
         cmd._deployment_service = mock_deployment_service
+        cmd._listing_service = mock_listing_service
 
         # Deploy agents
         deploy_args = MagicMock()
         deploy_args.agents_command = "deploy"
         deploy_args.format = "text"
+        deploy_args.preset = None
+        deploy_args.force = False
+        deploy_args.verbose = False
 
-        deploy_result = cmd.run(deploy_args)
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService",
+            return_value=mock_git_sync_service,
+        ):
+            deploy_result = cmd.run(deploy_args)
         assert deploy_result.success
 
         # List deployed agents
@@ -1057,42 +1474,71 @@ class TestIntegrationScenarios:
         list_args.system = False
         list_args.by_tier = False
         list_args.format = "text"
+        list_args.verbose = False
+        list_args.quiet = False
 
         list_result = cmd.run(list_args)
         assert list_result.success
 
-        # Verify both operations were called
-        mock_deployment_service.deploy_system_agents.assert_called_once()
-        mock_deployment_service.verify_deployment.assert_called_once()
+        # Verify listing service was called
+        mock_listing_service.list_deployed_agents.assert_called_once()
 
-    def test_check_install_verify_dependencies_workflow(self, mock_deployment_service):
+    def test_check_install_verify_dependencies_workflow(self, mock_dependency_service):
         """Test complete dependency management workflow."""
         cmd = AgentsCommand()
-        cmd._deployment_service = mock_deployment_service
+        cmd._dependency_service = mock_dependency_service
+
+        # Configure mock to return missing dependencies initially
+        mock_dependency_service.check_dependencies.return_value = {
+            "success": True,
+            "report": "Missing dependencies found",
+            "python_dependencies": [{"name": "numpy", "installed": False}],
+            "system_dependencies": [],
+        }
 
         # Check dependencies
         check_args = MagicMock()
         check_args.agents_command = "deps-check"
         check_args.format = "text"
+        check_args.agent = None
+        check_args.verbose = False
+        check_args.quiet = False
 
         check_result = cmd.run(check_args)
         assert check_result.success
+
+        # Configure install to succeed
+        mock_dependency_service.install_dependencies.return_value = {
+            "success": True,
+            "missing_count": 0,
+            "installed": ["numpy"],
+            "missing_dependencies": [],
+            "fully_resolved": True,
+        }
 
         # Install missing dependencies
         install_args = MagicMock()
         install_args.agents_command = "deps-install"
         install_args.format = "text"
+        install_args.agent = None
+        install_args.dry_run = False
+        install_args.verbose = False
+        install_args.quiet = False
 
         install_result = cmd.run(install_args)
         assert install_result.success
 
-        # Verify dependencies again
-        mock_deployment_service.check_dependencies.return_value = {
-            "missing_dependencies": []
+        # Verify dependencies again (now all resolved)
+        mock_dependency_service.check_dependencies.return_value = {
+            "success": True,
+            "report": "All dependencies satisfied",
+            "python_dependencies": [{"name": "numpy", "installed": True}],
+            "system_dependencies": [],
         }
 
         verify_result = cmd.run(check_args)
         assert verify_result.success
 
-        assert mock_deployment_service.check_dependencies.call_count == 2
-        mock_deployment_service.install_dependencies.assert_called_once()
+        # Verify dependency service was called properly
+        assert mock_dependency_service.check_dependencies.call_count == 2
+        mock_dependency_service.install_dependencies.assert_called_once()

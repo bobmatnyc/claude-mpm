@@ -986,10 +986,34 @@ class EventHandlers:
             "is_completion_stop": metadata["reason"]
             in ["completed", "finished", "done"],
             "has_output": bool(event.get("final_output")),
+            "usage": metadata.get("usage"),  # Add token usage data
         }
 
         # Emit normalized event
         self.hook_handler._emit_socketio_event("", "stop", stop_data)
+
+        # Emit dedicated token usage event if usage data is available
+        if metadata.get("usage"):
+            usage_data = metadata["usage"]
+            token_usage_data = {
+                "session_id": session_id,
+                "input_tokens": usage_data.get("input_tokens", 0),
+                "output_tokens": usage_data.get("output_tokens", 0),
+                "cache_creation_tokens": usage_data.get(
+                    "cache_creation_input_tokens", 0
+                ),
+                "cache_read_tokens": usage_data.get("cache_read_input_tokens", 0),
+                "total_tokens": (
+                    usage_data.get("input_tokens", 0)
+                    + usage_data.get("output_tokens", 0)
+                    + usage_data.get("cache_creation_input_tokens", 0)
+                    + usage_data.get("cache_read_input_tokens", 0)
+                ),
+                "timestamp": metadata["timestamp"],
+            }
+            self.hook_handler._emit_socketio_event(
+                "", "token_usage_updated", token_usage_data
+            )
 
     def handle_subagent_stop_fast(self, event):
         """Handle subagent stop events by delegating to the specialized processor."""

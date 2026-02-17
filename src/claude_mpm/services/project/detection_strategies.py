@@ -484,15 +484,143 @@ class PythonDetectionStrategy(BaseDetectionStrategy):
         if pyproject_path.exists():
             content = self._read_file(pyproject_path)
             if content:
-                # Simple regex-based parsing
-                dep_matches = re.findall(
-                    r'([a-zA-Z0-9_-]+)\s*=\s*["\']([^"\']+)["\']', content
+                # Poetry-style: package = "^version" under [tool.poetry.dependencies]
+                # Scope to poetry dependency sections to avoid matching TOML
+                # metadata keys like name="my-app" or build-backend="..."
+                poetry_sections = re.findall(
+                    r"\[tool\.poetry\.(?:dev-)?dependencies\]\s*\n(.*?)(?=\n\s*\[|\Z)",
+                    content,
+                    re.DOTALL,
                 )
-                for dep_name, dep_version in dep_matches:
-                    if dep_name not in dependencies:
-                        dependencies[dep_name] = dep_version.strip("^~>=<")
+                for section in poetry_sections:
+                    dep_matches = re.findall(
+                        r'([a-zA-Z0-9_-]+)\s*=\s*["\']([^"\']+)["\']',
+                        section,
+                    )
+                    for dep_name, dep_version in dep_matches:
+                        if dep_name not in dependencies:
+                            dependencies[dep_name] = dep_version.strip("^~>=<")
+
+                # PEP 621-style: dependencies = ["fastapi>=0.100.0", ...]
+                # under [project] section
+                self._parse_pep621_dependencies(content, dependencies)
 
         return dependencies
+
+    @staticmethod
+    def _extract_toml_array(content: str, start_pos: int) -> str:
+        """Extract content of a TOML array starting at the opening bracket.
+
+        Handles nested brackets (e.g. extras like uvicorn[standard]) by
+        tracking bracket depth.
+
+        Args:
+            content: Full TOML content string
+            start_pos: Position of the opening '[' bracket
+
+        Returns:
+            Content between the outermost brackets (excluding the brackets)
+        """
+        depth = 0
+        in_string = False
+        string_char = None
+        i = start_pos
+
+        while i < len(content):
+            ch = content[i]
+
+            # Handle string quoting (skip brackets inside strings)
+            if not in_string and ch in ('"', "'"):
+                in_string = True
+                string_char = ch
+            elif in_string and ch == string_char:
+                # Check not escaped
+                if i == 0 or content[i - 1] != "\\":
+                    in_string = False
+
+            if not in_string:
+                if ch == "[":
+                    depth += 1
+                elif ch == "]":
+                    depth -= 1
+                    if depth == 0:
+                        return content[start_pos + 1 : i]
+            i += 1
+
+        # If we reach end without closing bracket, return what we have
+        return content[start_pos + 1 :]
+
+    def _parse_pep621_dependencies(
+        self, content: str, dependencies: Dict[str, Optional[str]]
+    ) -> None:
+        """Parse PEP 621 dependency arrays from pyproject.toml.
+
+        Handles both [project].dependencies and
+        [project.optional-dependencies] sections.
+
+        Args:
+            content: Raw pyproject.toml content
+            dependencies: Dict to populate with parsed dependencies
+        """
+        # Match PEP 621 dependencies array: dependencies = [...]
+        # Use a pattern to find the start, then extract with bracket tracking
+        dep_start_pattern = re.compile(
+            r"(?:^|\n)\s*dependencies\s*=\s*\[",
+            re.DOTALL,
+        )
+        for match in dep_start_pattern.finditer(content):
+            # Find the position of the opening bracket
+            bracket_pos = match.end() - 1  # Position of '['
+            array_content = self._extract_toml_array(content, bracket_pos)
+            self._extract_pep621_packages(array_content, dependencies)
+
+        # Match optional-dependencies sections:
+        # [project.optional-dependencies]
+        # dev = ["pytest>=7.0", ...]
+        opt_dep_pattern = re.compile(
+            r"(?:^|\n)\s*\[project\.optional-dependencies\]\s*\n(.*?)(?=\n\s*\[(?!\w*\])|\Z)",
+            re.DOTALL,
+        )
+        for section_match in opt_dep_pattern.finditer(content):
+            section_content = section_match.group(1)
+            # Find each group start: name = [...]
+            group_start_pattern = re.compile(
+                r"(\w+)\s*=\s*\[",
+                re.DOTALL,
+            )
+            for group_match in group_start_pattern.finditer(section_content):
+                bracket_pos = group_match.end() - 1
+                array_content = self._extract_toml_array(section_content, bracket_pos)
+                self._extract_pep621_packages(array_content, dependencies)
+
+    def _extract_pep621_packages(
+        self, array_content: str, dependencies: Dict[str, Optional[str]]
+    ) -> None:
+        """Extract package names and versions from a PEP 621 dependency array string.
+
+        Parses strings like: "fastapi>=0.100.0", "uvicorn[standard]>=0.20.0"
+
+        Args:
+            array_content: Content inside the brackets of a dependency array
+            dependencies: Dict to populate with parsed dependencies
+        """
+        # Match quoted dependency strings: "package>=version" or "package"
+        pkg_pattern = re.compile(r'["\']([^"\']+)["\']')
+        for pkg_match in pkg_pattern.finditer(array_content):
+            dep_str = pkg_match.group(1).strip()
+            if not dep_str or dep_str.startswith("#"):
+                continue
+            # Parse package name and optional version
+            # Handle extras like uvicorn[standard]>=0.20.0
+            name_match = re.match(
+                r"([a-zA-Z0-9_-]+)(?:\[.*?\])?\s*(?:([>=<~!]+)\s*([0-9.]+))?",
+                dep_str,
+            )
+            if name_match:
+                pkg_name = name_match.group(1)
+                pkg_version = name_match.group(3)  # May be None
+                if pkg_name not in dependencies:
+                    dependencies[pkg_name] = pkg_version
 
 
 class RustDetectionStrategy(BaseDetectionStrategy):

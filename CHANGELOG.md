@@ -10,6 +10,642 @@
 
 ### Tests
 
+## [5.9.1] - 2026-02-16
+
+### Documentation
+- docs(integrate): Add user documentation for /mpm-integrate
+- docs(agents): Add Minimalism Principle to BASE_AGENT.md
+
+### Added
+- feat(integrate): Add Fireflies.io integration to catalog
+
+## [5.9.0] - 2026-02-16
+
+### Added
+- **API Integration Framework** (`/mpm-integrate`): Complete framework for third-party API integrations
+  - Integration manifest system for declarative API definitions
+  - Credential management with interactive `.env` wizard
+  - REST/GraphQL client with automatic authentication handling
+  - Auto-generated MCP servers from integration manifests
+  - Agent/skill pairing for integration-aware workflows
+  - Batch operations support for bulk API interactions
+  - Community contribution workflow for sharing integrations
+- New CLI command: `claude-mpm integrate` for managing API integrations
+- Integration templates for common APIs (Stripe, Twilio, SendGrid, etc.)
+- Secure credential storage with keyring integration
+
+## [5.8.22] - 2026-02-16
+
+### Fixed
+- fix(cli): Remove startup configuration prompt - users can run /mpm-configure manually
+
+## [5.8.21] - 2026-02-14
+
+### Fixed
+- fix(agents): agent naming inconsistencies (#299)
+
+## [5.8.20] - 2026-02-15
+
+### Added
+- feat(setup): add setup commands for Brave Search MCP server
+- feat(setup): add setup commands for Tavily AI Search MCP server
+- feat(setup): add setup commands for Firecrawl web scraping MCP server
+- Automatic API key detection and configuration for search providers
+- User-friendly setup prompts with API key instructions
+
+## [5.8.19] - 2026-02-15
+
+### Added
+- feat(research): intelligent web search provider detection with automatic fallback hierarchy
+- Support for Brave Search, Tavily, and Firecrawl MCP providers in Research agent
+- Automatic provider selection with graceful degradation to WebSearch/WebFetch
+- Provider detection using ToolSearch for optimal research workflow
+
+### Changed
+- Updated Research agent template with comprehensive provider hierarchy and detection patterns
+- Enhanced web search reliability with multi-provider support
+- Improved research agent documentation with provider selection examples
+
+## [5.8.18] - 2026-02-14
+
+### Added
+- feat(setup): add .gworkspace-mcp/ to .gitignore on setup
+
+## [5.8.17] - 2026-02-14
+
+### Fixed
+- fix(setup): migrate old gworkspace-mcp key names in .mcp.json
+
+## [5.8.16] - 2026-02-14
+
+### Fixed
+- Comprehensive test fixes for CLI commands (502 passed, 8 skipped)
+
+## [5.8.15] - 2026-02-14
+
+### Changed
+- Renamed google-workspace-mcp binary to gworkspace-mcp for consistency
+- Updated token path from ~/.google-workspace-mcp/ to ~/.gworkspace-mcp/
+- Aligned with upstream gworkspace-mcp package v0.1.5
+
+### Fixed
+- Fixed bandit security warnings with nosec comments in mcp_setup_external.py
+
+## [5.8.14] - 2026-02-13
+
+### Fixed
+- Fixed multi-service setup failure handling (removed early return on first failure)
+- All services now processed regardless of individual failures
+- Comprehensive summary showing X/Y services succeeded
+- Smart auto-launch only when at least one service succeeds
+
+## [5.8.13] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.12] - 2026-02-13
+
+### Added
+- **PackageInstallerService**: Declarative package installation abstraction
+  - New centralized service for handling pipx/uv/pip installations
+  - InstallerType, InstallAction enums for clean API
+  - PackageSpec dataclass for declarative package definitions
+  - PACKAGE_SPECS mapping for all setup services
+  - Refactored kuzu-memory setup as proof of concept (190 -> 35 lines)
+
+## [5.8.11] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.10] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.9] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.8] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.7] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.6] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.5] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.4] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.3] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.2] - 2026-02-13
+
+### Changed
+- Patch release for PyPI publication
+
+## [5.8.1] - 2026-02-13
+
+### Fixed
+- Fixed startup warning by adding `AgentCapabilitiesService.get_all_agents()` method
+- Fixed hooks architecture by removing direct kuzu-memory hooks integration
+- Fixed multi-service setup bug that caused early termination
+- Added documentation for comma-delimited service support
+
+## [5.8.0] - 2026-02-13
+
+### Added
+- **Domain Authority System**: Intelligent agent and tool discovery for PM delegation (PR #XXX)
+  - **Setup Registry Service**: Centralized tracking of MCP servers and CLI tools
+    - Location: `~/.claude-mpm/setup-registry.json`
+    - Tracks service names, types, versions, tools, and setup dates
+    - Thread-safe registry operations with `SetupRegistry` class
+  - **Dynamic Skills Generator**: Auto-generates agent/tool selection skills at startup
+    - `mpm-select-agents.md`: Lists all available agents with capabilities
+    - `mpm-select-tools.md`: Lists all configured MCP/CLI tools with help text
+    - Generated at: `~/.claude-mpm/skills/dynamic/`
+    - Runs automatically during Claude MPM startup
+  - **PM Integration**: PM agent uses generated skills for intelligent delegation
+    - Agent selection based on capabilities and domains
+    - Tool selection based on available MCP servers
+    - Context-aware routing to appropriate specialists
+  - See: [Domain Authority System Documentation](docs/features/domain-authority-system.md)
+
+- **Skills Optimization Command**: Intelligent project-based skill recommendations (PR #XXX)
+  - `claude-mpm skills optimize`: Analyze project and recommend relevant skills
+  - Auto-detection of languages, frameworks, tools, and databases
+  - Priority-based recommendations (Critical, High, Medium, Low)
+  - Optional auto-deployment with `--auto-deploy` flag
+  - Filter by priority with `--priority` flag
+  - Limit recommendations with `--max-skills` flag
+  - See: [Skills Optimization Guide](docs/user/skills-optimize.md)
+
+- **MCP-Skillset Integration**: Optional user-level RAG-powered skill recommendations (PR #XXX)
+  - User-level MCP server (not project-specific)
+  - RAG-powered semantic skill matching
+  - Enhanced recommendations via `--use-mcp-skillset` flag
+  - Fallback to local manifest if unavailable
+  - See: [MCP-Skillset Integration](docs/features/mcp-skillset-integration.md)
+
+### Changed
+- **Startup Sequence**: Dynamic skills generation integrated into startup process
+  - Skills automatically regenerate on every Claude MPM startup
+  - Ensures agent/tool discovery is always current
+  - No manual regeneration needed after installing MCP servers
+
+### Documentation
+- **New Documentation**:
+  - `docs/features/domain-authority-system.md`: Comprehensive domain authority guide
+    - Architecture diagrams
+    - API reference
+    - Usage examples
+    - Troubleshooting guide
+  - Updated README.md with domain authority system features
+  - Skills optimization documentation already comprehensive
+
+- **Documentation Review**:
+  - `docs/user/skills-optimize.md`: Verified current (no changes needed)
+  - `docs/features/mcp-skillset-integration.md`: Verified current (no changes needed)
+  - `docs/integrations/gworkspace-mcp.md`: Already reflects canonical naming
+
+### Technical Details
+- New Services:
+  - `src/claude_mpm/services/setup_registry.py`: SetupRegistry class
+  - `src/claude_mpm/services/dynamic_skills_generator.py`: DynamicSkillsGenerator class
+- Integration Points:
+  - `src/claude_mpm/cli/startup.py`: Startup integration
+  - `src/claude_mpm/services/agent_capabilities_service.py`: Agent discovery
+- Generated Files:
+  - `~/.claude-mpm/skills/dynamic/mpm-select-agents.md`: Auto-generated agent skill
+  - `~/.claude-mpm/skills/dynamic/mpm-select-tools.md`: Auto-generated tool skill
+  - `~/.claude-mpm/setup-registry.json`: Tool registry data
+
+## [5.7.34] - 2026-02-12
+
+### Added
+- **PM and research workflow skills**: Added comprehensive workflow skills for project management and research tasks (PR #298)
+
+### Changed
+- **Google Workspace MCP naming**: Standardized to `gworkspace-mcp` as canonical service name
+  - CLI accepts both `gworkspace-mcp` (canonical) and `google-workspace-mcp` (legacy alias)
+  - Automatic migration of old `google-workspace-mcp` configurations to `gworkspace-mcp`
+  - Command binary remains `google-workspace-mcp` (installed executable)
+  - Both names work for backward compatibility
+
+### Fixed
+- **Google Workspace MCP setup**: Install `gworkspace-mcp` package before OAuth configuration
+  - Setup now runs `uv tool install gworkspace-mcp` before OAuth flow
+  - Fixes issue where `.mcp.json` referenced non-existent command
+  - Follows same pattern as other MCP services (kuzu-memory, mcp-vector-search)
+
+### Documentation
+- **gworkspace-mcp naming**: Updated all documentation to reflect canonical `gworkspace-mcp` naming
+  - README.md: Updated references to use canonical name with backward compatibility note
+  - docs/integrations/README.md: Updated all setup examples and commands
+  - docs/integrations/gworkspace-mcp.md: Added comprehensive naming convention documentation
+  - Documented auto-migration behavior for old configurations
+
+## [5.7.33] - 2026-02-11
+
+### Fixed
+- **Dashboard display**: Fresh installations now properly show tools, files, and agents
+  - Fixed event categorization in broadcaster.py
+  - Fixed correlation_id extraction in event-correlation.ts
+  - Fixed Svelte 5 reactivity issues with object wrapper pattern
+  - Fixed stream filter for 'all-streams' option
+  - Added processedEventIds to prevent duplicates in FilesView
+  - Enhanced file path extraction for notebook_path field
+  - Fixed FileViewer content fetch with proper vite proxy configuration
+
+## [5.7.32] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory dependencies**: Fix numpy dependency issue in uv tool install
+
+## [5.7.31] - 2026-02-11
+
+### Fixed
+- **Hook installation**: Prevent reinstalling hooks on every startup to avoid file lock conflicts
+  - sync_hooks_on_startup() now checks installation status before attempting reinstall
+  - Fixes "file is locked" errors during hook execution caused by concurrent writes to settings.local.json
+
+## [5.7.30] - 2026-02-11
+
+### Added
+- **mcp-skillset integration**: Added mcp-skillset to setup command for skill management
+
+### Fixed
+- **Setup command**: Improved error messages for invalid arguments
+
+## [5.7.29] - 2026-02-11
+
+### Fixed
+- **Setup command**: Prevent auto-config from interfering with setup command (issue #297)
+  - Auto-configuration now skips during setup to avoid race conditions
+  - Setup command has exclusive control over .mcp.json during installation
+
+## [5.7.28] - 2026-02-11
+
+### Added
+- **PM Bug Reporting**: External system bug routing support for delegating bugs to external systems
+
+## [5.7.27] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory**: Archive migrated memory files to prevent re-import
+
+## [5.7.26] - 2026-02-11
+
+### Fixed
+- **Kuzu-memory hooks**: Remove independent hooks during setup to prevent conflicts with unified hooks
+
+### Changed
+- **PM instructions**: Circuit Breaker #13 - Language Detection for multilingual support
+- **PM instructions**: Circuit Breaker #13 - Model Preference handling for optimal model selection
+- **PM instructions**: Circuit Breaker #13 - Research Gate for preventing premature implementation
+
+## [5.7.25] - 2026-02-10
+
+### Added
+- **Google Workspace MCP**: Google Docs tabs support (list, get, create, update, move tabs)
+- **Google Workspace MCP**: Mermaid diagram rendering tool for creating diagrams in Google Docs
+
+### Fixed
+- **Kuzu-memory hooks**: Use async learn for non-blocking storage during prompt enhancement
+
+## [5.7.24] - 2026-02-10
+
+### Fixed
+- **Kuzu-memory setup**: Fixed migration command to use correct `kuzu-memory memory learn` syntax
+- **Kuzu-memory setup**: Added auto-launch of claude-mpm after setup (consistent with slack setup)
+- **Kuzu-memory setup**: Added `--no-start` flag to exit before launching
+
+### Documentation
+- **STARTUP-PROCEDURES.md**: Complete documentation of 7-phase initialization sequence
+  - Agent discovery and deployment process
+  - Instructions compilation and BASE_AGENT inheritance
+  - Dynamic delegation authority building
+  - Configuration files and setup commands
+- **Documentation organization**: Moved files to appropriate subdirectories
+  - Developer reference docs consolidated in `docs/developer/`
+  - Integration guides in `docs/integrations/`
+- **Agent format correction**: Updated docs to reflect markdown+YAML frontmatter (not JSON)
+
+## [5.7.23] - 2026-02-10
+
+### Added
+- **Notion MCP integration**: Full Notion API support for page and database operations
+  - Workspace search, page CRUD, database queries
+  - Block-level content manipulation
+  - User and comment management
+- **Confluence MCP integration**: Enterprise wiki management capabilities
+  - Space and page operations
+  - Content search and retrieval
+  - Attachment handling
+- **Bulk operations framework**: High-performance batch processing tools
+  - Parallel execution for large-scale operations
+  - Rate limiting and error handling
+  - Progress tracking and reporting
+- **Kuzu-memory v1.6.33 subservient mode**: Graph-based memory with enhanced context
+  - Automatic prompt enhancement with project context
+  - Asynchronous learning from conversations
+  - Memory recall and statistics
+- **Memory backend abstraction**: Pluggable memory system architecture
+  - Support for multiple memory backends
+  - Configuration schema for memory providers
+  - Setup command for kuzu-memory installation
+
+### Documentation
+- Added Notion and Confluence MCP setup guides
+- Documented bulk operations API and usage patterns
+- Updated memory system configuration examples
+
+## [5.7.22] - 2026-02-09
+
+### Changed
+- Patch release: Package distribution update
+
+## [5.7.21] - 2026-02-09
+
+### Added
+- **Google Workspace bulk operations tools (EP-0002)**: 8 new bulk operation tools for 10x faster batch processing
+  - Gmail: export_messages, import_messages (batch email operations)
+  - Calendar: export_events, bulk_create_events (batch calendar management)
+  - Drive: batch_upload_files, batch_download_files (efficient file sync)
+  - Slack: list_all_channels, export_messages (team data access)
+- **MCP calendar management**: New calendar CRUD operations in google-workspace-mcp
+  - create_calendar, update_calendar, delete_calendar (calendar lifecycle management)
+  - Completes calendar management capabilities
+
+### Documentation
+- **Comprehensive tools guide**: 450+ line documentation for bulk operations framework
+  - Usage patterns, API reference, error handling
+  - Performance optimization and rate limiting guidelines
+  - Integration examples for common workflows
+
+## [5.7.20] - 2026-02-08
+
+### Fixed
+- **Setup command UI**: Setup commands no longer show banner and "Launching Claude..." messages
+  - Previously: Setup commands showed startup UI before validation, confusing users
+  - Now: Clean output with immediate error messages when validation fails
+- **Error message visibility**: Validation errors now print to console instead of being silent
+  - Example: `Error: OAuth setup requires --oauth-service flag`
+- **VERSION file sync**: Fixed `src/claude_mpm/VERSION` not being updated (was 5.7.11)
+  - All VERSION files now stay in sync during release process
+
+### Changed
+- `should_show_banner()` now skips banner for setup and slack commands
+- `manage_setup()` prints error messages when validation fails
+
+## [5.7.19] - 2026-02-08
+
+### Added
+- **Auto-launch after Slack setup**: Slack setup now automatically launches claude-mpm after successful configuration
+  - Matches OAuth setup behavior for consistent user experience
+  - Can be disabled with `--no-launch` flag
+
+### Fixed
+- **Incorrect setup instructions**: Removed incorrect "python -m claude_mpm.slack_bot" instruction
+  - Slack bot is integrated as MCP server, not a standalone command
+  - Updated "Next steps" to clarify Slack MCP server is configured and ready
+
+### Changed
+- Setup help text now clarifies `--no-launch` works for all services
+
+## [5.7.18] - 2026-02-08
+
+### Added
+- **Auto-load Slack tokens**: Setup now checks `.env.local` for tokens before prompting
+  - Loads `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN` if present
+  - Only prompts if tokens not found or invalid
+  - Skips saving if tokens already in file
+
+### Changed
+- Slack setup now matches OAuth setup UX pattern
+- Better user experience: no re-entering tokens if already configured
+
+## [5.7.17] - 2026-02-08
+
+### Changed
+- Patch version bump
+
+## [5.7.16] - 2026-02-08
+
+### Fixed
+- **CRITICAL: Setup timing issue**: Setup commands now run BEFORE Claude Code launches
+  - Previously: Setup ran after full initialization (agents, skills, Claude launch)
+  - Now: Setup commands bypass initialization and run immediately
+  - Fixes: Setup failures due to running too late in startup sequence
+- **slack-bolt installation**: Changed from `pip` to `uv pip` for tool environments
+  - Fixes: "pip: command not found" error when installing dependencies
+
+### Changed
+- Setup commands (`setup`, `slack`, `oauth`) now skip background services for faster startup
+- Updated documentation to clarify setup must run before launch
+
+## [5.7.15] - 2026-02-08
+
+### Changed
+- Patch version bump for consistency
+
+## [5.7.14] - 2026-02-08
+
+### Added
+- **Service-specific options**: Flags after a service name apply to that service
+  - Example: `claude-mpm setup slack oauth --oauth-service google-workspace-mcp --no-browser`
+  - Follows Unix CLI conventions (flags apply to preceding item)
+  - Enables true one-command multi-service setup with different options per service
+
+### Changed
+- **Improved setup command parsing**: Custom parser associates flags with their services
+- **Better error messages**: Clear guidance when flags are misplaced or missing required values
+
+### Documentation
+- Updated examples to show service-specific options patterns
+- Added note about flag association rules (flags apply to preceding service)
+
+## [5.7.13] - 2026-02-08
+
+### Added
+- **Multi-service setup**: Run `claude-mpm setup slack google-workspace-mcp` to set up multiple services sequentially
+- **Deprecation warnings**: Old command patterns now show migration guidance with clear messaging
+
+### Changed
+- **Deprecated commands** (still functional with warnings):
+  - `claude-mpm slack setup` → Use `claude-mpm setup slack`
+  - `claude-mpm oauth setup <service>` → Use `claude-mpm setup oauth --oauth-service <service>`
+- OAuth setup now requires explicit `--oauth-service` flag for clarity
+- Setup command stops on first failure with clear error messages
+
+### Documentation
+- Updated command examples to show new patterns
+- Added migration guidance for deprecated commands
+
+## [5.7.12] - 2026-02-08
+
+### Added
+- **Unified setup command**: New 'claude-mpm setup [service]' architecture for consistent service setup
+- Support for multiple setup targets: slack, google-workspace-mcp, oauth
+
+### Changed
+- **CLI structure**: Refactored from 'claude-mpm slack setup' to 'claude-mpm setup slack'
+- **Backward compatibility**: Old command structure still works for existing workflows
+
+### Documentation
+- Updated setup documentation to reflect new command structure
+
+## [5.7.11] - 2026-02-08
+
+### Added
+- **Slack setup command**: New 'claude-mpm slack setup' CLI command for easier Slack app configuration
+
+### Changed
+- **Slack setup workflow**: Simplified setup process, no more messy Python one-liners
+- **Command patterns**: Slack setup follows oauth command pattern for consistency
+
+### Documentation
+- Updated Slack setup documentation for cleaner workflow
+
+## [5.7.10] - 2026-02-08
+
+### Fixed
+- **Script distribution**: setup-slack-app.sh now properly distributed with package
+
+### Documentation
+- Moved DISTRIBUTED_SCRIPTS.md to developer docs
+- Multiple investigation documents created
+
+### Changed
+- Hidden Tokens tab until data source resolved
+
+## [5.7.9] - 2026-02-07
+
+### Added
+- **Dashboard token tracking UI**: New TokensView component for monitoring token usage
+
+### Changed
+- **Event handler token usage**: Add dedicated token_usage_updated event emission for real-time token tracking
+- Dashboard Svelte build artifacts updated
+
+## [5.7.8] - 2026-02-07
+
+### Changed
+- Patch version bump
+
+## [5.7.7] - 2026-02-06
+
+### Changed
+- Patch version bump
+
+## [5.7.6] - 2026-02-06
+
+### Fixed
+- **Google Tasks OAuth scope**: Add `https://www.googleapis.com/auth/tasks` scope to OAuth configuration for full Google Tasks API access
+
+## [5.7.5] - 2026-02-06
+
+### Added
+- **Delegation matrix generator PoC**: Initial proof of concept for generating agent delegation matrices (#292)
+
+## [5.7.4] - 2026-02-06
+
+### Fixed
+- **PM context pollution**: Allow direct execution of simple operational commands instead of unnecessary delegation
+  - Add "Simple Operational Commands" exception to PM prohibitions for explicit/documented commands
+  - Change "Research (ALWAYS FIRST)" to "Research (CONDITIONAL)" with skip criteria
+  - Preserve user context when delegation IS needed (fixes #291)
+
+## [5.7.3] - 2026-02-05
+
+### Added
+- **Gmail email management tools**: 16 new MCP tools for comprehensive Gmail message handling
+  - Label management: `list_gmail_labels`, `create_gmail_label`, `delete_gmail_label`
+  - Single message operations: `modify_gmail_message`, `archive_gmail_message`, `trash_gmail_message`, `untrash_gmail_message`, `mark_gmail_message_read`, `mark_gmail_message_unread`, `star_gmail_message`, `unstar_gmail_message`
+  - Batch processing: `batch_modify_gmail_messages`, `batch_archive_gmail_messages`, `batch_trash_gmail_messages`, `batch_mark_gmail_messages_read`, `batch_delete_gmail_messages`
+
+## [5.7.2] - 2026-02-04
+
+### Added
+- **Rclone-based Google Drive sync tools**: New MCP tools for bulk file operations using rclone
+  - `list_drive_contents`: List Drive folder contents with structured JSON metadata
+  - `download_drive_folder`: Download folders from Drive to local filesystem
+  - `upload_to_drive`: Upload local folders to Drive
+  - `sync_drive_folder`: Bidirectional sync between Drive and local
+- **RcloneManager utility class**: Generates temporary rclone config from OAuth tokens in TokenStorage
+  - Secure credential handling with automatic cleanup
+  - Support for Google Docs export format configuration
+  - Requires rclone CLI binary installed separately
+
+## [5.7.1] - 2026-02-04
+
+### Fixed
+- Fix `_format_assistant_output` to handle Claude's content block format (list of `{type: "text", text: "..."}` objects)
+- Fix process cleanup to handle already-exited processes (avoid ProcessLookupError)
+
+### Tests
+- Added 5 new tests for content block parsing edge cases
+- Total MCP tests: 194
+
+## [5.7.0] - 2026-02-04
+
+### Added
+- **MCP Session Server**: New `mpm-session-server` command exposing claude-mpm headless mode via MCP protocol
+  - 5 session management tools: `mpm_session_start`, `mpm_session_continue`, `mpm_session_status`, `mpm_session_list`, `mpm_session_stop`
+  - Full async subprocess management with configurable concurrency limits
+  - Session forking support for exploring different approaches
+  - Context preservation using Claude Code's native `--resume` functionality
+  - Comprehensive error handling with rate limit and context window error detection
+
+### Documentation
+- Complete MCP Session Server documentation at `docs/mcp-session-server.md`
+- Configuration examples for Claude Desktop integration
+- Architecture diagrams and usage examples
+
+### Tests
+- Comprehensive test suite for MCP Session Server (189 tests)
+
+## [5.6.111] - 2026-02-04
+
+### Changed
+- Remove unused root-level config files (.flake8, .readthedocs.yaml)
+
+## [5.6.110] - 2026-02-04
+
+### Added
+- Google Docs comment tools with style guidelines for workspace MCP
+
+### Fixed
+- Sync full skill directories including scripts and references (#282)
+
+## [5.6.109] - 2026-02-04
+
+### Added
+- Headless mode with exec-based execution (#238)
+
+### Fixed
+- Include config/*.yaml in package data (#281)
+
 ## [5.6.108] - 2026-02-03
 
 ### Fixed

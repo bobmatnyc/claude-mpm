@@ -141,6 +141,45 @@ def add_skills_subparser(subparsers) -> argparse.ArgumentParser:
     )
     # No additional arguments needed - purely interactive
 
+    # Select command (interactive topic-grouped skill selector)
+    skills_subparsers.add_parser(
+        SkillsCommands.SELECT.value,
+        help="Interactive skill selection with topic grouping",
+    )
+
+    # Optimize command (intelligent skill recommendations)
+    optimize_parser = skills_subparsers.add_parser(
+        SkillsCommands.OPTIMIZE.value,
+        help="Intelligently recommend and deploy skills based on project analysis",
+    )
+    optimize_parser.add_argument(
+        "--repos",
+        nargs="+",
+        help="Additional skill repositories to consider (URLs)",
+    )
+    optimize_parser.add_argument(
+        "--auto-deploy",
+        action="store_true",
+        help="Automatically deploy recommended skills without confirmation",
+    )
+    optimize_parser.add_argument(
+        "--max-skills",
+        type=int,
+        default=10,
+        help="Maximum number of skills to recommend (default: 10)",
+    )
+    optimize_parser.add_argument(
+        "--priority",
+        choices=["critical", "high", "medium", "low", "all"],
+        default="high",
+        help="Minimum priority level to recommend (default: high)",
+    )
+    optimize_parser.add_argument(
+        "--use-mcp-skillset",
+        action="store_true",
+        help="Query mcp-skillset MCP server for enhanced RAG-powered skill recommendations",
+    )
+
     # GitHub deployment commands
     # Deploy from GitHub command
     deploy_github_parser = skills_subparsers.add_parser(

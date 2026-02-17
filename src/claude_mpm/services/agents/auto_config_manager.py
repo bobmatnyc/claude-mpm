@@ -51,7 +51,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
     7. Configuration persistence for future reference
 
     Safety Features:
-    - Minimum confidence threshold (default 0.8)
+    - Minimum confidence threshold (default 0.5)
     - Dry-run mode for preview without changes
     - Validation gates to block invalid configurations
     - Rollback capability for failed deployments
@@ -97,8 +97,8 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         self._agent_registry = agent_registry
         self._agent_deployment = agent_deployment
 
-        # Configuration settings
-        self._min_confidence_default = 0.8
+        # Configuration settings - use YAML-configured threshold (default 0.5)
+        self._min_confidence_default = 0.5
         self._max_rollback_attempts = 3
         self._deployment_timeout_seconds = 300  # 5 minutes
         self._config_file_name = "auto-config.yaml"
@@ -137,7 +137,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         project_path: Path,
         confirmation_required: bool = True,
         dry_run: bool = False,
-        min_confidence: float = 0.8,
+        min_confidence: float = 0.5,
         observer: Optional[IDeploymentObserver] = None,
     ) -> ConfigurationResult:
         """
@@ -501,7 +501,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         )
 
     def preview_configuration(
-        self, project_path: Path, min_confidence: float = 0.8
+        self, project_path: Path, min_confidence: float = 0.5
     ) -> ConfigurationPreview:
         """
         Preview what would be configured without applying changes.
@@ -572,6 +572,7 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
             preview = ConfigurationPreview(
                 recommendations=recommendations,
                 validation_result=validation_result,
+                detected_toolchain=toolchain,
                 estimated_deployment_time=estimated_time,
                 would_deploy=would_deploy,
                 would_skip=would_skip,

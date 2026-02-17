@@ -4,6 +4,7 @@
 	import ToolsView from '$lib/components/ToolsView.svelte';
 	import FilesView from '$lib/components/FilesView.svelte';
 	import AgentsView from '$lib/components/AgentsView.svelte';
+	import TokensView from '$lib/components/TokensView.svelte';
 	import AgentDetail from '$lib/components/AgentDetail.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
 	import FileViewer from '$lib/components/FileViewer.svelte';
@@ -16,7 +17,7 @@
 	import { createAgentsStore } from '$lib/stores/agents.svelte';
 	import { derived } from 'svelte/store';
 
-	type ViewMode = 'events' | 'tools' | 'files' | 'agents';
+	type ViewMode = 'events' | 'tools' | 'files' | 'agents' | 'tokens';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
@@ -118,7 +119,7 @@
 			selectedEvent = null;
 			selectedTool = null;
 			selectedAgent = null;
-		} else if (viewMode === 'agents') {
+		} else if (viewMode === 'agents' || viewMode === 'tokens') {
 			selectedEvent = null;
 			selectedTool = null;
 			selectedFile = null;
@@ -224,6 +225,15 @@
 					>
 						Agents
 					</button>
+					<!-- Temporarily hidden - token tracking data source investigation
+					<button
+						onclick={() => viewMode = 'tokens'}
+						class="tab"
+						class:active={viewMode === 'tokens'}
+					>
+						Tokens
+					</button>
+					-->
 				</div>
 			</div>
 
@@ -236,6 +246,14 @@
 				{:else if viewMode === 'agents'}
 					{#if rootAgent}
 						<AgentsView {rootAgent} bind:selectedAgent selectedStream={$selectedStream} />
+					{:else}
+						<div class="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+							<p>Loading agent data...</p>
+						</div>
+					{/if}
+				{:else if viewMode === 'tokens'}
+					{#if rootAgent}
+						<TokensView {rootAgent} bind:selectedAgent selectedStream={$selectedStream} />
 					{:else}
 						<div class="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
 							<p>Loading agent data...</p>

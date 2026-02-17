@@ -319,7 +319,7 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         "--mcp",
         type=str,
         metavar="SERVICES",
-        help="Comma-separated list of MCP services to enable for this session (e.g., --mcp kuzu-memory,mcp-ticketer,google-workspace-mcp). Use 'claude-mpm mcp list' to see available services.",
+        help="Comma-separated list of MCP services to enable for this session (e.g., --mcp kuzu-memory,mcp-ticketer,gworkspace-mcp). Use 'claude-mpm mcp list' to see available services.",
     )
 
     # Dependency checking options (for backward compatibility at top level)
@@ -525,6 +525,27 @@ def create_parser(
         from .oauth_parser import add_oauth_subparser
 
         add_oauth_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
+        from .setup_parser import add_setup_subparser
+
+        add_setup_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
+        from .slack_parser import add_slack_subparser
+
+        add_slack_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
+        from .tools_parser import add_tools_subparser
+
+        add_tools_subparser(subparsers)
     except ImportError:
         pass
 

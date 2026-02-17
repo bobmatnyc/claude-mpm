@@ -394,12 +394,13 @@ class UnifiedMonitorServer:
         ):
             return "tool_event"
 
-        # Session events - session lifecycle
+        # Session events - session lifecycle and usage tracking
         if event_name in (
             "session.started",
             "session.ended",
             "session_start",
             "session_end",
+            "token_usage_updated",
         ):
             return "session_event"
 
