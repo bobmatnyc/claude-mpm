@@ -106,9 +106,9 @@ The command provides safety features including:
     auto_parser.add_argument(
         "--min-confidence",
         type=float,
-        default=0.8,
+        default=0.5,
         metavar="FLOAT",
-        help="Minimum confidence threshold for recommendations (0.0-1.0, default: 0.8)",
+        help="Minimum confidence threshold for recommendations (0.0-1.0, default: 0.5)",
     )
 
     auto_parser.add_argument(
