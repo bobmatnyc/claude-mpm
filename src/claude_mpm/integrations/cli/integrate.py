@@ -1,4 +1,4 @@
-"""Integration CLI commands (ISS-0011, ISS-0013, ISS-0014).
+"""Integration CLI commands (ISS-0011, ISS-0013, ISS-0014, Phase 3).
 
 Provides CLI commands for managing API integrations:
 - list: Show available and installed integrations
@@ -8,10 +8,14 @@ Provides CLI commands for managing API integrations:
 - call: Execute an integration operation
 - validate: Validate integration manifest
 - regenerate: Regenerate MCP server for an integration
+- create: Interactive wizard for creating new integrations
+- rebuild-index: Regenerate catalog _index.yaml
+- batch: Run batch scripts against integrations
 """
 
 from __future__ import annotations
 
+import asyncio
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +27,8 @@ from rich.console import Console
 from rich.table import Table
 
 from ..catalog import CATALOG_DIR
+from ..core.batch import BatchRunner
+from ..core.index_generator import CatalogIndexGenerator
 from ..core.manifest import IntegrationManifest
 from ..core.mcp_generator import MCPServerGenerator
 
@@ -575,3 +581,156 @@ def regenerate_cmd(name: str) -> None:
     """
     manager = IntegrationManager()
     manager.regenerate(name)
+
+
+@manage_integrations.command("create")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output directory for new integration",
+)
+@click.option(
+    "--catalog",
+    "-c",
+    is_flag=True,
+    help="Create in catalog directory (for contributors)",
+)
+def create_cmd(output: str | None, catalog: bool) -> None:
+    """Create a new integration using the interactive wizard."""
+    from .wizard import IntegrationWizard
+
+    if catalog:
+        output_dir = CATALOG_DIR
+    elif output:
+        output_dir = Path(output)
+    else:
+        output_dir = Path.cwd()
+
+    wizard = IntegrationWizard(output_dir)
+    result = wizard.run()
+
+    if result:
+        console.print(f"\n[green]Integration created: {result}[/green]")
+
+        if catalog:
+            console.print("\n[dim]Don't forget to:[/dim]")
+            console.print("  1. Rebuild the index: mpm integrate rebuild-index")
+            console.print("  2. Run validation: mpm integrate validate-catalog")
+            console.print("  3. Submit a pull request")
+
+
+@manage_integrations.command("rebuild-index")
+@click.option(
+    "--catalog-dir",
+    "-d",
+    type=click.Path(exists=True),
+    default=None,
+    help="Custom catalog directory",
+)
+@click.option(
+    "--verify",
+    "-v",
+    is_flag=True,
+    help="Only verify index is up to date, don't write",
+)
+def rebuild_index_cmd(catalog_dir: str | None, verify: bool) -> None:
+    """Rebuild or verify the catalog _index.yaml file."""
+    target_dir = Path(catalog_dir) if catalog_dir else CATALOG_DIR
+    generator = CatalogIndexGenerator()
+
+    if verify:
+        is_valid, discrepancies = generator.verify_index(target_dir)
+        if is_valid:
+            console.print("[green]Index is up to date[/green]")
+        else:
+            console.print("[red]Index is out of date:[/red]")
+            for d in discrepancies:
+                console.print(f"  - {d}")
+            raise SystemExit(1)
+    else:
+        index_path = generator.write_index(target_dir)
+        console.print(f"[green]Index regenerated: {index_path}[/green]")
+
+        # Show what was indexed
+        integrations = generator.scan_catalog(target_dir)
+        console.print(f"  Indexed {len(integrations)} integrations")
+
+
+@manage_integrations.command("validate-catalog")
+@click.option(
+    "--catalog-dir",
+    "-d",
+    type=click.Path(exists=True),
+    default=None,
+    help="Custom catalog directory",
+)
+@click.option(
+    "--check-index",
+    "-i",
+    is_flag=True,
+    default=True,
+    help="Also validate _index.yaml",
+)
+def validate_catalog_cmd(catalog_dir: str | None, check_index: bool) -> None:
+    """Validate all integrations in the catalog (for CI)."""
+    from ..catalog.ci.validate import print_results, run_all_validations
+
+    target_dir = Path(catalog_dir) if catalog_dir else CATALOG_DIR
+
+    all_passed, results = run_all_validations(target_dir, check_index)
+    print_results(results)
+
+    if not all_passed:
+        raise SystemExit(1)
+
+
+@manage_integrations.command("batch")
+@click.argument("integration")
+@click.argument("script", type=click.Path(exists=True))
+def batch_cmd(integration: str, script: str) -> None:
+    """Run a batch script against an installed integration.
+
+    INTEGRATION is the name of the installed integration.
+    SCRIPT is the path to a Python batch script.
+
+    The script must define an async function: async def run(ctx: BatchContext)
+    """
+    manager = IntegrationManager()
+
+    # Find the integration
+    installed = manager.list_installed()
+    target = next((i for i in installed if i.name == integration), None)
+
+    if not target:
+        console.print(f"[red]Integration '{integration}' not installed[/red]")
+        raise SystemExit(1)
+
+    # Load manifest
+    manifest_path = target.path / "integration.yaml"
+    try:
+        manifest = IntegrationManifest.from_yaml(manifest_path)
+    except Exception as e:
+        console.print(f"[red]Failed to load manifest: {e}[/red]")
+        raise SystemExit(1) from None
+
+    # Run the batch script
+    runner = BatchRunner(manager.project_dir)
+    script_path = Path(script)
+
+    console.print(f"[dim]Running batch script: {script_path}[/dim]")
+    console.print(f"[dim]Against integration: {integration}[/dim]\n")
+
+    result = asyncio.run(runner.run_script(script_path, manifest, manifest_path))
+
+    if result.success:
+        console.print("[green]Batch completed successfully[/green]")
+        console.print(f"  Results: {len(result.results)}")
+
+        for r in result.results:
+            console.print(f"    - {r['operation']}: {r['data']}")
+    else:
+        console.print("[red]Batch failed with errors:[/red]")
+        for e in result.errors:
+            console.print(f"  - {e}")
