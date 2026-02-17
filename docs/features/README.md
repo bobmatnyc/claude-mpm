@@ -15,6 +15,9 @@ Automatic task delegation between agents.
 - **[Startup Migrations](startup-migrations.md)** - Startup migration handling
 - **[Tasklist Session Integration](tasklist-session-integration.md)** - Session integration with tasklists
 
+### Integrations
+- **[MPM Integrate](mpm-integrate.md)** - API integration management with MCP tool generation
+
 ---
 
 [Back to Documentation Index](../README.md)
