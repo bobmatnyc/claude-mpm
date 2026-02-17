@@ -1,4 +1,4 @@
-"""Integration CLI commands (ISS-0011, ISS-0013).
+"""Integration CLI commands (ISS-0011, ISS-0013, ISS-0014).
 
 Provides CLI commands for managing API integrations:
 - list: Show available and installed integrations
@@ -7,6 +7,7 @@ Provides CLI commands for managing API integrations:
 - status: Check integration health
 - call: Execute an integration operation
 - validate: Validate integration manifest
+- regenerate: Regenerate MCP server for an integration
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from rich.table import Table
 
 from ..catalog import CATALOG_DIR
 from ..core.manifest import IntegrationManifest
+from ..core.mcp_generator import MCPServerGenerator
 
 console = Console()
 
@@ -54,6 +56,7 @@ class IntegrationManager:
         self.catalog_dir = CATALOG_DIR
         self.project_integrations = self.project_dir / ".claude" / "integrations"
         self.user_integrations = Path.home() / ".claude-mpm" / "integrations"
+        self.mcp_generator = MCPServerGenerator()
 
     def list_available(self) -> list[dict[str, Any]]:
         """List all integrations available in the catalog.
@@ -173,7 +176,52 @@ class IntegrationManager:
         shutil.copytree(source_dir, target_dir)
 
         console.print(f"[green]Installed '{name}' to {scope} scope[/green]")
+
+        # Generate MCP server if configured
+        target_manifest_path = target_dir / "integration.yaml"
+        try:
+            manifest = IntegrationManifest.from_yaml(target_manifest_path)
+            if manifest.mcp.generate:
+                self._generate_mcp_server(manifest, target_manifest_path, scope)
+        except Exception as e:
+            console.print(
+                f"[yellow]Warning: Could not generate MCP server: {e}[/yellow]"
+            )
+
         return True
+
+    def _generate_mcp_server(
+        self,
+        manifest: IntegrationManifest,
+        manifest_path: Path,
+        scope: str,
+    ) -> None:
+        """Generate MCP server and register with .mcp.json.
+
+        Args:
+            manifest: Integration manifest.
+            manifest_path: Path to manifest file.
+            scope: Installation scope ('project' or 'user').
+        """
+        # Write server to integration directory
+        output_dir = manifest_path.parent
+        server_path = self.mcp_generator.write_server(
+            manifest, manifest_path, output_dir
+        )
+
+        # Determine .mcp.json location
+        if scope == "project":
+            mcp_json_path = self.project_dir / ".mcp.json"
+        else:
+            mcp_json_path = Path.home() / ".mcp.json"
+
+        # Register with .mcp.json
+        self.mcp_generator.register_with_mcp_json(
+            manifest.name, server_path, mcp_json_path
+        )
+
+        console.print(f"[green]Generated MCP server: {server_path}[/green]")
+        console.print(f"[green]Registered in: {mcp_json_path}[/green]")
 
     def remove(self, name: str, scope: str | None = None) -> bool:
         """Remove an installed integration.
@@ -191,17 +239,33 @@ class IntegrationManager:
 
         if scope == "project":
             target = project_path if project_path.exists() else None
+            actual_scope = "project"
         elif scope == "user":
             target = user_path if user_path.exists() else None
+            actual_scope = "user"
+        # Remove from project first, then user
+        elif project_path.exists():
+            target = project_path
+            actual_scope = "project"
+        elif user_path.exists():
+            target = user_path
+            actual_scope = "user"
         else:
-            # Remove from project first, then user
-            target = project_path if project_path.exists() else None
-            if not target:
-                target = user_path if user_path.exists() else None
+            target = None
+            actual_scope = "project"
 
         if not target:
             console.print(f"[red]Integration '{name}' not installed[/red]")
             return False
+
+        # Unregister from .mcp.json before removing files
+        if actual_scope == "project":
+            mcp_json_path = self.project_dir / ".mcp.json"
+        else:
+            mcp_json_path = Path.home() / ".mcp.json"
+
+        if self.mcp_generator.unregister_from_mcp_json(name, mcp_json_path):
+            console.print(f"[green]Unregistered from {mcp_json_path}[/green]")
 
         shutil.rmtree(target)
         console.print(f"[green]Removed '{name}'[/green]")
@@ -307,6 +371,54 @@ class IntegrationManager:
             return manifest.validate()
         except Exception as e:
             return [f"Failed to parse manifest: {e}"]
+
+    def regenerate(self, name: str) -> bool:
+        """Regenerate MCP server for an installed integration.
+
+        Useful when the integration manifest has been updated or
+        when the MCP server needs to be recreated.
+
+        Args:
+            name: Integration name.
+
+        Returns:
+            True if regeneration succeeded, False otherwise.
+        """
+        # Find installation
+        installed = self.list_installed()
+        integration = next((i for i in installed if i.name == name), None)
+
+        if not integration:
+            console.print(f"[red]Integration '{name}' not installed[/red]")
+            return False
+
+        # Load manifest
+        manifest_path = integration.path / "integration.yaml"
+        try:
+            manifest = IntegrationManifest.from_yaml(manifest_path)
+        except Exception as e:
+            console.print(f"[red]Failed to load manifest: {e}[/red]")
+            return False
+
+        # Check if MCP generation is enabled
+        if not manifest.mcp.generate:
+            console.print(
+                f"[yellow]MCP generation disabled for '{name}' (mcp.generate=false)[/yellow]"
+            )
+            return False
+
+        # Delete existing server if present
+        server_path = self.mcp_generator.get_server_path(
+            manifest.name, integration.path
+        )
+        if server_path.exists():
+            server_path.unlink()
+
+        # Generate new server
+        self._generate_mcp_server(manifest, manifest_path, integration.scope)
+
+        console.print(f"[green]Regenerated MCP server for '{name}'[/green]")
+        return True
 
 
 # CLI Commands
@@ -451,3 +563,15 @@ def validate_cmd(path: str) -> None:
             console.print(f"  - {error}")
     else:
         console.print("[green]Manifest is valid[/green]")
+
+
+@manage_integrations.command("regenerate")
+@click.argument("name")
+def regenerate_cmd(name: str) -> None:
+    """Regenerate MCP server for an installed integration.
+
+    Useful when the integration manifest has been updated or when
+    the MCP server needs to be recreated.
+    """
+    manager = IntegrationManager()
+    manager.regenerate(name)
