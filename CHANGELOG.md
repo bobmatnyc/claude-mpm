@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.9.1] - 2026-02-16
+
+### Documentation
+- docs(integrate): Add user documentation for /mpm-integrate
+- docs(agents): Add Minimalism Principle to BASE_AGENT.md
+
+### Added
+- feat(integrate): Add Fireflies.io integration to catalog
+
 ## [5.9.0] - 2026-02-16
 
 ### Added
