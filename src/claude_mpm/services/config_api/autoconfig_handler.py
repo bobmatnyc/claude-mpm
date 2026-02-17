@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 _toolchain_analyzer = None
 _auto_config_manager = None
 _backup_manager = None
+_skills_deployer = None
 
 # In-flight auto-configure jobs
 _active_jobs: Dict[str, asyncio.Task] = {}
@@ -93,6 +94,15 @@ def _get_backup_manager():
 
         _backup_manager = BackupManager()
     return _backup_manager
+
+
+def _get_skills_deployer():
+    global _skills_deployer
+    if _skills_deployer is None:
+        from claude_mpm.services.skills_deployer import SkillsDeployerService
+
+        _skills_deployer = SkillsDeployerService()
+    return _skills_deployer
 
 
 def _error_response(status: int, error: str, code: str) -> web.Response:
@@ -279,6 +289,27 @@ def register_autoconfig_routes(app, config_event_handler, config_file_watcher):
             preview = await asyncio.to_thread(_preview)
             data = _preview_to_dict(preview)
 
+            # Add skill recommendations based on detected agents
+            def _recommend_skills_for_preview():
+                from claude_mpm.cli.interactive.skills_wizard import (
+                    AGENT_SKILL_MAPPING,
+                )
+
+                recommended = set()
+                for rec in preview.recommendations or []:
+                    agent_skills = AGENT_SKILL_MAPPING.get(rec.agent_id, [])
+                    recommended.update(agent_skills)
+                return sorted(recommended)
+
+            try:
+                skill_recs = await asyncio.to_thread(_recommend_skills_for_preview)
+            except Exception as e:
+                logger.warning("Skill recommendation failed: %s", e)
+                skill_recs = []
+
+            data["skill_recommendations"] = skill_recs
+            data["would_deploy_skills"] = skill_recs
+
             return web.json_response({"success": True, "preview": data})
 
         except Exception as e:
@@ -392,7 +423,7 @@ async def _run_auto_configure(
 ) -> None:
     """Background task that runs the full auto-configure workflow."""
     start_time = time.time()
-    total_phases = 5
+    total_phases = 6
     backup_id: Optional[str] = None
 
     try:
@@ -429,6 +460,8 @@ async def _run_auto_configure(
                     "deployed_agents": [],
                     "failed_agents": [],
                     "deployed_skills": [],
+                    "skill_errors": [],
+                    "needs_restart": False,
                     "backup_id": None,
                     "duration_ms": int((time.time() - start_time) * 1000),
                     "message": "No agents recommended for deployment",
@@ -509,12 +542,50 @@ async def _run_auto_configure(
                 logger.warning("Auto-configure: failed to deploy '%s': %s", agent_id, e)
                 failed_agents.append(agent_id)
 
-        # Phase 5: Verifying
+        # Phase 5: Skill Deployment
+        await _emit_progress(
+            handler,
+            job_id,
+            "deploying_skills",
+            5,
+            total_phases,
+        )
+
+        deployed_skills = []
+        skill_errors = []
+
+        def _recommend_and_deploy_skills():
+            from claude_mpm.cli.interactive.skills_wizard import (
+                AGENT_SKILL_MAPPING,
+            )
+
+            recommended_skills = set()
+            for agent_id in would_deploy:
+                agent_skills = AGENT_SKILL_MAPPING.get(agent_id, [])
+                recommended_skills.update(agent_skills)
+
+            if not recommended_skills:
+                return {"deployed_skills": [], "errors": []}
+
+            svc = _get_skills_deployer()
+            return svc.deploy_skills(
+                skill_names=sorted(recommended_skills), force=False
+            )
+
+        try:
+            skills_result = await asyncio.to_thread(_recommend_and_deploy_skills)
+            deployed_skills = skills_result.get("deployed_skills", [])
+            skill_errors = skills_result.get("errors", [])
+        except Exception as e:
+            logger.warning("Auto-configure %s: skill deployment failed: %s", job_id, e)
+            skill_errors = [str(e)]
+
+        # Phase 6: Verifying
         await _emit_progress(
             handler,
             job_id,
             "verifying",
-            5,
+            6,
             total_phases,
             items_completed=len(deployed_agents),
             items_total=len(would_deploy),
@@ -546,7 +617,9 @@ async def _run_auto_configure(
                 "job_id": job_id,
                 "deployed_agents": deployed_agents,
                 "failed_agents": failed_agents,
-                "deployed_skills": [],
+                "deployed_skills": deployed_skills,
+                "skill_errors": skill_errors,
+                "needs_restart": bool(deployed_agents or deployed_skills),
                 "backup_id": backup_id,
                 "duration_ms": duration_ms,
                 "verification": verification,
@@ -554,10 +627,13 @@ async def _run_auto_configure(
         )
 
         logger.info(
-            "Auto-configure %s completed: %d deployed, %d failed (%dms)",
+            "Auto-configure %s completed: %d agents deployed, %d failed, "
+            "%d skills deployed, %d skill errors (%dms)",
             job_id,
             len(deployed_agents),
             len(failed_agents),
+            len(deployed_skills),
+            len(skill_errors),
             duration_ms,
         )
 
