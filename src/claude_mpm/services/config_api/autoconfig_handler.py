@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 
 from aiohttp import web
 
+from claude_mpm.core.config_scope import ConfigScope, resolve_agents_dir
 from claude_mpm.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -494,7 +495,7 @@ async def _run_auto_configure(
                     )
 
                     svc = AgentDeploymentService()
-                    agents_dir = Path.cwd() / ".claude" / "agents"
+                    agents_dir = resolve_agents_dir(ConfigScope.PROJECT, project_path)
                     agents_dir.mkdir(parents=True, exist_ok=True)
                     return svc.deploy_agent(name, agents_dir, force_rebuild=False)
 

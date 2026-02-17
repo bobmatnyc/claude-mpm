@@ -12,6 +12,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from claude_mpm.core.config_scope import (
+    ConfigScope,
+    resolve_agents_dir,
+    resolve_config_dir,
+    resolve_skills_dir,
+)
 from claude_mpm.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -85,9 +91,13 @@ class BackupManager:
             config_dir: MPM config directory. Defaults to ~/.claude-mpm/config.
         """
         self.backup_root = backup_root or self.BACKUP_ROOT
-        self.agents_dir = agents_dir or (Path.cwd() / ".claude" / "agents")
-        self.skills_dir = skills_dir or (Path.home() / ".claude" / "skills")
-        self.config_dir = config_dir or (Path.home() / ".claude-mpm" / "config")
+        self.agents_dir = agents_dir or resolve_agents_dir(
+            ConfigScope.PROJECT, Path.cwd()
+        )
+        self.skills_dir = skills_dir or resolve_skills_dir()
+        self.config_dir = config_dir or (
+            resolve_config_dir(ConfigScope.USER, Path.cwd()) / "config"
+        )
 
     def create_backup(
         self, operation: str, entity_type: str, entity_id: str

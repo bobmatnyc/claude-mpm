@@ -14,6 +14,7 @@ from typing import Any, Dict
 
 from aiohttp import web
 
+from claude_mpm.core.config_scope import ConfigScope, resolve_agents_dir
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.config_api.validation import (
     validate_path_containment,
@@ -136,7 +137,7 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
         if not valid:
             return _error_response(400, err_msg, "VALIDATION_ERROR")
 
-        agents_dir = Path.cwd() / ".claude" / "agents"
+        agents_dir = resolve_agents_dir(ConfigScope.PROJECT, Path.cwd())
         agent_path = agents_dir / f"{agent_name}.md"
 
         # Path containment check (defence in depth)
@@ -254,7 +255,7 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
                 "CORE_AGENT_PROTECTED",
             )
 
-        agents_dir = Path.cwd() / ".claude" / "agents"
+        agents_dir = resolve_agents_dir(ConfigScope.PROJECT, Path.cwd())
         agent_path = agents_dir / f"{agent_name}.md"
 
         # Path containment check (defence in depth)
@@ -368,7 +369,7 @@ def register_agent_deployment_routes(app, config_event_handler, config_file_watc
             try:
 
                 def _deploy_one(name=agent_name):
-                    agents_dir = Path.cwd() / ".claude" / "agents"
+                    agents_dir = resolve_agents_dir(ConfigScope.PROJECT, Path.cwd())
                     agents_dir.mkdir(parents=True, exist_ok=True)
 
                     backup_mgr = _get_backup_manager()

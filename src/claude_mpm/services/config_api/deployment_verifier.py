@@ -10,6 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from claude_mpm.core.config_scope import (
+    ConfigScope,
+    resolve_agents_dir,
+    resolve_skills_dir,
+)
 from claude_mpm.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -55,8 +60,10 @@ class DeploymentVerifier:
             agents_dir: Default agents directory. Overridable per-call.
             skills_dir: Default skills directory. Overridable per-call.
         """
-        self.default_agents_dir = agents_dir or (Path.cwd() / ".claude" / "agents")
-        self.default_skills_dir = skills_dir or (Path.home() / ".claude" / "skills")
+        self.default_agents_dir = agents_dir or resolve_agents_dir(
+            ConfigScope.PROJECT, Path.cwd()
+        )
+        self.default_skills_dir = skills_dir or resolve_skills_dir()
 
     def verify_agent_deployed(
         self, agent_name: str, agents_dir: Optional[Path] = None
