@@ -97,7 +97,9 @@ class PackageInstallerService:
     def _detect_installer(self) -> InstallerType:
         """Detect the best available installer.
 
-        Priority: pipx > uv > pip
+        Priority:
+        - In uv projects: uv > pipx > pip
+        - Otherwise: pipx > uv > pip
 
         Returns:
             The detected installer type.
@@ -105,14 +107,60 @@ class PackageInstallerService:
         if self._detected_installer is not None:
             return self._detected_installer
 
-        # Use existing detection utility
+        from pathlib import Path
+
         from ..services.diagnostics.checks.installation_check import InstallationCheck
 
+        # Check if we're in a uv project
+        in_uv_project = False
+
+        # Method 1: Check for uv.lock in current directory or parents
+        current_path = Path.cwd()
+        for path in [current_path] + list(current_path.parents):
+            if (path / "uv.lock").exists():
+                in_uv_project = True
+                break
+
+        # Method 2: Check if running in uv environment (sys.executable contains "uv")
+        if not in_uv_project and "uv" in sys.executable:
+            in_uv_project = True
+
+        # Method 3: Check if sys.path contains uv directories
+        if not in_uv_project and any("uv" in str(p) for p in sys.path):
+            in_uv_project = True
+
+        # Method 4: Check pyproject.toml for [tool.uv] section
+        if not in_uv_project:
+            pyproject = current_path / "pyproject.toml"
+            if pyproject.exists():
+                try:
+                    import tomllib
+
+                    with open(pyproject, "rb") as f:
+                        data = tomllib.load(f)
+                        # Check for [tool.uv] section
+                        if "tool" in data and "uv" in data["tool"]:
+                            in_uv_project = True
+                except Exception:
+                    # Ignore parsing errors, continue with detection
+                    pass
+
+        # Use existing detection utility for available methods
         checker = InstallationCheck()
         methods = checker._check_installation_method()
         detected_methods = methods.details.get("methods_detected", [])
 
-        if "pipx" in detected_methods:
+        # Adjust priority based on project type
+        if in_uv_project:
+            # In uv projects: prioritize uv
+            if "uv" in sys.executable or any("uv" in str(p) for p in sys.path):
+                self._detected_installer = InstallerType.UV
+            elif "pipx" in detected_methods:
+                self._detected_installer = InstallerType.PIPX
+            else:
+                self._detected_installer = InstallerType.PIP
+        # Outside uv projects: use traditional priority (pipx > uv > pip)
+        elif "pipx" in detected_methods:
             self._detected_installer = InstallerType.PIPX
         elif any("uv" in str(p) for p in sys.path) or "uv" in sys.executable:
             self._detected_installer = InstallerType.UV
