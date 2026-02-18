@@ -459,11 +459,11 @@ class AgentOutputFormatter(IAgentOutputFormatter):
             else:
                 # Standard output
                 lines.append(f"📄 {agent.get('file', 'Unknown')}")
-                if "name" in agent:
+                if "name" in agent and agent["name"] is not None:
                     lines.append(f"   Name: {agent['name']}")
-                if "description" in agent:
+                if "description" in agent and agent["description"] is not None:
                     lines.append(f"   Description: {agent['description']}")
-                if "version" in agent:
+                if "version" in agent and agent["version"] is not None:
                     lines.append(f"   Version: {agent['version']}")
 
                 # Verbose additions
