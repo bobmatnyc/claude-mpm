@@ -10,6 +10,11 @@
 
 ### Tests
 
+## [5.9.7] - 2026-02-18
+
+### Fixed
+- fix(agents): properly hide None-valued fields in agent list output formatting
+
 ## [5.9.6] - 2026-02-18
 
 ### Fixed

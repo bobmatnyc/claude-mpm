@@ -35,6 +35,69 @@ class AgentDiscoveryService:
         self.logger = get_logger(__name__)
         self.templates_dir = templates_dir
 
+    def discover_git_cached_agents(
+        self, cache_dir: Optional[Path] = None, log_discovery: bool = True
+    ) -> List[Dict[str, Any]]:
+        """Discover agents from git cache directory.
+
+        This method is shared by both list_available_agents() and deployment
+        to ensure consistent discovery across all operations.
+
+        Args:
+            cache_dir: Optional cache directory path (defaults to ~/.claude-mpm/cache/agents)
+            log_discovery: Whether to log discovery results
+
+        Returns:
+            List of agent dictionaries with metadata from git cache
+        """
+        agents = []
+
+        try:
+            from pathlib import Path
+
+            from ...agents.sources.git_source_sync_service import GitSourceSyncService
+
+            # Use provided cache_dir or default location
+            if cache_dir is None:
+                cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+
+            if cache_dir.exists():
+                # Initialize git service to access cache
+                git_service = GitSourceSyncService(cache_dir=cache_dir)
+
+                # Discover cached agent paths
+                git_agent_paths = git_service._discover_cached_agents()
+
+                # Resolve each agent path to actual cache file
+                for agent_path in git_agent_paths:
+                    cache_file = git_service._resolve_cache_path(agent_path)
+                    if cache_file and cache_file.exists():
+                        try:
+                            agent_info = self._extract_agent_metadata(cache_file)
+                            if agent_info:
+                                # Mark as git-sourced for tracking
+                                agent_info["source"] = "git-cache"
+                                agent_info["cache_path"] = str(agent_path)
+                                agents.append(agent_info)
+                        except Exception as e:
+                            if log_discovery:
+                                self.logger.debug(
+                                    f"Failed to parse git agent {agent_path}: {e}"
+                                )
+                            continue
+
+        except ImportError:
+            # Git source service not available, skip git discovery
+            if log_discovery:
+                self.logger.debug(
+                    "Git source service not available, skipping git cache discovery"
+                )
+        except Exception as e:
+            if log_discovery:
+                self.logger.debug(f"Failed to discover git source agents: {e}")
+
+        return agents
+
     def list_available_agents(self, log_discovery: bool = True) -> List[Dict[str, Any]]:
         """
         List all available agent templates with their metadata.
@@ -77,49 +140,9 @@ class AgentDiscoveryService:
                         self.logger.debug(f"Failed to parse {template_file.name}: {e}")
                     continue
 
-        # 2. Discover git source cached agents
-        try:
-            from pathlib import Path
-
-            from ...agents.sources.git_source_sync_service import GitSourceSyncService
-
-            # Get cache directory from default location
-            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
-
-            if cache_dir.exists():
-                # Initialize git service to access cache
-                git_service = GitSourceSyncService(cache_dir=cache_dir)
-
-                # Discover cached agent paths
-                git_agent_paths = git_service._discover_cached_agents()
-
-                # Resolve each agent path to actual cache file
-                for agent_path in git_agent_paths:
-                    cache_file = git_service._resolve_cache_path(agent_path)
-                    if cache_file and cache_file.exists():
-                        try:
-                            agent_info = self._extract_agent_metadata(cache_file)
-                            if agent_info:
-                                # Mark as git-sourced for tracking
-                                agent_info["source"] = "git-cache"
-                                agent_info["cache_path"] = str(agent_path)
-                                agents.append(agent_info)
-                        except Exception as e:
-                            if log_discovery:
-                                self.logger.debug(
-                                    f"Failed to parse git agent {agent_path}: {e}"
-                                )
-                            continue
-
-        except ImportError:
-            # Git source service not available, skip git discovery
-            if log_discovery:
-                self.logger.debug(
-                    "Git source service not available, skipping git cache discovery"
-                )
-        except Exception as e:
-            if log_discovery:
-                self.logger.debug(f"Failed to discover git source agents: {e}")
+        # 2. Discover git source cached agents using shared method
+        git_agents = self.discover_git_cached_agents(log_discovery=log_discovery)
+        agents.extend(git_agents)
 
         # Sort by agent name for consistent ordering
         agents.sort(key=lambda x: x.get("name", ""))
