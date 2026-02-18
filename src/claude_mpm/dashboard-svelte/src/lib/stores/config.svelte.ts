@@ -568,6 +568,21 @@ export interface AutoConfigPreview {
 	} | null;
 	toolchain?: ToolchainResult;
 	metadata: Record<string, any>;
+	// Skill deployment fields (Phase 2 backend, Phase 4 UI)
+	skill_recommendations: string[];
+	would_deploy_skills: string[];
+}
+
+export interface AutoConfigResult {
+	job_id: string;
+	deployed_agents: string[];
+	failed_agents: string[];
+	deployed_skills: string[];
+	skill_errors: string[];
+	backup_id: string | null;
+	duration_ms: number;
+	needs_restart: boolean;
+	verification: Record<string, { passed: boolean }>;
 }
 
 export interface ActiveSessionInfo {
@@ -721,20 +736,137 @@ export async function previewAutoConfig(project_path?: string, min_confidence?: 
 	return result.preview || result.data || result;
 }
 
-/** Apply auto-configuration. POST /api/config/auto-configure/apply */
-export async function applyAutoConfig(options: Record<string, any> = {}): Promise<any> {
+// --- Auto-configure event subscription ---
+
+export interface AutoConfigEvent {
+	operation: 'autoconfig_progress' | 'autoconfig_completed' | 'autoconfig_failed';
+	data: Record<string, any>;
+}
+
+type AutoConfigEventCallback = (event: AutoConfigEvent) => void;
+
+const _autoconfigListeners: AutoConfigEventCallback[] = [];
+
+/** Subscribe to autoconfig Socket.IO events (progress, completed, failed).
+ *  Returns an unsubscribe function. */
+export function onAutoConfigEvent(callback: AutoConfigEventCallback): () => void {
+	_autoconfigListeners.push(callback);
+	return () => {
+		const idx = _autoconfigListeners.indexOf(callback);
+		if (idx >= 0) _autoconfigListeners.splice(idx, 1);
+	};
+}
+
+function _notifyAutoConfigListeners(event: AutoConfigEvent): void {
+	for (const cb of _autoconfigListeners) {
+		try {
+			cb(event);
+		} catch (e) {
+			console.error('[AutoConfig] Listener error:', e);
+		}
+	}
+}
+
+/**
+ * Apply auto-configuration. POST /api/config/auto-configure/apply
+ *
+ * The backend returns HTTP 202 immediately and runs the actual deployment
+ * as a background job. Deployment results arrive via Socket.IO
+ * `autoconfig_completed` event. This function returns only the job_id.
+ *
+ * Use `waitForAutoConfigCompletion()` to await the final result.
+ */
+export async function applyAutoConfig(options: Record<string, any> = {}): Promise<{ job_id: string }> {
 	mutating.set(true);
 	try {
 		const result = await mutateJSON(`${API_BASE}/auto-configure/apply`, 'POST', options);
-		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents(), fetchDeployedSkills(), fetchAvailableSkills(), fetchProjectSummary()]);
-		toastStore.success(result.message || 'Auto-configuration applied');
-		return result;
+		// Backend returns 202 with { success, message, job_id, status }.
+		// Do NOT fire toast here -- the actual result arrives via Socket.IO.
+		return { job_id: result.job_id };
 	} catch (e: any) {
 		toastStore.error(e.message || 'Auto-configuration failed');
 		throw e;
 	} finally {
 		mutating.set(false);
 	}
+}
+
+/**
+ * Wait for auto-configure completion via Socket.IO events.
+ *
+ * Subscribes to autoconfig events and resolves when an `autoconfig_completed`
+ * event with matching job_id arrives. Rejects on `autoconfig_failed` or timeout.
+ *
+ * @param jobId - The job_id returned from applyAutoConfig()
+ * @param timeoutMs - Timeout in milliseconds (default 120000 = 2 minutes)
+ * @param onProgress - Optional callback for progress events
+ */
+export function waitForAutoConfigCompletion(
+	jobId: string,
+	timeoutMs: number = 120000,
+	onProgress?: (data: Record<string, any>) => void,
+): Promise<AutoConfigResult> {
+	return new Promise<AutoConfigResult>((resolve, reject) => {
+		let timer: ReturnType<typeof setTimeout> | null = null;
+
+		const unsubscribe = onAutoConfigEvent((event) => {
+			const eventJobId = event.data?.job_id;
+			if (eventJobId !== jobId) return;
+
+			if (event.operation === 'autoconfig_progress') {
+				onProgress?.(event.data);
+				return;
+			}
+
+			// Terminal event -- clean up
+			if (timer) clearTimeout(timer);
+			unsubscribe();
+
+			if (event.operation === 'autoconfig_completed') {
+				const result: AutoConfigResult = {
+					job_id: event.data.job_id,
+					deployed_agents: event.data.deployed_agents ?? [],
+					failed_agents: event.data.failed_agents ?? [],
+					deployed_skills: event.data.deployed_skills ?? [],
+					skill_errors: event.data.skill_errors ?? [],
+					backup_id: event.data.backup_id ?? null,
+					duration_ms: event.data.duration_ms ?? 0,
+					needs_restart: event.data.needs_restart ?? false,
+					verification: event.data.verification ?? {},
+				};
+
+				// Refresh stores now that deployment is done
+				Promise.all([
+					fetchDeployedAgents(),
+					fetchAvailableAgents(),
+					fetchDeployedSkills(),
+					fetchAvailableSkills(),
+					fetchProjectSummary(),
+				]).catch(() => {});
+
+				// Fire success toast
+				const agentCount = result.deployed_agents.length;
+				const skillCount = result.deployed_skills.length;
+				const parts: string[] = [];
+				if (agentCount) parts.push(`${agentCount} agent(s)`);
+				if (skillCount) parts.push(`${skillCount} skill(s)`);
+				toastStore.success(
+					parts.length
+						? `Auto-configure complete: deployed ${parts.join(', ')}`
+						: 'Auto-configuration applied'
+				);
+
+				resolve(result);
+			} else if (event.operation === 'autoconfig_failed') {
+				reject(new Error(event.data.error || 'Auto-configure failed'));
+			}
+		});
+
+		timer = setTimeout(() => {
+			unsubscribe();
+			reject(new Error('Auto-configure timed out after ' + Math.round(timeoutMs / 1000) + 's'));
+		}, timeoutMs);
+	});
 }
 
 /** Check for active Claude Code sessions. GET /api/config/active-sessions */
@@ -784,7 +916,10 @@ export function handleConfigEvent(event: ConfigEvent): void {
 		case 'autoconfig_progress':
 		case 'autoconfig_completed':
 		case 'autoconfig_failed':
-			// These are handled by component-level listeners
+			_notifyAutoConfigListeners({
+				operation: event.operation as AutoConfigEvent['operation'],
+				data: event.data,
+			});
 			break;
 
 		case 'external_change':

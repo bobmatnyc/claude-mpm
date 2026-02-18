@@ -3,8 +3,10 @@
 		detectToolchain,
 		previewAutoConfig,
 		applyAutoConfig,
+		waitForAutoConfigCompletion,
 		type ToolchainResult,
 		type AutoConfigPreview as AutoConfigPreviewType,
+		type AutoConfigResult,
 	} from '$lib/stores/config.svelte';
 	import { toastStore } from '$lib/stores/toast.svelte';
 	import Modal from '$lib/components/shared/Modal.svelte';
@@ -26,7 +28,7 @@
 	// Step 2 state
 	let applying = $state(false);
 	let applyError = $state<string | null>(null);
-	let applyResult = $state<any>(null);
+	let applyResult = $state<AutoConfigResult | null>(null);
 	let confirmTyped = $state('');
 	let pipelineStages = $state<PipelineStage[]>([]);
 
@@ -37,6 +39,28 @@
 		MEDIUM: 'warning',
 		LOW: 'danger',
 	};
+
+	// Maps backend phase names to pipeline stage indices for Socket.IO progress events
+	const phaseToStageMap: Record<string, number> = {
+		'detecting': 0,
+		'recommending': 1,
+		'validating': 2,
+		'deploying': 3,
+		'deploying_skills': 4,
+		'verifying': 5,
+	};
+
+	/** Update pipeline stages based on a backend phase name. */
+	function handleProgress(data: Record<string, any>) {
+		const phase = data.phase;
+		if (!phase) return;
+		const stageIndex = phaseToStageMap[phase];
+		if (stageIndex === undefined) return;
+		pipelineStages = pipelineStages.map((stage, i) => ({
+			...stage,
+			status: i < stageIndex ? 'success' : i === stageIndex ? 'active' : 'pending',
+		}));
+	}
 
 	async function analyzeProject() {
 		detecting = true;
@@ -56,26 +80,27 @@
 		applying = true;
 		applyError = null;
 		pipelineStages = [
+			{ name: 'Detect', status: 'success' },
+			{ name: 'Recommend', status: 'success' },
 			{ name: 'Backup', status: 'active' },
 			{ name: 'Agents', status: 'pending' },
 			{ name: 'Skills', status: 'pending' },
 			{ name: 'Verify', status: 'pending' },
 		];
 		try {
-			// Progress simulation (real progress would come from Socket.IO)
-			pipelineStages = [
-				{ name: 'Backup', status: 'success' },
-				{ name: 'Agents', status: 'active' },
-				{ name: 'Skills', status: 'pending' },
-				{ name: 'Verify', status: 'pending' },
-			];
-			const result = await applyAutoConfig();
-			pipelineStages = [
-				{ name: 'Backup', status: 'success' },
-				{ name: 'Agents', status: 'success' },
-				{ name: 'Skills', status: 'success' },
-				{ name: 'Verify', status: 'success' },
-			];
+			// Step 1: Send the apply request (returns 202 immediately with job_id)
+			const { job_id } = await applyAutoConfig();
+
+			// Step 2: Wait for the actual completion via Socket.IO events.
+			// Progress events update the pipeline stages in real-time.
+			const result = await waitForAutoConfigCompletion(
+				job_id,
+				120000,
+				handleProgress,
+			);
+
+			// All stages succeeded
+			pipelineStages = pipelineStages.map(s => ({ ...s, status: 'success' as const }));
 			applyResult = result;
 		} catch (e: any) {
 			applyError = e.message || 'Auto-configuration failed';
@@ -193,6 +218,25 @@
 						{/if}
 					</div>
 
+					{#if previewData?.skill_recommendations?.length}
+						<div class="mt-4">
+							<h4 class="text-sm font-semibold text-slate-300 mb-2">
+								Recommended Skills ({previewData.skill_recommendations.length})
+							</h4>
+							<div class="space-y-1">
+								{#each previewData.skill_recommendations as skill}
+									<div class="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded text-xs text-slate-400">
+										<span class="text-blue-400">+</span>
+										<span>{skill}</span>
+									</div>
+								{/each}
+							</div>
+							<p class="text-xs text-slate-500 mt-1">
+								Target: .claude/skills/ (project-scoped)
+							</p>
+						</div>
+					{/if}
+
 					{#if previewData.validation}
 						<div class="mb-3 flex items-center gap-2 text-xs text-slate-500">
 							<span>Validation:</span>
@@ -221,6 +265,26 @@
 							<span class="block text-xs text-slate-400 mt-1">Backup ID: {applyResult.backup_id}</span>
 						{/if}
 					</div>
+
+					{#if applyResult?.needs_restart}
+						<div class="mt-4 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-left">
+							<div class="flex items-center gap-2 mb-1">
+								<span class="text-amber-300 font-semibold text-sm">Restart Required</span>
+							</div>
+							<p class="text-xs text-slate-400">
+								Please restart Claude Code to apply the new agents and skills.
+								Quit Claude Code completely and relaunch.
+							</p>
+							<div class="mt-2 space-y-1 text-xs text-slate-400">
+								{#if applyResult.deployed_agents?.length}
+									<div>Deployed {applyResult.deployed_agents.length} agent(s) to .claude/agents/</div>
+								{/if}
+								{#if applyResult.deployed_skills?.length}
+									<div>Deployed {applyResult.deployed_skills.length} skill(s) to .claude/skills/</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
 				</div>
 			{:else}
 				<!-- Diff view -->
@@ -250,8 +314,26 @@
 								</div>
 							</div>
 						{/if}
-						{#if previewData.would_deploy.length === 0 && previewData.would_skip.length === 0}
-							<p class="text-sm text-slate-500 py-4 text-center">No agents matched the current configuration criteria.</p>
+						{#if previewData?.would_deploy_skills?.length}
+							<div class="mt-4">
+								<h4 class="text-sm font-semibold text-slate-300 mb-2">
+									Skills to Deploy ({previewData.would_deploy_skills.length})
+								</h4>
+								<div class="space-y-1">
+									{#each previewData.would_deploy_skills as skill}
+										<div class="flex items-center gap-2 px-2 py-1 bg-slate-800/50 rounded text-xs text-slate-400">
+											<span class="text-green-400">+</span>
+											<span>{skill}</span>
+										</div>
+									{/each}
+								</div>
+								<p class="text-xs text-slate-500 mt-1">
+									Target: .claude/skills/ (project-scoped)
+								</p>
+							</div>
+						{/if}
+						{#if previewData.would_deploy.length === 0 && previewData.would_skip.length === 0 && !previewData?.would_deploy_skills?.length}
+							<p class="text-sm text-slate-500 py-4 text-center">No recommendations matched the current configuration criteria.</p>
 						{/if}
 					</div>
 
