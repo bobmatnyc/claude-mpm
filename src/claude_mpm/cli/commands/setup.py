@@ -1267,7 +1267,11 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             return CommandResult.error_result(f"Error during setup: {e}")
 
     def _setup_mcp_vector_search(self, args) -> CommandResult:
-        """Set up mcp-vector-search semantic code search."""
+        """Set up mcp-vector-search semantic code search.
+
+        Delegates to the native mcp-vector-search setup command for indexing
+        and configuration, following the pattern used by mcp-ticketer.
+        """
         try:
             console.print(
                 "\n[bold]MCP Vector Search Setup[/bold]\n"
@@ -1289,8 +1293,8 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
             force = getattr(args, "force", False)
             upgrade = getattr(args, "upgrade", False)
 
-            # Check if already installed and no flags set
-            if installer.is_installed(spec) and not force and not upgrade:
+            # Check if binary exists (skip module import check for tool packages)
+            if shutil.which("mcp-vector-search") and not force and not upgrade:
                 console.print("[green]✓ mcp-vector-search already installed[/green]")
             else:
                 console.print("[cyan]Detecting installation method...[/cyan]")
@@ -1302,73 +1306,44 @@ These static memory files were migrated to kuzu-memory on {datetime.now(timezone
                 else:
                     return CommandResult.error_result(message)
 
-            # Use MCPExternalServicesSetup to configure .mcp.json
+            # Delegate to native mcp-vector-search setup command
+            # This handles indexing and MCP configuration
             console.print(
-                "\n[cyan]Configuring mcp-vector-search in .mcp.json...[/cyan]"
+                "\n[cyan]Running mcp-vector-search setup (indexing + configuration)...[/cyan]"
             )
 
-            from .mcp_setup_external import MCPExternalServicesSetup
+            setup_args = ["mcp-vector-search", "setup"]
+            if force:
+                setup_args.append("--force")
 
-            handler = MCPExternalServicesSetup(console)
+            result = subprocess.run(
+                setup_args,
+                capture_output=True,
+                text=True,
+                check=False,
+            )  # nosec B603 B607
 
-            # Load or create .mcp.json
+            if result.returncode != 0:
+                console.print("[red]✗ mcp-vector-search setup failed:[/red]")
+                if result.stderr:
+                    console.print(result.stderr)
+                return CommandResult.error_result("mcp-vector-search setup failed")
 
-            mcp_config_path = Path.cwd() / ".mcp.json"
-            config = handler._load_config(mcp_config_path)
+            console.print("\n[green]✓ MCP Vector Search setup complete![/green]")
+            console.print(
+                "\n[dim]What changed:[/dim]\n"
+                "  1. mcp-vector-search installed (or re-used if already installed)\n"
+                "  2. Codebase indexed for semantic search\n"
+                "  3. MCP configuration updated in .mcp.json\n"
+                "  4. MCP server available in Claude Code\n"
+            )
+            console.print(
+                "\n[dim]Next steps:[/dim]\n"
+                "  1. Restart Claude Code to load the MCP server\n"
+                "  2. Use semantic search tools for better context retrieval\n"
+            )
 
-            if config is None:
-                return CommandResult.error_result("Failed to load configuration")
-
-            # Ensure mcpServers section exists
-            if "mcpServers" not in config:
-                config["mcpServers"] = {}
-
-            # Get configuration for mcp-vector-search
-            project_path = Path.cwd()
-            services = handler.get_project_services(project_path)
-            service_info = services.get("mcp-vector-search")
-
-            if not service_info:
-                return CommandResult.error_result(
-                    "mcp-vector-search service not found in registry"
-                )
-
-            # Check if already configured correctly (skip prompt if so)
-            service_key = str(SetupService.MCP_VECTOR_SEARCH)
-            if service_key in config.get("mcpServers", {}) and not force:
-                console.print(
-                    f"[dim]{service_key} already configured in .mcp.json[/dim]"
-                )
-                success = True
-            else:
-                # Setup the service (pass force=True to skip interactive prompt)
-                success = handler._setup_service(
-                    config, "mcp-vector-search", service_info, force=True
-                )
-
-            if success:
-                # Save configuration
-                if handler._save_config(config, mcp_config_path):
-                    console.print(
-                        "\n[green]✓ MCP Vector Search setup complete![/green]"
-                    )
-                    console.print(
-                        "\n[dim]What changed:[/dim]\n"
-                        "  1. mcp-vector-search installed (or re-used if already installed)\n"
-                        "  2. Configuration added to .mcp.json\n"
-                        "  3. MCP server will be available in Claude Code\n"
-                    )
-                    console.print(
-                        "\n[dim]Next steps:[/dim]\n"
-                        "  1. Start Claude Code to use semantic code search\n"
-                        "  2. Your code will be indexed for vector search\n"
-                        "  3. Use search tools for better context retrieval\n"
-                    )
-                    return CommandResult.success_result(
-                        "MCP Vector Search setup completed"
-                    )
-                return CommandResult.error_result("Failed to save configuration")
-            return CommandResult.error_result("Failed to configure mcp-vector-search")
+            return CommandResult.success_result("MCP Vector Search setup completed")
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Setup cancelled by user[/yellow]")
