@@ -421,11 +421,13 @@ class AgentOutputFormatter(IAgentOutputFormatter):
 
         # Rows
         for row in rows:
-            row_line = " | ".join(
-                str(cell).ljust(col_widths[i]) if i < len(row) else " " * col_widths[i]
-                for i in range(len(headers))
-                for cell in [row[i] if i < len(row) else ""]
-            )
+            cells = []
+            for i in range(len(headers)):
+                if i < len(row):
+                    cells.append(str(row[i]).ljust(col_widths[i]))
+                else:
+                    cells.append(" " * col_widths[i])
+            row_line = " | ".join(cells)
             lines.append(row_line)
 
         return "\n".join(lines)

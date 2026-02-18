@@ -281,6 +281,25 @@ class AgentDiscoveryService:
             Dictionary with agent metadata or None if extraction fails
         """
         try:
+            # Validate path is within allowed directories
+            resolved_path = template_file.resolve()
+
+            # Check if path is within templates_dir or git cache
+            allowed_roots = [
+                self.templates_dir.resolve(),
+                Path.home() / ".claude-mpm" / "cache" / "agents",
+            ]
+
+            if not any(
+                resolved_path.is_relative_to(root)
+                for root in allowed_roots
+                if root.exists()
+            ):
+                self.logger.warning(
+                    f"Rejecting agent file outside allowed directories: {resolved_path}"
+                )
+                return None
+
             # Read template file content
             template_content = template_file.read_text()
 
