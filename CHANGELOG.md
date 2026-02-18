@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.9.4] - 2026-02-18
+
+### Added
+- feat(agents): add --filter option to agents list command
+  - Case-insensitive substring matching for agent names, types, categories, and tags
+  - Example: `claude-mpm agents list --filter aws`
+
 ## [5.9.3] - 2026-02-17
 
 ### Changed
