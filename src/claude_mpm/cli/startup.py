@@ -329,7 +329,8 @@ def should_skip_background_services(args, processed_argv):
     Determine if background services should be skipped for this command.
 
     WHY: Some commands (help, version, configure, doctor, oauth, setup, slack) don't need
-    background services and should start faster.
+    background services and should start faster. Read-only commands like `agents list`
+    and `skills list` should also skip startup for fast response.
 
     IMPORTANT: Setup commands (setup, slack, oauth) MUST run before Claude Code launches.
     These commands configure services and dependencies needed by Claude Code itself.
@@ -358,10 +359,14 @@ def should_skip_background_services(args, processed_argv):
         return True
 
     skip_commands = ["--version", "-v", "--help", "-h"]
-    return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands) or (
-        hasattr(args, "command")
-        and args.command
-        in [
+
+    # Check for fast read-only commands that should skip startup
+    # These commands only read cached data and don't need Claude Code
+    if hasattr(args, "command"):
+        command = args.command
+
+        # Skip background services for main commands that don't need Claude Code
+        if command in [
             "info",
             "doctor",
             "config",
@@ -373,8 +378,22 @@ def should_skip_background_services(args, processed_argv):
             "setup",
             "slack",
             "tools",
-        ]
-    )
+        ]:
+            return True
+
+        # Skip background services for read-only subcommands
+        # These only read from cached data in ~/.claude-mpm/cache/
+        # Format: each command has its own {command}_command attribute (e.g., agents_command, skills_command)
+        if command == "agents":
+            agents_cmd = getattr(args, "agents_command", None)
+            if agents_cmd == "list":
+                return True
+        elif command == "skills":
+            skills_cmd = getattr(args, "skills_command", None)
+            if skills_cmd == "list":
+                return True
+
+    return any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_commands)
 
 
 def setup_configure_command_environment(args):
