@@ -564,6 +564,7 @@ def should_show_banner(args) -> bool:
     Determine if startup banner should be displayed.
 
     Skip banner for: --help, --version, info, doctor, config, configure, oauth, setup, slack commands
+    Also skip for fast read-only commands like `agents list` and `skills list`
     """
     # Check for help/version flags
     if hasattr(args, "help") and args.help:
@@ -585,5 +586,22 @@ def should_show_banner(args) -> bool:
     }
     if hasattr(args, "command") and args.command in skip_commands:
         return False
+
+    # Skip banner for fast read-only subcommands
+    # These only read cached data and should display output immediately
+    if hasattr(args, "command"):
+        command = args.command
+
+        # Skip for agents list
+        if command == "agents":
+            agents_cmd = getattr(args, "agents_command", None)
+            if agents_cmd == "list":
+                return False
+
+        # Skip for skills list
+        if command == "skills":
+            skills_cmd = getattr(args, "skills_command", None)
+            if skills_cmd == "list":
+                return False
 
     return True

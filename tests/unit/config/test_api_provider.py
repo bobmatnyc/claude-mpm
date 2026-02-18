@@ -66,14 +66,14 @@ class TestAPIProviderConfig:
     def test_default_values(self):
         """Test default values."""
         config = APIProviderConfig()
-        assert config.backend == APIBackend.BEDROCK
+        assert config.backend == APIBackend.ANTHROPIC
         assert isinstance(config.bedrock, BedrockConfig)
         assert isinstance(config.anthropic, AnthropicConfig)
 
     def test_load_nonexistent_file(self):
         """Test loading from nonexistent file uses defaults."""
         config = APIProviderConfig.load(Path("/nonexistent/path/config.yaml"))
-        assert config.backend == APIBackend.BEDROCK
+        assert config.backend == APIBackend.ANTHROPIC
 
     def test_load_empty_file(self):
         """Test loading from empty file uses defaults."""
@@ -81,7 +81,7 @@ class TestAPIProviderConfig:
             f.write("")
             f.flush()
             config = APIProviderConfig.load(Path(f.name))
-            assert config.backend == APIBackend.BEDROCK
+            assert config.backend == APIBackend.ANTHROPIC
             os.unlink(f.name)
 
     def test_load_with_api_provider_section(self):
@@ -113,7 +113,7 @@ class TestAPIProviderConfig:
             f.flush()
             config = APIProviderConfig.load(Path(f.name))
             # Should use default (bedrock) on invalid value
-            assert config.backend == APIBackend.BEDROCK
+            assert config.backend == APIBackend.ANTHROPIC
             os.unlink(f.name)
 
     def test_apply_environment_bedrock(self):

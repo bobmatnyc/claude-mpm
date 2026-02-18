@@ -10,6 +10,26 @@
 
 ### Tests
 
+## [5.9.5] - 2026-02-18
+
+### Performance
+- perf(agents): make 'agents list' and 'skills list' fast read-only commands
+  - Skip Claude Code startup, syncing, hooks, and banner for list commands
+  - Reduced execution time from several seconds to ~0.9 seconds
+  - Commits: 43c5c957a, a23b95d0a
+
+## [5.9.4] - 2026-02-18
+
+### Added
+- feat(agents): add --filter option to agents list command
+  - Case-insensitive substring matching for agent names, types, categories, and tags
+  - Example: `claude-mpm agents list --filter aws`
+
+## [5.9.3] - 2026-02-17
+
+### Changed
+- Patch release for PyPI publication
+
 ## [5.9.2] - 2026-02-17
 
 ### Added

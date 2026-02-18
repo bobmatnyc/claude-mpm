@@ -69,6 +69,11 @@ Available commands:
         action="store_true",
         help="List agents grouped by precedence tier (PROJECT > USER > SYSTEM)",
     )
+    list_agents_parser.add_argument(
+        "--filter",
+        type=str,
+        help="Filter agents by name, type, category, or tags (case-insensitive substring match)",
+    )
 
     # View agent details
     view_agent_parser = agents_subparsers.add_parser(
