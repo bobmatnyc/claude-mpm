@@ -12,27 +12,56 @@
 
 ## [5.9.9] - 2026-02-18
 
+### Security
+- **Path Validation in Agent Discovery** - Added allowlist-based path validation to prevent path traversal attacks
+  - Validates agent paths are within templates_dir or git cache directories
+  - Prevents `../` exploits and unauthorized file access
+  - Added comprehensive security tests for path traversal prevention
+  - Commit: fa68b95c7
+
 ### Fixed
 - fix(installer): respect uv projects in PackageInstallerService
   - Fixes critical bug where PackageInstallerService was using pipx in uv projects
   - Now respects project's package manager (uv vs pipx) for kuzu-memory setup
+  - Documentation: `PACKAGE_INSTALLER_UV_FIX.md`
   - Commit: f77e7c2e3
+- fix(agents): table formatting bug in agent_output_formatter.py
+  - Fixed double iteration in list comprehension causing incorrect output
+  - Added 5 comprehensive tests for edge cases
+  - Commit: fa68b95c7
+- fix(agents): broken pytest fixtures in test_agent_discovery_service.py
+  - Fixed tmp_path usage and fixture structure
+  - Changed yield to return for proper fixture behavior
+  - All tests now pass correctly
+  - Commit: fa68b95c7
 
 ## [5.9.8] - 2026-02-18
 
 ### Fixed
 - fix(setup): delegate mcp-vector-search setup to native command
   - Fixes inconsistent installation detection in `claude-mpm setup mcp-vector-search`
+  - Changed from module import check to binary existence check (shutil.which)
   - Now correctly delegates to `mcp-vector-search setup` command
+  - Follows same pattern as mcp-ticketer setup
+  - Fixes bug where isolated pipx/uv installs failed module import check
+  - Commit: 4765fa84a
 
 ## [5.9.7] - 2026-02-18
 
 ### Fixed
 - fix(agents): properly hide None-valued fields in agent list output formatting
+  - Resolved display issue where None values appeared in agent list output
+  - Commit: c3ddb9651
 
 ## [5.9.6] - 2026-02-18
 
 ### Fixed
+- **Agent Discovery Unification** - Unified agent discovery for list and deployment operations
+  - Extracted git cache discovery into shared method `discover_git_cached_agents()`
+  - Both `list_available_agents()` and `MultiSourceAgentDeploymentService` now use shared method
+  - Fixes bug where agents visible in `list --system` weren't found during deployment
+  - Ensures consistent discovery across all operations (aws-ops agent now deploys correctly)
+  - Commit: 251f21343
 - fix(agents): normalize git-nested cache paths for discovery and deployment
   - Resolves agent sync bug with git-nested cache paths
   - Commit: f69fab7cb
