@@ -119,6 +119,42 @@ class AgentsCommand(AgentCommand):
         fmt = str(format_str).lower()
         return fmt in (OutputFormat.JSON, OutputFormat.YAML)
 
+    def _filter_agents(self, agents, filter_term: str):
+        """
+        Filter agents by name, type, category, or tags (case-insensitive).
+
+        Args:
+            agents: List of AgentInfo objects
+            filter_term: Filter string to match
+
+        Returns:
+            Filtered list of agents
+        """
+        if not filter_term:
+            return agents
+
+        filter_lower = filter_term.lower()
+        filtered = []
+
+        for agent in agents:
+            # Check name
+            if filter_lower in agent.name.lower():
+                filtered.append(agent)
+                continue
+
+            # Check type
+            if filter_lower in agent.type.lower():
+                filtered.append(agent)
+                continue
+
+            # Check specializations (tags/category)
+            if agent.specializations:
+                if any(filter_lower in spec.lower() for spec in agent.specializations):
+                    filtered.append(agent)
+                    continue
+
+        return filtered
+
     def validate_args(self, args) -> str:
         """Validate command arguments."""
         # Most agent commands are optional, so basic validation
@@ -269,6 +305,11 @@ class AgentsCommand(AgentCommand):
             verbose = getattr(args, "verbose", False)
             agents = self.listing_service.list_system_agents(verbose=verbose)
 
+            # Apply filter if provided
+            filter_term = getattr(args, "filter", None)
+            if filter_term:
+                agents = self._filter_agents(agents, filter_term)
+
             output_format = self._get_output_format(args)
             quiet = getattr(args, "quiet", False)
 
@@ -307,6 +348,11 @@ class AgentsCommand(AgentCommand):
             agents, warnings = self.listing_service.list_deployed_agents(
                 verbose=verbose
             )
+
+            # Apply filter if provided
+            filter_term = getattr(args, "filter", None)
+            if filter_term:
+                agents = self._filter_agents(agents, filter_term)
 
             output_format = self._get_output_format(args)
             quiet = getattr(args, "quiet", False)
