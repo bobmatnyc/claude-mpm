@@ -10,6 +10,27 @@
 
 ### Tests
 
+## [5.9.10] - 2026-02-18
+
+### Security
+- **Path Validation Enhancement** - Strengthened path validation in path_tracker
+  - Additional allowlist-based validation for agent paths
+  - Enhanced security tests coverage
+
+### Fixed
+- fix(cli): table formatting bug in agent_output_formatter.py
+  - Fixed double iteration in list comprehension causing incorrect output
+  - Added comprehensive tests for edge cases
+- fix(agents): pytest fixture issues in test_agent_discovery_service.py
+  - Fixed tmp_path usage and fixture structure
+  - Changed yield to return for proper fixture behavior
+  - Resolved global state issues in tests
+
+### Documentation
+- Added comprehensive security documentation
+- Enhanced CHANGELOG with security section
+- Updated testing documentation
+
 ## [5.9.9] - 2026-02-18
 
 ### Security
