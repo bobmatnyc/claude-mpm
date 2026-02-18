@@ -39,6 +39,10 @@ class AgentDiscoveryService:
         """
         List all available agent templates with their metadata.
 
+        Discovers from:
+        1. Local templates directory (*.md files)
+        2. Git source cache (if available)
+
         Args:
             log_discovery: Whether to log discovery results (default: True).
                           Set to False when called from multi-source discovery to avoid duplicate logs.
@@ -51,38 +55,83 @@ class AgentDiscoveryService:
             - tools: List of tools the agent uses
             - specializations: Agent specializations
             - file_path: Path to template file
+            - source: 'local' or 'git-cache' (for tracking)
+            - cache_path: Original cache path (for git-sourced agents)
         """
         agents = []
 
-        if not self.templates_dir.exists():
-            self.logger.warning(
-                f"Templates directory does not exist: {self.templates_dir}"
-            )
-            return agents
+        # 1. Discover local template files
+        if self.templates_dir.exists():
+            template_files = list(self.templates_dir.glob("*.md"))
 
-        # Find all markdown template files with YAML frontmatter
-        template_files = list(self.templates_dir.glob("*.md"))
+            for template_file in template_files:
+                try:
+                    agent_info = self._extract_agent_metadata(template_file)
+                    if agent_info:
+                        # Mark as local source
+                        agent_info["source"] = "local"
+                        agents.append(agent_info)
 
-        for template_file in template_files:
-            try:
-                agent_info = self._extract_agent_metadata(template_file)
-                if agent_info:
-                    agents.append(agent_info)
+                except Exception as e:
+                    if log_discovery:
+                        self.logger.debug(f"Failed to parse {template_file.name}: {e}")
+                    continue
 
-            except Exception as e:
-                self.logger.error(
-                    f"Failed to process template {template_file.name}: {e}"
+        # 2. Discover git source cached agents
+        try:
+            from pathlib import Path
+
+            from ...agents.sources.git_source_sync_service import GitSourceSyncService
+
+            # Get cache directory from default location
+            cache_dir = Path.home() / ".claude-mpm" / "cache" / "agents"
+
+            if cache_dir.exists():
+                # Initialize git service to access cache
+                git_service = GitSourceSyncService(cache_dir=cache_dir)
+
+                # Discover cached agent paths
+                git_agent_paths = git_service._discover_cached_agents()
+
+                # Resolve each agent path to actual cache file
+                for agent_path in git_agent_paths:
+                    cache_file = git_service._resolve_cache_path(agent_path)
+                    if cache_file and cache_file.exists():
+                        try:
+                            agent_info = self._extract_agent_metadata(cache_file)
+                            if agent_info:
+                                # Mark as git-sourced for tracking
+                                agent_info["source"] = "git-cache"
+                                agent_info["cache_path"] = str(agent_path)
+                                agents.append(agent_info)
+                        except Exception as e:
+                            if log_discovery:
+                                self.logger.debug(
+                                    f"Failed to parse git agent {agent_path}: {e}"
+                                )
+                            continue
+
+        except ImportError:
+            # Git source service not available, skip git discovery
+            if log_discovery:
+                self.logger.debug(
+                    "Git source service not available, skipping git cache discovery"
                 )
-                continue
+        except Exception as e:
+            if log_discovery:
+                self.logger.debug(f"Failed to discover git source agents: {e}")
 
         # Sort by agent name for consistent ordering
         agents.sort(key=lambda x: x.get("name", ""))
 
         # Only log if requested (to avoid duplicate logging from multi-source discovery)
-        if log_discovery:
+        if log_discovery and len(agents) > 0:
+            local_count = sum(1 for a in agents if a.get("source") == "local")
+            git_count = sum(1 for a in agents if a.get("source") == "git-cache")
             self.logger.info(
-                f"Discovered {len(agents)} available agent templates from {self.templates_dir.name}"
+                f"Discovered {len(agents)} agents: {local_count} local, {git_count} git-cached"
             )
+
         return agents
 
     def get_filtered_templates(
