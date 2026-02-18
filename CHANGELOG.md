@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.9] - 2026-02-18
+
+### Fixed
+- fix(installer): respect uv projects in PackageInstallerService
+  - Fixes critical bug where PackageInstallerService was using pipx in uv projects
+  - Now respects project's package manager (uv vs pipx) for kuzu-memory setup
+  - Commit: f77e7c2e3
+
 ## [5.9.8] - 2026-02-18
 
 ### Fixed
