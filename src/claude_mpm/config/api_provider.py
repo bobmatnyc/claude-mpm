@@ -59,7 +59,7 @@ class APIProviderConfig:
         anthropic: Anthropic-specific configuration
     """
 
-    backend: APIBackend = APIBackend.BEDROCK
+    backend: APIBackend = APIBackend.ANTHROPIC
     bedrock: BedrockConfig = field(default_factory=BedrockConfig)
     anthropic: AnthropicConfig = field(default_factory=AnthropicConfig)
 
@@ -93,7 +93,7 @@ class APIProviderConfig:
                 return config
 
             # Parse backend
-            backend_str = api_provider.get("backend", "bedrock")
+            backend_str = api_provider.get("backend", "anthropic")
             try:
                 config.backend = APIBackend(backend_str.lower())
             except ValueError:
