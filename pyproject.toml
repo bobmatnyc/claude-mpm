@@ -198,6 +198,7 @@ ignore = [
     "DTZ006", # datetime timezone
     "DTZ007", # datetime timezone
     "C401",   # unnecessary list comprehension
+    "PLW0108", # lambda may be unnecessary
 ]
 
 # Allow autofix for all rules
