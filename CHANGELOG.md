@@ -10,6 +10,17 @@
 
 ### Tests
 
+## [5.9.6] - 2026-02-18
+
+### Fixed
+- fix(agents): normalize git-nested cache paths for discovery and deployment
+  - Resolves agent sync bug with git-nested cache paths
+  - Commit: f69fab7cb
+- fix(agents): integrate git cache discovery into system agent listing
+  - agents list --system now shows git-cached agents including aws-ops
+  - Discovery finds 47+ agents from git cache
+  - Commit: 6829c35fc
+
 ## [5.9.5] - 2026-02-18
 
 ### Performance
