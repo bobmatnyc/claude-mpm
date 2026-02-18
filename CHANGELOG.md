@@ -10,6 +10,13 @@
 
 ### Tests
 
+## [5.9.8] - 2026-02-18
+
+### Fixed
+- fix(setup): delegate mcp-vector-search setup to native command
+  - Fixes inconsistent installation detection in `claude-mpm setup mcp-vector-search`
+  - Now correctly delegates to `mcp-vector-search setup` command
+
 ## [5.9.7] - 2026-02-18
 
 ### Fixed
