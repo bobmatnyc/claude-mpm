@@ -1745,11 +1745,13 @@ class ValidatorTestMixin(MetaSchemaTestsMixin):
             self.Validator,
             type_checker=self.Validator.TYPE_CHECKER.redefine(
                 "number",
-                lambda checker, thing: isinstance(
-                    thing,
-                    (int, float, Decimal),
-                )
-                and not isinstance(thing, bool),
+                lambda checker, thing: (
+                    isinstance(
+                        thing,
+                        (int, float, Decimal),
+                    )
+                    and not isinstance(thing, bool)
+                ),
             ),
         )
 

@@ -223,7 +223,7 @@ class LoggerFactory:
         if component and component in LoggingConfig.COMPONENT_NAMES:
             logger_name = LoggingConfig.COMPONENT_NAMES[component]
             if not name.startswith(logger_name):
-                logger_name = f"{logger_name}.{name.split('.')[-1]}"
+                logger_name = f"{logger_name}.{name.rsplit('.', maxsplit=1)[-1]}"
         else:
             logger_name = name
 

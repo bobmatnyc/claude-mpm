@@ -21,18 +21,16 @@ class EventBusConfig:
 
     # Enable/disable the EventBus
     enabled: bool = field(
-        default_factory=lambda: os.environ.get(
-            "CLAUDE_MPM_EVENTBUS_ENABLED", "true"
-        ).lower()
-        == "true"
+        default_factory=lambda: (
+            os.environ.get("CLAUDE_MPM_EVENTBUS_ENABLED", "true").lower() == "true"
+        )
     )
 
     # Debug logging
     debug: bool = field(
-        default_factory=lambda: os.environ.get(
-            "CLAUDE_MPM_EVENTBUS_DEBUG", "false"
-        ).lower()
-        == "true"
+        default_factory=lambda: (
+            os.environ.get("CLAUDE_MPM_EVENTBUS_DEBUG", "false").lower() == "true"
+        )
     )
 
     # Event history settings
@@ -55,10 +53,9 @@ class EventBusConfig:
     # DirectSocketIORelay disabled by default - events already emit via direct sio.emit()
     # Enable with CLAUDE_MPM_RELAY_ENABLED=true if needed for external consumers
     relay_enabled: bool = field(
-        default_factory=lambda: os.environ.get(
-            "CLAUDE_MPM_RELAY_ENABLED", "false"
-        ).lower()
-        == "true"
+        default_factory=lambda: (
+            os.environ.get("CLAUDE_MPM_RELAY_ENABLED", "false").lower() == "true"
+        )
     )
 
     relay_port: int = field(
@@ -66,10 +63,9 @@ class EventBusConfig:
     )
 
     relay_debug: bool = field(
-        default_factory=lambda: os.environ.get(
-            "CLAUDE_MPM_RELAY_DEBUG", "false"
-        ).lower()
-        == "true"
+        default_factory=lambda: (
+            os.environ.get("CLAUDE_MPM_RELAY_DEBUG", "false").lower() == "true"
+        )
     )
 
     # Connection settings
