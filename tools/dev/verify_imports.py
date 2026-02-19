@@ -181,7 +181,7 @@ class ImportVerifier:
         }
 
         # Check module root
-        root = module.split(".")[0]
+        root = module.split(".", maxsplit=1)[0]
         return root in standard_modules or root in third_party_modules
 
     def run(self) -> None:

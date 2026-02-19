@@ -128,8 +128,8 @@ class TestMemoryManager:
             memories_dir = Path(tmpdir) / ".claude-mpm" / "memories"
 
             # Configure mock to actually create the directory
-            mock_path_resolver.ensure_directory.side_effect = (
-                lambda p: p.mkdir(parents=True, exist_ok=True) or p
+            mock_path_resolver.ensure_directory.side_effect = lambda p: (
+                p.mkdir(parents=True, exist_ok=True) or p
             )
 
             with patch(
@@ -156,8 +156,8 @@ class TestMemoryManager:
             memories_dir = Path(tmpdir) / ".claude-mpm" / "memories"
 
             # Configure mock to actually create the directory
-            mock_path_resolver.ensure_directory.side_effect = (
-                lambda p: p.mkdir(parents=True, exist_ok=True) or p
+            mock_path_resolver.ensure_directory.side_effect = lambda p: (
+                p.mkdir(parents=True, exist_ok=True) or p
             )
 
             with patch(

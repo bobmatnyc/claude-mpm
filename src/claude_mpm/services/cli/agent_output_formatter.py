@@ -421,11 +421,13 @@ class AgentOutputFormatter(IAgentOutputFormatter):
 
         # Rows
         for row in rows:
-            row_line = " | ".join(
-                str(cell).ljust(col_widths[i]) if i < len(row) else " " * col_widths[i]
-                for i in range(len(headers))
-                for cell in [row[i] if i < len(row) else ""]
-            )
+            cells = []
+            for i in range(len(headers)):
+                if i < len(row):
+                    cells.append(str(row[i]).ljust(col_widths[i]))
+                else:
+                    cells.append(" " * col_widths[i])
+            row_line = " | ".join(cells)
             lines.append(row_line)
 
         return "\n".join(lines)
@@ -459,11 +461,11 @@ class AgentOutputFormatter(IAgentOutputFormatter):
             else:
                 # Standard output
                 lines.append(f"📄 {agent.get('file', 'Unknown')}")
-                if "name" in agent:
+                if "name" in agent and agent["name"] is not None:
                     lines.append(f"   Name: {agent['name']}")
-                if "description" in agent:
+                if "description" in agent and agent["description"] is not None:
                     lines.append(f"   Description: {agent['description']}")
-                if "version" in agent:
+                if "version" in agent and agent["version"] is not None:
                     lines.append(f"   Version: {agent['version']}")
 
                 # Verbose additions

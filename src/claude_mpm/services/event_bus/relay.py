@@ -184,7 +184,9 @@ class SocketIORelay:
                 {
                     "event": "claude_event",
                     "type": (
-                        event_type.split(".")[0] if "." in event_type else event_type
+                        event_type.split(".", maxsplit=1)[0]
+                        if "." in event_type
+                        else event_type
                     ),
                     "subtype": (
                         event_type.split(".", 1)[1] if "." in event_type else "generic"

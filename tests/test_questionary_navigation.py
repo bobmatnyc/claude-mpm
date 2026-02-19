@@ -62,7 +62,7 @@ class TestMainMenuNavigation:
         # This would require mocking the entire management_menu method
         # For now, verify the selection format works
         choice = "1. View agent: engineer"
-        choice_num = int(choice.split(".")[0])
+        choice_num = int(choice.split(".", maxsplit=1)[0])
         assert choice_num == 1
 
     @patch("src.claude_mpm.cli.interactive.agent_wizard.questionary.select")
@@ -71,7 +71,7 @@ class TestMainMenuNavigation:
         mock_select.return_value = MockQuestionarySelect("3. Deploy agent")
 
         choice = "3. Deploy agent"
-        choice_num = int(choice.split(".")[0])
+        choice_num = int(choice.split(".", maxsplit=1)[0])
         assert choice_num == 3
 
     @patch("src.claude_mpm.cli.interactive.agent_wizard.questionary.select")
@@ -180,20 +180,20 @@ class TestChoiceParsingLogic:
     def test_parse_numbered_choice(self):
         """Test parsing choice number from formatted string."""
         choice = "5. Deploy agent"
-        choice_num = int(choice.split(".")[0])
+        choice_num = int(choice.split(".", maxsplit=1)[0])
         assert choice_num == 5
 
     def test_parse_agent_id_from_choice(self):
         """Test extracting agent ID from choice."""
         choice = "1. engineer - Backend development specialist"
-        idx = int(choice.split(".")[0]) - 1
+        idx = int(choice.split(".", maxsplit=1)[0]) - 1
         assert idx == 0
         assert "engineer" in choice
 
     def test_parse_category_from_choice(self):
         """Test extracting category from submenu choice."""
         choice = "3. qa"
-        cat_idx = int(choice.split(".")[0]) - 1
+        cat_idx = int(choice.split(".", maxsplit=1)[0]) - 1
         categories = ["engineer/backend", "engineer/frontend", "qa"]
         assert categories[cat_idx] == "qa"
 

@@ -263,15 +263,16 @@ class MultiSourceAgentDeploymentService:
                     f"Discovering agents from {source_name} source: {source_dir}"
                 )
 
-                # Use appropriate discovery service based on source type
+                # Use AgentDiscoveryService for all sources (unified discovery)
+                discovery_service = AgentDiscoveryService(source_dir)
+
                 if source_name == "remote":
-                    # Remote agents are Markdown, use RemoteAgentDiscoveryService
-                    remote_service = RemoteAgentDiscoveryService(source_dir)
-                    agents = remote_service.discover_remote_agents()
+                    # For remote (git cache), use shared git discovery method
+                    agents = discovery_service.discover_git_cached_agents(
+                        cache_dir=source_dir, log_discovery=False
+                    )
                 else:
-                    # Other sources are JSON, use AgentDiscoveryService
-                    discovery_service = AgentDiscoveryService(source_dir)
-                    # Pass log_discovery=False to avoid duplicate logging
+                    # For other sources, use standard discovery
                     agents = discovery_service.list_available_agents(
                         log_discovery=False
                     )

@@ -297,7 +297,7 @@ class SimpleAgentManager:
 
                     # Check leaf name for hierarchical IDs
                     if "/" in agent_id:
-                        leaf_name = agent_id.split("/")[-1]
+                        leaf_name = agent_id.rsplit("/", maxsplit=1)[-1]
                         if leaf_name in agents:
                             self.logger.debug(
                                 f"Agent {agent_id} (leaf: {leaf_name}) found in virtual deployment state"
@@ -318,7 +318,7 @@ class SimpleAgentManager:
 
         # Also check leaf name (last component after /)
         if "/" in agent_id:
-            leaf_name = agent_id.split("/")[-1]
+            leaf_name = agent_id.rsplit("/", maxsplit=1)[-1]
             agent_file_names.append(f"{leaf_name}.md")
 
         # Check .claude/agents/ directory (project deployment)

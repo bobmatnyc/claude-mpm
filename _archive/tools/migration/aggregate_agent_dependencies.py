@@ -225,7 +225,7 @@ class DependencyAggregator:
                         if spec.operator in (">=", "==", ">"):
                             if not highest_min or version.parse(
                                 spec.version
-                            ) > version.parse(highest_min.split(">=")[-1]):
+                            ) > version.parse(highest_min.rsplit(">=", maxsplit=1)[-1]):
                                 highest_min = f">={spec.version}"
 
                 resolved[package] = highest_min or version_specs[0]

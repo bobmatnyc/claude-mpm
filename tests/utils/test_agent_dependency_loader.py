@@ -180,8 +180,8 @@ dependencies:
         # Mock the config paths to use temp directory
         with patch.object(loader, "load_agent_dependencies") as mock_load:
             # Call the real method
-            mock_load.side_effect = (
-                lambda: AgentDependencyLoader.load_agent_dependencies(loader)
+            mock_load.side_effect = lambda: (
+                AgentDependencyLoader.load_agent_dependencies(loader)
             )
 
             # Temporarily override config paths

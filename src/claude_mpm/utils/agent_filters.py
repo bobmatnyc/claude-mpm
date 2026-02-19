@@ -51,7 +51,7 @@ def is_base_agent(agent_id: str) -> bool:
 
     # Extract filename from path (handle cases like "qa/BASE-AGENT")
     # 1M-502: Remote agents may have path prefixes like "qa/", "pm/", etc.
-    agent_name = agent_id.split("/")[-1]
+    agent_name = agent_id.rsplit("/", maxsplit=1)[-1]
 
     normalized_id = agent_name.lower().replace("-", "").replace("_", "")
     return normalized_id == "baseagent"

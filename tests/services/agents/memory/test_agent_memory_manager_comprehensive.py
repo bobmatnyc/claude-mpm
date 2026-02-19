@@ -788,8 +788,8 @@ class TestAgentMemoryManager:
     def test_config_missing_values(self):
         """Test handling missing configuration values."""
         mock_config = MagicMock()
-        mock_config.get.side_effect = (
-            lambda key, default=None: default
+        mock_config.get.side_effect = lambda key, default=None: (
+            default
         )  # Return default for all config keys
 
         with patch(

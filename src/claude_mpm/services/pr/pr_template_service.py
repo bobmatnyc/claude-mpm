@@ -245,7 +245,7 @@ Co-Authored-By: skills-manager <noreply@anthropic.com>
             return False
 
         # Extract first line (title)
-        first_line = message.split("\n")[0]
+        first_line = message.split("\n", maxsplit=1)[0]
 
         # Check basic format: type(scope): description
         if ":" not in first_line:
