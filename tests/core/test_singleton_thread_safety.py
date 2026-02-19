@@ -273,7 +273,7 @@ class TestConfigThreadSafety:
             # Create multiple Config instances from different threads
             threads = []
             for _ in range(10):
-                thread = threading.Thread(target=lambda: Config())
+                thread = threading.Thread(target=Config)
                 threads.append(thread)
 
             for thread in threads:

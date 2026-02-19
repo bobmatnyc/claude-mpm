@@ -615,10 +615,10 @@ class TestEndToEndIntegration(unittest.TestCase):
             mock_dup.is_duplicate.return_value = False
 
             mock_events = MockEvents.return_value
-            mock_events.handle_user_prompt_fast = lambda e: capture_event(e)
-            mock_events.handle_pre_tool_fast = lambda e: capture_event(e)
-            mock_events.handle_post_tool_fast = lambda e: capture_event(e)
-            mock_events.handle_stop_fast = lambda e: capture_event(e)
+            mock_events.handle_user_prompt_fast = capture_event
+            mock_events.handle_pre_tool_fast = capture_event
+            mock_events.handle_post_tool_fast = capture_event
+            mock_events.handle_stop_fast = capture_event
 
             handler = ClaudeHookHandler()
             handler.event_handlers = mock_events

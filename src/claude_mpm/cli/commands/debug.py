@@ -912,10 +912,10 @@ def debug_performance(args, logger):
 
             # Map operation to actual function
             operations = {
-                "agent_load": lambda: _profile_agent_load(),
-                "service_init": lambda: _profile_service_init(),
-                "cache_ops": lambda: _profile_cache_operations(),
-                "memory_ops": lambda: _profile_memory_operations(),
+                "agent_load": _profile_agent_load,
+                "service_init": _profile_service_init,
+                "cache_ops": _profile_cache_operations,
+                "memory_ops": _profile_memory_operations,
             }
 
             if operation in operations:
