@@ -147,12 +147,15 @@ class ProjectInitializer:
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
-            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor, gh)
-            is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
-            is_lightweight_command = any(
-                cmd in sys.argv
-                for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor", "gh"]
+            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor, gh, etc.)
+            from claude_mpm.cli.command_config import (
+                is_lightweight_command as is_lightweight,
             )
+
+            is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
+            is_lightweight_command = (
+                is_lightweight(sys.argv[1]) if len(sys.argv) > 1 else False
+            ) or any(flag in sys.argv for flag in ["--version", "-v", "--help", "-h"])
 
             if not is_mcp_mode and not is_lightweight_command:
                 if directory_existed:
