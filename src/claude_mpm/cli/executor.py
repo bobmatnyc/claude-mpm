@@ -15,6 +15,7 @@ from .commands import (
     manage_agents,
     manage_configure,
     manage_debug,
+    manage_gh,
     manage_mcp,
     manage_memory,
     manage_monitor,
@@ -391,6 +392,7 @@ def execute_command(command: str, args) -> int:
         CLICommands.UPGRADE.value: upgrade,
         CLICommands.SKILLS.value: manage_skills,
         "debug": manage_debug,  # Add debug command
+        "gh": manage_gh,  # GitHub multi-account management
         "mpm-init": None,  # Will be handled separately with lazy import
     }
 

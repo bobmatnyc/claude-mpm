@@ -630,6 +630,10 @@ def create_parser(
 
         add_doctor_parser(subparsers)
 
+        from ..commands.gh import add_gh_parser
+
+        add_gh_parser(subparsers)
+
         from ..commands.postmortem import add_postmortem_parser
 
         add_postmortem_parser(subparsers)
