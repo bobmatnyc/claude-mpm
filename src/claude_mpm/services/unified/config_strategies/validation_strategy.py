@@ -353,23 +353,7 @@ class EnumValidator(BaseValidator):
 class FormatValidator(BaseValidator):
     """Validates common formats - replaces 24 format validation functions"""
 
-    FORMAT_VALIDATORS = {
-        "email": lambda v: "@" in v and "." in v.split("@")[1],
-        "url": lambda v: FormatValidator._validate_url(v),
-        "uri": lambda v: FormatValidator._validate_uri(v),
-        "uuid": lambda v: FormatValidator._validate_uuid(v),
-        "ipv4": lambda v: FormatValidator._validate_ipv4(v),
-        "ipv6": lambda v: FormatValidator._validate_ipv6(v),
-        "ip": lambda v: FormatValidator._validate_ip(v),
-        "hostname": lambda v: FormatValidator._validate_hostname(v),
-        "date": lambda v: FormatValidator._validate_date(v),
-        "time": lambda v: FormatValidator._validate_time(v),
-        "datetime": lambda v: FormatValidator._validate_datetime(v),
-        "json": lambda v: FormatValidator._validate_json(v),
-        "base64": lambda v: FormatValidator._validate_base64(v),
-        "path": lambda v: FormatValidator._validate_path(v),
-        "semver": lambda v: FormatValidator._validate_semver(v),
-    }
+    FORMAT_VALIDATORS: Dict[str, Callable[[str], bool]] = {}
 
     def validate(
         self, value: Any, rule: ValidationRule, context: Dict[str, Any]
@@ -533,6 +517,26 @@ class FormatValidator(BaseValidator):
             r"(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
         )
         return bool(pattern.match(value))
+
+
+# Initialize FORMAT_VALIDATORS after class definition to avoid forward reference issues
+FormatValidator.FORMAT_VALIDATORS = {
+    "email": lambda v: "@" in v and "." in v.split("@")[1],
+    "url": FormatValidator._validate_url,
+    "uri": FormatValidator._validate_uri,
+    "uuid": FormatValidator._validate_uuid,
+    "ipv4": FormatValidator._validate_ipv4,
+    "ipv6": FormatValidator._validate_ipv6,
+    "ip": FormatValidator._validate_ip,
+    "hostname": FormatValidator._validate_hostname,
+    "date": FormatValidator._validate_date,
+    "time": FormatValidator._validate_time,
+    "datetime": FormatValidator._validate_datetime,
+    "json": FormatValidator._validate_json,
+    "base64": FormatValidator._validate_base64,
+    "path": FormatValidator._validate_path,
+    "semver": FormatValidator._validate_semver,
+}
 
 
 class DependencyValidator(BaseValidator):

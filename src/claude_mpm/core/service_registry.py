@@ -78,7 +78,7 @@ class ServiceRegistry:
         # Register agent deployment service with factory for better initialization
         self.container.register_factory(
             AgentDeploymentService,
-            lambda c: self._create_agent_deployment_service(c),
+            self._create_agent_deployment_service,
             lifetime=ServiceLifetime.TRANSIENT,
             name="agent_deployment",
         )

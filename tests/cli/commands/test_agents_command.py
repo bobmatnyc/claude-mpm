@@ -240,7 +240,7 @@ class TestAgentsCommand:
             # Check for error in the message
             assert "Error" in result.message or "error" in result.message
 
-    @patch.object(AgentsCommand, "deployment_service", new_callable=lambda: Mock())
+    @patch.object(AgentsCommand, "deployment_service", new_callable=Mock)
     def test_list_agents_implementation(self, mock_deployment_service):
         """Test _list_agents implementation."""
         mock_deployment_service.list_deployed_agents.return_value = [

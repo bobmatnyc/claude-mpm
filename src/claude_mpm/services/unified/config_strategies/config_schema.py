@@ -455,12 +455,12 @@ class SchemaValidator:
             SchemaFormat.DATETIME: lambda v: self._try_parse_date(
                 v, "%Y-%m-%dT%H:%M:%S"
             ),
-            SchemaFormat.UUID: lambda v: self._validate_uuid(v),
-            SchemaFormat.IPV4: lambda v: self._validate_ipv4(v),
-            SchemaFormat.IPV6: lambda v: self._validate_ipv6(v),
+            SchemaFormat.UUID: self._validate_uuid,
+            SchemaFormat.IPV4: self._validate_ipv4,
+            SchemaFormat.IPV6: self._validate_ipv6,
             SchemaFormat.URI: lambda v: "://" in v,
             SchemaFormat.PATH: lambda v: True,  # Any string is valid path
-            SchemaFormat.SEMVER: lambda v: self._validate_semver(v),
+            SchemaFormat.SEMVER: self._validate_semver,
         }
 
         validator = validators.get(format)
