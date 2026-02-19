@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.14] - 2026-02-18
+
+### Changed
+- refactor(config): centralize lightweight command configuration
+  - Consolidated configuration strategies into unified framework
+  - Improved maintainability and consistency across commands
+  - Cleaner architecture for command-level configuration
+
 ## [5.9.13] - 2026-02-18
 
 ### Performance
