@@ -503,35 +503,35 @@ test: test-parallel ## Run tests with parallel execution (default, 3-4x faster)
 
 test-parallel: ## Run tests in parallel using all available CPUs
 	@echo "$(YELLOW)🧪 Running tests in parallel (using all CPUs)...$(NC)"
-	@python -m pytest tests/ $(PYTEST_ARGS)
+	@uv run pytest tests/ $(PYTEST_ARGS)
 	@echo "$(GREEN)✓ Parallel tests completed$(NC)"
 
 test-serial: ## Run tests serially for debugging (disables parallelization)
 	@echo "$(YELLOW)🧪 Running tests serially (debugging mode)...$(NC)"
-	@python -m pytest tests/ -n 0 -v
+	@uv run pytest tests/ -n 0 -v
 	@echo "$(GREEN)✓ Serial tests completed$(NC)"
 
 test-fast: ## Run unit tests only in parallel (fastest)
 	@echo "$(YELLOW)⚡ Running unit tests in parallel...$(NC)"
-	@python -m pytest tests/ -n auto -m unit -v
+	@uv run pytest tests/ -n auto -m unit -v
 	@echo "$(GREEN)✓ Unit tests completed$(NC)"
 
 test-coverage: ## Run tests with coverage report (parallel)
 	@echo "$(YELLOW)📊 Running tests with coverage...$(NC)"
-	@python -m pytest tests/ -n auto --cov=src/claude_mpm --cov-report=html --cov-report=term
+	@uv run pytest tests/ -n auto --cov=src/claude_mpm --cov-report=html --cov-report=term
 	@echo "$(GREEN)✓ Coverage report generated in htmlcov/$(NC)"
 
 test-unit: ## Run unit tests only
 	@echo "$(YELLOW)🧪 Running unit tests...$(NC)"
-	@python -m pytest tests/ -n auto -m unit -v
+	@uv run pytest tests/ -n auto -m unit -v
 
 test-integration: ## Run integration tests only
 	@echo "$(YELLOW)🧪 Running integration tests...$(NC)"
-	@python -m pytest tests/integration/ -n auto -v
+	@uv run pytest tests/integration/ -n auto -v
 
 test-e2e: ## Run end-to-end tests only
 	@echo "$(YELLOW)🧪 Running e2e tests...$(NC)"
-	@python -m pytest tests/e2e/ -n auto -v
+	@uv run pytest tests/e2e/ -n auto -v
 
 deprecation-check: ## Check for obsolete files according to deprecation policy
 	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
