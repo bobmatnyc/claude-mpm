@@ -7,7 +7,7 @@ This project uses a project-specific GitHub account configuration to support wor
 - **Git User**: Bob Matsuoka (bob@matsuoka.com)
 - **GitHub Account**: bobmatnyc
 - **SSH Key**: ~/.ssh/id_ed25519
-- **gh CLI Account**: bobmatnyc (auto-switched via script)
+- **gh CLI Account**: bobmatnyc (managed via `claude-mpm gh switch`)
 
 ## How It Works
 
@@ -41,7 +41,7 @@ The `.gh-account` file specifies which GitHub account to use for gh CLI commands
 bobmatnyc
 ```
 
-Run `scripts/gh-switch-account.sh` to switch gh CLI to the account specified in `.gh-account`.
+Use `claude-mpm gh switch` to switch gh CLI to the account specified in `.gh-account`.
 
 ## Setting Up a New Project
 
@@ -132,15 +132,31 @@ This means:
 - `git@github-duetto:...` uses bob-duetto account
 - `git@github-bobmatnyc:...` uses bobmatnyc account (explicit)
 
-## Automatic gh CLI Switching
+## Claude MPM GitHub Commands
 
-The `scripts/gh-switch-account.sh` script automatically switches gh CLI to the account specified in `.gh-account`.
+Claude MPM provides integrated GitHub account management commands:
+
+### Available Commands
+
+```bash
+# Switch to account specified in .gh-account
+claude-mpm gh switch
+
+# Verify complete setup (git + gh CLI + SSH)
+claude-mpm gh verify
+
+# Show current configuration
+claude-mpm gh status
+
+# Interactive project setup
+claude-mpm gh setup
+```
 
 ### Manual Usage
 
 ```bash
 # Run from project root
-./scripts/gh-switch-account.sh
+claude-mpm gh switch
 ```
 
 ### Automatic Usage
@@ -151,12 +167,7 @@ Add to your shell profile (`~/.zshrc` or `~/.bashrc`):
 # Auto-switch gh CLI account on directory change
 chpwd_gh_switch() {
     if [[ -f .gh-account ]]; then
-        local required_account=$(cat .gh-account | tr -d '[:space:]')
-        local current_account=$(gh auth status 2>&1 | grep "Active account:" -B 1 | head -n 1 | awk '{print $NF}')
-        if [[ "$current_account" != "$required_account" ]]; then
-            gh auth switch --user "$required_account" 2>/dev/null
-            echo "✅ Switched gh CLI to: $required_account"
-        fi
+        claude-mpm gh switch 2>/dev/null
     fi
 }
 
@@ -214,14 +225,14 @@ git remote set-url origin git@github.com:bobmatnyc/your-project.git
 
 ### gh CLI Uses Wrong Account
 
-Switch manually:
+Switch using claude-mpm:
 ```bash
-gh auth switch --user bobmatnyc
+claude-mpm gh switch
 ```
 
-Or run the automatic switcher:
+Or manually with gh CLI:
 ```bash
-./scripts/gh-switch-account.sh
+gh auth switch --user bobmatnyc
 ```
 
 ### SSH Permission Denied
@@ -291,8 +302,8 @@ Create `~/.gitconfig-bob-duetto`:
 ## Summary
 
 - **Git operations**: Use SSH keys (bobmatnyc by default, bob-duetto via github-duetto host alias)
-- **gh CLI**: Use `.gh-account` file + `scripts/gh-switch-account.sh` to switch accounts
-- **New projects**: Set local git config + create .gh-account file
-- **Verification**: Run tests to confirm correct account is used
+- **gh CLI**: Use `.gh-account` file + `claude-mpm gh switch` to switch accounts
+- **New projects**: Set local git config + create .gh-account file, or use `claude-mpm gh setup` for interactive configuration
+- **Verification**: Run `claude-mpm gh verify` to confirm complete setup
 
-For questions or issues, refer to this documentation or run verification commands above.
+For questions or issues, refer to this documentation or run `claude-mpm gh status` to check your configuration.

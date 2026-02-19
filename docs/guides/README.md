@@ -13,6 +13,8 @@ Task-oriented guides and FAQs for Claude MPM.
 - **Project Setup**:
   - [project-bootstrap.md](project-bootstrap.md) - Bootstrap new projects before /mpm-init
   - [mpm-init-rerun-guide.md](mpm-init-rerun-guide.md) - Keep your documentation fresh
+  - [github-multi-account-setup.md](github-multi-account-setup.md) - Configure multiple GitHub accounts
+  - [package-installer-uv-fix.md](package-installer-uv-fix.md) - UV project detection and package installation
 - **Tool Version Management**: [asdf-tool-versions.md](asdf-tool-versions.md) - Manage consistent Python/uv versions with ASDF
 - **Debugging**: [debugging-session-strategies.md](debugging-session-strategies.md) - Control commit behavior during debugging
 - **Automation**: [headless-mode.md](headless-mode.md) - Run claude-mpm in CI/CD, scripts, and orchestration platforms
