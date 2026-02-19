@@ -7,7 +7,7 @@ name = "claude-mpm"
 version = "5.9.10"
 description = "Claude Code workflow and agent management framework - Multi-agent orchestration, skills system, MCP integration, session management, and semantic code search for AI-powered development"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 keywords = [
     # Core identity
     "claude",
@@ -118,7 +118,18 @@ slack-mpm = "claude_mpm.slack_client:start_socket_mode"
 # claude-mpm-mcp-wrapper = "claude_mpm.scripts.mcp_wrapper:entry_point"
 
 [dependency-groups]
-dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "ruff>=0.8.0", "mypy>=1.0.0", "types-PyYAML>=6.0.0", "types-requests>=2.25.0",]
+dev = [
+ "deepeval>=1.0.0",
+ "pytest>=7.0",
+ "pytest-asyncio",
+ "pytest-cov",
+ "ruff>=0.8.0",
+ "mypy>=1.0.0",
+ "types-PyYAML>=6.0.0",
+ "types-requests>=2.25.0",
+ "pytest-xdist>=3.8.0",
+ "playwright>=1.40.0",
+]
 
 [tool.mypy]
 python_version = "3.11"
