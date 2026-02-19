@@ -365,21 +365,10 @@ def should_skip_background_services(args, processed_argv):
     if hasattr(args, "command"):
         command = args.command
 
-        # Skip background services for main commands that don't need Claude Code
-        if command in [
-            "info",
-            "doctor",
-            "config",
-            "mcp",
-            "configure",
-            "hook-errors",
-            "autotodos",
-            "oauth",
-            "setup",
-            "slack",
-            "tools",
-            "gh",  # GitHub multi-account management (fast, no Claude Code needed)
-        ]:
+        # Skip background services for lightweight commands
+        from claude_mpm.cli.command_config import is_lightweight_command
+
+        if is_lightweight_command(command):
             return True
 
         # Skip background services for read-only subcommands
