@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.9.12] - 2026-02-18
+
+### Added
+- feat(cli): new `claude-mpm gh` command for GitHub repository management
+  - Clone GitHub repositories with organization/template structure
+  - Initialize git submodules automatically
+  - Smart organization-based directory creation
+  - Support for both HTTPS and SSH cloning
+
 ## [5.9.11] - 2026-02-19
 
 ### Fixed
