@@ -10,6 +10,22 @@
 
 ### Tests
 
+## [5.9.11] - 2026-02-19
+
+### Fixed
+- fix: resolve PR #303 test issues - clean test suite and fix bugs
+  - Moved 4 manual scripts from tests/ to tests/manual/ (removed test_ prefix)
+  - Removed 22 external library test files (referencing, jsonschema, psutil)
+  - Fixed FormatValidator forward reference bug causing import failure
+  - Test collection now succeeds: 7161 tests collected
+  - Root cause: PR #303 switched from `python -m pytest` to `uv run pytest`, exposing hidden issues
+  - Commit: 622deafac
+
+### Changed
+- refactor: remove deprecated google_workspace_server
+  - Moved google_workspace_server.py to archive/
+  - Commit: 8dcbc21f6
+
 ## [5.9.10] - 2026-02-18
 
 ### Security
