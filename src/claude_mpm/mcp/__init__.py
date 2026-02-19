@@ -11,7 +11,6 @@ from claude_mpm.mcp.errors import (
     SessionError,
     parse_error,
 )
-from claude_mpm.mcp.google_workspace_server import main as google_workspace_main
 from claude_mpm.mcp.models import SessionInfo, SessionResult, SessionStatus
 from claude_mpm.mcp.ndjson_parser import (
     NDJSONStreamParser,
@@ -57,7 +56,6 @@ __all__ = [
     "check_rclone_available",
     "extract_session_id",
     "extract_session_id_from_stream",
-    "google_workspace_main",
     "parse_error",
     "session_server_http_main",
     "session_server_main",
