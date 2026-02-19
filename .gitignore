@@ -375,3 +375,4 @@ Formula/
 
 # gworkspace-mcp OAuth tokens (project-level)
 .gworkspace-mcp/
+/docs-local/

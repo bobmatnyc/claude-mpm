@@ -167,7 +167,7 @@ class AutoConfigureCommand(BaseCommand):
             return f"Project path does not exist: {project_path}"
 
         # Validate min_confidence range
-        if hasattr(args, "min_confidence") and args.min_confidence:
+        if hasattr(args, "min_confidence") and args.min_confidence is not None:
             if not 0.0 <= args.min_confidence <= 1.0:
                 return "min_confidence must be between 0.0 and 1.0"
 
@@ -197,7 +197,7 @@ class AutoConfigureCommand(BaseCommand):
             )
             min_confidence = (
                 args.min_confidence
-                if hasattr(args, "min_confidence") and args.min_confidence
+                if hasattr(args, "min_confidence") and args.min_confidence is not None
                 else 0.5
             )
             dry_run = getattr(args, "preview", False)

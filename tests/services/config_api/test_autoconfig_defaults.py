@@ -67,11 +67,11 @@ class TestMinConfidenceDefaults:
     def test_min_confidence_explicit_override(self, tmp_path):
         """Test explicit min_confidence values override the default.
 
-        NOTE: Current implementation has a bug where 0.0 is treated as falsy
-        and defaults to 0.5. This test documents the current behavior.
+        All explicit values, including 0.0, should be passed through without
+        being replaced by the default. The 0.0 falsy bug has been fixed.
         """
         test_cases = [
-            (0.0, 0.5),  # BUG: 0.0 is falsy, defaults to 0.5
+            (0.0, 0.0),  # Fixed: 0.0 is now correctly passed through
             (0.3, 0.3),  # Works correctly
             (0.7, 0.7),  # Works correctly
             (0.9, 0.9),  # Works correctly

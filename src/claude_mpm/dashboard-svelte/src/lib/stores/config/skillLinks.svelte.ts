@@ -69,6 +69,29 @@ export async function loadSkillLinks(): Promise<void> {
 			total: number;
 		}> = result.by_agent || [];
 
+		// Build deployment status lookup from by_skill data.
+		// Backend provides is_deployed per skill via the by_skill mapping.
+		const bySkill: Record<string, { is_deployed?: boolean }> = result.by_skill || {};
+		function isSkillDeployed(skillName: string): boolean {
+			// Exact match first
+			if (skillName in bySkill) {
+				return bySkill[skillName].is_deployed ?? false;
+			}
+			// Suffix match (e.g., "toolchains-javascript-testing-playwright" matches "testing-playwright")
+			for (const [key, val] of Object.entries(bySkill)) {
+				if (key.endsWith(`-${skillName}`) || skillName.endsWith(`-${key}`)) {
+					return val.is_deployed ?? false;
+				}
+			}
+			// Not found in by_skill — assume not deployed
+			return false;
+		}
+
+		// Determine agent deployment status from deployed agents list in by_skill data.
+		// An agent referenced in by_agent is "deployed" if its agent file exists on disk.
+		// Since by_agent comes from scanning deployed agent files, agents listed are deployed.
+		const deployedAgentNames = new Set(byAgent.map(a => a.agent_name));
+
 		const agents: AgentSkillLinks[] = byAgent.map((item) => {
 			const fmSet = new Set(item.frontmatter_skills || []);
 			const cmSet = new Set(item.content_marker_skills || []);
@@ -81,7 +104,7 @@ export async function loadSkillLinks(): Promise<void> {
 				skills.push({
 					skill_name: name,
 					source: { type: 'frontmatter', label: 'Frontmatter' },
-					is_deployed: true,
+					is_deployed: isSkillDeployed(name),
 					is_auto_managed: inContent,
 				});
 			}
@@ -92,7 +115,7 @@ export async function loadSkillLinks(): Promise<void> {
 					skills.push({
 						skill_name: name,
 						source: { type: 'content_marker', label: 'Content Marker' },
-						is_deployed: true,
+						is_deployed: isSkillDeployed(name),
 						is_auto_managed: false,
 					});
 				}
@@ -100,7 +123,7 @@ export async function loadSkillLinks(): Promise<void> {
 
 			return {
 				agent_name: item.agent_name,
-				is_deployed: true,
+				is_deployed: deployedAgentNames.has(item.agent_name),
 				skills,
 				skill_count: skills.length,
 			};
