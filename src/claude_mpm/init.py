@@ -147,11 +147,11 @@ class ProjectInitializer:
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
-            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor)
+            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor, gh)
             is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
             is_lightweight_command = any(
                 cmd in sys.argv
-                for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor"]
+                for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor", "gh"]
             )
 
             if not is_mcp_mode and not is_lightweight_command:

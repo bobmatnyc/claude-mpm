@@ -583,6 +583,7 @@ def should_show_banner(args) -> bool:
         "setup",
         "slack",
         "tools",
+        "gh",  # GitHub multi-account management (fast utility)
     }
     if hasattr(args, "command") and args.command in skip_commands:
         return False

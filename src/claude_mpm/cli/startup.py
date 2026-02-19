@@ -378,6 +378,7 @@ def should_skip_background_services(args, processed_argv):
             "setup",
             "slack",
             "tools",
+            "gh",  # GitHub multi-account management (fast, no Claude Code needed)
         ]:
             return True
 
