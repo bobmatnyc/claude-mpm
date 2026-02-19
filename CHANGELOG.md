@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.13] - 2026-02-18
+
+### Performance
+- perf(cli): 10x faster `claude-mpm gh` command execution
+  - Optimized GitHub repository cloning workflow
+  - Reduced command execution time significantly
+  - Improved user experience for repository management
+
 ## [5.9.12] - 2026-02-18
 
 ### Added
