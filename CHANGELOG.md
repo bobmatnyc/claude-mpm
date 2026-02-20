@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.16] - 2026-02-19
+
+### Fixed
+- fix: actually call _find_project_root during initialization (CRITICAL)
+  - v5.9.15 defined the method but never called it
+  - Now properly searches upward for project markers
+  - Fixes project root detection for workspace setups
+
 ## [5.9.15] - 2026-02-18
 
 ### Fixed
