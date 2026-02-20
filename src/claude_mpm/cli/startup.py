@@ -278,10 +278,18 @@ def setup_early_environment(argv):
 
     # CRITICAL: Capture launch directory BEFORE anything changes cwd
     # This preserves the user's starting directory for project root detection
+    # Use shell's PWD instead of Path.cwd() because Python's cwd may already be changed
+    # during module imports (observed with uv tool wrappers)
     if "CLAUDE_MPM_USER_PWD" not in os.environ:
         from pathlib import Path
 
-        os.environ["CLAUDE_MPM_USER_PWD"] = str(Path.cwd())
+        # Prefer shell PWD (more reliable than Path.cwd() which may already be changed)
+        pwd_from_shell = os.environ.get("PWD")
+        cwd_from_python = str(Path.cwd())
+
+        # Use PWD if available (set by shell before Python starts)
+        cwd_value = pwd_from_shell if pwd_from_shell else cwd_from_python
+        os.environ["CLAUDE_MPM_USER_PWD"] = cwd_value
 
     # Disable telemetry and set cleanup flags early
     os.environ.setdefault("DISABLE_TELEMETRY", "1")
