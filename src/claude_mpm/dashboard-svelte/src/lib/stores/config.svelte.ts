@@ -650,7 +650,7 @@ export async function undeployAgent(agent_name: string): Promise<DeployResult> {
 export async function batchDeployAgents(agents: string[], source_id?: string, force?: boolean): Promise<any> {
 	mutating.set(true);
 	try {
-		const body: Record<string, any> = { agents };
+		const body: Record<string, any> = { agent_names: agents };
 		if (source_id) body.source_id = source_id;
 		if (force) body.force = true;
 		const result = await mutateJSON(`${API_BASE}/agents/deploy-collection`, 'POST', body);
