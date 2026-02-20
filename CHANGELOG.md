@@ -10,7 +10,14 @@
 
 ### Tests
 
-## [5.9.19] - 2026-02-19
+## [5.9.20] - 2026-02-20
+
+### Changed
+- chore: clean production release (v5.9.19 already contained working fix)
+  - No code changes from v5.9.19
+  - Version bump for clarity
+
+## [5.9.19] - 2026-02-20
 
 ### Fixed
 - fix(cli): use shell PWD instead of Path.cwd() for launch directory (CRITICAL)
