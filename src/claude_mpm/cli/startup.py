@@ -276,6 +276,13 @@ def setup_early_environment(argv):
     """
     import logging
 
+    # CRITICAL: Capture launch directory BEFORE anything changes cwd
+    # This preserves the user's starting directory for project root detection
+    if "CLAUDE_MPM_USER_PWD" not in os.environ:
+        from pathlib import Path
+
+        os.environ["CLAUDE_MPM_USER_PWD"] = str(Path.cwd())
+
     # Disable telemetry and set cleanup flags early
     os.environ.setdefault("DISABLE_TELEMETRY", "1")
     os.environ.setdefault("CLAUDE_MPM_SKIP_CLEANUP", "0")
