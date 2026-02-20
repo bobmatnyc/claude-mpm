@@ -91,31 +91,33 @@ class ProjectInitializer:
                 project_root = project_path
                 self.project_dir = project_path / ".claude-mpm"
             else:
-                # Check for the user's original working directory from launch script
+                # Get the directory where user launched from
                 user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
 
                 if user_pwd:
-                    # Start search from user's original directory
                     start_dir = Path(user_pwd)
+                    self.logger.debug(f"User launched from: {start_dir}")
+                else:
+                    start_dir = Path.cwd()
+                    self.logger.debug(f"Using cwd: {start_dir}")
+
+                # Check if there's an explicit .claude/project-root marker in a parent directory
+                # This is the ONLY reason to use a different directory than where user launched
+                parent_with_marker = self._find_parent_with_project_root_marker(
+                    start_dir
+                )
+
+                if parent_with_marker:
+                    project_root = parent_with_marker
                     self.logger.debug(
-                        f"Starting project search from CLAUDE_MPM_USER_PWD: {start_dir}"
+                        f"Found explicit .claude/project-root marker at: {project_root}"
                     )
                 else:
-                    # Start from current working directory
-                    start_dir = Path.cwd()
-                    self.logger.debug(f"Starting project search from cwd: {start_dir}")
-
-                # Search upward for project root using markers
-                project_root = self._find_project_root_from(start_dir)
-
-                # If no markers found, use the starting directory
-                if not project_root:
+                    # Use the directory where user launched - respect their choice!
                     project_root = start_dir
                     self.logger.debug(
-                        f"No project markers found, using: {project_root}"
+                        f"Using launch directory as project root: {project_root}"
                     )
-                else:
-                    self.logger.debug(f"Found project root at: {project_root}")
 
                 self.project_dir = project_root / ".claude-mpm"
 
@@ -319,40 +321,23 @@ class ProjectInitializer:
                 except Exception as e:
                     self.logger.debug(f"Could not remove old directory: {e}")
 
-    def _find_project_root_from(self, start_dir: Path) -> Optional[Path]:
-        """Find project root starting from given directory.
+    def _find_parent_with_project_root_marker(self, start_dir: Path) -> Optional[Path]:
+        """Look ONLY for explicit .claude/project-root marker in parent directories.
 
-        Priority order:
-        1. .claude/project-root marker file (explicit user intent)
-        2. .git directory
-        3. pyproject.toml
-        4. setup.py
+        This is the only reason to use a different directory than where user launched.
+        Returns None if no marker found (meaning: use start_dir).
 
         Args:
             start_dir: Directory to start searching from
 
         Returns:
-            Path to project root if found, None otherwise
+            Path to directory containing .claude/project-root marker, or None
         """
-        # First pass: Look for explicit .claude/project-root marker
-        current = start_dir
+        current = start_dir.parent  # Start from parent (not current dir)
+
         while current != current.parent:
             if (current / ".claude" / "project-root").exists():
-                self.logger.debug(f"Found explicit project-root marker at {current}")
-                return current
-            current = current.parent
-
-        # Second pass: Look for .git or other project markers
-        current = start_dir
-        while current != current.parent:
-            if (current / ".git").exists():
-                self.logger.debug(f"Found .git directory at {current}")
-                return current
-            if (current / "pyproject.toml").exists():
-                self.logger.debug(f"Found pyproject.toml at {current}")
-                return current
-            if (current / "setup.py").exists():
-                self.logger.debug(f"Found setup.py at {current}")
+                self.logger.debug(f"Found .claude/project-root marker at: {current}")
                 return current
             current = current.parent
 
