@@ -136,7 +136,12 @@ class PathResolver(IPathResolver):
         """
         Find the project root directory.
 
-        Looks for common project indicators like .git, pyproject.toml, package.json, etc.
+        Looks for .claude/project-root marker first (explicit user intent), then falls back
+        to common project indicators like .git, pyproject.toml, package.json, etc.
+
+        Priority order:
+        1. .claude/project-root marker file (explicit user intent)
+        2. Common project indicators (.git, pyproject.toml, etc.)
 
         Args:
             start_path: Starting path for search (defaults to cwd)
@@ -153,7 +158,15 @@ class PathResolver(IPathResolver):
         if start_path.is_file():
             start_path = start_path.parent
 
-        # Common project root indicators
+        # First pass: Look for explicit .claude/project-root marker
+        check_dir = start_path
+        while check_dir != check_dir.parent:
+            if (check_dir / ".claude" / "project-root").exists():
+                self.logger.debug(f"Found explicit project-root marker at {check_dir}")
+                return check_dir
+            check_dir = check_dir.parent
+
+        # Second pass: Common project root indicators
         root_indicators = [
             ".git",
             "pyproject.toml",

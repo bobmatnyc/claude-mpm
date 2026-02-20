@@ -311,8 +311,25 @@ class ProjectInitializer:
                     self.logger.debug(f"Could not remove old directory: {e}")
 
     def _find_project_root(self) -> Optional[Path]:
-        """Find project root by looking for .git or other project markers."""
+        """Find project root by looking for .claude/project-root marker, then .git or other markers.
+
+        Priority order:
+        1. .claude/project-root marker file (explicit user intent)
+        2. .git directory
+        3. pyproject.toml
+        4. setup.py
+        """
         current = Path.cwd()
+
+        # First pass: Look for explicit .claude/project-root marker
+        check_dir = current
+        while check_dir != check_dir.parent:
+            if (check_dir / ".claude" / "project-root").exists():
+                self.logger.debug(f"Found explicit project-root marker at {check_dir}")
+                return check_dir
+            check_dir = check_dir.parent
+
+        # Second pass: Look for .git or other project markers
         while current != current.parent:
             if (current / ".git").exists():
                 return current
