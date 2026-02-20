@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.9.17] - 2026-02-19
+
+### Fixed
+- fix(core): simplify project root detection to always prefer launch directory
+  - Remove .claude/project-root marker logic (not a Claude Code standard)
+  - Directly use CLAUDE_MPM_USER_PWD or cwd as project root
+  - Eliminates incorrect project root detection in nested repos
+  - Add nosec comments for subprocess usage (safe list format)
+
 ## [5.9.16] - 2026-02-19
 
 ### Fixed
