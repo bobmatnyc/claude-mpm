@@ -48,3 +48,27 @@ Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation an
 - Record technical specifications and API details
 - Capture user preferences and patterns
 - Document error solutions and workarounds
+
+## Publishing Workflow
+
+**CRITICAL**: Always use the Makefile targets for releases:
+
+```bash
+# 1. Ensure correct GitHub account is active
+claude-mpm gh switch  # Switches to bobmatnyc per .gh-account
+
+# 2. Create release (bump version and build)
+make release-patch    # For bug fixes (5.9.x → 5.9.y)
+make release-minor    # For new features (5.9.x → 5.10.0)
+make release-major    # For breaking changes (5.x.x → 6.0.0)
+
+# 3. Publish to all platforms (PyPI, Homebrew, npm, GitHub)
+make release-publish
+```
+
+**DO NOT**:
+- Manually edit version files
+- Call `./scripts/publish_to_pypi.sh` directly
+- Publish with wrong GitHub account (must be bobmatnyc, not bob-duetto)
+
+The Makefile orchestrates the complete release workflow: syncs repositories, publishes to all platforms, creates GitHub releases.

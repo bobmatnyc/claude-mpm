@@ -14,7 +14,7 @@ The service consolidates path management logic while maintaining backward compat
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -153,7 +153,7 @@ class PathResolver(IPathResolver):
         if start_path.is_file():
             start_path = start_path.parent
 
-        # Common project root indicators
+        # Look for common project root indicators
         root_indicators = [
             ".git",
             "pyproject.toml",
@@ -461,7 +461,7 @@ class PathResolver(IPathResolver):
     def _detect_npm_global(self) -> Optional[Path]:
         """Detect npm global installation path."""
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["npm", "root", "-g"],
                 capture_output=True,
                 text=True,

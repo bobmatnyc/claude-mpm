@@ -15,6 +15,7 @@ from .config import manage_config
 from .configure import manage_configure
 from .debug import manage_debug
 from .doctor import run_doctor
+from .gh import manage_gh
 from .info import show_info
 from .mcp import manage_mcp
 from .memory import manage_memory
@@ -35,6 +36,7 @@ __all__ = [
     "manage_config",
     "manage_configure",
     "manage_debug",
+    "manage_gh",
     "manage_mcp",
     "manage_memory",
     "manage_monitor",

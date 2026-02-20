@@ -276,6 +276,21 @@ def setup_early_environment(argv):
     """
     import logging
 
+    # CRITICAL: Capture launch directory BEFORE anything changes cwd
+    # This preserves the user's starting directory for project root detection
+    # Use shell's PWD instead of Path.cwd() because Python's cwd may already be changed
+    # during module imports (observed with uv tool wrappers)
+    if "CLAUDE_MPM_USER_PWD" not in os.environ:
+        from pathlib import Path
+
+        # Prefer shell PWD (more reliable than Path.cwd() which may already be changed)
+        pwd_from_shell = os.environ.get("PWD")
+        cwd_from_python = str(Path.cwd())
+
+        # Use PWD if available (set by shell before Python starts)
+        cwd_value = pwd_from_shell if pwd_from_shell else cwd_from_python
+        os.environ["CLAUDE_MPM_USER_PWD"] = cwd_value
+
     # Disable telemetry and set cleanup flags early
     os.environ.setdefault("DISABLE_TELEMETRY", "1")
     os.environ.setdefault("CLAUDE_MPM_SKIP_CLEANUP", "0")
@@ -365,20 +380,10 @@ def should_skip_background_services(args, processed_argv):
     if hasattr(args, "command"):
         command = args.command
 
-        # Skip background services for main commands that don't need Claude Code
-        if command in [
-            "info",
-            "doctor",
-            "config",
-            "mcp",
-            "configure",
-            "hook-errors",
-            "autotodos",
-            "oauth",
-            "setup",
-            "slack",
-            "tools",
-        ]:
+        # Skip background services for lightweight commands
+        from claude_mpm.cli.command_config import is_lightweight_command
+
+        if is_lightweight_command(command):
             return True
 
         # Skip background services for read-only subcommands

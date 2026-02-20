@@ -573,18 +573,10 @@ def should_show_banner(args) -> bool:
         return False
 
     # Check for commands that should skip banner
-    # Setup/OAuth/Slack/Tools commands are lightweight utilities that should run immediately
-    skip_commands = {
-        "info",
-        "doctor",
-        "config",
-        "configure",
-        "oauth",
-        "setup",
-        "slack",
-        "tools",
-    }
-    if hasattr(args, "command") and args.command in skip_commands:
+    # Lightweight commands are fast utilities that should run immediately
+    from claude_mpm.cli.command_config import is_lightweight_command
+
+    if hasattr(args, "command") and is_lightweight_command(args.command):
         return False
 
     # Skip banner for fast read-only subcommands

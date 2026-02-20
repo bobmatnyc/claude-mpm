@@ -102,7 +102,7 @@ class ContextGenerator:
             methods = [
                 lambda: os.environ.get("USER"),
                 lambda: os.environ.get("USERNAME"),  # Windows fallback
-                lambda: getpass.getuser(),
+                getpass.getuser,
             ]
 
             for method in methods:

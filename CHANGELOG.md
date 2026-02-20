@@ -10,6 +10,98 @@
 
 ### Tests
 
+## [5.9.20] - 2026-02-20
+
+### Changed
+- chore: clean production release (v5.9.19 already contained working fix)
+  - No code changes from v5.9.19
+  - Version bump for clarity
+
+## [5.9.19] - 2026-02-20
+
+### Fixed
+- fix(cli): use shell PWD instead of Path.cwd() for launch directory (CRITICAL)
+  - Path.cwd() was already changed to subdirectory when Python starts
+  - Now uses shell's $PWD environment variable instead
+  - Removed 'paths' import from cli/__init__.py (triggered early initialization)
+  - Made UnifiedPathManager.project_root respect CLAUDE_MPM_USER_PWD
+  - Fixes issue where MPM used subdirectory instead of launch directory
+
+## [5.9.18] - 2026-02-19
+
+### Fixed
+- fix(cli): capture launch directory before any code changes cwd (CRITICAL)
+  - CLAUDE_MPM_USER_PWD was never being set, causing project root detection to fail
+  - Now captures user's starting directory in setup_early_environment()
+  - Ensures initialize_project_directory() uses correct launch directory
+  - Fixes issue where MPM used subdirectory instead of launch directory
+
+## [5.9.17] - 2026-02-19
+
+### Fixed
+- fix(core): simplify project root detection to always prefer launch directory
+  - Remove .claude/project-root marker logic (not a Claude Code standard)
+  - Directly use CLAUDE_MPM_USER_PWD or cwd as project root
+  - Eliminates incorrect project root detection in nested repos
+  - Add nosec comments for subprocess usage (safe list format)
+
+## [5.9.16] - 2026-02-19
+
+### Fixed
+- fix: actually call _find_project_root during initialization (CRITICAL)
+  - v5.9.15 defined the method but never called it
+  - Now properly searches upward for project markers
+  - Fixes project root detection for workspace setups
+
+## [5.9.15] - 2026-02-18
+
+### Fixed
+- fix: respect `.claude/project-root` marker files in project directory detection
+  - Critical bug where MPM ignored `.claude/project-root` markers
+  - Ensures proper project root identification for workspace management
+  - Prevents incorrect directory traversal behavior
+
+## [5.9.14] - 2026-02-18
+
+### Changed
+- refactor(config): centralize lightweight command configuration
+  - Consolidated configuration strategies into unified framework
+  - Improved maintainability and consistency across commands
+  - Cleaner architecture for command-level configuration
+
+## [5.9.13] - 2026-02-18
+
+### Performance
+- perf(cli): 10x faster `claude-mpm gh` command execution
+  - Optimized GitHub repository cloning workflow
+  - Reduced command execution time significantly
+  - Improved user experience for repository management
+
+## [5.9.12] - 2026-02-18
+
+### Added
+- feat(cli): new `claude-mpm gh` command for GitHub repository management
+  - Clone GitHub repositories with organization/template structure
+  - Initialize git submodules automatically
+  - Smart organization-based directory creation
+  - Support for both HTTPS and SSH cloning
+
+## [5.9.11] - 2026-02-19
+
+### Fixed
+- fix: resolve PR #303 test issues - clean test suite and fix bugs
+  - Moved 4 manual scripts from tests/ to tests/manual/ (removed test_ prefix)
+  - Removed 22 external library test files (referencing, jsonschema, psutil)
+  - Fixed FormatValidator forward reference bug causing import failure
+  - Test collection now succeeds: 7161 tests collected
+  - Root cause: PR #303 switched from `python -m pytest` to `uv run pytest`, exposing hidden issues
+  - Commit: 622deafac
+
+### Changed
+- refactor: remove deprecated google_workspace_server
+  - Moved google_workspace_server.py to archive/
+  - Commit: 8dcbc21f6
+
 ## [5.9.10] - 2026-02-18
 
 ### Security

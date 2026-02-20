@@ -183,7 +183,7 @@ class AgentsCommand(AgentCommand):
                 "deps-install": self._install_agent_dependencies,
                 "deps-list": self._list_agent_dependencies,
                 "deps-fix": self._fix_agent_dependencies,
-                "cleanup": lambda a: self._handle_cleanup_command(a),
+                "cleanup": self._handle_cleanup_command,
                 "cleanup-orphaned": self._cleanup_orphaned_agents,
                 # Local agent management commands
                 "create": self._create_local_agent,

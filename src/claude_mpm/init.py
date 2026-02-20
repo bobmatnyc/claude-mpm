@@ -86,27 +86,20 @@ class ProjectInitializer:
           - logs/
         """
         try:
-            # Find project root - always define project_root for consistent messaging
+            # Find project root
             if project_path:
                 project_root = project_path
                 self.project_dir = project_path / ".claude-mpm"
             else:
-                # Check for the user's original working directory from launch script
-                # The launch script sets CLAUDE_MPM_USER_PWD before changing to framework directory
+                # Use the directory where user launched from - that's the project root
                 user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
 
                 if user_pwd:
-                    # Use the original user working directory
                     project_root = Path(user_pwd)
-                    self.logger.debug(
-                        f"Using user working directory from CLAUDE_MPM_USER_PWD: {project_root}"
-                    )
+                    self.logger.debug(f"Using user launch directory: {project_root}")
                 else:
-                    # Fallback to current working directory (backward compatibility)
                     project_root = Path.cwd()
-                    self.logger.debug(
-                        f"CLAUDE_MPM_USER_PWD not set, using cwd: {project_root}"
-                    )
+                    self.logger.debug(f"Using current directory: {project_root}")
 
                 self.project_dir = project_root / ".claude-mpm"
 
@@ -147,12 +140,15 @@ class ProjectInitializer:
 
             # Print appropriate message to console for visibility during startup
             # BUT: Don't print to stdout when running MCP server (interferes with JSON-RPC)
-            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor)
-            is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
-            is_lightweight_command = any(
-                cmd in sys.argv
-                for cmd in ["oauth", "--version", "-v", "--help", "-h", "doctor"]
+            # ALSO: Skip output for lightweight commands (oauth, version, help, doctor, gh, etc.)
+            from claude_mpm.cli.command_config import (
+                is_lightweight_command as is_lightweight,
             )
+
+            is_mcp_mode = "mcp" in sys.argv and "start" in sys.argv
+            is_lightweight_command = (
+                is_lightweight(sys.argv[1]) if len(sys.argv) > 1 else False
+            ) or any(flag in sys.argv for flag in ["--version", "-v", "--help", "-h"])
 
             if not is_mcp_mode and not is_lightweight_command:
                 if directory_existed:
@@ -306,19 +302,6 @@ class ProjectInitializer:
                         self.logger.debug("Removed empty old subdirectory")
                 except Exception as e:
                     self.logger.debug(f"Could not remove old directory: {e}")
-
-    def _find_project_root(self) -> Optional[Path]:
-        """Find project root by looking for .git or other project markers."""
-        current = Path.cwd()
-        while current != current.parent:
-            if (current / ".git").exists():
-                return current
-            if (current / "pyproject.toml").exists():
-                return current
-            if (current / "setup.py").exists():
-                return current
-            current = current.parent
-        return None
 
     def _migrate_json_to_yaml(self, old_file: Path, new_file: Path):
         """Migrate configuration from JSON to YAML format.

@@ -580,3 +580,32 @@ class TestPathResolver:
 
         result = resolver.find_project_root(file_path)
         assert result == project_root
+
+    def test_find_project_root_with_explicit_marker(
+        self, resolver, tmp_path, monkeypatch
+    ):
+        """Test that .claude/project-root marker takes highest priority."""
+        # Create parent directory with .claude/project-root marker
+        parent_root = tmp_path / "repos"
+        parent_root.mkdir()
+        claude_dir = parent_root / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "project-root").touch()
+
+        # Create subdirectory with .git and settings.local.json
+        subdirectory = parent_root / "duetto"
+        subdirectory.mkdir()
+        (subdirectory / ".git").mkdir()
+        claude_subdir = subdirectory / ".claude"
+        claude_subdir.mkdir()
+        (claude_subdir / "settings.local.json").touch()
+
+        # Change to subdirectory
+        monkeypatch.chdir(subdirectory)
+
+        # Should find parent root due to .claude/project-root marker
+        result = resolver.find_project_root()
+        assert result == parent_root, (
+            f"Expected parent_root {parent_root}, but got {result}. "
+            "The .claude/project-root marker should take priority over .git"
+        )

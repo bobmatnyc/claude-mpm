@@ -14,8 +14,6 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from claude_mpm.config.paths import paths
-
 from ..constants import CLICommands
 from ..utils.progress import ProgressBar
 from .executor import ensure_run_attributes, execute_command
@@ -34,11 +32,11 @@ from .startup_display import display_startup_banner, should_show_banner
 from .utils import ensure_directories, setup_logging
 
 # Version resolution
+# CRITICAL: Don't import 'paths' here - it triggers UnifiedPathManager initialization
+# before setup_early_environment() can set CLAUDE_MPM_USER_PWD
 package_version_file = Path(__file__).parent.parent / "VERSION"
 if package_version_file.exists():
     __version__ = package_version_file.read_text().strip()
-elif paths.version_file.exists():
-    __version__ = paths.version_file.read_text().strip()
 else:
     try:
         from .. import __version__

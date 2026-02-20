@@ -1350,15 +1350,11 @@ class UnifiedMonitorServer:
             self.app.router.add_post("/api/git-history", git_history_handler)
 
             # Monitor page routes
-            self.app.router.add_get("/monitor", lambda r: monitor_page_handler(r))
-            self.app.router.add_get(
-                "/monitor/agents", lambda r: monitor_page_handler(r)
-            )
-            self.app.router.add_get("/monitor/tools", lambda r: monitor_page_handler(r))
-            self.app.router.add_get("/monitor/files", lambda r: monitor_page_handler(r))
-            self.app.router.add_get(
-                "/monitor/events", lambda r: monitor_page_handler(r)
-            )
+            self.app.router.add_get("/monitor", monitor_page_handler)
+            self.app.router.add_get("/monitor/agents", monitor_page_handler)
+            self.app.router.add_get("/monitor/tools", monitor_page_handler)
+            self.app.router.add_get("/monitor/files", monitor_page_handler)
+            self.app.router.add_get("/monitor/events", monitor_page_handler)
 
             # Serve Svelte _app assets (compiled JS/CSS)
             svelte_build_dir = static_dir / "svelte-build"

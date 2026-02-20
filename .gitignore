@@ -375,4 +375,6 @@ Formula/
 
 # gworkspace-mcp OAuth tokens (project-level)
 .gworkspace-mcp/
-/docs-local/
+
+# GitHub account marker (safe to commit)
+# .gh-account
