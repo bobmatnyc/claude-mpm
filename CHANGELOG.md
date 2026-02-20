@@ -10,6 +10,14 @@
 
 ### Tests
 
+## [5.9.15] - 2026-02-18
+
+### Fixed
+- fix: respect `.claude/project-root` marker files in project directory detection
+  - Critical bug where MPM ignored `.claude/project-root` markers
+  - Ensures proper project root identification for workspace management
+  - Prevents incorrect directory traversal behavior
+
 ## [5.9.14] - 2026-02-18
 
 ### Changed
