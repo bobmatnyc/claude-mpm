@@ -92,21 +92,30 @@ class ProjectInitializer:
                 self.project_dir = project_path / ".claude-mpm"
             else:
                 # Check for the user's original working directory from launch script
-                # The launch script sets CLAUDE_MPM_USER_PWD before changing to framework directory
                 user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
 
                 if user_pwd:
-                    # Use the original user working directory
-                    project_root = Path(user_pwd)
+                    # Start search from user's original directory
+                    start_dir = Path(user_pwd)
                     self.logger.debug(
-                        f"Using user working directory from CLAUDE_MPM_USER_PWD: {project_root}"
+                        f"Starting project search from CLAUDE_MPM_USER_PWD: {start_dir}"
                     )
                 else:
-                    # Fallback to current working directory (backward compatibility)
-                    project_root = Path.cwd()
+                    # Start from current working directory
+                    start_dir = Path.cwd()
+                    self.logger.debug(f"Starting project search from cwd: {start_dir}")
+
+                # Search upward for project root using markers
+                project_root = self._find_project_root_from(start_dir)
+
+                # If no markers found, use the starting directory
+                if not project_root:
+                    project_root = start_dir
                     self.logger.debug(
-                        f"CLAUDE_MPM_USER_PWD not set, using cwd: {project_root}"
+                        f"No project markers found, using: {project_root}"
                     )
+                else:
+                    self.logger.debug(f"Found project root at: {project_root}")
 
                 self.project_dir = project_root / ".claude-mpm"
 
@@ -310,34 +319,43 @@ class ProjectInitializer:
                 except Exception as e:
                     self.logger.debug(f"Could not remove old directory: {e}")
 
-    def _find_project_root(self) -> Optional[Path]:
-        """Find project root by looking for .claude/project-root marker, then .git or other markers.
+    def _find_project_root_from(self, start_dir: Path) -> Optional[Path]:
+        """Find project root starting from given directory.
 
         Priority order:
         1. .claude/project-root marker file (explicit user intent)
         2. .git directory
         3. pyproject.toml
         4. setup.py
+
+        Args:
+            start_dir: Directory to start searching from
+
+        Returns:
+            Path to project root if found, None otherwise
         """
-        current = Path.cwd()
-
         # First pass: Look for explicit .claude/project-root marker
-        check_dir = current
-        while check_dir != check_dir.parent:
-            if (check_dir / ".claude" / "project-root").exists():
-                self.logger.debug(f"Found explicit project-root marker at {check_dir}")
-                return check_dir
-            check_dir = check_dir.parent
-
-        # Second pass: Look for .git or other project markers
+        current = start_dir
         while current != current.parent:
-            if (current / ".git").exists():
-                return current
-            if (current / "pyproject.toml").exists():
-                return current
-            if (current / "setup.py").exists():
+            if (current / ".claude" / "project-root").exists():
+                self.logger.debug(f"Found explicit project-root marker at {current}")
                 return current
             current = current.parent
+
+        # Second pass: Look for .git or other project markers
+        current = start_dir
+        while current != current.parent:
+            if (current / ".git").exists():
+                self.logger.debug(f"Found .git directory at {current}")
+                return current
+            if (current / "pyproject.toml").exists():
+                self.logger.debug(f"Found pyproject.toml at {current}")
+                return current
+            if (current / "setup.py").exists():
+                self.logger.debug(f"Found setup.py at {current}")
+                return current
+            current = current.parent
+
         return None
 
     def _migrate_json_to_yaml(self, old_file: Path, new_file: Path):
