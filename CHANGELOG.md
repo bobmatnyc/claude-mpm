@@ -10,6 +10,16 @@
 
 ### Tests
 
+## [5.9.19] - 2026-02-19
+
+### Fixed
+- fix(cli): use shell PWD instead of Path.cwd() for launch directory (CRITICAL)
+  - Path.cwd() was already changed to subdirectory when Python starts
+  - Now uses shell's $PWD environment variable instead
+  - Removed 'paths' import from cli/__init__.py (triggered early initialization)
+  - Made UnifiedPathManager.project_root respect CLAUDE_MPM_USER_PWD
+  - Fixes issue where MPM used subdirectory instead of launch directory
+
 ## [5.9.18] - 2026-02-19
 
 ### Fixed
