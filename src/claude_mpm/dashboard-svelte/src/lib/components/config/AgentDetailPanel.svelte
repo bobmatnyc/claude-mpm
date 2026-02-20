@@ -50,8 +50,21 @@
 		return 'is_core' in a;
 	}
 
-	let agentName = $derived(
+	// Use agent_id for API calls (backend expects file-safe identifier)
+	// but fallback to name for backward compatibility
+	let agentApiIdentifier = $derived(
+		isDeployedAgent(agent)
+			? (agent.agent_id || agent.name)
+			: (agent as AvailableAgent).agent_id
+	);
+
+	// Keep display name separate for UI purposes
+	let agentDisplayName = $derived(
 		isDeployedAgent(agent) ? agent.name : (agent as AvailableAgent).name
+	);
+
+	let listDisplayName = $derived(
+		isDeployedAgent(agent) ? agent.name : ((agent as AvailableAgent).display_name || (agent as AvailableAgent).name)
 	);
 
 	// Immediate data from list-level prop
@@ -99,8 +112,8 @@
 
 	// Fetch detail whenever the agent changes
 	$effect(() => {
-		const name = agentName;
-		if (!name) return;
+		const identifier = agentApiIdentifier;
+		if (!identifier) return;
 
 		let cancelled = false;
 		loading = true;
@@ -108,7 +121,7 @@
 		is404 = false;
 		detailData = null;
 
-		fetchAgentDetail(name).then((data) => {
+		fetchAgentDetail(identifier).then((data) => {
 			if (cancelled) return;
 			detailData = data;
 			if (!data) {
@@ -160,7 +173,7 @@
 
 	// Handoff agents: filter out self-references
 	let filteredHandoffAgents = $derived(
-		(detailData?.handoff_agents ?? []).filter(ha => ha !== agentName)
+		(detailData?.handoff_agents ?? []).filter(ha => ha !== agentDisplayName)
 	);
 	let handoffCount = $derived(filteredHandoffAgents.length);
 
@@ -176,7 +189,7 @@
 	}
 
 	// Use best available data for display
-	let displayName = $derived(detailData?.name ?? agentName);
+	let displayName = $derived(detailData?.name ?? listDisplayName);
 	let displayDescription = $derived(detailData?.description ?? listDescription);
 	let displayVersion = $derived(detailData?.version ?? listVersion);
 	let displayColor = $derived(detailData?.color ?? listColor);
@@ -407,7 +420,7 @@
 		<div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
 			{#if isDeployed && !isCore && onUndeploy}
 				<button
-					onclick={() => onUndeploy?.(agentName)}
+					onclick={() => onUndeploy?.(agentApiIdentifier)}
 					class="w-full px-4 py-2 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors flex items-center justify-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,7 +437,7 @@
 				</div>
 			{:else if !isDeployed && onDeploy}
 				<button
-					onclick={() => onDeploy?.(agentName)}
+					onclick={() => onDeploy?.(agentApiIdentifier)}
 					class="w-full px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors flex items-center justify-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
