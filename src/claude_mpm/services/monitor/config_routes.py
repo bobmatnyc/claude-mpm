@@ -313,9 +313,19 @@ async def handle_agents_deployed(request: web.Request) -> web.Response:
             agents_data = agent_mgr.list_agents(location="project")
 
             # list_agents returns Dict[str, Dict[str, Any]]
-            agents_list = [
-                {"name": name, **details} for name, details in agents_data.items()
-            ]
+            # Extract human-readable name from frontmatter and add agent_id
+            agents_list = []
+            for agent_id, details in agents_data.items():
+                agent_entry = {
+                    "name": details.get(
+                        "name", agent_id
+                    ),  # Use frontmatter name, fallback to ID
+                    "agent_id": agent_id,  # File-based ID for backend operations
+                    **{
+                        k: v for k, v in details.items() if k != "name"
+                    },  # Avoid duplicate name field
+                }
+                agents_list.append(agent_entry)
 
             # Determine core agent names for flagging
             core_names = set()
@@ -388,8 +398,8 @@ async def handle_agents_available(request: web.Request) -> web.Response:
             deployed_names = agent_mgr.list_agent_names(location="project")
 
             for agent in agents:
-                agent_name = agent.get("name", agent.get("agent_id", ""))
-                agent["is_deployed"] = agent_name in deployed_names
+                agent_key = agent.get("agent_id", "")
+                agent["is_deployed"] = agent_key in deployed_names
 
             return agents
 

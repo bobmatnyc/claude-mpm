@@ -344,7 +344,7 @@ class AgentManager:
 
         Parses the in-memory raw_content string to extract fields that are
         present in YAML frontmatter but not stored in AgentMetadata:
-        description, category, color, tags, resource_tier, network_access,
+        name, description, category, color, tags, resource_tier, network_access,
         and skills_count.
 
         Args:
@@ -354,6 +354,7 @@ class AgentManager:
             Dict of enrichment fields with safe defaults for missing/malformed data.
         """
         defaults: Dict[str, Any] = {
+            "name": "",
             "description": "",
             "category": "",
             "color": "gray",
@@ -385,6 +386,7 @@ class AgentManager:
                 tags = []
 
             return {
+                "name": fm.get("name", ""),
                 "description": fm.get("description", ""),
                 "category": fm.get("category", ""),
                 "color": fm.get("color", "gray"),

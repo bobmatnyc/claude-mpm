@@ -12,6 +12,7 @@ export interface ProjectSummary {
 
 export interface DeployedAgent {
 	name: string;
+	agent_id?: string;  // File-based ID (added by backend)
 	location: string;
 	path: string;
 	version: string;
@@ -31,6 +32,7 @@ export interface DeployedAgent {
 export interface AvailableAgent {
 	agent_id: string;
 	name: string;
+	display_name: string;   // Human-readable name for UI rendering
 	description: string;
 	version: string;
 	source: string;

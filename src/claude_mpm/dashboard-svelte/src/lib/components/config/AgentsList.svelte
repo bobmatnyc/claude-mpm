@@ -50,10 +50,11 @@
 	let forceRedeployTarget = $state<string>('');
 
 	// Multi-field search function
-	function matchesSearch(item: { name: string; description?: string; tags?: string[]; category?: string }, query: string): boolean {
+	function matchesSearch(item: { name: string; display_name?: string; description?: string; tags?: string[]; category?: string }, query: string): boolean {
 		if (!query) return true;
 		const q = query.toLowerCase();
 		return item.name.toLowerCase().includes(q) ||
+			(item.display_name ?? '').toLowerCase().includes(q) ||
 			(item.description ?? '').toLowerCase().includes(q) ||
 			(item.tags ?? []).join(' ').toLowerCase().includes(q) ||
 			(item.category ?? '').toLowerCase().includes(q);
@@ -223,12 +224,12 @@
 	async function handleDeploy(agent: AvailableAgent) {
 		deployingAgents = new Set([...deployingAgents, agent.name]);
 		try {
-			await deployAgent(agent.name);
+			await deployAgent(agent.agent_id);
 			const sessions = await checkActiveSessions();
 			onSessionWarning?.(sessions.active);
 		} catch (e: any) {
 			if (e.status === 409) {
-				forceRedeployTarget = agent.name;
+				forceRedeployTarget = agent.agent_id;
 				showForceRedeploy = true;
 			}
 		} finally {
@@ -276,10 +277,10 @@
 	}
 
 	async function handleDeployCollection() {
-		const names = availableNotDeployed.map(a => a.name);
-		if (names.length === 0) return;
+		const agentIds = availableNotDeployed.map(a => a.agent_id);
+		if (agentIds.length === 0) return;
 		try {
-			await batchDeployAgents(names);
+			await batchDeployAgents(agentIds);
 			const sessions = await checkActiveSessions();
 			onSessionWarning?.(sessions.active);
 		} catch {
@@ -388,7 +389,7 @@
 						</div>
 					{:else}
 						<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
-							{#each filteredDeployed as agent (agent.name)}
+							{#each filteredDeployed as agent (`deployed-${agent.agent_id || agent.name}`)}
 								{@const isUndeploying = undeployingAgents.has(agent.name)}
 								{@const availVersion = getAvailableVersion(agent.name)}
 								<div
@@ -537,7 +538,7 @@
 								</div>
 							{/if}
 							<div class="divide-y divide-slate-100 dark:divide-slate-700/50">
-								{#each group.agents as agent (agent.agent_id || agent.name)}
+								{#each group.agents as agent (`available-${agent.agent_id || agent.name}`)}
 									{@const isDeploying = deployingAgents.has(agent.name)}
 									<div
 										class="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm transition-colors
@@ -551,7 +552,7 @@
 										>
 											<div class="flex items-center gap-2">
 												<span class="font-medium text-slate-900 dark:text-slate-100 truncate">
-													<HighlightedText text={agent.name} query={searchQuery} />
+													<HighlightedText text={agent.display_name || agent.name} query={searchQuery} />
 												</span>
 												{#if agent.is_deployed}
 													<svg class="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

@@ -757,10 +757,11 @@ class GitSourceSyncService:
         # Fallback to known agent list if API fails
         logger.debug("Using fallback agent list")
         return [
-            "research.md",
+            "research-agent.md",
             "engineer.md",
-            "qa.md",
-            "documentation.md",
+            "qa-agent.md",
+            "documentation-agent.md",
+            "web-qa-agent.md",
             "security.md",
             "ops.md",
             "ticketing.md",

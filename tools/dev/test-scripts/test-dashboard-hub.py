@@ -71,10 +71,10 @@ def test_dashboard_hub():
 
     # Import and start the server
     try:
-        from claude_mpm.services.monitor.server import MonitorServer
+        from claude_mpm.services.monitor.server import UnifiedMonitorServer
 
-        server = MonitorServer(port=8765)
-        server.start_async()
+        server = UnifiedMonitorServer(port=8765)
+        server.start()
         print("✅ Monitor server started on port 8765")
 
         # Give server time to start
@@ -137,7 +137,7 @@ def test_dashboard_hub():
         print("\n✅ Monitor server stopped")
 
     except ImportError as e:
-        print(f"⚠️  Could not import MonitorServer: {e}")
+        print(f"⚠️  Could not import UnifiedMonitorServer: {e}")
         print("   Testing file structure only...")
     except Exception as e:
         print(f"❌ Error during server test: {e}")
