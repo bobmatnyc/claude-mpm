@@ -86,38 +86,20 @@ class ProjectInitializer:
           - logs/
         """
         try:
-            # Find project root - always define project_root for consistent messaging
+            # Find project root
             if project_path:
                 project_root = project_path
                 self.project_dir = project_path / ".claude-mpm"
             else:
-                # Get the directory where user launched from
+                # Use the directory where user launched from - that's the project root
                 user_pwd = os.environ.get("CLAUDE_MPM_USER_PWD")
 
                 if user_pwd:
-                    start_dir = Path(user_pwd)
-                    self.logger.debug(f"User launched from: {start_dir}")
+                    project_root = Path(user_pwd)
+                    self.logger.debug(f"Using user launch directory: {project_root}")
                 else:
-                    start_dir = Path.cwd()
-                    self.logger.debug(f"Using cwd: {start_dir}")
-
-                # Check if there's an explicit .claude/project-root marker in a parent directory
-                # This is the ONLY reason to use a different directory than where user launched
-                parent_with_marker = self._find_parent_with_project_root_marker(
-                    start_dir
-                )
-
-                if parent_with_marker:
-                    project_root = parent_with_marker
-                    self.logger.debug(
-                        f"Found explicit .claude/project-root marker at: {project_root}"
-                    )
-                else:
-                    # Use the directory where user launched - respect their choice!
-                    project_root = start_dir
-                    self.logger.debug(
-                        f"Using launch directory as project root: {project_root}"
-                    )
+                    project_root = Path.cwd()
+                    self.logger.debug(f"Using current directory: {project_root}")
 
                 self.project_dir = project_root / ".claude-mpm"
 
@@ -320,28 +302,6 @@ class ProjectInitializer:
                         self.logger.debug("Removed empty old subdirectory")
                 except Exception as e:
                     self.logger.debug(f"Could not remove old directory: {e}")
-
-    def _find_parent_with_project_root_marker(self, start_dir: Path) -> Optional[Path]:
-        """Look ONLY for explicit .claude/project-root marker in parent directories.
-
-        This is the only reason to use a different directory than where user launched.
-        Returns None if no marker found (meaning: use start_dir).
-
-        Args:
-            start_dir: Directory to start searching from
-
-        Returns:
-            Path to directory containing .claude/project-root marker, or None
-        """
-        current = start_dir.parent  # Start from parent (not current dir)
-
-        while current != current.parent:
-            if (current / ".claude" / "project-root").exists():
-                self.logger.debug(f"Found .claude/project-root marker at: {current}")
-                return current
-            current = current.parent
-
-        return None
 
     def _migrate_json_to_yaml(self, old_file: Path, new_file: Path):
         """Migrate configuration from JSON to YAML format.

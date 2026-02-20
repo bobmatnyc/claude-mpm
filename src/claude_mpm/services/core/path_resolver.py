@@ -14,7 +14,7 @@ The service consolidates path management logic while maintaining backward compat
 """
 
 import os
-import subprocess
+import subprocess  # nosec B404
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -136,12 +136,7 @@ class PathResolver(IPathResolver):
         """
         Find the project root directory.
 
-        Looks for .claude/project-root marker first (explicit user intent), then falls back
-        to common project indicators like .git, pyproject.toml, package.json, etc.
-
-        Priority order:
-        1. .claude/project-root marker file (explicit user intent)
-        2. Common project indicators (.git, pyproject.toml, etc.)
+        Looks for common project indicators like .git, pyproject.toml, package.json, etc.
 
         Args:
             start_path: Starting path for search (defaults to cwd)
@@ -158,15 +153,7 @@ class PathResolver(IPathResolver):
         if start_path.is_file():
             start_path = start_path.parent
 
-        # First pass: Look for explicit .claude/project-root marker
-        check_dir = start_path
-        while check_dir != check_dir.parent:
-            if (check_dir / ".claude" / "project-root").exists():
-                self.logger.debug(f"Found explicit project-root marker at {check_dir}")
-                return check_dir
-            check_dir = check_dir.parent
-
-        # Second pass: Common project root indicators
+        # Look for common project root indicators
         root_indicators = [
             ".git",
             "pyproject.toml",
@@ -474,7 +461,7 @@ class PathResolver(IPathResolver):
     def _detect_npm_global(self) -> Optional[Path]:
         """Detect npm global installation path."""
         try:
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603 B607
                 ["npm", "root", "-g"],
                 capture_output=True,
                 text=True,
