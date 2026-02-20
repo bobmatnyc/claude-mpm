@@ -10,6 +10,15 @@
 
 ### Tests
 
+## [5.9.18] - 2026-02-19
+
+### Fixed
+- fix(cli): capture launch directory before any code changes cwd (CRITICAL)
+  - CLAUDE_MPM_USER_PWD was never being set, causing project root detection to fail
+  - Now captures user's starting directory in setup_early_environment()
+  - Ensures initialize_project_directory() uses correct launch directory
+  - Fixes issue where MPM used subdirectory instead of launch directory
+
 ## [5.9.17] - 2026-02-19
 
 ### Fixed
