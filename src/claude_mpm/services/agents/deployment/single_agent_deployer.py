@@ -327,11 +327,11 @@ class SingleAgentDeployer:
 
         # 3. Check project agents
         if working_directory:
-            project_agent = working_directory / ".claude-mpm" / "agents" / f"{agent_name}.md"
+            project_agent = (
+                working_directory / ".claude-mpm" / "agents" / f"{agent_name}.md"
+            )
             if project_agent.exists():
-                self.logger.debug(
-                    f"Found agent '{agent_name}' in project agents"
-                )
+                self.logger.debug(f"Found agent '{agent_name}' in project agents")
                 return project_agent
 
         # 4. Check user agents (deprecated but still supported)
