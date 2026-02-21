@@ -22,6 +22,7 @@ from typing import Dict, Optional, Tuple
 
 from ..core.logging_utils import get_logger
 from ..services.communication.message_service import MessageService
+from ..services.communication.task_injector import TaskInjector
 
 logger = get_logger(__name__)
 
@@ -248,6 +249,32 @@ def message_check_hook() -> Optional[str]:
         if not unread:
             return None
 
+        # Task injection (if enabled)
+        injected_count = 0
+        if config.get("auto_create_tasks", False):
+            injector = TaskInjector()
+            task_priority_filter = set(
+                config.get("notify_priority", ["high", "urgent"])
+            )
+
+            for msg in unread:
+                # Skip if task already exists
+                if injector.task_exists(msg.id):
+                    continue
+
+                # Check priority filter
+                if msg.priority in task_priority_filter:
+                    injector.inject_message_task(
+                        message_id=msg.id,
+                        from_project=msg.from_project,
+                        subject=msg.subject,
+                        body=msg.body,
+                        priority=msg.priority,
+                        from_agent=msg.from_agent,
+                        message_type=msg.type,
+                    )
+                    injected_count += 1
+
         # Filter by priority if configured
         notify_priorities = set(config["notify_priority"])
         high_priority = [msg for msg in unread if msg.priority in notify_priorities]
@@ -309,10 +336,11 @@ def message_check_hook() -> Optional[str]:
             "- `reply_to_message(message_id, body)` - Send reply\n"
         )
 
-        if config["auto_create_tasks"]:
+        if injected_count > 0:
             notification_lines.append(
-                "\n**Note:** Task messages will auto-create tasks for target agents.\n"
+                f"\n**✅ {injected_count} message(s) added to task list.**\n"
             )
+            notification_lines.append("Check with `TaskList` or `/tasks` command.\n")
 
         return "".join(notification_lines)
 

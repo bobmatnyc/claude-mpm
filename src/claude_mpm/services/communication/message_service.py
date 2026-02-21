@@ -5,12 +5,13 @@ WHY: Enables asynchronous communication between Claude MPM instances across
 different projects, allowing coordinated work without manual intervention.
 
 DESIGN:
-- Markdown files with YAML frontmatter for human readability
-- File-based inbox/outbox for simplicity and reliability
-- Project-scoped messages with absolute paths
+- SQLite database for persistent message storage
+- Separate databases for inbox (received) and outbox (sent)
+- Global session registry for peer discovery
 - Status tracking (unread, read, archived)
 """
 
+import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -18,6 +19,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import yaml
+
+from .messaging_db import MessagingDatabase
 
 
 @dataclass
@@ -135,14 +138,20 @@ class MessageService:
             project_root: Root directory of the current project
         """
         self.project_root = project_root
-        self.inbox_dir = project_root / ".claude-mpm" / "inbox"
-        self.outbox_dir = project_root / ".claude-mpm" / "outbox"
-        self.archive_dir = project_root / ".claude-mpm" / "inbox" / ".archive"
 
-        # Ensure directories exist
-        self.inbox_dir.mkdir(parents=True, exist_ok=True)
-        self.outbox_dir.mkdir(parents=True, exist_ok=True)
-        self.archive_dir.mkdir(parents=True, exist_ok=True)
+        # Initialize databases
+        self.messaging_db_path = project_root / ".claude-mpm" / "messaging.db"
+        self.messaging_db = MessagingDatabase(self.messaging_db_path)
+
+        # Global session registry
+        self.global_registry_path = Path.home() / ".claude-mpm" / "session-registry.db"
+        self.global_registry = MessagingDatabase(self.global_registry_path)
+
+        # Register current session
+        self.session_id = f"session-{uuid.uuid4().hex[:8]}"
+        self.global_registry.register_session(
+            self.session_id, str(self.project_root), pid=os.getpid()
+        )
 
     def send_message(
         self,
@@ -195,34 +204,48 @@ class MessageService:
             metadata=metadata or {},
         )
 
-        # Save to outbox
-        outbox_file = self.outbox_dir / f"{message_id}.md"
-        outbox_file.write_text(message.to_markdown())
-
-        # Deliver to target project's inbox
-        target_project = Path(to_project)
-        target_inbox = target_project / ".claude-mpm" / "inbox"
-        target_inbox.mkdir(parents=True, exist_ok=True)
-
-        inbox_message = Message(
-            id=message_id,
-            from_project=str(self.project_root),
-            from_agent=from_agent,
-            to_project=to_project,
-            to_agent=to_agent,
-            type=message_type,
-            priority=priority,
-            created_at=message.created_at,
-            status="unread",
-            reply_to=None,
-            subject=subject,
-            body=body,
-            attachments=attachments or [],
-            metadata=metadata or {},
+        # Save to sender's outbox database
+        self.messaging_db.insert_message(
+            {
+                "id": message_id,
+                "from_project": str(self.project_root),
+                "from_agent": from_agent,
+                "to_project": to_project,
+                "to_agent": to_agent,
+                "type": message_type,
+                "priority": priority,
+                "subject": subject,
+                "body": body,
+                "status": "sent",
+                "created_at": message.created_at.isoformat(),
+                "reply_to": None,
+                "attachments": attachments or [],
+                "metadata": metadata or {},
+            }
         )
 
-        inbox_file = target_inbox / f"{message_id}.md"
-        inbox_file.write_text(inbox_message.to_markdown())
+        # Deliver to target project's inbox database
+        target_db_path = Path(to_project) / ".claude-mpm" / "messaging.db"
+        target_db = MessagingDatabase(target_db_path)
+
+        target_db.insert_message(
+            {
+                "id": message_id,
+                "from_project": str(self.project_root),
+                "from_agent": from_agent,
+                "to_project": to_project,
+                "to_agent": to_agent,
+                "type": message_type,
+                "priority": priority,
+                "subject": subject,
+                "body": body,
+                "status": "unread",
+                "created_at": message.created_at.isoformat(),
+                "reply_to": None,
+                "attachments": attachments or [],
+                "metadata": metadata or {},
+            }
+        )
 
         return message
 
@@ -239,22 +262,32 @@ class MessageService:
         Returns:
             List of messages
         """
+        # Query from database
+        if agent:
+            db_messages = self.messaging_db.get_messages_for_agent(agent, status)
+        else:
+            db_messages = self.messaging_db.list_messages(status)
+
+        # Convert to Message objects
         messages = []
-
-        # Get messages from inbox
-        for msg_file in sorted(self.inbox_dir.glob("*.md")):
-            try:
-                message = Message.from_markdown(msg_file.read_text())
-
-                # Apply filters
-                if status and message.status != status:
-                    continue
-                if agent and message.to_agent != agent:
-                    continue
-
-                messages.append(message)
-            except Exception as e:
-                print(f"Warning: Failed to parse message {msg_file}: {e}")
+        for msg_dict in db_messages:
+            message = Message(
+                id=msg_dict["id"],
+                from_project=msg_dict["from_project"],
+                from_agent=msg_dict["from_agent"],
+                to_project=msg_dict["to_project"],
+                to_agent=msg_dict["to_agent"],
+                type=msg_dict["type"],
+                priority=msg_dict["priority"],
+                created_at=datetime.fromisoformat(msg_dict["created_at"]),
+                status=msg_dict["status"],
+                reply_to=msg_dict.get("reply_to"),
+                subject=msg_dict["subject"],
+                body=msg_dict["body"],
+                attachments=msg_dict.get("attachments", []),
+                metadata=msg_dict.get("metadata", {}),
+            )
+            messages.append(message)
 
         return messages
 
@@ -268,23 +301,36 @@ class MessageService:
         Returns:
             Message object or None if not found
         """
-        msg_file = self.inbox_dir / f"{message_id}.md"
-
-        if not msg_file.exists():
+        # Get message from database
+        msg_dict = self.messaging_db.get_message(message_id)
+        if not msg_dict:
             return None
 
-        message = Message.from_markdown(msg_file.read_text())
-
         # Mark as read
-        if message.status == "unread":
-            message.status = "read"
-            msg_file.write_text(message.to_markdown())
+        if msg_dict["status"] == "unread":
+            self.messaging_db.update_message_status(message_id, "read")
 
-        return message
+        # Convert to Message object and return
+        return Message(
+            id=msg_dict["id"],
+            from_project=msg_dict["from_project"],
+            from_agent=msg_dict["from_agent"],
+            to_project=msg_dict["to_project"],
+            to_agent=msg_dict["to_agent"],
+            type=msg_dict["type"],
+            priority=msg_dict["priority"],
+            created_at=datetime.fromisoformat(msg_dict["created_at"]),
+            status="read",  # Now marked as read
+            reply_to=msg_dict.get("reply_to"),
+            subject=msg_dict["subject"],
+            body=msg_dict["body"],
+            attachments=msg_dict.get("attachments", []),
+            metadata=msg_dict.get("metadata", {}),
+        )
 
     def archive_message(self, message_id: str) -> bool:
         """
-        Archive a message (move to archive).
+        Archive a message (update status to archived).
 
         Args:
             message_id: Message ID to archive
@@ -292,16 +338,7 @@ class MessageService:
         Returns:
             True if archived, False if not found
         """
-        msg_file = self.inbox_dir / f"{message_id}.md"
-
-        if not msg_file.exists():
-            return False
-
-        # Move to archive
-        archive_file = self.archive_dir / f"{message_id}.md"
-        msg_file.rename(archive_file)
-
-        return True
+        return self.messaging_db.update_message_status(message_id, "archived")
 
     def get_unread_count(self, agent: Optional[str] = None) -> int:
         """
@@ -313,8 +350,7 @@ class MessageService:
         Returns:
             Number of unread messages
         """
-        unread = self.list_messages(status="unread", agent=agent)
-        return len(unread)
+        return self.messaging_db.get_unread_count(to_agent=agent)
 
     def reply_to_message(
         self,
@@ -341,12 +377,70 @@ class MessageService:
             return None
 
         # Send reply to original sender
+        # Update original message with reply reference
+        # This is optional but helpful for tracking conversation threads
         return self.send_message(
             to_project=original.from_project,
             to_agent=original.from_agent,
             message_type="reply",
-            subject=f"Re: {original.subject}",
+            subject=f"Re: {original.subject}"
+            if not subject.startswith("Re:")
+            else subject,
             body=body,
             from_agent=from_agent,
             metadata={"reply_to": original_message_id},
         )
+
+    def cleanup_old_messages(self, days_to_keep: int = 30) -> int:
+        """
+        Clean up old messages from the database.
+
+        Args:
+            days_to_keep: Number of days to keep messages
+
+        Returns:
+            Number of messages deleted
+        """
+        from datetime import timedelta
+
+        cutoff_date = (
+            datetime.now(timezone.utc) - timedelta(days=days_to_keep)
+        ).isoformat()
+
+        with self.messaging_db.get_connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM messages WHERE created_at < ? AND status = 'archived'",
+                (cutoff_date,),
+            )
+            return cursor.rowcount
+
+    def get_high_priority_messages(self) -> List[Message]:
+        """
+        Get high priority unread messages.
+
+        Returns:
+            List of high priority messages
+        """
+        db_messages = self.messaging_db.get_high_priority_messages()
+
+        messages = []
+        for msg_dict in db_messages:
+            message = Message(
+                id=msg_dict["id"],
+                from_project=msg_dict["from_project"],
+                from_agent=msg_dict["from_agent"],
+                to_project=msg_dict["to_project"],
+                to_agent=msg_dict["to_agent"],
+                type=msg_dict["type"],
+                priority=msg_dict["priority"],
+                created_at=datetime.fromisoformat(msg_dict["created_at"]),
+                status=msg_dict["status"],
+                reply_to=msg_dict.get("reply_to"),
+                subject=msg_dict["subject"],
+                body=msg_dict["body"],
+                attachments=msg_dict.get("attachments", []),
+                metadata=msg_dict.get("metadata", {}),
+            )
+            messages.append(message)
+
+        return messages
