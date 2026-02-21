@@ -277,12 +277,11 @@ class SkillsService(LoggerMixin):
 
         for skill in skills:
             try:
-                # Create category directory in deployment location
-                target_category_dir = self.deployed_skills_path / skill["category"]
-                target_category_dir.mkdir(parents=True, exist_ok=True)
-
-                # Target path for this skill
-                target_dir = target_category_dir / skill["name"]
+                # Deploy skills flat (no category prefix) to match Claude Code's
+                # skill scanning pattern: .claude/skills/*/SKILL.md
+                # Claude Code does NOT scan nested subdirectories like
+                # .claude/skills/pm/mpm-message/SKILL.md
+                target_dir = self.deployed_skills_path / skill["name"]
 
                 # SECURITY: Validate path is within deployed_skills_path
                 if not self._validate_safe_path(self.deployed_skills_path, target_dir):
