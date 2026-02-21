@@ -137,73 +137,77 @@ class TestSkillDeploymentExecution:
         """Test successful skill deployment."""
         recommended_skills = ["python-testing", "react", "systematic-debugging"]
 
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            mock_deployer.deploy_skills.return_value = {
-                "deployed": ["python-testing", "react", "systematic-debugging"],
-                "errors": [],
-            }
+        mock_deployer = Mock()
+        mock_deployer.deploy_skills.return_value = {
+            "deployed": ["python-testing", "react", "systematic-debugging"],
+            "errors": [],
+        }
+        command._skills_deployer = mock_deployer
 
-            result = command._deploy_skills(recommended_skills)
+        result = command._deploy_skills(recommended_skills)
 
-            # Verify deployment called correctly
-            mock_deployer.deploy_skills.assert_called_once_with(
-                skill_names=recommended_skills, force=False
-            )
+        # Verify deployment called correctly
+        mock_deployer.deploy_skills.assert_called_once_with(
+            skill_names=recommended_skills, force=False
+        )
 
-            # Verify successful result
-            assert result["deployed"] == recommended_skills
-            assert result["errors"] == []
+        # Verify successful result
+        assert result["deployed"] == recommended_skills
+        assert result["errors"] == []
 
     def test_deploy_skills_partial_failure(self, command):
         """Test skill deployment with partial failures."""
         recommended_skills = ["python-testing", "invalid-skill", "react"]
 
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            mock_deployer.deploy_skills.return_value = {
-                "deployed": ["python-testing", "react"],
-                "errors": ["Failed to deploy invalid-skill: skill not found"],
-            }
+        mock_deployer = Mock()
+        mock_deployer.deploy_skills.return_value = {
+            "deployed": ["python-testing", "react"],
+            "errors": ["Failed to deploy invalid-skill: skill not found"],
+        }
+        command._skills_deployer = mock_deployer
 
-            result = command._deploy_skills(recommended_skills)
+        result = command._deploy_skills(recommended_skills)
 
-            # Verify partial success handled
-            assert result["deployed"] == ["python-testing", "react"]
-            assert len(result["errors"]) == 1
-            assert "invalid-skill" in result["errors"][0]
+        # Verify partial success handled
+        assert result["deployed"] == ["python-testing", "react"]
+        assert len(result["errors"]) == 1
+        assert "invalid-skill" in result["errors"][0]
 
     def test_deploy_skills_complete_failure(self, command):
         """Test skill deployment complete failure."""
         recommended_skills = ["skill1", "skill2"]
 
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            mock_deployer.deploy_skills.side_effect = Exception(
-                "Deployment service unavailable"
-            )
+        mock_deployer = Mock()
+        mock_deployer.deploy_skills.side_effect = Exception(
+            "Deployment service unavailable"
+        )
+        command._skills_deployer = mock_deployer
 
-            result = command._deploy_skills(recommended_skills)
+        result = command._deploy_skills(recommended_skills)
 
-            # Verify exception handled gracefully
-            assert result["deployed"] == []
-            assert len(result["errors"]) == 1
-            assert "Deployment service unavailable" in result["errors"][0]
+        # Verify exception handled gracefully
+        assert result["deployed"] == []
+        assert len(result["errors"]) == 1
+        assert "Deployment service unavailable" in result["errors"][0]
 
     def test_deploy_skills_with_force_parameter(self, command):
         """Test skill deployment respects force parameter."""
         recommended_skills = ["python-testing"]
 
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            mock_deployer.deploy_skills.return_value = {
-                "deployed": ["python-testing"],
-                "errors": [],
-            }
+        mock_deployer = Mock()
+        mock_deployer.deploy_skills.return_value = {
+            "deployed": ["python-testing"],
+            "errors": [],
+        }
+        command._skills_deployer = mock_deployer
 
-            # Current implementation uses force=False
-            result = command._deploy_skills(recommended_skills)
+        # Current implementation uses force=False
+        result = command._deploy_skills(recommended_skills)
 
-            mock_deployer.deploy_skills.assert_called_once_with(
-                skill_names=recommended_skills,
-                force=False,  # Verify force parameter
-            )
+        mock_deployer.deploy_skills.assert_called_once_with(
+            skill_names=recommended_skills,
+            force=False,  # Verify force parameter
+        )
 
 
 class TestCrossScopeSkillDeployment:
@@ -219,19 +223,20 @@ class TestCrossScopeSkillDeployment:
         project_path.mkdir()
 
         # Mock skills deployer to verify scope handling
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            mock_deployer.deploy_skills.return_value = {
-                "deployed": ["python-testing"],
-                "errors": [],
-            }
+        mock_deployer = Mock()
+        mock_deployer.deploy_skills.return_value = {
+            "deployed": ["python-testing"],
+            "errors": [],
+        }
+        command._skills_deployer = mock_deployer
 
-            # Skills deployment should use project scope by default
-            recommended_skills = ["python-testing"]
-            result = command._deploy_skills(recommended_skills)
+        # Skills deployment should use project scope by default
+        recommended_skills = ["python-testing"]
+        result = command._deploy_skills(recommended_skills)
 
-            # Verify deployment occurred (scope handling is in SkillsDeployerService)
-            mock_deployer.deploy_skills.assert_called_once()
-            assert result["deployed"] == ["python-testing"]
+        # Verify deployment occurred (scope handling is in SkillsDeployerService)
+        mock_deployer.deploy_skills.assert_called_once()
+        assert result["deployed"] == ["python-testing"]
 
     def test_user_scope_skill_deployment_fallback(self, command, tmp_path):
         """Test skill deployment falls back to USER scope when PROJECT fails."""
@@ -240,18 +245,19 @@ class TestCrossScopeSkillDeployment:
         project_path = tmp_path / "project"
         project_path.mkdir()
 
-        with patch.object(command, "skills_deployer") as mock_deployer:
-            # Simulate PROJECT scope failure, USER scope success
-            mock_deployer.deploy_skills.return_value = {
-                "deployed": ["python-testing"],
-                "errors": [],
-                "scope_used": "user",  # Hypothetical field
-            }
+        mock_deployer = Mock()
+        # Simulate PROJECT scope failure, USER scope success
+        mock_deployer.deploy_skills.return_value = {
+            "deployed": ["python-testing"],
+            "errors": [],
+            "scope_used": "user",  # Hypothetical field
+        }
+        command._skills_deployer = mock_deployer
 
-            result = command._deploy_skills(["python-testing"])
+        result = command._deploy_skills(["python-testing"])
 
-            # Verify deployment succeeded with fallback
-            assert result["deployed"] == ["python-testing"]
+        # Verify deployment succeeded with fallback
+        assert result["deployed"] == ["python-testing"]
 
 
 class TestFullWorkflowSkillIntegration:
@@ -310,11 +316,10 @@ class TestFullWorkflowSkillIntegration:
             skills_only=False,
         )
 
-        with patch.object(
-            command, "auto_config_manager", mock_services["auto_config"]
-        ), patch.object(
-            command, "skills_deployer", mock_services["skills_deployer"]
-        ), patch(
+        command._auto_config_manager = mock_services["auto_config"]
+        command._skills_deployer = mock_services["skills_deployer"]
+
+        with patch(
             "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
             {"python-engineer": ["python-testing", "systematic-debugging"]},
         ):
@@ -347,15 +352,15 @@ class TestFullWorkflowSkillIntegration:
             skills_only=False,
         )
 
-        with patch.object(
-            command, "auto_config_manager", mock_services["auto_config"]
-        ), patch.object(command, "skills_deployer", mock_services["skills_deployer"]):
-            result = command.run(args)
+        command._auto_config_manager = mock_services["auto_config"]
+        command._skills_deployer = mock_services["skills_deployer"]
 
-            # Verify agents deployed but skills skipped
-            assert result.success
-            mock_services["auto_config"].auto_configure.assert_called_once()
-            mock_services["skills_deployer"].deploy_skills.assert_not_called()
+        result = command.run(args)
+
+        # Verify agents deployed but skills skipped
+        assert result.success
+        mock_services["auto_config"].auto_configure.assert_called_once()
+        mock_services["skills_deployer"].deploy_skills.assert_not_called()
 
     def test_full_workflow_skills_only(self, command, tmp_path, mock_services):
         """Test full workflow with skills_only flag skips agent deployment."""
@@ -373,11 +378,10 @@ class TestFullWorkflowSkillIntegration:
         )
 
         # For skills_only, we still need agent preview to determine skill recommendations
-        with patch.object(
-            command, "auto_config_manager", mock_services["auto_config"]
-        ), patch.object(
-            command, "skills_deployer", mock_services["skills_deployer"]
-        ), patch(
+        command._auto_config_manager = mock_services["auto_config"]
+        command._skills_deployer = mock_services["skills_deployer"]
+
+        with patch(
             "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
             {"python-engineer": ["python-testing"]},
         ):
@@ -411,11 +415,10 @@ class TestFullWorkflowSkillIntegration:
             skills_only=False,
         )
 
-        with patch.object(
-            command, "auto_config_manager", mock_services["auto_config"]
-        ), patch.object(
-            command, "skills_deployer", mock_services["skills_deployer"]
-        ), patch(
+        command._auto_config_manager = mock_services["auto_config"]
+        command._skills_deployer = mock_services["skills_deployer"]
+
+        with patch(
             "claude_mpm.cli.interactive.skills_wizard.AGENT_SKILL_MAPPING",
             {"python-engineer": ["python-testing"]},
         ):

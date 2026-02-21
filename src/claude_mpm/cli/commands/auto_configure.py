@@ -251,9 +251,9 @@ class AutoConfigureCommand(BaseCommand):
         configure_skills: bool = True,
     ) -> CommandResult:
         """Run configuration preview without deploying."""
-        # Get agent preview
+        # Get agent preview (needed for both agent deployment AND skill recommendations)
         agent_preview = None
-        if configure_agents:
+        if configure_agents or configure_skills:
             if self.console and not json_output:
                 with self.console.status("[bold green]Analyzing project toolchain..."):
                     agent_preview = self.auto_config_manager.preview_configuration(
@@ -309,9 +309,9 @@ class AutoConfigureCommand(BaseCommand):
         configure_skills: bool = True,
     ) -> CommandResult:
         """Run full auto-configuration with deployment."""
-        # Get agent preview
+        # Get agent preview (needed for both agent deployment AND skill recommendations)
         agent_preview = None
-        if configure_agents:
+        if configure_agents or configure_skills:
             if self.console and not json_output:
                 with self.console.status("[bold green]Analyzing project toolchain..."):
                     agent_preview = self.auto_config_manager.preview_configuration(
