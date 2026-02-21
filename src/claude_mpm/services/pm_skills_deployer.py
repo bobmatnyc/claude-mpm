@@ -81,6 +81,7 @@ RECOMMENDED_PM_SKILLS = [
     "mpm-config",
     "mpm-ticket-view",
     "mpm-postmortem",
+    "mpm-message",
 ]
 
 # Tier 3: Optional skills (deployed with full install)
