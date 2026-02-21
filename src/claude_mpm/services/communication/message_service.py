@@ -211,25 +211,29 @@ class MessageService:
             metadata=metadata or {},
         )
 
-        # Save to sender's outbox database
-        self.messaging_db.insert_message(
-            {
-                "id": message_id,
-                "from_project": str(self.project_root),
-                "from_agent": from_agent,
-                "to_project": to_project,
-                "to_agent": to_agent,
-                "type": message_type,
-                "priority": priority,
-                "subject": subject,
-                "body": body,
-                "status": "sent",
-                "created_at": message.created_at.isoformat(),
-                "reply_to": None,
-                "attachments": attachments or [],
-                "metadata": metadata or {},
-            }
-        )
+        # Check if sending to self (same project)
+        is_self_message = Path(to_project).resolve() == self.project_root.resolve()
+
+        if not is_self_message:
+            # Save to sender's outbox database (skip for self-messages)
+            self.messaging_db.insert_message(
+                {
+                    "id": message_id,
+                    "from_project": str(self.project_root),
+                    "from_agent": from_agent,
+                    "to_project": to_project,
+                    "to_agent": to_agent,
+                    "type": message_type,
+                    "priority": priority,
+                    "subject": subject,
+                    "body": body,
+                    "status": "sent",
+                    "created_at": message.created_at.isoformat(),
+                    "reply_to": None,
+                    "attachments": attachments or [],
+                    "metadata": metadata or {},
+                }
+            )
 
         # Deliver to target project's inbox database
         target_db_path = Path(to_project) / ".claude-mpm" / "messaging.db"
