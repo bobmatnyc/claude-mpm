@@ -5,13 +5,22 @@ triggers:
   - send message to
   - notify other project
   - cross-project communication
-version: 1.0.0
+version: 2.0.0
 author: Claude MPM Team
 ---
 
 # Cross-Project Messaging
 
-Send asynchronous messages to other Claude MPM instances running in different projects.
+Send asynchronous messages to other Claude MPM instances running in different projects. Messages are stored in SQLite databases and high-priority messages are automatically injected as tasks into Claude Code's native task system.
+
+## How It Works
+
+1. **Send**: You send a message to another project using `/mpm-message`
+2. **Store**: Message is written to the target project's SQLite inbox (`.claude-mpm/messaging.db`)
+3. **Detect**: Target project's message check hook detects unread messages periodically
+4. **Inject**: High-priority messages are injected as tasks to `~/.claude/tasks/` (Claude Code native)
+5. **Act**: PM sees the task in `TaskList` and processes it like any other task
+6. **Reply**: PM sends reply back to the originating project
 
 ## Usage
 
@@ -38,30 +47,44 @@ claude-mpm message send <project-path> \
 
 ## Message Types
 
-| Type | Use Case | Auto-Create Task |
-|------|----------|------------------|
-| **task** | Delegate work to another project | Yes (if enabled) |
-| **request** | Ask for information or assistance | No |
-| **notification** | Share status updates | No |
-| **reply** | Respond to received messages | No |
+| Type | Use Case | Auto-Inject Task |
+|------|----------|-----------------|
+| **task** | Delegate work to another project | Yes (urgent/high priority) |
+| **request** | Ask for information or assistance | Yes (urgent/high priority) |
+| **notification** | Share status updates | No (notification only) |
+| **reply** | Respond to received messages | No (notification only) |
 
 ## Priority Levels
 
-- **urgent** 🔴 - Critical, immediate attention needed
-- **high** 🟠 - Important, should be addressed soon
-- **normal** 🟡 - Standard priority (default)
-- **low** 🟢 - Can be addressed when convenient
+- **urgent** - Critical, auto-injected as high-priority task
+- **high** - Important, auto-injected as high-priority task
+- **normal** - Standard priority, notification only (default)
+- **low** - Can be addressed when convenient, notification only
 
 ## Receiving Messages
 
-Messages are automatically checked and displayed in the recipient project via hook:
-- ✅ Session start (always)
-- ✅ Every 10 commands (configurable)
-- ✅ Every 30 minutes (configurable)
+### Automatic Detection (via Hook)
+Messages are checked periodically:
+- Session start (always)
+- Every 10 commands (configurable)
+- Every 30 minutes (configurable)
 
-### Manual Check
+When detected:
+- **Urgent/High priority**: Automatically injected as task in `TaskList`
+- **Normal/Low priority**: Shown as notification in PM context
+
+### Task Injection
+High-priority messages appear as tasks with `msg-` prefix:
+```
+TaskList shows:
+  📬 Message from web-app: Implement /auth endpoint (high priority)
+```
+
+The task description contains the full message and instructions for handling.
+
+### Manual Commands
 ```bash
-# Quick status
+# Quick status check
 claude-mpm message check
 
 # List all messages
@@ -81,84 +104,31 @@ claude-mpm message read <message-id>
 claude-mpm message reply <message-id> --body "your reply"
 ```
 
-## Implementation Details
+## Session Registry
 
-When you use `/mpm-message`, the PM will:
+Active Claude MPM sessions register themselves for peer discovery:
 
-1. **Validate project path** - Ensure target project exists
-2. **Send message** - Create message in target project's inbox
-3. **Confirm delivery** - Report message ID and status
-4. **Track in outbox** - Save copy in sender's outbox
+```bash
+# List active peer sessions
+claude-mpm message sessions
 
-### Python API (for direct use in code)
-
-```python
-from pathlib import Path
-from claude_mpm.services.communication.message_service import MessageService
-
-# Initialize service
-project_root = Path.cwd()
-service = MessageService(project_root)
-
-# Send message
-message = service.send_message(
-    to_project="/Users/masa/Projects/web-app",
-    to_agent="engineer",
-    message_type="task",
-    subject="Feature Request",
-    body="Please implement OAuth2 authentication",
-    priority="high",
-    from_agent="pm"
-)
-
-print(f"Message sent: {message.id}")
-
-# List unread messages
-unread = service.list_messages(status="unread")
-for msg in unread:
-    print(f"{msg.priority}: {msg.subject}")
-
-# Read and reply
-message = service.read_message("msg-20260220-abc123")
-reply = service.reply_to_message(
-    original_message_id=message.id,
-    subject="Re: Your request",
-    body="Completed the implementation"
-)
+# Session registry location: ~/.claude-mpm/session-registry.db
 ```
+
+Sessions register on start, heartbeat periodically, and deregister on exit.
 
 ## Message Storage
 
-Messages are stored as markdown files with YAML frontmatter:
+Messages are stored in SQLite databases:
 
 **Location:**
-- Inbox: `.claude-mpm/inbox/msg-*.md`
-- Outbox: `.claude-mpm/outbox/msg-*.md`
-- Archive: `.claude-mpm/inbox/.archive/msg-*.md`
+- Per-project inbox/outbox: `.claude-mpm/messaging.db`
+- Global session registry: `~/.claude-mpm/session-registry.db`
+- Injected tasks: `~/.claude/tasks/msg-*.json`
 
-**Format:**
-```markdown
----
-id: msg-20260220-abc123
-from_project: /Users/masa/Projects/api-service
-from_agent: pm
-to_project: /Users/masa/Projects/web-app
-to_agent: engineer
-type: task
-priority: high
-created_at: 2026-02-20T20:15:00Z
-status: unread
----
-
-# Feature Request: OAuth2 Authentication
-
-Please implement OAuth2 authentication using the authorization code flow.
-
-Requirements:
-- Google OAuth provider
-- Secure token storage
-- Refresh token handling
-```
+**Database Tables:**
+- `messages` — All message data with status tracking
+- `sessions` — Session registry with heartbeat
 
 ## Configuration
 
@@ -166,12 +136,12 @@ Customize messaging behavior in `.claude-mpm/config.yaml`:
 
 ```yaml
 messaging:
-  enabled: true                        # Enable/disable messaging system
-  check_on_startup: true               # Check messages on session start
-  command_threshold: 10                # Check every N commands
-  time_threshold: 30                   # Check every N minutes
-  auto_create_tasks: false             # Auto-create tasks from task messages
-  notify_priority: ["high", "urgent"]  # Priority levels that trigger notifications
+  enabled: true                              # Enable/disable messaging system
+  check_on_startup: true                     # Check messages on session start
+  command_threshold: 10                      # Check every N commands
+  time_threshold: 30                         # Check every N minutes
+  auto_create_tasks: true                    # Inject messages as Claude Code tasks
+  task_priority_filter: ["urgent", "high"]   # Which priorities trigger task injection
 ```
 
 ## Use Cases
@@ -198,94 +168,68 @@ Library Project: /mpm-message /path/to/app "New version 2.0 released with breaki
 Main Project: /mpm-message /path/to/microservice "Scale up worker pool, traffic spike expected"
 ```
 
-## Tips
-
-1. **Use descriptive subjects** - Recipients see subject in notification
-2. **Include context** - Assume recipient has no prior knowledge
-3. **Specify priority appropriately** - High/urgent trigger immediate notifications
-4. **Target specific agents** - Use `--to-agent` to direct work to right agent type
-5. **Archive after handling** - Keep inbox clean with `claude-mpm message archive <id>`
-
-## Troubleshooting
-
-### Message not received?
-- Verify target project path exists
-- Check target project has `.claude-mpm/` directory
-- Ensure recipient project has messaging enabled in config
-
-### Not seeing notifications?
-- Check configuration: `messaging.enabled: true`
-- Verify notification priorities in config
-- Check command/time thresholds
-
-### Want immediate notification?
-- Use `--priority urgent` when sending
-- Configure `notify_priority: ["urgent", "high", "normal"]` to show all
-
 ## Example Workflow
 
 ```bash
 # Project A sends task to Project B
-cd /Users/masa/Projects/project-a
 /mpm-message /Users/masa/Projects/project-b "Implement user registration API"
 
-# Project B receives on next session start
-cd /Users/masa/Projects/project-b
-# [Claude Code session starts]
-# 📬 Incoming Messages
-# 1. 🔴 📋 Implement user registration API from project-a (pm)
+# Project B session detects message via hook
+# High priority → task injected to ~/.claude/tasks/
+# PM sees in TaskList:
+#   📬 Message from project-a: Implement user registration API
 
-# Project B reads and works on it
-claude-mpm message read msg-20260220-abc123
-# [PM delegates to engineer, work completed]
+# PM processes task, delegates to engineer
+# Engineer implements the feature
 
-# Project B replies when done
+# PM replies when done
 claude-mpm message reply msg-20260220-abc123 --body "User registration API complete at /api/register"
 
-# Project A receives notification
-# 📬 Incoming Messages
-# 1. 🟡 💬 Re: Implement user registration API from project-b (pm)
+# Project A receives reply notification on next hook check
 ```
 
-## Advanced: Auto-Task Creation
+## Handling Messages as PM
 
-Enable automatic task creation from task messages:
+When you see `📬` tasks in your task list:
 
-```yaml
-messaging:
-  auto_create_tasks: true
-```
+1. **Read the task description** — Contains full message details
+2. **Delegate appropriately** — Task type messages should be delegated to the right agent
+3. **Reply when complete** — Use `claude-mpm message reply` to notify sender
+4. **Archive when done** — `claude-mpm message archive <id>` to clean up
 
-When enabled:
-1. Task-type messages automatically create tasks for target agent
-2. PM can view tasks with `/tasks` or `TaskList`
-3. Tasks include message context and sender information
-4. Completing task sends automatic reply to sender
+## Troubleshooting
+
+### Message not received?
+- Verify target project path exists and is absolute
+- Check target project has `.claude-mpm/` directory
+- Ensure messaging is enabled in recipient's config
+
+### Not seeing task injections?
+- Check `auto_create_tasks: true` in config
+- Verify message priority is in `task_priority_filter`
+- Check `~/.claude/tasks/` directory exists
+
+### Not seeing notifications?
+- Check `messaging.enabled: true`
+- Verify hook thresholds (command_threshold, time_threshold)
+
+## Limitations
+
+- **Not real-time** — Messages checked periodically (every 10 commands / 30 minutes)
+- **Local filesystem only** — Same user, same machine (no network)
+- **No encryption** — Messages stored as plaintext in SQLite
+- **Notification-based** — PM must be active in session to process messages
 
 ## Security Notes
 
 - Messages are **local filesystem only** (no network transmission)
 - Project paths must be **absolute paths**
-- No authentication/encryption (messages are plaintext markdown)
+- No authentication/encryption (plaintext SQLite storage)
 - Suitable for **same-user cross-project communication**
 - Not designed for **multi-user or remote communication**
-
-## When to Use
-
-✅ **Good use cases:**
-- Coordinating work across multiple local projects
-- Notifying dependent projects of changes
-- Delegating tasks between microservices in development
-- Sharing status updates across project boundaries
-
-❌ **Not suitable for:**
-- Remote/networked communication (use proper message queue)
-- Multi-user collaboration (use project management tools)
-- Production deployment coordination (use CI/CD)
-- Secure/encrypted communication (no encryption support)
 
 ---
 
 **Version**: 5.9.21-alpha.1
 **Status**: Alpha - Feature branch testing
-**Feedback**: Report issues to claude-mpm GitHub
+**Issues**: #305, #306, #307, #308
