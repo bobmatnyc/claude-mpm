@@ -946,6 +946,20 @@ class EventHandlers:
             # Response tracking is optional
             pass
 
+        # Check for unread cross-project messages before session ends
+        try:
+            from claude_mpm.core.unified_paths import UnifiedPathManager
+            from claude_mpm.services.communication.message_service import MessageService
+
+            project_root = UnifiedPathManager.get_instance().project_root
+            service = MessageService(project_root)
+            unread = service.list_messages(status="unread")
+            if unread:
+                _log(f"📬 {len(unread)} unread cross-project message(s) at session end")
+        except Exception as e:
+            if DEBUG:
+                _log(f"Message check on stop error: {e}")
+
         # Emit stop event to Socket.IO
         self._emit_stop_event(event, session_id, metadata)
 
