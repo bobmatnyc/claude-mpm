@@ -130,12 +130,17 @@ class Message:
 class MessageService:
     """Service for managing cross-project messages."""
 
-    def __init__(self, project_root: Path):
+    def __init__(
+        self,
+        project_root: Path,
+        registry_path: Optional[Path] = None,
+    ):
         """
         Initialize message service.
 
         Args:
             project_root: Root directory of the current project
+            registry_path: Override for global session registry path (for testing)
         """
         self.project_root = project_root
 
@@ -143,8 +148,10 @@ class MessageService:
         self.messaging_db_path = project_root / ".claude-mpm" / "messaging.db"
         self.messaging_db = MessagingDatabase(self.messaging_db_path)
 
-        # Global session registry
-        self.global_registry_path = Path.home() / ".claude-mpm" / "session-registry.db"
+        # Global session registry (use override or default)
+        self.global_registry_path = (
+            registry_path or Path.home() / ".claude-mpm" / "session-registry.db"
+        )
         self.global_registry = MessagingDatabase(self.global_registry_path)
 
         # Register current session
