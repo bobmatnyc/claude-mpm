@@ -10,6 +10,32 @@
 
 ### Tests
 
+## [5.9.21-beta.1] - 2026-02-21
+
+### Added
+
+- **Cross-project messaging system** — Peer-to-peer messaging between Claude MPM instances (#305)
+- **SQLite-backed message storage** — Per-project `messaging.db` with WAL mode for concurrent access (#306)
+- **Task injection** — High-priority messages automatically injected as tasks to `~/.claude/tasks/` for Claude Code native integration (#307)
+- **Background polling** — `run_in_background` poller detects messages and notifies PM via task completion
+- **Session registry** — Global `~/.claude-mpm/session-registry.db` for peer discovery with heartbeat
+- **`/mpm-message` skill** — Simple `/mpm-message <project-path> <message>` syntax for cross-project communication
+- **CLI commands** — `claude-mpm message send|list|read|reply|archive|check`
+- **Migration script** — `migrate_messages_to_db.py` for existing file-based installations
+
+### Documentation
+
+- Updated `/mpm-message` SKILL.md to v2.0.0 with database and task injection docs (#308)
+- Added `docs/features/task-injection.md` feature documentation
+- Research document on task injection feasibility
+
+### Tests
+
+- 16 SQLite database unit tests
+- 8 MessageService integration tests
+- 14 TaskInjector unit tests
+- End-to-end background polling validation (38 total tests)
+
 ## [5.9.20] - 2026-02-20
 
 ### Changed
