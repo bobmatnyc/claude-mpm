@@ -73,6 +73,7 @@ REQUIRED_PM_SKILLS = [
     "mpm-session-management",
     "mpm-session-pause",
     "mpm-session-resume",
+    "mpm-message",
 ]
 
 # Tier 2: Recommended skills (deployed with standard install)
@@ -81,7 +82,6 @@ RECOMMENDED_PM_SKILLS = [
     "mpm-config",
     "mpm-ticket-view",
     "mpm-postmortem",
-    "mpm-message",
 ]
 
 # Tier 3: Optional skills (deployed with full install)
