@@ -1,0 +1,45 @@
+{
+  "name": "mpm-message",
+  "version": "2.0.0",
+  "description": "Send cross-project messages with task injection to other Claude MPM instances",
+  "type": "framework",
+  "categories": ["mpm-framework", "pm", "communication"],
+  "tags": [
+    "pm",
+    "messaging",
+    "cross-project",
+    "communication",
+    "task-delegation",
+    "notifications",
+    "coordination"
+  ],
+  "auto_deploy": true,
+  "required_for": ["pm"],
+  "triggers": {
+    "keywords": [
+      "/mpm-message",
+      "send message to",
+      "notify other project",
+      "cross-project communication",
+      "message another project",
+      "inbox",
+      "outbox",
+      "session registry",
+      "task injection"
+    ],
+    "patterns": [
+      "/mpm-message.*",
+      "message.*project",
+      "cross.?project.*message",
+      "session.*registry",
+      "peer.*session"
+    ]
+  },
+  "files": ["SKILL.md"],
+  "metadata": {
+    "author": "Claude MPM Framework",
+    "license": "MIT",
+    "created": "2026-02-20",
+    "version_introduced": "5.9.21-alpha.1"
+  }
+}

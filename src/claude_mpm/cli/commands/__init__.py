@@ -19,6 +19,7 @@ from .gh import manage_gh
 from .info import show_info
 from .mcp import manage_mcp
 from .memory import manage_memory
+from .messages import manage_messages
 from .monitor import manage_monitor
 from .postmortem import run_postmortem
 from .run import run_session
@@ -39,6 +40,7 @@ __all__ = [
     "manage_gh",
     "manage_mcp",
     "manage_memory",
+    "manage_messages",
     "manage_monitor",
     "manage_skills",
     # 'run_guarded_session',  # Excluded from default exports (experimental)

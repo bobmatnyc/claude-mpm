@@ -466,6 +466,13 @@ def create_parser(
         pass
 
     try:
+        from .messages_parser import add_messages_subparser
+
+        add_messages_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .config_parser import add_config_subparser
 
         add_config_subparser(subparsers)

@@ -775,6 +775,44 @@ def create_memory_schema() -> ConfigSchema:
     )
 
 
+def create_messaging_schema() -> ConfigSchema:
+    """Create cross-project messaging configuration schema"""
+    return (
+        SchemaBuilder("Messaging Configuration")
+        .boolean("enabled", default=True, description="Enable cross-project messaging")
+        .boolean(
+            "check_on_startup",
+            default=True,
+            description="Check messages on session startup",
+        )
+        .integer(
+            "command_threshold",
+            minimum=1,
+            maximum=100,
+            default=10,
+            description="Check messages every N commands",
+        )
+        .integer(
+            "time_threshold",
+            minimum=1,
+            maximum=1440,
+            default=30,
+            description="Check messages every N minutes",
+        )
+        .boolean(
+            "auto_create_tasks",
+            default=False,
+            description="Automatically create tasks from task-type messages",
+        )
+        .array(
+            "notify_priority",
+            default=["high", "urgent"],
+            description="Priority levels that trigger immediate notifications",
+        )
+        .build()
+    )
+
+
 # Export main components
 __all__ = [
     "ConfigMigration",
@@ -790,4 +828,5 @@ __all__ = [
     "create_database_schema",
     "create_logging_schema",
     "create_memory_schema",
+    "create_messaging_schema",
 ]

@@ -18,6 +18,7 @@ from .commands import (
     manage_gh,
     manage_mcp,
     manage_memory,
+    manage_messages,
     manage_monitor,
     manage_tickets,
     run_doctor,
@@ -393,6 +394,7 @@ def execute_command(command: str, args) -> int:
         CLICommands.SKILLS.value: manage_skills,
         "debug": manage_debug,  # Add debug command
         "gh": manage_gh,  # GitHub multi-account management
+        "message": manage_messages,  # Cross-project messaging
         "mpm-init": None,  # Will be handled separately with lazy import
     }
 
