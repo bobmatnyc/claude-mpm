@@ -8,16 +8,19 @@
 	import AgentDetail from '$lib/components/AgentDetail.svelte';
 	import JSONExplorer from '$lib/components/JSONExplorer.svelte';
 	import FileViewer from '$lib/components/FileViewer.svelte';
+	import ConfigView from '$lib/components/config/ConfigView.svelte';
+	import Toast from '$lib/components/shared/Toast.svelte';
 	import type { ClaudeEvent, Tool } from '$lib/types/events';
 	import type { TouchedFile } from '$lib/stores/files.svelte';
 	import type { AgentNode } from '$lib/stores/agents.svelte';
 	import type { ToolCall } from '$lib/stores/agents.svelte';
 	import { socketStore } from '$lib/stores/socket.svelte';
+	import { handleConfigEvent } from '$lib/stores/config.svelte';
 	import { createToolsStore } from '$lib/stores/tools.svelte';
 	import { createAgentsStore } from '$lib/stores/agents.svelte';
-	import { derived } from 'svelte/store';
+	import { derived, get } from 'svelte/store';
 
-	type ViewMode = 'events' | 'tools' | 'files' | 'agents' | 'tokens';
+	type ViewMode = 'events' | 'tools' | 'files' | 'agents' | 'tokens' | 'config';
 
 	let selectedEvent = $state<ClaudeEvent | null>(null);
 	let selectedTool = $state<Tool | null>(null);
@@ -105,6 +108,21 @@
 		return unsubscribe;
 	});
 
+	// Subscribe to Socket.IO config_event for real-time config updates
+	$effect(() => {
+		const unsubscribe = socketStore.socket.subscribe((sock) => {
+			if (sock) {
+				// Remove any previous listener to avoid duplicates
+				sock.off('config_event');
+				sock.on('config_event', (event: any) => {
+					console.log('[Config] Received config_event:', event);
+					handleConfigEvent(event);
+				});
+			}
+		});
+		return unsubscribe;
+	});
+
 	// Clear selections when switching views
 	$effect(() => {
 		if (viewMode === 'events') {
@@ -123,6 +141,11 @@
 			selectedEvent = null;
 			selectedTool = null;
 			selectedFile = null;
+		} else if (viewMode === 'config') {
+			selectedEvent = null;
+			selectedTool = null;
+			selectedFile = null;
+			selectedAgent = null;
 		}
 	});
 
@@ -225,6 +248,13 @@
 					>
 						Agents
 					</button>
+					<button
+						onclick={() => viewMode = 'config'}
+						class="tab"
+						class:active={viewMode === 'config'}
+					>
+						Config
+					</button>
 					<!-- Temporarily hidden - token tracking data source investigation
 					<button
 						onclick={() => viewMode = 'tokens'}
@@ -266,6 +296,8 @@
 						bind:fileContent
 						bind:contentLoading
 					/>
+				{:else if viewMode === 'config'}
+					<ConfigView panelSide="left" />
 				{/if}
 			</div>
 		</div>
@@ -309,12 +341,17 @@
 				{/if}
 			{:else if viewMode === 'agents'}
 				<AgentDetail agent={selectedAgent} onToolClick={handleToolClickFromAgent} />
+			{:else if viewMode === 'config'}
+				<ConfigView panelSide="right" />
 			{:else}
 				<JSONExplorer event={selectedEvent} tool={selectedTool} />
 			{/if}
 		</div>
 	</div>
 </div>
+
+<!-- Global toast notifications -->
+<Toast />
 
 <style>
 	.tab {

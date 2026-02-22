@@ -15,9 +15,9 @@ def test_deployed_agents():
     deployed_agents_dir = Path(__file__).parent.parent / ".claude" / "agents"
 
     expected_names = {
-        "research.md": "research-agent",
-        "qa.md": "qa-agent",
-        "documentation.md": "documentation-agent",
+        "research-agent.md": "research-agent",
+        "qa-agent.md": "qa-agent",
+        "documentation-agent.md": "documentation-agent",
         "security.md": "security-agent",
         "ops.md": "ops-agent",
         "data_engineer.md": "data-engineer",

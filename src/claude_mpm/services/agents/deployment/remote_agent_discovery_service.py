@@ -680,6 +680,22 @@ class RemoteAgentDiscoveryService:
             # Fallback for legacy agents without collection
             canonical_id = f"legacy:{agent_id}"
 
+        # Phase 2: Extract additional frontmatter fields for UI enrichment
+        color = "gray"
+        tags = []
+        resource_tier = ""
+        network_access = None
+
+        if frontmatter:
+            color = frontmatter.get("color", "gray")
+            tags = frontmatter.get("tags", [])
+            if not isinstance(tags, list):
+                tags = []
+            resource_tier = frontmatter.get("resource_tier", "")
+            capabilities = frontmatter.get("capabilities", {})
+            if isinstance(capabilities, dict):
+                network_access = capabilities.get("network_access")
+
         # Convert to JSON template format and return
         # IMPORTANT: Include 'path' field for compatibility with deployment validation (ticket 1M-480)
         # Git-sourced agents must have 'path' field to match structure from AgentDiscoveryService
@@ -699,6 +715,10 @@ class RemoteAgentDiscoveryService:
                 "collection_id": collection_id,  # NEW: Also in metadata
                 "source_path": source_path,  # NEW: Also in metadata
                 "canonical_id": canonical_id,  # NEW: Also in metadata
+                "tags": tags,  # Phase 2: UI enrichment
+                "color": color,  # Phase 2: UI enrichment
+                "resource_tier": resource_tier,  # Phase 2: UI enrichment
+                "network_access": network_access,  # Phase 2: UI enrichment
             },
             "model": model,
             "source": "remote",  # Mark as remote agent
@@ -709,6 +729,8 @@ class RemoteAgentDiscoveryService:
             "file_path": str(md_file),  # Keep for backward compatibility
             "version": version,  # Include at root level for version comparison
             "category": category,  # Add category at root level for filtering
+            "tags": tags,  # Phase 2: Also at root level for filtering
+            "color": color,  # Phase 2: Also at root level for UI
             "routing": {"keywords": keywords, "paths": paths, "priority": priority},
         }
 

@@ -85,6 +85,7 @@ class SkillsDeployerService(LoggerMixin):
         selective: bool = True,
         project_root: Optional[Path] = None,
         skill_names: Optional[List[str]] = None,
+        skills_dir: Optional[Path] = None,
     ) -> Dict:
         """Deploy skills from GitHub repository.
 
@@ -94,7 +95,7 @@ class SkillsDeployerService(LoggerMixin):
         3. Filters by toolchain and categories
         4. (If skill_names provided) Filters to only specified skills
         5. (If selective=True) Filters to only agent-referenced skills
-        6. Deploys to ~/.claude/skills/
+        6. Deploys to target skills directory (default: ~/.claude/skills/)
         7. Warns about Claude Code restart
 
         Args:
@@ -105,6 +106,7 @@ class SkillsDeployerService(LoggerMixin):
             selective: If True, only deploy skills referenced by agents (default)
             project_root: Project root directory (for finding agents, auto-detected if None)
             skill_names: Specific skill names to deploy (overrides selective filtering)
+            skills_dir: Target directory for deployed skills (default: ~/.claude/skills/)
 
         Returns:
             Dict containing:
@@ -121,11 +123,17 @@ class SkillsDeployerService(LoggerMixin):
         Example:
             >>> result = deployer.deploy_skills(collection="obra-superpowers")
             >>> result = deployer.deploy_skills(toolchain=['python'])  # Uses default
+            >>> # Deploy to project-scoped directory
+            >>> result = deployer.deploy_skills(skills_dir=Path("project/.claude/skills"))
             >>> # Deploy all skills (not just agent-referenced)
             >>> result = deployer.deploy_skills(selective=False)
             >>> if result['restart_required']:
             >>>     print(result['restart_instructions'])
         """
+        # Use provided skills_dir or fall back to default
+        target_skills_dir = (
+            skills_dir if skills_dir is not None else self.CLAUDE_SKILLS_DIR
+        )
         # Determine which collection to use
         collection_name = collection or self.skills_config.get_default_collection()
 
@@ -289,6 +297,9 @@ class SkillsDeployerService(LoggerMixin):
         skipped = []
         errors = []
 
+        # Create target directory if it doesn't exist
+        target_skills_dir.mkdir(parents=True, exist_ok=True)
+
         # Extract normalized skill names for cleanup (needed regardless of deployment outcome)
         # Must match the names used during deployment (normalized from source_path)
         filtered_skills_names = []
@@ -312,7 +323,11 @@ class SkillsDeployerService(LoggerMixin):
                     continue
 
                 result = self._deploy_skill(
-                    skill, skills_data["temp_dir"], collection_name, force=force
+                    skill,
+                    skills_data["temp_dir"],
+                    collection_name,
+                    force=force,
+                    skills_dir=target_skills_dir,
                 )
                 if result["deployed"]:
                     # Use normalized name for reporting
@@ -358,7 +373,7 @@ class SkillsDeployerService(LoggerMixin):
                 # Cleanup orphaned skills not referenced by agents
                 # This runs even if nothing new was deployed to remove stale skills
                 cleanup_result = cleanup_orphan_skills(
-                    self.CLAUDE_SKILLS_DIR, set(filtered_skills_names)
+                    target_skills_dir, set(filtered_skills_names)
                 )
 
                 if cleanup_result["removed_count"] > 0:
@@ -505,25 +520,34 @@ class SkillsDeployerService(LoggerMixin):
                 "collection": collection_name,
             }
 
-    def check_deployed_skills(self) -> Dict:
+    def check_deployed_skills(self, skills_dir: Optional[Path] = None) -> Dict:
         """Check which skills are currently deployed.
 
-        Scans ~/.claude/skills/ directory for deployed skills.
+        Scans the given skills directory (or ~/.claude/skills/ by default)
+        for deployed skills.
+
+        Args:
+            skills_dir: Directory to scan for deployed skills.
+                        Defaults to self.CLAUDE_SKILLS_DIR (~/.claude/skills/).
+                        Pass Path.cwd() / ".claude" / "skills" for project-level skills.
 
         Returns:
             Dict containing:
             - deployed_count: Number of deployed skills
             - skills: List of deployed skill names with paths
-            - claude_skills_dir: Path to Claude skills directory
+            - claude_skills_dir: Path to the scanned skills directory
 
         Example:
             >>> result = deployer.check_deployed_skills()
             >>> print(f"Currently deployed: {result['deployed_count']} skills")
+            >>> # Scan project-level skills instead
+            >>> result = deployer.check_deployed_skills(Path.cwd() / ".claude" / "skills")
         """
+        scan_dir = skills_dir if skills_dir is not None else self.CLAUDE_SKILLS_DIR
         deployed_skills = []
 
-        if self.CLAUDE_SKILLS_DIR.exists():
-            for skill_dir in self.CLAUDE_SKILLS_DIR.iterdir():
+        if scan_dir.exists():
+            for skill_dir in scan_dir.iterdir():
                 if skill_dir.is_dir() and not skill_dir.name.startswith("."):
                     # Check for SKILL.md
                     skill_md = skill_dir / "SKILL.md"
@@ -535,7 +559,7 @@ class SkillsDeployerService(LoggerMixin):
         return {
             "deployed_count": len(deployed_skills),
             "skills": deployed_skills,
-            "claude_skills_dir": str(self.CLAUDE_SKILLS_DIR),
+            "claude_skills_dir": str(scan_dir),
         }
 
     def remove_skills(self, skill_names: Optional[List[str]] = None) -> Dict:
@@ -899,12 +923,13 @@ class SkillsDeployerService(LoggerMixin):
         collection_dir: Path,
         collection_name: str,
         force: bool = False,
+        skills_dir: Optional[Path] = None,
     ) -> Dict:
-        """Deploy a single skill to ~/.claude/skills/ and track deployment.
+        """Deploy a single skill to target skills directory and track deployment.
 
         NOTE: With multi-collection support, skills are now stored in collection
         subdirectories. This method creates symlinks or copies to maintain the
-        flat structure that Claude Code expects in ~/.claude/skills/.
+        flat structure that Claude Code expects in the target skills directory.
 
         Additionally tracks deployed skills in .mpm-deployed-skills.json index
         for orphan cleanup functionality.
@@ -914,10 +939,16 @@ class SkillsDeployerService(LoggerMixin):
             collection_dir: Collection directory containing skills
             collection_name: Name of collection (for tracking)
             force: Overwrite if already exists
+            skills_dir: Target directory for deployed skills (default: ~/.claude/skills/)
 
         Returns:
             Dict with deployed, skipped, error flags
         """
+        # Use provided skills_dir or fall back to default
+        target_skills_dir = (
+            skills_dir if skills_dir is not None else self.CLAUDE_SKILLS_DIR
+        )
+
         skill_name = skill["name"]
 
         # Use normalized source_path for both target directory and deployment tracking
@@ -926,10 +957,10 @@ class SkillsDeployerService(LoggerMixin):
         if source_path:
             # Normalize: "universal/web/api-design-patterns/SKILL.md" -> "universal-web-api-design-patterns"
             normalized_name = source_path.replace("/SKILL.md", "").replace("/", "-")
-            target_dir = self.CLAUDE_SKILLS_DIR / normalized_name
+            target_dir = target_skills_dir / normalized_name
         else:
             # Fallback to skill name if no source_path
-            target_dir = self.CLAUDE_SKILLS_DIR / skill_name
+            target_dir = target_skills_dir / skill_name
 
         # Check if already deployed
         if target_dir.exists() and not force:
@@ -1004,7 +1035,7 @@ class SkillsDeployerService(LoggerMixin):
                 "error": f"Invalid source path: {source_dir}",
             }
 
-        if not self._validate_safe_path(self.CLAUDE_SKILLS_DIR, target_dir):
+        if not self._validate_safe_path(target_skills_dir, target_dir):
             return {
                 "deployed": False,
                 "skipped": False,
@@ -1030,7 +1061,7 @@ class SkillsDeployerService(LoggerMixin):
 
             # Use normalized name for tracking (matches configuration.yaml format)
             track_name = normalized_name if source_path else skill_name
-            track_deployed_skill(self.CLAUDE_SKILLS_DIR, track_name, collection_name)
+            track_deployed_skill(target_skills_dir, track_name, collection_name)
 
             self.logger.debug(
                 f"Deployed {skill_name} from {source_dir} to {target_dir}"

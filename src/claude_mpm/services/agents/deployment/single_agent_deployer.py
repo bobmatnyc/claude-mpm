@@ -200,10 +200,14 @@ class SingleAgentDeployer:
         - Enables selective agent management in projects
         """
         try:
-            # Find the template file (templates migrated to .md in v4.26.0+)
-            template_file = templates_dir / f"{agent_name}.md"
-            if not template_file.exists():
-                self.logger.error(f"Agent template not found: {agent_name}")
+            # Find the template file - search multiple sources
+            template_file = self._find_agent_template(
+                agent_name, templates_dir, working_directory
+            )
+            if template_file is None:
+                self.logger.error(
+                    f"Agent template not found in any source: {agent_name}"
+                )
                 return False
 
             # Ensure target directory exists
@@ -279,6 +283,78 @@ class SingleAgentDeployer:
                 context={"agent_name": agent_name, "error": str(e)},
             ) from e
 
+    def _find_agent_template(
+        self,
+        agent_name: str,
+        templates_dir: Path,
+        working_directory: Optional[Path] = None,
+    ) -> Optional[Path]:
+        """Find agent template across all source tiers.
+
+        Searches for the agent template in this priority order:
+        1. System templates directory (templates_dir)
+        2. Git cache (remote agents from configured repositories)
+        3. Project agents (.claude-mpm/agents/ in working directory)
+        4. User agents (~/.claude-mpm/agents/)
+
+        Args:
+            agent_name: Name of the agent (file stem without .md)
+            templates_dir: System templates directory
+            working_directory: Working directory for project agents
+
+        Returns:
+            Path to the template file, or None if not found
+        """
+        # 1. Check system templates directory
+        template_file = templates_dir / f"{agent_name}.md"
+        if template_file.exists():
+            self.logger.debug(f"Found agent '{agent_name}' in system templates")
+            return template_file
+
+        # 2. Check git cache via GitSourceManager
+        try:
+            from claude_mpm.services.agents.git_source_manager import GitSourceManager
+
+            git_mgr = GitSourceManager()
+            cached_path = git_mgr.get_agent_path(agent_name)
+            if cached_path and cached_path.exists():
+                self.logger.debug(
+                    f"Found agent '{agent_name}' in git cache: {cached_path}"
+                )
+                return cached_path
+        except Exception as e:
+            self.logger.debug(f"Git cache lookup failed for '{agent_name}': {e}")
+
+        # 3. Check project agents
+        if working_directory:
+            project_agent = (
+                working_directory / ".claude-mpm" / "agents" / f"{agent_name}.md"
+            )
+            if project_agent.exists():
+                self.logger.debug(f"Found agent '{agent_name}' in project agents")
+                return project_agent
+
+        # 4. Check user agents (deprecated but still supported)
+        user_agent = Path.home() / ".claude-mpm" / "agents" / f"{agent_name}.md"
+        if user_agent.exists():
+            self.logger.debug(f"Found agent '{agent_name}' in user agents")
+            return user_agent
+
+        # 5. Scan git cache directories directly as fallback
+        # (handles cases where agent_id doesn't match filename)
+        try:
+            cache_root = Path.home() / ".claude-mpm" / "cache" / "agents"
+            if cache_root.exists():
+                for md_file in cache_root.rglob(f"{agent_name}.md"):
+                    self.logger.debug(
+                        f"Found agent '{agent_name}' via cache scan: {md_file}"
+                    )
+                    return md_file
+        except Exception as e:
+            self.logger.debug(f"Cache directory scan failed for '{agent_name}': {e}")
+
+        return None
+
     def _determine_agent_source(
         self, template_path: Path, working_directory: Path
     ) -> str:
@@ -302,6 +378,10 @@ class SingleAgentDeployer:
             or "/src/claude_mpm/agents/templates/" in template_str
         ):
             return "system"
+
+        # Check if it's from the git cache (remote agents)
+        if "/.claude-mpm/cache/agents/" in template_str:
+            return "remote"
 
         # Check if it's a project agent
         if "/.claude-mpm/agents/" in template_str:

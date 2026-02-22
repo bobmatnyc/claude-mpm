@@ -153,7 +153,12 @@ class AgentCheck(BaseDiagnosticCheck):
             )
 
         # Check for required core agents
-        core_agents = ["research.md", "engineer.md", "qa.md", "documentation.md"]
+        core_agents = [
+            "research-agent.md",
+            "engineer.md",
+            "qa-agent.md",
+            "documentation-agent.md",
+        ]
         deployed_names = [f.name for f in agent_files]
         missing_core = [a for a in core_agents if a not in deployed_names]
 

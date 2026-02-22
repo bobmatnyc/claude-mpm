@@ -164,6 +164,10 @@ class UnifiedMonitorServer:
         self.file_handler = None
         self.hook_handler = None
 
+        # Config event infrastructure (Phase 2)
+        self.config_event_handler = None
+        self.config_file_watcher = None
+
         # High-performance event emitter
         self.event_emitter = None
 
@@ -305,8 +309,23 @@ class UnifiedMonitorServer:
                 ping_timeout=60,  # 60 seconds ping timeout (generous for stability)
             )
 
-            # Create aiohttp application
-            self.app = web.Application()
+            # CORS middleware for Vite dev server and cross-origin requests
+            @web.middleware
+            async def cors_middleware(request, handler):
+                if request.method == "OPTIONS":
+                    return web.Response(
+                        headers={
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type, If-None-Match",
+                        }
+                    )
+                response = await handler(request)
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                return response
+
+            # Create aiohttp application with CORS middleware
+            self.app = web.Application(middlewares=[cors_middleware])
 
             # Attach Socket.IO to the app
             self.sio.attach(self.app)
@@ -324,6 +343,17 @@ class UnifiedMonitorServer:
             # Start heartbeat task
             self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             self.logger.info("Heartbeat task started (3-minute interval)")
+
+            # Setup config event infrastructure (Phase 2)
+            from claude_mpm.services.monitor.handlers.config_handler import (
+                ConfigEventHandler,
+                ConfigFileWatcher,
+            )
+
+            self.config_event_handler = ConfigEventHandler(self.sio)
+            self.config_file_watcher = ConfigFileWatcher(self.config_event_handler)
+            self.config_file_watcher.start()
+            self.logger.info("Config event handler and file watcher initialized")
 
             # Setup file watching for hot reload (if enabled)
             if self.enable_hot_reload:
@@ -1395,6 +1425,43 @@ class UnifiedMonitorServer:
             else:
                 self.logger.warning(f"Svelte build not found at: {svelte_build_dir}")
 
+            # Register config API routes (Phase 1: read-only)
+            from claude_mpm.services.monitor.config_routes import (
+                register_config_routes,
+            )
+
+            register_config_routes(self.app, server_instance=self)
+
+            # Register source management routes (Phase 2: mutations)
+            from claude_mpm.services.monitor.routes.config_sources import (
+                register_source_routes,
+            )
+
+            register_source_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+
+            # Register Phase 3 deployment routes
+            from claude_mpm.services.config_api.agent_deployment_handler import (
+                register_agent_deployment_routes,
+            )
+            from claude_mpm.services.config_api.autoconfig_handler import (
+                register_autoconfig_routes,
+            )
+            from claude_mpm.services.config_api.skill_deployment_handler import (
+                register_skill_deployment_routes,
+            )
+
+            register_agent_deployment_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+            register_skill_deployment_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+            register_autoconfig_routes(
+                self.app, self.config_event_handler, self.config_file_watcher
+            )
+
             self.logger.info("HTTP routes registered successfully")
 
         except Exception as e:
@@ -1646,6 +1713,13 @@ class UnifiedMonitorServer:
         try:
             # Stop accepting new connections
             self.running = False
+
+            # Stop config file watcher
+            if self.config_file_watcher is not None:
+                try:
+                    await self.config_file_watcher.stop()
+                except Exception as e:
+                    self.logger.debug(f"Error stopping config file watcher: {e}")
 
             # Give ongoing operations a moment to complete
             await asyncio.sleep(0.5)

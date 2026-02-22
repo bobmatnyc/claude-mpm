@@ -528,28 +528,25 @@ class AutoConfigManagerService(BaseService, IAutoConfigManager):
         self.logger.info(f"Generating configuration preview for: {project_path}")
 
         try:
-            # Run analysis and recommendations synchronously for preview
-            import asyncio
-
-            loop = asyncio.get_event_loop()
+            # Call underlying synchronous services directly.
+            # The async wrappers (_analyze_toolchain, _generate_recommendations)
+            # just delegate to these synchronous methods, so we bypass them
+            # to avoid needing an event loop. This method may be called from
+            # a worker thread (via asyncio.to_thread) where no event loop
+            # is available.
 
             # Analyze toolchain
-            if asyncio.iscoroutinefunction(self._analyze_toolchain):
-                toolchain = loop.run_until_complete(
-                    self._analyze_toolchain(project_path)
-                )
-            else:
-                toolchain = self._analyze_toolchain(project_path)
+            if self._toolchain_analyzer is None:
+                raise RuntimeError("ToolchainAnalyzer not initialized")
+            toolchain = self._toolchain_analyzer.analyze_toolchain(project_path)
 
             # Generate recommendations
-            if asyncio.iscoroutinefunction(self._generate_recommendations):
-                recommendations = loop.run_until_complete(
-                    self._generate_recommendations(toolchain, min_confidence)
-                )
-            else:
-                recommendations = self._generate_recommendations(
-                    toolchain, min_confidence
-                )
+            if self._agent_recommender is None:
+                raise RuntimeError("AgentRecommender not initialized")
+            constraints = {"min_confidence": min_confidence}
+            recommendations = self._agent_recommender.recommend_agents(
+                toolchain, constraints
+            )
 
             # Validate configuration
             validation_result = self.validate_configuration(recommendations)

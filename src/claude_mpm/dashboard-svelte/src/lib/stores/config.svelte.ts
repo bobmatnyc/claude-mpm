@@ -1,0 +1,983 @@
+import { writable, get } from 'svelte/store';
+import { toastStore } from './toast.svelte';
+
+// --- Types ---
+
+export interface ProjectSummary {
+	agents: { deployed: number; available: number };
+	skills: { deployed: number; available: number };
+	sources: { agent_sources: number; skill_sources: number };
+	deployment_mode: string;
+}
+
+export interface DeployedAgent {
+	name: string;
+	agent_id?: string;  // File-based ID (added by backend)
+	location: string;
+	path: string;
+	version: string;
+	type: string;
+	specializations?: string[];
+	is_core: boolean;
+	// Phase 2 enrichment fields (optional for backward compatibility)
+	description?: string;
+	category?: string;
+	color?: string;
+	tags?: string[];
+	resource_tier?: string;
+	network_access?: boolean;
+	skills_count?: number;
+}
+
+export interface AvailableAgent {
+	agent_id: string;
+	name: string;
+	display_name: string;   // Human-readable name for UI rendering
+	description: string;
+	version: string;
+	source: string;
+	source_url: string;
+	priority: number;
+	category: string;
+	tags: string[];
+	is_deployed: boolean;
+}
+
+export interface DeployedSkill {
+	name: string;
+	path: string;
+	description: string;
+	category: string;
+	collection: string;
+	is_user_requested: boolean;
+	deploy_mode: 'agent_referenced' | 'user_defined';
+	deploy_date: string;
+	// Phase 2 enrichment fields (optional for backward compatibility)
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	full_tokens?: number;
+	entry_point_tokens?: number;
+	manifest_name?: string;
+}
+
+export interface AvailableSkill {
+	name: string;
+	description: string;
+	category: string;
+	collection: string;
+	is_deployed: boolean;
+	// Extended fields from API (optional for VP-1-A graceful degradation)
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	entry_point_tokens?: number;
+	full_tokens?: number;
+	requires?: string[];
+	author?: string;
+	updated?: string;
+	source_path?: string;
+	agent_count?: number;
+}
+
+export interface ConfigSource {
+	id: string;
+	type: 'agent' | 'skill';
+	url: string;
+	subdirectory?: string;
+	branch?: string;
+	enabled: boolean;
+	priority: number;
+}
+
+export interface LoadingState {
+	summary: boolean;
+	deployedAgents: boolean;
+	availableAgents: boolean;
+	deployedSkills: boolean;
+	availableSkills: boolean;
+	sources: boolean;
+}
+
+export interface ConfigError {
+	resource: string;
+	message: string;
+	timestamp: number;
+}
+
+export interface SyncState {
+	status: 'idle' | 'syncing' | 'completed' | 'failed';
+	progress: number;
+	lastSync: string | null;
+	error: string | null;
+	jobId: string | null;
+}
+
+export interface ConfigEvent {
+	type: string;
+	operation: string;
+	entity_type: string;
+	entity_id: string | null;
+	status: string;
+	data: Record<string, any>;
+	timestamp: string;
+}
+
+// --- Stores ---
+
+export const projectSummary = writable<ProjectSummary | null>(null);
+export const deployedAgents = writable<DeployedAgent[]>([]);
+export const availableAgents = writable<AvailableAgent[]>([]);
+export const deployedSkills = writable<DeployedSkill[]>([]);
+export const availableSkills = writable<AvailableSkill[]>([]);
+export const configSources = writable<ConfigSource[]>([]);
+export const configLoading = writable<LoadingState>({
+	summary: false,
+	deployedAgents: false,
+	availableAgents: false,
+	deployedSkills: false,
+	availableSkills: false,
+	sources: false,
+});
+export const configErrors = writable<ConfigError[]>([]);
+
+// --- Phase 2: Mutation state ---
+export const syncStatus = writable<Record<string, SyncState>>({});
+export const mutating = writable(false);
+
+// --- Shared selection state (used by both left/right ConfigView instances) ---
+export const configSelectedAgent = writable<DeployedAgent | AvailableAgent | null>(null);
+export const configSelectedSkill = writable<DeployedSkill | AvailableSkill | null>(null);
+export const configSelectedSource = writable<ConfigSource | null>(null);
+export const configActiveSubTab = writable<'agents' | 'skills' | 'sources' | 'skill-links'>('agents');
+
+// --- Fetch Functions ---
+
+const API_BASE = '/api/config';
+
+async function fetchJSON(url: string): Promise<any> {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+	}
+	const data = await response.json();
+	if (!data.success) {
+		throw new Error(data.error || 'Unknown error');
+	}
+	return data;
+}
+
+function addError(resource: string, message: string) {
+	configErrors.update(errs => [
+		...errs.slice(-4), // Keep last 5 errors max
+		{ resource, message, timestamp: Date.now() },
+	]);
+}
+
+export async function fetchProjectSummary() {
+	configLoading.update(l => ({ ...l, summary: true }));
+	try {
+		const data = await fetchJSON(`${API_BASE}/project/summary`);
+		projectSummary.set(data.data);
+	} catch (e: any) {
+		addError('summary', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, summary: false }));
+	}
+}
+
+export async function fetchDeployedAgents() {
+	configLoading.update(l => ({ ...l, deployedAgents: true }));
+	try {
+		const data = await fetchJSON(`${API_BASE}/agents/deployed`);
+		deployedAgents.set(data.agents);
+	} catch (e: any) {
+		addError('deployedAgents', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, deployedAgents: false }));
+	}
+}
+
+export async function fetchAvailableAgents(search?: string) {
+	configLoading.update(l => ({ ...l, availableAgents: true }));
+	try {
+		const url = search
+			? `${API_BASE}/agents/available?search=${encodeURIComponent(search)}`
+			: `${API_BASE}/agents/available`;
+		const data = await fetchJSON(url);
+		availableAgents.set(data.agents);
+	} catch (e: any) {
+		addError('availableAgents', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, availableAgents: false }));
+	}
+}
+
+export async function fetchDeployedSkills() {
+	configLoading.update(l => ({ ...l, deployedSkills: true }));
+	try {
+		const data = await fetchJSON(`${API_BASE}/skills/deployed`);
+		deployedSkills.set(data.skills);
+	} catch (e: any) {
+		addError('deployedSkills', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, deployedSkills: false }));
+	}
+}
+
+export async function fetchAvailableSkills(collection?: string) {
+	configLoading.update(l => ({ ...l, availableSkills: true }));
+	try {
+		const url = collection
+			? `${API_BASE}/skills/available?collection=${encodeURIComponent(collection)}`
+			: `${API_BASE}/skills/available`;
+		const data = await fetchJSON(url);
+		availableSkills.set(data.skills);
+	} catch (e: any) {
+		addError('availableSkills', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, availableSkills: false }));
+	}
+}
+
+export async function fetchSources() {
+	configLoading.update(l => ({ ...l, sources: true }));
+	try {
+		const data = await fetchJSON(`${API_BASE}/sources`);
+		configSources.set(data.sources);
+	} catch (e: any) {
+		addError('sources', e.message);
+	} finally {
+		configLoading.update(l => ({ ...l, sources: false }));
+	}
+}
+
+// --- Phase 2 Step 9: Detail Data Types ---
+
+export interface AgentDetailData {
+	name: string;
+	agent_id?: string;
+	description?: string;
+	version?: string;
+	category?: string;
+	color?: string;
+	tags?: string[];
+	resource_tier?: string;
+	agent_type?: string;
+	temperature?: number | null;
+	timeout?: number | null;
+	network_access?: boolean | null;
+	skills?: string[];
+	dependencies?: Record<string, string[]>;
+	knowledge?: {
+		domain_expertise: string[];
+		constraints: string[];
+		best_practices: string[];
+	};
+	handoff_agents?: string[];
+	author?: string;
+	schema_version?: string;
+}
+
+export interface SkillDetailData {
+	name: string;
+	description?: string;
+	version?: string;
+	toolchain?: string | null;
+	framework?: string | null;
+	tags?: string[];
+	full_tokens?: number;
+	entry_point_tokens?: number;
+	requires?: string[];
+	author?: string;
+	updated?: string;
+	source_path?: string;
+	when_to_use?: string;
+	languages?: string;
+	summary?: string;
+	quick_start?: string;
+	frontmatter_name?: string;
+	frontmatter_tags?: string[];
+	references?: { path: string; purpose: string }[];
+	used_by_agents?: string[];
+	agent_count?: number;
+	content?: string;
+	content_size?: number;
+}
+
+// --- Detail caches with LRU eviction (max 50 entries each) ---
+
+const DETAIL_CACHE_MAX = 50;
+
+const agentDetailCache = new Map<string, AgentDetailData>();
+const skillDetailCache = new Map<string, SkillDetailData>();
+
+/** Evict oldest entry if cache exceeds max size. Map preserves insertion order. */
+function evictIfNeeded<T>(cache: Map<string, T>, max: number): void {
+	if (cache.size > max) {
+		const firstKey = cache.keys().next().value;
+		if (firstKey !== undefined) {
+			cache.delete(firstKey);
+		}
+	}
+}
+
+/** Invalidate a specific agent detail cache entry (e.g. after deploy/undeploy). */
+export function invalidateAgentDetailCache(name: string): void {
+	agentDetailCache.delete(name);
+}
+
+/** Invalidate a specific skill detail cache entry (e.g. after deploy/undeploy). */
+export function invalidateSkillDetailCache(name: string): void {
+	skillDetailCache.delete(name);
+}
+
+/** Fetch full detail for a single agent. GET /api/config/agents/{name}/detail */
+export async function fetchAgentDetail(name: string): Promise<AgentDetailData | null> {
+	const cached = agentDetailCache.get(name);
+	if (cached) return cached;
+
+	try {
+		const data = await fetchJSON(`${API_BASE}/agents/${encodeURIComponent(name)}/detail`);
+		const detail = data.data as AgentDetailData;
+		if (detail) {
+			agentDetailCache.set(name, detail);
+			evictIfNeeded(agentDetailCache, DETAIL_CACHE_MAX);
+		}
+		return detail;
+	} catch (e: any) {
+		addError('agentDetail', e.message);
+		return null;
+	}
+}
+
+/** Fetch full detail for a single skill. GET /api/config/skills/{name}/detail */
+export async function fetchSkillDetail(name: string): Promise<SkillDetailData | null> {
+	const cached = skillDetailCache.get(name);
+	if (cached) return cached;
+
+	try {
+		const data = await fetchJSON(`${API_BASE}/skills/${encodeURIComponent(name)}/detail`);
+		const detail = data.data as SkillDetailData;
+		if (detail) {
+			skillDetailCache.set(name, detail);
+			evictIfNeeded(skillDetailCache, DETAIL_CACHE_MAX);
+		}
+		return detail;
+	} catch (e: any) {
+		addError('skillDetail', e.message);
+		return null;
+	}
+}
+
+/** Fetch all config data. Called when config tab is first opened. */
+export async function fetchAllConfig() {
+	await Promise.all([
+		fetchProjectSummary(),
+		fetchDeployedAgents(),
+		fetchSources(),
+	]);
+	// Defer heavier fetches (these may take 2-5 seconds)
+	fetchAvailableAgents();
+	fetchDeployedSkills();
+	fetchAvailableSkills();
+}
+
+// --- Phase 2: Mutation Functions ---
+
+/**
+ * Add a new source (agent or skill).
+ * POST /api/config/sources/{type}
+ */
+export async function addSource(type: 'agent' | 'skill', data: Record<string, any>): Promise<void> {
+	mutating.set(true);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data),
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to add source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || `Source added successfully`);
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to add source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Update an existing source.
+ * PATCH /api/config/sources/{type}?id={encodedId}
+ */
+export async function updateSource(type: 'agent' | 'skill', id: string, updates: Record<string, any>): Promise<void> {
+	mutating.set(true);
+	const encodedId = encodeURIComponent(id);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}?id=${encodedId}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(updates),
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to update source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || 'Source updated');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to update source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Remove a source.
+ * DELETE /api/config/sources/{type}?id={encodedId}
+ */
+export async function removeSource(type: 'agent' | 'skill', id: string): Promise<void> {
+	mutating.set(true);
+	const encodedId = encodeURIComponent(id);
+	try {
+		const response = await fetch(`${API_BASE}/sources/${type}?id=${encodedId}`, {
+			method: 'DELETE',
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to remove source');
+		}
+		await fetchSources();
+		toastStore.success(result.message || 'Source removed');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to remove source');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Sync a single source.
+ * POST /api/config/sources/{type}/sync?id={encodedId}
+ * Returns immediately (202). Progress via Socket.IO.
+ */
+export async function syncSource(type: 'agent' | 'skill', id: string, force: boolean = false): Promise<void> {
+	const encodedId = encodeURIComponent(id);
+	const forceParam = force ? '&force=true' : '';
+	try {
+		const response = await fetch(
+			`${API_BASE}/sources/${type}/sync?id=${encodedId}${forceParam}`,
+			{ method: 'POST' }
+		);
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to start sync');
+		}
+		// Update local sync state -- progress will come via Socket.IO
+		syncStatus.update((s) => ({
+			...s,
+			[id]: {
+				status: 'syncing',
+				progress: 0,
+				lastSync: null,
+				error: null,
+				jobId: result.job_id,
+			},
+		}));
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to start sync');
+	}
+}
+
+/**
+ * Sync all enabled sources.
+ * POST /api/config/sources/sync-all
+ */
+export async function syncAllSources(force: boolean = false): Promise<void> {
+	try {
+		const forceParam = force ? '?force=true' : '';
+		const response = await fetch(`${API_BASE}/sources/sync-all${forceParam}`, {
+			method: 'POST',
+		});
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to start sync');
+		}
+		toastStore.info(result.message || 'Sync started for all sources');
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to start sync');
+	}
+}
+
+// --- Phase 3: Deployment Types ---
+
+export interface DeployResult {
+	success: boolean;
+	message: string;
+	agent_name?: string;
+	skill_name?: string;
+	verification?: Record<string, any>;
+	backup_id?: string;
+	active_sessions_warning?: boolean;
+}
+
+export interface ModeImpactPreview {
+	would_remove: string[];
+	would_keep: string[];
+	remove_count: number;
+	keep_count: number;
+	note?: string;
+}
+
+export interface ToolchainResult {
+	primary_language: string;
+	primary_confidence: string;
+	frameworks: { name: string; version?: string; framework_type?: string; confidence: string }[];
+	build_tools: { name: string; confidence: string }[];
+	package_managers: { name: string; confidence: string }[];
+	deployment_target: { target_type: string; platform: string; confidence: string } | null;
+	overall_confidence: string;
+	metadata: Record<string, any>;
+}
+
+export interface AutoConfigPreview {
+	would_deploy: string[];
+	would_skip: string[];
+	deployment_count: number;
+	estimated_deployment_time: number;
+	requires_confirmation: boolean;
+	recommendations: {
+		agent_id: string;
+		agent_name: string;
+		confidence_score: number;
+		rationale: string;
+		match_reasons: string[];
+		deployment_priority: number;
+	}[];
+	validation: {
+		is_valid: boolean;
+		error_count: number;
+		warning_count: number;
+	} | null;
+	toolchain?: ToolchainResult;
+	metadata: Record<string, any>;
+	// Skill deployment fields (Phase 2 backend, Phase 4 UI)
+	skill_recommendations: string[];
+	would_deploy_skills: string[];
+}
+
+export interface AutoConfigResult {
+	job_id: string;
+	deployed_agents: string[];
+	failed_agents: string[];
+	deployed_skills: string[];
+	skill_errors: string[];
+	backup_id: string | null;
+	duration_ms: number;
+	needs_restart: boolean;
+	verification: Record<string, { passed: boolean }>;
+}
+
+export interface ActiveSessionInfo {
+	active: boolean;
+	sessions: { pid: number; started: string }[];
+	warning?: string;
+}
+
+// --- Phase 3: Deployment Mutation Functions ---
+
+async function mutateJSON(url: string, method: string, body?: any): Promise<any> {
+	const options: RequestInit = { method, headers: { 'Content-Type': 'application/json' } };
+	if (body !== undefined) options.body = JSON.stringify(body);
+	const response = await fetch(url, options);
+	const result = await response.json();
+	if (!response.ok && !result.success) {
+		const err = new Error(result.error || `HTTP ${response.status}`);
+		(err as any).status = response.status;
+		(err as any).data = result;
+		throw err;
+	}
+	return result;
+}
+
+/** Deploy a single agent. POST /api/config/agents/deploy */
+export async function deployAgent(agent_name: string, source_id?: string, force?: boolean): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { agent_name };
+		if (source_id) body.source_id = source_id;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/agents/deploy`, 'POST', body);
+		invalidateAgentDetailCache(agent_name);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `Agent ${agent_name} deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to deploy ${agent_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Undeploy a single agent. DELETE /api/config/agents/{name} */
+export async function undeployAgent(agent_name: string): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/agents/${encodeURIComponent(agent_name)}`, 'DELETE');
+		invalidateAgentDetailCache(agent_name);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `Agent ${agent_name} undeployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to undeploy ${agent_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Batch deploy agents. POST /api/config/agents/deploy-collection */
+export async function batchDeployAgents(agents: string[], source_id?: string, force?: boolean): Promise<any> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { agent_names: agents };
+		if (source_id) body.source_id = source_id;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/agents/deploy-collection`, 'POST', body);
+		await Promise.all([fetchDeployedAgents(), fetchAvailableAgents()]);
+		toastStore.success(result.message || `${agents.length} agents deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || 'Failed to deploy agents');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Deploy a single skill. POST /api/config/skills/deploy */
+export async function deploySkill(skill_name: string, mark_user_requested?: boolean, force?: boolean): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const body: Record<string, any> = { skill_name };
+		if (mark_user_requested) body.mark_user_requested = true;
+		if (force) body.force = true;
+		const result = await mutateJSON(`${API_BASE}/skills/deploy`, 'POST', body);
+		invalidateSkillDetailCache(skill_name);
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
+		toastStore.success(result.message || `Skill ${skill_name} deployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to deploy ${skill_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Undeploy a single skill. DELETE /api/config/skills/{name} */
+export async function undeploySkill(skill_name: string): Promise<DeployResult> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/skills/${encodeURIComponent(skill_name)}`, 'DELETE');
+		invalidateSkillDetailCache(skill_name);
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills()]);
+		toastStore.success(result.message || `Skill ${skill_name} undeployed`);
+		return result;
+	} catch (e: any) {
+		toastStore.error(e.message || `Failed to undeploy ${skill_name}`);
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/** Get current deployment mode. GET /api/config/skills/deployment-mode */
+export async function getDeploymentMode(): Promise<any> {
+	const result = await fetchJSON(`${API_BASE}/skills/deployment-mode`);
+	return result;
+}
+
+/** Switch deployment mode. PUT /api/config/skills/deployment-mode */
+export async function switchDeploymentMode(
+	mode: string,
+	options: { preview?: boolean; confirm?: boolean; skills?: string[] } = {}
+): Promise<any> {
+	const body: Record<string, any> = { mode, ...options };
+	const result = await mutateJSON(`${API_BASE}/skills/deployment-mode`, 'PUT', body);
+	if (!options.preview) {
+		await Promise.all([fetchDeployedSkills(), fetchAvailableSkills(), fetchProjectSummary()]);
+	}
+	return result;
+}
+
+/** Detect project toolchain. POST /api/config/auto-configure/detect */
+export async function detectToolchain(project_path?: string): Promise<ToolchainResult> {
+	const body: Record<string, any> = {};
+	if (project_path) body.project_path = project_path;
+	const result = await mutateJSON(`${API_BASE}/auto-configure/detect`, 'POST', body);
+	return result.toolchain || result.data || result;
+}
+
+/** Preview auto-configuration. POST /api/config/auto-configure/preview */
+export async function previewAutoConfig(project_path?: string, min_confidence?: number): Promise<AutoConfigPreview> {
+	const body: Record<string, any> = {};
+	if (project_path) body.project_path = project_path;
+	if (min_confidence !== undefined) body.min_confidence = min_confidence;
+	const result = await mutateJSON(`${API_BASE}/auto-configure/preview`, 'POST', body);
+	return result.preview || result.data || result;
+}
+
+// --- Auto-configure event subscription ---
+
+export interface AutoConfigEvent {
+	operation: 'autoconfig_progress' | 'autoconfig_completed' | 'autoconfig_failed';
+	data: Record<string, any>;
+}
+
+type AutoConfigEventCallback = (event: AutoConfigEvent) => void;
+
+const _autoconfigListeners: AutoConfigEventCallback[] = [];
+
+/** Subscribe to autoconfig Socket.IO events (progress, completed, failed).
+ *  Returns an unsubscribe function. */
+export function onAutoConfigEvent(callback: AutoConfigEventCallback): () => void {
+	_autoconfigListeners.push(callback);
+	return () => {
+		const idx = _autoconfigListeners.indexOf(callback);
+		if (idx >= 0) _autoconfigListeners.splice(idx, 1);
+	};
+}
+
+function _notifyAutoConfigListeners(event: AutoConfigEvent): void {
+	for (const cb of _autoconfigListeners) {
+		try {
+			cb(event);
+		} catch (e) {
+			console.error('[AutoConfig] Listener error:', e);
+		}
+	}
+}
+
+/**
+ * Apply auto-configuration. POST /api/config/auto-configure/apply
+ *
+ * The backend returns HTTP 202 immediately and runs the actual deployment
+ * as a background job. Deployment results arrive via Socket.IO
+ * `autoconfig_completed` event. This function returns only the job_id.
+ *
+ * Use `waitForAutoConfigCompletion()` to await the final result.
+ */
+export async function applyAutoConfig(options: Record<string, any> = {}): Promise<{ job_id: string }> {
+	mutating.set(true);
+	try {
+		const result = await mutateJSON(`${API_BASE}/auto-configure/apply`, 'POST', options);
+		// Backend returns 202 with { success, message, job_id, status }.
+		// Do NOT fire toast here -- the actual result arrives via Socket.IO.
+		return { job_id: result.job_id };
+	} catch (e: any) {
+		toastStore.error(e.message || 'Auto-configuration failed');
+		throw e;
+	} finally {
+		mutating.set(false);
+	}
+}
+
+/**
+ * Wait for auto-configure completion via Socket.IO events.
+ *
+ * Subscribes to autoconfig events and resolves when an `autoconfig_completed`
+ * event with matching job_id arrives. Rejects on `autoconfig_failed` or timeout.
+ *
+ * @param jobId - The job_id returned from applyAutoConfig()
+ * @param timeoutMs - Timeout in milliseconds (default 120000 = 2 minutes)
+ * @param onProgress - Optional callback for progress events
+ */
+export function waitForAutoConfigCompletion(
+	jobId: string,
+	timeoutMs: number = 120000,
+	onProgress?: (data: Record<string, any>) => void,
+): Promise<AutoConfigResult> {
+	return new Promise<AutoConfigResult>((resolve, reject) => {
+		let timer: ReturnType<typeof setTimeout> | null = null;
+
+		const unsubscribe = onAutoConfigEvent((event) => {
+			const eventJobId = event.data?.job_id;
+			if (eventJobId !== jobId) return;
+
+			if (event.operation === 'autoconfig_progress') {
+				onProgress?.(event.data);
+				return;
+			}
+
+			// Terminal event -- clean up
+			if (timer) clearTimeout(timer);
+			unsubscribe();
+
+			if (event.operation === 'autoconfig_completed') {
+				const result: AutoConfigResult = {
+					job_id: event.data.job_id,
+					deployed_agents: event.data.deployed_agents ?? [],
+					failed_agents: event.data.failed_agents ?? [],
+					deployed_skills: event.data.deployed_skills ?? [],
+					skill_errors: event.data.skill_errors ?? [],
+					backup_id: event.data.backup_id ?? null,
+					duration_ms: event.data.duration_ms ?? 0,
+					needs_restart: event.data.needs_restart ?? false,
+					verification: event.data.verification ?? {},
+				};
+
+				// Refresh stores now that deployment is done
+				Promise.all([
+					fetchDeployedAgents(),
+					fetchAvailableAgents(),
+					fetchDeployedSkills(),
+					fetchAvailableSkills(),
+					fetchProjectSummary(),
+				]).catch(() => {});
+
+				// Fire success toast
+				const agentCount = result.deployed_agents.length;
+				const skillCount = result.deployed_skills.length;
+				const parts: string[] = [];
+				if (agentCount) parts.push(`${agentCount} agent(s)`);
+				if (skillCount) parts.push(`${skillCount} skill(s)`);
+				toastStore.success(
+					parts.length
+						? `Auto-configure complete: deployed ${parts.join(', ')}`
+						: 'Auto-configuration applied'
+				);
+
+				resolve(result);
+			} else if (event.operation === 'autoconfig_failed') {
+				reject(new Error(event.data.error || 'Auto-configure failed'));
+			}
+		});
+
+		timer = setTimeout(() => {
+			unsubscribe();
+			reject(new Error('Auto-configure timed out after ' + Math.round(timeoutMs / 1000) + 's'));
+		}, timeoutMs);
+	});
+}
+
+/** Check for active Claude Code sessions. GET /api/config/active-sessions */
+export async function checkActiveSessions(): Promise<ActiveSessionInfo> {
+	try {
+		const result = await fetchJSON(`${API_BASE}/active-sessions`);
+		return result.data || result;
+	} catch {
+		return { active: false, sessions: [] };
+	}
+}
+
+// --- Phase 2 & 3: Socket.IO Config Event Handler ---
+
+/**
+ * Handle a config_event from Socket.IO.
+ * Called from +page.svelte or +layout.svelte when socket receives 'config_event'.
+ */
+export function handleConfigEvent(event: ConfigEvent): void {
+	switch (event.operation) {
+		case 'source_added':
+		case 'source_removed':
+		case 'source_updated':
+			fetchSources();
+			break;
+
+		case 'sync_progress':
+		case 'sync_completed':
+		case 'sync_failed':
+			updateSyncStatusFromEvent(event);
+			break;
+
+		case 'agent_deployed':
+		case 'agent_undeployed':
+			fetchDeployedAgents();
+			fetchAvailableAgents();
+			fetchProjectSummary();
+			break;
+
+		case 'skill_deployed':
+		case 'skill_undeployed':
+			fetchDeployedSkills();
+			fetchAvailableSkills();
+			fetchProjectSummary();
+			break;
+
+		case 'autoconfig_progress':
+		case 'autoconfig_completed':
+		case 'autoconfig_failed':
+			_notifyAutoConfigListeners({
+				operation: event.operation as AutoConfigEvent['operation'],
+				data: event.data,
+			});
+			break;
+
+		case 'external_change':
+			toastStore.warning('Configuration changed externally. Refreshing...');
+			fetchSources();
+			break;
+	}
+}
+
+function updateSyncStatusFromEvent(event: ConfigEvent): void {
+	const id = event.entity_id;
+	if (!id) return;
+
+	syncStatus.update((s) => {
+		const current = s[id];
+
+		if (event.operation === 'sync_completed') {
+			return {
+				...s,
+				[id]: {
+					status: 'completed',
+					progress: 100,
+					lastSync: event.timestamp,
+					error: null,
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		} else if (event.operation === 'sync_failed') {
+			return {
+				...s,
+				[id]: {
+					status: 'failed',
+					progress: 0,
+					lastSync: current?.lastSync ?? null,
+					error: event.data?.error ?? 'Sync failed',
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		} else if (event.operation === 'sync_progress') {
+			return {
+				...s,
+				[id]: {
+					status: 'syncing',
+					progress: event.data?.progress_pct ?? event.data?.progress ?? 0,
+					lastSync: current?.lastSync ?? null,
+					error: null,
+					jobId: event.data?.job_id ?? null,
+				},
+			};
+		}
+
+		return s;
+	});
+
+	// Refetch sources after sync completes (may have new items)
+	if (event.operation === 'sync_completed') {
+		fetchSources();
+	}
+}
