@@ -341,7 +341,7 @@ def display_startup_banner(
     # Build header line with cyan highlight (Claude Code style)
     header = f"─── Claude MPM v{version} "
     header_padding = "─" * (terminal_width - len(header) - 2)  # -2 for ╭╮
-    top_line = f"{CYAN}╭{header}{header_padding}╮{RESET}"
+    top_line = f"╭{CYAN}{header}{header_padding}{RESET}╮"
 
     # Build content lines (plain text, no color)
     lines = []
