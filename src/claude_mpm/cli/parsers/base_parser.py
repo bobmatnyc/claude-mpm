@@ -473,6 +473,13 @@ def create_parser(
         pass
 
     try:
+        from .queue_parser import add_queue_subparser
+
+        add_queue_subparser(subparsers)
+    except ImportError:
+        pass
+
+    try:
         from .config_parser import add_config_subparser
 
         add_config_subparser(subparsers)

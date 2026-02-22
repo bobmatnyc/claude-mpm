@@ -490,3 +490,152 @@ class MessagingDatabase:
             )
 
             return [self._row_to_message_dict(row) for row in cursor.fetchall()]
+
+    # New methods for project-filtered queries (for shared database)
+
+    def get_messages_for_project(
+        self, project_path: str, status: Optional[str] = None, limit: int = 50
+    ) -> List[Dict]:
+        """
+        Get messages for a specific project.
+
+        Args:
+            project_path: Target project path
+            status: Optional status filter
+            limit: Maximum number of messages
+
+        Returns:
+            List of message dictionaries
+        """
+        with self.get_connection() as conn:
+            if status:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM messages
+                    WHERE to_project = ? AND status = ?
+                    ORDER BY created_at DESC LIMIT ?
+                    """,
+                    (project_path, status, limit),
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM messages
+                    WHERE to_project = ?
+                    ORDER BY created_at DESC LIMIT ?
+                    """,
+                    (project_path, limit),
+                )
+
+            return [self._row_to_message_dict(row) for row in cursor.fetchall()]
+
+    def get_messages_for_project_and_agent(
+        self,
+        project_path: str,
+        to_agent: str,
+        status: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict]:
+        """
+        Get messages for a specific project and agent.
+
+        Args:
+            project_path: Target project path
+            to_agent: Target agent name
+            status: Optional status filter
+            limit: Maximum number of messages
+
+        Returns:
+            List of message dictionaries
+        """
+        with self.get_connection() as conn:
+            if status:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM messages
+                    WHERE to_project = ? AND to_agent = ? AND status = ?
+                    ORDER BY created_at DESC LIMIT ?
+                    """,
+                    (project_path, to_agent, status, limit),
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT * FROM messages
+                    WHERE to_project = ? AND to_agent = ?
+                    ORDER BY created_at DESC LIMIT ?
+                    """,
+                    (project_path, to_agent, limit),
+                )
+
+            return [self._row_to_message_dict(row) for row in cursor.fetchall()]
+
+    def get_unread_count_for_project(
+        self, project_path: str, to_agent: Optional[str] = None
+    ) -> int:
+        """
+        Get count of unread messages for a specific project.
+
+        Args:
+            project_path: Target project path
+            to_agent: Optional filter by target agent
+
+        Returns:
+            Number of unread messages
+        """
+        with self.get_connection() as conn:
+            if to_agent:
+                cursor = conn.execute(
+                    """
+                    SELECT COUNT(*) FROM messages
+                    WHERE to_project = ? AND to_agent = ? AND status = 'unread'
+                    """,
+                    (project_path, to_agent),
+                )
+            else:
+                cursor = conn.execute(
+                    """
+                    SELECT COUNT(*) FROM messages
+                    WHERE to_project = ? AND status = 'unread'
+                    """,
+                    (project_path,),
+                )
+
+            return cursor.fetchone()[0]
+
+    def get_high_priority_messages_for_project(
+        self, project_path: str, priorities: Optional[List[str]] = None, limit: int = 50
+    ) -> List[Dict]:
+        """
+        Get high priority messages for a specific project.
+
+        Args:
+            project_path: Target project path
+            priorities: List of priority levels to include
+            limit: Maximum number of messages
+
+        Returns:
+            List of high priority messages
+        """
+        if not priorities:
+            priorities = ["high", "urgent"]
+
+        with self.get_connection() as conn:
+            placeholders = ",".join("?" * len(priorities))
+            cursor = conn.execute(
+                f"""
+                SELECT * FROM messages
+                WHERE to_project = ? AND priority IN ({placeholders}) AND status = 'unread'
+                ORDER BY
+                    CASE priority
+                        WHEN 'urgent' THEN 0
+                        WHEN 'high' THEN 1
+                        ELSE 2
+                    END,
+                    created_at DESC
+                LIMIT ?
+                """,  # nosec B608
+                (project_path, *priorities, limit),
+            )
+
+            return [self._row_to_message_dict(row) for row in cursor.fetchall()]

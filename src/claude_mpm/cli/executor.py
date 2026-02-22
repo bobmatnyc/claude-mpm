@@ -21,6 +21,7 @@ from .commands import (
     manage_messages,
     manage_monitor,
     manage_tickets,
+    message_queue,
     run_doctor,
     run_session,
     show_info,
@@ -395,6 +396,7 @@ def execute_command(command: str, args) -> int:
         "debug": manage_debug,  # Add debug command
         "gh": manage_gh,  # GitHub multi-account management
         "message": manage_messages,  # Cross-project messaging
+        "queue": message_queue,  # Message queue management
         "mpm-init": None,  # Will be handled separately with lazy import
     }
 

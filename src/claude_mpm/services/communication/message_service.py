@@ -144,8 +144,9 @@ class MessageService:
         """
         self.project_root = project_root
 
-        # Initialize databases
-        self.messaging_db_path = project_root / ".claude-mpm" / "messaging.db"
+        # Use SHARED database for all projects (not per-project)
+        # This is the key change for the Huey migration
+        self.messaging_db_path = Path.home() / ".claude-mpm" / "messaging.db"
         self.messaging_db = MessagingDatabase(self.messaging_db_path)
 
         # Global session registry (use override or default)
@@ -159,6 +160,11 @@ class MessageService:
         self.global_registry.register_session(
             self.session_id, str(self.project_root), pid=os.getpid()
         )
+
+        # Initialize message bus for notifications
+        from .message_bus import MessageBus
+
+        self.message_bus = MessageBus()
 
     def send_message(
         self,
@@ -214,49 +220,37 @@ class MessageService:
         # Check if sending to self (same project)
         is_self_message = Path(to_project).resolve() == self.project_root.resolve()
 
+        # Prepare message data for database
+        message_dict = {
+            "id": message_id,
+            "from_project": str(self.project_root),
+            "from_agent": from_agent,
+            "to_project": to_project,
+            "to_agent": to_agent,
+            "type": message_type,
+            "priority": priority,
+            "subject": subject,
+            "body": body,
+            "status": "sent" if not is_self_message else "unread",
+            "created_at": message.created_at.isoformat(),
+            "reply_to": None,
+            "attachments": attachments or [],
+            "metadata": metadata or {},
+        }
+
         if not is_self_message:
-            # Save to sender's outbox database (skip for self-messages)
-            self.messaging_db.insert_message(
-                {
-                    "id": message_id,
-                    "from_project": str(self.project_root),
-                    "from_agent": from_agent,
-                    "to_project": to_project,
-                    "to_agent": to_agent,
-                    "type": message_type,
-                    "priority": priority,
-                    "subject": subject,
-                    "body": body,
-                    "status": "sent",
-                    "created_at": message.created_at.isoformat(),
-                    "reply_to": None,
-                    "attachments": attachments or [],
-                    "metadata": metadata or {},
-                }
-            )
+            # Save to shared database with "sent" status for sender
+            self.messaging_db.insert_message(message_dict)
 
-        # Deliver to target project's inbox database
-        target_db_path = Path(to_project) / ".claude-mpm" / "messaging.db"
-        target_db = MessagingDatabase(target_db_path)
-
-        target_db.insert_message(
-            {
-                "id": message_id,
-                "from_project": str(self.project_root),
-                "from_agent": from_agent,
-                "to_project": to_project,
-                "to_agent": to_agent,
-                "type": message_type,
-                "priority": priority,
-                "subject": subject,
-                "body": body,
-                "status": "unread",
-                "created_at": message.created_at.isoformat(),
-                "reply_to": None,
-                "attachments": attachments or [],
-                "metadata": metadata or {},
-            }
-        )
+            # Also enqueue for delivery via message bus
+            # This creates a separate entry with "unread" status for recipient
+            delivery_data = message_dict.copy()
+            delivery_data["status"] = "unread"
+            self.message_bus.enqueue_message(delivery_data)
+        else:
+            # Self-message: just insert once with "unread" status
+            message_dict["status"] = "unread"
+            self.messaging_db.insert_message(message_dict)
 
         return message
 
@@ -273,11 +267,17 @@ class MessageService:
         Returns:
             List of messages
         """
-        # Query from database
+        # Query from shared database, filtering by current project
+        current_project = str(self.project_root)
+
         if agent:
-            db_messages = self.messaging_db.get_messages_for_agent(agent, status)
+            db_messages = self.messaging_db.get_messages_for_project_and_agent(
+                current_project, agent, status
+            )
         else:
-            db_messages = self.messaging_db.list_messages(status)
+            db_messages = self.messaging_db.get_messages_for_project(
+                current_project, status
+            )
 
         # Convert to Message objects
         messages = []
@@ -361,7 +361,10 @@ class MessageService:
         Returns:
             Number of unread messages
         """
-        return self.messaging_db.get_unread_count(to_agent=agent)
+        # Filter by current project
+        return self.messaging_db.get_unread_count_for_project(
+            str(self.project_root), to_agent=agent
+        )
 
     def reply_to_message(
         self,
@@ -432,7 +435,10 @@ class MessageService:
         Returns:
             List of high priority messages
         """
-        db_messages = self.messaging_db.get_high_priority_messages()
+        # Filter by current project
+        db_messages = self.messaging_db.get_high_priority_messages_for_project(
+            str(self.project_root)
+        )
 
         messages = []
         for msg_dict in db_messages:

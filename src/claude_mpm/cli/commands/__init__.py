@@ -19,6 +19,7 @@ from .gh import manage_gh
 from .info import show_info
 from .mcp import manage_mcp
 from .memory import manage_memory
+from .message_queue import message_queue
 from .messages import manage_messages
 from .monitor import manage_monitor
 from .postmortem import run_postmortem
@@ -45,6 +46,7 @@ __all__ = [
     "manage_skills",
     # 'run_guarded_session',  # Excluded from default exports (experimental)
     "manage_tickets",
+    "message_queue",
     "run_doctor",
     "run_postmortem",
     "run_session",
