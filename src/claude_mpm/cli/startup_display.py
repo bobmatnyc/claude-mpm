@@ -503,6 +503,25 @@ def display_startup_banner(
     else:
         model_info = "Sonnet 4.5 · Claude MPM"
 
+    # Truncate model_info if it's too long for left panel
+    if len(model_info) > left_panel_width - 2:  # -2 for padding
+        # Try shorter format first: "Sonnet · X agents, Y skills"
+        if agent_count > 0 or skill_count > 0:
+            counts_text = []
+            if agent_count > 0:
+                counts_text.append(f"{agent_count}a")  # "agents" -> "a"
+            if skill_count > 0:
+                counts_text.append(f"{skill_count}s")  # "skills" -> "s"
+            model_info = f"Sonnet · {', '.join(counts_text)}"
+
+        # If still too long, truncate with ellipsis
+        if len(model_info) > left_panel_width - 2:
+            max_length = left_panel_width - 5  # -2 padding, -3 for "..."
+            if max_length > 0:
+                model_info = model_info[:max_length] + "..."
+            else:
+                model_info = "Sonnet"
+
     lines.append(
         _format_two_column_line(
             model_info, separator, left_panel_width, right_panel_width
