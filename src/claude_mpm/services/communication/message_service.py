@@ -20,7 +20,10 @@ from typing import List, Optional
 
 import yaml
 
+from ...core.logging_utils import get_logger
 from .messaging_db import MessagingDatabase
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -142,7 +145,8 @@ class MessageService:
             project_root: Root directory of the current project
             registry_path: Override for global session registry path (for testing)
         """
-        self.project_root = project_root
+        # Normalize project root to absolute, resolved path for consistent comparisons
+        self.project_root = Path(project_root).resolve()
 
         # Use SHARED database for all projects (not per-project)
         # This is the key change for the Huey migration
@@ -195,17 +199,20 @@ class MessageService:
         Returns:
             Created message object
         """
+        # Normalize to_project path for consistent database queries
+        to_project_normalized = str(Path(to_project).resolve())
+
         # Generate message ID
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
         message_id = f"msg-{timestamp}-{unique_id}"
 
-        # Create message
+        # Create message (using normalized path)
         message = Message(
             id=message_id,
             from_project=str(self.project_root),
             from_agent=from_agent,
-            to_project=to_project,
+            to_project=to_project_normalized,
             to_agent=to_agent,
             type=message_type,
             priority=priority,
@@ -218,14 +225,14 @@ class MessageService:
         )
 
         # Check if sending to self (same project)
-        is_self_message = Path(to_project).resolve() == self.project_root.resolve()
+        is_self_message = Path(to_project_normalized).resolve() == self.project_root
 
         # Prepare message data for database
         message_dict = {
             "id": message_id,
             "from_project": str(self.project_root),
             "from_agent": from_agent,
-            "to_project": to_project,
+            "to_project": to_project_normalized,
             "to_agent": to_agent,
             "type": message_type,
             "priority": priority,
@@ -238,19 +245,24 @@ class MessageService:
             "metadata": metadata or {},
         }
 
+        # Insert message to shared database
+        # For shared database model: store one copy with recipient's status
+        # The message is queryable by to_project (recipient queries their inbox)
         if not is_self_message:
-            # Save to shared database with "sent" status for sender
-            self.messaging_db.insert_message(message_dict)
+            message_dict["status"] = "unread"  # Recipient's status
 
-            # Also enqueue for delivery via message bus
-            # This creates a separate entry with "unread" status for recipient
-            delivery_data = message_dict.copy()
-            delivery_data["status"] = "unread"
-            self.message_bus.enqueue_message(delivery_data)
-        else:
-            # Self-message: just insert once with "unread" status
-            message_dict["status"] = "unread"
-            self.messaging_db.insert_message(message_dict)
+        # Insert to shared database
+        self.messaging_db.insert_message(message_dict)
+
+        # Enqueue notification for recipient (non-blocking, optional)
+        if not is_self_message:
+            try:
+                self.message_bus.enqueue_notification(
+                    to_project_normalized, message_id, priority
+                )
+            except Exception as e:
+                # Notification failure should not prevent message delivery
+                logger.warning(f"Failed to enqueue notification: {e}")
 
         return message
 

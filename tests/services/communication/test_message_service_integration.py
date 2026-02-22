@@ -309,9 +309,10 @@ class TestMessageServiceIntegration:
         assert messages[0].id == message.id
         assert messages[0].subject == "Persistent Message"
 
-        # Sent message should be in project1's database
-        # (Note: This assumes we might add a list_sent_messages method)
-        # For now, we can verify by checking the database directly
-        sent_msg = service1_b.messaging_db.get_message(message.id)
-        assert sent_msg is not None
-        assert sent_msg["status"] == "sent"
+        # Verify message persists in shared database from recipient's perspective
+        # In shared database model, messages are stored with recipient's status
+        received_msg = service2_b.messaging_db.get_message(message.id)
+        assert received_msg is not None
+        assert received_msg["to_project"] == str(project2)
+        assert received_msg["from_project"] == str(project1)
+        assert received_msg["status"] == "unread"  # Recipient's view
