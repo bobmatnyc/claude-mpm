@@ -38,6 +38,8 @@ LIGHTWEIGHT_COMMANDS = {
     "mcp",  # MCP server management
     # Info commands
     "info",
+    # Cross-project messaging
+    "message",
 }
 
 
