@@ -9,6 +9,7 @@ Part of cli/__init__.py refactoring to reduce file size and improve modularity.
 """
 
 import contextlib
+import json
 import os
 import sys
 from pathlib import Path
@@ -553,7 +554,20 @@ def deploy_output_style_on_startup():
                 break
 
         if all_up_to_date:
-            # Show feedback that output styles are ready
+            # Styles are ready, but ensure activation is set
+            # Check if we need to activate default style
+            # Only activate if no style is currently set (preserve user choices)
+            settings = {}
+            if manager.settings_file.exists():
+                try:
+                    settings = json.loads(manager.settings_file.read_text())
+                except json.JSONDecodeError:
+                    pass
+
+            current_style = settings.get("activeOutputStyle")
+            if current_style is None or current_style == "default":
+                manager._activate_output_style("Claude MPM", is_fresh_install=False)
+
             if sys.stdout.isatty():
                 print("✓ Output styles ready", flush=True)
             return
