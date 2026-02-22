@@ -216,7 +216,7 @@ def message_check_hook() -> Optional[str]:
         # Get project root
         from ..core.unified_paths import UnifiedPathManager
 
-        project_root = UnifiedPathManager.get_instance().project_root
+        project_root = UnifiedPathManager().project_root
 
         # Initialize state
         state_file = project_root / ".claude-mpm" / "message_check_state.json"

@@ -951,7 +951,7 @@ class EventHandlers:
             from claude_mpm.core.unified_paths import UnifiedPathManager
             from claude_mpm.services.communication.message_service import MessageService
 
-            project_root = UnifiedPathManager.get_instance().project_root
+            project_root = UnifiedPathManager().project_root
             service = MessageService(project_root)
             unread = service.list_messages(status="unread")
             if unread:

@@ -27,7 +27,7 @@ class MessagesCommand(BaseCommand):
 
     def __init__(self):
         super().__init__("messages")
-        self.path_manager = UnifiedPathManager.get_instance()
+        self.path_manager = UnifiedPathManager()
         self.message_service = MessageService(self.path_manager.project_root)
 
     def validate_args(self, args) -> Optional[str]:
