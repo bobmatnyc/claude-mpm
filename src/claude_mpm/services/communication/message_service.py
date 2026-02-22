@@ -405,13 +405,24 @@ class MessageService:
         # Send reply to original sender
         # Update original message with reply reference
         # This is optional but helpful for tracking conversation threads
+        # Determine reply subject
+        if subject and subject.startswith("Re:"):
+            # Use provided subject if it already has "Re:" prefix
+            reply_subject = subject
+        elif subject:
+            # Use provided subject with "Re:" prefix
+            reply_subject = f"Re: {subject}"
+        # Use original subject with "Re:" prefix if it doesn't already have it
+        elif original.subject and original.subject.startswith("Re:"):
+            reply_subject = original.subject
+        else:
+            reply_subject = f"Re: {original.subject or 'Your message'}"
+
         return self.send_message(
             to_project=original.from_project,
             to_agent=original.from_agent,
             message_type="reply",
-            subject=f"Re: {original.subject}"
-            if not subject.startswith("Re:")
-            else subject,
+            subject=reply_subject,
             body=body,
             from_agent=from_agent,
             metadata={"reply_to": original_message_id},
