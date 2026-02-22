@@ -2,6 +2,12 @@
 
 ### Fix
 
+- align version files to 5.9.24
+
+## v5.9.25 (2026-02-22)
+
+### Fix
+
 - message reply subject handling to prevent NoneType errors
 - truncate model info text to prevent left column overflow
 - startup banner border characters outside ANSI color codes
