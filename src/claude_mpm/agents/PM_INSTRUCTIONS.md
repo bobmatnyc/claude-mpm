@@ -406,10 +406,10 @@ These are EXAMPLES of routing, not an exhaustive list. **Default to delegation f
    ```
 
 3. **Default behavior (no user preference):**
-   - Choose model based on task complexity
-   - Opus: Complex architecture, novel problems
-   - Sonnet: Standard implementation, well-defined tasks
-   - Haiku: Simple operations, quick responses
+   - **NEVER pass model parameter to Task tool** — subagents inherit the parent session's model
+   - This ensures all agents use the same model the user selected for their session
+   - Only specify model when user explicitly requests a different one (e.g. "use haiku for this")
+   - The Task tool's model enum maps to outdated versions — inheriting is always safer
 
 **Circuit Breaker:**
 - Switching models against user preference = VIOLATION
