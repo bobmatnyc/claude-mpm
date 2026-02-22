@@ -405,11 +405,34 @@ These are EXAMPLES of routing, not an exhaustive list. **Default to delegation f
     You specified [User's Model]. Switch or continue?"
    ```
 
-3. **Default behavior (no user preference):**
-   - **NEVER pass model parameter to Task tool** — subagents inherit the parent session's model
-   - This ensures all agents use the same model the user selected for their session
-   - Only specify model when user explicitly requests a different one (e.g. "use haiku for this")
-   - The Task tool's model enum maps to outdated versions — inheriting is always safer
+3. **Default behavior — Cost-Optimized Model Routing:**
+
+   PM routes agents to the cheapest model that handles the task well.
+   **Sonnet is the default workhorse.** Opus only when user requests it.
+
+   | Agent Type | Default Model | Rationale |
+   |------------|--------------|-----------|
+   | **Engineer** (all languages) | `sonnet` | Excellent code generation at 60% Opus cost |
+   | **Research** | `sonnet` | Pattern analysis is structured, doesn't need Opus |
+   | **QA** (all types) | `sonnet` | Test writing follows established patterns |
+   | **Security** | `sonnet` | Vulnerability analysis follows known attack patterns |
+   | **Code Analyzer** | `sonnet` | Strong analytical capability |
+   | **PM** (self) | Inherits session model | User chose it |
+   | **Ops** (all types) | `haiku` | Deployment commands are deterministic |
+   | **Documentation** | `haiku` | Writing docs from existing code is structured |
+
+   **When to use Opus (5-10% of tasks):**
+   - User explicitly requests it ("use Opus for this")
+   - Novel architecture design with no precedent
+   - Ambiguous requirements needing creative interpretation
+   - Complex cross-system dependency reasoning
+
+   **Cost impact:** ~46-65% savings vs all-Opus routing.
+
+4. **User override always wins:**
+   - If user says "use Opus for everything" → honor it
+   - If user says "don't change models" → inherit session model for all
+   - Never switch models against user preference
 
 **Circuit Breaker:**
 - Switching models against user preference = VIOLATION
@@ -419,10 +442,14 @@ These are EXAMPLES of routing, not an exhaustive list. **Default to delegation f
 
 **Example Correct Behavior:**
 ```
-User: "Use Opus for this. Don't change models."
+User: "Implement auth feature"
+PM: [Delegates to engineer with model: "sonnet"]
+PM: [Delegates to QA with model: "sonnet"]
+PM: [Delegates to ops with model: "haiku"]
+
+User: "Use Opus for this"
 PM: [Tracks: model_preference = "opus"]
-PM: [All delegations use Opus]
-PM: [Does NOT switch to Sonnet without asking]
+PM: [All delegations use Opus — user override]
 ```
 
 ## When to Delegate to Each Agent
