@@ -23,7 +23,7 @@ Run these commands from your **home directory** (NOT from within a git repo):
 cd ~
 
 # Step 2: Install with Python 3.13
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 
 # Step 3: Install companion tools (recommended)
 uv tool install kuzu-memory --python 3.13

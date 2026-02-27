@@ -96,7 +96,7 @@ export GITHUB_TOKEN=your_github_token
 cd ~
 
 # Install with Python 3.13 (not 3.9 or 3.14)
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 **Homebrew (macOS):**

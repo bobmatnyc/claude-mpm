@@ -115,7 +115,7 @@ When you `cd project-a`, Python 3.11 is used. When you `cd project-b`, Python 3.
 **Problem:**
 ```bash
 # System has Python 3.9, MPM requires 3.11+
-pip install claude-mpm[monitor]
+pip install "claude-mpm[monitor]"
 # Error: Python 3.11+ required
 ```
 
@@ -126,7 +126,7 @@ echo "python 3.11.12" >> .tool-versions
 asdf install python 3.11.12
 
 # Now installation works
-pip install claude-mpm[monitor]
+pip install "claude-mpm[monitor]"
 ```
 
 ### 2. Ensures Consistent Tool Versions

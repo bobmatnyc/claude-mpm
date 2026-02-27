@@ -170,14 +170,14 @@ sudo apt install python3.13
 
 # Use explicit Python version with uv:
 cd ~
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 **macOS Users**: The default system Python is 3.9, which is too old. Always use the `--python 3.13` flag when installing with uv:
 
 ```bash
 cd ~
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 **Python 3.14 Users**: Python 3.14 is not yet supported. Downgrade to Python 3.13:
@@ -188,7 +188,7 @@ brew install python@3.13
 
 # Reinstall claude-mpm with Python 3.13
 uv tool uninstall claude-mpm
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 ### Installation Location Issues
@@ -202,7 +202,7 @@ uv tool install claude-mpm[monitor,data-processing] --python 3.13
 ```bash
 # CORRECT - Install from home directory
 cd ~
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 
 # WRONG - Do NOT install from within the git repo
 cd ~/Projects/claude-mpm  # <-- This causes problems!
@@ -217,7 +217,7 @@ cd ~
 uv tool uninstall claude-mpm
 
 # Reinstall correctly
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 ### Pre-Doctor Setup Missing

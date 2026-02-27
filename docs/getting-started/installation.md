@@ -51,7 +51,7 @@ To create a token:
 ```bash
 # CORRECT - Install from home directory
 cd ~
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 
 # WRONG - Do NOT install from within the git repo
 cd ~/Projects/claude-mpm  # <-- This causes conflicts!
@@ -159,7 +159,7 @@ Here is the complete installation sequence for a fresh setup:
 cd ~
 
 # Step 2: Install claude-mpm with Python 3.13
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 
 # Step 3: Install companion tools (optional but recommended)
 uv tool install kuzu-memory --python 3.13
@@ -198,7 +198,7 @@ claude-mpm auto-configure
 **Solution**: Use explicit Python 3.13:
 ```bash
 cd ~
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 ### Installation from Git Repo
@@ -209,7 +209,7 @@ uv tool install claude-mpm[monitor,data-processing] --python 3.13
 ```bash
 cd ~
 uv tool uninstall claude-mpm
-uv tool install claude-mpm[monitor,data-processing] --python 3.13
+uv tool install "claude-mpm[monitor,data-processing]" --python 3.13
 ```
 
 ### Doctor Command Fails
