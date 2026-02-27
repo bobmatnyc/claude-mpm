@@ -189,6 +189,7 @@ make test-e2e          # End-to-end tests only
 2. **Architecture Updates**: Keep architecture docs current with changes
 3. **Migration Guides**: Document breaking changes and upgrade paths
 4. **Performance Metrics**: Document performance expectations and benchmarks
+5. **Shell Compatibility**: Quote package names with extras in all shell examples (e.g., `"claude-mpm[monitor]"` not `claude-mpm[monitor]`). Characters like `[`, `]`, `{`, `}` are glob patterns in zsh and must be quoted. See [Documentation Standards](docs/development/DOCUMENTATION-STANDARDS.md) for details.
 
 ## Common Development Tasks
 

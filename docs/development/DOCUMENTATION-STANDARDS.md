@@ -147,6 +147,14 @@ Where to go next in the documentation journey
 - Include complete, runnable examples
 - Test all code samples before committing
 
+**Shell Command Examples**:
+- Always quote package names containing extras or special characters:
+  - Correct: `uv tool install "claude-mpm[monitor,data-processing]"`
+  - Incorrect: `uv tool install claude-mpm[monitor,data-processing]`
+- zsh (the default macOS shell) treats `[`, `]`, `{`, `}`, `*`, and `?` as glob characters — unquoted, they cause silent failures or unexpected behavior
+- Documentation code blocks are copy-pasted by users into their terminals, so they must be valid in both bash and zsh
+- When in doubt, wrap arguments containing special characters in double quotes
+
 **Framework-Specific Guidelines**:
 - Always distinguish between FRAMEWORK (this repo) and PROJECT (user installations)
 - Specify Claude Code CLI version requirements
