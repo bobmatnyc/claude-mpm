@@ -400,7 +400,7 @@ content_agent:
   # Claude Configuration (cloud models)
   claude:
     enabled: true
-    model: claude-3-5-sonnet-20241022
+    model: sonnet
     max_tokens: 4096
     temperature: 0.7
     # api_key: sk-ant-...  # Or use ANTHROPIC_API_KEY env var
