@@ -55,7 +55,7 @@ def add_provider_subparser(subparsers: argparse._SubParsersAction) -> None:
     anthropic_parser.add_argument(
         "--model",
         type=str,
-        help="Anthropic model ID (default: claude-sonnet-4-20250514)",
+        help="Anthropic model ID (default: sonnet)",
     )
 
     # status subcommand

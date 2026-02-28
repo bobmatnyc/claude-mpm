@@ -42,9 +42,14 @@ class BedrockConfig:
 
 @dataclass
 class AnthropicConfig:
-    """Configuration for Anthropic API backend."""
+    """Configuration for Anthropic API backend.
 
-    model: str = "claude-sonnet-4-20250514"
+    WHY: model defaults to empty string so that claude-mpm does NOT override
+    Claude Code's own default model when the user hasn't explicitly configured
+    one. Only set model to a non-empty value to force a specific model.
+    """
+
+    model: str = ""
 
 
 @dataclass
@@ -159,9 +164,22 @@ class APIProviderConfig:
                 del os.environ["CLAUDE_CODE_USE_BEDROCK"]
                 changes["CLAUDE_CODE_USE_BEDROCK"] = "(unset)"
 
-            # Set model
-            os.environ["ANTHROPIC_MODEL"] = self.anthropic.model
-            changes["ANTHROPIC_MODEL"] = self.anthropic.model
+            # Only set ANTHROPIC_MODEL if explicitly configured by the user.
+            # An empty model string means "use Claude Code's own default" —
+            # we must NOT set the env var in that case, otherwise we would
+            # override Claude Code's current default (e.g. Opus 4.6) with
+            # an old hardcoded value.
+            if self.anthropic.model:
+                os.environ["ANTHROPIC_MODEL"] = self.anthropic.model
+                changes["ANTHROPIC_MODEL"] = self.anthropic.model
+                logger.debug(
+                    f"Configured Anthropic backend: model={self.anthropic.model}"
+                )
+            else:
+                logger.debug(
+                    "Anthropic backend: no model override configured, "
+                    "Claude Code will use its own default model"
+                )
 
             # Note: API key is optional when using Claude.ai OAuth login
             if "ANTHROPIC_API_KEY" not in os.environ:  # pragma: allowlist secret
@@ -169,8 +187,6 @@ class APIProviderConfig:
                     "ANTHROPIC_API_KEY not found in environment. "  # pragma: allowlist secret
                     "Claude Code will use Claude.ai login or prompt for authentication."
                 )
-
-            logger.debug(f"Configured Anthropic backend: model={self.anthropic.model}")
 
         return changes
 

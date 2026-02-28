@@ -306,6 +306,9 @@ class ModelTier(StrEnum):
     SONNET_4_5 = "claude-sonnet-4-5-20250929"
     """Claude 4.5 Sonnet - September 2025 release."""
 
+    SONNET_4_6 = "claude-sonnet-4-6-20260124"
+    """Claude 4.6 Sonnet - January 2026 release."""
+
     # Legacy model identifiers (Claude 3.x)
     OPUS_3 = "claude-3-opus-20240229"
     """Claude 3 Opus - February 2024 release."""

@@ -92,7 +92,7 @@ class ClaudeConfig(BaseModel):
 
     enabled: bool = Field(default=True, description="Enable Claude provider")
     model: str = Field(
-        default="claude-3-5-sonnet-20241022",
+        default="sonnet",
         description="Default Claude model",
     )
     max_tokens: int = Field(

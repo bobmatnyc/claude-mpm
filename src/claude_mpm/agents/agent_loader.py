@@ -146,7 +146,7 @@ MODEL_THRESHOLDS = {
 
 MODEL_NAME_MAPPINGS = {
     ModelType.HAIKU: "claude-3-haiku-20240307",  # Fast, cost-effective
-    ModelType.SONNET: "claude-sonnet-4-20250514",  # Balanced performance
+    ModelType.SONNET: "sonnet",  # Balanced performance (generic alias, always current)
     ModelType.OPUS: "claude-opus-4-20250514",  # Maximum capability
 }
 
@@ -338,7 +338,7 @@ class AgentLoader:
             "description": metadata.get("description", ""),
             "category": category.value,  # Store as string for backward compatibility
             "version": metadata.get("version", "1.0.0"),
-            "model": agent_data.get("model", "claude-sonnet-4-20250514"),
+            "model": agent_data.get("model", "sonnet"),
             "resource_tier": agent_data.get("resource_tier", "standard"),
             "tier": tier.value if tier else "unknown",
             "tools": agent_data.get("tools", []),
@@ -418,7 +418,7 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
                 if hasattr(agent_type, "value")
                 else str(agent_type or "general"),
                 "version": getattr(agent, "version", "1.0.0"),
-                "model": "claude-sonnet-4-20250514",
+                "model": "sonnet",
                 "resource_tier": "standard",
                 "tier": tier.value if hasattr(tier, "value") else str(tier or "system"),
                 "has_project_memory": has_memory,
@@ -435,7 +435,7 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
                 "description": agent.get("description", ""),
                 "category": agent.get("category", "general"),
                 "version": agent.get("version", "1.0.0"),
-                "model": agent.get("model", "claude-sonnet-4-20250514"),
+                "model": agent.get("model", "sonnet"),
                 "resource_tier": agent.get("resource_tier", "standard"),
                 "tier": agent.get("tier", "system"),
                 "has_project_memory": agent.get("has_project_memory", False),
@@ -666,11 +666,11 @@ def _get_model_config(
 
     if not agent_data:
         # Fallback for unknown agents - use Sonnet as safe default
-        return "claude-sonnet-4-20250514", {"selection_method": "default"}
+        return "sonnet", {"selection_method": "default"}
 
     # Get model from agent capabilities (agent's preferred model)
     default_model = agent_data.get("capabilities", {}).get(
-        "model", "claude-sonnet-4-20250514"
+        "model", "sonnet"
     )
 
     # Check if dynamic model selection is enabled globally
@@ -926,7 +926,7 @@ def get_agent_prompt_with_model_info(
     # This defensive code ensures we always return the expected tuple format
     loader = _get_loader()
     agent_data = loader.get_agent(agent_name)
-    default_model = "claude-sonnet-4-20250514"
+    default_model = "sonnet"
     if agent_data:
         default_model = agent_data.get("capabilities", {}).get("model", default_model)
 
