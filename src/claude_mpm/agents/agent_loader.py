@@ -145,9 +145,9 @@ MODEL_THRESHOLDS = {
 }
 
 MODEL_NAME_MAPPINGS = {
-    ModelType.HAIKU: "claude-3-haiku-20240307",  # Fast, cost-effective
+    ModelType.HAIKU: "haiku",  # Fast, cost-effective (generic alias, always current)
     ModelType.SONNET: "sonnet",  # Balanced performance (generic alias, always current)
-    ModelType.OPUS: "claude-opus-4-20250514",  # Maximum capability
+    ModelType.OPUS: "opus",  # Maximum capability (generic alias, always current)
 }
 
 

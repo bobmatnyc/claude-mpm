@@ -12,6 +12,7 @@ import pytest
 from src.claude_mpm.cli.startup_display import (
     _format_logging_status,
     _format_two_column_line,
+    _get_active_model_display_name,
     _get_alien_art,
     _get_cwd_display,
     _get_terminal_width,
@@ -207,6 +208,135 @@ class TestCwdDisplay:
             assert result.endswith(long_path[-(20 - 3) :])
 
 
+class TestGetActiveModelDisplayName:
+    """Tests for _get_active_model_display_name()."""
+
+    def test_env_var_exact_alias(self, monkeypatch):
+        """ANTHROPIC_MODEL env var with exact alias returns display name."""
+        monkeypatch.setenv("ANTHROPIC_MODEL", "sonnet")
+        assert _get_active_model_display_name() == "Sonnet"
+
+    def test_env_var_versioned_model(self, monkeypatch):
+        """ANTHROPIC_MODEL env var with versioned model returns display name."""
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-6")
+        assert _get_active_model_display_name() == "Opus 4.6"
+
+    def test_env_var_dated_variant_prefix_match(self, monkeypatch):
+        """ANTHROPIC_MODEL env var with dated variant uses prefix match."""
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-opus-4-6-20260101")
+        assert _get_active_model_display_name() == "Opus 4.6"
+
+    def test_env_var_unknown_model_returns_raw(self, monkeypatch):
+        """ANTHROPIC_MODEL env var with unknown model returns raw value."""
+        monkeypatch.setenv("ANTHROPIC_MODEL", "claude-unknown-9999")
+        result = _get_active_model_display_name()
+        assert result == "claude-unknown-9999"
+
+    def test_env_var_unknown_model_truncated(self, monkeypatch):
+        """ANTHROPIC_MODEL env var with very long unknown model is truncated."""
+        long_model = "claude-unknown-model-very-long-name-exceeds-thirty-chars"
+        monkeypatch.setenv("ANTHROPIC_MODEL", long_model)
+        result = _get_active_model_display_name()
+        assert len(result) <= 30
+
+    def test_fallback_to_default_when_no_config(self, monkeypatch, tmp_path):
+        """Returns 'Default' when no env var and no settings files exist."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+        # Point cwd and home to empty tmp dirs so no settings files are found
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert _get_active_model_display_name() == "Default"
+
+    def test_project_local_settings_takes_precedence(self, monkeypatch, tmp_path):
+        """Project .claude/settings.local.json is preferred over other settings."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+        # Create settings files with different model values
+        local_settings = tmp_path / ".claude" / "settings.local.json"
+        local_settings.parent.mkdir(parents=True)
+        local_settings.write_text('{"model": "claude-opus-4-6"}')
+
+        project_settings = tmp_path / ".claude" / "settings.json"
+        project_settings.write_text('{"model": "claude-sonnet-4-6"}')
+
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert _get_active_model_display_name() == "Opus 4.6"
+
+    def test_project_settings_used_when_no_local(self, monkeypatch, tmp_path):
+        """Project .claude/settings.json is used when no local settings exist."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+        project_settings = tmp_path / ".claude" / "settings.json"
+        project_settings.parent.mkdir(parents=True)
+        project_settings.write_text('{"model": "sonnet"}')
+
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        # home is a separate dir with no settings
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+        monkeypatch.setattr(Path, "home", lambda: home_dir)
+
+        assert _get_active_model_display_name() == "Sonnet"
+
+    def test_global_settings_used_as_fallback(self, monkeypatch, tmp_path):
+        """Global ~/.claude/settings.json is used when no project settings exist."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+        cwd_dir = tmp_path / "project"
+        cwd_dir.mkdir()
+        monkeypatch.setattr(Path, "cwd", lambda: cwd_dir)
+
+        global_settings = tmp_path / ".claude" / "settings.json"
+        global_settings.parent.mkdir(parents=True)
+        global_settings.write_text('{"model": "haiku"}')
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert _get_active_model_display_name() == "Haiku"
+
+    def test_malformed_json_does_not_crash(self, monkeypatch, tmp_path):
+        """Malformed JSON in settings file is silently skipped."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+        local_settings = tmp_path / ".claude" / "settings.local.json"
+        local_settings.parent.mkdir(parents=True)
+        local_settings.write_text("{ this is not valid json }")
+
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        # Should not raise; falls back to "Default"
+        result = _get_active_model_display_name()
+        assert result == "Default"
+
+    def test_settings_file_with_no_model_key_skipped(self, monkeypatch, tmp_path):
+        """Settings file without a 'model' key does not cause crash or bad value."""
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+        local_settings = tmp_path / ".claude" / "settings.local.json"
+        local_settings.parent.mkdir(parents=True)
+        local_settings.write_text('{"theme": "dark"}')
+
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert _get_active_model_display_name() == "Default"
+
+    def test_env_var_takes_precedence_over_settings(self, monkeypatch, tmp_path):
+        """ANTHROPIC_MODEL env var overrides any settings file."""
+        monkeypatch.setenv("ANTHROPIC_MODEL", "opus")
+
+        local_settings = tmp_path / ".claude" / "settings.local.json"
+        local_settings.parent.mkdir(parents=True)
+        local_settings.write_text('{"model": "haiku"}')
+
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert _get_active_model_display_name() == "Opus"
+
+
 class TestTwoColumnLayout:
     """Tests for two-column line formatting."""
 
@@ -296,15 +426,20 @@ class TestShouldShowBanner:
 class TestDisplayStartupBanner:
     """Tests for full banner display."""
 
-    def test_display_startup_banner_output(self, capsys):
+    def test_display_startup_banner_output(self, capsys, monkeypatch):
         """Test banner displays output."""
+        # Pin the model display name so the assertion is environment-independent
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display._get_active_model_display_name",
+            lambda: "Sonnet",
+        )
         display_startup_banner("4.24.0", "OFF")
         captured = capsys.readouterr()
 
         # Banner was redesigned from text to visual box layout; "Launching..." text removed
         assert "Claude MPM v4.24.0" in captured.out
         assert "Welcome back" in captured.out
-        # Banner shows "Sonnet" in activity/model line
+        # Banner shows the mocked model name
         assert "Sonnet" in captured.out
 
     def test_display_startup_banner_info_logging(self, capsys):

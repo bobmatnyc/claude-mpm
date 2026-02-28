@@ -139,6 +139,7 @@ class TestAPIProviderConfig:
         """Test applying environment for Anthropic backend."""
         # Set bedrock var to test it gets removed
         os.environ["CLAUDE_CODE_USE_BEDROCK"] = "1"
+        os.environ.pop("ANTHROPIC_MODEL", None)
 
         config = APIProviderConfig(backend=APIBackend.ANTHROPIC)
         changes = config.apply_environment()
@@ -147,6 +148,33 @@ class TestAPIProviderConfig:
         # ANTHROPIC_MODEL is not set when model is empty (default)
         assert "ANTHROPIC_MODEL" not in os.environ
         assert changes.get("CLAUDE_CODE_USE_BEDROCK") == "(unset)"
+
+    def test_apply_environment_anthropic_with_model(self):
+        """Test applying environment for Anthropic backend with explicit model."""
+        for var in ["CLAUDE_CODE_USE_BEDROCK", "ANTHROPIC_MODEL"]:
+            os.environ.pop(var, None)
+
+        config = APIProviderConfig(
+            backend=APIBackend.ANTHROPIC,
+            anthropic=AnthropicConfig(model="claude-opus-4-20250514"),
+        )
+        changes = config.apply_environment()
+
+        assert os.environ.get("ANTHROPIC_MODEL") == "claude-opus-4-20250514"
+        assert changes["ANTHROPIC_MODEL"] == "claude-opus-4-20250514"
+
+        # Cleanup
+        os.environ.pop("ANTHROPIC_MODEL", None)
+
+    def test_apply_environment_anthropic_unsets_stale_model(self):
+        """Test that stale ANTHROPIC_MODEL is cleaned up when model is empty."""
+        os.environ["ANTHROPIC_MODEL"] = "old-model-value"
+
+        config = APIProviderConfig(backend=APIBackend.ANTHROPIC)
+        changes = config.apply_environment()
+
+        assert "ANTHROPIC_MODEL" not in os.environ
+        assert changes.get("ANTHROPIC_MODEL") == "(unset)"
 
     def test_save_creates_directory(self):
         """Test save creates directory if needed."""

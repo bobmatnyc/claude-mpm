@@ -4,6 +4,7 @@ Startup display banner for Claude MPM.
 Shows welcome message, version info, ASCII art, and what's new section.
 """
 
+import json
 import os
 import re
 import shutil
@@ -12,6 +13,9 @@ from pathlib import Path
 from typing import List
 
 from claude_mpm.utils.git_analyzer import is_git_repository
+from claude_mpm.core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # ANSI color codes
 CYAN = "\033[36m"  # Cyan for header highlight (Claude Code style)
@@ -204,7 +208,7 @@ def _get_active_model_display_name() -> str:
     2. Project .claude/settings.local.json "model" key
     3. Project .claude/settings.json "model" key
     4. Global ~/.claude/settings.json "model" key
-    5. Fall back to "Default" (Claude Code's own default, currently Opus 4.6)
+    5. Fall back to "Default" (Claude Code's own default)
 
     Returns:
         Human-friendly model name for display (e.g. "Opus 4.6", "Sonnet", "Default")
@@ -215,7 +219,7 @@ def _get_active_model_display_name() -> str:
         "opus": "Opus",
         "sonnet": "Sonnet",
         "haiku": "Haiku",
-        # Specific versioned models (most recent first for clarity)
+        # Specific versioned models (most recent first — ordering matters for prefix matching)
         "claude-opus-4-6": "Opus 4.6",
         "claude-sonnet-4-6": "Sonnet 4.6",
         "claude-haiku-4-6": "Haiku 4.6",
@@ -240,9 +244,7 @@ def _get_active_model_display_name() -> str:
         for key, display in MODEL_DISPLAY.items():
             if lower.startswith(key):
                 return display
-        # Generic fallback: capitalise the last meaningful segment
-        # e.g. "claude-sonnet-4-7-20270101" -> "claude-sonnet-4-7..."
-        # Just show the raw value truncated so it's still useful
+        # Fallback: show the raw model identifier, truncated for display
         return raw[:30] if len(raw) > 30 else raw
 
     # 1. ANTHROPIC_MODEL env var
@@ -259,14 +261,13 @@ def _get_active_model_display_name() -> str:
     for settings_path in settings_paths:
         try:
             if settings_path.exists():
-                import json as _json
                 with open(settings_path) as f:
-                    data = _json.load(f)
+                    data = json.load(f)
                 model_val = data.get("model", "").strip()
                 if model_val:
                     return _friendly(model_val)
-        except Exception:
-            # Fail silently - don't break the banner on malformed files
+        except (json.JSONDecodeError, OSError, KeyError, ValueError) as exc:
+            logger.debug("Could not read model from %s: %s", settings_path, exc)
             continue
 
     # 5. Claude Code's own default (no override configured anywhere)

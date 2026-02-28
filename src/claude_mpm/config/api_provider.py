@@ -176,6 +176,10 @@ class APIProviderConfig:
                     f"Configured Anthropic backend: model={self.anthropic.model}"
                 )
             else:
+                # Clean up any stale ANTHROPIC_MODEL from a previous configuration
+                if "ANTHROPIC_MODEL" in os.environ:
+                    del os.environ["ANTHROPIC_MODEL"]
+                    changes["ANTHROPIC_MODEL"] = "(unset)"
                 logger.debug(
                     "Anthropic backend: no model override configured, "
                     "Claude Code will use its own default model"

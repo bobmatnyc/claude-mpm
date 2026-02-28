@@ -28,7 +28,7 @@ content_agent:
 
   claude:
     enabled: true
-    model: claude-3-5-sonnet-20241022
+    model: sonnet
     max_tokens: 4096
     temperature: 0.7
 ```
