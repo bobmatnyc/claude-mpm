@@ -315,7 +315,7 @@ class TestModelTier:
     def test_iteration(self):
         """Verify enum can be iterated."""
         tiers = list(ModelTier)
-        assert len(tiers) == 9
+        assert len(tiers) == 10
 
 
 class TestAgentCategory:

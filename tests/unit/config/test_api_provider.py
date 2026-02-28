@@ -53,7 +53,7 @@ class TestAnthropicConfig:
     def test_default_values(self):
         """Test default values."""
         config = AnthropicConfig()
-        assert "claude" in config.model.lower()
+        assert config.model == ""
 
     def test_custom_values(self):
         """Test custom values."""
@@ -144,11 +144,9 @@ class TestAPIProviderConfig:
         changes = config.apply_environment()
 
         assert "CLAUDE_CODE_USE_BEDROCK" not in os.environ
-        assert "ANTHROPIC_MODEL" in os.environ
+        # ANTHROPIC_MODEL is not set when model is empty (default)
+        assert "ANTHROPIC_MODEL" not in os.environ
         assert changes.get("CLAUDE_CODE_USE_BEDROCK") == "(unset)"
-
-        # Cleanup
-        os.environ.pop("ANTHROPIC_MODEL", None)
 
     def test_save_creates_directory(self):
         """Test save creates directory if needed."""
