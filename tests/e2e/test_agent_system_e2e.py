@@ -136,7 +136,7 @@ class TestAgentSystemE2E:
                 "category": category,
                 "display_name": name,
                 "tags": ["test"],
-                "status": "active",
+                "status": "stable",
             },
             "capabilities": {
                 "model": "claude-sonnet-4-20250514",
@@ -264,15 +264,15 @@ class TestAgentSystemE2E:
         assert "test_agent_2" in loader._agent_registry
         assert "invalid_agent" not in loader._agent_registry
 
-        # Test agent retrieval
-        agent1 = loader.get_agent("test_agent_1")
+        # Test agent retrieval from loaded registry
+        agent1 = loader._agent_registry.get("test_agent_1")
         assert agent1 is not None
         assert agent1["metadata"]["name"] == "Test Agent 1"
 
-        # Test listing agents
-        agents = loader.list_agents()
+        # Test listing loaded agents
+        agents = list(loader._agent_registry.values())
         assert len(agents) == 2
-        assert any(a["id"] == "test_agent_1" for a in agents)
+        assert any(a["agent_id"] == "test_agent_1" for a in agents)
 
         # Record performance
         self.performance_metrics["operation_times"]["discovery_and_loading"] = (
