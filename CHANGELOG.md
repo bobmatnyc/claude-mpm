@@ -1,3 +1,15 @@
+## v5.9.42 (2026-03-01)
+
+### Feat
+
+- DeploymentContext scope-aware abstraction for agents and skills (#322)
+
+### Fix
+
+- critical cwd bug - stale CLAUDE_MPM_USER_PWD causes wrong project directory
+- clean stale hook paths from all settings files (#324)
+- add quotes around package extras in install commands to prevent zsh glob expansion
+
 ## v5.9.41 (2026-02-28)
 
 ### Fix
