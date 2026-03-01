@@ -123,6 +123,8 @@ dashboard_integration_test.html
 HUD_*.md
 DEBUGGING_*.md
 TOOL_RESULT_*.md
+ENHANCED_*.md
+tests/demo/
 
 # Temporary JSON reports
 *_qa_report*.json
