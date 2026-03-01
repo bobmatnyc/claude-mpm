@@ -358,6 +358,9 @@ dist/
 .claude.json
 # Research docs (work in progress)
 docs/research/*.md
+
+# AI-generated planning/research artifacts (branch-local, not for main)
+docs-local/
 mcp-browser-extensions/
 tests/eval/reports/
 ccusage.json
