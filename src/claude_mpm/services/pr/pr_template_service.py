@@ -153,7 +153,7 @@ class PRTemplateService:
 
 ---
 🤖 Generated with Claude MPM Agent Improver
-Co-Authored-By: agent-improver <noreply@anthropic.com>
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 """
 
     def generate_skill_pr_body(
@@ -219,7 +219,7 @@ Co-Authored-By: agent-improver <noreply@anthropic.com>
 {related_section}
 ---
 🤖 Generated with Claude MPM Skills Manager
-Co-Authored-By: skills-manager <noreply@anthropic.com>
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 """
 
     def validate_conventional_commit(self, message: str) -> bool:

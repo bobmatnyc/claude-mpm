@@ -45,6 +45,7 @@ class ClaudeMPMSubprocess:
         env["DISABLE_TELEMETRY"] = "1"
         env["CI"] = "true"
         env["CLAUDE_MPM_USER_PWD"] = self.working_directory
+        env["CLAUDE_MPM_IS_SUBPROCESS"] = "1"
         if overrides:
             env.update(overrides)
         return env

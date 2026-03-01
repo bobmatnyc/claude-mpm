@@ -3,13 +3,14 @@
 Migration script to update Co-Authored-By email from anthropic to claude-mpm.
 
 This migration updates all template files to use:
-  Co-Authored-By: Claude MPM <claude-mpm@matsuoka.com>
+  Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>
 
 Instead of:
   Co-Authored-By: Claude <noreply@anthropic.com>
   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
   Co-Authored-By: agent-improver <noreply@anthropic.com>
   Co-Authored-By: skills-manager <noreply@anthropic.com>
+  Co-Authored-By: Claude MPM <claude-mpm@matsuoka.com>
 
 Usage:
     python -m claude_mpm.migrations.migrate_coauthor_email [--dry-run]
@@ -24,14 +25,14 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# Pattern to match various co-author formats with anthropic email
+# Pattern to match various co-author formats (anthropic email or old matsuoka email)
 COAUTHOR_PATTERN = re.compile(
-    r"Co-Authored-By:\s*[^<]*<[^>]*@anthropic\.com>",
+    r"Co-Authored-By:\s*[^<]*<(?:[^>]*@anthropic\.com|claude-mpm@matsuoka\.com)>",
     re.IGNORECASE,
 )
 
 # New co-author line
-NEW_COAUTHOR = "Co-Authored-By: Claude MPM <claude-mpm@matsuoka.com>"
+NEW_COAUTHOR = "Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
 
 def get_package_root() -> Path:

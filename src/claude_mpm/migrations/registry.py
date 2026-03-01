@@ -43,7 +43,7 @@ MIGRATIONS: list[Migration] = [
     Migration(
         id="5.6.95_coauthor_email",
         version="5.6.95",
-        description="Update Co-Authored-By to Claude MPM <claude-mpm@matsuoka.com>",
+        description="Update Co-Authored-By to Claude MPM <https://github.com/bobmatnyc/claude-mpm>",
         run=_run_coauthor_email_migration,
     ),
 ]

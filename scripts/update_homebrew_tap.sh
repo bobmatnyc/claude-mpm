@@ -382,7 +382,7 @@ commit_changes() {
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
     local commit_sha
     commit_sha=$(git rev-parse HEAD)

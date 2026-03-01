@@ -33,7 +33,7 @@ def run_command(
 ) -> Tuple[int, str, str]:
     """Run a shell command and return (returncode, stdout, stderr)."""
     print(f"Running: {cmd}")
-    result = subprocess.run(
+    result = subprocess.run(  # nosec B602 - dev tool running trusted release commands
         cmd, shell=True, cwd=cwd, capture_output=True, text=True, check=False
     )
 
@@ -152,7 +152,7 @@ def update_version_files(project_root: Path, new_version: str) -> None:
     # Update CHANGELOG.md - add new version entry if not present
     changelog_path = project_root / "CHANGELOG.md"
     if changelog_path.exists():
-        from datetime import date
+        from datetime import datetime, timezone
 
         changelog_content = changelog_path.read_text()
         version_header = f"## [{new_version}]"
@@ -160,7 +160,7 @@ def update_version_files(project_root: Path, new_version: str) -> None:
         if version_header not in changelog_content:
             # Find the Unreleased section and add new version after it
             unreleased_pattern = r"(## \[Unreleased\].*?)(\n## \[)"
-            today = date.today().strftime("%Y-%m-%d")
+            today = datetime.now(tz=timezone.utc).date().strftime("%Y-%m-%d")
             new_entry = f"\n\n{version_header} - {today}\n\n### Fixed\n- Automated release improvements\n"
 
             updated_content = re.sub(
@@ -351,7 +351,7 @@ def sync_agent_repositories(
 
 🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"""
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"""
 
         # Commit changes
         returncode, _stdout, _stderr = run_command(

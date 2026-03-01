@@ -188,7 +188,7 @@ git commit -m "feat: add OAuth2 authentication
 
 🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 **Implementation commands require delegation**:

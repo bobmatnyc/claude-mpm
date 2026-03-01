@@ -337,7 +337,12 @@ def setup_early_environment(argv):
     # This preserves the user's starting directory for project root detection
     # Use shell's PWD instead of Path.cwd() because Python's cwd may already be changed
     # during module imports (observed with uv tool wrappers)
-    if "CLAUDE_MPM_USER_PWD" not in os.environ:
+    #
+    # IMPORTANT: Only skip this when explicitly called as a subprocess from another
+    # claude-mpm process (indicated by CLAUDE_MPM_IS_SUBPROCESS=1). This prevents
+    # a stale CLAUDE_MPM_USER_PWD in the user's shell environment from causing
+    # claude-mpm to use the wrong project directory.
+    if os.environ.get("CLAUDE_MPM_IS_SUBPROCESS") != "1":
         from pathlib import Path
 
         # Prefer shell PWD (more reliable than Path.cwd() which may already be changed)

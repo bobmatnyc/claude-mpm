@@ -160,7 +160,7 @@ sync_repo() {
 
 🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
         # Commit changes
         if execute_cmd "git commit -m \"$COMMIT_MSG\""; then

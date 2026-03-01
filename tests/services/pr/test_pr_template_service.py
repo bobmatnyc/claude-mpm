@@ -66,7 +66,7 @@ class TestPRTemplateService(unittest.TestCase):
         self.assertIn("## Related Issues", body)
         self.assertIn("Closes #157", body)
         self.assertIn("## Checklist", body)
-        self.assertIn("agent-improver", body)
+        self.assertIn("Claude MPM", body)
 
     def test_generate_agent_pr_body_no_issues(self):
         """Test generating PR body without related issues."""
@@ -117,7 +117,7 @@ class TestPRTemplateService(unittest.TestCase):
         self.assertIn("## Testing", body)
         self.assertIn("## Related Issues", body)
         self.assertIn("Issue #203", body)
-        self.assertIn("skills-manager", body)
+        self.assertIn("Claude MPM", body)
 
     def test_generate_skill_pr_body_no_issues(self):
         """Test generating skill PR body without related issues."""
@@ -295,12 +295,12 @@ Addresses user feedback about memory exhaustion.
             examples="examples",
         )
 
-        # Agent PR should have agent-improver signature
-        self.assertIn("agent-improver", agent_body)
+        # Agent PR should have Claude MPM signature
+        self.assertIn("Claude MPM", agent_body)
         self.assertIn("Co-Authored-By", agent_body)
 
-        # Skill PR should have skills-manager signature
-        self.assertIn("skills-manager", skill_body)
+        # Skill PR should have Claude MPM signature
+        self.assertIn("Claude MPM", skill_body)
         self.assertIn("Co-Authored-By", skill_body)
 
 

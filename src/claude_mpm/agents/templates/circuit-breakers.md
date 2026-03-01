@@ -685,7 +685,7 @@ git commit -m "<type>: <short description>
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 **Commit Type Prefixes** (Conventional Commits):
@@ -730,7 +730,7 @@ PM: Bash('git commit -m "feat: add New Agent template
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"')
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"')
 PM: "New agent template tracked in git with commit abc123"
 
 # Correct: PM verifies multiple files
@@ -745,7 +745,7 @@ PM: Bash('git commit -m "test: add comprehensive test suite
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"')
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"')
 PM: "All test files tracked in git"
 ```
 

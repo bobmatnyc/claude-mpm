@@ -168,7 +168,7 @@ git commit -m "<type>: <short description>
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 **Template Structure:**
@@ -195,7 +195,7 @@ git commit -m "feat: add Java Engineer agent template
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 **Why This Example Works:**
@@ -218,7 +218,7 @@ git commit -m "docs: add agent performance benchmark results
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 **Why This Example Works:**
@@ -407,7 +407,7 @@ git commit -m "feat: add JVM language engineer templates
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 ### Files in Subdirectories
@@ -471,7 +471,7 @@ git commit -m "feat: add 8 new coding agent templates for v4.9.0 expansion
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 ### Files in .gitignore
@@ -538,7 +538,7 @@ git commit -m "type: description
 
 🤖👥 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
 # 4. Verify commit
 git log -1

@@ -57,7 +57,7 @@ git commit -m "feat: add {description}
 
 🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 ```
 
 ## Before Ending Any Session
@@ -96,7 +96,7 @@ git commit -m "feat: add OAuth2 authentication
 
 🤖 Generated with [Claude MPM](https://github.com/bobmatnyc/claude-mpm)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Co-Authored-By: Claude MPM <https://github.com/bobmatnyc/claude-mpm>"
 
 # Verify tracking complete
 git status  # Should show clean working tree
