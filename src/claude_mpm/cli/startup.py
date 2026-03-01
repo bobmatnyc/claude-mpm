@@ -133,8 +133,20 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         if not status.get("installed", False):
             # Hooks not installed, install them now
             success = installer.install_hooks(force=False)
+        elif _has_stale_hook_paths(installer.settings_file):
+            # Settings say installed=True but at least one registered script path
+            # is missing on disk (e.g. after a Python version upgrade changes the
+            # site-packages directory).  Force reinstall to write fresh paths.
+            from ..core.logger import get_logger as _get_logger
+
+            _get_logger("startup").info(
+                "Stale hook paths detected in %s — forcing reinstall",
+                installer.settings_file,
+            )
+            success = installer.install_hooks(force=True)
         else:
-            # Hooks already installed, skip reinstall to avoid file lock conflicts
+            # Hooks already installed and paths are valid, skip reinstall
+            # to avoid file lock conflicts
             success = True
 
         if is_tty:
@@ -156,6 +168,50 @@ def sync_hooks_on_startup(quiet: bool = False) -> bool:
         logger = get_logger("startup")
         logger.warning(f"Hook sync failed (non-fatal): {e}")
         return False
+
+
+def _has_stale_hook_paths(settings_file: Path) -> bool:
+    """Return True if any hook command in settings_file uses a missing absolute path.
+
+    Hooks that reference absolute paths (e.g. into a Python site-packages
+    directory) become stale when the interpreter is upgraded and the old
+    site-packages tree is removed.  Entry-point style commands such as
+    ``"claude-hook"`` are resolved via PATH at runtime and are therefore
+    not validated here.
+
+    Args:
+        settings_file: Path to the project-level settings.local.json file.
+
+    Returns:
+        bool: True if at least one registered absolute script path does not
+              exist on disk, False otherwise.
+    """
+    if not settings_file.exists():
+        return False
+
+    try:
+        with settings_file.open() as f:
+            settings = json.load(f)
+
+        hooks = settings.get("hooks", {})
+        for hook_list in hooks.values():
+            if not isinstance(hook_list, list):
+                continue
+            for hook_entry in hook_list:
+                if not isinstance(hook_entry, dict):
+                    continue
+                for cmd_entry in hook_entry.get("hooks", []):
+                    if not isinstance(cmd_entry, dict):
+                        continue
+                    command = cmd_entry.get("command", "")
+                    # Only validate absolute paths; PATH-resolved commands are fine
+                    if command.startswith("/") and not Path(command).exists():
+                        return True
+    except Exception:
+        # If we cannot read the file, don't block startup
+        pass
+
+    return False
 
 
 def _count_installed_hooks(settings_file: Path) -> int:

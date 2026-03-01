@@ -348,8 +348,9 @@ def _check_hook_handler_sh_exists() -> bool:
     Returns:
         True if claude-hook-handler.sh is found in any hook configuration.
     """
-    # Check both user-level and project-level settings
+    # Check global, user-level, and project-level settings
     settings_files = [
+        Path.home() / ".claude" / "settings.json",        # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]
@@ -382,6 +383,7 @@ def _remove_hook_handler_sh() -> bool:
         True if migration succeeded.
     """
     settings_files = [
+        Path.home() / ".claude" / "settings.json",        # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]
@@ -576,6 +578,204 @@ def _upgrade_to_fast_hook() -> bool:
 
 
 # =============================================================================
+# Migration: v5.9.41-clean-stale-hook-paths
+# =============================================================================
+
+# Events that are NOT valid Claude Code hook events and should be removed
+_INVALID_HOOK_EVENTS = frozenset(["SubagentStart"])
+
+
+def _check_stale_hook_paths_exist() -> bool:
+    """Check if any settings files contain stale hook paths or invalid events.
+
+    A hook path is stale when the script it references no longer exists on
+    disk (e.g., after a Python version upgrade that changes site-packages
+    paths). ``SubagentStart`` is also not a valid Claude Code event and
+    should be removed if present.
+
+    Returns:
+        True if stale entries are found in any settings file.
+    """
+    settings_files = [
+        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            if not hooks:
+                continue
+
+            # Check for invalid event names
+            for event_type in hooks:
+                if event_type in _INVALID_HOOK_EVENTS:
+                    logger.debug(
+                        f"Found invalid hook event '{event_type}' in {settings_file}"
+                    )
+                    return True
+
+            # Check each hook command path for existence
+            for hook_type, hook_list in hooks.items():
+                if not isinstance(hook_list, list):
+                    continue
+
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+
+                    for cmd_entry in hook_commands:
+                        if not isinstance(cmd_entry, dict):
+                            continue
+                        command = cmd_entry.get("command", "")
+                        # Only validate absolute paths — entry-point style
+                        # commands (e.g. "claude-hook") are looked up via PATH
+                        # and cannot be stat-checked here.
+                        if command.startswith("/") and not Path(command).exists():
+                            logger.debug(
+                                f"Found stale hook path '{command}' in {settings_file}"
+                            )
+                            return True
+
+        except Exception as e:
+            logger.debug(f"Failed to check {settings_file}: {e}")
+            continue
+
+    return False
+
+
+def _clean_stale_hook_paths() -> bool:
+    """Remove stale hook paths and invalid events from all settings files.
+
+    This migration:
+    1. Scans ~/.claude/settings.json, ~/.claude/settings.local.json, and
+       .claude/settings.local.json for hook entries.
+    2. Removes any hook command entry whose absolute script path does not
+       exist on disk (handles Python version upgrades that invalidate
+       site-packages paths).
+    3. Removes entire event keys that are not valid Claude Code events
+       (currently only ``SubagentStart``).
+    4. Removes hook_entry dicts that become empty after filtering.
+
+    The migration is idempotent — running it on an already-clean file is
+    a no-op.
+
+    Returns:
+        True if the migration ran without fatal errors.
+    """
+    settings_files = [
+        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    total_removed_paths = 0
+    total_removed_events = 0
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            if not hooks:
+                continue
+
+            file_changed = False
+            removed_paths = 0
+            removed_events = 0
+
+            # Step 1: Remove invalid event keys entirely (e.g. SubagentStart)
+            for event_type in list(hooks.keys()):
+                if event_type in _INVALID_HOOK_EVENTS:
+                    del hooks[event_type]
+                    file_changed = True
+                    removed_events += 1
+                    logger.info(
+                        f"Removed invalid hook event '{event_type}' from {settings_file}"
+                    )
+
+            # Step 2: Remove hook command entries with non-existent absolute paths
+            for hook_type, hook_list in hooks.items():
+                if not isinstance(hook_list, list):
+                    continue
+
+                for hook_entry in hook_list:
+                    if not isinstance(hook_entry, dict):
+                        continue
+
+                    hook_commands = hook_entry.get("hooks", [])
+                    if not isinstance(hook_commands, list):
+                        continue
+
+                    original_len = len(hook_commands)
+                    hook_entry["hooks"] = [
+                        cmd
+                        for cmd in hook_commands
+                        if not (
+                            isinstance(cmd, dict)
+                            and cmd.get("command", "").startswith("/")
+                            and not Path(cmd["command"]).exists()
+                        )
+                    ]
+                    delta = original_len - len(hook_entry["hooks"])
+                    if delta:
+                        removed_paths += delta
+                        file_changed = True
+
+            # Step 3: Prune hook_entry dicts that are now empty (no hooks left)
+            for hook_type in list(hooks.keys()):
+                hook_list = hooks[hook_type]
+                if not isinstance(hook_list, list):
+                    continue
+                hooks[hook_type] = [
+                    entry
+                    for entry in hook_list
+                    if isinstance(entry, dict) and entry.get("hooks")
+                ]
+
+            if file_changed:
+                with open(settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                total_removed_paths += removed_paths
+                total_removed_events += removed_events
+                logger.info(
+                    f"Cleaned {settings_file}: "
+                    f"{removed_paths} stale path(s), "
+                    f"{removed_events} invalid event(s) removed"
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to clean stale hooks in {settings_file}: {e}")
+            continue
+
+    if total_removed_paths or total_removed_events:
+        print(
+            f"   Removed {total_removed_paths} stale hook path(s) and "
+            f"{total_removed_events} invalid event(s)"
+        )
+    else:
+        print("   No stale hook paths or invalid events found")
+
+    print("   ✓ Migration complete")
+    return True
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -603,6 +803,12 @@ MIGRATIONS: list[Migration] = [
         description="Upgrade hooks to fast bash hook (52x faster)",
         check=_check_needs_fast_hook_upgrade,
         migrate=_upgrade_to_fast_hook,
+    ),
+    Migration(
+        id="v5.9.41-clean-stale-hook-paths",
+        description="Remove stale hook paths and invalid hook events from all settings files",
+        check=_check_stale_hook_paths_exist,
+        migrate=_clean_stale_hook_paths,
     ),
 ]
 
