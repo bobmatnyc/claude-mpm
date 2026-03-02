@@ -202,13 +202,13 @@ class TestAutoConfigureCommand:
         # from operating on the actual .claude/agents/ directory and archiving real
         # agent files via AgentReviewService.archive_agents() / shutil.move().
         #
-        # Without this mock, _review_project_agents() uses Path.cwd() / ".claude" / "agents"
-        # (ignoring the project_path arg entirely), categorizes most deployed agents as
-        # "unused" (since only "python-engineer" is in sample_preview.recommendations),
-        # and then _archive_agents() moves them to .claude/agents/unused/ on every run.
+        # Without this mock, _review_project_agents() categorizes most deployed agents
+        # as "unused" (since only "python-engineer" is in sample_preview.recommendations)
+        # and _archive_agents() moves them to .claude/agents/unused/ on every run.
         #
-        # Note: Using tmp_path for project_path is NOT sufficient since _review_project_agents
-        # hardcodes Path.cwd() for the agents directory lookup.
+        # Note: _review_project_agents() now correctly uses the project_path argument
+        # (fixed in this PR) rather than Path.cwd(). We still mock it here to avoid
+        # standing up the full AgentReviewService fixture infrastructure.
         with patch.object(command, "_review_project_agents", return_value=None):
             args = Namespace(
                 project_path=Path.cwd(),
