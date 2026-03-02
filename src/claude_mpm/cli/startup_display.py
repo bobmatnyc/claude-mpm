@@ -294,57 +294,86 @@ def _get_cwd_display(max_width: int = 40) -> str:
     return "..." + cwd[-(max_width - 3) :]
 
 
-def _count_mpm_skills() -> int:
-    """
-    Count user-level MPM skills from ~/.claude/skills/.
+def _count_scope_assets(scope: str) -> tuple[int, int]:
+    """Count deployed agents and skills for a given scope.
+
+    Args:
+        scope: "project" (Path.cwd()/.claude/) or "user" (Path.home()/.claude/)
 
     Returns:
-        Number of skill directories with SKILL.md files
+        Tuple of (agent_count, skill_count)
     """
     try:
-        user_skills_dir = Path.home() / ".claude" / "skills"
-        if not user_skills_dir.exists():
-            return 0
+        base = Path.cwd() / ".claude" if scope == "project" else Path.home() / ".claude"
 
-        # Count directories with SKILL.md (skill directories)
+        # Count agents: *.md files excluding README, INSTRUCTIONS, dotfiles
+        agents_dir = base / "agents"
+        agent_count = 0
+        if agents_dir.is_dir():
+            agent_count = sum(
+                1
+                for f in agents_dir.glob("*.md")
+                if not f.name.startswith(("README", "INSTRUCTIONS", "."))
+            )
+
+        # Count skills: top-level dirs containing SKILL.md or skill.md
+        # Exclude git source repos (dirs containing .git)
+        skills_dir = base / "skills"
         skill_count = 0
-        for item in user_skills_dir.iterdir():
-            if item.is_dir():
-                skill_file = item / "SKILL.md"
-                if skill_file.exists():
+        if skills_dir.is_dir():
+            for item in skills_dir.iterdir():
+                if not item.is_dir():
+                    continue
+                if (item / ".git").exists():
+                    continue
+                # Check both casings for Linux portability
+                if (item / "SKILL.md").exists() or (item / "skill.md").exists():
                     skill_count += 1
-            # Also count standalone .md files (legacy format)
-            elif item.is_file() and item.suffix == ".md" and item.name != "README.md":
-                skill_count += 1
 
-        return skill_count
+        return (agent_count, skill_count)
     except Exception:
-        # Silent failure - return 0 if any error
-        return 0
+        return (0, 0)
 
 
-def _count_deployed_agents() -> int:
+def _format_scope_counts(
+    prefix: str, agent_count: int, skill_count: int, max_width: int
+) -> str:
+    """Format scope counts with progressive truncation.
+
+    Levels: "proj: 48 agents, 189 skills" -> "proj: 48a, 189s" -> "proj: 48a 189s"
     """
-    Count deployed agents from .claude/agents/.
+    available = max_width - 2  # padding margin
 
-    Returns:
-        Number of deployed agent files
-    """
-    try:
-        deploy_target = Path.cwd() / ".claude" / "agents"
-        if not deploy_target.exists():
-            return 0
+    if agent_count == 0 and skill_count == 0:
+        return f"{prefix}: none"
 
-        # Count .md files, excluding README and other docs
-        agent_files = [
-            f
-            for f in deploy_target.glob("*.md")
-            if not f.name.startswith(("README", "INSTRUCTIONS", "."))
-        ]
-        return len(agent_files)
-    except Exception:
-        # Silent failure - return 0 if any error
-        return 0
+    # Level 1: Full format
+    parts = []
+    if agent_count > 0:
+        parts.append(f"{agent_count} agent{'s' if agent_count != 1 else ''}")
+    if skill_count > 0:
+        parts.append(f"{skill_count} skill{'s' if skill_count != 1 else ''}")
+    full = f"{prefix}: {', '.join(parts)}"
+    if len(full) <= available:
+        return full
+
+    # Level 2: Abbreviated
+    parts = []
+    if agent_count > 0:
+        parts.append(f"{agent_count}a")
+    if skill_count > 0:
+        parts.append(f"{skill_count}s")
+    abbrev = f"{prefix}: {', '.join(parts)}"
+    if len(abbrev) <= available:
+        return abbrev
+
+    # Level 3: Minimal (no comma)
+    parts = []
+    if agent_count > 0:
+        parts.append(f"{agent_count}a")
+    if skill_count > 0:
+        parts.append(f"{skill_count}s")
+    return f"{prefix}: {' '.join(parts)}"
 
 
 def _format_two_column_line(
@@ -565,74 +594,56 @@ def display_startup_banner(
             )
         )
 
-    # Line 10: Model info with counts | separator
+    # === Bottom section: Model, scope counts, CWD, commands ===
     separator = "─" * right_panel_width
-    agent_count = _count_deployed_agents()
-    skill_count = _count_mpm_skills()
     active_model = _get_active_model_display_name()
+    proj_agents, proj_skills = _count_scope_assets("project")
+    user_agents, user_skills = _count_scope_assets("user")
 
-    # Format: "Opus 4.6 · 44 agents, 19 skills"
-    if agent_count > 0 or skill_count > 0:
-        counts_text = []
-        if agent_count > 0:
-            counts_text.append(f"{agent_count} agent{'s' if agent_count != 1 else ''}")
-        if skill_count > 0:
-            counts_text.append(f"{skill_count} skill{'s' if skill_count != 1 else ''}")
-        model_info = f"{active_model} · {', '.join(counts_text)}"
-    else:
-        model_info = f"{active_model} · Claude MPM"
-
-    # Truncate model_info if it's too long for left panel
-    if len(model_info) > left_panel_width - 2:  # -2 for padding
-        # Try shorter format first: "Model · Xa, Ys"
-        if agent_count > 0 or skill_count > 0:
-            counts_text = []
-            if agent_count > 0:
-                counts_text.append(f"{agent_count}a")  # "agents" -> "a"
-            if skill_count > 0:
-                counts_text.append(f"{skill_count}s")  # "skills" -> "s"
-            model_info = f"{active_model} · {', '.join(counts_text)}"
-
-        # If still too long, truncate with ellipsis
-        if len(model_info) > left_panel_width - 2:
-            max_length = left_panel_width - 5  # -2 padding, -3 for "..."
-            if max_length > 0:
-                model_info = model_info[:max_length] + "..."
-            else:
-                model_info = active_model
-
+    # Line 10: Model | separator
     lines.append(
         _format_two_column_line(
-            model_info, separator, left_panel_width, right_panel_width
+            active_model, separator, left_panel_width, right_panel_width
         )
     )
 
-    # Line 11: CWD | MPM Commands header
+    # Line 11: Project scope counts | MPM Commands header
+    proj_line = _format_scope_counts("proj", proj_agents, proj_skills, left_panel_width)
+    lines.append(
+        _format_two_column_line(
+            proj_line, "MPM Commands", left_panel_width, right_panel_width
+        )
+    )
+
+    # Line 12: User scope counts | /mpm command
+    user_line = _format_scope_counts("user", user_agents, user_skills, left_panel_width)
+    lines.append(
+        _format_two_column_line(
+            user_line,
+            "  /mpm        - MPM overview",
+            left_panel_width,
+            right_panel_width,
+        )
+    )
+
+    # Line 13: CWD | /mpm-agents command
     cwd = _get_cwd_display(left_panel_width - 2)
     lines.append(
         _format_two_column_line(
-            cwd, "MPM Commands", left_panel_width, right_panel_width
-        )
-    )
-
-    # Line 12: Empty | /mpm command
-    lines.append(
-        _format_two_column_line(
-            "", "  /mpm        - MPM overview", left_panel_width, right_panel_width
-        )
-    )
-
-    # Line 13: Empty | /mpm-agents command
-    lines.append(
-        _format_two_column_line(
-            "", "  /mpm-agents - Show agents", left_panel_width, right_panel_width
+            cwd,
+            "  /mpm-agents - Show agents",
+            left_panel_width,
+            right_panel_width,
         )
     )
 
     # Line 14: Empty | /mpm-doctor command
     lines.append(
         _format_two_column_line(
-            "", "  /mpm-doctor - Run diagnostics", left_panel_width, right_panel_width
+            "",
+            "  /mpm-doctor - Run diagnostics",
+            left_panel_width,
+            right_panel_width,
         )
     )
 
