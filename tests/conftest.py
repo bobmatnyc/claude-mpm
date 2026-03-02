@@ -148,8 +148,12 @@ def verify_agents_untouched():
 
     Checks both agents/ (for removals) and agents/unused/ (for archives),
     since the damage path is shutil.move() from agents/ to agents/unused/.
+
+    Uses Path(__file__) rather than Path.cwd() so the guard is stable in CI
+    environments where the working directory may differ from the repo root.
     """
-    agents_dir = Path.cwd() / ".claude" / "agents"
+    repo_root = Path(__file__).resolve().parent.parent
+    agents_dir = repo_root / ".claude" / "agents"
     unused_dir = agents_dir / "unused"
 
     def _snapshot(directory: Path) -> set:
@@ -192,10 +196,14 @@ def verify_source_agents_untouched():
     files to 0 bytes due to the open(mode='w') truncation window.
 
     Checks both file existence AND content checksums to catch truncation.
+
+    Uses Path(__file__) rather than Path.cwd() so the guard is stable in CI
+    environments where the working directory may differ from the repo root.
     """
     import hashlib
 
-    source_agents_dir = Path.cwd() / "src" / "claude_mpm" / "agents"
+    repo_root = Path(__file__).resolve().parent.parent
+    source_agents_dir = repo_root / "src" / "claude_mpm" / "agents"
 
     def _content_snapshot(directory: Path) -> dict:
         if not directory.exists():

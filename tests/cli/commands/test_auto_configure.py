@@ -368,3 +368,100 @@ class TestAutoConfigureCommand:
             assert "agents" in data
             assert "status" in data["agents"]
             assert "deployed_agents" in data["agents"]
+
+
+class TestProjectPathPropagation:
+    """Verify that _review_project_agents and _archive_agents use the
+    project_path argument rather than Path.cwd().
+
+    These tests guard against the regression fixed in PR #325 where both
+    methods resolved .claude/agents/ via Path.cwd(), causing tests (and any
+    other callers passing an explicit project_path) to operate on the wrong
+    directory.
+    """
+
+    @pytest.fixture
+    def command(self):
+        return AutoConfigureCommand()
+
+    def test_review_project_agents_uses_project_path_not_cwd(self, command, tmp_path):
+        """_review_project_agents must look in project_path/.claude/agents/,
+        not in Path.cwd()/.claude/agents/.
+
+        Patches are applied at the source-module level because the method uses
+        local (deferred) imports rather than top-level ones.
+        """
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "python-engineer.md").write_text(
+            "# python-engineer\nversion: 1.0.0\n"
+        )
+
+        agent_preview = Mock()
+        recommendation = Mock()
+        recommendation.agent_id = "python-engineer"
+        agent_preview.recommendations = [recommendation]
+
+        managed_agent = {"agent_id": "python-engineer", "version": "1.0.0"}
+
+        review_patch = (
+            "claude_mpm.services.agents.agent_review_service.AgentReviewService"
+        )
+        discovery_patch = (
+            "claude_mpm.services.agents.deployment."
+            "remote_agent_discovery_service.RemoteAgentDiscoveryService"
+        )
+
+        with patch(discovery_patch) as mock_discovery_cls, patch(
+            review_patch
+        ) as mock_review_cls, patch.object(Path, "exists", return_value=True):
+            mock_discovery_cls.return_value.discover_remote_agents.return_value = [
+                managed_agent
+            ]
+            mock_review_cls.return_value.review_project_agents.return_value = {
+                "managed": [],
+                "outdated": [],
+                "custom": [],
+                "unused": [],
+            }
+
+            command._review_project_agents(agent_preview, tmp_path)
+
+            called_with_dir = (
+                mock_review_cls.return_value.review_project_agents.call_args[0][0]
+            )
+
+        assert called_with_dir == tmp_path / ".claude" / "agents", (
+            f"Expected {tmp_path / '.claude' / 'agents'}, got {called_with_dir}. "
+            "Method is using Path.cwd() instead of the project_path argument."
+        )
+
+    def test_archive_agents_uses_project_path_not_cwd(self, command, tmp_path):
+        """_archive_agents must move files into project_path/.claude/agents/unused/,
+        not into Path.cwd()/.claude/agents/unused/.
+
+        This is an integration-style test: we let the real AgentReviewService run
+        against tmp_path and verify the archived file lands there, not under cwd.
+        """
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        agent_file = agents_dir / "old-agent.md"
+        agent_file.write_text("# old-agent\n")
+
+        agents_to_archive = [{"name": "old-agent", "path": agent_file}]
+
+        result = command._archive_agents(agents_to_archive, tmp_path)
+
+        # Archival must succeed with no errors
+        assert result["errors"] == [], f"Unexpected errors: {result['errors']}"
+        assert len(result["archived"]) == 1
+
+        # The archived file must land under tmp_path, not cwd
+        archived_path = Path(result["archived"][0]["archived_path"])
+        assert archived_path.is_relative_to(tmp_path), (
+            f"Archived file {archived_path} is not under project_path {tmp_path}. "
+            "Method is using Path.cwd() instead of the project_path argument."
+        )
+
+        # And the original must be gone
+        assert not agent_file.exists(), "Original agent file should have been moved"
