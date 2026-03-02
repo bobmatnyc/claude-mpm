@@ -1,3 +1,9 @@
+## v5.9.43 (2026-03-02)
+
+### Fix
+
+- test case stability corrections (PR #325)
+
 ## v5.9.42 (2026-03-01)
 
 ### Feat
