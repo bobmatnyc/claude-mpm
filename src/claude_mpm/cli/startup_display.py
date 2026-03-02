@@ -12,8 +12,8 @@ import subprocess  # nosec B404 - required for git operations
 from pathlib import Path
 from typing import List
 
-from claude_mpm.utils.git_analyzer import is_git_repository
 from claude_mpm.core.logging_utils import get_logger
+from claude_mpm.utils.git_analyzer import is_git_repository
 
 logger = get_logger(__name__)
 
