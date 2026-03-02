@@ -294,6 +294,44 @@ def _get_cwd_display(max_width: int = 40) -> str:
     return "..." + cwd[-(max_width - 3) :]
 
 
+def _collect_scope_names(scope: str) -> tuple[set[str], set[str]]:
+    """Collect agent and skill identifier sets for a given scope.
+
+    Args:
+        scope: "project" (Path.cwd()/.claude/) or "user" (Path.home()/.claude/)
+
+    Returns:
+        Tuple of (agent_name_set, skill_name_set) with lowercased identifiers
+    """
+    try:
+        base = Path.cwd() / ".claude" if scope == "project" else Path.home() / ".claude"
+
+        # Collect agent stems: *.md files excluding README, INSTRUCTIONS, dotfiles
+        agent_names: set[str] = set()
+        agents_dir = base / "agents"
+        if agents_dir.is_dir():
+            for f in agents_dir.glob("*.md"):
+                if not f.name.startswith(("README", "INSTRUCTIONS", ".")):
+                    agent_names.add(f.stem.lower())
+
+        # Collect skill dir names: top-level dirs containing SKILL.md or skill.md
+        # Exclude git source repos (dirs containing .git)
+        skill_names: set[str] = set()
+        skills_dir = base / "skills"
+        if skills_dir.is_dir():
+            for item in skills_dir.iterdir():
+                if not item.is_dir():
+                    continue
+                if (item / ".git").exists():
+                    continue
+                if (item / "SKILL.md").exists() or (item / "skill.md").exists():
+                    skill_names.add(item.name.lower())
+
+        return (agent_names, skill_names)
+    except Exception:
+        return (set(), set())
+
+
 def _count_scope_assets(scope: str) -> tuple[int, int]:
     """Count deployed agents and skills for a given scope.
 
@@ -303,36 +341,8 @@ def _count_scope_assets(scope: str) -> tuple[int, int]:
     Returns:
         Tuple of (agent_count, skill_count)
     """
-    try:
-        base = Path.cwd() / ".claude" if scope == "project" else Path.home() / ".claude"
-
-        # Count agents: *.md files excluding README, INSTRUCTIONS, dotfiles
-        agents_dir = base / "agents"
-        agent_count = 0
-        if agents_dir.is_dir():
-            agent_count = sum(
-                1
-                for f in agents_dir.glob("*.md")
-                if not f.name.startswith(("README", "INSTRUCTIONS", "."))
-            )
-
-        # Count skills: top-level dirs containing SKILL.md or skill.md
-        # Exclude git source repos (dirs containing .git)
-        skills_dir = base / "skills"
-        skill_count = 0
-        if skills_dir.is_dir():
-            for item in skills_dir.iterdir():
-                if not item.is_dir():
-                    continue
-                if (item / ".git").exists():
-                    continue
-                # Check both casings for Linux portability
-                if (item / "SKILL.md").exists() or (item / "skill.md").exists():
-                    skill_count += 1
-
-        return (agent_count, skill_count)
-    except Exception:
-        return (0, 0)
+    agent_names, skill_names = _collect_scope_names(scope)
+    return (len(agent_names), len(skill_names))
 
 
 def _format_scope_counts(
@@ -597,8 +607,16 @@ def display_startup_banner(
     # === Bottom section: Model, scope counts, CWD, commands ===
     separator = "─" * right_panel_width
     active_model = _get_active_model_display_name()
-    proj_agents, proj_skills = _count_scope_assets("project")
-    user_agents, user_skills = _count_scope_assets("user")
+
+    # Collect name sets once, derive all counts
+    proj_agent_names, proj_skill_names = _collect_scope_names("project")
+    user_agent_names, user_skill_names = _collect_scope_names("user")
+    total_agent_names = proj_agent_names | user_agent_names
+    total_skill_names = proj_skill_names | user_skill_names
+
+    proj_agents, proj_skills = len(proj_agent_names), len(proj_skill_names)
+    user_agents, user_skills = len(user_agent_names), len(user_skill_names)
+    total_agents, total_skills = len(total_agent_names), len(total_skill_names)
 
     # Line 10: Model | separator
     lines.append(
@@ -626,21 +644,24 @@ def display_startup_banner(
         )
     )
 
-    # Line 13: CWD | /mpm-agents command
-    cwd = _get_cwd_display(left_panel_width - 2)
+    # Line 13: Total (deduplicated) counts | /mpm-agents command
+    total_line = _format_scope_counts(
+        "total", total_agents, total_skills, left_panel_width
+    )
     lines.append(
         _format_two_column_line(
-            cwd,
+            total_line,
             "  /mpm-agents - Show agents",
             left_panel_width,
             right_panel_width,
         )
     )
 
-    # Line 14: Empty | /mpm-doctor command
+    # Line 14: CWD | /mpm-doctor command
+    cwd = _get_cwd_display(left_panel_width - 2)
     lines.append(
         _format_two_column_line(
-            "",
+            cwd,
             "  /mpm-doctor - Run diagnostics",
             left_panel_width,
             right_panel_width,
@@ -650,7 +671,10 @@ def display_startup_banner(
     # Line 15: Empty | empty
     lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
 
-    # Line 16: Empty | autocomplete tip
+    # Line 16: Empty | empty
+    lines.append(_format_two_column_line("", "", left_panel_width, right_panel_width))
+
+    # Line 17: Empty | autocomplete tip
     lines.append(
         _format_two_column_line(
             "", "Type / for autocomplete", left_panel_width, right_panel_width

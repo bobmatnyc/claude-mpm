@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.claude_mpm.cli.startup_display import (
+    _collect_scope_names,
     _count_scope_assets,
     _format_logging_status,
     _format_scope_counts,
@@ -425,6 +426,54 @@ class TestShouldShowBanner:
         assert should_show_banner(args) is True
 
 
+class TestCollectScopeNames:
+    """Tests for _collect_scope_names() function."""
+
+    def test_returns_lowercased_agent_stems(self, tmp_path, monkeypatch):
+        """Test agent names are lowercased for cross-platform dedup."""
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        agents_dir = tmp_path / ".claude" / "agents"
+        agents_dir.mkdir(parents=True)
+        (agents_dir / "Engineer.md").write_text("agent")
+        (agents_dir / "QA.md").write_text("agent")
+
+        agent_names, _ = _collect_scope_names("project")
+        assert agent_names == {"engineer", "qa"}
+
+    def test_returns_lowercased_skill_names(self, tmp_path, monkeypatch):
+        """Test skill directory names are lowercased for cross-platform dedup."""
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        skills_dir = tmp_path / ".claude" / "skills"
+        d = skills_dir / "My-Skill"
+        d.mkdir(parents=True)
+        (d / "SKILL.md").write_text("skill")
+
+        _, skill_names = _collect_scope_names("project")
+        assert skill_names == {"my-skill"}
+
+    def test_excludes_git_repos(self, tmp_path, monkeypatch):
+        """Test git source repos excluded from skill names."""
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        skills_dir = tmp_path / ".claude" / "skills"
+        normal = skills_dir / "real-skill"
+        normal.mkdir(parents=True)
+        (normal / "SKILL.md").write_text("skill")
+        repo = skills_dir / "source-repo"
+        repo.mkdir(parents=True)
+        (repo / "SKILL.md").write_text("skill")
+        (repo / ".git").mkdir()
+
+        _, skill_names = _collect_scope_names("project")
+        assert skill_names == {"real-skill"}
+
+    def test_empty_when_no_claude_dir(self, tmp_path, monkeypatch):
+        """Test returns empty sets when .claude/ doesn't exist."""
+        monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+        agent_names, skill_names = _collect_scope_names("project")
+        assert agent_names == set()
+        assert skill_names == set()
+
+
 class TestCountScopeAssets:
     """Tests for _count_scope_assets() function."""
 
@@ -619,12 +668,63 @@ class TestDisplayStartupBanner:
             lambda: "Sonnet",
         )
         monkeypatch.setattr(
-            "src.claude_mpm.cli.startup_display._count_scope_assets",
-            lambda scope: (48, 189) if scope == "project" else (7, 62),
+            "src.claude_mpm.cli.startup_display._collect_scope_names",
+            lambda scope: (
+                (
+                    {f"a{i}" for i in range(48)},
+                    {f"s{i}" for i in range(189)},
+                )
+                if scope == "project"
+                else (
+                    {f"a{i}" for i in range(7)},
+                    {f"s{i}" for i in range(62)},
+                )
+            ),
         )
         display_startup_banner("4.24.0", "OFF")
         captured = capsys.readouterr()
 
         assert "proj:" in captured.out
         assert "user:" in captured.out
+        assert "total:" in captured.out
+        assert "Sonnet" in captured.out
+
+    def test_display_startup_banner_total_counts(self, capsys, monkeypatch):
+        """Test banner shows total deduplicated counts."""
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display._get_active_model_display_name",
+            lambda: "Sonnet",
+        )
+        # Project has 48 agents, user has 7 (all overlap) + 3 unique = 10
+        # Project has 189 skills, user has 62 (all overlap) + 5 unique = 67
+        proj_agents = {f"agent-{i}" for i in range(48)}
+        user_agents = {f"agent-{i}" for i in range(7)} | {
+            "personal-a",
+            "personal-b",
+            "personal-c",
+        }
+        proj_skills = {f"skill-{i}" for i in range(189)}
+        user_skills = {f"skill-{i}" for i in range(62)} | {
+            "my-skill-1",
+            "my-skill-2",
+            "my-skill-3",
+            "my-skill-4",
+            "my-skill-5",
+        }
+
+        def mock_collect(scope):
+            if scope == "project":
+                return (proj_agents, proj_skills)
+            return (user_agents, user_skills)
+
+        monkeypatch.setattr(
+            "src.claude_mpm.cli.startup_display._collect_scope_names",
+            mock_collect,
+        )
+        display_startup_banner("4.24.0", "OFF")
+        captured = capsys.readouterr()
+
+        assert "proj:" in captured.out
+        assert "user:" in captured.out
+        assert "total:" in captured.out
         assert "Sonnet" in captured.out
