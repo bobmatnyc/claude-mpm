@@ -432,6 +432,15 @@ class AgentManager:
 
         return None
 
+    @staticmethod
+    def _safe_parse_agent_type(type_str: str) -> AgentType:
+        """Parse agent type string with graceful fallback to CUSTOM."""
+        try:
+            return AgentType(type_str)
+        except ValueError:
+            logger.debug(f"Unknown agent type '{type_str}', defaulting to CUSTOM")
+            return AgentType.CUSTOM
+
     def _parse_agent_markdown(
         self, content: str, name: str, file_path: str
     ) -> AgentDefinition:
@@ -441,7 +450,7 @@ class AgentManager:
 
         # Extract metadata
         metadata = AgentMetadata(
-            type=AgentType(post.metadata.get("type", "core")),
+            type=self._safe_parse_agent_type(post.metadata.get("type", "core")),
             model_preference=post.metadata.get("model_preference", "claude-3-sonnet"),
             version=post.metadata.get("version", "1.0.0"),
             last_updated=post.metadata.get("last_updated"),
