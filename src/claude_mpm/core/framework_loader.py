@@ -419,13 +419,17 @@ class FrameworkLoader:
             self.output_style_manager = OutputStyleManager()
             self._log_output_style_status()
 
-            # Extract and save output style content
+            # Extract output style content (read-only from source file)
             output_style_content = (
                 self.output_style_manager.extract_output_style_content(
                     framework_loader=self
                 )
             )
-            self.output_style_manager.save_output_style(output_style_content)
+            # NOTE: Do NOT call save_output_style() here. The source file in
+            # src/claude_mpm/agents/ is a checked-in repo asset and must never
+            # be overwritten at runtime. Writing it back creates a race
+            # condition window during parallel test execution (pytest -n auto)
+            # that can truncate the file to 0 bytes.
 
             # Deploy to Claude Code if supported
             deployed = self.output_style_manager.deploy_output_style(

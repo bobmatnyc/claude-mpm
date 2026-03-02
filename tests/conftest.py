@@ -135,6 +135,108 @@ def project_root(tmp_path):
     return tmp_path
 
 
+# ===== Agent Safety Fixtures =====
+
+
+@pytest.fixture(autouse=True)
+def verify_agents_untouched():
+    """Detect any test that modifies the real .claude/agents/ directory.
+
+    Guards against regressions where production code resolves paths via
+    Path.cwd() instead of an explicit project_path argument, causing tests
+    to operate on live deployed agent files.
+
+    Checks both agents/ (for removals) and agents/unused/ (for archives),
+    since the damage path is shutil.move() from agents/ to agents/unused/.
+    """
+    agents_dir = Path.cwd() / ".claude" / "agents"
+    unused_dir = agents_dir / "unused"
+
+    def _snapshot(directory: Path) -> set:
+        if not directory.exists():
+            return set()
+        return {f.name for f in directory.glob("*.md")}
+
+    before_agents = _snapshot(agents_dir)
+    before_unused = _snapshot(unused_dir)
+
+    yield
+
+    after_agents = _snapshot(agents_dir)
+    after_unused = _snapshot(unused_dir)
+
+    removed = before_agents - after_agents
+    added_to_unused = after_unused - before_unused
+
+    problems = []
+    if removed:
+        problems.append(f"agents removed from .claude/agents/: {sorted(removed)}")
+    if added_to_unused:
+        problems.append(
+            f"agents archived to .claude/agents/unused/: {sorted(added_to_unused)}"
+        )
+
+    assert not problems, (
+        "TEST BUG: Real deployed agents were modified during test.\n"
+        + "\n".join(f"  - {p}" for p in problems)
+    )
+
+
+@pytest.fixture(autouse=True)
+def verify_source_agents_untouched():
+    """Detect any test that modifies source agent files in the package.
+
+    Guards against tests that write back to src/claude_mpm/agents/ source
+    files (e.g. via save_output_style()). Under parallel execution
+    (pytest -n auto), concurrent write_text() calls can truncate these
+    files to 0 bytes due to the open(mode='w') truncation window.
+
+    Checks both file existence AND content checksums to catch truncation.
+    """
+    import hashlib
+
+    source_agents_dir = Path.cwd() / "src" / "claude_mpm" / "agents"
+
+    def _content_snapshot(directory: Path) -> dict:
+        if not directory.exists():
+            return {}
+        result = {}
+        for f in directory.glob("*.md"):
+            content = f.read_bytes()
+            result[f.name] = {
+                "size": len(content),
+                "hash": hashlib.md5(content).hexdigest(),
+            }
+        return result
+
+    before = _content_snapshot(source_agents_dir)
+
+    yield
+
+    after = _content_snapshot(source_agents_dir)
+
+    problems = []
+    for name, before_info in before.items():
+        after_info = after.get(name)
+        if after_info is None:
+            problems.append(f"source file DELETED: {name}")
+        elif after_info["size"] == 0 and before_info["size"] > 0:
+            problems.append(
+                f"source file EMPTIED: {name} "
+                f"(was {before_info['size']} bytes, now 0 bytes)"
+            )
+        elif after_info["hash"] != before_info["hash"]:
+            problems.append(
+                f"source file MODIFIED: {name} "
+                f"(size {before_info['size']} -> {after_info['size']})"
+            )
+
+    assert not problems, (
+        "TEST BUG: Source agent files in src/claude_mpm/agents/ were modified.\n"
+        + "\n".join(f"  - {p}" for p in problems)
+    )
+
+
 # ===== Mock Objects Fixtures =====
 
 

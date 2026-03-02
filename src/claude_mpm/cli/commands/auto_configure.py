@@ -345,9 +345,13 @@ class AutoConfigureCommand(BaseCommand):
         if configure_agents:
             if self.console and not json_output:
                 with self.console.status("[bold green]Reviewing existing agents..."):
-                    agent_review_results = self._review_project_agents(agent_preview)
+                    agent_review_results = self._review_project_agents(
+                        agent_preview, project_path
+                    )
             else:
-                agent_review_results = self._review_project_agents(agent_preview)
+                agent_review_results = self._review_project_agents(
+                    agent_preview, project_path
+                )
 
         # Get skills recommendations
         skills_recommendations = None
@@ -422,9 +426,13 @@ class AutoConfigureCommand(BaseCommand):
         if configure_agents:
             if self.console and not json_output:
                 with self.console.status("[bold green]Reviewing existing agents..."):
-                    agent_review_results = self._review_project_agents(agent_preview)
+                    agent_review_results = self._review_project_agents(
+                        agent_preview, project_path
+                    )
             else:
-                agent_review_results = self._review_project_agents(agent_preview)
+                agent_review_results = self._review_project_agents(
+                    agent_preview, project_path
+                )
 
         # Get skills recommendations
         skills_recommendations = None
@@ -473,7 +481,7 @@ class AutoConfigureCommand(BaseCommand):
                     self.console.print(
                         "\n[bold yellow]Archiving unused agents...[/bold yellow]\n"
                     )
-                archive_result = self._archive_agents(agents_to_archive)
+                archive_result = self._archive_agents(agents_to_archive, project_path)
 
         # Execute agent configuration
         agent_result = None
@@ -1133,11 +1141,15 @@ class AutoConfigureCommand(BaseCommand):
             self.logger.error(f"Failed to deploy skills: {e}")
             return {"deployed": [], "errors": [str(e)]}
 
-    def _review_project_agents(self, agent_preview) -> Optional[dict]:
+    def _review_project_agents(
+        self, agent_preview, project_path: Path
+    ) -> Optional[dict]:
         """Review existing project agents and categorize them.
 
         Args:
             agent_preview: Agent preview result with recommendations
+            project_path: Absolute path to the project root. Used to locate
+                .claude/agents/ instead of falling back to Path.cwd().
 
         Returns:
             Dictionary with categorized agents or None if no preview
@@ -1170,24 +1182,28 @@ class AutoConfigureCommand(BaseCommand):
             recommended_ids = {rec.agent_id for rec in agent_preview.recommendations}
 
         # Review project agents
-        project_agents_dir = Path.cwd() / ".claude" / "agents"
+        project_agents_dir = project_path / ".claude" / "agents"
         review_service = AgentReviewService()
         return review_service.review_project_agents(
             project_agents_dir, managed_agents, recommended_ids
         )
 
-    def _archive_agents(self, agents_to_archive: list[dict]) -> dict:
+    def _archive_agents(
+        self, agents_to_archive: list[dict], project_path: Path
+    ) -> dict:
         """Archive unused agents by moving them to .claude/agents/unused/.
 
         Args:
             agents_to_archive: List of agent dicts to archive
+            project_path: Absolute path to the project root. Used to locate
+                .claude/agents/ instead of falling back to Path.cwd().
 
         Returns:
             Dictionary with archival results
         """
         from ...services.agents.agent_review_service import AgentReviewService
 
-        project_agents_dir = Path.cwd() / ".claude" / "agents"
+        project_agents_dir = project_path / ".claude" / "agents"
         review_service = AgentReviewService()
         return review_service.archive_agents(agents_to_archive, project_agents_dir)
 

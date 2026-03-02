@@ -234,8 +234,14 @@ class TestAsyncSyncBoundaryDefaults:
         mock_manager.auto_configure = AsyncMock(return_value=result)
         command._auto_config_manager = mock_manager
 
-        # Run command (crosses sync/async boundary)
-        command_result = command.run(args)
+        # IMPORTANT: Mock _review_project_agents to prevent the real implementation
+        # from operating on the actual .claude/agents/ directory and archiving real
+        # agent files. Without this mock, _review_project_agents() uses
+        # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
+        # archives all agents not in recommendations via shutil.move().
+        with patch.object(command, "_review_project_agents", return_value=None):
+            # Run command (crosses sync/async boundary)
+            command_result = command.run(args)
 
         # Verify default propagated to async service call
         mock_manager.auto_configure.assert_called_once()
@@ -274,8 +280,14 @@ class TestAsyncSyncBoundaryDefaults:
         mock_manager.auto_configure = AsyncMock(return_value=result)
         command._auto_config_manager = mock_manager
 
-        # Run command
-        command_result = command.run(args)
+        # IMPORTANT: Mock _review_project_agents to prevent the real implementation
+        # from operating on the actual .claude/agents/ directory and archiving real
+        # agent files. Without this mock, _review_project_agents() uses
+        # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
+        # archives all agents not in recommendations via shutil.move().
+        with patch.object(command, "_review_project_agents", return_value=None):
+            # Run command
+            command_result = command.run(args)
 
         # Verify explicit confidence propagated
         mock_manager.auto_configure.assert_called_once()
@@ -317,8 +329,14 @@ class TestAsyncSyncBoundaryDefaults:
         mock_manager.auto_configure = AsyncMock(return_value=mock_result)
         command._auto_config_manager = mock_manager
 
-        # Run command
-        result = command.run(args)
+        # IMPORTANT: Mock _review_project_agents to prevent the real implementation
+        # from operating on the actual .claude/agents/ directory and archiving real
+        # agent files. Without this mock, _review_project_agents() uses
+        # Path.cwd() / ".claude" / "agents" (ignoring project_path entirely) and
+        # archives all agents not in recommendations via shutil.move().
+        with patch.object(command, "_review_project_agents", return_value=None):
+            # Run command
+            result = command.run(args)
 
         # Verify asyncio.run called with coroutine containing default
         mock_asyncio_run.assert_called_once()

@@ -188,6 +188,7 @@ class TestAutoConfigureCommand:
         sample_preview,
         sample_result,
         mock_auto_config_manager,
+        tmp_path,
     ):
         """Test full configuration with confirmation skipped."""
         mock_auto_config_manager.preview_configuration.return_value = sample_preview
@@ -197,21 +198,33 @@ class TestAutoConfigureCommand:
         mock_service_class.return_value = mock_auto_config_manager
         command._auto_config_manager = mock_auto_config_manager
 
-        args = Namespace(
-            project_path=Path.cwd(),
-            min_confidence=0.8,
-            preview=False,
-            dry_run=False,
-            yes=True,
-            json=False,
-            verbose=False,
-            debug=False,
-            quiet=False,
-            agents_only=True,  # Skip skills to avoid calling SkillsDeployer
-            skills_only=False,
-        )
+        # IMPORTANT: Mock _review_project_agents to prevent the real implementation
+        # from operating on the actual .claude/agents/ directory and archiving real
+        # agent files via AgentReviewService.archive_agents() / shutil.move().
+        #
+        # Without this mock, _review_project_agents() uses Path.cwd() / ".claude" / "agents"
+        # (ignoring the project_path arg entirely), categorizes most deployed agents as
+        # "unused" (since only "python-engineer" is in sample_preview.recommendations),
+        # and then _archive_agents() moves them to .claude/agents/unused/ on every run.
+        #
+        # Note: Using tmp_path for project_path is NOT sufficient since _review_project_agents
+        # hardcodes Path.cwd() for the agents directory lookup.
+        with patch.object(command, "_review_project_agents", return_value=None):
+            args = Namespace(
+                project_path=Path.cwd(),
+                min_confidence=0.8,
+                preview=False,
+                dry_run=False,
+                yes=True,
+                json=False,
+                verbose=False,
+                debug=False,
+                quiet=False,
+                agents_only=True,  # Skip skills to avoid calling SkillsDeployer
+                skills_only=False,
+            )
 
-        result = command.run(args)
+            result = command.run(args)
 
         assert result.success
         mock_auto_config_manager.auto_configure.assert_called_once()
