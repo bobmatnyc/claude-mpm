@@ -350,7 +350,7 @@ def _check_hook_handler_sh_exists() -> bool:
     """
     # Check global, user-level, and project-level settings
     settings_files = [
-        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]
@@ -383,7 +383,7 @@ def _remove_hook_handler_sh() -> bool:
         True if migration succeeded.
     """
     settings_files = [
-        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]
@@ -597,7 +597,7 @@ def _check_stale_hook_paths_exist() -> bool:
         True if stale entries are found in any settings file.
     """
     settings_files = [
-        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]
@@ -675,7 +675,7 @@ def _clean_stale_hook_paths() -> bool:
         True if the migration ran without fatal errors.
     """
     settings_files = [
-        Path.home() / ".claude" / "settings.json",        # global settings
+        Path.home() / ".claude" / "settings.json",  # global settings
         Path.home() / ".claude" / "settings.local.json",
         Path.cwd() / ".claude" / "settings.local.json",
     ]

@@ -42,8 +42,8 @@ class TestSkillToAgentMapper:
             mock_agents = MagicMock()
             mock_agents.exists.return_value = False
             mock_cwd.__truediv__ = MagicMock(return_value=mock_cwd)
-            mock_cwd.__truediv__.side_effect = (
-                lambda x: mock_agents if x == "agents" else mock_cwd
+            mock_cwd.__truediv__.side_effect = lambda x: (
+                mock_agents if x == "agents" else mock_cwd
             )
             mock_path.cwd.return_value = mock_cwd
 

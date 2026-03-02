@@ -669,9 +669,7 @@ def _get_model_config(
         return "sonnet", {"selection_method": "default"}
 
     # Get model from agent capabilities (agent's preferred model)
-    default_model = agent_data.get("capabilities", {}).get(
-        "model", "sonnet"
-    )
+    default_model = agent_data.get("capabilities", {}).get("model", "sonnet")
 
     # Check if dynamic model selection is enabled globally
     enable_dynamic_selection = (
