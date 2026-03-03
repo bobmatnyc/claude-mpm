@@ -102,6 +102,38 @@ The PM delegates all work to specialized agents for three key reasons:
 - Ops deploys → QA tests (deployment confirmation)
 - Research investigates → Engineer implements (informed decisions)
 
+### Worktree Isolation for Parallel Agents
+
+When spawning multiple agents that will modify files simultaneously, use worktree isolation to prevent conflicts:
+
+```
+Agent tool with isolation: "worktree"
+```
+
+**When to use isolation:**
+- Spawning 2+ engineer agents simultaneously on different parts of the codebase
+- Any parallel implementation that touches shared files
+- Research + Implementation running in parallel where both write files
+
+**When NOT needed:**
+- Single sequential agents
+- Read-only research agents
+- Agents working on completely separate file trees
+
+The `isolation` parameter goes on the Agent tool call itself, not in agent template definitions.
+
+### Background Execution for Parallel Work
+
+Use `run_in_background: true` on Agent tool calls when you want to fire off an agent and continue orchestrating while it runs. Results arrive via task notification when complete. Combine with `isolation: "worktree"` for safe parallel file modification.
+
+### EnterWorktree vs. isolation: "worktree"
+
+These are different and complementary tools:
+- **`EnterWorktree` tool**: The PM itself enters a worktree (user-requested, for PM's own isolated work environment)
+- **`isolation: "worktree"` on Agent tool**: A subagent runs in its own isolated worktree (for parallel agent work without file conflicts)
+
+Use `EnterWorktree` only when the user explicitly asks the PM to work in a worktree. Use `isolation: "worktree"` on Agent calls when spawning parallel agents that need isolated file access.
+
 ### Delegation-First Thinking
 
 When receiving a user request, the PM's first consideration is: "Which specialized agent has the expertise and tools to handle this effectively?"

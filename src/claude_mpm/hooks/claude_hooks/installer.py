@@ -813,9 +813,18 @@ main "$@"
                 existing, hook_command, use_matcher=True
             )
 
-        # Simple events (no subtypes, no matcher needed)
-        # Note: SubagentStart is NOT a valid Claude Code event (only SubagentStop is)
-        simple_events = ["Stop", "SubagentStop"]
+        # Simple events (no subtypes, no matcher needed).
+        # Note: SubagentStart is NOT a valid Claude Code event (only SubagentStop is).
+        # WorktreeCreate and WorktreeRemove fire without subtypes (Claude Code v2.1.47+).
+        # TeammateIdle and TaskCompleted are Agent Teams events (experimental, v2.1.47+).
+        simple_events = [
+            "Stop",
+            "SubagentStop",
+            "WorktreeCreate",
+            "WorktreeRemove",
+            "TeammateIdle",
+            "TaskCompleted",
+        ]
         for event_type in simple_events:
             existing = settings["hooks"].get(event_type, [])
             settings["hooks"][event_type] = merge_hooks_for_event(
@@ -831,6 +840,14 @@ main "$@"
         # UserPromptSubmit needs matcher for potential subtypes
         existing = settings["hooks"].get("UserPromptSubmit", [])
         settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
+            existing, hook_command, use_matcher=True
+        )
+
+        # ConfigChange needs matcher for subtypes:
+        # user_settings, project_settings, local_settings, policy_settings, skills
+        # (Claude Code v2.1.47+)
+        existing = settings["hooks"].get("ConfigChange", [])
+        settings["hooks"]["ConfigChange"] = merge_hooks_for_event(
             existing, hook_command, use_matcher=True
         )
 

@@ -1402,6 +1402,194 @@ class EventHandlers:
             "", "subagent_start", subagent_start_data
         )
 
+    def handle_worktree_create_fast(self, event):
+        """Handle WorktreeCreate hook event (Claude Code v2.1.47+).
+
+        Fires when `claude --worktree` creates a new git worktree, indicating
+        a new parallel work session is starting. This is useful for the
+        dashboard to show concurrent work happening in isolated branches.
+
+        Key fields from Claude Code:
+        - worktree_name: Human-readable name for the worktree
+        - worktree_path: Absolute filesystem path to the new worktree
+        - branch: Git branch name checked out in the worktree
+        - session_id: The session that triggered the worktree creation
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+
+        # Extract worktree-specific fields
+        worktree_name = event.get("worktree_name", "")
+        worktree_path = event.get("worktree_path", event.get("path", ""))
+        branch = event.get("branch", event.get("worktree_branch", ""))
+
+        worktree_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "worktree_name": worktree_name,
+            "worktree_path": worktree_path,
+            "branch": branch,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "WorktreeCreate",
+        }
+
+        _log(
+            f"Hook handler: WorktreeCreate - worktree='{worktree_name}', "
+            f"path='{worktree_path}', branch='{branch}', session='{session_id[:16]}...'"
+        )
+
+        self.hook_handler._emit_socketio_event("", "worktree_create", worktree_data)
+
+    def handle_worktree_remove_fast(self, event):
+        """Handle WorktreeRemove hook event (Claude Code v2.1.47+).
+
+        Fires when a git worktree created by `claude --worktree` is removed,
+        indicating a parallel work session has ended.
+
+        Key fields from Claude Code:
+        - worktree_name: Human-readable name of the removed worktree
+        - worktree_path: Absolute filesystem path of the removed worktree
+        - branch: Git branch that was checked out in the removed worktree
+        - session_id: The session that triggered the worktree removal
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+
+        # Extract worktree-specific fields
+        worktree_name = event.get("worktree_name", "")
+        worktree_path = event.get("worktree_path", event.get("path", ""))
+        branch = event.get("branch", event.get("worktree_branch", ""))
+
+        worktree_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "worktree_name": worktree_name,
+            "worktree_path": worktree_path,
+            "branch": branch,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "WorktreeRemove",
+        }
+
+        _log(
+            f"Hook handler: WorktreeRemove - worktree='{worktree_name}', "
+            f"path='{worktree_path}', branch='{branch}', session='{session_id[:16]}...'"
+        )
+
+        self.hook_handler._emit_socketio_event("", "worktree_remove", worktree_data)
+
+    def handle_config_change_fast(self, event):
+        """Handle ConfigChange hook event (Claude Code v2.1.47+).
+
+        Fires when `.claude/` settings or skills files change mid-session.
+        Subtypes include: user_settings, project_settings, local_settings,
+        policy_settings, skills.
+
+        This allows mpm to react when users modify their Claude Code
+        configuration without restarting (e.g., adding a new skill or
+        changing a project-level setting).
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+
+        # Extract config change details
+        # The subtype identifies which settings file changed
+        subtype = event.get("subtype", event.get("config_type", "unknown"))
+        changed_file = event.get("file", event.get("config_file", ""))
+        change_type = event.get("change_type", "modified")  # created/modified/deleted
+
+        config_change_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "subtype": subtype,
+            "changed_file": changed_file,
+            "change_type": change_type,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "ConfigChange",
+        }
+
+        _log(
+            f"Hook handler: ConfigChange - subtype='{subtype}', "
+            f"file='{changed_file}', change_type='{change_type}'"
+        )
+
+        self.hook_handler._emit_socketio_event("", "config_change", config_change_data)
+
+    def handle_teammate_idle_fast(self, event):
+        """Handle TeammateIdle hook event (Claude Code v2.1.47+ Agent Teams).
+
+        Fires when an agent team teammate goes idle (experimental agent teams
+        feature). This allows mpm to track when members of a coordinated
+        agent team pause, enabling visibility into team-level work patterns
+        in the dashboard.
+
+        Note: This is an experimental feature and the event schema may
+        evolve as Claude Code's agent teams feature matures.
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+
+        # Extract teammate information
+        teammate_id = event.get("teammate_id", event.get("agent_id", ""))
+        teammate_type = event.get("teammate_type", event.get("agent_type", "unknown"))
+        idle_reason = event.get("reason", event.get("idle_reason", "unknown"))
+
+        teammate_idle_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "teammate_id": teammate_id,
+            "teammate_type": teammate_type,
+            "idle_reason": idle_reason,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "TeammateIdle",
+        }
+
+        _log(
+            f"Hook handler: TeammateIdle - teammate_id='{teammate_id}', "
+            f"type='{teammate_type}', reason='{idle_reason}'"
+        )
+
+        self.hook_handler._emit_socketio_event("", "teammate_idle", teammate_idle_data)
+
+    def handle_task_completed_fast(self, event):
+        """Handle TaskCompleted hook event (Claude Code v2.1.47+ Agent Teams).
+
+        Fires when a task is marked complete in agent teams. Enables tracking
+        task completion progress across coordinated agent team workflows.
+        Provides visibility into which agents are completing work and at what
+        rate, even if the user is not actively using mpm's PM features.
+
+        Note: This is an experimental feature and the event schema may
+        evolve as Claude Code's agent teams feature matures.
+        """
+        session_id = event.get("session_id", "")
+        working_dir = event.get("cwd", "")
+
+        # Extract task completion details
+        task_id = event.get("task_id", "")
+        task_title = event.get("task_title", event.get("title", ""))
+        completed_by = event.get("completed_by", event.get("agent_id", ""))
+        completion_status = event.get("status", "completed")
+
+        task_completed_data = {
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "task_id": task_id,
+            "task_title": task_title,
+            "completed_by": completed_by,
+            "completion_status": completion_status,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "hook_event_name": "TaskCompleted",
+        }
+
+        _log(
+            f"Hook handler: TaskCompleted - task_id='{task_id}', "
+            f"title='{task_title}', completed_by='{completed_by}'"
+        )
+
+        self.hook_handler._emit_socketio_event(
+            "", "task_completed", task_completed_data
+        )
+
     def _scan_for_delegation_patterns(self, event):
         """Scan assistant response for delegation anti-patterns.
 

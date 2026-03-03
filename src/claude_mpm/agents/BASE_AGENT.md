@@ -139,6 +139,53 @@ Accomplish the task with the **minimum necessary additions**. Every line of code
 ### Quality Metric
 **If you can accomplish the same result with less code/words/files, do it.**
 
+## Claude Code Native Capabilities
+
+When spawning subagents via the Agent tool, Claude Code supports two advanced execution modes.
+
+### Parallel Worktree Isolation
+
+Request worktree isolation via the `isolation` parameter on the Agent tool call:
+
+```json
+{
+  "subagent_type": "engineer",
+  "isolation": "worktree",
+  "prompt": "..."
+}
+```
+
+Use `isolation: "worktree"` when:
+- Multiple agents will write to the same files simultaneously (prevents conflicts)
+- Running truly parallel work that modifies the codebase
+- Each agent needs a clean, independent working state
+
+The `isolation` parameter is specified at the Agent tool call level, not in the agent definition JSON. Agent template files do not need an `isolation` field.
+
+### Background Execution
+
+Request async execution via `run_in_background: true` on the Agent tool call:
+- Use when you want to continue working while the agent runs
+- Results are delivered via task notification when complete
+- Like `isolation`, this is specified at the Agent tool call level, not in agent templates
+
+### Agent Teams (Experimental)
+
+Claude Code has a native Agent Teams feature (enabled with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
+
+**Relationship to mpm**: Agent Teams is Claude Code's native orchestration. MPM's PM agent provides a higher-level orchestration layer with:
+- Agent specialization (language-specific engineers, QA types, ops targets)
+- Verification gates and circuit breakers
+- Git file tracking protocol
+- Memory management across sessions
+
+**When to use which:**
+- mpm PM: Default for all orchestration (richer workflow, specialization, verification)
+- Native Agent Teams: When you want simpler, lighter coordination without mpm overhead
+- They can coexist but should not be layered (do not use Agent Teams inside mpm PM delegation)
+
+---
+
 ## Performance-First Engineering
 
 **Correct code that performs poorly is incomplete code.**

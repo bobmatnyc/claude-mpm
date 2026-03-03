@@ -524,9 +524,22 @@ class ClaudeHookHandler:
             "Notification": self.event_handlers.handle_notification_fast,
             "Stop": self.event_handlers.handle_stop_fast,
             "SubagentStop": self.event_handlers.handle_subagent_stop_fast,
+            # NOTE: SubagentStart is NOT a registered Claude Code hook event.
+            # It is a synthetic event synthesized internally by claude-mpm based
+            # on patterns detected in SubagentStop events (to reconstruct the
+            # start of a subagent lifecycle). It will never fire from Claude Code
+            # itself, but the handler exists in the dispatch dict to allow
+            # internal code paths to emit it via _route_event if needed.
             "SubagentStart": self.event_handlers.handle_subagent_start_fast,
             "SessionStart": self.event_handlers.handle_session_start_fast,
             "AssistantResponse": self.event_handlers.handle_assistant_response,
+            # New events added in Claude Code v2.1.47+
+            "WorktreeCreate": self.event_handlers.handle_worktree_create_fast,
+            "WorktreeRemove": self.event_handlers.handle_worktree_remove_fast,
+            "ConfigChange": self.event_handlers.handle_config_change_fast,
+            # Agent Teams events (experimental in Claude Code v2.1.47+)
+            "TeammateIdle": self.event_handlers.handle_teammate_idle_fast,
+            "TaskCompleted": self.event_handlers.handle_task_completed_fast,
         }
 
         # Call appropriate handler if exists
@@ -734,6 +747,30 @@ class ClaudeHookHandler:
         if hook_type == "AssistantResponse":
             response_len = len(event.get("response", ""))
             return f"Assistant response generated ({response_len} chars)"
+
+        if hook_type == "WorktreeCreate":
+            worktree_name = event.get("worktree_name", "")
+            branch = event.get("branch", event.get("worktree_branch", ""))
+            return f"Worktree created: {worktree_name or branch or 'unnamed'}"
+
+        if hook_type == "WorktreeRemove":
+            worktree_name = event.get("worktree_name", "")
+            branch = event.get("branch", event.get("worktree_branch", ""))
+            return f"Worktree removed: {worktree_name or branch or 'unnamed'}"
+
+        if hook_type == "ConfigChange":
+            subtype = event.get("subtype", event.get("config_type", "unknown"))
+            return f"Config changed: {subtype}"
+
+        if hook_type == "TeammateIdle":
+            teammate_id = event.get("teammate_id", event.get("agent_id", "unknown"))
+            return f"Agent team teammate idle: {teammate_id}"
+
+        if hook_type == "TaskCompleted":
+            task_title = event.get("task_title", event.get("title", ""))
+            task_id = event.get("task_id", "")
+            label = task_title or task_id or "unknown"
+            return f"Task completed: {label}"
 
         # Default summary
         return f"Hook {hook_type} processed successfully"
