@@ -1,3 +1,13 @@
+## v5.9.44 (2026-03-03)
+
+### Feat
+
+- align with Claude Code v2.1.47+ native capabilities
+
+### Fix
+
+- update e2e tests to match refactored AgentLoader and multi-source deployment API
+
 ## v5.9.43 (2026-03-02)
 
 ### Fix
