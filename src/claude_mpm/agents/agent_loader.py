@@ -463,7 +463,19 @@ def validate_agent_files() -> Dict[str, Dict[str, Any]]:
     results = {}
 
     for agent in agents:
-        agent_id = agent["id"]
+        # list_agents() may return AgentMetadata dataclasses or dicts depending
+        # on the registry backend in use. Handle both gracefully.
+        if hasattr(agent, "name"):
+            # AgentMetadata dataclass from unified_agent_registry
+            agent_id = getattr(agent, "canonical_id", None) or agent.name
+        elif hasattr(agent, "get"):
+            agent_id = agent.get("id") or agent.get("agent_id", "")
+        else:
+            continue
+
+        if not agent_id:
+            continue
+
         agent_data = loader.get_agent(agent_id)
         if agent_data:
             results[agent_id] = {"valid": True, "errors": [], "warnings": []}
