@@ -19,6 +19,12 @@ import pytest
 class TestAgentStartupDeployment:
     """Test agent deployment during startup."""
 
+    @pytest.fixture(autouse=True)
+    def bypass_sync_ttl(self):
+        """Ensure tests always exercise the sync path regardless of TTL state."""
+        with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
+            yield
+
     def test_sync_remote_agents_two_phase_deployment(self):
         """Verify agents are both synced to cache AND deployed to ~/.claude/agents/.
 

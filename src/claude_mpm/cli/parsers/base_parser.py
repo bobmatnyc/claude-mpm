@@ -301,6 +301,13 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Force refresh agents and skills from remote repos, bypassing ETag cache",
     )
     run_group.add_argument(
+        "--no-sync",
+        action="store_true",
+        dest="no_sync",
+        default=False,
+        help="Skip agent and skills sync for faster startup (uses existing cached files)",
+    )
+    run_group.add_argument(
         "--chrome",
         action="store_true",
         help="Enable Claude in Chrome integration (passed to Claude Code)",

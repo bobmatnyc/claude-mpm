@@ -14,6 +14,12 @@ import pytest
 class TestAgentStartupConfigRespect:
     """Test agent deployment respects configuration settings."""
 
+    @pytest.fixture(autouse=True)
+    def bypass_sync_ttl(self):
+        """Ensure tests always exercise the sync path regardless of TTL state."""
+        with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
+            yield
+
     def test_deployment_respects_agents_enabled_list(self):
         """Verify only agents in agents.enabled list are deployed."""
         from claude_mpm.cli.startup import sync_remote_agents_on_startup

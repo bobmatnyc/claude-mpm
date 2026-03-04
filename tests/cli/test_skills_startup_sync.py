@@ -12,6 +12,12 @@ import pytest
 class TestSyncRemoteSkillsOnStartup:
     """Test suite for sync_remote_skills_on_startup function."""
 
+    @pytest.fixture(autouse=True)
+    def bypass_sync_ttl(self):
+        """Ensure tests always exercise the sync path regardless of TTL state."""
+        with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
+            yield
+
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")
     @patch("claude_mpm.config.skill_sources.SkillSourceConfiguration")
     def test_successful_skills_sync(self, mock_config_class, mock_manager_class):
@@ -161,6 +167,12 @@ class TestSyncRemoteSkillsOnStartup:
 
 class TestTwoPhaseProgressBars:
     """Test suite for two-phase progress bars during skill sync."""
+
+    @pytest.fixture(autouse=True)
+    def bypass_sync_ttl(self):
+        """Ensure tests always exercise the sync path regardless of TTL state."""
+        with patch("claude_mpm.cli.startup._is_sync_fresh", return_value=False):
+            yield
 
     @patch("claude_mpm.utils.progress.ProgressBar")
     @patch("claude_mpm.services.skills.git_skill_source_manager.GitSkillSourceManager")

@@ -15,6 +15,9 @@ class SetupFlag(str, Enum):
     FORCE = "force"
     UPGRADE = "upgrade"
     OAUTH_SERVICE = "oauth_service"
+    PROVIDER = "provider"
+    REGION = "region"
+    MODEL = "model"
 
     def __str__(self) -> str:
         return self.value
@@ -105,7 +108,17 @@ class TicketStatus(str, Enum):
 
 
 # Global flags that can appear without a preceding service
-GLOBAL_SETUP_FLAGS = {SetupFlag.NO_LAUNCH}
+GLOBAL_SETUP_FLAGS = {
+    SetupFlag.NO_LAUNCH,
+    SetupFlag.PROVIDER,
+    SetupFlag.REGION,
+    SetupFlag.MODEL,
+}
 
 # Flags that require a value
-VALUE_FLAGS = {SetupFlag.OAUTH_SERVICE}
+VALUE_FLAGS = {
+    SetupFlag.OAUTH_SERVICE,
+    SetupFlag.PROVIDER,
+    SetupFlag.REGION,
+    SetupFlag.MODEL,
+}

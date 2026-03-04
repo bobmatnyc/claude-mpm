@@ -41,6 +41,9 @@ Service options:
   --no-launch            Don't auto-launch claude-mpm after setup (all services)
   --force                Force credential re-entry (oauth only) or reinstall (mcp-vector-search, mcp-skillset)
   --upgrade              Upgrade installed packages to latest version
+  --provider PROVIDER    Set API provider during setup (anthropic or bedrock)
+  --region REGION        AWS region when using --provider bedrock (default: us-east-1)
+  --model MODEL          Model ID for the selected provider
 
 Examples:
   # Single service
@@ -69,6 +72,15 @@ Examples:
 
   # Force reinstall mcp-skillset
   claude-mpm setup mcp-skillset --force
+
+  # Set up with Anthropic provider
+  claude-mpm setup slack --provider anthropic
+
+  # Set up with Bedrock provider in a specific region
+  claude-mpm setup slack --provider bedrock --region us-west-2
+
+  # Set up multiple services and configure provider in one command
+  claude-mpm setup slack gworkspace-mcp --provider anthropic
 
 Note: Flags are associated with the service that precedes them.
       mcp-skillset is installed at user-level (Claude Desktop config) and available to all projects.
@@ -109,6 +121,25 @@ Note: Flags are associated with the service that precedes them.
         dest=str(SetupFlag.OAUTH_SERVICE),
         type=str,
         help="Service name for OAuth setup",
+    )
+    setup_parser.add_argument(
+        SetupFlag.PROVIDER.cli_flag,
+        dest=str(SetupFlag.PROVIDER),
+        type=str,
+        choices=["anthropic", "bedrock"],
+        help="Set API provider (anthropic or bedrock) as part of setup",
+    )
+    setup_parser.add_argument(
+        SetupFlag.REGION.cli_flag,
+        dest=str(SetupFlag.REGION),
+        type=str,
+        help="AWS region for Bedrock provider (default: us-east-1)",
+    )
+    setup_parser.add_argument(
+        SetupFlag.MODEL.cli_flag,
+        dest=str(SetupFlag.MODEL),
+        type=str,
+        help="Model ID for the selected provider",
     )
 
     # Services as positional remainder arguments

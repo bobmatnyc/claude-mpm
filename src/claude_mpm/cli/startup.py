@@ -12,7 +12,63 @@ import contextlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
+
+# ─── Sync-state TTL helpers ──────────────────────────────────────────────────
+
+_DEFAULT_SYNC_TTL = 3600  # 1 hour in seconds
+
+
+def _sync_state_file() -> Path:
+    """Return the sync-state file path (computed dynamically to respect Path.home mocks)."""
+    return Path.home() / ".claude-mpm" / "cache" / "sync-state.json"
+
+
+def _load_sync_state() -> dict:
+    """Load last-sync timestamps from disk."""
+    try:
+        state_file = _sync_state_file()
+        if state_file.exists():
+            return json.loads(state_file.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def _save_sync_state(state: dict) -> None:
+    """Persist last-sync timestamps to disk."""
+    try:
+        state_file = _sync_state_file()
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text(json.dumps(state, indent=2))
+    except Exception:
+        pass
+
+
+def _get_sync_ttl() -> int:
+    """Return sync TTL in seconds (from env var or default)."""
+    try:
+        return int(os.environ.get("CLAUDE_MPM_SYNC_TTL", _DEFAULT_SYNC_TTL))
+    except (ValueError, TypeError):
+        return _DEFAULT_SYNC_TTL
+
+
+def _is_sync_fresh(key: str) -> bool:
+    """Return True if the last sync for *key* is within the TTL window."""
+    ttl = _get_sync_ttl()
+    if ttl <= 0:
+        return False  # TTL=0 means always sync
+    state = _load_sync_state()
+    last_sync = state.get(key, 0)
+    return (time.time() - last_sync) < ttl
+
+
+def _mark_sync_done(key: str) -> None:
+    """Record that a sync just completed successfully."""
+    state = _load_sync_state()
+    state[key] = time.time()
+    _save_sync_state(state)
 
 
 @contextlib.contextmanager
@@ -480,7 +536,7 @@ def setup_configure_command_environment(args):
         logging.getLogger("claude_mpm").setLevel(logging.WARNING)
 
 
-def deploy_bundled_skills():
+def deploy_bundled_skills(force_deploy: bool = False):
     """
     Deploy bundled Claude Code skills on startup.
 
@@ -490,7 +546,21 @@ def deploy_bundled_skills():
     DESIGN DECISION: Deployment happens with minimal feedback (checkmark on success).
     Failures are logged but don't block startup to ensure claude-mpm remains
     functional even if skills deployment fails. Respects auto_deploy config setting.
+
+    TTL: Bundled skills only change when the package is updated, so we skip
+    re-deployment if they were recently deployed (using a longer 24-hour TTL).
     """
+    # TTL check: bundled skills rarely change — skip if deployed within 24h
+    # Uses a fixed 24h TTL regardless of CLAUDE_MPM_SYNC_TTL env var
+    _BUNDLED_TTL = 86400  # 24 hours
+    state = _load_sync_state()
+    last_bundled = state.get("bundled_skills", 0)
+    if not force_deploy and (time.time() - last_bundled) < _BUNDLED_TTL:
+        from ..core.logger import get_logger as _get_logger
+
+        _get_logger("cli").debug("Skipping bundled skills deploy (within 24h TTL)")
+        return
+
     try:
         # Check if auto-deploy is disabled in config
         from ..config.config_loader import ConfigLoader
@@ -532,6 +602,9 @@ def deploy_bundled_skills():
             logger.warning(
                 f"Skills: {len(deployment_result['errors'])} skill(s) failed to deploy"
             )
+        else:
+            # Record successful deployment for TTL-based skipping
+            _mark_sync_done("bundled_skills")
 
     except Exception as e:
         # Import logger here to avoid circular imports
@@ -865,6 +938,16 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
     # DEPRECATED: Legacy warning - no-op function, kept for compatibility
     check_legacy_cache()
 
+    # TTL-based skip: if last sync was recent, skip network checks entirely
+    if not force_sync and _is_sync_fresh("agents"):
+        from ..core.logger import get_logger as _get_logger
+
+        _get_logger("cli").debug(
+            f"Skipping agent sync (within {_get_sync_ttl()}s TTL). "
+            "Use --force-sync to override."
+        )
+        return
+
     try:
         # Load active profile if configured
         # Get project root (where .claude-mpm exists)
@@ -1022,6 +1105,9 @@ def sync_remote_agents_on_startup(force_sync: bool = False):
         # legacy directories. Running cleanup here ensures they're removed.
         cleanup_legacy_agent_cache()
 
+        # Record successful sync time for TTL-based skipping on next startup
+        _mark_sync_done("agents")
+
     except Exception as e:
         # Non-critical - log but don't fail startup
         from ..core.logger import get_logger
@@ -1059,6 +1145,16 @@ def sync_remote_skills_on_startup(force_sync: bool = False):
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
     """
+    # TTL-based skip: if last sync was recent, skip network checks entirely
+    if not force_sync and _is_sync_fresh("skills"):
+        from ..core.logger import get_logger as _get_logger
+
+        _get_logger("cli").debug(
+            f"Skipping skills sync (within {_get_sync_ttl()}s TTL). "
+            "Use --force-sync to override."
+        )
+        return
+
     try:
         from pathlib import Path
 
@@ -1369,6 +1465,9 @@ def sync_remote_skills_on_startup(force_sync: bool = False):
                     f"Skill sync completed with {results['failed_count']} failures"
                 )
 
+            # Record successful sync time for TTL-based skipping on next startup
+            _mark_sync_done("skills")
+
     except Exception as e:
         # Non-critical - log but don't fail startup
         from ..core.logger import get_logger
@@ -1658,7 +1757,7 @@ def auto_install_chrome_devtools_on_startup():
         # Continue execution - chrome-devtools installation failure shouldn't block startup
 
 
-def sync_deployment_on_startup(force_sync: bool = False) -> None:
+def sync_deployment_on_startup(force_sync: bool = False, no_sync: bool = False) -> None:
     """Consolidated deployment block: hooks + agents.
 
     WHY: Groups all deployment tasks into a single logical block for clarity.
@@ -1671,12 +1770,18 @@ def sync_deployment_on_startup(force_sync: bool = False) -> None:
 
     Args:
         force_sync: Force download even if cache is fresh (bypasses ETag).
+        no_sync: Skip remote agent/skills sync entirely (use existing cache).
     """
     # Step 1-2: Hooks (cleanup + reinstall handled by sync_hooks_on_startup)
     sync_hooks_on_startup()  # Shows "Syncing Claude Code hooks... ✓"
 
-    # Step 3: Agents from remote sources
-    sync_remote_agents_on_startup(force_sync=force_sync)
+    # Step 3: Agents from remote sources (skip if --no-sync requested)
+    if no_sync:
+        from ..core.logger import get_logger as _get_logger
+
+        _get_logger("cli").debug("Skipping agent sync (--no-sync flag set)")
+    else:
+        sync_remote_agents_on_startup(force_sync=force_sync)
     show_agent_summary()  # Display agent counts after deployment
 
 
@@ -1710,7 +1815,9 @@ def generate_dynamic_domain_authority_skills():
         )
 
 
-def run_background_services(force_sync: bool = False, headless: bool = False):
+def run_background_services(
+    force_sync: bool = False, headless: bool = False, no_sync: bool = False
+):
     """
     Initialize all background services on startup.
 
@@ -1730,6 +1837,7 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         force_sync: Force download even if cache is fresh (bypasses ETag).
         headless: If True, redirect stdout to stderr during startup.
                   This keeps stdout clean for JSON streaming in headless mode.
+        no_sync: Skip remote agent/skills sync entirely (use existing cache).
     """
     # Wrap all startup operations in quiet_startup_context for headless mode
     # This redirects stdout to stderr, keeping stdout clean for JSON output
@@ -1737,7 +1845,7 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         # Consolidated deployment block: hooks + agents
         # RATIONALE: Hooks and agents are deployed together before other services
         # This ensures the deployment phase is complete before configuration checks
-        sync_deployment_on_startup(force_sync=force_sync)
+        sync_deployment_on_startup(force_sync=force_sync, no_sync=no_sync)
 
         initialize_project_registry()
         check_mcp_auto_configuration()
@@ -1745,15 +1853,30 @@ def run_background_services(force_sync: bool = False, headless: bool = False):
         check_for_updates_async()
 
         # Skills deployment order (precedence: remote > bundled)
-        # 1. Deploy bundled skills first (base layer from package)
-        # 2. Sync and deploy remote skills (Git sources, can override bundled)
-        # 3. Discover and link runtime skills (user-added skills)
+        # 1. Deploy bundled skills first (base layer from package) — TTL: 24h
+        # 2. Sync and deploy remote skills (Git sources, can override bundled) — TTL: 1h
+        # 3. Discover and link runtime skills (user-added skills) — only if skills changed
         # This ensures remote skills take precedence over bundled skills when names conflict
-        deploy_bundled_skills()  # Base layer: package-bundled skills
-        sync_remote_skills_on_startup(
-            force_sync=force_sync
-        )  # Override layer: Git-based skills (takes precedence)
-        discover_and_link_runtime_skills()  # Discovery: user-added skills
+        deploy_bundled_skills(
+            force_deploy=force_sync
+        )  # Base layer: package-bundled skills
+        if no_sync:
+            from ..core.logger import get_logger as _get_logger
+
+            _get_logger("cli").debug("Skipping skills sync (--no-sync flag set)")
+        else:
+            sync_remote_skills_on_startup(
+                force_sync=force_sync
+            )  # Override layer: Git-based skills (takes precedence)
+
+        # Only run registry discovery / summary when skills may have changed.
+        # Both TTL checks must be fresh (no_sync path skips remote sync, so treat
+        # remote as "fresh" in that case to avoid unnecessary discovery).
+        _skills_all_fresh = no_sync or (
+            _is_sync_fresh("skills") and _is_sync_fresh("bundled_skills")
+        )
+        if not _skills_all_fresh:
+            discover_and_link_runtime_skills()  # Discovery: user-added skills
         show_skill_summary()  # Display skill counts after deployment
 
         # Generate dynamic domain authority skills for PM

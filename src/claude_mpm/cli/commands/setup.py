@@ -168,12 +168,19 @@ class SetupCommand(BaseCommand):
 
     def run(self, args) -> CommandResult:
         """Execute the setup command."""
-        # If no services, show help
-        if not hasattr(args, "parsed_services") or not args.parsed_services:
-            self._show_help()
-            return CommandResult.success_result("Help displayed")
+        # Check if --provider was given (it can be used alone, without services)
+        provider_key = str(SetupFlag.PROVIDER)
+        has_provider_flag = bool(getattr(args, provider_key, None))
 
-        services = args.parsed_services
+        # If no services and no --provider flag, show help
+        if not hasattr(args, "parsed_services") or not args.parsed_services:
+            if not has_provider_flag:
+                self._show_help()
+                return CommandResult.success_result("Help displayed")
+            # --provider only: skip service processing, fall through to provider section
+            services = []
+        else:
+            services = args.parsed_services
 
         # Process multiple services in sequence
         results = []
@@ -246,6 +253,50 @@ class SetupCommand(BaseCommand):
                 style="bold",
             )
 
+        # Handle --provider flag: configure API provider as part of setup
+        provider_key = str(SetupFlag.PROVIDER)
+        provider_name = getattr(args, provider_key, None)
+        if not provider_name:
+            # Also check global_options (parsed from positional service_args)
+            global_options_check = getattr(args, "global_options", {})
+            provider_name = global_options_check.get(provider_key)
+        if provider_name:
+            console.print(
+                f"\n[bold cyan]Configuring API provider: {provider_name}...[/bold cyan]"
+            )
+            from ...config.api_provider import APIBackend, APIProviderConfig
+
+            config_path = self.working_dir / ".claude-mpm" / "configuration.yaml"
+            config = APIProviderConfig.load(config_path)
+            region_key = str(SetupFlag.REGION)
+            model_key = str(SetupFlag.MODEL)
+            region = getattr(args, region_key, None)
+            model = getattr(args, model_key, None)
+            if provider_name == "anthropic":
+                config.backend = APIBackend.ANTHROPIC
+                if model:
+                    config.anthropic.model = model
+                try:
+                    config.save(config_path)
+                    console.print(
+                        f"[green]✓ Provider set to Anthropic (model: {config.anthropic.model})[/green]"
+                    )
+                except Exception as e:
+                    console.print(f"[red]✗ Failed to save provider config: {e}[/red]")
+            elif provider_name == "bedrock":
+                config.backend = APIBackend.BEDROCK
+                if region:
+                    config.bedrock.region = region
+                if model:
+                    config.bedrock.model = model
+                try:
+                    config.save(config_path)
+                    console.print(
+                        f"[green]✓ Provider set to Bedrock (region: {config.bedrock.region}, model: {config.bedrock.model})[/green]"
+                    )
+                except Exception as e:
+                    console.print(f"[red]✗ Failed to save provider config: {e}[/red]")
+
         # Launch claude-mpm after all services are set up (unless --no-launch specified)
         # Only launch if at least one service succeeded
         # Check argparse flag first, then global_options, then per-service options
@@ -270,13 +321,16 @@ class SetupCommand(BaseCommand):
                 sys.exit(0)
 
         # Return failure if all services failed, success if any succeeded
-        if len(failed) == len(results):
+        # (If no services were requested, only --provider was used — that's a success)
+        if results and len(failed) == len(results):
             return CommandResult.error_result(
                 f"All {len(failed)} service(s) failed to set up"
             )
-        return CommandResult.success_result(
-            f"Set up {len(successful)}/{len(results)} service(s) successfully"
-        )
+        if results:
+            return CommandResult.success_result(
+                f"Set up {len(successful)}/{len(results)} service(s) successfully"
+            )
+        return CommandResult.success_result("Setup complete")
 
     def _show_help(self) -> None:
         """Display setup command help."""
@@ -301,6 +355,9 @@ class SetupCommand(BaseCommand):
   --no-launch            Don't auto-launch claude-mpm after setup (all services)
   --force                Force credential re-entry (oauth) or reinstall (mcp-vector-search, mcp-skillset)
   --upgrade              Upgrade installed packages to latest version
+  --provider PROVIDER    Set API provider: anthropic or bedrock (can be used alone)
+  --region REGION        AWS region for Bedrock (used with --provider bedrock)
+  --model MODEL          Model ID for the selected provider
 
 [bold]Examples:[/bold]
   # Single service

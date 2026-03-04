@@ -87,13 +87,20 @@ def main(argv: Optional[list] = None):
             "CLAUDE_MPM_FORCE_SYNC", "0"
         ) in ("1", "true", "True", "yes")
 
+        # Check for --no-sync flag or environment variable
+        no_sync = getattr(args, "no_sync", False) or os.environ.get(
+            "CLAUDE_MPM_NO_SYNC", "0"
+        ) in ("1", "true", "True", "yes")
+
         # Check if running in headless mode
         is_headless = getattr(args, "headless", False)
 
         if is_headless:
             # Headless mode: Run services quietly (stdout -> stderr)
             # No progress bar - stdout must stay clean for JSON streaming
-            run_background_services(force_sync=force_sync, headless=True)
+            run_background_services(
+                force_sync=force_sync, headless=True, no_sync=no_sync
+            )
         else:
             # Normal mode: Show "Launching Claude..." progress bar
             # This matches the visual style of agent/skill sync progress bars
@@ -106,7 +113,9 @@ def main(argv: Optional[list] = None):
             )
 
             try:
-                run_background_services(force_sync=force_sync, headless=False)
+                run_background_services(
+                    force_sync=force_sync, headless=False, no_sync=no_sync
+                )
                 launch_progress.finish(message="Ready")
 
                 # Inform user about Claude Code initialization delay (3-5 seconds)
