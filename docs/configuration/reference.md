@@ -6,6 +6,7 @@ Complete configuration reference for Claude MPM including the Resume Log System.
 
 - [Configuration File Location](#configuration-file-location)
 - [Configuration Structure](#configuration-structure)
+- [Startup Sync (v5.9.46+)](#startup-sync-v5946)
 - [Context Management](#context-management)
 - [Resume Logs](#resume-logs)
 - [Session Management](#session-management)
@@ -129,6 +130,48 @@ logging:
   max_size: 10485760  # 10MB
   backup_count: 5
 ```
+
+## Startup Sync (v5.9.46+)
+
+### Daily Sync TTL
+
+Claude MPM syncs agents and skills once per day by default. Control this with the `CLAUDE_MPM_SYNC_TTL` environment variable (value in seconds):
+
+| Variable | Default | Description |
+|---|---|---|
+| `CLAUDE_MPM_SYNC_TTL` | `86400` (24 hours) | How long to wait between syncs |
+
+```bash
+# Sync every 12 hours
+export CLAUDE_MPM_SYNC_TTL=43200
+
+# Sync every hour
+export CLAUDE_MPM_SYNC_TTL=3600
+
+# Sync once per week
+export CLAUDE_MPM_SYNC_TTL=604800
+```
+
+### Sync CLI Flags
+
+| Flag | Description |
+|---|---|
+| `--force-sync` | Force immediate sync of agents and skills from GitHub (ignores TTL) |
+| `--no-sync` | Skip sync entirely; use cached content at any age |
+
+```bash
+# Pull latest agents/skills now
+claude-mpm --force-sync
+
+# Maximum startup speed (no network activity)
+claude-mpm --no-sync
+```
+
+### Sync State File
+
+Sync timestamps are stored in `~/.claude-mpm/cache/sync-state.json`. Delete this file to force a sync on the next launch without using `--force-sync`.
+
+---
 
 ## Context Management
 

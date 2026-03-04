@@ -256,9 +256,10 @@ claude-mpm oauth list
 [→ Google Workspace Setup](docs/guides/oauth-setup.md) | [→ Notion Setup](docs/integrations/NOTION_SETUP.md) | [→ Confluence Setup](docs/integrations/CONFLUENCE_SETUP.md) | [→ Slack Setup](docs/integrations/SLACK_USER_PROXY_SETUP.md)
 
 ### ⚡ Performance & Security
+- **Near-Instant Startup** — syncs agents and skills once per day; subsequent launches skip all network checks and start in ~100ms
 - **Simplified Architecture** with ~3,700 lines removed for better performance
 - **Enhanced Security** with comprehensive input validation
-- **Intelligent Caching** with ~200ms faster startup via hash-based invalidation
+- **Intelligent Caching** with hash-based invalidation and TTL-gated sync
 - **Memory Management** with cleanup commands for large conversation histories
 
 [→ Learn more: Architecture](docs/developer/ARCHITECTURE.md)
@@ -285,6 +286,12 @@ claude-mpm run --monitor
 # Resume previous session
 claude-mpm run --resume
 
+# Force sync agents/skills from GitHub (overrides 24-hour TTL)
+claude-mpm --force-sync
+
+# Skip sync for maximum startup speed
+claude-mpm --no-sync
+
 # Semantic code search
 claude-mpm search "authentication logic"
 # or inside Claude Code:
@@ -300,9 +307,47 @@ claude-mpm verify
 claude-mpm cleanup-memory
 ```
 
+**💡 Startup Performance**: Claude MPM syncs agents and skills once per day. Subsequent launches are near-instant (~100ms). Use `--force-sync` to pull the latest content immediately or set `CLAUDE_MPM_SYNC_TTL` (seconds) to customize the sync interval.
+
 **💡 Update Checking**: Claude MPM automatically checks for updates and verifies Claude Code compatibility on startup. Configure in `~/.claude-mpm/configuration.yaml` or see [docs/update-checking.md](docs/update-checking.md).
 
 [→ Complete usage examples: User Guide](docs/user/user-guide.md)
+
+---
+
+## What's New in v5.9.46
+
+### Near-Instant Startup (Daily Sync)
+
+Starting in v5.9.46, Claude MPM syncs agents and skills **once per day** instead of checking GitHub on every launch. Subsequent startups skip all network requests and launch in approximately 100ms.
+
+**Before**: 500ms–2s on every launch (HTTP HEAD requests to GitHub for each file).
+**After**: ~100ms after the first daily sync (no network activity).
+
+```bash
+# Normal launch — uses cached content if synced within 24 hours
+claude-mpm
+
+# Force an immediate sync of agents and skills from GitHub
+claude-mpm --force-sync
+
+# Skip sync entirely (use cached content regardless of age)
+claude-mpm --no-sync
+```
+
+**Configuration**: Override the 24-hour default with the `CLAUDE_MPM_SYNC_TTL` environment variable (value in seconds):
+
+```bash
+# Sync every 12 hours instead of 24
+export CLAUDE_MPM_SYNC_TTL=43200
+
+# Sync every 7 days
+export CLAUDE_MPM_SYNC_TTL=604800
+```
+
+Sync state is stored in `~/.claude-mpm/cache/sync-state.json`. All five startup skill operations — bundled deploy, remote sync, discovery, summary, and PM skills verify — are gated and only run when content has actually changed.
+
+[→ Full sync documentation: Agent Synchronization Guide](docs/guides/agent-synchronization.md)
 
 ---
 

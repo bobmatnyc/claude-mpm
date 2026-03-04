@@ -1,5 +1,25 @@
 ## v5.9.46 (2026-03-04)
 
+### Feat
+
+- **Near-instant startup: daily sync replaces per-launch network checks**
+
+  Claude MPM now syncs agents and skills **once per day** instead of making HTTP
+  requests to GitHub on every startup. Subsequent launches skip all network checks
+  and start in ~100ms (down from 500ms–2s). A `--force-sync` flag triggers an
+  immediate update when you need the latest content.
+
+  **New CLI flags**:
+  - `--force-sync` — force immediate sync of agents and skills from GitHub
+  - `--no-sync` — skip sync entirely for maximum startup speed
+
+  **New environment variable**:
+  - `CLAUDE_MPM_SYNC_TTL` — sync interval in seconds (default: 86400 = 24 hours)
+
+  **Sync state** is tracked in `~/.claude-mpm/cache/sync-state.json`. All five
+  startup skill operations (bundled deploy, remote sync, discovery, summary, and
+  PM skills verify) are gated and only run when content has actually changed.
+
 ### Fix
 
 - optimize sync TTL defaults and PM skills verification gating

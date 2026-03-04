@@ -5,6 +5,7 @@ Complete guide to Claude MPM's git-based agent synchronization system.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Daily Sync Model (v5.9.46+)](#daily-sync-model-v5946)
 - [How It Works](#how-it-works)
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
@@ -18,11 +19,79 @@ Claude MPM's agent synchronization system automatically keeps your agent templat
 
 ### Key Benefits
 
+- **Near-Instant Startup**: Syncs once per day; subsequent launches skip all network checks (~100ms startup)
 - **Always Current**: Automatically receive agent improvements and new features
 - **Efficient**: ETag-based HTTP caching reduces bandwidth usage by ~95%
-- **Fast**: Typical sync completes in 100-200ms after first run
+- **Flexible**: `--force-sync` for immediate updates, `--no-sync` for offline/maximum speed
 - **Reliable**: Works offline with cached agents when network unavailable
-- **Transparent**: Syncs automatically on startup with minimal impact
+- **Transparent**: Syncs automatically on first daily launch with minimal impact
+
+## Daily Sync Model (v5.9.46+)
+
+Starting with v5.9.46, Claude MPM uses a **daily sync** model instead of checking GitHub on every startup. This eliminates the 500ms–2s network overhead that occurred on every launch.
+
+### How Daily Sync Works
+
+1. On first launch of the day, Claude MPM performs a full sync (agents + skills) from GitHub.
+2. The sync timestamp is recorded in `~/.claude-mpm/cache/sync-state.json`.
+3. On all subsequent launches within the TTL window (default: 24 hours), the sync is skipped entirely.
+4. All five startup skill operations — bundled deploy, remote sync, discovery, summary, and PM skills verify — are gated: they only execute when a sync actually runs.
+
+### Startup Performance
+
+| Scenario | Startup Time |
+|---|---|
+| Before v5.9.46 (every launch) | 500ms–2s |
+| First launch of the day (sync runs) | 500ms–800ms |
+| Subsequent launches (sync skipped) | ~100ms |
+| `--no-sync` mode | ~100ms |
+
+### Controlling Sync Behavior
+
+```bash
+# Normal launch — syncs once per day, uses cache otherwise
+claude-mpm
+
+# Force an immediate sync regardless of last sync time
+claude-mpm --force-sync
+
+# Skip sync entirely (use cached content at any age)
+claude-mpm --no-sync
+```
+
+### Configuring the Sync Interval
+
+The `CLAUDE_MPM_SYNC_TTL` environment variable controls how often syncs occur (in seconds). The default is 86400 (24 hours).
+
+```bash
+# Sync every 12 hours
+export CLAUDE_MPM_SYNC_TTL=43200
+
+# Sync every hour (aggressive)
+export CLAUDE_MPM_SYNC_TTL=3600
+
+# Sync once per week
+export CLAUDE_MPM_SYNC_TTL=604800
+```
+
+Add the export to your shell profile (`~/.zshrc` or `~/.bashrc`) to make it permanent.
+
+### Sync State File
+
+The sync state is stored as JSON at `~/.claude-mpm/cache/sync-state.json`:
+
+```json
+{
+  "last_sync": "2026-03-04T08:00:00.000000",
+  "sync_ttl": 86400
+}
+```
+
+To force a sync without using `--force-sync`, delete this file:
+
+```bash
+rm ~/.claude-mpm/cache/sync-state.json
+```
 
 ### Architecture Overview
 
@@ -87,17 +156,19 @@ When you first run Claude MPM or after clearing cache:
 
 **Time**: 500-800ms (depending on network speed)
 
-### 2. Subsequent Syncs (Normal Operation)
+### 2. Daily Sync (Normal Operation, v5.9.46+)
 
-On every Claude MPM startup after initial sync:
+Claude MPM checks `~/.claude-mpm/cache/sync-state.json` on every startup. If the last sync occurred within the configured TTL (default: 24 hours), the entire sync is skipped:
 
-1. **ETag Check**: Sends HTTP request with "If-None-Match" header
-2. **304 Response**: GitHub returns "Not Modified" for unchanged files
-3. **Download**: Only downloads files that have actually changed
-4. **Update Cache**: Updates only changed files in cache
-5. **State Update**: Records new ETags and hashes
+1. **TTL Check**: Read `sync-state.json`; if within TTL, skip to step 6
+2. **ETag Check**: Sends HTTP request with "If-None-Match" header
+3. **304 Response**: GitHub returns "Not Modified" for unchanged files
+4. **Download**: Only downloads files that have actually changed
+5. **Update Cache**: Updates only changed files in cache + records new sync timestamp
+6. **Start Claude**: Proceeds with cached agents and skills
 
-**Time**: 100-200ms (mostly network latency)
+**Time (sync skipped)**: ~100ms (no network activity)
+**Time (sync runs)**: 100-200ms for ETag pass, 500-800ms on content changes
 
 ### 3. Offline Mode
 
@@ -435,17 +506,17 @@ CLAUDE_MPM_LOG_LEVEL=DEBUG claude-mpm
 #### 3. Slow Sync Performance
 
 **Symptoms**:
-- Sync takes >1 second on subsequent runs
-- First sync takes >2 seconds
+- Every launch takes 500ms–2s (even after upgrading to v5.9.46+)
+- First daily sync takes >2 seconds
 
 **Diagnosis**:
 
 ```bash
-# Run with timing output
-time claude-mpm --help  # Quick startup test
+# Check if sync-state.json exists (if missing, sync runs every launch)
+cat ~/.claude-mpm/cache/sync-state.json
 
-# Check cache size
-du -sh ~/.claude-mpm/cache/agents/
+# Run with timing output
+time claude-mpm --no-sync  # Should be ~100ms
 
 # Test network speed
 curl -w "@-" -o /dev/null -s https://github.com/bobmatnyc/claude-mpm-agents <<'EOF'
@@ -453,12 +524,21 @@ time_namelookup:  %{time_namelookup}\n
 time_connect:     %{time_connect}\n
 time_total:       %{time_total}\n
 EOF
+
+# Check cache size
+du -sh ~/.claude-mpm/cache/agents/
 ```
 
 **Solutions**:
 
 ```bash
-# Clear oversized ETag cache
+# If every launch is slow: verify sync-state.json is being written
+ls -la ~/.claude-mpm/cache/sync-state.json
+
+# Use --no-sync to bypass sync entirely for maximum speed
+claude-mpm --no-sync
+
+# Clear oversized ETag cache (if sync itself is slow)
 rm ~/.claude-mpm/cache/agents/.etag_cache.json
 
 # Reduce agent count (custom source)
@@ -563,33 +643,36 @@ DEBUG: Sync completed: 48 files, 47 cached, 1 updated (127ms)
 
 ### Benchmarks
 
-**First Sync (Cold Cache)**:
+**First Sync of the Day (Sync Runs)**:
 - Files: 48 agent templates
-- Size: ~200KB total
-- Time: 500-800ms
-- Network: ~200KB download
+- Size: ~200KB total (first time) or <1KB (ETag pass)
+- Time: 500-800ms (content changes) or 100-200ms (no changes)
+- Network: ~200KB download (first time) or ~1KB (ETag headers only)
 
-**Subsequent Sync (Warm Cache)**:
-- Files: 48 agent templates
-- Size: <1KB (HTTP headers only)
-- Time: 100-200ms
-- Network: ~1KB (ETag checks)
+**Subsequent Launches (Daily TTL Active, v5.9.46+)**:
+- Files: all served from local cache
+- Size: 0 bytes (no network activity)
+- Time: ~100ms
+- Network: none
 
-**Bandwidth Reduction**: 95-99%
+**Bandwidth Reduction**: 95-99% (ETag caching) + 0% on TTL-gated launches
 
 ### Performance Tips
 
-1. **Keep Cache Intact**: Don't delete cache unnecessarily
-2. **Disable When Offline**: Set `enabled: false` for air-gapped environments
-3. **Monitor Database Size**: Run periodic `VACUUM` if database grows large
-4. **Use Local Cache**: Consider custom `cache_dir` on fast local disk
+1. **Use `--no-sync` for maximum speed**: Bypasses TTL check entirely; always uses cache
+2. **Use `--force-sync` after updates**: Pull the latest agents/skills immediately without waiting for TTL
+3. **Keep Cache Intact**: Don't delete cache unnecessarily
+4. **Tune the TTL**: Set `CLAUDE_MPM_SYNC_TTL` to match how often you need fresh content
+5. **Disable When Offline**: Set `enabled: false` for air-gapped environments
+6. **Monitor Database Size**: Run periodic `VACUUM` if database grows large
 
 ### Expected Metrics
 
-**Startup Impact**:
-- First run: +500-800ms
-- Normal operation: +100-200ms
-- Offline mode: +0ms (instant fallback)
+**Startup Impact (v5.9.46+)**:
+- First launch of the day (sync runs): +500-800ms
+- Subsequent launches (sync skipped): ~100ms total
+- `--no-sync` mode: ~100ms total
+- `--force-sync` mode: +500-800ms (same as first launch)
 
 **Storage Requirements**:
 - Cache directory: ~200KB (48 agents)
