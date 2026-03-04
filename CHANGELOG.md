@@ -1,3 +1,9 @@
+## v5.9.46 (2026-03-04)
+
+### Fix
+
+- optimize sync TTL defaults and PM skills verification gating
+
 ## v5.9.45 (2026-03-04)
 
 ### Feat
