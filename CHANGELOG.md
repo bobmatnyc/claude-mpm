@@ -1,3 +1,9 @@
+## v5.9.45 (2026-03-04)
+
+### Feat
+
+- add --no-sync flag, TTL-based sync caching, and provider setup flags
+
 ## v5.9.44 (2026-03-03)
 
 ### Feat
