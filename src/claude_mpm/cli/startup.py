@@ -17,7 +17,7 @@ from pathlib import Path
 
 # ─── Sync-state TTL helpers ──────────────────────────────────────────────────
 
-_DEFAULT_SYNC_TTL = 3600  # 1 hour in seconds
+_DEFAULT_SYNC_TTL = 86400  # 24 hours — check for updates once per day
 
 
 def _sync_state_file() -> Path:
@@ -47,7 +47,11 @@ def _save_sync_state(state: dict) -> None:
 
 
 def _get_sync_ttl() -> int:
-    """Return sync TTL in seconds (from env var or default)."""
+    """Return sync TTL in seconds (from env var or default of 24h).
+
+    Set CLAUDE_MPM_SYNC_TTL=0 to always sync, or any value in seconds.
+    Use --force-sync CLI flag to force an immediate sync without changing the TTL.
+    """
     try:
         return int(os.environ.get("CLAUDE_MPM_SYNC_TTL", _DEFAULT_SYNC_TTL))
     except (ValueError, TypeError):
@@ -550,12 +554,8 @@ def deploy_bundled_skills(force_deploy: bool = False):
     TTL: Bundled skills only change when the package is updated, so we skip
     re-deployment if they were recently deployed (using a longer 24-hour TTL).
     """
-    # TTL check: bundled skills rarely change — skip if deployed within 24h
-    # Uses a fixed 24h TTL regardless of CLAUDE_MPM_SYNC_TTL env var
-    _BUNDLED_TTL = 86400  # 24 hours
-    state = _load_sync_state()
-    last_bundled = state.get("bundled_skills", 0)
-    if not force_deploy and (time.time() - last_bundled) < _BUNDLED_TTL:
+    # TTL check: skip if bundled skills were deployed within the sync TTL window
+    if not force_deploy and _is_sync_fresh("bundled_skills"):
         from ..core.logger import get_logger as _get_logger
 
         _get_logger("cli").debug("Skipping bundled skills deploy (within 24h TTL)")
@@ -1869,20 +1869,23 @@ def run_background_services(
                 force_sync=force_sync
             )  # Override layer: Git-based skills (takes precedence)
 
-        # Only run registry discovery / summary when skills may have changed.
-        # Both TTL checks must be fresh (no_sync path skips remote sync, so treat
-        # remote as "fresh" in that case to avoid unnecessary discovery).
+        # Only run discovery / summary / PM verification when skills may have changed.
+        # All three TTL checks must be fresh to skip these operations.
+        # --no-sync path: remote sync skipped intentionally, treat as fresh.
         _skills_all_fresh = no_sync or (
             _is_sync_fresh("skills") and _is_sync_fresh("bundled_skills")
         )
         if not _skills_all_fresh:
             discover_and_link_runtime_skills()  # Discovery: user-added skills
-        show_skill_summary()  # Display skill counts after deployment
+            show_skill_summary()  # Display skill counts after deployment
 
         # Generate dynamic domain authority skills for PM
         generate_dynamic_domain_authority_skills()
 
-        verify_and_show_pm_skills()  # PM skills verification and status
+        # PM skills: verify and auto-repair once per day (same TTL as other syncs)
+        if not _skills_all_fresh or not _is_sync_fresh("pm_skills"):
+            verify_and_show_pm_skills()  # PM skills verification and status
+            _mark_sync_done("pm_skills")
 
         deploy_output_style_on_startup()
 
