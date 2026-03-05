@@ -254,14 +254,16 @@ def mock_git_sync_service():
     """Create a mock GitSourceSyncService."""
     service = MagicMock()
 
-    # Mock sync_repository (Phase 1: sync to cache)
-    service.sync_repository.return_value = {
-        "synced": True,
-        "agent_count": 10,
-        "cache_dir": "/home/user/.claude-mpm/cache/agents",
-        "files_updated": 5,
-        "files_cached": 5,
+    # Mock sync_agents (Phase 1: sync to cache)
+    # sync_agents returns lists, not booleans
+    service.sync_agents.return_value = {
+        "synced": ["agent1.md", "agent2.md", "agent3.md", "agent4.md", "agent5.md"],
+        "cached": ["agent6.md", "agent7.md", "agent8.md", "agent9.md", "agent10.md"],
+        "failed": [],
+        "total_downloaded": 5,
+        "cache_hits": 5,
     }
+    service.cache_dir = "/home/user/.claude-mpm/cache/agents"
 
     # Mock deploy_agents_to_project (Phase 2: deploy to project)
     service.deploy_agents_to_project.return_value = {
@@ -586,7 +588,9 @@ class TestDeploymentOperations(TestAgentsCommand):
         assert result.data["total_deployed"] == 3
 
         # Verify GitSourceSyncService methods were called
-        mock_git_sync_service.sync_repository.assert_called_once_with(force=False)
+        mock_git_sync_service.sync_agents.assert_called_once_with(
+            force_refresh=False, show_progress=True
+        )
         mock_git_sync_service.deploy_agents_to_project.assert_called_once()
 
     def test_deploy_agents_force(self, command, mock_args, mock_git_sync_service):
@@ -601,7 +605,9 @@ class TestDeploymentOperations(TestAgentsCommand):
 
         assert result.success
         # Verify force=True was passed
-        mock_git_sync_service.sync_repository.assert_called_once_with(force=True)
+        mock_git_sync_service.sync_agents.assert_called_once_with(
+            force_refresh=True, show_progress=True
+        )
         call_args = mock_git_sync_service.deploy_agents_to_project.call_args
         assert call_args[1]["force"] is True
 
@@ -646,10 +652,13 @@ class TestDeploymentOperations(TestAgentsCommand):
 
     def test_deploy_agents_with_errors(self, command, mock_args, mock_git_sync_service):
         """Test deployment with sync errors."""
-        # Configure mock to return sync failure
-        mock_git_sync_service.sync_repository.return_value = {
-            "synced": False,
-            "error": "Network error: connection timeout",
+        # Configure mock to return sync failure (empty synced/cached lists)
+        mock_git_sync_service.sync_agents.return_value = {
+            "synced": [],
+            "cached": [],
+            "failed": ["agent1.md"],
+            "total_downloaded": 0,
+            "cache_hits": 0,
         }
 
         mock_args.agents_command = "deploy"
@@ -661,7 +670,7 @@ class TestDeploymentOperations(TestAgentsCommand):
             result = command.run(mock_args)
 
         assert not result.success
-        assert "Sync failed" in result.message
+        assert "Sync failed" in result.message or "No agents" in result.message
 
 
 class TestCleanupOperations(TestAgentsCommand):

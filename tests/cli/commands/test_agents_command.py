@@ -226,11 +226,21 @@ class TestAgentsCommand:
                 mock_wrapper_class.assert_called_once_with(mock_service)
 
     def test_deployment_service_import_error(self):
-        """Test handling of deployment service import error."""
-        # Simulate import error by patching the deployment_service property
-        with patch.object(
-            AgentsCommand, "deployment_service", property(lambda self: None)
-        ):
+        """Test handling of GitSourceSyncService sync failure during deploy."""
+        # Simulate sync failure by patching sync_agents to return empty results
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService"
+        ) as mock_cls:
+            mock_instance = Mock()
+            mock_instance.sync_agents.return_value = {
+                "synced": [],
+                "cached": [],
+                "failed": ["agent1.md"],
+                "total_downloaded": 0,
+                "cache_hits": 0,
+            }
+            mock_cls.return_value = mock_instance
+
             args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
 
             result = self.command.run(args)
@@ -238,7 +248,9 @@ class TestAgentsCommand:
             assert isinstance(result, CommandResult)
             assert result.success is False
             # Check for error in the message
-            assert "Error" in result.message or "error" in result.message
+            assert (
+                "error" in result.message.lower() or "failed" in result.message.lower()
+            )
 
     @patch.object(AgentsCommand, "deployment_service", new_callable=Mock)
     def test_list_agents_implementation(self, mock_deployment_service):
@@ -270,22 +282,23 @@ class TestAgentsCommand:
             assert len(result.data["agents"]) == 2
 
     def test_deploy_agents_with_error(self):
-        """Test deploy agents with error."""
-        # Create a mock deployment service
-        mock_service = Mock()
-        mock_service.deploy_system_agents.side_effect = Exception("Deployment failed")
+        """Test deploy agents with error from GitSourceSyncService."""
+        # Simulate GitSourceSyncService raising an exception during sync
+        with patch(
+            "claude_mpm.services.agents.sources.git_source_sync_service.GitSourceSyncService"
+        ) as mock_cls:
+            mock_instance = Mock()
+            mock_instance.sync_agents.side_effect = Exception("Deployment failed")
+            mock_cls.return_value = mock_instance
 
-        # Set the mock service directly
-        self.command._deployment_service = mock_service
+            args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
 
-        args = Namespace(agents_command=AgentCommands.DEPLOY.value, format="text")
+            result = self.command.run(args)
 
-        result = self.command.run(args)
-
-        assert isinstance(result, CommandResult)
-        assert result.success is False
-        # Check for either error message since the actual implementation might vary
-        assert "Error" in result.message or "error" in result.message
+            assert isinstance(result, CommandResult)
+            assert result.success is False
+            # Check for either error message since the actual implementation might vary
+            assert "Error" in result.message or "error" in result.message
 
     def test_run_with_exception(self):
         """Test general exception handling in run method."""
