@@ -1,3 +1,9 @@
+## v5.9.49 (2026-03-05)
+
+### Feat
+
+- add migration to auto-remove unsupported v2.1.47+ hook events
+
 ## v5.9.48 (2026-03-05)
 
 ### Fix
