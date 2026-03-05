@@ -776,6 +776,120 @@ def _clean_stale_hook_paths() -> bool:
 
 
 # =============================================================================
+# Migration: v5.9.48-remove-unsupported-hook-events
+# =============================================================================
+
+# Hook event types added in Claude Code v2.1.47 that older versions reject
+_NEW_HOOK_EVENTS = [
+    "WorktreeCreate",
+    "WorktreeRemove",
+    "TeammateIdle",
+    "TaskCompleted",
+    "ConfigChange",
+]
+
+
+def _check_unsupported_hooks_exist() -> bool:
+    """Check if any settings files contain v2.1.47+ hook events on an older install.
+
+    Returns:
+        True if unsupported hook events are found AND Claude Code < 2.1.47.
+    """
+    # If Claude Code supports these hooks, nothing to clean up
+    try:
+        from ..hooks.claude_hooks.installer import HookInstaller
+
+        installer = HookInstaller()
+        if installer.supports_new_hooks():
+            return False
+    except Exception:
+        pass  # Unknown version — be conservative and check files anyway
+
+    settings_files = [
+        Path.home() / ".claude" / "settings.json",
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            for event_type in _NEW_HOOK_EVENTS:
+                if event_type in hooks:
+                    logger.debug(
+                        f"Found unsupported hook event '{event_type}' in {settings_file}"
+                    )
+                    return True
+        except Exception as e:
+            logger.debug(f"Failed to check {settings_file}: {e}")
+            continue
+
+    return False
+
+
+def _remove_unsupported_hook_events() -> bool:
+    """Remove v2.1.47+ hook events from all Claude settings files.
+
+    These events cause "Invalid key in record" warnings at startup on
+    Claude Code versions older than v2.1.47.
+
+    Returns:
+        True if migration succeeded.
+    """
+    settings_files = [
+        Path.home() / ".claude" / "settings.json",
+        Path.home() / ".claude" / "settings.local.json",
+        Path.cwd() / ".claude" / "settings.local.json",
+    ]
+
+    total_removed = 0
+
+    for settings_file in settings_files:
+        if not settings_file.exists():
+            continue
+
+        try:
+            with open(settings_file) as f:
+                data = json.load(f)
+
+            hooks = data.get("hooks", {})
+            removed = []
+            for event_type in _NEW_HOOK_EVENTS:
+                if event_type in hooks:
+                    del hooks[event_type]
+                    removed.append(event_type)
+
+            if removed:
+                with open(settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+                total_removed += len(removed)
+                logger.info(
+                    f"Removed unsupported hook events {removed} from {settings_file}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to clean unsupported hooks in {settings_file}: {e}")
+            continue
+
+    if total_removed > 0:
+        print(
+            f"   Removed {total_removed} unsupported hook event(s) "
+            f"(WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange)"
+        )
+    else:
+        print("   No unsupported hook events found")
+
+    print("   ✓ Migration complete")
+    return True
+
+
+# =============================================================================
 # Migration Registry
 # =============================================================================
 
@@ -809,6 +923,12 @@ MIGRATIONS: list[Migration] = [
         description="Remove stale hook paths and invalid hook events from all settings files",
         check=_check_stale_hook_paths_exist,
         migrate=_clean_stale_hook_paths,
+    ),
+    Migration(
+        id="v5.9.48-remove-unsupported-hook-events",
+        description="Remove unsupported v2.1.47+ hook events (WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange) from settings on Claude Code < 2.1.47",
+        check=_check_unsupported_hooks_exist,
+        migrate=_remove_unsupported_hook_events,
     ),
 ]
 

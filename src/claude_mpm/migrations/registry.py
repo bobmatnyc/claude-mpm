@@ -32,6 +32,13 @@ def _run_coauthor_email_migration() -> bool:
     return migrate_coauthor_email()
 
 
+def _run_remove_unsupported_hooks_migration() -> bool:
+    """Remove v2.1.47+ hook events from settings on older Claude Code installs."""
+    from .migrate_remove_unsupported_hooks import migrate_all_settings
+
+    return migrate_all_settings()
+
+
 # Registry of all migrations, ordered by version
 MIGRATIONS: list[Migration] = [
     Migration(
@@ -45,6 +52,12 @@ MIGRATIONS: list[Migration] = [
         version="5.6.95",
         description="Update Co-Authored-By to Claude MPM <https://github.com/bobmatnyc/claude-mpm>",
         run=_run_coauthor_email_migration,
+    ),
+    Migration(
+        id="5.9.48_remove_unsupported_hooks",
+        version="5.9.48",
+        description="Remove unsupported v2.1.47+ hook events (WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange) from Claude settings on older Claude Code installations",
+        run=_run_remove_unsupported_hooks_migration,
     ),
 ]
 
