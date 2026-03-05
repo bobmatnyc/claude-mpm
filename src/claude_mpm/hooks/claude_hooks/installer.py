@@ -203,6 +203,9 @@ main "$@"
     MIN_PRETOOL_MODIFY_VERSION = "2.0.30"
     # Minimum version for user-invocable skills support
     MIN_SKILLS_VERSION = "2.1.3"
+    # Minimum version for v2.1.47+ hook events:
+    # WorktreeCreate, WorktreeRemove, TeammateIdle, TaskCompleted, ConfigChange
+    MIN_NEW_HOOKS_VERSION = "2.1.47"
 
     def __init__(self):
         """Initialize the hook installer."""
@@ -395,6 +398,26 @@ main "$@"
         if not version:
             return False
         return self._version_meets_minimum(version, self.MIN_SKILLS_VERSION)
+
+    def supports_new_hooks(self) -> bool:
+        """Check if Claude Code version supports v2.1.47+ hook events.
+
+        These hook types were added in Claude Code v2.1.47:
+        - WorktreeCreate / WorktreeRemove
+        - TeammateIdle / TaskCompleted (Agent Teams, experimental)
+        - ConfigChange
+
+        Older versions will log "Invalid key in record" warnings for these
+        hook entries in settings.local.json.
+
+        Returns:
+            True if version supports these hooks, False otherwise
+        """
+        version = self.get_claude_version()
+        if not version:
+            # Unknown version — be conservative and skip newer hooks
+            return False
+        return self._version_meets_minimum(version, self.MIN_NEW_HOOKS_VERSION)
 
     def get_hook_command(self, use_fast_hook: bool = True) -> str:
         """Get the hook command based on installation method.
@@ -815,20 +838,43 @@ main "$@"
 
         # Simple events (no subtypes, no matcher needed).
         # Note: SubagentStart is NOT a valid Claude Code event (only SubagentStop is).
-        # WorktreeCreate and WorktreeRemove fire without subtypes (Claude Code v2.1.47+).
-        # TeammateIdle and TaskCompleted are Agent Teams events (experimental, v2.1.47+).
-        simple_events = [
-            "Stop",
-            "SubagentStop",
+        simple_events_core = ["Stop", "SubagentStop"]
+        for event_type in simple_events_core:
+            existing = settings["hooks"].get(event_type, [])
+            settings["hooks"][event_type] = merge_hooks_for_event(
+                existing, hook_command, use_matcher=False
+            )
+
+        # v2.1.47+ hook events: only install if Claude Code version supports them.
+        # On older versions these cause "Invalid key in record" warnings at startup.
+        # WorktreeCreate/Remove, TeammateIdle, TaskCompleted, ConfigChange.
+        new_hook_events_simple = [
             "WorktreeCreate",
             "WorktreeRemove",
             "TeammateIdle",
             "TaskCompleted",
         ]
-        for event_type in simple_events:
-            existing = settings["hooks"].get(event_type, [])
-            settings["hooks"][event_type] = merge_hooks_for_event(
-                existing, hook_command, use_matcher=False
+        new_hook_events_matcher = ["ConfigChange"]
+
+        if self.supports_new_hooks():
+            # Install newer hook types
+            for event_type in new_hook_events_simple:
+                existing = settings["hooks"].get(event_type, [])
+                settings["hooks"][event_type] = merge_hooks_for_event(
+                    existing, hook_command, use_matcher=False
+                )
+            for event_type in new_hook_events_matcher:
+                existing = settings["hooks"].get(event_type, [])
+                settings["hooks"][event_type] = merge_hooks_for_event(
+                    existing, hook_command, use_matcher=True
+                )
+        else:
+            # Older Claude Code: remove any stale entries that would cause warnings
+            for event_type in new_hook_events_simple + new_hook_events_matcher:
+                settings["hooks"].pop(event_type, None)
+            self.logger.debug(
+                f"Skipping v2.1.47+ hooks (Claude Code {self.get_claude_version() or 'unknown'} "
+                f"< {self.MIN_NEW_HOOKS_VERSION}). Removed any stale entries."
             )
 
         # SessionStart needs matcher for subtypes (startup, resume)
@@ -840,14 +886,6 @@ main "$@"
         # UserPromptSubmit needs matcher for potential subtypes
         existing = settings["hooks"].get("UserPromptSubmit", [])
         settings["hooks"]["UserPromptSubmit"] = merge_hooks_for_event(
-            existing, hook_command, use_matcher=True
-        )
-
-        # ConfigChange needs matcher for subtypes:
-        # user_settings, project_settings, local_settings, policy_settings, skills
-        # (Claude Code v2.1.47+)
-        existing = settings["hooks"].get("ConfigChange", [])
-        settings["hooks"]["ConfigChange"] = merge_hooks_for_event(
             existing, hook_command, use_matcher=True
         )
 
