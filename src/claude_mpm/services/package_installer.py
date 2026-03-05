@@ -426,6 +426,11 @@ def get_package_specs() -> dict[SetupService, PackageSpec]:
             binary_name="gworkspace-mcp",
             module_name="gworkspace_mcp",
         ),
+        SetupService.SLACK_MCP: PackageSpec(
+            name="slack-mcp",
+            binary_name="slack-mcp",
+            module_name="slack_mcp",
+        ),
         SetupService.MCP_TICKETER: PackageSpec(
             name="mcp-ticketer",
             binary_name="mcp-ticketer",

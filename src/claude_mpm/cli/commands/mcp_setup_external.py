@@ -52,6 +52,8 @@ class MCPExternalServicesSetup:
             "mcp-vector-search", project_path
         )
 
+        slack_mcp_config = self._get_best_slack_mcp_config()
+
         return {
             str(SetupService.MCP_VECTOR_SEARCH): {
                 "package_name": str(SetupService.MCP_VECTOR_SEARCH),
@@ -65,6 +67,66 @@ class MCPExternalServicesSetup:
                 "description": "Web browsing and content extraction",
                 "config": mcp_browser_config,
             },
+            "slack-mcp": {
+                "package_name": "slack-mcp",
+                "module_name": "slack_mcp",
+                "description": "Slack workspace integration via MCP",
+                "config": slack_mcp_config,
+            },
+        }
+
+    def _get_best_slack_mcp_config(self) -> Dict:
+        """Get configuration for slack-mcp.
+
+        Prefers local development install at ~/Projects/slack-mcp,
+        falls back to installed binary.
+        """
+        import shutil
+
+        # Check local development path first
+        local_path = Path.home() / "Projects" / "slack-mcp"
+        if local_path.exists() and (local_path / "pyproject.toml").exists():
+            return {
+                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                str(MCPConfigKey.COMMAND): "uv",
+                str(MCPConfigKey.ARGS): [
+                    "run",
+                    "--directory",
+                    str(local_path),
+                    "slack-mcp",
+                    "mcp",
+                ],
+                str(MCPConfigKey.ENV): {},
+            }
+
+        # Check pipx installation
+        pipx_venv = self._pipx_path / "slack-mcp"
+        if pipx_venv.exists():
+            binary = pipx_venv / "bin" / "slack-mcp"
+            if binary.exists():
+                return {
+                    str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                    str(MCPConfigKey.COMMAND): str(binary),
+                    str(MCPConfigKey.ARGS): ["mcp"],
+                    str(MCPConfigKey.ENV): {},
+                }
+
+        # Fall back to system binary
+        binary_path = shutil.which("slack-mcp")
+        if binary_path:
+            return {
+                str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+                str(MCPConfigKey.COMMAND): binary_path,
+                str(MCPConfigKey.ARGS): ["mcp"],
+                str(MCPConfigKey.ENV): {},
+            }
+
+        # Generic fallback
+        return {
+            str(MCPConfigKey.TYPE): str(MCPServerType.STDIO),
+            str(MCPConfigKey.COMMAND): "slack-mcp",
+            str(MCPConfigKey.ARGS): ["mcp"],
+            str(MCPConfigKey.ENV): {},
         }
 
     def _get_best_service_config(self, service_name: str, project_path: Path) -> Dict:
@@ -381,6 +443,32 @@ class MCPExternalServicesSetup:
                 }
             else:
                 installations[service_name] = {
+                    "type": "not_installed",
+                    "path": None,
+                    "config": None,
+                }
+
+        # Detect slack-mcp separately (uses a different detection method)
+        import shutil as _shutil
+
+        slack_config = self._get_best_slack_mcp_config()
+        local_slack_path = Path.home() / "Projects" / "slack-mcp"
+        if local_slack_path.exists() and (local_slack_path / "pyproject.toml").exists():
+            installations["slack-mcp"] = {
+                "type": "local_dev",
+                "path": str(local_slack_path),
+                "config": slack_config,
+            }
+        else:
+            slack_binary = _shutil.which("slack-mcp")
+            if slack_binary:
+                installations["slack-mcp"] = {
+                    "type": "system",
+                    "path": slack_binary,
+                    "config": slack_config,
+                }
+            else:
+                installations["slack-mcp"] = {
                     "type": "not_installed",
                     "path": None,
                     "config": None,
