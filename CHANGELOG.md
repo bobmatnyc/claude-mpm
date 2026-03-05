@@ -1,3 +1,9 @@
+## v5.9.50 (2026-03-05)
+
+### Feat
+
+- add slack-mcp setup support to claude-mpm
+
 ## v5.9.49 (2026-03-05)
 
 ### Feat
