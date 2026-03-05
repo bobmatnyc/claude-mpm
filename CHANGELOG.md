@@ -1,3 +1,9 @@
+## v5.9.48 (2026-03-05)
+
+### Fix
+
+- guard v2.1.47+ hook events behind version check to prevent startup warnings
+
 ## v5.9.47 (2026-03-04)
 
 ## v5.9.46 (2026-03-04)
