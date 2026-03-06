@@ -23,7 +23,7 @@ class AgentNameNormalizer:
         "engineer": "Engineer",
         "qa": "QA",
         "security": "Security",
-        "documentation": "Documentation",
+        "documentation": "Documentation Agent",
         "ops": "Ops",
         "version_control": "Version Control",
         "data_engineer": "Data Engineer",
@@ -39,7 +39,7 @@ class AgentNameNormalizer:
         "ruby_engineer": "Ruby Engineer",
         "php_engineer": "PHP Engineer",
         "phoenix_engineer": "Phoenix Engineer",
-        "nestjs_engineer": "NestJS Engineer",
+        "nestjs_engineer": "nestjs-engineer",
         "react_engineer": "React Engineer",
         "nextjs_engineer": "NextJS Engineer",
         "svelte_engineer": "Svelte Engineer",
@@ -50,7 +50,7 @@ class AgentNameNormalizer:
         # QA variants
         "api_qa": "API QA",
         "web_qa": "Web QA",
-        "real_user": "Real User",
+        "real_user": "real-user",
         # Ops variants
         "clerk_ops": "Clerk Ops",
         "digitalocean_ops": "DigitalOcean Ops",
@@ -59,19 +59,22 @@ class AgentNameNormalizer:
         "vercel_ops": "Vercel Ops",
         "project_organizer": "Project Organizer",
         "agentic_coder_optimizer": "Agentic Coder Optimizer",
-        "tmux": "Tmux",
+        "tmux": "Tmux Agent",
         # Universal agents
         "code_analyzer": "Code Analyzer",
-        "content": "Content",
+        "content": "Content Optimization",
         "memory_manager": "Memory Manager",
         "product_owner": "Product Owner",
         "web_ui": "Web UI",
         "imagemagick": "ImageMagick",
-        "ticketing": "Ticketing",
+        "ticketing": "ticketing_agent",
         # MPM-specific agents
-        "mpm_agent_manager": "MPM Agent Manager",
-        "mpm_skills_manager": "MPM Skills Manager",
-        "tavily_research": "Research",  # Maps to Research
+        "mpm_agent_manager": "mpm_agent_manager",
+        "mpm_skills_manager": "mpm_skills_manager",
+        # New agents
+        "aws_ops": "aws_ops_agent",
+        "data_scientist": "Data Scientist",
+        "visual_basic_engineer": "Visual Basic Engineer",
     }
 
     # Aliases and variations that map to canonical names
@@ -196,6 +199,17 @@ class AgentNameNormalizer:
         "agent_manager": "mpm_agent_manager",
         "mpm_skills_manager": "mpm_skills_manager",
         "skills_manager": "mpm_skills_manager",
+        # AWS Ops variations
+        "aws_ops": "aws_ops",
+        "aws": "aws_ops",
+        # Data Scientist variations
+        "data_scientist": "data_scientist",
+        "data_science": "data_scientist",
+        # Visual Basic Engineer variations
+        "visual_basic_engineer": "visual_basic_engineer",
+        "visual_basic": "visual_basic_engineer",
+        "vb_engineer": "visual_basic_engineer",
+        "vb": "visual_basic_engineer",
     }
 
     # Agent colors for consistent display
@@ -254,6 +268,10 @@ class AgentNameNormalizer:
         # MPM-specific agents
         "mpm_agent_manager": "\033[95m",  # Bright Magenta
         "mpm_skills_manager": "\033[95m",  # Bright Magenta
+        # New agents
+        "aws_ops": "\033[35m",  # Magenta (like ops)
+        "data_scientist": "\033[96m",  # Bright Cyan (like data_engineer)
+        "visual_basic_engineer": "\033[32m",  # Green (like engineers)
     }
 
     COLOR_RESET = "\033[0m"
@@ -329,6 +347,11 @@ class AgentNameNormalizer:
             The key format of the agent name
         """
         normalized = cls.normalize(agent_name)
+        # Reverse-lookup the CANONICAL_NAMES key that maps to this display name
+        for key, value in cls.CANONICAL_NAMES.items():
+            if value == normalized:
+                return key
+        # Fallback: derive from normalized name
         return normalized.lower().replace(" ", "_")
 
     @classmethod
@@ -435,10 +458,9 @@ class AgentNameNormalizer:
             "Data Engineer" → "data-engineer"
             "QA" → "qa"
         """
-        # First normalize to canonical form
-        normalized = cls.normalize(agent_name)
-        # Convert to lowercase and replace spaces with hyphens
-        return normalized.lower().replace(" ", "-")
+        # Use the canonical key (e.g., "documentation") not the display name
+        key = cls.to_key(agent_name)
+        return key.replace("_", "-")
 
     @classmethod
     def from_task_format(cls, task_format: str) -> str:

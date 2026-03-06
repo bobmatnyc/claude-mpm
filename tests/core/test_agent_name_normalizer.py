@@ -22,7 +22,7 @@ class TestAgentSuffixStripping:
             ("engineer-agent", "Engineer"),
             ("qa-agent", "QA"),
             ("security-agent", "Security"),
-            ("documentation-agent", "Documentation"),
+            ("documentation-agent", "Documentation Agent"),
             ("ops-agent", "Ops"),
             ("python-engineer-agent", "Python Engineer"),
             ("data-engineer-agent", "Data Engineer"),
@@ -31,7 +31,7 @@ class TestAgentSuffixStripping:
             ("engineer_agent", "Engineer"),
             ("qa_agent", "QA"),
             ("security_agent", "Security"),
-            ("documentation_agent", "Documentation"),
+            ("documentation_agent", "Documentation Agent"),
             ("ops_agent", "Ops"),
             ("python_engineer_agent", "Python Engineer"),
             ("data_engineer_agent", "Data Engineer"),
@@ -59,7 +59,7 @@ class TestExtendedAliases:
             ("engineer", "Engineer"),
             ("qa", "QA"),
             ("security", "Security"),
-            ("documentation", "Documentation"),
+            ("documentation", "Documentation Agent"),
             ("ops", "Ops"),
             ("version_control", "Version Control"),
             ("data_engineer", "Data Engineer"),
@@ -77,7 +77,7 @@ class TestExtendedAliases:
             ("ruby_engineer", "Ruby Engineer"),
             ("php_engineer", "PHP Engineer"),
             ("phoenix_engineer", "Phoenix Engineer"),
-            ("nestjs_engineer", "NestJS Engineer"),
+            ("nestjs_engineer", "nestjs-engineer"),
             # Frontend engineers
             ("react_engineer", "React Engineer"),
             ("react-engineer", "React Engineer"),
@@ -97,7 +97,7 @@ class TestExtendedAliases:
             ("api-qa", "API QA"),
             ("web_qa", "Web QA"),
             ("web-qa", "Web QA"),
-            ("real_user", "Real User"),
+            ("real_user", "real-user"),
             # Ops variants
             ("clerk_ops", "Clerk Ops"),
             ("digitalocean_ops", "DigitalOcean Ops"),
@@ -106,18 +106,18 @@ class TestExtendedAliases:
             ("vercel_ops", "Vercel Ops"),
             ("project_organizer", "Project Organizer"),
             ("agentic_coder_optimizer", "Agentic Coder Optimizer"),
-            ("tmux", "Tmux"),
+            ("tmux", "Tmux Agent"),
             # Universal agents
             ("code_analyzer", "Code Analyzer"),
-            ("content", "Content"),
+            ("content", "Content Optimization"),
             ("memory_manager", "Memory Manager"),
             ("product_owner", "Product Owner"),
-            ("ticketing", "Ticketing"),
+            ("ticketing", "ticketing_agent"),
             # MPM-specific agents
-            ("mpm_agent_manager", "MPM Agent Manager"),
-            ("mpm-agent-manager", "MPM Agent Manager"),
-            ("mpm_skills_manager", "MPM Skills Manager"),
-            ("mpm-skills-manager", "MPM Skills Manager"),
+            ("mpm_agent_manager", "mpm_agent_manager"),
+            ("mpm-agent-manager", "mpm_agent_manager"),
+            ("mpm_skills_manager", "mpm_skills_manager"),
+            ("mpm-skills-manager", "mpm_skills_manager"),
         ],
     )
     def test_extended_aliases(self, input_name: str, expected: str) -> None:
@@ -142,7 +142,7 @@ class TestShorthandAliases:
             ("ruby", "Ruby Engineer"),
             ("php", "PHP Engineer"),
             ("phoenix", "Phoenix Engineer"),
-            ("nestjs", "NestJS Engineer"),
+            ("nestjs", "nestjs-engineer"),
             # Framework shorthands
             ("react", "React Engineer"),
             ("nextjs", "NextJS Engineer"),
@@ -199,7 +199,7 @@ class TestToKeyFormat:
             ("python-engineer", "python_engineer"),
             ("python_engineer", "python_engineer"),
             ("Version Control", "version_control"),
-            ("MPM Agent Manager", "mpm_agent_manager"),
+            ("mpm_agent_manager", "mpm_agent_manager"),
             ("API QA", "api_qa"),
         ],
     )
@@ -219,7 +219,7 @@ class TestToTaskFormat:
             ("Python Engineer", "python-engineer"),
             ("Version Control", "version-control"),
             ("Data Engineer", "data-engineer"),
-            ("MPM Agent Manager", "mpm-agent-manager"),
+            ("mpm_agent_manager", "mpm-agent-manager"),
             ("API QA", "api-qa"),
         ],
     )
@@ -239,7 +239,7 @@ class TestFromTaskFormat:
             ("python-engineer", "Python Engineer"),
             ("version-control", "Version Control"),
             ("data-engineer", "Data Engineer"),
-            ("mpm-agent-manager", "MPM Agent Manager"),
+            ("mpm-agent-manager", "mpm_agent_manager"),
             ("api-qa", "API QA"),
         ],
     )
@@ -261,7 +261,7 @@ class TestRoundTrip:
             "Version Control",
             "Data Engineer",
             "API QA",
-            "MPM Agent Manager",
+            "mpm_agent_manager",
         ],
     )
     def test_round_trip_to_task_and_back(self, canonical_name: str) -> None:
