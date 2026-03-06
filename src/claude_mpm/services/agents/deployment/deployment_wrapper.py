@@ -108,7 +108,7 @@ class DeploymentServiceWrapper:
                         return {
                             "name": agent_name,
                             "path": str(agent_path),
-                            "type": agent.get("type", "agent"),
+                            "type": agent.get("agent_type", agent.get("type", "agent")),
                             "version": metadata.get("version", "1.0.0"),
                             "description": metadata.get("description", ""),
                             "specializations": metadata.get("specializations", []),

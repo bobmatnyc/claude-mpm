@@ -106,7 +106,9 @@ class DeployedAgentDiscovery(ConfigServiceBase):
 
                 # Otherwise use basic info from registry
                 return {
-                    "id": agent.get("type", agent.get("name", "unknown")),
+                    "id": agent.get(
+                        "agent_type", agent.get("type", agent.get("name", "unknown"))
+                    ),
                     "name": agent.get("name", "Unknown"),
                     "description": agent.get("description", "No description available"),
                     "specializations": agent.get("specializations", []),
@@ -130,7 +132,9 @@ class DeployedAgentDiscovery(ConfigServiceBase):
                     ),
                 }
             # Legacy object format fallback
-            agent_type = getattr(agent, "type", None)
+            agent_type = getattr(agent, "agent_type", None) or getattr(
+                agent, "type", None
+            )
             agent_name = getattr(agent, "name", None)
 
             # Generate name from type if name not present

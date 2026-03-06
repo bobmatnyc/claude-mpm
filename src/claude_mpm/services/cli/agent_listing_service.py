@@ -369,7 +369,8 @@ class AgentListingService(IAgentListingService):
 
             details = {
                 "name": getattr(agent, "name", agent_name),
-                "type": getattr(agent, "type", "agent"),
+                "type": getattr(agent, "agent_type", None)
+                or getattr(agent, "type", "agent"),
                 "tier": getattr(agent, "tier", "system"),
                 "path": str(getattr(agent, "path", agent_path)),
                 "description": getattr(agent, "description", None),
