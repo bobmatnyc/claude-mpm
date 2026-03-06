@@ -33,7 +33,7 @@ class SetupService(str, Enum):
 
     SLACK = "slack"
     GWORKSPACE_MCP = "gworkspace-mcp"
-    SLACK_MCP = "slack-mcp"
+    SLACK_MCP = "slack-mpm"
     OAUTH = "oauth"
     KUZU_MEMORY = "kuzu-memory"
     MCP_VECTOR_SEARCH = "mcp-vector-search"
@@ -75,7 +75,7 @@ class MCPBinary(str, Enum):
     """MCP server binary/command names (installed executables)."""
 
     GOOGLE_WORKSPACE = "gworkspace-mcp"
-    SLACK_MCP = "slack-mcp"
+    SLACK_MCP = "slack-mpm"
     KUZU_MEMORY = "kuzu-memory"
     MCP_TICKETER = "mcp-ticketer"
     MCP_VECTOR_SEARCH = "mcp-vector-search"
