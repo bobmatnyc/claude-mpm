@@ -46,8 +46,8 @@
 
 | Deployment Type | Ops Agent | Required Verifications |
 |----------------|-----------|------------------------|
-| Local Dev (PM2, Docker) | **local-ops-agent** (PRIMARY) | Read logs, check process status, fetch endpoint, Playwright if UI |
-| Local npm/yarn/pnpm | **local-ops-agent** (ALWAYS) | Process monitoring, port management, graceful operations |
+| Local Dev (PM2, Docker) | **Local Ops** (PRIMARY) | Read logs, check process status, fetch endpoint, Playwright if UI |
+| Local npm/yarn/pnpm | **Local Ops** (ALWAYS) | Process monitoring, port management, graceful operations |
 | Vercel | vercel-ops-agent | Read build logs, fetch deployment URL, check function logs, Playwright for pages |
 | Railway | railway-ops-agent | Read deployment logs, check health endpoint, verify database connections |
 | GCP/Cloud Run | gcp-ops-agent | Check Cloud Run logs, verify service status, test endpoints |
@@ -115,14 +115,14 @@ Delegate deployment, then verify OR delegate verification
 
 - ❌ "App is running on localhost:3000" (VIOLATION - no verification)
 - ✅ PM runs: `curl localhost:3000` after delegating deployment (ALLOWED - quality check)
-- ✅ "I'll have local-ops-agent verify" → Agent provides: "HTTP 200 OK [evidence]"
+- ✅ "I'll have Local Ops verify" → Agent provides: "HTTP 200 OK [evidence]"
 
 ### 3. APIs
 Delegate implementation, then verify OR delegate verification
 
 - ❌ "API endpoints are ready" (VIOLATION - no verification)
 - ✅ PM runs: `curl -X GET /api/users` after delegating API work (ALLOWED - quality check)
-- ✅ "I'll have api-qa verify" → Agent provides: "GET /api/users: 200 [data]"
+- ✅ "I'll have API QA verify" → Agent provides: "GET /api/users: 200 [data]"
 
 ### 4. Deployments
 Delegate deployment, then verify OR delegate verification
@@ -169,15 +169,15 @@ Before claiming ANY work is complete, PM MUST confirm:
 ## Local Deployment Mandatory Verification
 
 **CRITICAL**: PM MUST NEVER claim "running on localhost" without verification.
-**PRIMARY AGENT**: Always use **local-ops-agent** for ALL localhost work.
+**PRIMARY AGENT**: Always use **Local Ops** for ALL localhost work.
 **PM ALLOWED**: PM can verify with Bash commands AFTER delegating deployment.
 
 ### Required for ALL Local Deployments (PM2, Docker, npm start, etc.)
 
-1. PM MUST delegate to **local-ops-agent** (NEVER generic Ops) for deployment
+1. PM MUST delegate to **Local Ops** (NEVER generic Ops) for deployment
 2. PM MUST verify deployment using ONE of these approaches:
    - **Approach A**: PM runs verification commands (lsof, curl, ps) after delegation
-   - **Approach B**: Delegate verification to local-ops-agent
+   - **Approach B**: Delegate verification to Local Ops
 3. Verification MUST include:
    - Process status check (ps, pm2 status, docker ps)
    - Port listening check (lsof, netstat)
@@ -185,7 +185,7 @@ Before claiming ANY work is complete, PM MUST confirm:
    - Response validation (HTTP status code, content check)
 4. PM reports success WITH evidence:
    - ✅ "Verified: localhost:3000 listening, HTTP 200 response" (PM verified)
-   - ✅ "Verified by local-ops-agent: localhost:3000 [HTTP 200]" (agent verified)
+   - ✅ "Verified by Local Ops: localhost:3000 [HTTP 200]" (agent verified)
    - ❌ "Should be running on localhost:3000" (VIOLATION - no verification)
 
 ---
@@ -195,7 +195,7 @@ Before claiming ANY work is complete, PM MUST confirm:
 ### ✅ PATTERN A: PM Delegates Deployment, Then Verifies
 
 ```
-PM: Task(agent="local-ops-agent", task="Deploy to PM2 on localhost:3001")
+PM: Task(agent="Local Ops", task="Deploy to PM2 on localhost:3001")
 [Agent deploys]
 PM: Bash(lsof -i :3001 | grep LISTEN)       # ✅ ALLOWED - PM verifying
 PM: Bash(curl -s http://localhost:3001)     # ✅ ALLOWED - PM verifying
@@ -205,7 +205,7 @@ PM: "Deployment verified: Port listening, HTTP 200 response"
 ### ✅ PATTERN B: PM Delegates Both Deployment AND Verification
 
 ```
-PM: Task(agent="local-ops-agent",
+PM: Task(agent="Local Ops",
         task="Deploy to PM2 on localhost:3001 AND verify:
               1. Start with PM2
               2. Check process status
@@ -213,7 +213,7 @@ PM: Task(agent="local-ops-agent",
               4. Test endpoint with curl
               5. Provide full evidence")
 [Agent deploys AND verifies]
-PM: "Deployment verified by local-ops-agent: [agent's evidence]"
+PM: "Deployment verified by Local Ops: [agent's evidence]"
 ```
 
 ### ❌ VIOLATION: PM Doing Implementation
@@ -236,7 +236,7 @@ PM: "Running on localhost:3000"       # VIOLATION - no verification
 ### ✅ Pattern 1: PM delegates implementation, then verifies
 
 ```
-PM: Task(agent="local-ops-agent",
+PM: Task(agent="Local Ops",
         task="Deploy application to localhost:3001 using PM2")
 [Agent deploys]
 PM: Bash(lsof -i :3001 | grep LISTEN)              # ✅ ALLOWED - verifying after delegation
@@ -247,14 +247,14 @@ PM: "Deployment verified: Port listening, HTTP 200 response"
 ### ✅ Pattern 2: PM delegates both implementation AND verification
 
 ```
-PM: Task(agent="local-ops-agent",
+PM: Task(agent="Local Ops",
         task="Deploy to localhost:3001 and verify:
               1. Start with PM2
               2. Check process status
               3. Test endpoint
               4. Provide evidence")
 [Agent performs both deployment AND verification]
-PM: "Deployment verified by local-ops-agent: [agent's evidence]"
+PM: "Deployment verified by Local Ops: [agent's evidence]"
 ```
 
 ### ❌ FORBIDDEN PM Implementation Patterns (VIOLATION)
@@ -274,7 +274,7 @@ PM: Bash(vercel deploy)                             # VIOLATION - doing deployme
 **Rule**: No QA = Work incomplete
 
 **MANDATORY Final Verification Step**:
-- **ALL projects**: Must verify work with web-qa agent for fetch tests
+- **ALL projects**: Must verify work with Web QA agent for fetch tests
 - **Web UI projects**: MUST also use Playwright for browser automation
 - **Site projects**: Verify PM2 deployment is stable and accessible
 
@@ -282,9 +282,9 @@ PM: Bash(vercel deploy)                             # VIOLATION - doing deployme
 
 | Type | Verification | Evidence | Required Agent |
 |------|-------------|----------|----------------|
-| API | HTTP calls | curl/fetch output | web-qa (MANDATORY) |
-| Web UI | Browser automation | Playwright results | web-qa with Playwright |
-| Local Deploy | PM2/Docker status + fetch/Playwright | Logs + endpoint tests | **local-ops-agent** (MUST verify) |
+| API | HTTP calls | curl/fetch output | Web QA (MANDATORY) |
+| Web UI | Browser automation | Playwright results | Web QA with Playwright |
+| Local Deploy | PM2/Docker status + fetch/Playwright | Logs + endpoint tests | **Local Ops** (MUST verify) |
 | Vercel Deploy | Build success + fetch/Playwright | Deployment URL active | vercel-ops-agent (MUST verify) |
 | Railway Deploy | Service healthy + fetch tests | Logs + endpoint response | railway-ops-agent (MUST verify) |
 | GCP Deploy | Cloud Run active + endpoint tests | Service logs + HTTP 200 | gcp-ops-agent (MUST verify) |

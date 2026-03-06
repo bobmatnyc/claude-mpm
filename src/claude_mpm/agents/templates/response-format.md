@@ -132,7 +132,7 @@ Container for implementation details.
 #### `delegated_to` (string, required)
 - **Purpose**: Track which agent performed the implementation
 - **Format**: Agent name
-- **Example**: `"python-engineer"`, `"react-engineer"`
+- **Example**: `"Python Engineer"`, `"React Engineer"`
 
 #### `status` (string, required)
 - **Purpose**: Implementation outcome
@@ -163,7 +163,7 @@ Container for all QA and verification evidence.
 #### `qa_agent_used` (string, required)
 - **Purpose**: Track which QA agent verified the work
 - **Format**: Agent name
-- **Example**: `"web-qa"`, `"api-qa"`, `"local-ops-agent"`
+- **Example**: `"Web QA"`, `"API QA"`, `"Local Ops"`
 
 #### `evidence_type` (string, required)
 - **Purpose**: Categorize the type of verification evidence
@@ -211,7 +211,7 @@ Container for all claims made and their evidence sources.
 ```json
 {
   "Authentication works": "QA verified with curl - HTTP 200 response",
-  "Login flow complete": "web-qa Playwright test passed - screenshot captured",
+  "Login flow complete": "Web QA Playwright test passed - screenshot captured",
   "Database migration successful": "Engineer confirmed via alembic upgrade logs"
 }
 ```
@@ -248,7 +248,7 @@ Container for all claims made and their evidence sources.
       "evidence_collected": true
     },
     "implementation": {
-      "delegated_to": "python-engineer",
+      "delegated_to": "Python Engineer",
       "status": "completed",
       "key_changes": [
         "Added /health endpoint to routes.py",
@@ -258,7 +258,7 @@ Container for all claims made and their evidence sources.
     "verification_results": {
       "qa_tests_run": true,
       "tests_passed": "1/1",
-      "qa_agent_used": "web-qa",
+      "qa_agent_used": "Web QA",
       "evidence_type": "fetch_response",
       "verification_evidence": "GET /health: HTTP 200 OK, Response: {status: healthy, timestamp: 2025-10-21T10:30:00Z}"
     },
@@ -273,7 +273,7 @@ Container for all claims made and their evidence sources.
       "untracked_files_remaining": []
     },
     "assertions_made": {
-      "Health endpoint works": "web-qa verified with fetch - HTTP 200 response"
+      "Health endpoint works": "Web QA verified with fetch - HTTP 200 response"
     },
     "blockers": [],
     "next_steps": []
@@ -287,21 +287,21 @@ Container for all claims made and their evidence sources.
 {
   "session_summary": {
     "user_request": "Implement user authentication with JWT tokens",
-    "approach": "Research → Code Analysis → Engineer Implementation → local-ops-agent Deployment → QA Verification → Documentation",
+    "approach": "Research → Code Analysis → Engineer Implementation → Local Ops Deployment → QA Verification → Documentation",
     "delegation_summary": {
       "tasks_delegated": [
         "Research: Analyze authentication requirements and JWT best practices",
         "Code Analyzer: Review existing auth patterns in codebase",
         "Engineer: Implement JWT authentication middleware",
-        "local-ops-agent: Deploy to localhost:3000 with PM2",
-        "web-qa: Verify login and protected endpoints",
+        "Local Ops: Deploy to localhost:3000 with PM2",
+        "Web QA: Verify login and protected endpoints",
         "Documentation: Update API docs with auth requirements"
       ],
       "violations_detected": 0,
       "evidence_collected": true
     },
     "implementation": {
-      "delegated_to": "python-engineer",
+      "delegated_to": "Python Engineer",
       "status": "completed",
       "key_changes": [
         "Added JWT token generation and validation",
@@ -313,7 +313,7 @@ Container for all claims made and their evidence sources.
     "verification_results": {
       "qa_tests_run": true,
       "tests_passed": "12/12",
-      "qa_agent_used": "web-qa",
+      "qa_agent_used": "Web QA",
       "evidence_type": "fetch_response",
       "verification_evidence": "POST /login: 200 OK with JWT token, GET /protected: 401 without token, GET /protected: 200 with valid token"
     },
@@ -332,8 +332,8 @@ Container for all claims made and their evidence sources.
       "untracked_files_remaining": []
     },
     "assertions_made": {
-      "JWT authentication works": "web-qa verified login flow - received valid token",
-      "Protected routes secure": "web-qa confirmed 401 without token, 200 with token",
+      "JWT authentication works": "Web QA verified login flow - received valid token",
+      "Protected routes secure": "Web QA confirmed 401 without token, 200 with token",
       "Documentation complete": "Documentation agent created /docs/api/authentication.md"
     },
     "blockers": [],
@@ -351,17 +351,17 @@ Container for all claims made and their evidence sources.
 {
   "session_summary": {
     "user_request": "Build a complete e-commerce checkout flow with payment integration",
-    "approach": "Research → Code Analysis → react-engineer (UI) + python-engineer (API) → vercel-ops-agent Deployment → web-qa + api-qa Verification → Security Review → Documentation",
+    "approach": "Research → Code Analysis → React Engineer (UI) + Python Engineer (API) → Vercel Ops Deployment → Web QA + API QA Verification → Security Review → Documentation",
     "delegation_summary": {
       "tasks_delegated": [
         "Research: Analyze e-commerce checkout best practices and Stripe integration",
         "Code Analyzer: Review existing cart and payment infrastructure",
-        "react-engineer: Build checkout UI components and flow",
-        "python-engineer: Implement Stripe payment API integration",
-        "vercel-ops-agent: Deploy frontend to Vercel",
+        "React Engineer: Build checkout UI components and flow",
+        "Python Engineer: Implement Stripe payment API integration",
+        "Vercel Ops: Deploy frontend to Vercel",
         "railway-ops-agent: Deploy backend API to Railway",
-        "api-qa: Verify payment API endpoints",
-        "web-qa: Test checkout flow with Playwright",
+        "API QA: Verify payment API endpoints",
+        "Web QA: Test checkout flow with Playwright",
         "Security: Review payment handling and PCI compliance",
         "Documentation: Create checkout flow documentation"
       ],
@@ -369,7 +369,7 @@ Container for all claims made and their evidence sources.
       "evidence_collected": true
     },
     "implementation": {
-      "delegated_to": "react-engineer, python-engineer",
+      "delegated_to": "React Engineer, Python Engineer",
       "status": "completed",
       "key_changes": [
         "Built multi-step checkout UI with React",
@@ -382,9 +382,9 @@ Container for all claims made and their evidence sources.
     "verification_results": {
       "qa_tests_run": true,
       "tests_passed": "28/30",
-      "qa_agent_used": "web-qa, api-qa",
+      "qa_agent_used": "Web QA, API QA",
       "evidence_type": "playwright_screenshot, fetch_response",
-      "verification_evidence": "web-qa: Completed full checkout flow with test card, payment succeeded, order confirmed. api-qa: All payment endpoints returning correct status codes, webhook validation working. 2 edge case tests pending: international cards and 3DS authentication."
+      "verification_evidence": "Web QA: Completed full checkout flow with test card, payment succeeded, order confirmed. API QA: All payment endpoints returning correct status codes, webhook validation working. 2 edge case tests pending: international cards and 3DS authentication."
     },
     "file_tracking": {
       "new_files_created": [
@@ -407,10 +407,10 @@ Container for all claims made and their evidence sources.
       "untracked_files_remaining": []
     },
     "assertions_made": {
-      "Checkout flow works": "web-qa verified complete flow with Playwright - screenshot captured",
-      "Payment processing functional": "api-qa tested with Stripe test cards - successful payment confirmed",
-      "Webhooks operational": "api-qa verified webhook signature validation and event processing",
-      "UI deployed to Vercel": "vercel-ops-agent confirmed deployment - https://myapp.vercel.app/checkout accessible",
+      "Checkout flow works": "Web QA verified complete flow with Playwright - screenshot captured",
+      "Payment processing functional": "API QA tested with Stripe test cards - successful payment confirmed",
+      "Webhooks operational": "API QA verified webhook signature validation and event processing",
+      "UI deployed to Vercel": "Vercel Ops confirmed deployment - https://myapp.vercel.app/checkout accessible",
       "API deployed to Railway": "railway-ops-agent verified deployment - https://api.railway.app/health returning 200",
       "Security reviewed": "Security agent confirmed PCI-compliant implementation, no sensitive data stored"
     },
@@ -492,7 +492,7 @@ Before submitting a PM response, verify ALL of these requirements:
 ✅ **CORRECT**:
 ```
 "assertions_made": {
-  "API deployed": "vercel-ops-agent verified with curl - HTTP 200 response from https://api.vercel.app"
+  "API deployed": "Vercel Ops verified with curl - HTTP 200 response from https://api.vercel.app"
 }
 ```
 
@@ -527,7 +527,7 @@ Before submitting a PM response, verify ALL of these requirements:
 
 ✅ **CORRECT**:
 ```
-"tasks_delegated": ["python-engineer: Implement user authentication with JWT tokens and bcrypt password hashing"]
+"tasks_delegated": ["Python Engineer: Implement user authentication with JWT tokens and bcrypt password hashing"]
 ```
 
 ### ❌ Mistake 5: Relative File Paths

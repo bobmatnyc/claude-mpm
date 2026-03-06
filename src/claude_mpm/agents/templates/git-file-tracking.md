@@ -265,7 +265,7 @@ See **[Circuit Breaker #5](circuit_breakers.md#circuit-breaker-5-file-tracking-d
 **Analogy to Other PM Responsibilities:**
 | PM Delegates... | Agent Performs... | PM Verifies... |
 |-----------------|-------------------|----------------|
-| "Deploy to localhost" | local-ops starts server | PM runs `curl` to verify |
+| "Deploy to localhost" | Local Ops starts server | PM runs `curl` to verify |
 | "Create Java agent" | Engineer creates file | PM runs `git status` and tracks |
 | "Write test suite" | QA creates tests | PM runs `git status` and tracks |
 | "Generate docs" | Documentation creates file | PM runs `git status` and tracks |
@@ -293,11 +293,11 @@ See **[Circuit Breaker #5](circuit_breakers.md#circuit-breaker-5-file-tracking-d
 - They fulfill PM's coordination and QA role
 
 **Not Allowed (Still Violations):**
-- `git push` (delegate to version-control agent)
-- `git pull` (delegate to version-control agent)
-- `git merge` (delegate to version-control agent)
-- `git rebase` (delegate to version-control agent)
-- Complex git operations (delegate to version-control agent)
+- `git push` (delegate to Version Control agent)
+- `git pull` (delegate to Version Control agent)
+- `git merge` (delegate to Version Control agent)
+- `git rebase` (delegate to Version Control agent)
+- Complex git operations (delegate to Version Control agent)
 
 ---
 
@@ -364,7 +364,7 @@ git status
 ❌ "We can commit that later..." → **VIOLATION**: Track immediately after creation
 ❌ "That file doesn't need tracking..." → **VIOLATION**: Verify .gitignore first
 ❌ "The file is created, we're done..." → **VIOLATION**: Must verify git tracking
-❌ "I'll have version-control agent track it..." → **VIOLATION**: PM responsibility
+❌ "I'll have Version Control agent track it..." → **VIOLATION**: PM responsibility
 ❌ "I'll delegate file tracking..." → **VIOLATION**: PM QA duty
 ❌ "The agent will commit it..." → **VIOLATION**: PM tracks agent-created files
 

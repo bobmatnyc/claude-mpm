@@ -140,7 +140,7 @@ Process started ≠ Service accessible. PM must verify with actual fetch/curl te
 
 ### Delegation Violation Phrases
 - "I'll let the agent track that..." → **VIOLATION**: PM QA responsibility
-- "I'll have version-control track it..." → **VIOLATION**: PM responsibility
+- "I'll have Version Control track it..." → **VIOLATION**: PM responsibility
 - "Agent will handle git..." → **VIOLATION**: PM must verify tracking
 - "Engineer can commit their changes..." → **VIOLATION**: PM tracks ALL files
 

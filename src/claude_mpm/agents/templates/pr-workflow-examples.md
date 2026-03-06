@@ -26,15 +26,15 @@ PM Workflow:
    PM → Ticketing: "Check PROJ-123 status"
    Ticketing: "PROJ-123 is complete, all tests passing"
 
-2. Delegate to version-control
-   PM → version-control: "Create PR for PROJ-123
+2. Delegate to Version Control
+   PM → Version Control: "Create PR for PROJ-123
    - Base branch: main
    - PR title: feat: Add OAuth2 authentication (PROJ-123)
    - Draft mode: false
    - Auto-merge: disabled (requires review)"
 
-3. version-control executes
-   version-control: "PR created: #42
+3. Version Control executes
+   Version Control: "PR created: #42
    - Branch: feature/oauth2
    - Target: main
    - Status: Ready for review
@@ -84,8 +84,8 @@ PM Workflow:
 3. User confirms stacked approach
    User: "Option B - stacked PRs"
 
-4. Delegate to version-control
-   PM → version-control: "Create stacked PRs for PROJ-101, PROJ-102, PROJ-103
+4. Delegate to Version Control
+   PM → Version Control: "Create stacked PRs for PROJ-101, PROJ-102, PROJ-103
 
    PR Strategy: Stacked
    - PR #1: PROJ-101 → main
@@ -96,8 +96,8 @@ PM Workflow:
    Draft mode: false
    Auto-merge: disabled"
 
-5. version-control executes
-   version-control: "Stacked PRs created:
+5. Version Control executes
+   Version Control: "Stacked PRs created:
    - PR #43: PROJ-101 → main (ready for review)
    - PR #44: PROJ-102 → feature/PROJ-101 (draft, blocked by #43)
    - PR #45: PROJ-103 → feature/PROJ-102 (draft, blocked by #44)
@@ -109,7 +109,7 @@ PM Workflow:
    - PR #43 ready for review (merge first)
    - PR #44, #45 waiting on #43 merge
 
-   After #43 merges, version-control will rebase #44 onto main automatically"
+   After #43 merges, Version Control will rebase #44 onto main automatically"
 ```
 
 **When to use Stacked PRs**:
@@ -212,9 +212,9 @@ draft_mode = False  # from "Ready for Review"
 auto_merge = False  # from "Manual merge"
 ```
 
-Step 6: PM Delegates to version-control
+Step 6: PM Delegates to Version Control
 ```
-PM → version-control: "Create main-based PRs for MPM-101, MPM-102, MPM-103
+PM → Version Control: "Create main-based PRs for MPM-101, MPM-102, MPM-103
 
 Configuration:
 - Base branch: main (for all 3)
@@ -230,9 +230,9 @@ Tickets:
 All features are independent, parallel review recommended."
 ```
 
-Step 7: version-control Executes
+Step 7: Version Control Executes
 ```
-version-control → PM: "3 main-based PRs created:
+Version Control → PM: "3 main-based PRs created:
 
 PR #50: feat: Add user authentication (MPM-101)
 - Branch: feature/auth → main
@@ -288,7 +288,7 @@ Initial State:
 - PR #45: PROJ-103 → feature/PROJ-102 (waiting)
 
 Conflict Detected:
-version-control: "PR #44 has merge conflicts with main after #43 merge
+Version Control: "PR #44 has merge conflicts with main after #43 merge
 Conflicts in: src/auth/login.js, src/api/routes.js"
 
 PM Workflow:
@@ -319,8 +319,8 @@ PM Workflow:
    - Force pushed to feature/PROJ-102"
 
 4. PM verifies and continues
-   PM → version-control: "Rebase PR #45 onto updated PR #44"
-   version-control: "PR #45 rebased successfully, no conflicts"
+   PM → Version Control: "Rebase PR #45 onto updated PR #44"
+   Version Control: "PR #45 rebased successfully, no conflicts"
 
    PM → User: "Conflicts resolved. PR #44 ready for review, PR #45 updated"
 ```
@@ -340,9 +340,9 @@ PM Workflow:
 **Scenario**: PR created with CI checks required
 
 ```
-PM → version-control: "Create PR for PROJ-123 with CI enforcement"
+PM → Version Control: "Create PR for PROJ-123 with CI enforcement"
 
-version-control workflow:
+Version Control workflow:
 1. Create PR: #46 (PROJ-123 → main)
 2. Trigger CI checks:
    - Linting: eslint ✅
@@ -358,7 +358,7 @@ version-control workflow:
    - Block force pushes to main
 
 4. Report status:
-   version-control → PM: "PR #46 created with CI enforcement
+   Version Control → PM: "PR #46 created with CI enforcement
    - All checks passing ✅
    - Branch protection enabled
    - Ready for review (1 approval required)"
@@ -372,7 +372,7 @@ Requires 1 approval before merge"
 ```
 Scenario: CI check fails
 
-version-control: "PR #46 CI check failed: Unit tests (3 failing)"
+Version Control: "PR #46 CI check failed: Unit tests (3 failing)"
 
 PM → User: "PR #46 has failing tests (3/15 failing)
 Blocking merge until tests pass"
@@ -388,7 +388,7 @@ Review test output and fix implementation or test expectations"
 Engineer fixes tests:
 Engineer: "Tests fixed, all 15/15 passing ✅"
 
-version-control: "PR #46 CI checks now passing
+Version Control: "PR #46 CI checks now passing
 Ready for review"
 ```
 
