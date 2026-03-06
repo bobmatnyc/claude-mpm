@@ -2,8 +2,8 @@
 
 from claude_mpm.core.unified_agent_registry import (
     AgentMetadata,
+    AgentSourceType,
     AgentTier,
-    AgentType,
     UnifiedAgentRegistry as AgentRegistry,
 )
 
@@ -21,8 +21,8 @@ __all__ = [
     "AgentModification",
     "AgentModificationTracker",
     "AgentRegistry",
+    "AgentSourceType",
     "AgentTier",
-    "AgentType",
     "DeployedAgentDiscovery",
     "ModificationHistory",
     "ModificationTier",

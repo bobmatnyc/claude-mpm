@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Unified Agent Registry System for Claude MPM
 ============================================
@@ -49,14 +48,23 @@ class AgentTier(Enum):
     SYSTEM = "system"  # Lowest precedence
 
 
-class AgentType(Enum):
-    """Agent type classification."""
+class AgentSourceType(Enum):
+    """Classification by source/tier, NOT by role.
+
+    This enum classifies agents by WHERE they come from (core framework,
+    user-created, project-specific, etc.), not by WHAT they do.
+    For role-based classification, see models.agent_definition.AgentType.
+    """
 
     CORE = "core"  # Core framework agents
     SPECIALIZED = "specialized"  # Specialized domain agents
     USER_DEFINED = "user_defined"  # User-created agents
     PROJECT = "project"  # Project-specific agents
     MEMORY_AWARE = "memory_aware"  # Memory-enhanced agents
+
+
+# Backward compatibility alias (deprecated)
+AgentType = AgentSourceType
 
 
 class AgentFormat(Enum):
@@ -72,7 +80,7 @@ class AgentMetadata:
     """Standardized agent metadata model."""
 
     name: str
-    agent_type: AgentType
+    agent_type: AgentSourceType
     tier: AgentTier
     path: str
     format: AgentFormat
@@ -113,7 +121,7 @@ class AgentMetadata:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AgentMetadata":
         """Create from dictionary representation."""
-        data["agent_type"] = AgentType(data["agent_type"])
+        data["agent_type"] = AgentSourceType(data["agent_type"])
         data["tier"] = AgentTier(data["tier"])
         data["format"] = AgentFormat(data["format"])
         return cls(**data)
@@ -428,24 +436,26 @@ class UnifiedAgentRegistry:
             return AgentTier.USER
         return AgentTier.SYSTEM
 
-    def _determine_agent_type(self, file_path: Path, tier: AgentTier) -> AgentType:
+    def _determine_agent_type(
+        self, file_path: Path, tier: AgentTier
+    ) -> AgentSourceType:
         """Determine agent type based on file path and tier."""
         path_str = str(file_path).lower()
 
         # Project-specific agents
         if tier == AgentTier.PROJECT:
-            return AgentType.PROJECT
+            return AgentSourceType.PROJECT
 
         # User-defined agents
         if tier == AgentTier.USER:
-            return AgentType.USER_DEFINED
+            return AgentSourceType.USER_DEFINED
 
         # Core framework agents
         if "templates" in path_str or "core" in path_str:
-            return AgentType.CORE
+            return AgentSourceType.CORE
 
         # Specialized agents
-        return AgentType.SPECIALIZED
+        return AgentSourceType.SPECIALIZED
 
     def _extract_file_metadata(
         self, file_path: Path, agent_format: AgentFormat
@@ -597,7 +607,7 @@ class UnifiedAgentRegistry:
             for agent_name, metadata in self.registry.items():
                 if agent_name == memory_name or memory_name in agent_name:
                     metadata.memory_files.append(str(memory_file))
-                    metadata.agent_type = AgentType.MEMORY_AWARE
+                    metadata.agent_type = AgentSourceType.MEMORY_AWARE
                     logger.debug(
                         f"Integrated memory file {memory_file} with agent {agent_name}"
                     )
@@ -642,7 +652,7 @@ class UnifiedAgentRegistry:
     def list_agents(
         self,
         tier: Optional[AgentTier] = None,
-        agent_type: Optional[AgentType] = None,
+        agent_type: Optional[AgentSourceType] = None,
         tags: Optional[List[str]] = None,
     ) -> List[AgentMetadata]:
         """List agents with optional filtering."""
@@ -672,11 +682,11 @@ class UnifiedAgentRegistry:
 
     def get_core_agents(self) -> List[AgentMetadata]:
         """Get all core framework agents."""
-        return self.list_agents(agent_type=AgentType.CORE)
+        return self.list_agents(agent_type=AgentSourceType.CORE)
 
     def get_specialized_agents(self) -> List[AgentMetadata]:
         """Get all specialized agents."""
-        return self.list_agents(agent_type=AgentType.SPECIALIZED)
+        return self.list_agents(agent_type=AgentSourceType.SPECIALIZED)
 
     def get_project_agents(self) -> List[AgentMetadata]:
         """Get all project-specific agents."""
@@ -684,7 +694,7 @@ class UnifiedAgentRegistry:
 
     def get_memory_aware_agents(self) -> List[AgentMetadata]:
         """Get all memory-aware agents."""
-        return self.list_agents(agent_type=AgentType.MEMORY_AWARE)
+        return self.list_agents(agent_type=AgentSourceType.MEMORY_AWARE)
 
     def get_agents_by_collection(self, collection_id: str) -> List[AgentMetadata]:
         """Get all agents from a specific collection.
@@ -874,7 +884,7 @@ def discover_agents() -> Dict[str, AgentMetadata]:
 
 
 def list_agents(
-    tier: Optional[AgentTier] = None, agent_type: Optional[AgentType] = None
+    tier: Optional[AgentTier] = None, agent_type: Optional[AgentSourceType] = None
 ) -> List[AgentMetadata]:
     """List agents with optional filtering."""
     return get_agent_registry().list_agents(tier=tier, agent_type=agent_type)
@@ -948,8 +958,9 @@ def list_agents_all() -> List[AgentMetadata]:
 __all__ = [
     "AgentFormat",
     "AgentMetadata",
+    "AgentSourceType",
     "AgentTier",
-    "AgentType",
+    "AgentType",  # Backward compatibility alias for AgentSourceType
     "UnifiedAgentRegistry",
     "discover_agents",
     "discover_agents_sync",

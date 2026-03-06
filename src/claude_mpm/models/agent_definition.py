@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Agent Definition Models
 =======================
@@ -23,17 +22,84 @@ from typing import Any, Dict, List, Optional
 
 
 class AgentType(str, Enum):
-    """Agent type classification.
+    """Agent type classification by role category.
 
     WHY: Enum ensures only valid agent types are used throughout the system,
     preventing typos and making the code more maintainable.
+
+    Original values (CORE, PROJECT, CUSTOM, SYSTEM, SPECIALIZED) are preserved.
+    Role-based categories were added in Phase 2 to cover the ~15 distinct
+    agent_type values found in agent frontmatter.
     """
 
+    # Original classification values
     CORE = "core"
     PROJECT = "project"
     CUSTOM = "custom"
     SYSTEM = "system"
     SPECIALIZED = "specialized"
+
+    # Role-based category values (Phase 2)
+    ENGINEER = "engineer"
+    QA = "qa"
+    OPS = "ops"
+    RESEARCH = "research"
+    SECURITY = "security"
+    DOCUMENTATION = "documentation"
+    VERSION_CONTROL = "version_control"
+    DATA = "data"
+    CONTENT = "content"
+    MANAGEMENT = "management"
+
+    @classmethod
+    def from_frontmatter(cls, value: str | None) -> "AgentType":
+        """Parse agent_type from frontmatter, with fallback to CUSTOM.
+
+        Handles normalization (case, dashes, spaces) and common aliases
+        so that frontmatter values like "engineer_agent" or "code_analysis"
+        map to the correct enum member.
+
+        Args:
+            value: Raw agent_type string from frontmatter, or None.
+
+        Returns:
+            Matching AgentType member, or AgentType.CUSTOM if unknown.
+        """
+        if not value:
+            return cls.CUSTOM
+
+        normalized = value.strip().lower().replace("-", "_").replace(" ", "_")
+
+        # Direct match against enum values
+        for member in cls:
+            if member.value == normalized:
+                return member
+
+        # Common aliases from frontmatter conventions
+        aliases: dict[str, AgentType] = {
+            "core_agent": cls.CORE,
+            "specialized_agent": cls.SPECIALIZED,
+            "project_agent": cls.PROJECT,
+            "engineer_agent": cls.ENGINEER,
+            "qa_agent": cls.QA,
+            "ops_agent": cls.OPS,
+            "research_agent": cls.RESEARCH,
+            "security_agent": cls.SECURITY,
+            "documentation_agent": cls.DOCUMENTATION,
+            "version_control_agent": cls.VERSION_CONTROL,
+            "data_agent": cls.DATA,
+            "content_agent": cls.CONTENT,
+            "management_agent": cls.MANAGEMENT,
+            "code_analysis": cls.RESEARCH,
+            "product_management": cls.MANAGEMENT,
+            "prompt_engineering": cls.ENGINEER,
+            "image_processing": cls.SPECIALIZED,
+        }
+
+        if normalized in aliases:
+            return aliases[normalized]
+
+        return cls.CUSTOM
 
 
 class AgentSection(str, Enum):
