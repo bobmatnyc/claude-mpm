@@ -118,7 +118,7 @@ fi
 
 # Check if it's a claude-mpm specific flag (with or without prefix)
 # Note: --resume is handled by MPM and passed to Claude CLI; --mpm-resume is MPM's own session resume
-MPM_FLAGS=("--resume" "--mpm-resume" "--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--monitor" "--websocket-port")
+MPM_FLAGS=("--resume" "--mpm-resume" "--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--monitor" "--websocket-port" "--no-dangerously-skip-permissions")
 for flag in "${MPM_FLAGS[@]}"; do
     if [[ " $* " =~ " $flag " ]] || [[ " $* " =~ " --mpm:${flag#--} " ]] || [[ " $* " =~ " -mpm:${flag#-} " ]]; then
         IS_MPM_COMMAND=true
@@ -152,5 +152,9 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     exec python -m claude_mpm "${ARGS[@]}"
 else
     # Pass through to claude CLI
-    exec claude --dangerously-skip-permissions "$@"
+    if [[ "${CLAUDE_MPM_NO_SKIP_PERMISSIONS}" == "1" ]]; then
+        exec claude "$@"
+    else
+        exec claude --dangerously-skip-permissions "$@"
+    fi
 fi

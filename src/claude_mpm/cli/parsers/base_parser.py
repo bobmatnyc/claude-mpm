@@ -328,6 +328,17 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="SERVICES",
         help="Comma-separated list of MCP services to enable for this session (e.g., --mcp kuzu-memory,mcp-ticketer,gworkspace-mcp). Use 'claude-mpm mcp list' to see available services.",
     )
+    run_group.add_argument(
+        "--no-dangerously-skip-permissions",
+        action="store_true",
+        dest="no_dangerously_skip_permissions",
+        default=False,
+        help=(
+            "Do not pass --dangerously-skip-permissions to Claude Code. "
+            "By default claude-mpm adds this flag automatically. "
+            "Alternatively set CLAUDE_MPM_NO_SKIP_PERMISSIONS=1."
+        ),
+    )
 
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group(

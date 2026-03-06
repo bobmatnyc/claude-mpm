@@ -165,6 +165,13 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Skip permission prompts (passed to Claude Code)",
     )
     passthrough_group.add_argument(
+        "--no-dangerously-skip-permissions",
+        action="store_true",
+        dest="no_dangerously_skip_permissions",
+        default=False,
+        help="Suppress the automatic --dangerously-skip-permissions flag passed to Claude Code.",
+    )
+    passthrough_group.add_argument(
         "--output-format",
         type=str,
         metavar="FORMAT",

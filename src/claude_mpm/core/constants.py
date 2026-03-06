@@ -403,3 +403,12 @@ class ProjectPaths:
     def get_claude_dir(cls) -> Path:
         """Get the Claude directory."""
         return Path.cwd() / cls.CLAUDE_DIR
+
+
+import os
+
+
+def skip_permissions_disabled() -> bool:
+    """Return True if --dangerously-skip-permissions should be suppressed.
+    Checks CLAUDE_MPM_NO_SKIP_PERMISSIONS=1 environment variable."""
+    return os.environ.get("CLAUDE_MPM_NO_SKIP_PERMISSIONS", "0") == "1"

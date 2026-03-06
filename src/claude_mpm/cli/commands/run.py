@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 - Support multiple output formats (json, yaml, table, text)
 """
 
+import os
 import subprocess  # nosec B404 - required for process management
 import sys
 from datetime import datetime, timezone
@@ -70,6 +71,7 @@ def filter_claude_mpm_args(claude_args):
         "--mpm-resume",
         "--reload-agents",  # New flag to force rebuild system agents
         "--slack",  # Start Slack bot instead of Claude session
+        "--no-dangerously-skip-permissions",
         # Dependency checking flags (MPM-specific)
         "--no-check-dependencies",
         "--force-check-dependencies",
@@ -733,6 +735,10 @@ def _run_headless_session(args) -> int:
     if getattr(args, "fork_session", False):
         claude_args.append("--fork-session")
 
+    # Propagate --no-dangerously-skip-permissions to env var for session layers
+    if getattr(args, "no_dangerously_skip_permissions", False):
+        os.environ["CLAUDE_MPM_NO_SKIP_PERMISSIONS"] = "1"
+
     # Use ClaudeRunner (not MinimalRunner) to ensure _create_system_prompt is available
     # This is required for PM system prompt injection in headless mode
     try:
@@ -1161,6 +1167,10 @@ def run_session_legacy(args):
                     args._browser_opened_by_cli = False
             else:
                 print(f"✓ Socket.IO ready (port: {websocket_port})")
+
+    # Propagate --no-dangerously-skip-permissions to env var for session layers
+    if getattr(args, "no_dangerously_skip_permissions", False):
+        os.environ["CLAUDE_MPM_NO_SKIP_PERMISSIONS"] = "1"
 
     runner = ClaudeRunner(
         enable_tickets=enable_tickets,

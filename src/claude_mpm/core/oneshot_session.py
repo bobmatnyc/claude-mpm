@@ -326,7 +326,8 @@ class OneshotSession:
 
     def _build_command(self) -> list:
         """Build the base Claude command."""
-        cmd = ["claude", "--dangerously-skip-permissions"]
+        from claude_mpm.core.constants import skip_permissions_disabled
+        cmd = ["claude"] if skip_permissions_disabled() else ["claude", "--dangerously-skip-permissions"]
 
         # Add custom arguments
         if self.runner.claude_args:
