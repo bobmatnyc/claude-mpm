@@ -180,6 +180,26 @@ def get_agent_stem(name: str) -> str:
 # ---------------------------------------------------------------------------
 # Core agent IDs — canonical set of essential agents (bare filename stems)
 # ---------------------------------------------------------------------------
+# This set defines agents that are:
+#   1. Auto-deployed when no configuration exists (framework_agent_loader)
+#   2. Always included in toolchain recommendations (toolchain_detector)
+#   3. Protected from undeployment (agent_deployment_handler)
+#
+# Phase 2 rationale for membership (supersedes prior per-file lists):
+#   - engineer, research, qa, documentation: foundational PM workflow agents
+#   - security: essential for pre-push credential scanning
+#   - local-ops: replaces generic "ops" — specific to local dev (the common case)
+#   - version-control: git operations, PR workflows, branch management
+#   - code-analyzer: solution review gate (Phase 2 of PM workflow)
+#
+# Agents intentionally NOT in this set:
+#   - ops (generic): superseded by local-ops; platform-specific ops agents
+#     (vercel-ops, gcp-ops, etc.) are additive, not core
+#   - ticketing: important for PM but not universally needed; deployed via
+#     presets or auto-config, not forced as core
+#   - web-qa: specialized QA variant; base "qa" covers general testing
+#   - memory-manager-agent: utility agent, not essential for delegation
+# ---------------------------------------------------------------------------
 
 CORE_AGENT_IDS: frozenset[str] = frozenset(
     {
