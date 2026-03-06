@@ -25,21 +25,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.agents.agent_loader import AgentTier, list_agents_by_tier
+from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_paths import get_path_manager
 
 logger = get_logger(__name__)
 
-# Standard 6 core agents that are auto-deployed when no agents are specified
-# This list is the canonical source - other modules should import from here
-CORE_AGENTS: List[str] = [
-    "engineer",  # General-purpose implementation
-    "research",  # Codebase exploration and analysis
-    "qa",  # Testing and quality assurance
-    "documentation",  # Documentation generation
-    "ops",  # Basic deployment operations
-    "ticketing",  # Ticket tracking (essential for PM workflow)
-]
+# Core agents for auto-deployment — sourced from the canonical registry.
+CORE_AGENTS: list[str] = sorted(CORE_AGENT_IDS)
 
 
 class FrameworkAgentLoader:

@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 from aiohttp import web
 
+from claude_mpm.core.agent_name_registry import CORE_AGENT_IDS
 from claude_mpm.core.deployment_context import DeploymentContext
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.config_api.validation import (
@@ -22,16 +23,8 @@ from claude_mpm.services.config_api.validation import (
 
 logger = get_logger(__name__)
 
-# Agents that cannot be undeployed (BR-01)
-CORE_AGENTS = [
-    "engineer",
-    "research",
-    "qa",
-    "web-qa",
-    "documentation",
-    "ops",
-    "ticketing",
-]
+# Agents that cannot be undeployed (BR-01) — sourced from canonical registry.
+CORE_AGENTS = sorted(CORE_AGENT_IDS)
 
 # Lazy-initialized service singletons
 _backup_manager = None

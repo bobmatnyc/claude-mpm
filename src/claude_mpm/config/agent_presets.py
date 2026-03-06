@@ -24,8 +24,10 @@ from typing import Any, Callable, Dict, List, Union
 # Type for preset resolver (can be static list or dynamic function)
 PresetResolver = Union[List[str], Callable[[], List[str]]]
 
-# Core agents included in ALL presets (MIN and MAX)
-# Standard 9 core agents for essential PM workflow functionality
+# Core agents included in ALL presets (MIN and MAX).
+# Note: These are deploy-path format IDs, not bare stems.
+# For the canonical bare-stem core agent list, see:
+#   claude_mpm.core.agent_name_registry.CORE_AGENT_IDS
 CORE_AGENTS = [
     "claude-mpm/mpm-agent-manager",  # Agent lifecycle management
     "claude-mpm/mpm-skills-manager",  # Skills management

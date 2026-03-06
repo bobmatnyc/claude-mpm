@@ -139,17 +139,18 @@ class TestAutoConfiguration:
         (tmp_path / "main.py").touch()
         (tmp_path / "pyproject.toml").touch()
 
-        # Mock deployment service - use new agent IDs with -agent suffix
+        # Mock deployment service - use canonical bare-stem agent IDs
         mock_deployment = Mock()
         mock_deployment.list_available_agents.return_value = [
             {"agent_id": "python-engineer", "name": "Python Engineer"},
-            {"agent_id": "qa-agent", "name": "QA"},
-            {"agent_id": "research-agent", "name": "Research"},
-            {"agent_id": "documentation-agent", "name": "Documentation"},
+            {"agent_id": "qa", "name": "QA"},
+            {"agent_id": "research", "name": "Research"},
+            {"agent_id": "documentation", "name": "Documentation Agent"},
             {"agent_id": "engineer", "name": "Engineer"},
-            {"agent_id": "memory-manager-agent", "name": "Memory Manager"},
-            {"agent_id": "local-ops-agent", "name": "Local Ops"},
-            {"agent_id": "security-agent", "name": "Security"},
+            {"agent_id": "code-analyzer", "name": "Code Analysis"},
+            {"agent_id": "local-ops", "name": "Local Ops"},
+            {"agent_id": "security", "name": "Security"},
+            {"agent_id": "version-control", "name": "Version Control"},
         ]
 
         mock_deployment.deploy_agent.return_value = {
@@ -164,8 +165,8 @@ class TestAutoConfiguration:
         assert result["mode"] == "auto_configure"
         assert "python" in result["toolchain"]["languages"]
         assert "python-engineer" in result["recommended_agents"]
-        # Core agents should be included (new naming convention)
-        for core_agent in ["qa-agent", "research-agent", "documentation-agent"]:
+        # Core agents should be included (canonical bare stems from CORE_AGENT_IDS)
+        for core_agent in ["qa", "research", "documentation"]:
             assert core_agent in result["recommended_agents"]
 
     def test_deploy_auto_configure_javascript_react(self, tmp_path: Path):
@@ -253,13 +254,14 @@ class TestAutoConfiguration:
         mock_deployment = Mock()
         mock_deployment.list_available_agents.return_value = [
             {"agent_id": "python-engineer", "name": "Python Engineer"},
-            {"agent_id": "qa-agent", "name": "QA"},
-            {"agent_id": "research-agent", "name": "Research"},
-            {"agent_id": "documentation-agent", "name": "Documentation"},
+            {"agent_id": "qa", "name": "QA"},
+            {"agent_id": "research", "name": "Research"},
+            {"agent_id": "documentation", "name": "Documentation Agent"},
             {"agent_id": "engineer", "name": "Engineer"},
-            {"agent_id": "memory-manager-agent", "name": "Memory Manager"},
-            {"agent_id": "local-ops-agent", "name": "Local Ops"},
-            {"agent_id": "security-agent", "name": "Security"},
+            {"agent_id": "code-analyzer", "name": "Code Analysis"},
+            {"agent_id": "local-ops", "name": "Local Ops"},
+            {"agent_id": "security", "name": "Security"},
+            {"agent_id": "version-control", "name": "Version Control"},
         ]
 
         mock_deployment.deploy_agent.return_value = {
@@ -273,8 +275,8 @@ class TestAutoConfiguration:
 
         assert result["dry_run"] is True
         # In dry run, agents are counted as deployed (would be deployed)
-        # python-engineer + 7 core agents (engineer, qa-agent, memory-manager-agent,
-        # local-ops-agent, research-agent, documentation-agent, security-agent)
+        # python-engineer + 8 core agents (from CORE_AGENT_IDS: code-analyzer,
+        # documentation, engineer, local-ops, qa, research, security, version-control)
         assert result["deployed_count"] >= 1
         assert result["status"] == "success"
 
@@ -284,12 +286,13 @@ class TestAutoConfiguration:
         mock_deployment = Mock()
         mock_deployment.list_available_agents.return_value = [
             {"agent_id": "engineer", "name": "Engineer"},
-            {"agent_id": "qa-agent", "name": "QA"},
-            {"agent_id": "research-agent", "name": "Research"},
-            {"agent_id": "documentation-agent", "name": "Documentation"},
-            {"agent_id": "memory-manager-agent", "name": "Memory Manager"},
-            {"agent_id": "local-ops-agent", "name": "Local Ops"},
-            {"agent_id": "security-agent", "name": "Security"},
+            {"agent_id": "qa", "name": "QA"},
+            {"agent_id": "research", "name": "Research"},
+            {"agent_id": "documentation", "name": "Documentation Agent"},
+            {"agent_id": "code-analyzer", "name": "Code Analysis"},
+            {"agent_id": "local-ops", "name": "Local Ops"},
+            {"agent_id": "security", "name": "Security"},
+            {"agent_id": "version-control", "name": "Version Control"},
         ]
 
         mock_deployment.deploy_agent.return_value = {
@@ -303,7 +306,7 @@ class TestAutoConfiguration:
         # Should fall back to generic engineer
         assert "engineer" in result["recommended_agents"]
         # Core agents should still be included (new naming convention)
-        assert "qa-agent" in result["recommended_agents"]
+        assert "qa" in result["recommended_agents"]
 
 
 class TestAgentValidation:

@@ -15,6 +15,9 @@ Usage::
         NAME_TO_STEM,
         get_agent_name,
         get_agent_stem,
+        CORE_AGENT_IDS,
+        get_agent_name_map,
+        invalidate_cache,
     )
 
     # Stem -> name
@@ -26,11 +29,19 @@ Usage::
     # Graceful fallback: returns input unchanged if not found
     unknown = get_agent_name("nonexistent")  # "nonexistent"
 
+    # Dynamic map with runtime refresh
+    name_map = get_agent_name_map()
+
 Note:
     This module is intentionally self-contained and does NOT import from
     any other ``claude_mpm`` module.  It must remain importable without
     side-effects so that it can serve as a low-level dependency.
 """
+
+import re
+from pathlib import Path
+
+import yaml
 
 # ---------------------------------------------------------------------------
 # Canonical mapping: filename stem -> name: frontmatter value
@@ -164,3 +175,87 @@ def get_agent_stem(name: str) -> str:
         The canonical filename stem, or *name* itself as a fallback.
     """
     return NAME_TO_STEM.get(name, name)
+
+
+# ---------------------------------------------------------------------------
+# Core agent IDs — canonical set of essential agents (bare filename stems)
+# ---------------------------------------------------------------------------
+
+CORE_AGENT_IDS: frozenset[str] = frozenset(
+    {
+        "research",
+        "engineer",
+        "qa",
+        "security",
+        "local-ops",
+        "version-control",
+        "documentation",
+        "code-analyzer",
+    }
+)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic refresh — runtime discovery from deployed agent files
+# ---------------------------------------------------------------------------
+
+_runtime_name_map: dict[str, str] | None = None
+
+
+def get_agent_name_map() -> dict[str, str]:
+    """Get agent name map with runtime refresh from deployed agents.
+
+    Priority:
+        1. Runtime-discovered agents from ``.claude/agents/`` (most current)
+        2. Cached agents from ``~/.claude-mpm/cache/agents/`` (second choice)
+        3. Hardcoded :data:`AGENT_NAME_MAP` (fallback for testing/CI)
+
+    Returns:
+        A ``dict[str, str]`` mapping filename stems to ``name:`` values.
+    """
+    global _runtime_name_map
+
+    if _runtime_name_map is not None:
+        return _runtime_name_map
+
+    # Start with hardcoded baseline
+    result = dict(AGENT_NAME_MAP)
+
+    # Try to discover from deployed agents
+    discovered = _discover_agents_from_paths(
+        [
+            Path.cwd() / ".claude" / "agents",
+            Path.home() / ".claude-mpm" / "cache" / "agents",
+        ]
+    )
+
+    # Override hardcoded with discovered (discovered is fresher)
+    result.update(discovered)
+
+    _runtime_name_map = result
+    return result
+
+
+def invalidate_cache() -> None:
+    """Invalidate the runtime cache (call after deployment)."""
+    global _runtime_name_map
+    _runtime_name_map = None
+
+
+def _discover_agents_from_paths(search_paths: list[Path]) -> dict[str, str]:
+    """Read agent ``.md`` files and extract ``name:`` field values."""
+    discovered: dict[str, str] = {}
+    for dir_path in search_paths:
+        if not dir_path.is_dir():
+            continue
+        for md_file in sorted(dir_path.glob("*.md")):
+            content = md_file.read_text(errors="replace")
+            match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+            if match:
+                try:
+                    frontmatter = yaml.safe_load(match.group(1))
+                    if isinstance(frontmatter, dict) and "name" in frontmatter:
+                        discovered[md_file.stem] = frontmatter["name"]
+                except (yaml.YAMLError, Exception):
+                    pass
+    return discovered

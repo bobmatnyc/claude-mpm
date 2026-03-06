@@ -354,14 +354,15 @@ class TestAgentRecommendation:
         agents = detector.recommend_agents(toolchain)
 
         assert "python-engineer" in agents
-        # Core agents should always be included
+        # Core agents should always be included (canonical bare stems from CORE_AGENT_IDS)
         assert "engineer" in agents
-        assert "qa-agent" in agents
-        assert "research-agent" in agents
-        assert "documentation-agent" in agents
-        assert "memory-manager-agent" in agents
-        assert "local-ops-agent" in agents
-        assert "security-agent" in agents
+        assert "qa" in agents
+        assert "research" in agents
+        assert "documentation" in agents
+        assert "local-ops" in agents
+        assert "security" in agents
+        assert "code-analyzer" in agents
+        assert "version-control" in agents
 
     def test_recommend_agents_python_fastapi_docker(self):
         """Test recommendations for Python + FastAPI + Docker."""
@@ -375,15 +376,15 @@ class TestAgentRecommendation:
         agents = detector.recommend_agents(toolchain)
 
         assert "python-engineer" in agents
-        assert "ops" in agents or "local-ops-agent" in agents
+        assert "ops" in agents or "local-ops" in agents
         # Core agents
         assert "engineer" in agents
-        assert "qa-agent" in agents
-        assert "research-agent" in agents
-        assert "documentation-agent" in agents
-        assert "memory-manager-agent" in agents
-        assert "local-ops-agent" in agents
-        assert "security-agent" in agents
+        assert "qa" in agents
+        assert "research" in agents
+        assert "documentation" in agents
+        assert "code-analyzer" in agents
+        assert "local-ops" in agents
+        assert "security" in agents
 
     def test_recommend_agents_javascript_react(self):
         """Test recommendations for JavaScript + React."""
@@ -399,8 +400,8 @@ class TestAgentRecommendation:
         assert "react-engineer" in agents
         # Core agents
         assert "engineer" in agents
-        assert "qa-agent" in agents
-        assert "research-agent" in agents
+        assert "qa" in agents
+        assert "research" in agents
 
     def test_recommend_agents_no_toolchain(self):
         """Test recommendations for project with no detected toolchain."""
@@ -416,8 +417,8 @@ class TestAgentRecommendation:
         # Should fall back to generic engineer
         assert "engineer" in agents
         # Core agents should still be included
-        assert "qa-agent" in agents
-        assert "research-agent" in agents
+        assert "qa" in agents
+        assert "research" in agents
 
     def test_recommend_agents_multi_language(self):
         """Test recommendations for multi-language project."""
@@ -552,17 +553,17 @@ uvicorn = "^0.21.0"
 
         # Verify recommendations include specialized agents
         assert "python-engineer" in agents
-        assert any(agent in agents for agent in ["ops", "local-ops-agent"])
+        assert any(agent in agents for agent in ["ops", "local-ops"])
 
         # Verify core agents included
         for core_agent in [
             "engineer",
-            "qa-agent",
-            "research-agent",
-            "documentation-agent",
-            "memory-manager-agent",
-            "local-ops-agent",
-            "security-agent",
+            "qa",
+            "research",
+            "documentation",
+            "code-analyzer",
+            "local-ops",
+            "security",
         ]:
             assert core_agent in agents
 
@@ -602,5 +603,5 @@ uvicorn = "^0.21.0"
         # Verify recommendations
         assert "react-engineer" in agents
         assert "engineer" in agents
-        assert "qa-agent" in agents
-        assert "research-agent" in agents
+        assert "qa" in agents
+        assert "research" in agents
