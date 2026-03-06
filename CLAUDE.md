@@ -67,15 +67,15 @@ make release-publish
 ```
 
 ## Running Testcases Workflow
-**CRITICAL**: Preferably use `-n auto` pytest argument to leverage all available CPU cores for faster test execution when running the full suite.
+**CRITICAL**: Preferably use `-n auto` pytest argument to leverage all available CPU cores for faster test execution when running the full test suite.
 Use `-p no:xdist` pytest argument when debugging flaky or order-dependent tests, as parallelization can obscure root causes.
 Tests are run via `uv run pytest`, to ensure correct virtual environment activation.
 
 ### Run All Tests
-This uses uv run pytest with xdist parallelization under the hood, so tests run concurrently across multiple workers.
+This uses uv run pytest with xdist parallelization causing tests to run concurrently.
 ```bash
 make test
-```
+``
 
 **DO NOT**:
 - Manually edit version files
