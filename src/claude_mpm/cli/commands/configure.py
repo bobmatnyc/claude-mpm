@@ -3098,10 +3098,17 @@ class ConfigureCommand(BaseCommand):
                     return False
 
                 # Determine target file name (use leaf name from hierarchical ID)
+                from claude_mpm.services.agents.deployment_utils import (
+                    ensure_agent_id_in_frontmatter,
+                    get_underscore_variant_filename,
+                    normalize_deployment_filename,
+                )
+
                 if "/" in full_agent_id:
-                    target_name = full_agent_id.split("/")[-1] + ".md"
+                    raw_name = full_agent_id.split("/")[-1] + ".md"
                 else:
-                    target_name = full_agent_id + ".md"
+                    raw_name = full_agent_id + ".md"
+                target_name = normalize_deployment_filename(raw_name)
 
                 # Deploy to scope-aware agents directory
                 target_dir = self._ctx.agents_dir
@@ -3117,6 +3124,19 @@ class ConfigureCommand(BaseCommand):
                 import shutil
 
                 shutil.copy2(source_file, target_file)
+
+                # Ensure agent_id in frontmatter
+                content = target_file.read_text()
+                updated_content = ensure_agent_id_in_frontmatter(content, target_name)
+                if updated_content != content:
+                    target_file.write_text(updated_content)
+
+                # Clean up underscore variant if it exists
+                underscore_variant = get_underscore_variant_filename(target_name)
+                if underscore_variant:
+                    variant_path = target_dir / underscore_variant
+                    if variant_path.exists() and variant_path != target_file:
+                        variant_path.unlink()
 
                 if show_feedback:
                     self.console.print(

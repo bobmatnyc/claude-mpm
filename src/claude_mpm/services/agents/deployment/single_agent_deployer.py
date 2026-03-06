@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.exceptions import AgentDeploymentError
+from claude_mpm.services.agents.deployment_utils import (
+    get_underscore_variant_filename,
+    normalize_deployment_filename,
+)
 
 
 class SingleAgentDeployer:
@@ -66,7 +70,8 @@ class SingleAgentDeployer:
             agent_start_time = time.time()
 
             agent_name = template_file.stem
-            target_file = agents_dir / f"{agent_name}.md"
+            normalized_filename = normalize_deployment_filename(f"{agent_name}.md")
+            target_file = agents_dir / normalized_filename
 
             # Check if agent needs update
             needs_update, is_migration, reason = self._check_update_status(
@@ -95,6 +100,14 @@ class SingleAgentDeployer:
             # Write the agent file
             is_update = target_file.exists()
             target_file.write_text(agent_content)
+
+            # Clean up underscore variant if it exists
+            underscore_variant = get_underscore_variant_filename(normalized_filename)
+            if underscore_variant:
+                variant_path = agents_dir / underscore_variant
+                if variant_path.exists() and variant_path != target_file:
+                    variant_path.unlink()
+                    self.logger.info(f"Removed duplicate: {underscore_variant}")
 
             # Record metrics and update results
             self.results_manager.record_agent_deployment(
@@ -214,7 +227,8 @@ class SingleAgentDeployer:
             target_dir.mkdir(parents=True, exist_ok=True)
 
             # Build and deploy the agent
-            target_file = target_dir / f"{agent_name}.md"
+            normalized_filename = normalize_deployment_filename(f"{agent_name}.md")
+            target_file = target_dir / normalized_filename
 
             # Check if update is needed
             if not force_rebuild and target_file.exists():
@@ -267,6 +281,15 @@ class SingleAgentDeployer:
 
             # Write to target file
             target_file.write_text(agent_content)
+
+            # Clean up underscore variant if it exists
+            underscore_variant = get_underscore_variant_filename(normalized_filename)
+            if underscore_variant:
+                variant_path = target_dir / underscore_variant
+                if variant_path.exists() and variant_path != target_file:
+                    variant_path.unlink()
+                    self.logger.info(f"Removed duplicate: {underscore_variant}")
+
             self.logger.info(
                 f"Successfully deployed agent: {agent_name} to {target_file}"
             )
