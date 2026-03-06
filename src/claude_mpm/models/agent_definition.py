@@ -94,6 +94,12 @@ class AgentType(str, Enum):
             "product_management": cls.MANAGEMENT,
             "prompt_engineering": cls.ENGINEER,
             "image_processing": cls.SPECIALIZED,
+            # Additional aliases discovered by Phase 2 audit
+            "analysis": cls.RESEARCH,
+            "claude_mpm": cls.SYSTEM,
+            "imagemagick": cls.SPECIALIZED,
+            "memory_manager": cls.MANAGEMENT,
+            "refactoring": cls.ENGINEER,
         }
 
         if normalized in aliases:
