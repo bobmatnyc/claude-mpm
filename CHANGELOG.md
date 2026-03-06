@@ -1,3 +1,9 @@
+## v5.9.51 (2026-03-06)
+
+### Chore
+
+- remove slack-mpm and slack-user-proxy script entrypoints (extracted to standalone packages)
+
 ## v5.9.50 (2026-03-05)
 
 ### Feat
