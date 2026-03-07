@@ -242,7 +242,9 @@ def filter_deployed_agents(
         - Supports both new and legacy agent directory structures
         - Preserves agent order for consistent UX
     """
-    deployed_ids = get_deployed_agent_ids(project_dir)
+    raw_deployed_ids = get_deployed_agent_ids(project_dir)
+    # Normalize deployed file stems to match the normalization applied to agent_ids
+    deployed_ids = {normalize_agent_id_for_comparison(d) for d in raw_deployed_ids}
     return [
         a
         for a in agents
