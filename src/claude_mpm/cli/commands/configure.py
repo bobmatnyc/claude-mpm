@@ -2300,8 +2300,10 @@ class ConfigureCommand(BaseCommand):
 
                 # Extract leaf name to match deployed filename
                 leaf_name = agent_id.split("/")[-1] if "/" in agent_id else agent_id
+                normalized_leaf = normalize_agent_id_for_comparison(leaf_name)
 
                 # Remove from scope-aware path (primary) + legacy locations
+                # _agent_file_paths already normalizes and checks both variants
                 paths_to_check = self._agent_file_paths(leaf_name)
 
                 removed = False
@@ -2311,6 +2313,8 @@ class ConfigureCommand(BaseCommand):
                         removed = True
 
                 # Also remove from virtual deployment state
+                # Check both raw and normalized keys for safety
+                keys_to_check = {leaf_name, normalized_leaf}
                 for state_path in self._deployment_state_paths():
                     if state_path.exists():
                         try:
@@ -2319,9 +2323,11 @@ class ConfigureCommand(BaseCommand):
                             agents_in_state = state.get("last_check_results", {}).get(
                                 "agents", {}
                             )
-                            if leaf_name in agents_in_state:
-                                del agents_in_state[leaf_name]
-                                removed = True
+                            for key in keys_to_check:
+                                if key in agents_in_state:
+                                    del agents_in_state[key]
+                                    removed = True
+                            if removed:
                                 with state_path.open("w") as f:
                                     json.dump(state, f, indent=2)
                         except (json.JSONDecodeError, KeyError):
@@ -2733,8 +2739,10 @@ class ConfigureCommand(BaseCommand):
                         leaf_name = agent_id.split("/")[-1]
                     else:
                         leaf_name = agent_id
+                    normalized_leaf = normalize_agent_id_for_comparison(leaf_name)
 
                     # Remove from scope-aware path (primary) + legacy locations
+                    # _agent_file_paths already normalizes and checks both variants
                     removed = False
                     for path in self._agent_file_paths(leaf_name):
                         if path.exists():
@@ -2742,6 +2750,8 @@ class ConfigureCommand(BaseCommand):
                             removed = True
 
                     # Also remove from virtual deployment state
+                    # Check both raw and normalized keys for safety
+                    keys_to_check = {leaf_name, normalized_leaf}
                     for state_path in self._deployment_state_paths():
                         if state_path.exists():
                             try:
@@ -2753,10 +2763,14 @@ class ConfigureCommand(BaseCommand):
                                 agents = state.get("last_check_results", {}).get(
                                     "agents", {}
                                 )
-                                if leaf_name in agents:
-                                    del agents[leaf_name]
-                                    removed = True
+                                state_modified = False
+                                for key in keys_to_check:
+                                    if key in agents:
+                                        del agents[key]
+                                        removed = True
+                                        state_modified = True
 
+                                if state_modified:
                                     # Save updated state
                                     with state_path.open("w") as f:
                                         json.dump(state, f, indent=2)
@@ -3050,21 +3064,34 @@ class ConfigureCommand(BaseCommand):
         ~/.claude/agents/) are included as secondary cleanup targets so that
         agents deployed to the wrong location by older code are still found
         and removed.
+
+        Normalizes agent_name (underscore -> dash, lowercase, strip -agent
+        suffix) and also checks the raw name for backward compatibility with
+        agents deployed before normalization was added.
         """
-        primary = self._ctx.agents_dir / f"{agent_name}.md"
-        # Legacy locations that older code may have written to
-        legacy_paths = [
-            Path.cwd() / ".claude-mpm" / "agents" / f"{agent_name}.md",
-            Path.cwd() / ".claude" / "agents" / f"{agent_name}.md",
-            Path.home() / ".claude" / "agents" / f"{agent_name}.md",
+        normalized = normalize_agent_id_for_comparison(agent_name)
+
+        # Build the set of name variants to check
+        names_to_check = [normalized]
+        if agent_name != normalized:
+            names_to_check.append(agent_name)  # Also check raw for backward compat
+
+        dirs_to_check = [
+            self._ctx.agents_dir,
+            Path.cwd() / ".claude-mpm" / "agents",
+            Path.cwd() / ".claude" / "agents",
+            Path.home() / ".claude" / "agents",
         ]
-        # Deduplicate while keeping primary first
-        seen = {primary}
-        paths = [primary]
-        for p in legacy_paths:
-            if p not in seen:
-                seen.add(p)
-                paths.append(p)
+
+        # Build paths for all name variants across all locations, deduplicated
+        seen: set[Path] = set()
+        paths: List[Path] = []
+        for name in names_to_check:
+            for d in dirs_to_check:
+                p = d / f"{name}.md"
+                if p not in seen:
+                    seen.add(p)
+                    paths.append(p)
         return paths
 
     def _deployment_state_paths(self) -> List[Path]:
