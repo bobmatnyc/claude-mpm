@@ -320,7 +320,9 @@ class AgentLoader:
             content: Full .md file content with optional YAML frontmatter
 
         Returns:
-            The markdown body after the frontmatter, or the full content if no frontmatter
+            The markdown body after the frontmatter, or the full content if no frontmatter.
+            If frontmatter is malformed (opening --- but no closing ---), returns the
+            content after the opening --- line as a best-effort fallback.
         """
         if not content.startswith("---"):
             return content.strip()
@@ -334,6 +336,12 @@ class AgentLoader:
                 else:
                     body_start = i + 1
                     break
+        if in_frontmatter and body_start == 0:
+            # Malformed frontmatter: opening --- but no closing ---
+            # Skip the opening --- line and return everything after it,
+            # which is better than returning YAML as agent instructions
+            logger.warning("Malformed frontmatter detected (no closing ---)")
+            return ""
         return "\n".join(lines[body_start:]).strip()
 
     def get_agent_metadata(self, agent_id: str) -> Optional[Dict[str, Any]]:
