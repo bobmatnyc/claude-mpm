@@ -179,7 +179,7 @@ def test_startup_integration():
     ]
 
     for call in calls:
-        assert f"{call}()" in source, f"{call} not found in run_background_services"
+        assert f"{call}(" in source, f"{call} not found in run_background_services"
 
     print("✓ All background services called in correct order:")
     for i, call in enumerate(calls, 1):
