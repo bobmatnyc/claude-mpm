@@ -29,7 +29,6 @@ from ...core.config import Config
 from ...core.deployment_context import DeploymentContext
 from ...core.unified_config import UnifiedConfig
 from ...services.agents.agent_recommendation_service import AgentRecommendationService
-from ...services.agents.deployment_utils import normalize_agent_id
 from ...services.version_service import VersionService
 from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
 from ...utils.console import console as default_console
@@ -421,10 +420,7 @@ class ConfigureCommand(BaseCommand):
                     # Use agent_id (technical ID) for comparison, not display name
                     agent_id = getattr(agent, "agent_id", agent.name)
                     agent_leaf_name = agent_id.split("/")[-1]
-                    # Normalize leaf name using same rules as deployment
-                    # (lowercase, underscores->dashes, strip -agent suffix)
-                    normalized_leaf = normalize_agent_id(agent_leaf_name)
-                    agent.is_deployed = normalized_leaf in deployed_ids
+                    agent.is_deployed = agent_leaf_name in deployed_ids
 
                 # Filter BASE_AGENT from display (1M-502 Phase 1)
                 agents = self._filter_agent_configs(agents, filter_deployed=False)
@@ -1943,9 +1939,7 @@ class ConfigureCommand(BaseCommand):
         for agent in agents:
             agent_id = getattr(agent, "agent_id", agent.name)
             agent_leaf_name = agent_id.split("/")[-1]
-            # Normalize leaf name using same rules as deployment
-            normalized_leaf = normalize_agent_id(agent_leaf_name)
-            if normalized_leaf in deployed_ids:
+            if agent_leaf_name in deployed_ids:
                 # Store agent_id for selection tracking (not display name)
                 deployed_full_paths.add(agent_id)
 
@@ -2395,9 +2389,7 @@ class ConfigureCommand(BaseCommand):
             # FIX: Use agent_id (technical ID) instead of display name
             agent_id = getattr(agent, "agent_id", agent.name)
             agent_leaf_name = agent_id.split("/")[-1]
-            # Normalize leaf name using same rules as deployment
-            normalized_leaf = normalize_agent_id(agent_leaf_name)
-            if normalized_leaf in deployed_ids:
+            if agent_leaf_name in deployed_ids:
                 deployed_full_paths.add(agent_id)
 
         # Track current selection state (starts with deployed full paths, updated after each iteration)
