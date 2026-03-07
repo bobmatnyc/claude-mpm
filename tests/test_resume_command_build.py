@@ -13,6 +13,7 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+
 def test_interactive_session_command():
     """Test that InteractiveSession builds the command with --resume."""
     print("Testing InteractiveSession command building...")
