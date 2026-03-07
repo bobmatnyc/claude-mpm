@@ -197,6 +197,17 @@ class UnifiedAgentRegistry:
         if system_path.exists():
             self.discovery_paths.append(system_path)
 
+        # Deployed agents in .claude/agents/ (highest priority for project context)
+        # These are the actual agents in use by the current project
+        deployed_path = Path.cwd() / ".claude" / "agents"
+        if deployed_path.exists():
+            self.discovery_paths.insert(0, deployed_path)  # Highest priority
+
+        # Remote cache agents from GitHub repository
+        cache_path = Path.home() / ".claude-mpm" / "cache" / "agents"
+        if cache_path.exists():
+            self.discovery_paths.append(cache_path)
+
         # NOTE: Templates directory is NOT added separately because:
         # - templates_path = system_path / "templates"
         # - The rglob("*") in _discover_path will already find templates

@@ -105,6 +105,11 @@ AGENT_NAME_MAP: dict[str, str] = {
     "imagemagick": "Imagemagick",
     "agentic-coder-optimizer": "Agentic Coder Optimizer",
     "tmux-agent": "Tmux Agent",
+    # ── Bare-stem entries for agents deployed with -agent suffix stripped ──
+    # (normalize_deployment_filename strips -agent → "content-agent.md" becomes "content.md")
+    "content": "Content Optimization",
+    "memory-manager": "Memory Manager",
+    "tmux": "Tmux Agent",
     # ── MPM meta agents ───────────────────────────────────────────────────
     "mpm-agent-manager": "mpm_agent_manager",
     "mpm-skills-manager": "mpm_skills_manager",
