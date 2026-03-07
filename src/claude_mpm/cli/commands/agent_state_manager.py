@@ -273,6 +273,16 @@ class SimpleAgentManager:
         Returns:
             True if agent is deployed, False otherwise
         """
+        from claude_mpm.services.agents.deployment_utils import (
+            normalize_deployment_filename,
+        )
+        from claude_mpm.utils.agent_filters import (
+            normalize_agent_id_for_comparison,
+        )
+
+        # Pre-compute normalized ID for comparisons
+        normalized_id = normalize_agent_id_for_comparison(agent_id)
+
         # Check virtual deployment state (primary method)
         # Only checking project-level deployment in simplified architecture
         deployment_state_paths = [
@@ -303,6 +313,13 @@ class SimpleAgentManager:
                                 f"Agent {agent_id} (leaf: {leaf_name}) found in virtual deployment state"
                             )
                             return True
+
+                    # Check normalized ID (handles -agent suffix, underscores, case)
+                    if normalized_id in agents:
+                        self.logger.debug(
+                            f"Agent {agent_id} (normalized: {normalized_id}) found in virtual deployment state"
+                        )
+                        return True
                 except (json.JSONDecodeError, KeyError) as e:
                     self.logger.debug(
                         f"Failed to read deployment state from {state_path}: {e}"
@@ -313,13 +330,19 @@ class SimpleAgentManager:
                     continue
 
         # Fallback to physical file checks (legacy support)
-        # For hierarchical IDs, check both full ID and leaf name
-        agent_file_names = [f"{agent_id}.md"]
+        # For hierarchical IDs, check full ID, leaf name, and normalized name
+        leaf = agent_id.split("/")[-1]
+        normalized_name = normalize_deployment_filename(f"{leaf}.md")
+        agent_file_names = [f"{agent_id}.md", normalized_name]
 
         # Also check leaf name (last component after /)
         if "/" in agent_id:
             leaf_name = agent_id.rsplit("/", maxsplit=1)[-1]
             agent_file_names.append(f"{leaf_name}.md")
+            agent_file_names.append(normalize_deployment_filename(f"{leaf_name}.md"))
+
+        # Deduplicate while preserving order
+        agent_file_names = list(dict.fromkeys(agent_file_names))
 
         # Check .claude/agents/ directory (project deployment)
         project_agents_dir = Path.cwd() / ".claude" / "agents"

@@ -84,6 +84,41 @@ def filter_base_agents(agents: List[Dict]) -> List[Dict]:
     return [a for a in agents if not is_base_agent(a.get("agent_id", ""))]
 
 
+def normalize_agent_id_for_comparison(agent_id: str) -> str:
+    """Normalize an agent_id to match deployed filename stems.
+
+    Applies the same transformations as normalize_deployment_filename():
+    - Extract leaf name (last component after /)
+    - Lowercase
+    - Replace underscores with dashes
+    - Strip -agent suffix
+
+    Args:
+        agent_id: Raw agent ID from frontmatter (e.g., "research-agent", "dart_engineer")
+
+    Returns:
+        Normalized stem matching deployed filename (e.g., "research", "dart-engineer")
+
+    Examples:
+        >>> normalize_agent_id_for_comparison("research-agent")
+        'research'
+        >>> normalize_agent_id_for_comparison("dart_engineer")
+        'dart-engineer'
+        >>> normalize_agent_id_for_comparison("api-qa-agent")
+        'api-qa'
+        >>> normalize_agent_id_for_comparison("python-engineer")
+        'python-engineer'
+        >>> normalize_agent_id_for_comparison("engineer/backend/python-engineer")
+        'python-engineer'
+    """
+    from claude_mpm.services.agents.deployment_utils import (
+        normalize_deployment_filename,
+    )
+
+    leaf = agent_id.split("/")[-1]
+    return Path(normalize_deployment_filename(f"{leaf}.md")).stem
+
+
 def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     """Get set of currently deployed agent IDs.
 
@@ -208,7 +243,11 @@ def filter_deployed_agents(
         - Preserves agent order for consistent UX
     """
     deployed_ids = get_deployed_agent_ids(project_dir)
-    return [a for a in agents if a.get("agent_id") not in deployed_ids]
+    return [
+        a
+        for a in agents
+        if normalize_agent_id_for_comparison(a.get("agent_id", "")) not in deployed_ids
+    ]
 
 
 def apply_all_filters(

@@ -30,7 +30,11 @@ from ...core.deployment_context import DeploymentContext
 from ...core.unified_config import UnifiedConfig
 from ...services.agents.agent_recommendation_service import AgentRecommendationService
 from ...services.version_service import VersionService
-from ...utils.agent_filters import apply_all_filters, get_deployed_agent_ids
+from ...utils.agent_filters import (
+    apply_all_filters,
+    get_deployed_agent_ids,
+    normalize_agent_id_for_comparison,
+)
 from ...utils.console import console as default_console
 from ..shared import BaseCommand, CommandResult
 from .agent_state_manager import SimpleAgentManager
@@ -419,8 +423,8 @@ class ConfigureCommand(BaseCommand):
                 for agent in agents:
                     # Use agent_id (technical ID) for comparison, not display name
                     agent_id = getattr(agent, "agent_id", agent.name)
-                    agent_leaf_name = agent_id.split("/")[-1]
-                    agent.is_deployed = agent_leaf_name in deployed_ids
+                    normalized_id = normalize_agent_id_for_comparison(agent_id)
+                    agent.is_deployed = normalized_id in deployed_ids
 
                 # Filter BASE_AGENT from display (1M-502 Phase 1)
                 agents = self._filter_agent_configs(agents, filter_deployed=False)
@@ -1797,7 +1801,7 @@ class ConfigureCommand(BaseCommand):
             # FIX 2: Check actual deployment status from .claude/agents/ directory
             # Use agent_id (technical ID like "python-engineer") not display name
             agent_id = getattr(agent, "agent_id", agent.name)
-            is_installed = agent_id in deployed_ids
+            is_installed = normalize_agent_id_for_comparison(agent_id) in deployed_ids
             if is_installed:
                 status = "[green]Installed[/green]"
             else:
@@ -1862,7 +1866,10 @@ class ConfigureCommand(BaseCommand):
         # Show installed vs available count (use deployed_ids for accuracy)
         # Use agent_id (technical ID) for comparison, not display name
         installed_count = sum(
-            1 for a in agents if getattr(a, "agent_id", a.name) in deployed_ids
+            1
+            for a in agents
+            if normalize_agent_id_for_comparison(getattr(a, "agent_id", a.name))
+            in deployed_ids
         )
         available_count = len(agents) - installed_count
         self.console.print(
@@ -1933,13 +1940,13 @@ class ConfigureCommand(BaseCommand):
             self.logger.warning(f"Failed to get recommended agents: {e}")
             recommended_agent_ids = set()
 
-        # Build mapping: leaf name -> full path for deployed agents
+        # Build mapping: normalized name -> full path for deployed agents
         # Use agent_id (technical ID) for comparison, not display name
         deployed_full_paths = set()
         for agent in agents:
             agent_id = getattr(agent, "agent_id", agent.name)
-            agent_leaf_name = agent_id.split("/")[-1]
-            if agent_leaf_name in deployed_ids:
+            normalized_id = normalize_agent_id_for_comparison(agent_id)
+            if normalized_id in deployed_ids:
                 # Store agent_id for selection tracking (not display name)
                 deployed_full_paths.add(agent_id)
 
@@ -2382,14 +2389,14 @@ class ConfigureCommand(BaseCommand):
             Prompt.ask("\nPress Enter to continue")
             return
 
-        # Build mapping: leaf name -> full path for deployed agents
-        # This allows comparing deployed_ids (leaf names) with agent.agent_id (full paths)
+        # Build mapping: normalized name -> full path for deployed agents
+        # This allows comparing deployed_ids (normalized names) with agent.agent_id (full paths)
         deployed_full_paths = set()
         for agent in agents:
             # FIX: Use agent_id (technical ID) instead of display name
             agent_id = getattr(agent, "agent_id", agent.name)
-            agent_leaf_name = agent_id.split("/")[-1]
-            if agent_leaf_name in deployed_ids:
+            normalized_id = normalize_agent_id_for_comparison(agent_id)
+            if normalized_id in deployed_ids:
                 deployed_full_paths.add(agent_id)
 
         # Track current selection state (starts with deployed full paths, updated after each iteration)

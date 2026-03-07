@@ -129,3 +129,92 @@ class TestDeploymentPathConsistency:
         path3_result = normalize_deployment_filename(f"{agent_stem}.md")
 
         assert path1_result == path2_result == path3_result == expected
+
+
+class TestNormalizeAgentIdForComparison:
+    """Tests for normalize_agent_id_for_comparison helper."""
+
+    def test_strips_agent_suffix(self):
+        """research-agent -> research"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("research-agent") == "research"
+
+    def test_converts_underscores_to_dashes(self):
+        """dart_engineer -> dart-engineer"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("dart_engineer") == "dart-engineer"
+
+    def test_strips_agent_suffix_and_converts_underscores(self):
+        """api_qa_agent -> api-qa (both transformations)"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("api_qa_agent") == "api-qa"
+
+    def test_no_change_needed(self):
+        """python-engineer -> python-engineer (already normalized)"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("python-engineer") == "python-engineer"
+
+    def test_hierarchical_id_extracts_leaf(self):
+        """engineer/backend/python-engineer -> python-engineer"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert (
+            normalize_agent_id_for_comparison("engineer/backend/python-engineer")
+            == "python-engineer"
+        )
+
+    def test_hierarchical_with_agent_suffix(self):
+        """engineer/research-agent -> research"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert (
+            normalize_agent_id_for_comparison("engineer/research-agent") == "research"
+        )
+
+    def test_uppercase_lowercased(self):
+        """QA -> qa"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("QA") == "qa"
+
+    def test_mixed_case_with_agent_suffix(self):
+        """QA-Agent -> qa"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("QA-Agent") == "qa"
+
+    def test_api_qa_agent(self):
+        """api-qa-agent -> api-qa"""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        assert normalize_agent_id_for_comparison("api-qa-agent") == "api-qa"
+
+
+class TestDeploymentStatusComparison:
+    """Integration tests: normalized agent_id matches deployed file stems."""
+
+    def test_deployed_ids_match_after_normalization(self):
+        """Simulate the comparison that happens in configure.py."""
+        from claude_mpm.utils.agent_filters import normalize_agent_id_for_comparison
+
+        # Simulate deployed_ids (what get_deployed_agent_ids returns - file stems)
+        deployed_ids = {"research", "dart-engineer", "python-engineer", "api-qa", "qa"}
+
+        # Simulate raw agent_ids from frontmatter
+        raw_agent_ids = [
+            "research-agent",  # -> research (strip -agent)
+            "dart_engineer",  # -> dart-engineer (underscore to dash)
+            "python-engineer",  # -> python-engineer (no change)
+            "api-qa-agent",  # -> api-qa (strip -agent)
+            "QA",  # -> qa (lowercase)
+        ]
+
+        for raw_id in raw_agent_ids:
+            normalized = normalize_agent_id_for_comparison(raw_id)
+            assert normalized in deployed_ids, (
+                f"'{raw_id}' normalized to '{normalized}' but not found in deployed_ids {deployed_ids}"
+            )
