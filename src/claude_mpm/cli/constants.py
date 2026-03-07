@@ -31,9 +31,8 @@ class SetupFlag(str, Enum):
 class SetupService(str, Enum):
     """Valid services for the setup command."""
 
-    SLACK = "slack"
     GWORKSPACE_MCP = "gworkspace-mcp"
-    SLACK_MCP = "slack-mpm"
+    SLACK_MPM = "slack-mpm"
     OAUTH = "oauth"
     KUZU_MEMORY = "kuzu-memory"
     MCP_VECTOR_SEARCH = "mcp-vector-search"

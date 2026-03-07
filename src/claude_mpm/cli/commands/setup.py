@@ -195,9 +195,7 @@ class SetupCommand(BaseCommand):
 
             service_args = Namespace(**service_options)
 
-            if service_name == "slack":
-                result = self._setup_slack(service_args)
-            elif service_name == "gworkspace-mcp":
+            if service_name == "gworkspace-mcp":
                 result = self._setup_google_workspace(service_args)
             elif service_name == "slack-mpm":
                 result = self._setup_slack_mpm(service_args)
@@ -341,9 +339,8 @@ class SetupCommand(BaseCommand):
   setup SERVICE [OPTIONS] [SERVICE [OPTIONS] ...]
 
 [bold]Available Services:[/bold]
-  slack                  Set up Slack MPM integration
-  gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
   slack-mpm              Set up Slack MCP server (token-based)
+  gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
@@ -363,35 +360,32 @@ class SetupCommand(BaseCommand):
   --model MODEL          Model ID for the selected provider
 
 [bold]Examples:[/bold]
-  # Single service
-  claude-mpm setup slack
+  # Set up Slack MCP server
+  claude-mpm setup slack-mpm
 
   # Slack without auto-launch
-  claude-mpm setup slack --no-launch
+  claude-mpm setup slack-mpm --no-launch
+
+  # Force re-validation of token
+  claude-mpm setup slack-mpm --force
 
   # Multiple services (space-separated)
-  claude-mpm setup slack gworkspace-mcp
+  claude-mpm setup slack-mpm gworkspace-mcp
 
   # Multiple services (comma-separated)
-  claude-mpm setup slack,gworkspace-mcp,notion
+  claude-mpm setup slack-mpm,gworkspace-mcp,notion
 
   # Service with options
   claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
 
   # Multiple services with options
-  claude-mpm setup slack oauth --oauth-service gworkspace-mcp --no-launch
+  claude-mpm setup slack-mpm oauth --oauth-service gworkspace-mcp --no-launch
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search
 
   # With force flag to reinstall
   claude-mpm setup mcp-vector-search --force
-
-  # Set up slack-mpm
-  claude-mpm setup slack-mpm
-
-  # Force re-validation
-  claude-mpm setup slack-mpm --force
 
 [dim]Note: Flags apply to the service that precedes them.[/dim]
 """
