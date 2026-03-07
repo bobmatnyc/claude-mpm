@@ -1,3 +1,9 @@
+## v5.9.52 (2026-03-06)
+
+### Refactor
+
+- rename setup 'slack' service to 'slack-mpm' to match library name
+
 ## v5.9.51 (2026-03-06)
 
 ### Chore
