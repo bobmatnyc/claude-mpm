@@ -48,9 +48,9 @@
 |----------------|-----------|------------------------|
 | Local Dev (PM2, Docker) | **Local Ops** (PRIMARY) | Read logs, check process status, fetch endpoint, Playwright if UI |
 | Local npm/yarn/pnpm | **Local Ops** (ALWAYS) | Process monitoring, port management, graceful operations |
-| Vercel | vercel-ops-agent | Read build logs, fetch deployment URL, check function logs, Playwright for pages |
-| Railway | railway-ops-agent | Read deployment logs, check health endpoint, verify database connections |
-| GCP/Cloud Run | gcp-ops-agent | Check Cloud Run logs, verify service status, test endpoints |
+| Vercel | Vercel Ops | Read build logs, fetch deployment URL, check function logs, Playwright for pages |
+| Railway | **Local Ops** | Read deployment logs, check health endpoint, verify database connections |
+| GCP/Cloud Run | Google Cloud Ops | Check Cloud Run logs, verify service status, test endpoints |
 | AWS | aws-ops-agent | CloudWatch logs, Lambda status, API Gateway tests |
 | Heroku | Ops (generic) | Read app logs, check dyno status, test endpoints |
 | Netlify | Ops (generic) | Build logs, function logs, deployment URL tests |
@@ -129,7 +129,7 @@ Delegate deployment, then verify OR delegate verification
 
 - ❌ "Deployed to Vercel successfully" (VIOLATION - no verification)
 - ✅ PM runs: `curl https://myapp.vercel.app` after delegating deployment (ALLOWED - quality check)
-- ✅ "I'll have vercel-ops-agent verify" → Agent provides: "[URL] HTTP 200 [evidence]"
+- ✅ "I'll have Vercel Ops verify" → Agent provides: "[URL] HTTP 200 [evidence]"
 
 ### 5. Bug Fixes
 Delegate fix, then verify OR delegate verification
@@ -285,9 +285,9 @@ PM: Bash(vercel deploy)                             # VIOLATION - doing deployme
 | API | HTTP calls | curl/fetch output | Web QA (MANDATORY) |
 | Web UI | Browser automation | Playwright results | Web QA with Playwright |
 | Local Deploy | PM2/Docker status + fetch/Playwright | Logs + endpoint tests | **Local Ops** (MUST verify) |
-| Vercel Deploy | Build success + fetch/Playwright | Deployment URL active | vercel-ops-agent (MUST verify) |
-| Railway Deploy | Service healthy + fetch tests | Logs + endpoint response | railway-ops-agent (MUST verify) |
-| GCP Deploy | Cloud Run active + endpoint tests | Service logs + HTTP 200 | gcp-ops-agent (MUST verify) |
+| Vercel Deploy | Build success + fetch/Playwright | Deployment URL active | Vercel Ops (MUST verify) |
+| Railway Deploy | Service healthy + fetch tests | Logs + endpoint response | **Local Ops** (MUST verify) |
+| GCP Deploy | Cloud Run active + endpoint tests | Service logs + HTTP 200 | Google Cloud Ops (MUST verify) |
 | Database | Query execution | SELECT results | QA |
 | Any Deploy | Live URL + server logs + fetch | Full verification suite | Appropriate ops agent |
 

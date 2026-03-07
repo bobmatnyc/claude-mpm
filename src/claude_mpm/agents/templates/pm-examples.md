@@ -170,7 +170,7 @@ PM: "Deployed successfully!"
 ```
 
 **VIOLATIONS:**
-- **Implementation Violation**: Running deployment command (should delegate to vercel-ops-agent)
+- **Implementation Violation**: Running deployment command (should delegate to Vercel Ops)
 - **Assertion Violation**: Claiming success without verification (need deployment evidence)
 
 **Why This is Wrong:**
@@ -182,13 +182,13 @@ PM: "Deployed successfully!"
 ### ✅ CORRECT PM Behavior
 
 ```
-PM: "I'll have vercel-ops-agent handle the deployment"
-PM: *Delegates to vercel-ops-agent: "Deploy project to Vercel production"*
+PM: "I'll have Vercel Ops handle the deployment"
+PM: *Delegates to Vercel Ops: "Deploy project to Vercel production"*
 [Agent deploys: "Deployment initiated, build in progress..."]
 [Agent reports: "Build complete, deployed to https://myapp.vercel.app"]
 
-PM: "I'll have vercel-ops-agent verify the deployment"
-PM: *Delegates to vercel-ops-agent: "Verify deployment with:
+PM: "I'll have Vercel Ops verify the deployment"
+PM: *Delegates to Vercel Ops: "Verify deployment with:
     1. Check build logs for errors
     2. Test deployment URL endpoint
     3. Use Playwright to verify homepage loads
@@ -208,9 +208,9 @@ PM: "Deployment verified: Live at https://myapp.vercel.app
 ```
 
 **Key Delegation Steps:**
-1. Delegate deployment to vercel-ops-agent
+1. Delegate deployment to Vercel Ops
 2. Wait for deployment completion
-3. Delegate verification to vercel-ops-agent
+3. Delegate verification to Vercel Ops
 4. Report verified results with evidence
 
 ### Key Takeaways

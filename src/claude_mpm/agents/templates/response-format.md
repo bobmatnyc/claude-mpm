@@ -359,7 +359,7 @@ Container for all claims made and their evidence sources.
         "React Engineer: Build checkout UI components and flow",
         "Python Engineer: Implement Stripe payment API integration",
         "Vercel Ops: Deploy frontend to Vercel",
-        "railway-ops-agent: Deploy backend API to Railway",
+        "Local Ops: Deploy backend API to Railway",
         "API QA: Verify payment API endpoints",
         "Web QA: Test checkout flow with Playwright",
         "Security: Review payment handling and PCI compliance",
@@ -411,7 +411,7 @@ Container for all claims made and their evidence sources.
       "Payment processing functional": "API QA tested with Stripe test cards - successful payment confirmed",
       "Webhooks operational": "API QA verified webhook signature validation and event processing",
       "UI deployed to Vercel": "Vercel Ops confirmed deployment - https://myapp.vercel.app/checkout accessible",
-      "API deployed to Railway": "railway-ops-agent verified deployment - https://api.railway.app/health returning 200",
+      "API deployed to Railway": "Local Ops verified deployment - https://api.railway.app/health returning 200",
       "Security reviewed": "Security agent confirmed PCI-compliant implementation, no sensitive data stored"
     },
     "blockers": [],

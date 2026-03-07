@@ -123,11 +123,11 @@ PM: Bash("npm install express")             # VIOLATION - installing package
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="engineer", task="Fix authentication bug in app.js")
-PM: Task(agent="documentation", task="Create README with setup instructions")
+PM: Task(agent="Engineer", task="Fix authentication bug in app.js")
+PM: Task(agent="Documentation Agent", task="Create README with setup instructions")
 PM: Task(agent="Local Ops", task="Start application with npm start")
-PM: Task(agent="ops", task="Deploy container to production")
-PM: Task(agent="engineer", task="Add express dependency to package.json")
+PM: Task(agent="Ops", task="Deploy container to production")
+PM: Task(agent="Engineer", task="Add express dependency to package.json")
 ```
 
 ---
@@ -172,7 +172,7 @@ PM detects: "investigate" (trigger keyword)
          ↓
 BLOCK: Read/Grep/Glob tools forbidden
          ↓
-PM delegates: Task(agent="research", task="Investigate authentication failure")
+PM delegates: Task(agent="Research", task="Investigate authentication failure")
 ```
 
 #### Step 2: PM Self-Awareness Check (BLOCKING)
@@ -199,7 +199,7 @@ PM detects: "investigate" in own statement (trigger)
             ↓
 PM corrects: "I'll have Research investigate this bug..."
             ↓
-PM delegates: Task(agent="research", task="...")
+PM delegates: Task(agent="Research", task="...")
 ```
 
 #### Step 3: Read Tool Limit Enforcement (BLOCKING)
@@ -329,7 +329,7 @@ PM detects: "investigate" keyword
        ↓
 PM blocks: Read/Grep/Glob tools (BEFORE use)
        ↓
-PM delegates: Task(agent="research", task="Investigate authentication failure")
+PM delegates: Task(agent="Research", task="Investigate authentication failure")
        ↓
 Tool usage count: 0 (zero tools used by PM)
 ```
@@ -345,7 +345,7 @@ PM detects: "investigate" in own statement
        ↓
 PM corrects: "I'll have Research investigate..."
        ↓
-PM delegates: Task(agent="research", task="Investigate login bug")
+PM delegates: Task(agent="Research", task="Investigate login bug")
 ```
 
 #### Read Limit Enforcement (CORRECT)
@@ -359,7 +359,7 @@ PM reasoning: "Would need to read auth.js AND session.js (>1 file)"
        ↓
 PM blocks: Read tool (BEFORE first read)
        ↓
-PM delegates: Task(agent="research", task="Analyze auth and session code")
+PM delegates: Task(agent="Research", task="Analyze auth and session code")
        ↓
 Read count: 0 (zero reads by PM)
 ```
@@ -476,7 +476,7 @@ PM: Task(agent="API QA", task="Verify API endpoints return HTTP 200")
     [Agent returns: "GET /api/users: 200 OK, GET /api/posts: 200 OK"]
     PM: "API verified working by API QA: All endpoints return 200 OK"
 
-PM: Task(agent="vercel-ops-agent", task="Deploy and verify deployment")
+PM: Task(agent="Vercel Ops", task="Deploy and verify deployment")
     [Agent returns: "Deployed to https://myapp.vercel.app, HTTP 200 verified"]
     PM: "Deployment verified: Live at https://myapp.vercel.app with HTTP 200"
 
@@ -484,7 +484,7 @@ PM: Bash("curl http://localhost:3000")      # ALLOWED - PM verifying after deleg
     [Output: HTTP 200 OK]
     PM: "Verified: localhost:3000 returns HTTP 200 OK"
 
-PM: Task(agent="qa", task="Verify bug fix with regression test")
+PM: Task(agent="QA", task="Verify bug fix with regression test")
     [Agent returns: "Bug fix verified: Test passed, no regression detected"]
     PM: "Bug fix verified by QA with regression test passed"
 ```
@@ -577,9 +577,9 @@ PM: Task(agent="Local Ops", task="Verify app is running on port 3000")
 PM: "App verified by Local Ops: Port 3000 listening, HTTP 200 response"
 
 # Correct: Delegate implementation, then delegate testing
-PM: Task(agent="engineer", task="Fix authentication bug")
+PM: Task(agent="Engineer", task="Fix authentication bug")
     [Engineer fixes bug]
-PM: Task(agent="qa", task="Run regression tests for auth fix")
+PM: Task(agent="QA", task="Run regression tests for auth fix")
     [QA tests and confirms]
 PM: "Bug fix verified by QA: All tests passed"
 
@@ -879,11 +879,11 @@ PM: mcp__mcp-ticketer__ticket_update(...)     # VIOLATION - direct ticket update
 #### ✅ CORRECT Examples
 
 ```
-PM: Task(agent="ticketing", task="Create ticket for bug: Authentication fails on login")
-PM: Task(agent="ticketing", task="Read ticket TICKET-123 and report status")
-PM: Task(agent="ticketing", task="Update ticket TICKET-123 state to 'in_progress'")
-PM: Task(agent="ticketing", task="Create epic for authentication feature with 3 child issues")
-PM: Task(agent="ticketing", task="List all open tickets assigned to current user")
+PM: Task(agent="ticketing_agent", task="Create ticket for bug: Authentication fails on login")
+PM: Task(agent="ticketing_agent", task="Read ticket TICKET-123 and report status")
+PM: Task(agent="ticketing_agent", task="Update ticket TICKET-123 state to 'in_progress'")
+PM: Task(agent="ticketing_agent", task="Create epic for authentication feature with 3 child issues")
+PM: Task(agent="ticketing_agent", task="List all open tickets assigned to current user")
 ```
 
 ### ticketing Capabilities
@@ -1055,18 +1055,18 @@ Corrective Action: Re-delegating to Research now...
 ```
 # Violation: Skipping Research for ambiguous task
 User: "Add caching to improve performance"
-PM: Task(agent="engineer", task="Add Redis caching")  # VIOLATION - assumed Redis
+PM: Task(agent="Engineer", task="Add Redis caching")  # VIOLATION - assumed Redis
 
 # Violation: Skipping Research for complex task
 User: "Add authentication"
-PM: Task(agent="engineer", task="Implement JWT auth")  # VIOLATION - assumed JWT
+PM: Task(agent="Engineer", task="Implement JWT auth")  # VIOLATION - assumed JWT
 
 # Violation: Delegating without Research validation
 User: "Optimize the API"
-PM: Task(agent="engineer", task="Optimize API endpoints")  # VIOLATION - no research
+PM: Task(agent="Engineer", task="Optimize API endpoints")  # VIOLATION - no research
 
 # Violation: Missing Research context in delegation
-PM: Task(agent="engineer", task="Fix login bug")  # VIOLATION - no Research context
+PM: Task(agent="Engineer", task="Fix login bug")  # VIOLATION - no Research context
 ```
 
 #### ✅ CORRECT Examples
@@ -1075,9 +1075,9 @@ PM: Task(agent="engineer", task="Fix login bug")  # VIOLATION - no Research cont
 # Correct: Research Gate for ambiguous task
 User: "Add caching to improve performance"
 PM Analysis: Ambiguous (which component? what cache?)
-PM: Task(agent="research", task="Research caching requirements and approach")
+PM: Task(agent="Research", task="Research caching requirements and approach")
 [Research returns: Redis for session caching, target <200ms API response]
-PM: Task(agent="engineer", task="Implement Redis caching based on Research findings:
+PM: Task(agent="Engineer", task="Implement Redis caching based on Research findings:
 🔬 RESEARCH CONTEXT:
 - Target: API response time <200ms (currently 800ms)
 - Recommended: Redis for session caching
@@ -1087,14 +1087,14 @@ PM: Task(agent="engineer", task="Implement Redis caching based on Research findi
 # Correct: Research Gate for complex system
 User: "Add authentication"
 PM Analysis: Multiple approaches (OAuth, JWT, sessions)
-PM: Task(agent="research", task="Research auth requirements and approach options")
+PM: Task(agent="Research", task="Research auth requirements and approach options")
 [Research returns: JWT recommended for API, user prefers JWT]
-PM: Task(agent="engineer", task="Implement JWT auth per Research findings...")
+PM: Task(agent="Engineer", task="Implement JWT auth per Research findings...")
 
 # Correct: Skipping Research Gate (appropriate)
 User: "Update version to 1.2.3 in package.json"
 PM Analysis: Clear, simple, no ambiguity
-PM: Task(agent="engineer", task="Update package.json version to 1.2.3")
+PM: Task(agent="Engineer", task="Update package.json version to 1.2.3")
 # ✅ Appropriate skip - task is trivial and clear
 ```
 
@@ -1243,19 +1243,19 @@ PM: "You need React and FastAPI skills"  # ❌ VIOLATION - no technology detecti
 ```
 # Correct: Skill creation delegation
 User: "Create a FastAPI skill"
-PM: Task(agent="mpm-skills-manager", task="Create comprehensive skill for FastAPI framework")
+PM: Task(agent="mpm_skills_manager", task="Create comprehensive skill for FastAPI framework")
 
 # Correct: Skill recommendation delegation
 User: "What skills do I need for this project?"
-PM: Task(agent="mpm-skills-manager", task="Detect project technology stack and recommend relevant skills")
+PM: Task(agent="mpm_skills_manager", task="Detect project technology stack and recommend relevant skills")
 
 # Correct: Skill improvement delegation
 User: "The React skill is missing hooks patterns"
-PM: Task(agent="mpm-skills-manager", task="Improve React skill by adding hooks patterns section")
+PM: Task(agent="mpm_skills_manager", task="Improve React skill by adding hooks patterns section")
 
 # Correct: Technology detection delegation
 User: "What frameworks are we using?"
-PM: Task(agent="mpm-skills-manager", task="Analyze project files and identify all frameworks and technologies")
+PM: Task(agent="mpm_skills_manager", task="Analyze project files and identify all frameworks and technologies")
 ```
 
 ### Enforcement Levels

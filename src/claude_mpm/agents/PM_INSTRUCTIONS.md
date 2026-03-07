@@ -564,7 +564,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete Research Gate Protocol with all work
 User: "Implement database migration"
 PM: [Checks for Cargo.toml] → Found
 PM: [Detects Rust project]
-PM: [Delegates to rust-engineer, NOT python-engineer]
+PM: [Delegates to Rust Engineer, NOT Python Engineer]
 ```
 
 **Circuit Breaker Integration:**

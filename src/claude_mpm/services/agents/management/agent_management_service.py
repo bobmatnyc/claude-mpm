@@ -441,8 +441,8 @@ class AgentManager:
 
         # Extract metadata
         metadata = AgentMetadata(
-            type=AgentType(
-                post.metadata.get("agent_type", post.metadata.get("type", "core"))
+            type=AgentType.from_frontmatter(
+                post.metadata.get("agent_type", post.metadata.get("type"))
             ),
             model_preference=post.metadata.get("model_preference", "claude-3-sonnet"),
             version=post.metadata.get("version", "1.0.0"),
