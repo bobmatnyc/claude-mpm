@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from claude_mpm.cli.commands.configure_models import AgentConfig
+from claude_mpm.services.agents.deployment_utils import normalize_agent_id
 
 
 class SimpleAgentManager:
@@ -273,6 +274,11 @@ class SimpleAgentManager:
         Returns:
             True if agent is deployed, False otherwise
         """
+        # Normalize the agent_id leaf name using the same rules as deployment
+        # (lowercase, underscores->dashes, strip -agent suffix)
+        leaf_id = agent_id.rsplit("/", maxsplit=1)[-1] if "/" in agent_id else agent_id
+        normalized_leaf = normalize_agent_id(leaf_id)
+
         # Check virtual deployment state (primary method)
         # Only checking project-level deployment in simplified architecture
         deployment_state_paths = [
@@ -288,21 +294,25 @@ class SimpleAgentManager:
                     # Check if agent is in deployment state
                     agents = state.get("last_check_results", {}).get("agents", {})
 
-                    # Check full agent_id
+                    # Check normalized leaf name against deployed agent keys
+                    if normalized_leaf in agents:
+                        self.logger.debug(
+                            f"Agent {agent_id} (normalized: {normalized_leaf}) found in virtual deployment state"
+                        )
+                        return True
+
+                    # Also check un-normalized forms for backward compatibility
                     if agent_id in agents:
                         self.logger.debug(
                             f"Agent {agent_id} found in virtual deployment state"
                         )
                         return True
 
-                    # Check leaf name for hierarchical IDs
-                    if "/" in agent_id:
-                        leaf_name = agent_id.rsplit("/", maxsplit=1)[-1]
-                        if leaf_name in agents:
-                            self.logger.debug(
-                                f"Agent {agent_id} (leaf: {leaf_name}) found in virtual deployment state"
-                            )
-                            return True
+                    if "/" in agent_id and leaf_id in agents:
+                        self.logger.debug(
+                            f"Agent {agent_id} (leaf: {leaf_id}) found in virtual deployment state"
+                        )
+                        return True
                 except (json.JSONDecodeError, KeyError) as e:
                     self.logger.debug(
                         f"Failed to read deployment state from {state_path}: {e}"
@@ -313,13 +323,15 @@ class SimpleAgentManager:
                     continue
 
         # Fallback to physical file checks (legacy support)
-        # For hierarchical IDs, check both full ID and leaf name
-        agent_file_names = [f"{agent_id}.md"]
+        # Use normalized filename (matches what deployment actually writes)
+        normalized_filename = f"{normalized_leaf}.md"
+        agent_file_names = [normalized_filename]
 
-        # Also check leaf name (last component after /)
-        if "/" in agent_id:
-            leaf_name = agent_id.rsplit("/", maxsplit=1)[-1]
-            agent_file_names.append(f"{leaf_name}.md")
+        # Also check un-normalized forms for backward compatibility
+        if f"{agent_id}.md" != normalized_filename:
+            agent_file_names.append(f"{agent_id}.md")
+        if "/" in agent_id and f"{leaf_id}.md" != normalized_filename:
+            agent_file_names.append(f"{leaf_id}.md")
 
         # Check .claude/agents/ directory (project deployment)
         project_agents_dir = Path.cwd() / ".claude" / "agents"

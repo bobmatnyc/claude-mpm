@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.services.agents.deployment_utils import (
+    get_agent_suffix_variant_filename,
     get_underscore_variant_filename,
     normalize_deployment_filename,
 )
@@ -108,6 +109,18 @@ class SingleAgentDeployer:
                 if variant_path.exists() and variant_path != target_file:
                     variant_path.unlink()
                     self.logger.info(f"Removed duplicate: {underscore_variant}")
+
+            # Clean up -agent suffix variant if it exists
+            agent_suffix_variant = get_agent_suffix_variant_filename(
+                normalized_filename
+            )
+            if agent_suffix_variant:
+                variant_path = agents_dir / agent_suffix_variant
+                if variant_path.exists() and variant_path != target_file:
+                    variant_path.unlink()
+                    self.logger.info(
+                        f"Removed -agent suffix duplicate: {agent_suffix_variant}"
+                    )
 
             # Record metrics and update results
             self.results_manager.record_agent_deployment(
@@ -289,6 +302,18 @@ class SingleAgentDeployer:
                 if variant_path.exists() and variant_path != target_file:
                     variant_path.unlink()
                     self.logger.info(f"Removed duplicate: {underscore_variant}")
+
+            # Clean up -agent suffix variant if it exists
+            agent_suffix_variant = get_agent_suffix_variant_filename(
+                normalized_filename
+            )
+            if agent_suffix_variant:
+                variant_path = target_dir / agent_suffix_variant
+                if variant_path.exists() and variant_path != target_file:
+                    variant_path.unlink()
+                    self.logger.info(
+                        f"Removed -agent suffix duplicate: {agent_suffix_variant}"
+                    )
 
             self.logger.info(
                 f"Successfully deployed agent: {agent_name} to {target_file}"

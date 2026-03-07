@@ -33,6 +33,42 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
+def normalize_agent_id(agent_id: str) -> str:
+    """Normalize an agent ID for consistent comparison.
+
+    Applies the same normalization rules as normalize_deployment_filename()
+    but operates on bare agent IDs (without .md extension).
+
+    Rules applied:
+    1. Lowercase
+    2. Replace underscores with dashes
+    3. Strip '-agent' suffix
+
+    Args:
+        agent_id: Raw agent ID (e.g., "dart_engineer", "api-qa-agent", "QA")
+
+    Returns:
+        Normalized agent ID (e.g., "dart-engineer", "api-qa", "qa")
+
+    Examples:
+        >>> normalize_agent_id("dart_engineer")
+        'dart-engineer'
+
+        >>> normalize_agent_id("api-qa-agent")
+        'api-qa'
+
+        >>> normalize_agent_id("QA")
+        'qa'
+
+        >>> normalize_agent_id("python-engineer")
+        'python-engineer'
+    """
+    normalized = agent_id.lower().replace("_", "-")
+    if normalized.endswith("-agent"):
+        normalized = normalized[:-6]
+    return normalized
+
+
 def normalize_deployment_filename(
     source_filename: str, agent_id: Optional[str] = None
 ) -> str:
@@ -159,6 +195,38 @@ def get_underscore_variant_filename(normalized_filename: str) -> Optional[str]:
 
     underscore_stem = stem.replace("-", "_")
     return f"{underscore_stem}.md"
+
+
+def get_agent_suffix_variant_filename(normalized_filename: str) -> Optional[str]:
+    """Get '-agent' suffixed variant of a normalized filename.
+
+    Used to detect and clean up legacy files where the same agent
+    might exist with and without the '-agent' suffix.
+
+    Args:
+        normalized_filename: Normalized filename (e.g., "api-qa.md")
+
+    Returns:
+        Agent-suffixed variant filename, or None if already has -agent suffix
+
+    Examples:
+        >>> get_agent_suffix_variant_filename("api-qa.md")
+        'api-qa-agent.md'
+
+        >>> get_agent_suffix_variant_filename("qa.md")
+        'qa-agent.md'
+
+        >>> get_agent_suffix_variant_filename("api-qa-agent.md")
+        None
+    """
+    path = Path(normalized_filename)
+    stem = path.stem
+
+    # If stem already ends with -agent, no variant to return
+    if stem.endswith("-agent"):
+        return None
+
+    return f"{stem}-agent.md"
 
 
 # ============================================================================
@@ -364,7 +432,7 @@ def deploy_agent_file(
         normalized_filename = normalize_deployment_filename(source_file.name)
         target_file = deployment_dir / normalized_filename
 
-        # Step 3: Clean up legacy underscore variants
+        # Step 3: Clean up legacy variants (underscore and -agent suffix)
         if cleanup_legacy:
             underscore_variant = get_underscore_variant_filename(normalized_filename)
             if underscore_variant:
@@ -376,6 +444,19 @@ def deploy_agent_file(
                     )
                     underscore_path.unlink()
                     cleaned_legacy.append(underscore_variant)
+
+            agent_suffix_variant = get_agent_suffix_variant_filename(
+                normalized_filename
+            )
+            if agent_suffix_variant:
+                agent_suffix_path = deployment_dir / agent_suffix_variant
+                if agent_suffix_path.exists() and agent_suffix_path != target_file:
+                    logger.info(
+                        f"Removing -agent suffix variant: {agent_suffix_variant} "
+                        f"(replaced by {normalized_filename})"
+                    )
+                    agent_suffix_path.unlink()
+                    cleaned_legacy.append(agent_suffix_variant)
 
         # Step 4: Read source content
         source_content = source_file.read_text(encoding="utf-8")
