@@ -166,19 +166,22 @@ class TestGetDeployedAgentIds:
     """Test deployed agent detection from filesystem."""
 
     def test_new_architecture_detection(self):
-        """Agents in .claude/agents/ should be detected (simplified architecture)."""
+        """Agents in .claude/agents/ should be detected (simplified architecture).
+
+        Note: get_deployed_agent_ids() returns normalized IDs (lowercase, hyphenated).
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             project_dir = Path(tmpdir)
             agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
 
-            # Create deployed agent files
+            # Create deployed agent files (uppercase filenames → normalized to lowercase)
             (agents_dir / "ENGINEER.md").write_text("# Engineer Agent")
             (agents_dir / "PM.md").write_text("# PM Agent")
 
             deployed = get_deployed_agent_ids(project_dir)
-            assert "ENGINEER" in deployed
-            assert "PM" in deployed
+            assert "engineer" in deployed
+            assert "pm" in deployed
             assert len(deployed) == 2
 
     def test_legacy_architecture_detection(self):
@@ -188,13 +191,13 @@ class TestGetDeployedAgentIds:
             agents_dir = project_dir / ".claude" / "agents"
             agents_dir.mkdir(parents=True)
 
-            # Create deployed agent files
+            # Create deployed agent files (uppercase filenames → normalized to lowercase)
             (agents_dir / "QA.md").write_text("# QA Agent")
             (agents_dir / "DEVOPS.md").write_text("# DevOps Agent")
 
             deployed = get_deployed_agent_ids(project_dir)
-            assert "QA" in deployed
-            assert "DEVOPS" in deployed
+            assert "qa" in deployed
+            assert "devops" in deployed
             assert len(deployed) == 2
 
     def test_both_architectures_detection(self):
@@ -209,8 +212,8 @@ class TestGetDeployedAgentIds:
             (agents_dir / "PM.md").write_text("# PM")
 
             deployed = get_deployed_agent_ids(project_dir)
-            assert "ENGINEER" in deployed
-            assert "PM" in deployed
+            assert "engineer" in deployed
+            assert "pm" in deployed
             assert len(deployed) == 2
 
     def test_duplicate_across_architectures(self):
@@ -224,7 +227,7 @@ class TestGetDeployedAgentIds:
             (agents_dir / "ENGINEER.md").write_text("# Engineer")
 
             deployed = get_deployed_agent_ids(project_dir)
-            assert "ENGINEER" in deployed
+            assert "engineer" in deployed
             assert len(deployed) == 1  # Only counted once
 
     def test_no_deployed_agents(self):
@@ -266,7 +269,7 @@ class TestGetDeployedAgentIds:
             (agents_dir / "config.json").write_text("{}")
 
             deployed = get_deployed_agent_ids(project_dir)
-            assert "ENGINEER" in deployed
+            assert "engineer" in deployed
             assert len(deployed) == 1  # Only .md file
 
     def test_virtual_deployment_state_detection(self):
@@ -332,7 +335,7 @@ class TestGetDeployedAgentIds:
             deployed = get_deployed_agent_ids(project_dir)
             assert "python-engineer" in deployed
             assert "qa" in deployed
-            assert "DEVOPS" in deployed
+            assert "devops" in deployed
             assert len(deployed) == 3  # Combined from both sources
 
     def test_malformed_deployment_state_graceful(self):
@@ -351,7 +354,7 @@ class TestGetDeployedAgentIds:
 
             # Should still detect physical file even if state is malformed
             deployed = get_deployed_agent_ids(project_dir)
-            assert "ENGINEER" in deployed
+            assert "engineer" in deployed
             assert len(deployed) == 1
 
 

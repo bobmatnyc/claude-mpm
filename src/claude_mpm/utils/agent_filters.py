@@ -130,13 +130,15 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
         project_dir: Project directory to check, defaults to current working directory
 
     Returns:
-        Set of deployed agent IDs (leaf names like "python-engineer", "qa")
+        Set of normalized deployed agent IDs (lowercase, hyphenated, no -agent suffix).
+        All IDs are passed through normalize_agent_id_for_comparison() so callers
+        can compare directly without additional normalization.
 
     Examples:
         >>> deployed = get_deployed_agent_ids()
         >>> "python-engineer" in deployed  # If agent exists in deployment state
         True
-        >>> "ENGINEER" in deployed  # If ENGINEER.md exists
+        >>> "engineer" in deployed  # If ENGINEER.md exists (normalized to lowercase)
         True
 
     Design Rationale:
@@ -174,10 +176,10 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
                 with state_path.open() as f:
                     state = json.load(f)
 
-                # Extract agent IDs from deployment state
+                # Extract agent IDs from deployment state and normalize
                 # Agent IDs are leaf names (e.g., "python-engineer", "qa")
                 agents = state.get("last_check_results", {}).get("agents", {})
-                deployed.update(agents.keys())
+                deployed.update(normalize_agent_id_for_comparison(k) for k in agents)
 
             except (json.JSONDecodeError, KeyError) as e:
                 # Log error but continue - don't break if state file is malformed
@@ -200,7 +202,7 @@ def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:
     if agents_dir.exists():
         for file in agents_dir.glob("*.md"):
             if file.stem not in {"BASE-AGENT", ".DS_Store"}:
-                deployed.add(file.stem)
+                deployed.add(normalize_agent_id_for_comparison(file.stem))
 
     # NOTE: .claude/templates/ contains PM instruction templates, NOT deployed agents
     # It should NOT be checked here. Agents are deployed to:
@@ -242,9 +244,7 @@ def filter_deployed_agents(
         - Supports both new and legacy agent directory structures
         - Preserves agent order for consistent UX
     """
-    raw_deployed_ids = get_deployed_agent_ids(project_dir)
-    # Normalize deployed file stems to match the normalization applied to agent_ids
-    deployed_ids = {normalize_agent_id_for_comparison(d) for d in raw_deployed_ids}
+    deployed_ids = get_deployed_agent_ids(project_dir)
     return [
         a
         for a in agents
