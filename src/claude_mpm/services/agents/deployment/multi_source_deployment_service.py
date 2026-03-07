@@ -20,6 +20,7 @@ import yaml
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.services.agents.deployment_utils import normalize_deployment_filename
 
 from .agent_discovery_service import AgentDiscoveryService
 from .agent_version_manager import AgentVersionManager
@@ -606,14 +607,17 @@ class MultiSourceAgentDeploymentService:
 
             template_path = Path(path_str)
             if template_path.exists():
-                # Use the file stem as the key for consistency
-                file_stem = template_path.stem
-                agents_to_deploy[file_stem] = template_path
-                agent_sources[file_stem] = agent_info["source"]
+                # Use normalized stem as key so it matches the deployed filename
+                # (e.g., "content-agent" → normalize → "content" to match "content.md")
+                normalized_stem = Path(
+                    normalize_deployment_filename(f"{template_path.stem}.md")
+                ).stem
+                agents_to_deploy[normalized_stem] = template_path
+                agent_sources[normalized_stem] = agent_info["source"]
 
                 # Also keep the display name mapping for logging
-                if file_stem != agent_name:
-                    self.logger.debug(f"Mapping '{agent_name}' -> '{file_stem}'")
+                if normalized_stem != agent_name:
+                    self.logger.debug(f"Mapping '{agent_name}' -> '{normalized_stem}'")
             else:
                 self.logger.warning(
                     f"Template file not found for agent '{agent_name}': {template_path}"
