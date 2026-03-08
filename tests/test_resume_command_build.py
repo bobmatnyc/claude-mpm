@@ -13,10 +13,6 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-pytestmark = pytest.mark.skip(
-    reason="References removed _ensure_run_attributes - tests need rewrite"
-)
-
 
 def test_interactive_session_command():
     """Test that InteractiveSession builds the command with --resume."""
@@ -50,6 +46,7 @@ def test_interactive_session_command():
     print("✅ InteractiveSession test passed!\n")
 
 
+@pytest.mark.skip(reason="References removed _ensure_run_attributes - needs rewrite")
 def test_run_command_with_resume():
     """Test the full run command flow with --resume."""
     print("Testing full run command flow...")

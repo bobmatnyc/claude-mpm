@@ -402,21 +402,18 @@ class InteractiveSession:
         # Check if --resume flag is present
         has_resume = self.runner.claude_args and "--resume" in self.runner.claude_args
 
+        cmd = ["claude", "--dangerously-skip-permissions"]
+
         if has_resume:
             # When resuming, use minimal command to avoid interfering with conversation selection
             self.logger.info(
                 "🔄 Resume mode detected - using minimal Claude command to preserve conversation selection"
             )
-            cmd = ["claude"]
-
-            # Add only the claude_args (which includes --resume)
-            if self.runner.claude_args:
-                cmd.extend(self.runner.claude_args)
-                self.logger.info(f"Resume command: {cmd}")
-
+            # has_resume guarantees claude_args is non-empty and contains --resume
+            cmd.extend(self.runner.claude_args)
+            self.logger.info(f"Resume command: {cmd}")
             return cmd
         # Normal mode - full command with all claude-mpm enhancements
-        cmd = ["claude", "--dangerously-skip-permissions"]
 
         # Add custom arguments
         if self.runner.claude_args:

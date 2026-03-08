@@ -28,7 +28,7 @@ def add_setup_subparser(subparsers: argparse._SubParsersAction) -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Available services:
-  slack                  Set up Slack MPM integration
+  slack-mpm              Set up Slack MCP server (token-based)
   gworkspace-mcp         Set up Google Workspace MCP (automatically sets up OAuth)
   oauth                  Set up OAuth authentication (requires --oauth-service)
   kuzu-memory            Set up kuzu-memory integration
@@ -46,20 +46,23 @@ Service options:
   --model MODEL          Model ID for the selected provider
 
 Examples:
-  # Single service
-  claude-mpm setup slack
+  # Set up Slack MCP server
+  claude-mpm setup slack-mpm
 
   # Slack without auto-launch
-  claude-mpm setup slack --no-launch
+  claude-mpm setup slack-mpm --no-launch
+
+  # Force re-validation of token
+  claude-mpm setup slack-mpm --force
 
   # Multiple services
-  claude-mpm setup slack gworkspace-mcp
+  claude-mpm setup slack-mpm gworkspace-mcp
 
   # Service with options (flags after service apply to it)
   claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
 
   # Multiple services with mixed options
-  claude-mpm setup slack oauth --oauth-service gworkspace-mcp --no-launch
+  claude-mpm setup slack-mpm oauth --oauth-service gworkspace-mcp --no-launch
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search
@@ -74,13 +77,13 @@ Examples:
   claude-mpm setup mcp-skillset --force
 
   # Set up with Anthropic provider
-  claude-mpm setup slack --provider anthropic
+  claude-mpm setup slack-mpm --provider anthropic
 
   # Set up with Bedrock provider in a specific region
-  claude-mpm setup slack --provider bedrock --region us-west-2
+  claude-mpm setup slack-mpm --provider bedrock --region us-west-2
 
   # Set up multiple services and configure provider in one command
-  claude-mpm setup slack gworkspace-mcp --provider anthropic
+  claude-mpm setup slack-mpm gworkspace-mcp --provider anthropic
 
 Note: Flags are associated with the service that precedes them.
       mcp-skillset is installed at user-level (Claude Desktop config) and available to all projects.

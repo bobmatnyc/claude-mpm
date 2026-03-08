@@ -195,12 +195,10 @@ class SetupCommand(BaseCommand):
 
             service_args = Namespace(**service_options)
 
-            if service_name == "slack":
-                result = self._setup_slack(service_args)
-            elif service_name == "gworkspace-mcp":
+            if service_name == "gworkspace-mcp":
                 result = self._setup_google_workspace(service_args)
-            elif service_name == "slack-mcp":
-                result = self._setup_slack_mcp(service_args)
+            elif service_name == "slack-mpm":
+                result = self._setup_slack_mpm(service_args)
             elif service_name == "notion":
                 result = self._setup_notion(service_args)
             elif service_name == "confluence":
@@ -341,9 +339,8 @@ class SetupCommand(BaseCommand):
   setup SERVICE [OPTIONS] [SERVICE [OPTIONS] ...]
 
 [bold]Available Services:[/bold]
-  slack                  Set up Slack MPM integration
+  slack-mpm              Set up Slack MCP server (token-based)
   gworkspace-mcp         Set up Google Workspace MCP (includes OAuth)
-  slack-mcp              Set up Slack MCP server (token-based)
   notion                 Set up Notion integration
   confluence             Set up Confluence integration
   kuzu-memory            Set up kuzu-memory graph-based memory backend
@@ -363,35 +360,32 @@ class SetupCommand(BaseCommand):
   --model MODEL          Model ID for the selected provider
 
 [bold]Examples:[/bold]
-  # Single service
-  claude-mpm setup slack
+  # Set up Slack MCP server
+  claude-mpm setup slack-mpm
 
   # Slack without auto-launch
-  claude-mpm setup slack --no-launch
+  claude-mpm setup slack-mpm --no-launch
+
+  # Force re-validation of token
+  claude-mpm setup slack-mpm --force
 
   # Multiple services (space-separated)
-  claude-mpm setup slack gworkspace-mcp
+  claude-mpm setup slack-mpm gworkspace-mcp
 
   # Multiple services (comma-separated)
-  claude-mpm setup slack,gworkspace-mcp,notion
+  claude-mpm setup slack-mpm,gworkspace-mcp,notion
 
   # Service with options
   claude-mpm setup oauth --oauth-service gworkspace-mcp --no-browser
 
   # Multiple services with options
-  claude-mpm setup slack oauth --oauth-service gworkspace-mcp --no-launch
+  claude-mpm setup slack-mpm oauth --oauth-service gworkspace-mcp --no-launch
 
   # Set up mcp-vector-search
   claude-mpm setup mcp-vector-search
 
   # With force flag to reinstall
   claude-mpm setup mcp-vector-search --force
-
-  # Set up slack-mcp
-  claude-mpm setup slack-mcp
-
-  # Force re-validation
-  claude-mpm setup slack-mcp --force
 
 [dim]Note: Flags apply to the service that precedes them.[/dim]
 """
@@ -521,27 +515,27 @@ class SetupCommand(BaseCommand):
         except Exception as e:
             console.print(f"[yellow]Warning: Could not update .gitignore: {e}[/yellow]")
 
-    def _configure_slack_mcp_in_mcp_json(
-        self, slack_mcp_path: str | None = None
+    def _configure_slack_mpm_in_mcp_json(
+        self, slack_mpm_path: str | None = None
     ) -> None:
-        """Configure slack-mcp MCP server in .mcp.json."""
+        """Configure slack-mpm MCP server in .mcp.json."""
         import json
 
         mcp_config_path = Path.cwd() / ".mcp.json"
 
         # Build server config — prefer uv run with directory if we know the path
-        if slack_mcp_path:
+        if slack_mpm_path:
             server_config = {
                 "type": "stdio",
                 "command": "uv",
-                "args": ["run", "--directory", slack_mcp_path, "slack-mcp", "mcp"],
+                "args": ["run", "--directory", slack_mpm_path, "slack-mpm", "mcp"],
                 "env": {},
             }
         else:
             # Fall back to installed binary
             server_config = {
                 "type": "stdio",
-                "command": "slack-mcp",
+                "command": "slack-mpm",
                 "args": ["mcp"],
                 "env": {},
             }
@@ -559,60 +553,60 @@ class SetupCommand(BaseCommand):
         if "mcpServers" not in config:
             config["mcpServers"] = {}
 
-        if "slack-mcp" in config["mcpServers"]:
-            console.print("[dim]slack-mcp already configured in .mcp.json[/dim]")
+        if "slack-mpm" in config["mcpServers"]:
+            console.print("[dim]slack-mpm already configured in .mcp.json[/dim]")
             return
 
-        config["mcpServers"]["slack-mcp"] = server_config
+        config["mcpServers"]["slack-mpm"] = server_config
 
         try:
             with open(mcp_config_path, "w") as f:
                 json.dump(config, f, indent=2)
                 f.write("\n")
-            console.print("[green]✓ Added slack-mcp to .mcp.json[/green]")
+            console.print("[green]✓ Added slack-mpm to .mcp.json[/green]")
         except OSError as e:
             console.print(f"[yellow]Warning: Could not write .mcp.json: {e}[/yellow]")
 
-    def _setup_slack_mcp(self, args) -> CommandResult:
-        """Set up slack-mcp — validates SLACK_BOT_TOKEN and configures .mcp.json."""
+    def _setup_slack_mpm(self, args) -> CommandResult:
+        """Set up slack-mpm — validates SLACK_BOT_TOKEN and configures .mcp.json."""
         import shutil
         import subprocess
 
         console.print(
             "\n[bold]Slack MCP Setup[/bold]\n"
-            "Connects Claude to your Slack workspace via the slack-mcp server.\n"
+            "Connects Claude to your Slack workspace via the slack-mpm server.\n"
             "Requires a Slack bot token (SLACK_BOT_TOKEN=xoxb-...).\n"
         )
 
-        # --- Step 1: Locate slack-mcp binary or local project ---
-        slack_mcp_project = Path.home() / "Projects" / "slack-mcp"
-        slack_mcp_binary = shutil.which("slack-mcp")
+        # --- Step 1: Locate slack-mpm binary or local project ---
+        slack_mpm_project = Path.home() / "Projects" / "slack-mpm"
+        slack_mpm_binary = shutil.which("slack-mpm")
         using_local = (
-            slack_mcp_project.exists()
-            and (slack_mcp_project / "pyproject.toml").exists()
+            slack_mpm_project.exists()
+            and (slack_mpm_project / "pyproject.toml").exists()
         )
 
         if using_local:
             console.print(
-                f"[cyan]Found local slack-mcp project at {slack_mcp_project}[/cyan]"
+                f"[cyan]Found local slack-mpm project at {slack_mpm_project}[/cyan]"
             )
-            run_cmd = ["uv", "run", "--directory", str(slack_mcp_project), "slack-mcp"]
-            slack_mcp_path = str(slack_mcp_project)
-        elif slack_mcp_binary:
+            run_cmd = ["uv", "run", "--directory", str(slack_mpm_project), "slack-mpm"]
+            slack_mpm_path = str(slack_mpm_project)
+        elif slack_mpm_binary:
             console.print(
-                f"[cyan]Found installed slack-mcp at {slack_mcp_binary}[/cyan]"
+                f"[cyan]Found installed slack-mpm at {slack_mpm_binary}[/cyan]"
             )
-            run_cmd = [slack_mcp_binary]
-            slack_mcp_path = None
+            run_cmd = [slack_mpm_binary]
+            slack_mpm_path = None
         else:
             console.print(
-                "[yellow]slack-mcp not found locally or installed.[/yellow]\n"
+                "[yellow]slack-mpm not found locally or installed.[/yellow]\n"
                 "[dim]Install it:[/dim]\n"
-                "  git clone https://github.com/your-org/slack-mcp ~/Projects/slack-mcp\n"
-                "  cd ~/Projects/slack-mcp && uv sync\n"
+                "  git clone https://github.com/bobmatnyc/slack-mpm ~/Projects/slack-mpm\n"
+                "  cd ~/Projects/slack-mpm && uv sync\n"
             )
             return CommandResult.error_result(
-                "slack-mcp not found. Clone the project to ~/Projects/slack-mcp."
+                "slack-mpm not found. Clone the project to ~/Projects/slack-mpm."
             )
 
         # --- Step 2: Check for SLACK_BOT_TOKEN ---
@@ -641,7 +635,7 @@ class SetupCommand(BaseCommand):
 
         console.print(f"[dim]Bot token found: {token[:6]}...{token[-4:]}[/dim]")
 
-        # --- Step 3: Validate token via slack-mcp setup ---
+        # --- Step 3: Validate token via slack-mpm setup ---
         console.print("\n[cyan]Validating Slack token...[/cyan]")
         try:
             env = os.environ.copy()
@@ -665,10 +659,10 @@ class SetupCommand(BaseCommand):
         except subprocess.TimeoutExpired:
             return CommandResult.error_result("Token validation timed out.")
         except Exception as e:
-            return CommandResult.error_result(f"Failed to run slack-mcp setup: {e}")
+            return CommandResult.error_result(f"Failed to run slack-mpm setup: {e}")
 
         # --- Step 4: Configure .mcp.json ---
-        self._configure_slack_mcp_in_mcp_json(slack_mcp_path=slack_mcp_path)
+        self._configure_slack_mpm_in_mcp_json(slack_mpm_path=slack_mpm_path)
 
         # --- Step 5: Register with setup registry ---
         try:
@@ -676,7 +670,7 @@ class SetupCommand(BaseCommand):
 
             registry = SetupRegistry()
             registry.add_service(
-                name="slack-mcp",
+                name="slack-mpm",
                 service_type="mcp",
                 version="0.1.0",
                 tools=[
@@ -700,19 +694,19 @@ class SetupCommand(BaseCommand):
                     "add_reminder",
                 ],
             )
-            console.print("[green]✓ Registered slack-mcp in setup registry[/green]")
+            console.print("[green]✓ Registered slack-mpm in setup registry[/green]")
         except Exception:
             pass  # Registry is optional, non-fatal
 
         console.print(
-            "\n[bold green]✓ slack-mcp setup complete![/bold green]\n"
+            "\n[bold green]✓ slack-mpm setup complete![/bold green]\n"
             "[dim]The MCP server is now configured in .mcp.json.\n"
             "Claude Code will load it automatically when you open this project.[/dim]\n"
         )
 
-        return CommandResult.success_result("slack-mcp setup complete")
+        return CommandResult.success_result("slack-mpm setup complete")
 
-    def _configure_slack_mcp_server(self) -> None:
+    def _configure_slack_mpm_server(self) -> None:
         """Configure slack-user-proxy MCP server in .mcp.json after OAuth setup."""
         try:
             import json
@@ -823,10 +817,10 @@ class SetupCommand(BaseCommand):
                 console.print("\n[green]✓ Slack setup complete![/green]")
 
                 # Configure slack-user-proxy MCP server
-                self._configure_slack_mcp_server()
+                self._configure_slack_mpm_server()
 
-                # Also configure slack-mcp if available
-                self._configure_slack_mcp_in_mcp_json()
+                # Also configure slack-mpm if available
+                self._configure_slack_mpm_in_mcp_json()
 
                 return CommandResult.success_result("Slack setup completed")
 

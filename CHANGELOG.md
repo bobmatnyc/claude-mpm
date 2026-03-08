@@ -1,8 +1,20 @@
+## v5.9.52 (2026-03-06)
+
+### Refactor
+
+- rename setup 'slack' service to 'slack-mpm' to match library name
+
+## v5.9.51 (2026-03-06)
+
+### Chore
+
+- remove slack-mpm and slack-user-proxy script entrypoints (extracted to standalone packages)
+
 ## v5.9.50 (2026-03-05)
 
 ### Feat
 
-- add slack-mcp setup support to claude-mpm
+- add slack-mpm setup support to claude-mpm
 
 ## v5.9.49 (2026-03-05)
 
