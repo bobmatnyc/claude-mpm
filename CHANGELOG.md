@@ -1,3 +1,10 @@
+## v5.9.53 (2026-03-08)
+
+### Feat
+
+- add --no-dangerously-skip-permissions opt-out for DevOps/SRE environments
+- Environmental Awareness System for PM command routing (#296)
+
 ## v5.9.52 (2026-03-06)
 
 ### Refactor
