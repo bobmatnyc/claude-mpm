@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
 """Tool analysis utilities for Claude Code hook handler.
 
 This module provides utilities for analyzing tool usage, extracting parameters,
 and assessing security risks.
 """
+
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
@@ -71,6 +72,7 @@ def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
         )
     elif tool_name == "Task":
         # Special handling for Task tool (agent delegations)
+        normalized_subagent = normalize_agent_id(tool_input.get("subagent_type") or "")
         params.update(
             {
                 "subagent_type": tool_input.get("subagent_type", "unknown"),
@@ -81,9 +83,9 @@ def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
                     if tool_input.get("prompt")
                     else ""
                 ),
-                "is_pm_delegation": tool_input.get("subagent_type") == "pm",
-                "is_research_delegation": tool_input.get("subagent_type") == "research",
-                "is_engineer_delegation": tool_input.get("subagent_type") == "engineer",
+                "is_pm_delegation": normalized_subagent == "pm",
+                "is_research_delegation": normalized_subagent == "research",
+                "is_engineer_delegation": normalized_subagent == "engineer",
             }
         )
     elif tool_name == "TodoWrite":

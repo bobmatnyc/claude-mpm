@@ -99,8 +99,14 @@ class TestUnderscoreVariant:
         )
 
 
-class TestDeploymentPathConsistency:
-    """Verify all deployment paths produce same filename for same agent."""
+class TestNormalizeDeploymentFilenameConsistency:
+    """Verify normalize_deployment_filename is idempotent and consistent
+    across various input formats.
+
+    NOTE: This does NOT test that all deployment paths call
+    normalize_deployment_filename(). That is verified by grep-based
+    consolidation guard tests and code review.
+    """
 
     @pytest.mark.parametrize(
         "agent_stem",
@@ -113,22 +119,18 @@ class TestDeploymentPathConsistency:
             "QA",
             "documentation",
             "nestjs-engineer",
+            # Edge cases: -agent suffix stripping + idempotency
+            "debug-agent",
+            "agent-agent",
         ],
     )
-    def test_all_paths_same_filename(self, agent_stem):
-        """Every path should produce the same normalized filename."""
-        expected = normalize_deployment_filename(f"{agent_stem}.md")
-
-        # Path 1: deploy_agent_file uses normalize_deployment_filename directly
-        path1_result = normalize_deployment_filename(f"{agent_stem}.md")
-
-        # Path 2: SingleAgentDeployer should use normalize_deployment_filename
-        path2_result = normalize_deployment_filename(f"{agent_stem}.md")
-
-        # Path 3: configure.py should use normalize_deployment_filename
-        path3_result = normalize_deployment_filename(f"{agent_stem}.md")
-
-        assert path1_result == path2_result == path3_result == expected
+    def test_idempotent_normalization(self, agent_stem):
+        """Normalizing an already-normalized filename returns the same result."""
+        first_pass = normalize_deployment_filename(f"{agent_stem}.md")
+        second_pass = normalize_deployment_filename(first_pass)
+        assert first_pass == second_pass, (
+            f"Not idempotent: '{agent_stem}.md' -> '{first_pass}' -> '{second_pass}'"
+        )
 
 
 class TestNormalizeAgentIdForComparison:
