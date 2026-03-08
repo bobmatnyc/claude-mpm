@@ -25,6 +25,7 @@ from claude_mpm.models.agent_definition import (
     AgentDefinition,
     AgentMetadata,
     AgentPermissions,
+    AgentRole,
     AgentSection,
     AgentType,
     AgentWorkflow,
@@ -440,10 +441,10 @@ class AgentManager:
         post = frontmatter.loads(content)
 
         # Extract metadata
+        raw_type = post.metadata.get("agent_type", post.metadata.get("type"))
         metadata = AgentMetadata(
-            type=AgentType.from_frontmatter(
-                post.metadata.get("agent_type", post.metadata.get("type"))
-            ),
+            type=AgentType.from_frontmatter(raw_type),
+            role=AgentRole.from_frontmatter(raw_type),
             model_preference=post.metadata.get("model_preference", "claude-3-sonnet"),
             version=post.metadata.get("version", "1.0.0"),
             last_updated=post.metadata.get("last_updated"),

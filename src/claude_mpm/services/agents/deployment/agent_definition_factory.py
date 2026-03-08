@@ -4,10 +4,12 @@ This module provides factory functionality for creating AgentDefinition objects
 from lifecycle manager parameters. Extracted to reduce complexity.
 """
 
+from claude_mpm.core.unified_agent_registry import AgentSourceType
 from claude_mpm.models.agent_definition import (
     AgentDefinition,
     AgentMetadata,
     AgentPermissions,
+    AgentRole,
     AgentType,
 )
 from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
@@ -45,16 +47,25 @@ class AgentDefinitionFactory:
         Returns:
             AgentDefinition object
         """
-        # Map tier to AgentType
+        # Map tier to AgentType (deprecated) and AgentSourceType
         type_map = {
             ModificationTier.USER: AgentType.CUSTOM,
             ModificationTier.PROJECT: AgentType.PROJECT,
             ModificationTier.SYSTEM: AgentType.SYSTEM,
         }
+        source_map = {
+            ModificationTier.USER: AgentSourceType.CUSTOM,
+            ModificationTier.PROJECT: AgentSourceType.PROJECT,
+            ModificationTier.SYSTEM: AgentSourceType.SYSTEM,
+        }
 
         # Create metadata
         metadata = AgentMetadata(
             type=type_map.get(tier, AgentType.CUSTOM),
+            role=AgentRole.from_frontmatter(agent_type)
+            if agent_type
+            else AgentRole.OTHER,
+            source=source_map.get(tier, AgentSourceType.CUSTOM),
             model_preference=kwargs.get("model_preference", "claude-3-sonnet"),
             version="1.0.0",
             author=kwargs.get("author", "claude-mpm"),

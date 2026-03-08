@@ -60,6 +60,10 @@ class EnhancedAgentLoader:
             "title": agent_def.title,
             "version": agent_def.metadata.version,
             "type": agent_def.metadata.type.value,
+            "role": agent_def.metadata.role.value,
+            "source": agent_def.metadata.source.value
+            if agent_def.metadata.source
+            else None,
             "model_preference": agent_def.metadata.model_preference,
             "specializations": agent_def.metadata.specializations,
             "last_updated": (

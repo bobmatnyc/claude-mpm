@@ -20,6 +20,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.core.unified_agent_registry import AgentSourceType
+
 
 class AgentType(str, Enum):
     """Agent type classification by role category.
@@ -255,7 +257,9 @@ class AgentMetadata:
     - Different services may need different metadata views
     """
 
-    type: AgentType
+    type: AgentType  # DEPRECATED -- use .role and .source
+    role: AgentRole = AgentRole.OTHER  # NEW: what the agent does
+    source: Optional[AgentSourceType] = None  # NEW: where the agent comes from
     model_preference: str = "claude-3-sonnet"
     version: str = "1.0.0"
     last_updated: Optional[datetime] = None
@@ -266,6 +270,15 @@ class AgentMetadata:
     collection_id: Optional[str] = None  # Format: owner/repo-name
     source_path: Optional[str] = None  # Relative path in repository
     canonical_id: Optional[str] = None  # Format: collection_id:agent_id
+
+    def __post_init__(self):
+        """Auto-populate role and source from type if not explicitly set."""
+        if self.role == AgentRole.OTHER and self.type is not None:
+            # Derive role from type for backward compat
+            role_values = {m.value for m in AgentRole}
+            if self.type.value in role_values:
+                self.role = AgentRole(self.type.value)
+        # source stays None if not explicitly set -- not derivable from type
 
     def increment_serial_version(self) -> None:
         """Increment the patch version number.
@@ -334,6 +347,8 @@ class AgentDefinition:
             "file_path": self.file_path,
             "metadata": {
                 "type": self.metadata.type.value,
+                "role": self.metadata.role.value,
+                "source": self.metadata.source.value if self.metadata.source else None,
                 "model_preference": self.metadata.model_preference,
                 "version": self.metadata.version,
                 "last_updated": (
