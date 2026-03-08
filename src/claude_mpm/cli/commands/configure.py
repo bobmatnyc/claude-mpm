@@ -33,6 +33,7 @@ from ...services.version_service import VersionService
 from ...utils.agent_filters import (
     apply_all_filters,
     get_deployed_agent_ids,
+    normalize_agent_id,
     normalize_agent_id_for_comparison,
 )
 from ...utils.console import console as default_console
@@ -3219,12 +3220,11 @@ class ConfigureCommand(BaseCommand):
             if 0 <= idx < len(installed):
                 agent = installed[idx]
                 full_agent_id = getattr(agent, "full_agent_id", agent.name)
+                # Normalize so that e.g. "dart_engineer" -> "dart-engineer"
+                full_agent_id = normalize_agent_id(full_agent_id)
 
-                # Determine possible file names (hierarchical and leaf)
+                # Determine possible file names (normalized leaf name)
                 file_names = [f"{full_agent_id}.md"]
-                if "/" in full_agent_id:
-                    leaf_name = full_agent_id.split("/")[-1]
-                    file_names.append(f"{leaf_name}.md")
 
                 # Remove from active scope's agents directory
                 removed = False

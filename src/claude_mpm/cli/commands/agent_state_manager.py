@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from claude_mpm.cli.commands.configure_models import AgentConfig
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class SimpleAgentManager:
@@ -166,8 +167,8 @@ class SimpleAgentManager:
                     # Show first few tools as "dependencies" for UI purposes
                     display_tools = tools[:3] if len(tools) > 3 else tools
 
-                    # Normalize agent ID (remove -agent suffix if present, replace underscores)
-                    normalized_id = agent_id.replace("-agent", "").replace("_", "-")
+                    # Normalize agent ID using canonical normalizer
+                    normalized_id = normalize_agent_id(agent_id)
 
                     # Check if this agent is deployed
                     is_deployed = self._is_agent_deployed(normalized_id)

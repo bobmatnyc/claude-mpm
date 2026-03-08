@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Set
 from claude_mpm.utils.agent_filters import normalize_agent_id
 
 from ...core.logger import get_logger
+from ...utils.agent_filters import get_deployed_agent_ids
 from .service_interfaces import ICacheManager, IMemoryManager, IPathResolver
 
 
@@ -664,26 +665,21 @@ class MemoryManager(IMemoryManager):
         """
         Get a set of deployed agent names from .claude/agents/ directories.
 
+        Delegates to get_deployed_agent_ids() for canonical scanning and
+        normalization (lowercase, kebab-case, no -agent suffix), then caches
+        the result via _cache_manager.
+
         Returns:
-            Set of agent names (file stems) that are deployed
+            Set of normalized agent names that are deployed
         """
         # Try to get from cache first
         cached = self._cache_manager.get_deployed_agents()
         if cached is not None:
             return cached
 
-        # Cache miss - perform actual scan
+        # Cache miss - delegate to canonical function
         self.logger.debug("Scanning for deployed agents (cache miss)")
-        deployed = set()
-
-        # Check project-level .claude/agents/
-        project_agents_dir = Path.cwd() / ".claude" / "agents"
-        if project_agents_dir.exists():
-            for agent_file in project_agents_dir.glob("*.md"):
-                agent_name = agent_file.stem
-                if agent_name.upper() != "README":
-                    deployed.add(agent_name)
-                    self.logger.debug(f"Found deployed agent: {agent_name}")
+        deployed = get_deployed_agent_ids()
 
         # Cache the result
         self._cache_manager.set_deployed_agents(deployed)

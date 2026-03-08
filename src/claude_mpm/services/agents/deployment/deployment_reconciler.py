@@ -22,6 +22,7 @@ from typing import Dict, List, Optional, Set
 from claude_mpm.core.logging_utils import get_logger
 from claude_mpm.core.unified_config import UnifiedConfig
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 logger = get_logger(__name__)
 
@@ -364,7 +365,8 @@ class DeploymentReconciler:
 
     def _remove_agent(self, agent_id: str, deploy_dir: Path) -> None:
         """Remove deployed agent."""
-        agent_file = deploy_dir / f"{agent_id}.md"
+        normalized = normalize_agent_id(agent_id)
+        agent_file = deploy_dir / f"{normalized}.md"
         if agent_file.exists():
             agent_file.unlink()
 

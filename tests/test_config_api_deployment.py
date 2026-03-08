@@ -233,7 +233,8 @@ class TestUndeployAgentEndpoint(AioHTTPTestCase):
             assert resp.status == 200
             data = await resp.json()
             assert data["success"] is True
-            assert data["agent_name"] == "custom-agent"
+            # normalize_agent_id strips "-agent" suffix: "custom-agent" -> "custom"
+            assert data["agent_name"] == "custom"
 
 
 class TestBatchDeployEndpoint(AioHTTPTestCase):

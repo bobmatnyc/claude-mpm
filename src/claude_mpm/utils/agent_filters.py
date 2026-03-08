@@ -118,7 +118,7 @@ def normalize_agent_id(agent_id: str) -> str:
         >>> normalize_agent_id("")
         ''
         >>> normalize_agent_id("-agent")
-        ''
+        'agent'
         >>> normalize_agent_id("python-engineer.md")
         'python-engineer'
     """

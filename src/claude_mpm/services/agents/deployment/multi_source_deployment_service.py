@@ -21,6 +21,7 @@ import yaml
 from claude_mpm.core.config import Config
 from claude_mpm.core.logging_config import get_logger
 from claude_mpm.services.agents.deployment_utils import normalize_deployment_filename
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 from .agent_discovery_service import AgentDiscoveryService
 from .agent_version_manager import AgentVersionManager
@@ -30,13 +31,16 @@ from .remote_agent_discovery_service import RemoteAgentDiscoveryService
 def _normalize_agent_name(name: str) -> str:
     """Normalize agent name for consistent comparison.
 
-    Converts spaces, underscores to hyphens and lowercases.
+    Delegates to the canonical normalize_agent_id() normalizer which produces
+    lowercase, kebab-case identifiers with no -agent suffix.
+
     Examples:
         "Dart Engineer" -> "dart-engineer"
         "dart_engineer" -> "dart-engineer"
         "DART-ENGINEER" -> "dart-engineer"
+        "research-agent" -> "research"
     """
-    return name.lower().replace(" ", "-").replace("_", "-")
+    return normalize_agent_id(name)
 
 
 class MultiSourceAgentDeploymentService:

@@ -454,3 +454,149 @@ class TestMemoryManager:
                     assert "Naming mismatch detected" in warning_messages
                     assert "python-engineer" in warning_messages
                     assert "python_engineer" in warning_messages
+
+
+class TestGetDeployedAgentsNormalization:
+    """Tests for Phase H6: _get_deployed_agents() normalization.
+
+    Verifies that _get_deployed_agents() returns normalized agent IDs
+    (lowercase, kebab-case, no -agent suffix) regardless of the on-disk
+    filename convention.
+    """
+
+    @pytest.fixture
+    def mock_cache_manager(self):
+        """Create a mock cache manager."""
+        cache = MagicMock(spec=ICacheManager)
+        cache.get_memories.return_value = None
+        cache.get_deployed_agents.return_value = None  # Cache miss
+        return cache
+
+    @pytest.fixture
+    def mock_path_resolver(self):
+        """Create a mock path resolver."""
+        resolver = MagicMock(spec=IPathResolver)
+        resolver.ensure_directory.side_effect = lambda p: p
+        return resolver
+
+    @pytest.fixture
+    def memory_manager(self, mock_cache_manager, mock_path_resolver):
+        """Create a MemoryManager instance with mocked dependencies."""
+        return MemoryManager(
+            cache_manager=mock_cache_manager, path_resolver=mock_path_resolver
+        )
+
+    def test_get_deployed_agents_normalizes_underscore_stems(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Deploy file named dart_engineer.md, verify returns {'dart-engineer'}."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            (agents_dir / "dart_engineer.md").write_text("# Dart Engineer")
+
+            with patch(
+                "claude_mpm.utils.agent_filters.Path.cwd",
+                return_value=Path(tmpdir),
+            ):
+                deployed = memory_manager._get_deployed_agents()
+
+            assert "dart-engineer" in deployed
+            assert "dart_engineer" not in deployed
+
+    def test_get_deployed_agents_normalizes_uppercase_stems(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Deploy file named ENGINEER.md, verify returns {'engineer'}."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            (agents_dir / "ENGINEER.md").write_text("# Engineer")
+
+            with patch(
+                "claude_mpm.utils.agent_filters.Path.cwd",
+                return_value=Path(tmpdir),
+            ):
+                deployed = memory_manager._get_deployed_agents()
+
+            assert "engineer" in deployed
+            assert "ENGINEER" not in deployed
+
+    def test_get_deployed_agents_strips_agent_suffix(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Deploy file named research-agent.md, verify returns {'research'}."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            (agents_dir / "research-agent.md").write_text("# Research Agent")
+
+            with patch(
+                "claude_mpm.utils.agent_filters.Path.cwd",
+                return_value=Path(tmpdir),
+            ):
+                deployed = memory_manager._get_deployed_agents()
+
+            assert "research" in deployed
+            assert "research-agent" not in deployed
+
+    def test_get_deployed_agents_uses_cache_when_available(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Verify cache is used when available, bypassing filesystem scan."""
+        mock_cache_manager.get_deployed_agents.return_value = {"cached-agent"}
+
+        deployed = memory_manager._get_deployed_agents()
+
+        assert deployed == {"cached-agent"}
+        mock_cache_manager.set_deployed_agents.assert_not_called()
+
+    def test_get_deployed_agents_caches_result_on_miss(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Verify scan result is cached on cache miss."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            (agents_dir / "qa.md").write_text("# QA")
+
+            with patch(
+                "claude_mpm.utils.agent_filters.Path.cwd",
+                return_value=Path(tmpdir),
+            ):
+                deployed = memory_manager._get_deployed_agents()
+
+            assert "qa" in deployed
+            mock_cache_manager.set_deployed_agents.assert_called_once()
+
+    def test_deployed_agent_memories_loaded_with_underscore_filenames(
+        self, memory_manager, mock_cache_manager
+    ):
+        """Deploy dart_engineer.md agent, create dart-engineer_memories.md, verify loaded."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / ".claude" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "dart_engineer.md").write_text("# Dart Engineer")
+
+            memories_dir = Path(tmpdir) / ".claude-mpm" / "memories"
+            memories_dir.mkdir(parents=True)
+            (memories_dir / "dart-engineer_memories.md").write_text(
+                "# Agent Memory: dart-engineer\n- Dart test memory"
+            )
+
+            with patch(
+                "claude_mpm.services.core.memory_manager.Path.cwd",
+                return_value=Path(tmpdir),
+            ), patch(
+                "claude_mpm.utils.agent_filters.Path.cwd",
+                return_value=Path(tmpdir),
+            ):
+                result = memory_manager.load_memories()
+
+            assert "agent_memories" in result
+            assert "dart-engineer" in result["agent_memories"]
+            assert "Dart test memory" in result["agent_memories"]["dart-engineer"]
