@@ -206,6 +206,7 @@ class MPMInitCommand:
             # Deploy PM skills after successful initialization
             if result.get("status") == OperationResult.SUCCESS:
                 self._deploy_pm_skills()
+                self._generate_environment_config()
 
             return result
 
@@ -678,6 +679,23 @@ class MPMInitCommand:
             self.console.print(
                 f"[yellow]⚠️  Could not optimize CLAUDE.md: {e}[/yellow]\n"
             )
+
+    def _generate_environment_config(self) -> None:
+        """Generate .claude-mpm/environment.md with detected environment info.
+
+        Non-fatal: any detection failure is logged as a warning only.
+        """
+        try:
+            from claude_mpm.services.environment.environment_detector import (
+                EnvironmentDetector,
+            )
+
+            detector = EnvironmentDetector(self.project_path)
+            env_file = detector.detect_and_write(force=True)
+            if env_file:
+                logger.info(f"Environment configuration written to {env_file}")
+        except Exception as e:
+            logger.warning(f"Environment detection failed (non-fatal): {e}")
 
     def _estimate_tokens(self, text: str) -> int:
         """Estimate token count for text (rough approximation).
