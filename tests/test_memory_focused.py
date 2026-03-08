@@ -16,6 +16,7 @@ sys.path.insert(0, str(src_path))
 
 from claude_mpm.core.config import Config
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 def test_basic_memory_operations():
@@ -29,7 +30,7 @@ def test_basic_memory_operations():
 
     agent_id = "test_agent"
     memories_dir = temp_dir / ".claude-mpm" / "memories"
-    memory_file = memories_dir / f"{agent_id}_memories.md"
+    memory_file = memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
 
     try:
         # Test 1: Create initial memory
@@ -138,9 +139,12 @@ def test_multiple_agents():
             )
             assert success, f"Should add memory for {agent_id}"
 
-            # Check file exists
-            memory_file = memories_dir / f"{agent_id}_memories.md"
-            assert memory_file.exists(), f"Memory file should exist for {agent_id}"
+            # Check file exists (use normalized ID for canonical filename)
+            normalized_id = normalize_agent_id(agent_id)
+            memory_file = memories_dir / f"{normalized_id}_memories.md"
+            assert memory_file.exists(), (
+                f"Memory file should exist for {agent_id} (normalized: {normalized_id})"
+            )
 
             # Check content
             content = memory_file.read_text()
@@ -180,7 +184,12 @@ def test_deduplication():
     memory_manager = AgentMemoryManager(config=config, working_directory=temp_dir)
 
     agent_id = "dedup_test"
-    memory_file = temp_dir / ".claude-mpm" / "memories" / f"{agent_id}_memories.md"
+    memory_file = (
+        temp_dir
+        / ".claude-mpm"
+        / "memories"
+        / f"{normalize_agent_id(agent_id)}_memories.md"
+    )
 
     try:
         # Add similar memories

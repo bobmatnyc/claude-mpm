@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class MemoryOptimizer(LoggerMixin):
@@ -94,7 +95,8 @@ class MemoryOptimizer(LoggerMixin):
             Dict containing optimization results and statistics
         """
         try:
-            memory_file = self.memories_dir / f"{agent_id}_agent.md"
+            normalized_id = normalize_agent_id(agent_id)
+            memory_file = self.memories_dir / f"{normalized_id}_agent.md"
 
             if not memory_file.exists():
                 return {
@@ -580,7 +582,8 @@ class MemoryOptimizer(LoggerMixin):
         Returns:
             Analysis results
         """
-        memory_file = self.memories_dir / f"{agent_id}_agent.md"
+        normalized_id = normalize_agent_id(agent_id)
+        memory_file = self.memories_dir / f"{normalized_id}_agent.md"
 
         if not memory_file.exists():
             return {

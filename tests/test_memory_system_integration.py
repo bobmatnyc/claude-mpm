@@ -36,6 +36,7 @@ from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 # Import the memory system components
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 from claude_mpm.services.agents.memory.content_manager import MemoryContentManager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 
 class TestMemorySystemIntegration:
@@ -75,7 +76,7 @@ class TestMemorySystemIntegration:
         self.memory_manager.load_agent_memory(agent_id)
 
         # Verify file was created
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
         assert memory_file.exists(), "Memory file should be created"
 
         print(f"✓ Memory file created: {memory_file}")
@@ -120,7 +121,7 @@ class TestMemorySystemIntegration:
 
         # Create initial memory
         self.memory_manager.load_agent_memory(agent_id)
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
 
         # Get initial timestamp
         initial_content = memory_file.read_text()
@@ -173,7 +174,7 @@ class TestMemorySystemIntegration:
         self.memory_manager.add_learning(agent_id, "Initial memory 1")
         self.memory_manager.add_learning(agent_id, "Initial memory 2")
 
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
         initial_content = memory_file.read_text()
 
         print("Initial memory content:")
@@ -227,7 +228,7 @@ class TestMemorySystemIntegration:
         # Create initial memory
         self.memory_manager.add_learning(agent_id, "Existing memory item")
 
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
         initial_content = memory_file.read_text()
 
         print("Initial memory content:")
@@ -321,7 +322,9 @@ class TestMemorySystemIntegration:
             assert success, "Hook processing should extract MEMORIES successfully"
 
             # Verify the memories were processed
-            memory_file = self.memories_dir / f"{agent_id}_memories.md"
+            memory_file = (
+                self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
+            )
             if memory_file.exists():
                 content = memory_file.read_text()
                 print("Memory file content after hook processing:")
@@ -357,7 +360,7 @@ class TestMemorySystemIntegration:
         for item in similar_items:
             self.memory_manager.add_learning(agent_id, item)
 
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
         content_before = memory_file.read_text()
 
         print("Content before deduplication:")
@@ -421,7 +424,9 @@ class TestMemorySystemIntegration:
             assert success, f"Should create memory for {agent_id}"
 
             # Verify file location
-            memory_file = self.memories_dir / f"{agent_id}_memories.md"
+            memory_file = (
+                self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
+            )
             assert memory_file.exists(), f"Memory file should exist for {agent_id}"
 
             # Verify content
@@ -463,7 +468,7 @@ class TestMemorySystemIntegration:
         # Step 1: Initial memory creation
         print("Step 1: Initial memory creation")
         self.memory_manager.load_agent_memory(agent_id)
-        memory_file = self.memories_dir / f"{agent_id}_memories.md"
+        memory_file = self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
         assert memory_file.exists(), "Memory file should be created"
         print("✓ Initial memory file created")
 

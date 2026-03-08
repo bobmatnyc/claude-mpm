@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from claude_mpm.utils.agent_filters import normalize_agent_id
+
 from ...core.logger import get_logger
 from .service_interfaces import ICacheManager, IMemoryManager, IPathResolver
 
@@ -156,7 +158,9 @@ class MemoryManager(IMemoryManager):
         self._path_resolver.ensure_directory(project_memories_dir)
 
         if agent_name:
-            memory_file = project_memories_dir / f"{agent_name}_memories.md"
+            memory_file = (
+                project_memories_dir / f"{normalize_agent_id(agent_name)}_memories.md"
+            )
         else:
             memory_file = project_memories_dir / "PM_memories.md"
 
@@ -241,7 +245,9 @@ class MemoryManager(IMemoryManager):
 
         if agent_name:
             # Clear specific agent memory
-            memory_file = project_memories_dir / f"{agent_name}_memories.md"
+            memory_file = (
+                project_memories_dir / f"{normalize_agent_id(agent_name)}_memories.md"
+            )
             if memory_file.exists():
                 memory_file.unlink()
                 self.logger.info(f"Cleared memories for agent: {agent_name}")
@@ -449,13 +455,15 @@ class MemoryManager(IMemoryManager):
             if old_file.stem.endswith("_agent"):
                 # Old format: {agent_name}_agent.md -> {agent_name}_memories.md
                 agent_name = old_file.stem[:-6]  # Remove "_agent" suffix
-                new_path = memories_dir / f"{agent_name}_memories.md"
+                normalized = normalize_agent_id(agent_name)
+                new_path = memories_dir / f"{normalized}_memories.md"
                 if not new_path.exists():
                     self._migrate_legacy_file(old_file, new_path)
             else:
                 # Intermediate format: {agent_name}.md -> {agent_name}_memories.md
                 agent_name = old_file.stem
-                new_path = memories_dir / f"{agent_name}_memories.md"
+                normalized = normalize_agent_id(agent_name)
+                new_path = memories_dir / f"{normalized}_memories.md"
                 if not new_path.exists():
                     self._migrate_legacy_file(old_file, new_path)
 
@@ -466,7 +474,8 @@ class MemoryManager(IMemoryManager):
                 continue
 
             # Extract agent name from file (remove "_memories" suffix)
-            agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
+            raw_agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
+            agent_name = normalize_agent_id(raw_agent_name)
 
             # Check if agent is deployed
             if agent_name in deployed_agents:

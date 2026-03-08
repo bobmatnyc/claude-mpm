@@ -92,7 +92,12 @@ class TestAgentMemoryManager:
     # ================================================================================
 
     def test_get_memory_file_with_migration_no_existing_files(self, manager):
-        """Test getting memory file path when no files exist."""
+        """Test getting memory file path when no files exist.
+
+        normalize_agent_id("test_agent") -> "test" because:
+        test_agent -> test-agent (underscores to dashes) -> test (strip -agent suffix)
+        So the canonical filename is test_memories.md.
+        """
         directory = Path("/test/memories")
         agent_id = "test_agent"
 
@@ -101,56 +106,73 @@ class TestAgentMemoryManager:
                 directory, agent_id
             )
 
-        assert result == directory / "test_agent_memories.md"
+        # normalize_agent_id("test_agent") = "test" (underscore->dash then strip -agent)
+        assert result == directory / "test_memories.md"
 
     def test_get_memory_file_with_migration_from_old_agent_format(self, manager):
-        """Test migrating from old {agent_id}_memory.md format."""
+        """Test migrating from old underscore format to canonical kebab-case.
+
+        normalize_agent_id("test_agent") = "test" so canonical = test_memories.md.
+        The legacy file test_agent_memories.md should be migrated to test_memories.md.
+        """
         directory = Path("/test/memories")
-        agent_id = "test_agent"  # No hyphen, so no hyphenated_file check
+        agent_id = "test_agent"
 
-        new_file = directory / f"{agent_id}_memories.md"
+        canonical_file = directory / "test_memories.md"
 
-        # Sequence: old_file.exists()=True, new_file.exists()=False
-        with patch("pathlib.Path.exists", side_effect=[True, False]):
+        # Sequence: canonical.exists()=False (skip early return),
+        #           legacy_underscore.exists()=True (triggers migration)
+        with patch("pathlib.Path.exists", side_effect=[False, True]):
             with patch("pathlib.Path.rename") as mock_rename:
                 result = manager.file_service.get_memory_file_with_migration(
                     directory, agent_id
                 )
 
-        mock_rename.assert_called_once_with(new_file)
-        assert result == new_file
+        mock_rename.assert_called_once_with(canonical_file)
+        assert result == canonical_file
 
     def test_get_memory_file_with_migration_from_simple_format(self, manager):
-        """Test migration when _memory.md rename fails falls back to old file."""
+        """Test migration when underscore rename fails falls back to old file.
+
+        normalize_agent_id("test_agent") = "test", canonical = test_memories.md.
+        Legacy underscore file = test_agent_memories.md.
+        When canonical doesn't exist and legacy exists but rename fails,
+        should fall back to the legacy file.
+        """
         directory = Path("/test/memories")
-        agent_id = "test_agent"  # No hyphen
+        agent_id = "test_agent"
 
-        old_file = directory / f"{agent_id}_memory.md"
+        legacy_file = directory / "test_agent_memories.md"
 
-        # Sequence: old_file.exists()=True, new_file.exists()=False, rename fails
-        with patch("pathlib.Path.exists", side_effect=[True, False]):
+        # Sequence: canonical.exists()=False, legacy_underscore.exists()=True
+        # Then rename raises OSError -> falls back to legacy file
+        with patch("pathlib.Path.exists", side_effect=[False, True]):
             with patch("pathlib.Path.rename", side_effect=OSError("Cannot rename")):
                 result = manager.file_service.get_memory_file_with_migration(
                     directory, agent_id
                 )
 
-        # Falls back to old file when rename fails
-        assert result == old_file
+        # Falls back to legacy file when rename fails
+        assert result == legacy_file
 
     def test_get_memory_file_migration_error_handling(self, manager):
-        """Test getting memory file when no old format exists."""
+        """Test getting memory file when no old format exists.
+
+        normalize_agent_id("test_agent") = "test", so canonical = test_memories.md.
+        When nothing exists, returns the canonical path.
+        """
         directory = Path("/test/memories")
         agent_id = "test_agent"
 
-        new_file = directory / f"{agent_id}_memories.md"
+        canonical_file = directory / "test_memories.md"
 
         with patch.object(Path, "exists", return_value=False):
             result = manager.file_service.get_memory_file_with_migration(
                 directory, agent_id
             )
 
-        # Returns standard new file path when no old format found
-        assert result == new_file
+        # Returns canonical path when no old format found
+        assert result == canonical_file
 
     def test_save_memory_file_success(self, manager):
         """Test successful memory file save via file_service."""

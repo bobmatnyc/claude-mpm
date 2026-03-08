@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from claude_mpm.utils.agent_filters import normalize_agent_id
+
 from ...core.logger import get_logger
 from ...services.agents.memory.agent_memory_manager import AgentMemoryManager
 
@@ -167,7 +169,8 @@ class MemoryCRUDService(IMemoryCRUDService):
                     "error": f"Memory already exists for agent: {agent_id}",
                     "agent_id": agent_id,
                     "existing_file": str(
-                        memory_manager.memories_dir / f"{agent_id}_memories.md"
+                        memory_manager.memories_dir
+                        / f"{normalize_agent_id(agent_id)}_memories.md"
                     ),
                 }
 
@@ -176,7 +179,10 @@ class MemoryCRUDService(IMemoryCRUDService):
                 agent_id, template_type
             )
 
-            memory_file = memory_manager.memories_dir / f"{agent_id}_memories.md"
+            memory_file = (
+                memory_manager.memories_dir
+                / f"{normalize_agent_id(agent_id)}_memories.md"
+            )
             memory_file.parent.mkdir(parents=True, exist_ok=True)
             memory_file.write_text(template_content)
 
@@ -217,7 +223,10 @@ class MemoryCRUDService(IMemoryCRUDService):
                         "agent_id": agent_id,
                     }
 
-                memory_file = memory_manager.memories_dir / f"{agent_id}_memories.md"
+                memory_file = (
+                    memory_manager.memories_dir
+                    / f"{normalize_agent_id(agent_id)}_memories.md"
+                )
                 file_stats = None
                 if memory_file.exists():
                     stat = memory_file.stat()
@@ -353,13 +362,17 @@ class MemoryCRUDService(IMemoryCRUDService):
                 }
 
             memory_manager = self._get_memory_manager()
-            memory_file = memory_manager.memories_dir / f"{agent_id}_memories.md"
+            memory_file = (
+                memory_manager.memories_dir
+                / f"{normalize_agent_id(agent_id)}_memories.md"
+            )
 
             if not memory_file.exists():
                 # Check for alternative formats
                 alt_files = [
-                    memory_manager.memories_dir / f"{agent_id}_agent.md",
-                    memory_manager.memories_dir / f"{agent_id}.md",
+                    memory_manager.memories_dir
+                    / f"{normalize_agent_id(agent_id)}_agent.md",
+                    memory_manager.memories_dir / f"{normalize_agent_id(agent_id)}.md",
                 ]
 
                 for alt_file in alt_files:

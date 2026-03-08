@@ -28,6 +28,7 @@ class TestNormalizationConsolidation:
             "event_handlers.py",  # Agent type routing fallback (not filename)
             "agent_template_builder.py",  # Claude Code name derivation (not filename)
             "validate_env.py",  # Env var formatting (unrelated to agent filenames)
+            "agent_filters.py",  # Canonical normalize_agent_id() implementation
         }
 
         violations = []

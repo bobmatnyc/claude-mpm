@@ -84,39 +84,94 @@ def filter_base_agents(agents: List[Dict]) -> List[Dict]:
     return [a for a in agents if not is_base_agent(a.get("agent_id", ""))]
 
 
+def normalize_agent_id(agent_id: str) -> str:
+    """Canonical agent ID normalizer for memory lookups and comparisons.
+
+    Produces a stable, lowercase, kebab-case identifier with no -agent suffix.
+    This is the SINGLE SOURCE OF TRUTH for agent ID normalization.
+    All other normalizers should delegate to this function.
+
+    Algorithm:
+    1. Guard against empty/whitespace input
+    2. Extract leaf name (last component after /)
+    3. Strip common file extensions (.md, .yaml, .yml, .json)
+    4. Lowercase
+    5. Replace underscores and spaces with dashes
+    6. Collapse multiple dashes
+    7. Strip leading/trailing dashes
+    8. Strip -agent suffix
+    9. Guard against empty result
+
+    Args:
+        agent_id: Raw agent ID in any format
+
+    Returns:
+        Normalized lowercase kebab-case agent ID, or "" for invalid input
+
+    Examples:
+        >>> normalize_agent_id("python_engineer")
+        'python-engineer'
+        >>> normalize_agent_id("research-agent")
+        'research'
+        >>> normalize_agent_id("PM")
+        'pm'
+        >>> normalize_agent_id("")
+        ''
+        >>> normalize_agent_id("-agent")
+        ''
+        >>> normalize_agent_id("python-engineer.md")
+        'python-engineer'
+    """
+    if not agent_id or not agent_id.strip():
+        return ""
+
+    # Extract leaf name (handle path-style agent IDs)
+    leaf = agent_id.split("/")[-1]
+
+    # Strip common file extensions
+    for ext in (".md", ".yaml", ".yml", ".json"):
+        if leaf.lower().endswith(ext):
+            leaf = leaf[: -len(ext)]
+            break
+
+    # Lowercase, replace underscores and spaces with dashes
+    normalized = leaf.lower().replace("_", "-").replace(" ", "-")
+
+    # Collapse multiple dashes
+    while "--" in normalized:
+        normalized = normalized.replace("--", "-")
+
+    # Strip leading/trailing dashes
+    normalized = normalized.strip("-")
+
+    # Strip -agent suffix
+    if normalized.endswith("-agent"):
+        normalized = normalized[:-6]
+
+    return normalized
+
+
 def normalize_agent_id_for_comparison(agent_id: str) -> str:
     """Normalize an agent_id to match deployed filename stems.
 
-    Applies the same transformations as normalize_deployment_filename():
-    - Extract leaf name (last component after /)
-    - Lowercase
-    - Replace underscores with dashes
-    - Strip -agent suffix
+    Delegates to normalize_agent_id() -- the canonical normalizer.
+    Kept for backward compatibility with existing callers.
 
     Args:
-        agent_id: Raw agent ID from frontmatter (e.g., "research-agent", "dart_engineer")
+        agent_id: Raw agent ID from frontmatter
 
     Returns:
-        Normalized stem matching deployed filename (e.g., "research", "dart-engineer")
+        Normalized stem matching deployed filename
 
     Examples:
         >>> normalize_agent_id_for_comparison("research-agent")
         'research'
         >>> normalize_agent_id_for_comparison("dart_engineer")
         'dart-engineer'
-        >>> normalize_agent_id_for_comparison("api-qa-agent")
-        'api-qa'
-        >>> normalize_agent_id_for_comparison("python-engineer")
-        'python-engineer'
-        >>> normalize_agent_id_for_comparison("engineer/backend/python-engineer")
-        'python-engineer'
+        >>> normalize_agent_id_for_comparison("PM")
+        'pm'
     """
-    from claude_mpm.services.agents.deployment_utils import (
-        normalize_deployment_filename,
-    )
-
-    leaf = agent_id.split("/")[-1]
-    return Path(normalize_deployment_filename(f"{leaf}.md")).stem
+    return normalize_agent_id(agent_id)
 
 
 def get_deployed_agent_ids(project_dir: Optional[Path] = None) -> Set[str]:

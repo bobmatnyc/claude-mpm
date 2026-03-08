@@ -28,6 +28,7 @@ from claude_mpm.core.config import Config
 from claude_mpm.core.enums import OperationResult
 from claude_mpm.core.interfaces import MemoryServiceInterface
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.utils.agent_filters import normalize_agent_id
 
 from .content_manager import MemoryContentManager
 from .memory_categorization_service import MemoryCategorizationService
@@ -219,7 +220,7 @@ class AgentMemoryManager(MemoryServiceInterface):
         # Save default file to project directory
         try:
             target_dir = self.memories_dir
-            memory_file = target_dir / f"{agent_id}_memories.md"
+            memory_file = target_dir / f"{normalize_agent_id(agent_id)}_memories.md"
             memory_file.write_text(template, encoding="utf-8")
             self.logger.info(f"Created project-specific memory file for {agent_id}")
 
@@ -674,7 +675,9 @@ class AgentMemoryManager(MemoryServiceInterface):
             True if save successful
         """
         try:
-            memory_path = self.memories_dir / f"{agent_id}_memories.md"
+            memory_path = (
+                self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
+            )
 
             # Validate size before saving
             is_valid, error_msg = self.validate_memory_size(content)
@@ -723,7 +726,9 @@ class AgentMemoryManager(MemoryServiceInterface):
         if self.memories_dir.exists():
             if agent_id:
                 # Metrics for specific agent
-                memory_file = self.memories_dir / f"{agent_id}_memories.md"
+                memory_file = (
+                    self.memories_dir / f"{normalize_agent_id(agent_id)}_memories.md"
+                )
                 if memory_file.exists():
                     size_kb = memory_file.stat().st_size / 1024
                     metrics["agents"][agent_id] = {
