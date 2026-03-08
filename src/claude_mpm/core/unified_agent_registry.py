@@ -60,11 +60,8 @@ class AgentSourceType(Enum):
     SPECIALIZED = "specialized"  # Specialized domain agents
     USER_DEFINED = "user_defined"  # User-created agents
     PROJECT = "project"  # Project-specific agents
-    MEMORY_AWARE = "memory_aware"  # Memory-enhanced agents
-
-
-# Backward compatibility alias (deprecated)
-AgentType = AgentSourceType
+    SYSTEM = "system"  # System-level agents (matches models enum, factory needs it)
+    CUSTOM = "custom"  # Alias for USER_DEFINED (factory compat, frontmatter compat)
 
 
 class AgentFormat(Enum):
@@ -92,6 +89,7 @@ class AgentMetadata:
     version: str = "1.0.0"
     author: str = ""
     tags: List[str] = None
+    is_memory_aware: bool = False
     # NEW: Collection-based identification fields
     collection_id: Optional[str] = None  # Format: owner/repo-name
     source_path: Optional[str] = None  # Relative path in repo
@@ -618,7 +616,7 @@ class UnifiedAgentRegistry:
             for agent_name, metadata in self.registry.items():
                 if agent_name == memory_name or memory_name in agent_name:
                     metadata.memory_files.append(str(memory_file))
-                    metadata.agent_type = AgentSourceType.MEMORY_AWARE
+                    metadata.is_memory_aware = True
                     logger.debug(
                         f"Integrated memory file {memory_file} with agent {agent_name}"
                     )
@@ -705,7 +703,9 @@ class UnifiedAgentRegistry:
 
     def get_memory_aware_agents(self) -> List[AgentMetadata]:
         """Get all memory-aware agents."""
-        return self.list_agents(agent_type=AgentSourceType.MEMORY_AWARE)
+        if not self.registry:
+            self.discover_agents()
+        return [a for a in self.registry.values() if a.is_memory_aware]
 
     def get_agents_by_collection(self, collection_id: str) -> List[AgentMetadata]:
         """Get all agents from a specific collection.
@@ -971,7 +971,6 @@ __all__ = [
     "AgentMetadata",
     "AgentSourceType",
     "AgentTier",
-    "AgentType",  # Backward compatibility alias for AgentSourceType
     "UnifiedAgentRegistry",
     "discover_agents",
     "discover_agents_sync",
